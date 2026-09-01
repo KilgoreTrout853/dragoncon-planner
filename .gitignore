@@ -1,0 +1,11 @@
+# Secrets - never commit
+.env
+*.key
+anthropic_key.txt
+
+# Local backups from setup
+*.bak
+
+# Python
+__pycache__/
+*.pyc

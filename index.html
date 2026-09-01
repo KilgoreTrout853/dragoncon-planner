@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#171A33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Dragon Con 2026 planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ------------------------------------------------------------------
+   Tokens. Color is information here: each hotel has one hue, used on
+   room chips and walk warnings. Gold is reserved for "mine".
+   ------------------------------------------------------------------ */
+:root {
+  --ink: #171A33;
+  --surface: #22264A;
+  --raised: #2B3060;
+  --line: #3A3F70;
+  --text: #F3EFE4;
+  --muted: #A5A9C9;
+  --dim: #6F739A;
+  --gold: #F3C64B;
+  --gold-ink: #2A2200;
+  --warn: #FF8A7A;
+  --font: "Barlow Semi Condensed", "Avenir Next Condensed", "Roboto Condensed", system-ui, sans-serif;
+  --h-Marriott: #F0705D;
+  --h-Hyatt: #55B7DD;
+  --h-Hilton: #79D19B;
+  --h-Courtland: #C797F5;
+  --h-Westin: #F5A63F;
+  --h-Mart: #E3D46A;
+  --h-Hardy: #9ED5C0;
+  --h-Streaming: #8F97AE;
+  --h-Other: #8F97AE;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; }
+html { background: var(--ink); color-scheme: dark; }
+body {
+  margin: 0; font-family: var(--font); font-size: 17px; line-height: 1.3;
+  color: var(--text); background: var(--ink);
+  -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
+  padding-bottom: calc(76px + var(--safe-bottom));
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Header ------------------------------------------------------------ */
+.hdr {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--ink); border-bottom: 1px solid var(--line);
+  padding: 10px max(14px, calc(50% - 366px)) 8px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+}
+.hdr .brand { font-size: 13px; color: var(--muted); font-weight: 500; }
+.hdr .clock { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.05; }
+.hdr .fresh { font-size: 13px; color: var(--dim); margin-top: 2px; }
+.icon-btn {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted);
+}
+.icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Notices ------------------------------------------------------------ */
+.notice {
+  margin: 12px 14px 0; padding: 10px 12px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 15px;
+}
+.notice b { color: var(--text); font-weight: 600; }
+.notice.warn { border-color: var(--warn); color: var(--text); }
+
+/* Views -------------------------------------------------------------- */
+main { max-width: 760px; margin: 0 auto; }
+.view { padding: 0 0 12px; }
+.section-title {
+  padding: 18px 14px 6px; font-size: 15px; color: var(--muted); font-weight: 600;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+}
+.section-title .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* Controls ----------------------------------------------------------- */
+.controls { padding: 12px 14px 0; display: grid; gap: 10px; }
+.search {
+  width: 100%; height: 48px; padding: 0 14px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text);
+}
+.search::placeholder { color: var(--dim); }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: 0 0 auto; height: 38px; padding: 0 13px; border-radius: 19px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-weight: 500; white-space: nowrap;
+}
+.chip[aria-pressed="true"] { background: var(--text); color: var(--ink); border-color: var(--text); font-weight: 600; }
+.chip.hotel[aria-pressed="true"] { background: var(--h); border-color: var(--h); color: var(--ink); }
+.row-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { height: 40px; padding: 0 12px; background: var(--surface); color: var(--muted); border: 0; font-weight: 500; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--ink); font-weight: 600; }
+select.track {
+  flex: 1 1 160px; min-width: 0; height: 40px; padding: 0 10px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text);
+}
+.toggle { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 15px; min-height: 40px; }
+.toggle input { width: 22px; height: 22px; accent-color: var(--gold); margin: 0; }
+
+/* Rows: a departures board. Time is loudest; the room chip carries the hotel color. */
+.list { list-style: none; margin: 0; padding: 0; }
+.day-head { padding: 22px 14px 4px; font-size: 20px; font-weight: 700; }
+.time-head { padding: 12px 14px 2px; font-size: 13px; color: var(--dim); font-variant-numeric: tabular-nums; border-top: 1px solid var(--line); }
+.row { border-top: 1px solid var(--line); }
+.row.open { background: var(--surface); }
+.row.mine .title::before { content: "★ "; color: var(--gold); }
+.row.cancelled .title { text-decoration: line-through; color: var(--muted); }
+.row-main {
+  width: 100%; display: grid; grid-template-columns: 66px 1fr; gap: 10px; text-align: left;
+  background: none; border: 0; padding: 11px 0 11px 14px; align-items: start;
+}
+.row-line { display: grid; grid-template-columns: 1fr 56px; align-items: stretch; }
+.t { font-variant-numeric: tabular-nums; line-height: 1.05; padding-top: 1px; }
+.t .start { font-size: 20px; font-weight: 700; display: block; }
+.t .ampm { font-size: 11px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+.t .end { display: block; font-size: 13px; color: var(--dim); margin-top: 3px; }
+.body { min-width: 0; }
+.title { font-size: 18px; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: 14px; color: var(--muted); }
+.room {
+  display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: 13px;
+  background: color-mix(in srgb, var(--h) 18%, transparent); color: var(--h); border: 1px solid color-mix(in srgb, var(--h) 45%, transparent);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.track { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.status { color: var(--gold); font-weight: 600; }
+mark { background: none; color: var(--gold); font-weight: 700; }
+.t .day { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 1px; letter-spacing: .02em; }
+.snippet { margin-top: 5px; font-size: 14px; color: var(--muted); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tagline { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 13px; padding: 2px 8px; border-radius: 6px; background: var(--raised); border: 1px solid var(--line); color: var(--text); }
+.tag.adult { color: var(--warn); }
+.star {
+  background: none; border: 0; color: var(--dim); font-size: 26px; line-height: 1; display: grid; place-items: center; padding: 0 8px 0 0;
+}
+.star[aria-pressed="true"] { color: var(--gold); }
+.detail { padding: 0 14px 14px 90px; color: var(--muted); font-size: 16px; display: grid; gap: 10px; }
+.detail p { margin: 0; white-space: pre-line; color: var(--text); }
+.detail .kv { display: grid; gap: 3px; font-size: 15px; }
+.detail .kv span { color: var(--text); }
+.btn {
+  height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; font-size: 16px;
+  background: var(--gold); color: var(--gold-ink); border: 0;
+}
+.btn.quiet { background: var(--raised); color: var(--text); border: 1px solid var(--line); }
+.btn.danger { background: transparent; color: var(--warn); border: 1px solid var(--line); }
+.detail .btn { justify-self: start; }
+.gap {
+  margin: 0 14px 0 80px; padding: 6px 10px; font-size: 14px; border-left: 3px solid var(--line); color: var(--muted);
+}
+.gap.tight { border-color: var(--warn); color: var(--text); }
+.gap.overlap { border-color: var(--warn); color: var(--warn); font-weight: 600; }
+.empty { padding: 28px 14px; color: var(--muted); font-size: 16px; }
+.empty b { color: var(--text); }
+.more { margin: 14px; }
+.mine-actions { padding: 12px 14px 0; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Bottom nav -------------------------------------------------------- */
+.nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  background: var(--ink); border-top: 1px solid var(--line);
+  padding: 6px max(8px, calc(50% - 372px)) calc(6px + var(--safe-bottom));
+}
+.nav button {
+  height: 58px; border: 0; background: none; color: var(--dim); border-radius: 12px;
+  display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: 14px;
+}
+.nav button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav button[aria-current="page"] { color: var(--text); background: var(--surface); }
+.nav .badge { position: absolute; margin-left: 40px; margin-top: -34px; background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: 12px; padding: 1px 6px; font-weight: 700; }
+
+/* Settings sheet ---------------------------------------------------- */
+.sheet-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9; }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; max-width: 760px; margin: 0 auto;
+  background: var(--surface); border-radius: 18px 18px 0 0; border: 1px solid var(--line); border-bottom: 0;
+  padding: 16px 16px calc(20px + var(--safe-bottom)); display: grid; gap: 16px;
+}
+.sheet h2 { margin: 0; font-size: 20px; }
+.sheet label { display: grid; gap: 6px; color: var(--muted); font-size: 15px; }
+.sheet input[type="range"] { width: 100%; accent-color: var(--gold); }
+.sheet input[type="datetime-local"] { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); }
+.sheet .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+.walk-table { font-size: 14px; color: var(--muted); }
+.walk-table td { padding: 2px 6px 2px 0; }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div>
+    <div class="brand">Dragon Con 2026</div>
+    <div class="clock" id="clock">…</div>
+    <div class="fresh" id="fresh"></div>
+  </div>
+  <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+</header>
+
+<main>
+  <div id="notice" class="notice" hidden></div>
+  <section class="view" id="view-now"></section>
+  <section class="view" id="view-browse" hidden></section>
+  <section class="view" id="view-mine" hidden></section>
+</main>
+
+<nav class="nav" aria-label="Sections">
+  <button data-tab="now" aria-current="page">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Now
+  </button>
+  <button data-tab="browse">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Browse
+  </button>
+  <button data-tab="mine" style="position:relative">
+    <svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>Mine
+    <span class="badge" id="mineBadge" hidden>0</span>
+  </button>
+</nav>
+
+<div id="sheetWrap" hidden>
+  <div class="sheet-back" id="sheetBack"></div>
+  <div class="sheet" role="dialog" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle">Settings</h2>
+    <label>Crowd factor for walk estimates: <b id="crowdLabel"></b>
+      <input type="range" id="crowd" min="1" max="2.5" step="0.1">
+    </label>
+    <label class="toggle"><input type="checkbox" id="noiseDefault"> Hide photo sessions and video-room screenings by default</label>
+    <label>Preview a different time (leave blank to use the real clock)
+      <input type="datetime-local" id="previewTime">
+    </label>
+    <div class="rowbtns">
+      <button class="btn quiet" id="applyPreview">Apply preview time</button>
+      <button class="btn quiet" id="clearPreview">Use real time</button>
+    </div>
+    <details>
+      <summary style="color:var(--muted);cursor:pointer">Walk-time defaults (minutes, before crowd factor)</summary>
+      <table class="walk-table" id="walkTable"></table>
+    </details>
+    <div class="rowbtns">
+      <button class="btn danger" id="resetPicks">Remove all picks</button>
+      <button class="btn" id="closeSheet">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>/* MiniSearch 7.2.0 (c) Luca Ongaro, MIT license, https://github.com/lucaong/minisearch */
+!function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t="undefined"!=typeof globalThis?globalThis:t||self).MiniSearch=e()}(this,function(){"use strict";const t="KEYS",e="VALUES",s="";class i{constructor(t,e){const s=t._tree,i=Array.from(s.keys());this.set=t,this._type=e,this._path=i.length>0?[{node:s,keys:i}]:[]}next(){const t=this.dive();return this.backtrack(),t}dive(){if(0===this._path.length)return{done:!0,value:void 0};const{node:t,keys:e}=n(this._path);if(n(e)===s)return{done:!1,value:this.result()};const i=t.get(n(e));return this._path.push({node:i,keys:Array.from(i.keys())}),this.dive()}backtrack(){if(0===this._path.length)return;const t=n(this._path).keys;t.pop(),t.length>0||(this._path.pop(),this.backtrack())}key(){return this.set._prefix+this._path.map(({keys:t})=>n(t)).filter(t=>t!==s).join("")}value(){return n(this._path).node.get(s)}result(){switch(this._type){case e:return this.value();case t:return this.key();default:return[this.key(),this.value()]}}[Symbol.iterator](){return this}}const n=t=>t[t.length-1],o=(t,e,i,n,r,c,h,u)=>{const d=c*h;t:for(const a of t.keys())if(a===s){const e=r[d-1];e<=i&&n.set(u,[t.get(a),e])}else{let s=c;for(let t=0;t<a.length;++t,++s){const n=a[t],o=h*s,c=o-h;let u=r[o];const d=Math.max(0,s-i-1),l=Math.min(h-1,s+i);for(let t=d;t<l;++t){const s=n!==e[t],i=r[c+t]+ +s,h=r[c+t+1]+1,d=r[o+t]+1,a=r[o+t+1]=Math.min(i,h,d);a<u&&(u=a)}if(u>i)continue t}o(t.get(a),e,i,n,r,s,h,u+a)}};class r{constructor(t=new Map,e=""){this._size=void 0,this._tree=t,this._prefix=e}atPrefix(t){if(!t.startsWith(this._prefix))throw new Error("Mismatched prefix");const[e,i]=c(this._tree,t.slice(this._prefix.length));if(void 0===e){const[e,n]=f(i);for(const i of e.keys())if(i!==s&&i.startsWith(n)){const s=new Map;return s.set(i.slice(n.length),e.get(i)),new r(s,t)}}return new r(e,t)}clear(){this._size=void 0,this._tree.clear()}delete(t){return this._size=void 0,d(this._tree,t)}entries(){return new i(this,"ENTRIES")}forEach(t){for(const[e,s]of this)t(e,s,this)}fuzzyGet(t,e){return((t,e,s)=>{const i=new Map;if(void 0===e)return i;const n=e.length+1,r=n+s,c=new Uint8Array(r*n).fill(s+1);for(let t=0;t<n;++t)c[t]=t;for(let t=1;t<r;++t)c[t*n]=t;return o(t,e,s,i,c,1,n,""),i})(this._tree,t,e)}get(t){const e=h(this._tree,t);return void 0!==e?e.get(s):void 0}has(t){const e=h(this._tree,t);return void 0!==e&&e.has(s)}keys(){return new i(this,t)}set(t,e){if("string"!=typeof t)throw new Error("key must be a string");this._size=void 0;return u(this._tree,t).set(s,e),this}get size(){if(this._size)return this._size;this._size=0;const t=this.entries();for(;!t.next().done;)this._size+=1;return this._size}update(t,e){if("string"!=typeof t)throw new Error("key must be a string");this._size=void 0;const i=u(this._tree,t);return i.set(s,e(i.get(s))),this}fetch(t,e){if("string"!=typeof t)throw new Error("key must be a string");this._size=void 0;const i=u(this._tree,t);let n=i.get(s);return void 0===n&&i.set(s,n=e()),n}values(){return new i(this,e)}[Symbol.iterator](){return this.entries()}static from(t){const e=new r;for(const[s,i]of t)e.set(s,i);return e}static fromObject(t){return r.from(Object.entries(t))}}const c=(t,e,i=[])=>{if(0===e.length||null==t)return[t,i];for(const n of t.keys())if(n!==s&&e.startsWith(n))return i.push([t,n]),c(t.get(n),e.slice(n.length),i);return i.push([t,e]),c(void 0,"",i)},h=(t,e)=>{if(0===e.length||null==t)return t;for(const i of t.keys())if(i!==s&&e.startsWith(i))return h(t.get(i),e.slice(i.length))},u=(t,e)=>{const i=e.length;t:for(let n=0;t&&n<i;){for(const o of t.keys())if(o!==s&&e[n]===o[0]){const s=Math.min(i-n,o.length);let r=1;for(;r<s&&e[n+r]===o[r];)++r;const c=t.get(o);if(r===o.length)t=c;else{const s=new Map;s.set(o.slice(r),c),t.set(e.slice(n,n+r),s),t.delete(o),t=s}n+=r;continue t}const o=new Map;return t.set(e.slice(n),o),o}return t},d=(t,e)=>{const[i,n]=c(t,e);if(void 0!==i)if(i.delete(s),0===i.size)a(n);else if(1===i.size){const[t,e]=i.entries().next().value;l(n,t,e)}},a=t=>{if(0===t.length)return;const[e,i]=f(t);if(e.delete(i),0===e.size)a(t.slice(0,-1));else if(1===e.size){const[i,n]=e.entries().next().value;i!==s&&l(t.slice(0,-1),i,n)}},l=(t,e,s)=>{if(0===t.length)return;const[i,n]=f(t);i.set(n+e,s),i.delete(n)},f=t=>t[t.length-1],m="or",_="and",g="and_not";class p{constructor(t){if(null==(null==t?void 0:t.fields))throw new Error('MiniSearch: option "fields" must be provided');const e=null==t.autoVacuum||!0===t.autoVacuum?M:t.autoVacuum;this._options={...z,...t,autoVacuum:e,searchOptions:{...b,...t.searchOptions||{}},autoSuggestOptions:{...I,...t.autoSuggestOptions||{}}},this._index=new r,this._documentCount=0,this._documentIds=new Map,this._idToShortId=new Map,this._fieldIds={},this._fieldLength=new Map,this._avgFieldLength=[],this._nextId=0,this._storedFields=new Map,this._dirtCount=0,this._currentVacuum=null,this._enqueuedVacuum=null,this._enqueuedVacuumConditions=F,this.addFields(this._options.fields)}add(t){const{extractField:e,stringifyField:s,tokenize:i,processTerm:n,fields:o,idField:r}=this._options,c=e(t,r);if(null==c)throw new Error(`MiniSearch: document does not have ID field "${r}"`);if(this._idToShortId.has(c))throw new Error(`MiniSearch: duplicate ID ${c}`);const h=this.addDocumentId(c);this.saveStoredFields(h,t);for(const r of o){const o=e(t,r);if(null==o)continue;const c=i(s(o,r),r),u=this._fieldIds[r],d=new Set(c).size;this.addFieldLength(h,u,this._documentCount-1,d);for(const t of c){const e=n(t,r);if(Array.isArray(e))for(const t of e)this.addTerm(u,h,t);else e&&this.addTerm(u,h,e)}}}addAll(t){for(const e of t)this.add(e)}addAllAsync(t,e={}){const{chunkSize:s=10}=e,i={chunk:[],promise:Promise.resolve()},{chunk:n,promise:o}=t.reduce(({chunk:t,promise:e},i,n)=>(t.push(i),(n+1)%s===0?{chunk:[],promise:e.then(()=>new Promise(t=>setTimeout(t,0))).then(()=>this.addAll(t))}:{chunk:t,promise:e}),i);return o.then(()=>this.addAll(n))}remove(t){const{tokenize:e,processTerm:s,extractField:i,stringifyField:n,fields:o,idField:r}=this._options,c=i(t,r);if(null==c)throw new Error(`MiniSearch: document does not have ID field "${r}"`);const h=this._idToShortId.get(c);if(null==h)throw new Error(`MiniSearch: cannot remove document with ID ${c}: it is not in the index`);for(const r of o){const o=i(t,r);if(null==o)continue;const c=e(n(o,r),r),u=this._fieldIds[r],d=new Set(c).size;this.removeFieldLength(h,u,this._documentCount,d);for(const t of c){const e=s(t,r);if(Array.isArray(e))for(const t of e)this.removeTerm(u,h,t);else e&&this.removeTerm(u,h,e)}}this._storedFields.delete(h),this._documentIds.delete(h),this._idToShortId.delete(c),this._fieldLength.delete(h),this._documentCount-=1}removeAll(t){if(t)for(const e of t)this.remove(e);else{if(arguments.length>0)throw new Error("Expected documents to be present. Omit the argument to remove all documents.");this._index=new r,this._documentCount=0,this._documentIds=new Map,this._idToShortId=new Map,this._fieldLength=new Map,this._avgFieldLength=[],this._storedFields=new Map,this._nextId=0}}discard(t){const e=this._idToShortId.get(t);if(null==e)throw new Error(`MiniSearch: cannot discard document with ID ${t}: it is not in the index`);this._idToShortId.delete(t),this._documentIds.delete(e),this._storedFields.delete(e),(this._fieldLength.get(e)||[]).forEach((t,s)=>{this.removeFieldLength(e,s,this._documentCount,t)}),this._fieldLength.delete(e),this._documentCount-=1,this._dirtCount+=1,this.maybeAutoVacuum()}maybeAutoVacuum(){if(!1===this._options.autoVacuum)return;const{minDirtFactor:t,minDirtCount:e,batchSize:s,batchWait:i}=this._options.autoVacuum;this.conditionalVacuum({batchSize:s,batchWait:i},{minDirtCount:e,minDirtFactor:t})}discardAll(t){const e=this._options.autoVacuum;try{this._options.autoVacuum=!1;for(const e of t)this.discard(e)}finally{this._options.autoVacuum=e}this.maybeAutoVacuum()}replace(t){const{idField:e,extractField:s}=this._options,i=s(t,e);this.discard(i),this.add(t)}vacuum(t={}){return this.conditionalVacuum(t)}conditionalVacuum(t,e){return this._currentVacuum?(this._enqueuedVacuumConditions=this._enqueuedVacuumConditions&&e,null!=this._enqueuedVacuum||(this._enqueuedVacuum=this._currentVacuum.then(()=>{const e=this._enqueuedVacuumConditions;return this._enqueuedVacuumConditions=F,this.performVacuuming(t,e)})),this._enqueuedVacuum):!1===this.vacuumConditionsMet(e)?Promise.resolve():(this._currentVacuum=this.performVacuuming(t),this._currentVacuum)}async performVacuuming(t,e){const s=this._dirtCount;if(this.vacuumConditionsMet(e)){const e=t.batchSize||S.batchSize,i=t.batchWait||S.batchWait;let n=1;for(const[t,s]of this._index){for(const[t,e]of s)for(const[i]of e)this._documentIds.has(i)||(e.size<=1?s.delete(t):e.delete(i));0===this._index.get(t).size&&this._index.delete(t),n%e===0&&await new Promise(t=>setTimeout(t,i)),n+=1}this._dirtCount-=s}await null,this._currentVacuum=this._enqueuedVacuum,this._enqueuedVacuum=null}vacuumConditionsMet(t){if(null==t)return!0;let{minDirtCount:e,minDirtFactor:s}=t;return e=e||M.minDirtCount,s=s||M.minDirtFactor,this.dirtCount>=e&&this.dirtFactor>=s}get isVacuuming(){return null!=this._currentVacuum}get dirtCount(){return this._dirtCount}get dirtFactor(){return this._dirtCount/(1+this._documentCount+this._dirtCount)}has(t){return this._idToShortId.has(t)}getStoredFields(t){const e=this._idToShortId.get(t);if(null!=e)return this._storedFields.get(e)}search(t,e={}){const{searchOptions:s}=this._options,i={...s,...e},n=this.executeQuery(t,e),o=[];for(const[t,{score:e,terms:s,match:r}]of n){const n=s.length||1,c={id:this._documentIds.get(t),score:e*n,terms:Object.keys(r),queryTerms:s,match:r};Object.assign(c,this._storedFields.get(t)),(null==i.filter||i.filter(c))&&o.push(c)}return t===p.wildcard&&null==i.boostDocument||o.sort(V),o}autoSuggest(t,e={}){e={...this._options.autoSuggestOptions,...e};const s=new Map;for(const{score:i,terms:n}of this.search(t,e)){const t=n.join(" "),e=s.get(t);null!=e?(e.score+=i,e.count+=1):s.set(t,{score:i,terms:n,count:1})}const i=[];for(const[t,{score:e,terms:n,count:o}]of s)i.push({suggestion:t,terms:n,score:e/o});return i.sort(V),i}get documentCount(){return this._documentCount}get termCount(){return this._index.size}static loadJSON(t,e){if(null==e)throw new Error("MiniSearch: loadJSON should be given the same options used when serializing the index");return this.loadJS(JSON.parse(t),e)}static async loadJSONAsync(t,e){if(null==e)throw new Error("MiniSearch: loadJSON should be given the same options used when serializing the index");return this.loadJSAsync(JSON.parse(t),e)}static getDefault(t){if(z.hasOwnProperty(t))return w(z,t);throw new Error(`MiniSearch: unknown option "${t}"`)}static loadJS(t,e){const{index:s,documentIds:i,fieldLength:n,storedFields:o,serializationVersion:r}=t,c=this.instantiateMiniSearch(t,e);c._documentIds=T(i),c._fieldLength=T(n),c._storedFields=T(o);for(const[t,e]of c._documentIds)c._idToShortId.set(e,t);for(const[t,e]of s){const s=new Map;for(const t of Object.keys(e)){let i=e[t];1===r&&(i=i.ds),s.set(parseInt(t,10),T(i))}c._index.set(t,s)}return c}static async loadJSAsync(t,e){const{index:s,documentIds:i,fieldLength:n,storedFields:o,serializationVersion:r}=t,c=this.instantiateMiniSearch(t,e);c._documentIds=await L(i),c._fieldLength=await L(n),c._storedFields=await L(o);for(const[t,e]of c._documentIds)c._idToShortId.set(e,t);let h=0;for(const[t,e]of s){const s=new Map;for(const t of Object.keys(e)){let i=e[t];1===r&&(i=i.ds),s.set(parseInt(t,10),await L(i))}++h%1e3==0&&await E(0),c._index.set(t,s)}return c}static instantiateMiniSearch(t,e){const{documentCount:s,nextId:i,fieldIds:n,averageFieldLength:o,dirtCount:c,serializationVersion:h}=t;if(1!==h&&2!==h)throw new Error("MiniSearch: cannot deserialize an index created with an incompatible version");const u=new p(e);return u._documentCount=s,u._nextId=i,u._idToShortId=new Map,u._fieldIds=n,u._avgFieldLength=o,u._dirtCount=c||0,u._index=new r,u}executeQuery(t,e={}){if(t===p.wildcard)return this.executeWildcardQuery(e);if("string"!=typeof t){const s={...e,...t,queries:void 0},i=t.queries.map(t=>this.executeQuery(t,s));return this.combineResults(i,s.combineWith)}const{tokenize:s,processTerm:i,searchOptions:n}=this._options,o={tokenize:s,processTerm:i,...n,...e},{tokenize:r,processTerm:c}=o,h=r(t).flatMap(t=>c(t)).filter(t=>!!t).map(x(o)).map(t=>this.executeQuerySpec(t,o));return this.combineResults(h,o.combineWith)}executeQuerySpec(t,e){const s={...this._options.searchOptions,...e},i=(s.fields||this._options.fields).reduce((t,e)=>({...t,[e]:w(s.boost,e)||1}),{}),{boostDocument:n,weights:o,maxFuzzy:r,bm25:c}=s,{fuzzy:h,prefix:u}={...b.weights,...o},d=this._index.get(t.term),a=this.termResults(t.term,t.term,1,t.termBoost,d,i,n,c);let l,f;if(t.prefix&&(l=this._index.atPrefix(t.term)),t.fuzzy){const e=!0===t.fuzzy?.2:t.fuzzy,s=e<1?Math.min(r,Math.round(t.term.length*e)):e;s&&(f=this._index.fuzzyGet(t.term,s))}if(l)for(const[e,s]of l){const o=e.length-t.term.length;if(!o)continue;null==f||f.delete(e);const r=u*e.length/(e.length+.3*o);this.termResults(t.term,e,r,t.termBoost,s,i,n,c,a)}if(f)for(const e of f.keys()){const[s,o]=f.get(e);if(!o)continue;const r=h*e.length/(e.length+o);this.termResults(t.term,e,r,t.termBoost,s,i,n,c,a)}return a}executeWildcardQuery(t){const e=new Map,s={...this._options.searchOptions,...t};for(const[t,i]of this._documentIds){const n=s.boostDocument?s.boostDocument(i,"",this._storedFields.get(t)):1;e.set(t,{score:n,terms:[],match:{}})}return e}combineResults(t,e=m){if(0===t.length)return new Map;const s=e.toLowerCase(),i=y[s];if(!i)throw new Error(`Invalid combination operator: ${e}`);return t.reduce(i)||new Map}toJSON(){const t=[];for(const[e,s]of this._index){const i={};for(const[t,e]of s)i[t]=Object.fromEntries(e);t.push([e,i])}return{documentCount:this._documentCount,nextId:this._nextId,documentIds:Object.fromEntries(this._documentIds),fieldIds:this._fieldIds,fieldLength:Object.fromEntries(this._fieldLength),averageFieldLength:this._avgFieldLength,storedFields:Object.fromEntries(this._storedFields),dirtCount:this._dirtCount,index:t,serializationVersion:2}}termResults(t,e,s,i,n,o,r,c,h=new Map){if(null==n)return h;for(const u of Object.keys(o)){const d=o[u],a=this._fieldIds[u],l=n.get(a);if(null==l)continue;let f=l.size;const m=this._avgFieldLength[a];for(const n of l.keys()){if(!this._documentIds.has(n)){this.removeTerm(a,n,e),f-=1;continue}const o=r?r(this._documentIds.get(n),e,this._storedFields.get(n)):1;if(!o)continue;const _=l.get(n),g=this._fieldLength.get(n)[a],p=s*i*d*o*v(_,f,this._documentCount,g,m,c),y=h.get(n);if(y){y.score+=p,k(y.terms,t);const s=w(y.match,e);s?s.push(u):y.match[e]=[u]}else h.set(n,{score:p,terms:[t],match:{[e]:[u]}})}}return h}addTerm(t,e,s){const i=this._index.fetch(s,O);let n=i.get(t);if(null==n)n=new Map,n.set(e,1),i.set(t,n);else{const t=n.get(e);n.set(e,(t||0)+1)}}removeTerm(t,e,s){if(!this._index.has(s))return void this.warnDocumentChanged(e,t,s);const i=this._index.fetch(s,O),n=i.get(t);null==n||null==n.get(e)?this.warnDocumentChanged(e,t,s):n.get(e)<=1?n.size<=1?i.delete(t):n.delete(e):n.set(e,n.get(e)-1),0===this._index.get(s).size&&this._index.delete(s)}warnDocumentChanged(t,e,s){for(const i of Object.keys(this._fieldIds))if(this._fieldIds[i]===e)return void this._options.logger("warn",`MiniSearch: document with ID ${this._documentIds.get(t)} has changed before removal: term "${s}" was not present in field "${i}". Removing a document after it has changed can corrupt the index!`,"version_conflict")}addDocumentId(t){const e=this._nextId;return this._idToShortId.set(t,e),this._documentIds.set(e,t),this._documentCount+=1,this._nextId+=1,e}addFields(t){for(let e=0;e<t.length;e++)this._fieldIds[t[e]]=e}addFieldLength(t,e,s,i){let n=this._fieldLength.get(t);null==n&&this._fieldLength.set(t,n=[]),n[e]=i;const o=(this._avgFieldLength[e]||0)*s+i;this._avgFieldLength[e]=o/(s+1)}removeFieldLength(t,e,s,i){if(1===s)return void(this._avgFieldLength[e]=0);const n=this._avgFieldLength[e]*s-i;this._avgFieldLength[e]=n/(s-1)}saveStoredFields(t,e){const{storeFields:s,extractField:i}=this._options;if(null==s||0===s.length)return;let n=this._storedFields.get(t);null==n&&this._storedFields.set(t,n={});for(const t of s){const s=i(e,t);void 0!==s&&(n[t]=s)}}}p.wildcard=Symbol("*");const w=(t,e)=>Object.prototype.hasOwnProperty.call(t,e)?t[e]:void 0,y={[m]:(t,e)=>{for(const s of e.keys()){const i=t.get(s);if(null==i)t.set(s,e.get(s));else{const{score:t,terms:n,match:o}=e.get(s);i.score=i.score+t,i.match=Object.assign(i.match,o),C(i.terms,n)}}return t},[_]:(t,e)=>{const s=new Map;for(const i of e.keys()){const n=t.get(i);if(null==n)continue;const{score:o,terms:r,match:c}=e.get(i);C(n.terms,r),s.set(i,{score:n.score+o,terms:n.terms,match:Object.assign(n.match,c)})}return s},[g]:(t,e)=>{for(const s of e.keys())t.delete(s);return t}},v=(t,e,s,i,n,o)=>{const{k:r,b:c,d:h}=o;return Math.log(1+(s-e+.5)/(e+.5))*(h+t*(r+1)/(t+r*(1-c+c*i/n)))},x=t=>(e,s,i)=>({term:e,fuzzy:"function"==typeof t.fuzzy?t.fuzzy(e,s,i):t.fuzzy||!1,prefix:"function"==typeof t.prefix?t.prefix(e,s,i):!0===t.prefix,termBoost:"function"==typeof t.boostTerm?t.boostTerm(e,s,i):1}),z={idField:"id",extractField:(t,e)=>t[e],stringifyField:(t,e)=>t.toString(),tokenize:t=>t.split(D),processTerm:t=>t.toLowerCase(),fields:void 0,searchOptions:void 0,storeFields:[],logger:(t,e)=>{"function"==typeof(null===console||void 0===console?void 0:console[t])&&console[t](e)},autoVacuum:!0},b={combineWith:m,prefix:!1,fuzzy:!1,maxFuzzy:6,boost:{},weights:{fuzzy:.45,prefix:.375},bm25:{k:1.2,b:.7,d:.5}},I={combineWith:"and",prefix:(t,e,s)=>e===s.length-1},S={batchSize:1e3,batchWait:10},F={minDirtFactor:.1,minDirtCount:20},M={...S,...F},k=(t,e)=>{t.includes(e)||t.push(e)},C=(t,e)=>{for(const s of e)t.includes(s)||t.push(s)},V=({score:t},{score:e})=>e-t,O=()=>new Map,T=t=>{const e=new Map;for(const s of Object.keys(t))e.set(parseInt(s,10),t[s]);return e},L=async t=>{const e=new Map;let s=0;for(const i of Object.keys(t))e.set(parseInt(i,10),t[i]),++s%1e3==0&&await E(0);return e},E=t=>new Promise(e=>setTimeout(e,t)),D=/[\n\r\p{Z}\p{P}]+/u;return p});
+</script>
+<script>
+/* ==================================================================
+   Data & constants
+   ================================================================== */
+const CON_DAYS = ["2026-09-02","2026-09-03","2026-09-04","2026-09-05","2026-09-06","2026-09-07"];
+const DAY_LABEL = {"2026-09-02":"Wed","2026-09-03":"Thu","2026-09-04":"Fri","2026-09-05":"Sat","2026-09-06":"Sun","2026-09-07":"Mon"};
+const DAY_LONG = {"2026-09-02":"Wednesday","2026-09-03":"Thursday","2026-09-04":"Friday","2026-09-05":"Saturday","2026-09-06":"Sunday","2026-09-07":"Monday"};
+const HOTEL_ORDER = ["Marriott","Hyatt","Hilton","Courtland Grand","Westin","AmericasMart","Hardy Ivy Park","Streaming","Other","Unknown"];
+const HOTEL_VAR = {"Marriott":"Marriott","Hyatt":"Hyatt","Hilton":"Hilton","Courtland Grand":"Courtland","Westin":"Westin","AmericasMart":"Mart","Hardy Ivy Park":"Hardy","Streaming":"Streaming","Other":"Other","Unknown":"Other"};
+const HOTEL_SHORT = {"Courtland Grand":"Courtland","AmericasMart":"Mart","Hardy Ivy Park":"Hardy Ivy"};
+// Rough walking minutes between venues at con pace. Edit freely. Same venue = 5 (room changes, elevators).
+const WALK = {
+  "Marriott|Hyatt":8, "Marriott|Hilton":7, "Hyatt|Hilton":12,
+  "Marriott|Courtland Grand":10, "Hilton|Courtland Grand":8, "Hyatt|Courtland Grand":15,
+  "Westin|Hyatt":8, "Westin|Marriott":12, "Westin|Hilton":15, "Westin|Courtland Grand":18,
+  "AmericasMart|Hyatt":7, "AmericasMart|Marriott":12, "AmericasMart|Westin":8, "AmericasMart|Hilton":15, "AmericasMart|Courtland Grand":18,
+  "Hardy Ivy Park|Marriott":5, "Hardy Ivy Park|Hilton":4, "Hardy Ivy Park|Hyatt":10, "Hardy Ivy Park|Courtland Grand":8, "Hardy Ivy Park|Westin":12, "Hardy Ivy Park|AmericasMart":12,
+};
+const NOISE_TRACKS = new Set(["Epic Photos","Video Room"]);
+const isNoise = ev => NOISE_TRACKS.has(ev.track) || /^photo session/i.test(ev.title);
+
+/* Con vocabulary. If an event mentions any phrase in a group, every phrase in the group becomes searchable for it.
+   Add your own lines freely; lowercase, no punctuation needed. */
+const SYNONYMS = [
+  ["symphony", "orchestra", "philharmonic", "concert", "classical music"],
+  ["marvel", "mcu", "avengers", "x-men", "xmen", "spider-man", "spiderman", "daredevil", "deadpool", "wolverine"],
+  ["batman", "superman", "justice league", "gotham", "dc comics", "wonder woman"],
+  ["star trek", "trek", "starfleet", "tng", "ds9", "voyager", "strange new worlds", "klingon", "trekkie"],
+  ["star wars", "mandalorian", "jedi", "sith", "andor", "skywalker", "lightsaber"],
+  ["d&d", "dnd", "dungeons & dragons", "dungeons and dragons", "ttrpg", "tabletop rpg", "role-playing", "roleplaying", "pathfinder", "dungeon master"],
+  ["warhammer", "40k", "40,000", "miniatures", "minis", "wargame", "wargaming"],
+  ["lord of the rings", "lotr", "tolkien", "hobbit", "middle-earth", "rings of power"],
+  ["game of thrones", "westeros", "house of the dragon", "targaryen"],
+  ["doctor who", "dr who", "tardis", "whovian", "dalek"],
+  ["anime", "manga", "shonen", "otaku"],
+  ["cosplay", "costume", "costuming", "costumer", "masquerade"],
+  ["space", "nasa", "astronomy", "astronaut", "rocket", "planetary", "spaceflight", "jpl", "telescope", "exoplanet", "orbit", "mars", "moon landing"],
+  ["science", "physics", "biology", "chemistry", "stem", "scientist"],
+  ["video game", "video games", "video gaming", "videogame", "esports", "arcade", "console", "gamer", "playstation", "xbox", "nintendo", "steam"],
+  ["board game", "board games", "boardgame", "tabletop", "card game", "deck-building"],
+  ["horror", "scary", "slasher", "zombie", "zombies", "haunted"],
+  ["rick and morty", "rick & morty"],
+  ["writing", "writers", "writer", "author", "authors", "novel", "publishing", "manuscript", "worldbuilding"],
+  ["comics", "comic book", "comic books", "graphic novel"],
+  ["puppet", "puppets", "puppetry", "puppet slam"],
+  ["burlesque", "18+", "adults only", "after dark", "late night", "adult"],
+  ["kids", "children", "family", "all ages", "young"],
+  ["wrestling", "wrestlers", "wrestle"],
+  ["karaoke", "sing-along", "singalong", "sing along"],
+  ["signing", "autograph", "autographs"],
+  ["photo op", "photo session", "photos with"],
+  ["music", "band", "dj", "dance party", "rave", "live music", "musicians"],
+  ["filk", "folk music"],
+  ["buffy", "firefly", "whedon", "angel"],
+  ["stargate", "sg-1"],
+  ["battlestar", "bsg", "galactica"],
+  ["pokemon", "pokémon"],
+  ["zelda", "mario", "nintendo"],
+  ["ghostbusters", "ghostbuster"],
+  ["lego", "brick", "bricks"],
+  ["harry potter", "potter", "hogwarts", "wizarding world"],
+  ["alien", "aliens", "predator", "xenomorph"],
+  ["godzilla", "kaiju"],
+  ["stranger things", "hawkins"],
+  ["expanse", "rocinante", "belter"],
+  ["fantasy", "high fantasy", "epic fantasy", "urban fantasy"],
+  ["romance", "romantasy", "paranormal romance"],
+  ["young adult", "ya"],
+  ["podcast", "podcasting", "podcasters"],
+  ["contest", "competition", "tournament", "championship"],
+  ["dance", "dancing", "ball"],
+];
+const STOPWORDS = new Set(["a","an","the","and","or","of","in","on","at","to","for","with","from","by","is","are","be","stuff","things","thing","something","anything","some","any","my","me","i","about","into","all"]);
+const KIND_LABELS = {qa: "Celebrity Q&A", panel: "Fan panel", screening: "Screening", workshop: "Workshop", signing: "Signing", photo: "Photo op", contest: "Contest", performance: "Performance", party: "Party", gaming: "Gaming", reading: "Reading", tour: "Tour", other: "Other"};
+let index = null;
+const processTerm = (term) => {
+  const t = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return t.length < 2 || STOPWORDS.has(t) ? null : t;
+};
+function aliasesFor(ev, text) {
+  const out = [];
+  for (const g of SYNONYMS) if (g.some(m => text.includes(m))) out.push(...g);
+  return out.join(" ");
+}
+
+const settings = loadJSON("dc26.settings", {crowd: 1.3, hideNoise: true});
+let picks = new Set(loadJSON("dc26.picks", []));
+let events = [], byId = new Map(), tracks = [], hotels = [];
+let meta = {};
+const state = {
+  tab: "now", openId: null,
+  now: {hotel: "All", limit: 80},
+  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", hideAdult: false, hideNoise: settings.hideNoise, page: 1},
+};
+const PAGE = 150;
+
+/* ==================================================================
+   Helpers
+   ================================================================== */
+function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
+function saveJSON(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
+function savePicks() { saveJSON("dc26.picks", [...picks]); }
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const toDate = iso => new Date(iso);              // "2026-09-05T11:30" parses as local time
+function fmt(d) { let h = d.getHours(), m = d.getMinutes(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return {t: `${h}:${pad(m)}`, ap}; }
+function fmtShort(d) { const f = fmt(d); return `${f.t} ${f.ap}`; }
+function minutesBetween(a, b) { return Math.round((b - a) / 60000); }
+function walkMin(a, b) {
+  if (!a || !b || a === "Streaming" || b === "Streaming") return 0;
+  if (a === b) return Math.round(5 * settings.crowd);
+  const base = WALK[`${a}|${b}`] ?? WALK[`${b}|${a}`] ?? 12;
+  return Math.round(base * settings.crowd);
+}
+const hotelShort = h => HOTEL_SHORT[h] || h;
+const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
+
+/* Real clock, or a preview time via #now=2026-09-05T14:00 */
+function getNow() {
+  const m = location.hash.match(/now=([0-9T:-]+)/);
+  if (m) { const d = new Date(m[1]); if (!isNaN(d)) return d; }
+  return new Date();
+}
+function dayOf(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+
+/* ==================================================================
+   Loading
+   ================================================================== */
+async function load() {
+  let data = window.DC_EVENTS;
+  if (!data) {
+    try {
+      const r = await fetch("events.json", {cache: "no-cache"});
+      if (!r.ok) throw new Error(r.status);
+      data = await r.json();
+    } catch (e) {
+      document.getElementById("view-now").innerHTML =
+        `<div class="empty"><b>No schedule data yet.</b><br>events.json is missing or unreadable. Run <code>python scraper.py</code> in this folder, then reload.</div>`;
+      return;
+    }
+  }
+  meta = data;
+  events = (data.events || []).filter(e => e.start).map(e => {
+    const s = toDate(e.start), en = e.end ? toDate(e.end) : new Date(s.getTime() + 60 * 60000);
+    const people = (e.speakers || []).map(p => p.name).join(" ");
+    return {...e, _s: s, _e: en, _people: people};
+  });
+  events.sort((a, b) => a._s - b._s || a.title.localeCompare(b.title));
+  byId = new Map(events.map(e => [e.id, e]));
+  tracks = [...new Set(events.map(e => e.track).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  hotels = HOTEL_ORDER.filter(h => events.some(e => e.hotel === h));
+  buildIndex();
+  // Drop picks that no longer exist (cancelled/removed upstream) but keep the ids around for the notice.
+  const missing = [...picks].filter(id => !byId.has(id));
+  if (missing.length) { missing.forEach(id => picks.delete(id)); savePicks(); }
+  updateFresh();
+  render();
+}
+
+function buildIndex() {
+  index = new MiniSearch({
+    fields: ["title", "fandoms", "speakers", "aliases", "tracks", "kind", "topics", "description", "location"],
+    storeFields: [], processTerm,
+    searchOptions: {processTerm, prefix: true, fuzzy: t => t.length > 4 ? 0.2 : false, combineWith: "OR",
+      boost: {title: 5, fandoms: 4, speakers: 3, aliases: 2, tracks: 2, kind: 2, topics: 2, description: 1, location: 1}},
+  });
+  index.addAll(events.map(e => {
+    const tg = e.tags || {};
+    const fandoms = (tg.fandoms || []).join(" "), topics = (tg.topics || []).join(" ");
+    const kind = tg.kind ? `${tg.kind} ${KIND_LABELS[tg.kind] || ""}` : "";
+    const text = [e.title, e.description, (e.tracks || []).join(" "), fandoms, topics, kind, e.location].join(" ").toLowerCase();
+    return {id: e.id, title: e.title, description: e.description || "", speakers: e._people, tracks: (e.tracks || []).join(" "),
+      fandoms, kind, topics, aliases: aliasesFor(e, text), location: e.location || ""};
+  }));
+}
+function fandomCounts() {
+  const m = new Map();
+  events.forEach(e => (e.tags && e.tags.fandoms || []).forEach(f => m.set(f, (m.get(f) || 0) + 1)));
+  return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+function updateFresh() {
+  const el = document.getElementById("fresh");
+  if (!meta.generated_at) { el.textContent = ""; return; }
+  const ago = minutesBetween(new Date(meta.generated_at), new Date());
+  const changed = meta.changed_at ? minutesBetween(new Date(meta.changed_at), new Date()) : null;
+  const f = m => m < 60 ? `${m} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} d`;
+  el.textContent = `${events.length} events, refreshed ${f(ago)} ago` + (changed !== null && changed !== ago ? `, last change ${f(changed)} ago` : "");
+}
+
+/* ==================================================================
+   Rendering
+   ================================================================== */
+function render() {
+  updateClock();
+  document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  ["now", "browse", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
+  const badge = document.getElementById("mineBadge");
+  badge.hidden = picks.size === 0; badge.textContent = picks.size;
+  if (!events.length) return;
+  if (state.tab === "now") renderNow();
+  if (state.tab === "browse") renderBrowse();
+  if (state.tab === "mine") renderMine();
+}
+
+function updateClock() {
+  const now = getNow();
+  const preview = location.hash.includes("now=");
+  document.getElementById("clock").textContent = `${DAY_LABEL[dayOf(now)] || now.toLocaleDateString(undefined, {weekday: "short"})} ${fmtShort(now)}` + (preview ? " (preview)" : "");
+}
+
+function rowHTML(ev, opts = {}) {
+  const s = fmt(ev._s), e = fmt(ev._e);
+  const mine = picks.has(ev.id), open = state.openId === `${opts.list || ""}:${ev.id}`;
+  const room = ev.room || ev.location || "Location TBA";
+  const status = opts.status ? `<span class="status">${esc(opts.status)}</span>` : "";
+  const cls = ["row", mine ? "mine" : "", open ? "open" : "", ev.cancelled ? "cancelled" : ""].filter(Boolean).join(" ");
+  const hl = opts.terms ? highlighter(opts.terms) : (x => esc(x));
+  const snippet = opts.terms ? snippetFor(ev, opts.terms) : "";
+  return `<li class="${cls}" data-id="${esc(ev.id)}" data-list="${esc(opts.list || "")}">
+    <div class="row-line">
+      <button class="row-main" aria-expanded="${open}">
+        <div class="t">${opts.showDay ? `<span class="day">${DAY_LABEL[ev.day] || ""}</span>` : ""}<span class="start">${s.t}<span class="ampm">${s.ap}</span></span><span class="end">to ${e.t} ${e.ap}</span></div>
+        <div class="body">
+          <div class="title">${hl(ev.title)}</div>
+          <div class="meta">
+            <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</span>
+            ${status}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
+          </div>
+          ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
+        </div>
+      </button>
+      <button class="star" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>
+    </div>
+    ${open ? detailHTML(ev) : ""}
+  </li>`;
+}
+
+function highlighter(terms) {
+  const words = [...new Set(terms)].filter(t => t.length > 1).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (!words.length) return x => esc(x);
+  const re = new RegExp(`(${words.join("|")})`, "gi");
+  return x => esc(x).replace(re, "<mark>$1</mark>");
+}
+function snippetFor(ev, terms) {
+  const d = ev.description || "";
+  const words = [...new Set(terms)].filter(t => t.length > 1);
+  let pos = -1;
+  for (const w of words) { const i = d.toLowerCase().indexOf(w); if (i >= 0 && (pos < 0 || i < pos)) pos = i; }
+  if (pos < 0) {
+    const who = (ev.speakers || []).map(p => p.name).join(", ");
+    if (who && words.some(w => who.toLowerCase().includes(w))) return `With ${highlighter(terms)(who)}`;
+    return d ? esc(d.slice(0, 110)) + (d.length > 110 ? "…" : "") : "";
+  }
+  const start = Math.max(0, pos - 40), end = Math.min(d.length, pos + 100);
+  return (start > 0 ? "…" : "") + highlighter(terms)(d.slice(start, end)) + (end < d.length ? "…" : "");
+}
+function detailHTML(ev) {
+  const mine = picks.has(ev.id);
+  const people = (ev.speakers || []).map(p => p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name);
+  const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
+  return `<div class="detail">
+    ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
+    <div class="kv">
+      ${people.length ? `<div>With <span>${esc(people.join(", "))}</span></div>` : ""}
+      <div>Where <span>${esc(ev.location || "TBA")}</span></div>
+      <div>When <span>${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` (${dur})` : ""}</span></div>
+      ${(ev.tracks || []).length ? `<div>Track <span>${esc(ev.tracks.join(", "))}</span></div>` : ""}
+      ${ev.type === "gaming" ? `<div>Listed under <span>Gaming events</span></div>` : ""}
+    </div>
+    ${ev.tags ? `<div class="tagline">${[...(ev.tags.fandoms || []), ev.tags.kind ? KIND_LABELS[ev.tags.kind] || ev.tags.kind : "", ...(ev.tags.topics || [])].filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("")}${ev.tags.adult ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
+    <button class="btn ${mine ? "quiet" : ""}" data-act="toggle">${mine ? "Remove from my schedule" : "Add to my schedule"}</button>
+  </div>`;
+}
+
+function gapHTML(prev, next) {
+  if (!prev || !next || prev.day !== next.day && minutesBetween(prev._e, next._s) > 240) return "";
+  const gap = minutesBetween(prev._e, next._s);
+  const walk = walkMin(prev.hotel, next.hotel);
+  const move = prev.hotel !== next.hotel ? `${hotelShort(prev.hotel)} to ${hotelShort(next.hotel)}` : `same building`;
+  if (next._s < prev._e) {
+    const ov = minutesBetween(next._s, prev._e);
+    return `<div class="gap overlap">Overlaps the one above by ${ov} min</div>`;
+  }
+  if (gap < walk) return `<div class="gap tight">${gap} min to get there, ${move} is about ${walk} min at con pace</div>`;
+  if (gap < walk + 10) return `<div class="gap">${gap} min gap, ${move} about ${walk} min. Tight but doable</div>`;
+  return "";
+}
+
+/* ---- Now ---------------------------------------------------------- */
+function renderNow() {
+  const real = getNow();
+  let now = real, banner = "";
+  if (real < new Date("2026-09-02T00:00")) {
+    now = new Date("2026-09-03T10:00");
+    banner = `<b>Con starts Thursday.</b> Showing Thursday 10:00 AM as a preview. Use Settings to preview any other time.`;
+  } else if (real > new Date("2026-09-08T06:00")) {
+    banner = `<b>That's a wrap.</b> Showing Monday afternoon.`; now = new Date("2026-09-07T13:00");
+  }
+  const noticeEl = document.getElementById("notice");
+  noticeEl.hidden = !banner; noticeEl.className = "notice"; noticeEl.innerHTML = banner;
+
+  const horizon = new Date(now.getTime() + 60 * 60000);
+  const minePlan = events.filter(e => picks.has(e.id) && e._e > now).slice(0, 6);
+  let mineHTML = "";
+  if (minePlan.length) {
+    mineHTML = `<div class="section-title">Your next <span class="count">${picks.size} picked</span></div><ul class="list">`;
+    minePlan.forEach((ev, i) => {
+      const status = ev._s <= now ? `On now, ends ${fmtShort(ev._e)}` : `In ${minutesBetween(now, ev._s)} min`;
+      mineHTML += gapHTML(minePlan[i - 1], ev) + rowHTML(ev, {list: "next", status: i === 0 || ev._s <= now ? status : (minutesBetween(now, ev._s) <= 90 ? status : "")});
+    });
+    mineHTML += `</ul>`;
+  } else {
+    mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Star things in Browse and they show up here with walk times.</div>`;
+  }
+
+  const around = events.filter(e => e._e > now && e._s <= horizon && !(state.browse.hideNoise && isNoise(e)) && (state.now.hotel === "All" || e.hotel === state.now.hotel));
+  const shown = around.slice(0, state.now.limit);
+  let aroundHTML = `<div class="section-title">On now and in the next hour <span class="count">${around.length}</span></div>
+    <div class="controls" style="padding-top:0"><div class="chips">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotels.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list">`;
+  let lastKey = "";
+  shown.forEach(ev => {
+    const key = ev._s <= now ? "on" : fmtShort(ev._s);
+    if (key !== lastKey) { aroundHTML += `<li class="time-head">${key === "on" ? "On now" : "Starts " + key}</li>`; lastKey = key; }
+    aroundHTML += rowHTML(ev, {list: "around"});
+  });
+  aroundHTML += `</ul>`;
+  if (around.length > shown.length) aroundHTML += `<button class="btn quiet more" data-act="more-now">Show ${around.length - shown.length} more</button>`;
+  if (!around.length) aroundHTML += `<div class="empty">Nothing on in this window${state.now.hotel !== "All" ? " at the " + hotelShort(state.now.hotel) : ""}.</div>`;
+  document.getElementById("view-now").innerHTML = mineHTML + aroundHTML;
+}
+
+function chipHTML(label, on, kind, value, style) {
+  const v = value ?? label;
+  const cls = kind.endsWith("hotel") && v !== "All" ? `chip hotel` : `chip`;
+  const st = kind.endsWith("hotel") && v !== "All" ? ` style="--h:var(${hotelVar(v)})"` : "";
+  return `<button class="${cls}" data-chip="${kind}" data-value="${esc(v)}" aria-pressed="${on}"${st}>${esc(label)}</button>`;
+}
+
+/* ---- Browse ------------------------------------------------------- */
+function passesFilters(e) {
+  const b = state.browse, tg = e.tags || {};
+  return (b.day === "All" || e.day === b.day) &&
+    (b.hotel === "All" || e.hotel === b.hotel) &&
+    (b.type === "All" || e.type === b.type) &&
+    (b.track === "All" || (e.tracks || []).includes(b.track)) &&
+    (b.fandom === "All" || (tg.fandoms || []).includes(b.fandom)) &&
+    (b.kind === "All" || tg.kind === b.kind) &&
+    (!b.hideAdult || !tg.adult) &&
+    (!b.hideNoise || !isNoise(e));
+}
+function browseResults() {
+  const q = state.browse.q.trim();
+  if (!q || !index) return events.filter(passesFilters);
+  const nTerms = new Set(q.split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean)).size || 1;
+  const out = [];
+  for (const h of index.search(q)) {
+    const e = byId.get(h.id);
+    if (!e || !passesFilters(e)) continue;
+    const coverage = new Set(h.queryTerms).size / nTerms;
+    e._hit = {score: h.score * (0.5 + coverage), terms: h.terms};
+    out.push(e);
+  }
+  out.sort((a, b) => b._hit.score - a._hit.score || a._s - b._s);
+  return out;
+}
+
+function renderBrowse() {
+  const b = state.browse;
+  if (b.day === null) { const d = dayOf(getNow()); b.day = CON_DAYS.includes(d) ? d : "2026-09-03"; }
+  const searching = !!b.q.trim();
+  const results = browseResults();
+  const shown = results.slice(0, PAGE * b.page);
+  const noiseCount = events.filter(e => isNoise(e) && (b.day === "All" || e.day === b.day)).length;
+  const hasTags = events.some(e => e.tags);
+  const fandoms = hasTags ? fandomCounts() : [];
+  const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
+
+  let html = `<div class="controls">
+    <input class="search" type="search" id="q" placeholder="Search anything: titles, guests, fandoms, words in descriptions" value="${esc(b.q)}" autocomplete="off">
+    <div class="chips">${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}${chipHTML("All days", b.day === "All", "day", "All")}</div>
+    <div class="chips">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
+    ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
+    <div class="row-controls">
+      <div class="seg" role="group" aria-label="Type">
+        ${["All", "panel", "gaming"].map(t => `<button data-chip="type" data-value="${t}" aria-pressed="${b.type === t}">${{All: "All", panel: "Panels", gaming: "Gaming"}[t]}</button>`).join("")}
+      </div>
+      ${hasTags ? `<select class="track" id="fandom" aria-label="Fandom"><option value="All">Any fandom</option>${fandoms.map(([f, n]) => `<option value="${esc(f)}" ${b.fandom === f ? "selected" : ""}>${esc(f)} (${n})</option>`).join("")}</select>` : ""}
+      <select class="track" id="track" aria-label="Track"><option value="All">All tracks</option>${tracks.map(t => `<option value="${esc(t)}" ${b.track === t ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
+    </div>
+    <label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label>
+    ${hasTags ? `<label class="toggle"><input type="checkbox" id="hideAdult" ${b.hideAdult ? "checked" : ""}> Hide 18+</label>` : ""}
+  </div>
+  <div class="section-title">${searching ? "Best matches first" : "Results"} <span class="count">${results.length}</span></div><ul class="list">`;
+
+  let lastDay = "", lastTime = "";
+  shown.forEach(ev => {
+    if (searching) { html += rowHTML(ev, {list: "browse", showDay: true, terms: ev._hit.terms}); return; }
+    if (b.day === "All" && ev.day !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev.day] || ev.day}</li>`; lastDay = ev.day; lastTime = ""; }
+    const t = fmtShort(ev._s);
+    if (t !== lastTime) { html += `<li class="time-head">${t}</li>`; lastTime = t; }
+    html += rowHTML(ev, {list: "browse"});
+  });
+  html += `</ul>`;
+  if (!results.length) html += `<div class="empty"><b>No matches.</b> Try fewer or different words, another day, or turn off the photo/video filter.</div>`;
+  if (results.length > shown.length) html += `<button class="btn quiet more" data-act="more-browse">Show ${Math.min(PAGE, results.length - shown.length)} more of ${results.length - shown.length}</button>`;
+  const view = document.getElementById("view-browse");
+  const focused = document.activeElement && document.activeElement.id === "q";
+  const pos = focused ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
+  view.innerHTML = html;
+  if (focused) { const q = document.getElementById("q"); q.focus(); try { q.setSelectionRange(pos[0], pos[1]); } catch (e) {} }
+}
+
+/* ---- Mine --------------------------------------------------------- */
+function renderMine() {
+  const mine = events.filter(e => picks.has(e.id));
+  let html = `<div class="mine-actions">
+    <button class="btn" data-act="ics" ${mine.length ? "" : "disabled"}>Export to calendar</button>
+    <button class="btn quiet" data-act="clear" ${mine.length ? "" : "disabled"}>Remove all</button>
+  </div>`;
+  if (!mine.length) {
+    html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Browse. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
+  } else {
+    html += `<ul class="list">`;
+    let lastDay = "", prev = null;
+    mine.forEach(ev => {
+      if (ev.day !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev.day] || ev.day} <span class="count" style="font-size:14px;color:var(--dim);font-weight:400">${mine.filter(x => x.day === ev.day).length}</span></li>`; lastDay = ev.day; prev = null; }
+      html += gapHTML(prev, ev) + rowHTML(ev, {list: "mine"});
+      prev = ev;
+    });
+    html += `</ul>`;
+  }
+  document.getElementById("view-mine").innerHTML = html;
+}
+
+/* ==================================================================
+   Calendar export (.ics)
+   ================================================================== */
+function icsEscape(s) { return String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
+function fold(line) { const out = []; while (line.length > 74) { out.push(line.slice(0, 74)); line = " " + line.slice(74); } out.push(line); return out.join("\r\n"); }
+function icsDate(d) { return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`; }
+function exportICS() {
+  const mine = events.filter(e => picks.has(e.id));
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//dragoncon-planner//EN", "CALSCALE:GREGORIAN", "X-WR-CALNAME:Dragon Con 2026",
+    "BEGIN:VTIMEZONE", "TZID:America/New_York",
+    "BEGIN:DAYLIGHT", "TZOFFSETFROM:-0500", "TZOFFSETTO:-0400", "TZNAME:EDT", "DTSTART:19700308T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU", "END:DAYLIGHT",
+    "BEGIN:STANDARD", "TZOFFSETFROM:-0400", "TZOFFSETTO:-0500", "TZNAME:EST", "DTSTART:19701101T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU", "END:STANDARD",
+    "END:VTIMEZONE"];
+  mine.forEach(ev => {
+    const who = (ev.speakers || []).map(p => p.name).join(", ");
+    const desc = [ev.description, who ? `With: ${who}` : "", ev.track ? `Track: ${ev.track}` : ""].filter(Boolean).join("\n");
+    lines.push("BEGIN:VEVENT", `UID:dc26-${ev.id}@dragoncon-planner`, `DTSTAMP:${stamp}`,
+      `DTSTART;TZID=America/New_York:${icsDate(ev._s)}`, `DTEND;TZID=America/New_York:${icsDate(ev._e)}`,
+      fold(`SUMMARY:${icsEscape(ev.title)}`), fold(`LOCATION:${icsEscape(ev.location)}`), fold(`DESCRIPTION:${icsEscape(desc)}`), "END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  const blob = new Blob([lines.join("\r\n") + "\r\n"], {type: "text/calendar;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "dragoncon-2026-my-schedule.ics"; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+}
+
+/* ==================================================================
+   Events (the DOM kind)
+   ================================================================== */
+document.querySelector(".nav").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]"); if (!b) return;
+  state.tab = b.dataset.tab; state.openId = null; render(); window.scrollTo(0, 0);
+});
+
+document.querySelector("main").addEventListener("click", e => {
+  const chip = e.target.closest("[data-chip]");
+  if (chip) {
+    const {chip: kind, value} = chip.dataset;
+    if (kind === "now-hotel") { state.now.hotel = value; state.now.limit = 80; }
+    else if (kind === "day") state.browse.day = value;
+    else if (kind === "hotel") state.browse.hotel = value;
+    else if (kind === "type") state.browse.type = value;
+    else if (kind === "kind") state.browse.kind = value;
+    state.browse.page = 1; render(); return;
+  }
+  const act = e.target.closest("[data-act]");
+  if (act) {
+    const a = act.dataset.act;
+    if (a === "more-now") { state.now.limit += 100; render(); }
+    if (a === "more-browse") { state.browse.page++; render(); }
+    if (a === "ics") exportICS();
+    if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
+    if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id); }
+    return;
+  }
+  const star = e.target.closest(".star");
+  if (star) { togglePick(star.closest(".row").dataset.id); return; }
+  const main = e.target.closest(".row-main");
+  if (main) {
+    const li = main.closest(".row"), key = `${li.dataset.list}:${li.dataset.id}`;
+    state.openId = state.openId === key ? null : key; render();
+    if (state.openId) { const el = document.querySelector(`.row[data-list="${li.dataset.list}"][data-id="${(window.CSS && CSS.escape) ? CSS.escape(li.dataset.id) : li.dataset.id}"]`); if (el && el.scrollIntoView) { const r = el.getBoundingClientRect(); if (r.top < 70) el.scrollIntoView({block: "start"}); } }
+  }
+});
+
+function togglePick(id) {
+  if (picks.has(id)) picks.delete(id); else picks.add(id);
+  savePicks(); render();
+}
+
+document.querySelector("main").addEventListener("input", e => {
+  if (e.target.id === "q") {
+    const was = state.browse.q.trim(), now = e.target.value;
+    state.browse.q = now;
+    if (!was && now.trim()) { state.browse.prevDay = state.browse.day; state.browse.day = "All"; }
+    else if (was && !now.trim() && state.browse.prevDay) { state.browse.day = state.browse.prevDay; state.browse.prevDay = null; }
+    state.browse.page = 1; renderBrowse();
+  }
+});
+document.querySelector("main").addEventListener("change", e => {
+  if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }
+  if (e.target.id === "fandom") { state.browse.fandom = e.target.value; state.browse.page = 1; render(); }
+  if (e.target.id === "hideAdult") { state.browse.hideAdult = e.target.checked; state.browse.page = 1; render(); }
+  if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
+});
+
+/* Settings sheet */
+const sheetWrap = document.getElementById("sheetWrap");
+function openSheet() {
+  document.getElementById("crowd").value = settings.crowd;
+  document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`;
+  document.getElementById("noiseDefault").checked = settings.hideNoise;
+  const m = location.hash.match(/now=([0-9T:-]+)/);
+  document.getElementById("previewTime").value = m ? m[1].slice(0, 16) : "";
+  document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
+  sheetWrap.hidden = false;
+}
+function closeSheet() { sheetWrap.hidden = true; render(); }
+document.getElementById("settingsBtn").addEventListener("click", openSheet);
+document.getElementById("closeSheet").addEventListener("click", closeSheet);
+document.getElementById("sheetBack").addEventListener("click", closeSheet);
+document.getElementById("crowd").addEventListener("input", e => { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON("dc26.settings", settings); });
+document.getElementById("noiseDefault").addEventListener("change", e => { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON("dc26.settings", settings); });
+document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; if (v) location.hash = `now=${v}`; state.browse.day = null; closeSheet(); });
+document.getElementById("clearPreview").addEventListener("click", () => { history.replaceState(null, "", location.pathname); state.browse.day = null; closeSheet(); });
+document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
+window.addEventListener("hashchange", () => { state.browse.day = null; render(); });
+
+setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden && !state.openId) renderNow(); updateFresh(); }, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+
+load();
+</script>
+</body>
+</html>

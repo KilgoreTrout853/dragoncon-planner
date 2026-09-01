@@ -1,0 +1,73 @@
+name: Refresh schedule
+
+on:
+  workflow_dispatch:        # run it by hand from the Actions tab any time
+  schedule:
+    - cron: "17 */3 * * *"  # every 3 hours (UTC); the date guard below keeps it to con week
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only run during con week (Sep 1-8, 2026) unless triggered by hand
+        id: guard
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          d=$(date -u +%Y-%m-%d)
+          if [[ "$d" > "2026-08-31" && "$d" < "2026-09-09" ]]; then echo "go=true" >> "$GITHUB_OUTPUT"; else echo "go=false" >> "$GITHUB_OUTPUT"; echo "Outside con week, skipping."; fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.go == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.go == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        if: steps.guard.outputs.go == 'true'
+        run: pip install requests beautifulsoup4
+
+      - name: Scrape
+        if: steps.guard.outputs.go == 'true'
+        run: python scraper.py --workers 4
+
+      - name: Refuse to commit a broken scrape
+        if: steps.guard.outputs.go == 'true'
+        run: |
+          python - <<'PY'
+          import json, subprocess, sys
+          new = json.load(open("events.json", encoding="utf-8"))
+          new_n = len(new["events"])
+          f = new.get("failures")
+          n_fail = len(f) if isinstance(f, list) else (f or 0)
+          try:
+              old_raw = subprocess.run(["git", "show", "HEAD:events.json"],
+                                       capture_output=True, text=True, check=True).stdout
+              old_n = len(json.loads(old_raw)["events"])
+          except Exception:
+              old_n = 0
+          print(f"previous={old_n} new={new_n} failures={n_fail}")
+          if new_n == 0:
+              sys.exit("Refusing to commit: scrape returned 0 events.")
+          if old_n and new_n < old_n * 0.8:
+              pct = 100 * (1 - new_n / old_n)
+              sys.exit(f"Refusing to commit: event count fell {pct:.0f}% ({old_n} -> {new_n}). "
+                       "Host is probably rate-limiting; the previous events.json is left in place.")
+          PY
+
+      - name: Commit events.json if anything changed
+        if: steps.guard.outputs.go == 'true'
+        run: |
+          git config user.name "schedule-bot"
+          git config user.email "schedule-bot@users.noreply.github.com"
+          git add events.json
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Refresh schedule $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi
