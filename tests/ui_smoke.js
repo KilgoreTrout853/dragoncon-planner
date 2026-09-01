@@ -23,10 +23,39 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   rows[0].querySelector(".star").click(); await sleep(10);
   assert(document.getElementById("mineBadge").textContent === "1", "badge counts 1 pick");
   assert(JSON.parse(window.localStorage.getItem("dc26.picks")).length === 1, "pick persisted to localStorage");
-  // open a row detail
+  // step 1: tapping a row opens the event panel of the bottom sheet
+  const firstTitle = rows[0].querySelector(".title").textContent.trim();
   document.querySelector("#view-now .row-main").click(); await sleep(10);
-  assert(document.querySelector("#view-now .detail"), "detail expands");
-  assert(document.querySelector("#view-now .detail .btn").textContent.includes("Remove"), "detail button says Remove for a picked event");
+  const wrap = document.getElementById("sheetWrap");
+  assert(!wrap.hidden, "row tap opens the sheet");
+  assert(!document.getElementById("panel-event").hidden, "event panel is shown");
+  assert(document.getElementById("panel-settings").hidden, "settings panel is hidden");
+  assert(document.getElementById("sheetTitleEvent").textContent.trim() === firstTitle, "sheet shows the tapped event's title");
+  assert(document.getElementById("sheet").getAttribute("aria-labelledby") === "sheetTitleEvent", "dialog is labelled by the event title");
+  assert(document.querySelector("#panel-event .ev-room"), "sheet shows the room");
+  assert(/var\(--h-/.test(document.querySelector("#panel-event .ev-room").getAttribute("style") || ""), "room is set in the hotel's hue");
+  assert(document.querySelector("#panel-event .ev-when").textContent.trim().length > 0, "sheet shows day/time/duration");
+  // star toggle inside the sheet, on an event already picked
+  const star = document.getElementById("sheetStar");
+  assert(star.getAttribute("aria-pressed") === "true", "sheet star reflects an existing pick");
+  star.click(); await sleep(10);
+  assert(document.getElementById("sheetStar").getAttribute("aria-pressed") === "false", "sheet star unstars");
+  assert(JSON.parse(window.localStorage.getItem("dc26.picks")).length === 0, "unstar persisted");
+  document.getElementById("sheetStar").click(); await sleep(10);
+  assert(JSON.parse(window.localStorage.getItem("dc26.picks")).length === 1, "restar persisted");
+  // single-event .ics from the sheet
+  let oneText = null;
+  window.URL.createObjectURL = b => { b.text().then(t => oneText = t); return "blob:x"; };
+  window.URL.revokeObjectURL = () => {};
+  window.HTMLAnchorElement.prototype.click = function () {};
+  document.getElementById("sheetICS").click(); await sleep(50);
+  assert(oneText && (oneText.match(/BEGIN:VEVENT/g) || []).length === 1, "sheet exports exactly one VEVENT");
+  assert(oneText && /DTSTART;TZID=America\/New_York:2026090[0-9]T\d{6}/.test(oneText), "single-event ICS carries the Eastern timezone");
+  assert(oneText && oneText.includes(firstTitle.slice(0, 20)), "single-event ICS is the event from the sheet");
+  // close via backdrop
+  document.getElementById("sheetBack").click(); await sleep(10);
+  assert(document.getElementById("sheetWrap").hidden, "backdrop tap closes the sheet");
+  assert(!document.querySelector(".detail"), "inline row expansion is gone");
   // browse: search
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(10);
   const q = document.getElementById("q"); q.value = "boroughs"; q.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(10);
@@ -88,6 +117,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // settings sheet
   document.getElementById("settingsBtn").click(); await sleep(10);
   assert(!document.getElementById("sheetWrap").hidden, "settings opens");
+  assert(!document.getElementById("panel-settings").hidden && document.getElementById("panel-event").hidden, "settings panel shown, event panel hidden");
   document.getElementById("closeSheet").click(); await sleep(10);
   assert(document.getElementById("sheetWrap").hidden, "settings closes");
   const errs = window.__errors || [];

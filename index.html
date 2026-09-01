@@ -198,6 +198,26 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .sheet .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; }
 .walk-table { font-size: 14px; color: var(--muted); }
 .walk-table td { padding: 2px 6px 2px 0; }
+
+/* Bottom sheet: one wrapper, two panels (settings, event) */
+.sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: -4px auto 0; flex: none; }
+.sheet-panel { display: grid; gap: 16px; }
+.sheet-panel[hidden] { display: none; }
+.ev-head { display: grid; gap: 6px; }
+.ev-head h2 { margin: 0; font-size: 21px; line-height: 1.25; }
+.ev-when { color: var(--muted); font-size: 15px; }
+.ev-room { font-size: 19px; font-weight: 700; color: var(--h); line-height: 1.2; }
+.ev-body { display: grid; gap: 12px; max-height: 48vh; overflow-y: auto; overscroll-behavior: contain; }
+.ev-body p { margin: 0; white-space: pre-line; font-size: 16px; }
+.ev-people { color: var(--muted); font-size: 15px; }
+.ev-people span { color: var(--text); }
+.ev-actions { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.ev-actions .btn { flex: 1 1 auto; }
+.ev-star {
+  font-size: 24px; line-height: 1; width: 56px; flex: none; cursor: pointer;
+  background: transparent; border: 1px solid var(--line); border-radius: 12px; color: var(--muted);
+}
+.ev-star[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
 </style>
 </head>
 <body>
@@ -235,7 +255,9 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 
 <div id="sheetWrap" hidden>
   <div class="sheet-back" id="sheetBack"></div>
-  <div class="sheet" role="dialog" aria-labelledby="sheetTitle">
+  <div class="sheet" role="dialog" aria-labelledby="sheetTitle" id="sheet">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="sheet-panel" id="panel-settings">
     <h2 id="sheetTitle">Settings</h2>
     <label>Crowd factor for walk estimates: <b id="crowdLabel"></b>
       <input type="range" id="crowd" min="1" max="2.5" step="0.1">
@@ -256,6 +278,8 @@ mark { background: none; color: var(--gold); font-weight: 700; }
       <button class="btn danger" id="resetPicks">Remove all picks</button>
       <button class="btn" id="closeSheet">Done</button>
     </div>
+    </div>
+    <div class="sheet-panel" id="panel-event" hidden></div>
   </div>
 </div>
 
@@ -352,7 +376,7 @@ let picks = new Set(loadJSON("dc26.picks", []));
 let events = [], byId = new Map(), tracks = [], hotels = [];
 let meta = {};
 const state = {
-  tab: "now", openId: null,
+  tab: "now", sheetId: null,
   now: {hotel: "All", limit: 80},
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
@@ -474,7 +498,7 @@ function updateClock() {
 
 function rowHTML(ev, opts = {}) {
   const s = fmt(ev._s), e = fmt(ev._e);
-  const mine = picks.has(ev.id), open = state.openId === `${opts.list || ""}:${ev.id}`;
+  const mine = picks.has(ev.id), open = state.sheetId === ev.id;
   const room = ev.room || ev.location || "Location TBA";
   const status = opts.status ? `<span class="status">${esc(opts.status)}</span>` : "";
   const cls = ["row", mine ? "mine" : "", open ? "open" : "", ev.cancelled ? "cancelled" : ""].filter(Boolean).join(" ");
@@ -482,7 +506,7 @@ function rowHTML(ev, opts = {}) {
   const snippet = opts.terms ? snippetFor(ev, opts.terms) : "";
   return `<li class="${cls}" data-id="${esc(ev.id)}" data-list="${esc(opts.list || "")}">
     <div class="row-line">
-      <button class="row-main" aria-expanded="${open}">
+      <button class="row-main" aria-haspopup="dialog">
         <div class="t">${opts.showDay ? `<span class="day">${DAY_LABEL[ev.day] || ""}</span>` : ""}<span class="start">${s.t}<span class="ampm">${s.ap}</span></span><span class="end">to ${e.t} ${e.ap}</span></div>
         <div class="body">
           <div class="title">${hl(ev.title)}</div>
@@ -495,7 +519,6 @@ function rowHTML(ev, opts = {}) {
       </button>
       <button class="star" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>
     </div>
-    ${open ? detailHTML(ev) : ""}
   </li>`;
 }
 
@@ -702,8 +725,11 @@ function renderMine() {
 function icsEscape(s) { return String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
 function fold(line) { const out = []; while (line.length > 74) { out.push(line.slice(0, 74)); line = " " + line.slice(74); } out.push(line); return out.join("\r\n"); }
 function icsDate(d) { return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`; }
-function exportICS() {
-  const mine = events.filter(e => picks.has(e.id));
+function exportICS() { downloadICS(events.filter(e => picks.has(e.id)), "dragoncon-2026-my-schedule.ics"); }
+function exportEventICS(ev) {
+  downloadICS([ev], `dragoncon-2026-${(ev.title || "event").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "event"}.ics`);
+}
+function downloadICS(mine, filename) {
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//dragoncon-planner//EN", "CALSCALE:GREGORIAN", "X-WR-CALNAME:Dragon Con 2026",
     "BEGIN:VTIMEZONE", "TZID:America/New_York",
@@ -720,7 +746,7 @@ function exportICS() {
   lines.push("END:VCALENDAR");
   const blob = new Blob([lines.join("\r\n") + "\r\n"], {type: "text/calendar;charset=utf-8"});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = "dragoncon-2026-my-schedule.ics"; document.body.appendChild(a); a.click();
+  const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
 }
 
@@ -729,7 +755,7 @@ function exportICS() {
    ================================================================== */
 document.querySelector(".nav").addEventListener("click", e => {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
-  state.tab = b.dataset.tab; state.openId = null; render(); window.scrollTo(0, 0);
+  state.tab = b.dataset.tab; render(); window.scrollTo(0, 0);
 });
 
 document.querySelector("main").addEventListener("click", e => {
@@ -756,11 +782,7 @@ document.querySelector("main").addEventListener("click", e => {
   const star = e.target.closest(".star");
   if (star) { togglePick(star.closest(".row").dataset.id); return; }
   const main = e.target.closest(".row-main");
-  if (main) {
-    const li = main.closest(".row"), key = `${li.dataset.list}:${li.dataset.id}`;
-    state.openId = state.openId === key ? null : key; render();
-    if (state.openId) { const el = document.querySelector(`.row[data-list="${li.dataset.list}"][data-id="${(window.CSS && CSS.escape) ? CSS.escape(li.dataset.id) : li.dataset.id}"]`); if (el && el.scrollIntoView) { const r = el.getBoundingClientRect(); if (r.top < 70) el.scrollIntoView({block: "start"}); } }
-  }
+  if (main) openSheet("event", main.closest(".row").dataset.id);
 });
 
 function togglePick(id) {
@@ -784,19 +806,102 @@ document.querySelector("main").addEventListener("change", e => {
   if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
 });
 
-/* Settings sheet */
+/* Bottom sheet: one wrapper, two panels (settings, event) */
 const sheetWrap = document.getElementById("sheetWrap");
-function openSheet() {
+const sheetEl = document.getElementById("sheet");
+const panelSettings = document.getElementById("panel-settings");
+const panelEvent = document.getElementById("panel-event");
+let sheetScrollY = 0;
+
+function fillSettings() {
   document.getElementById("crowd").value = settings.crowd;
   document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`;
   document.getElementById("noiseDefault").checked = settings.hideNoise;
   const m = location.hash.match(/now=([0-9T:-]+)/);
   document.getElementById("previewTime").value = m ? m[1].slice(0, 16) : "";
   document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
+}
+
+function eventSheetHTML(ev) {
+  const mine = picks.has(ev.id);
+  const people = (ev.speakers || []).map(p => p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name);
+  const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
+  const chips = [...(ev.tracks || []), ...((ev.tags && ev.tags.fandoms) || [])];
+  return `<div class="ev-head">
+      <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
+      <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}</div>
+      <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${esc(ev.room || ev.location || "Location TBA")}</div>
+    </div>
+    <div class="ev-body">
+      ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
+      ${people.length ? `<div class="ev-people">With <span>${esc(people.join(", "))}</span></div>` : ""}
+      ${chips.length || (ev.tags && ev.tags.adult) ? `<div class="tagline">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${ev.tags && ev.tags.adult ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
+    </div>
+    <div class="ev-actions">
+      <button class="ev-star" id="sheetStar" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>
+      <button class="btn quiet" id="sheetICS">Add this to calendar</button>
+      <button class="btn" id="closeSheetEvent">Done</button>
+    </div>`;
+}
+
+function openSheet(kind = "settings", id = null) {
+  sheetScrollY = window.scrollY || window.pageYOffset || 0;
+  const isEvent = kind === "event";
+  if (isEvent) {
+    const ev = byId.get(id);
+    if (!ev) return;
+    state.sheetId = id;
+    panelEvent.innerHTML = eventSheetHTML(ev);
+  } else {
+    state.sheetId = null;
+    fillSettings();
+  }
+  panelSettings.hidden = isEvent;
+  panelEvent.hidden = !isEvent;
+  sheetEl.setAttribute("aria-labelledby", isEvent ? "sheetTitleEvent" : "sheetTitle");
+  sheetEl.style.transform = "";
   sheetWrap.hidden = false;
 }
-function closeSheet() { sheetWrap.hidden = true; render(); }
-document.getElementById("settingsBtn").addEventListener("click", openSheet);
+
+function closeSheet() {
+  sheetWrap.hidden = true;
+  state.sheetId = null;
+  sheetEl.style.transform = "";
+  render();
+  window.scrollTo(0, sheetScrollY);
+}
+
+/* Swipe down to dismiss */
+let dragY = null;
+sheetEl.addEventListener("touchstart", e => {
+  if (e.target.closest(".ev-body")) return;   // let the description scroll
+  dragY = e.touches[0].clientY;
+}, {passive: true});
+sheetEl.addEventListener("touchmove", e => {
+  if (dragY === null) return;
+  const dy = e.touches[0].clientY - dragY;
+  if (dy > 0) sheetEl.style.transform = `translateY(${dy}px)`;
+}, {passive: true});
+sheetEl.addEventListener("touchend", e => {
+  if (dragY === null) return;
+  const dy = (e.changedTouches[0].clientY - dragY);
+  dragY = null;
+  if (dy > 90) closeSheet(); else sheetEl.style.transform = "";
+});
+
+panelEvent.addEventListener("click", e => {
+  if (e.target.closest("#closeSheetEvent")) { closeSheet(); return; }
+  const ev = byId.get(state.sheetId);
+  if (!ev) return;
+  if (e.target.closest("#sheetICS")) { exportEventICS(ev); return; }
+  if (e.target.closest("#sheetStar")) {
+    if (picks.has(ev.id)) picks.delete(ev.id); else picks.add(ev.id);
+    savePicks();
+    panelEvent.innerHTML = eventSheetHTML(ev);
+  }
+});
+
+document.getElementById("settingsBtn").addEventListener("click", () => openSheet("settings"));
 document.getElementById("closeSheet").addEventListener("click", closeSheet);
 document.getElementById("sheetBack").addEventListener("click", closeSheet);
 document.getElementById("crowd").addEventListener("input", e => { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON("dc26.settings", settings); });
@@ -806,7 +911,7 @@ document.getElementById("clearPreview").addEventListener("click", () => { histor
 document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
 window.addEventListener("hashchange", () => { state.browse.day = null; render(); });
 
-setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden && !state.openId) renderNow(); updateFresh(); }, 60000);
+setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden) renderNow(); updateFresh(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
 
 load();
