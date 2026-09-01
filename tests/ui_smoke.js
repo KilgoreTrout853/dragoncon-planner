@@ -23,6 +23,23 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   rows[0].querySelector(".star").click(); await sleep(10);
   assert(document.getElementById("mineBadge").textContent === "1", "badge counts 1 pick");
   assert(JSON.parse(window.localStorage.getItem("dc26.picks")).length === 1, "pick persisted to localStorage");
+  // starring must not move the list under the reader's finger: the first pick
+  // inserts the hero card above it, which used to shove everything down ~200px
+  const anchorProbe = window.eval(`(function(){
+    picks = new Set(); savePicks(); render();
+    var rows = document.querySelectorAll('#view-now .row[data-list="around"]');
+    var tapped = rows[2], neighbour = rows[4];
+    var nid = neighbour.dataset.id;
+    var before = neighbour.getBoundingClientRect().top;
+    var li = tapped.closest('.row');
+    togglePick(li.dataset.id, li);
+    var again = document.querySelector('#view-now .row[data-list="around"][data-id="' + (window.CSS && CSS.escape ? CSS.escape(nid) : nid) + '"]');
+    return {drift: again ? Math.round(again.getBoundingClientRect().top - before) : null, picks: picks.size};
+  })()`);
+  assert(anchorProbe.picks === 1, "starring adds exactly one pick");
+  assert(anchorProbe.drift !== null && Math.abs(anchorProbe.drift) <= 2,
+    `starring does not shift neighbouring rows (drift ${anchorProbe.drift}px)`);
+  window.eval(`(function(){ var r = document.querySelectorAll('#view-now .row')[0]; picks = new Set([r.dataset.id]); savePicks(); render(); })()`); await sleep(20);
   // step 1: tapping a row opens the event panel of the bottom sheet
   const firstTitle = rows[0].querySelector(".title").textContent.trim();
   document.querySelector("#view-now .row-main").click(); await sleep(10);

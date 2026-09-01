@@ -1173,7 +1173,7 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "more-browse") { state.browse.page++; render(); }
     if (a === "ics") exportICS();
     if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
-    if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id); }
+    if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id, li); }
     if (a === "view-timeline" || a === "view-list") {
       state.mineView = a === "view-timeline" ? "timeline" : "list";
       saveJSON("dc26.mineView", state.mineView); render();
@@ -1181,7 +1181,7 @@ document.querySelector("main").addEventListener("click", e => {
     return;
   }
   const star = e.target.closest(".star");
-  if (star) { togglePick(star.closest(".row").dataset.id); return; }
+  if (star) { const li = star.closest(".row"); togglePick(li.dataset.id, li); return; }
   const blk = e.target.closest(".browse-map [data-map]");
   if (blk) {
     const h = blk.dataset.map;
@@ -1196,10 +1196,24 @@ document.querySelector("main").addEventListener("click", e => {
   if (main) openSheet("event", main.closest(".row").dataset.id);
 });
 
-function togglePick(id) {
+/* Starring changes what renders above the row you just tapped - the first
+   pick inserts the whole hero card - which used to shove the list down by
+   200px or more, so the next tap landed on whatever had slid into place.
+   Keep the tapped row under the finger: measure it, re-render, put it back. */
+function togglePick(id, anchor) {
+  const wasTop = anchor ? anchor.getBoundingClientRect().top : null;
+  const list = anchor ? anchor.dataset.list || "" : "";
   if (picks.has(id)) picks.delete(id); else picks.add(id);
-  savePicks(); render();
+  savePicks();
+  render();
+  if (wasTop === null) return;
+  const sel = `.row[data-id="${cssEsc(id)}"]${list ? `[data-list="${cssEsc(list)}"]` : ""}`;
+  const el = document.querySelector(sel);
+  if (!el) return;
+  const delta = el.getBoundingClientRect().top - wasTop;
+  if (Math.abs(delta) > 1) window.scrollBy(0, delta);
 }
+const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
 
 document.querySelector("main").addEventListener("input", e => {
   if (e.target.id === "q") {
