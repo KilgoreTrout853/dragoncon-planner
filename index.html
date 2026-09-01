@@ -248,6 +248,21 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .list.compact .row-main { padding-top: 8px; padding-bottom: 8px; }
 .list.compact .snippet { display: none; }
 @media (prefers-reduced-motion: reduce) { .hero .ring .prog { transition: none; } }
+
+/* Sticky next-up bar: what's next while you're browsing something else */
+.minibar {
+  position: fixed; left: 0; right: 0; bottom: calc(70px + var(--safe-bottom)); z-index: 6;
+  height: 48px; box-sizing: border-box; width: 100%; border: 0;
+  padding: 0 max(14px, calc(50% - 366px)); font: inherit; color: var(--text); text-align: left;
+  background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+}
+.minibar .mb-body { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.minibar .mb-title { font-size: 14px; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.minibar .mb-room { font-size: 12px; font-weight: 700; color: var(--h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.minibar .mb-when { flex: none; font-size: 14px; font-weight: 700; color: var(--gold); }
+.minibar.late .mb-when { color: var(--warn); }
+body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
 </style>
 </head>
 <body>
@@ -269,6 +284,8 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   <section class="view" id="view-browse" hidden></section>
   <section class="view" id="view-mine" hidden></section>
 </main>
+
+<button class="minibar" id="minibar" hidden></button>
 
 <nav class="nav" aria-label="Sections">
   <button data-tab="now" aria-current="page">
@@ -522,6 +539,30 @@ function render() {
   if (state.tab === "now") renderNow();
   if (state.tab === "browse") renderBrowse();
   if (state.tab === "mine") renderMine();
+  renderMiniBar();
+}
+
+function renderMiniBar() {
+  const bar = document.getElementById("minibar");
+  const next = state.tab === "now" || !events.length ? null : nextPickInConDay(getNow());
+  if (!next) {
+    bar.hidden = true;
+    document.body.classList.remove("has-minibar");
+    return;
+  }
+  const now = getNow();
+  const info = leaveInfo(currentLocation(now), next, now);
+  const when = info && info.leaveBy
+    ? (info.late ? "leave now" : `leave by ${fmtShort(info.leaveBy)}`)
+    : `in ${minutesBetween(now, next._s)} min`;
+  bar.classList.toggle("late", !!(info && info.late));
+  bar.innerHTML = `<span class="mb-body">
+      <span class="mb-title">${esc(next.title)}</span>
+      <span class="mb-room" style="--h:var(${hotelVar(next.hotel)})">${esc(next.room || next.location || "Location TBA")}</span>
+    </span><span class="mb-when">${esc(when)}</span>`;
+  bar.setAttribute("aria-label", `Next: ${next.title}, ${when}. Go to Now.`);
+  bar.hidden = false;
+  document.body.classList.add("has-minibar");
 }
 
 function updateClock() {
@@ -605,6 +646,14 @@ function gapHTML(prev, next) {
   if (gap < walk) return `<div class="gap tight">${gap} min to get there, ${move} is about ${walk} min at con pace</div>`;
   if (gap < walk + 10) return `<div class="gap">${gap} min gap, ${move} about ${walk} min. Tight but doable</div>`;
   return "";
+}
+
+/* A con day runs to 5am, so a 1am Sunday panel still belongs to Saturday. */
+function conDayKey(d) { return dayOf(new Date(d.getTime() - 5 * 3600000)); }
+
+function nextPickInConDay(now) {
+  const key = conDayKey(now);
+  return events.find(e => picks.has(e.id) && e._s > now && conDayKey(e._s) === key) || null;
 }
 
 /* ---- Where you are, and when to leave ------------------------------ */
@@ -1036,6 +1085,7 @@ panelEvent.addEventListener("click", e => {
   }
 });
 
+document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); window.scrollTo(0, 0); });
 document.getElementById("settingsBtn").addEventListener("click", () => openSheet("settings"));
 document.getElementById("closeSheet").addEventListener("click", closeSheet);
 document.getElementById("sheetBack").addEventListener("click", closeSheet);
@@ -1047,7 +1097,7 @@ document.getElementById("clearPreview").addEventListener("click", () => { histor
 document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
 window.addEventListener("hashchange", () => { state.browse.day = null; render(); });
 
-setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden) renderNow(); updateFresh(); }, 60000);
+setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden) renderNow(); else renderMiniBar(); updateFresh(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
 
 load();

@@ -108,6 +108,41 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // reset to a single pick so later assertions keep their shape
   window.eval(`(function(){ var keep = events.filter(e => e._e > getNow())[0].id; picks = new Set([keep]); savePicks(); render(); })()`); await sleep(20);
   assert(JSON.parse(window.localStorage.getItem("dc26.picks")).length === 1, "reset to one pick for later steps");
+
+  // ---- step 3: sticky next-up mini-bar ----
+  const bar = document.getElementById("minibar");
+  assert(bar, "mini-bar element exists");
+  assert(bar.hidden, "mini-bar is hidden on the Now tab");
+  // give ourselves a pick later in the same con day, then leave Now
+  const hasLater = window.eval(`(function(){
+    var n = getNow(), key = conDayKey(n);
+    var later = events.find(e => e._s > n && conDayKey(e._s) === key && e.hotel !== "Streaming");
+    if (later) { picks.add(later.id); savePicks(); render(); return later.title; }
+    return null;
+  })()`); await sleep(20);
+  assert(hasLater, "found a pick later in the same con day");
+  document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
+  assert(!bar.hidden, "mini-bar shows on Browse when a pick remains today");
+  assert(bar.querySelector(".mb-title").textContent.trim() === hasLater, "mini-bar names the next pick");
+  assert(/var\(--h-/.test(bar.querySelector(".mb-room").getAttribute("style") || ""), "mini-bar room uses the hotel hue");
+  assert(/leave (by|now)|in \d+ min/.test(bar.querySelector(".mb-when").textContent), "mini-bar shows a countdown or leave-by: " + bar.querySelector(".mb-when").textContent);
+  assert(window.getComputedStyle(bar).height === "48px", "mini-bar is 48px tall");
+  assert(document.body.classList.contains("has-minibar"), "body reserves room for the bar");
+  // tapping it returns to Now
+  bar.click(); await sleep(20);
+  assert(window.eval("state.tab") === "now", "tapping the mini-bar switches to Now");
+  assert(bar.hidden, "mini-bar hides again once Now is active");
+  // con-day boundary: 1am Sunday still belongs to Saturday
+  const conDay = window.eval(`[conDayKey(new Date("2026-09-06T01:00")), conDayKey(new Date("2026-09-05T23:00")), conDayKey(new Date("2026-09-06T06:00"))]`);
+  assert(conDay[0] === "2026-09-05", "1am Sunday counts as Saturday's con day");
+  assert(conDay[1] === "2026-09-05", "11pm Saturday counts as Saturday");
+  assert(conDay[2] === "2026-09-06", "6am Sunday counts as Sunday");
+  // with no picks left today the bar stays hidden off Now
+  window.eval(`(function(){ picks = new Set(); savePicks(); render(); })()`); await sleep(10);
+  document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
+  assert(bar.hidden, "mini-bar stays hidden with no picks left today");
+  window.eval(`(function(){ var keep = events.filter(e => e._e > getNow())[0].id; picks = new Set([keep]); savePicks(); render(); })()`); await sleep(20);
+  document.querySelector('.nav button[data-tab="now"]').click(); await sleep(10);
   // browse: search
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(10);
   const q = document.getElementById("q"); q.value = "boroughs"; q.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(10);
