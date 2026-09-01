@@ -263,6 +263,33 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .minibar .mb-when { flex: none; font-size: 14px; font-weight: 700; color: var(--gold); }
 .minibar.late .mb-when { color: var(--warn); }
 body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
+
+/* Schematic venue map. Not to scale: it exists to answer "which way, roughly". */
+.venue-map { width: 100%; height: auto; display: block; }
+.venue-map .blk { cursor: pointer; }
+.venue-map .blk rect { fill: var(--h); fill-opacity: .18; stroke: var(--h); stroke-width: 1.5; }
+.venue-map .blk text { fill: var(--text); font-size: 13px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
+.venue-map .blk.on rect { fill-opacity: .92; }
+.venue-map .blk.on text { fill: var(--ink); }
+.venue-map .blk.dim rect { fill-opacity: .07; stroke-opacity: .35; }
+.venue-map .blk.dim text { fill: var(--dim); }
+.venue-map .link { stroke: var(--gold); stroke-width: 2.5; stroke-dasharray: 6 5; fill: none; }
+.venue-map .link-label {
+  fill: var(--gold); font-size: 12px; font-weight: 700; text-anchor: middle;
+  /* the connector crosses other blocks, so the label needs its own backing */
+  stroke: var(--surface); stroke-width: 3.5; paint-order: stroke fill; stroke-linejoin: round;
+}
+.venue-map .blk:focus-visible rect { stroke: var(--gold); stroke-width: 3; }
+.hero-map { padding: 0 14px 10px; background: var(--surface); }
+.hero-map .venue-map { max-width: 320px; margin: 0 auto; }
+.hero-loc {
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  padding: 0 14px 12px; font-size: 13px; color: var(--muted);
+}
+.hero-loc b { color: var(--text); }
+.hero-loc button { background: none; border: 0; color: var(--gold); font: inherit; font-weight: 700; cursor: pointer; padding: 0; text-decoration: underline; }
+.browse-map { padding: 2px 0 4px; }
+.browse-map .venue-map { max-width: 340px; }
 </style>
 </head>
 <body>
@@ -648,6 +675,74 @@ function gapHTML(prev, next) {
   return "";
 }
 
+/* Schematic venue map. Rough real arrangement, not a survey: Marriott,
+   Hyatt and Hilton run down the middle; Mart sits upper-left by the
+   Hyatt; Westin lower-left; Courtland lower-right past the Hilton. */
+const MAP_W = 300, MAP_H = 172;
+const MAP_BLOCKS = [
+  {hotel: "AmericasMart",    x: 6,   y: 6,   w: 86, h: 46},
+  {hotel: "Hyatt",           x: 106, y: 6,   w: 86, h: 46},
+  {hotel: "Marriott",        x: 106, y: 63,  w: 86, h: 46},
+  {hotel: "Hilton",          x: 106, y: 120, w: 86, h: 46},
+  {hotel: "Westin",          x: 6,   y: 120, w: 86, h: 46},
+  {hotel: "Courtland Grand", x: 206, y: 120, w: 88, h: 46},
+];
+const mapCentre = b => [b.x + b.w / 2, b.y + b.h / 2];
+
+/* mode "hero": highlight where you are and where you're going, joined by a
+   dashed line labelled with the crowd-adjusted walk.
+   mode "filter": highlight the selected hotel; everything else is normal. */
+function venueMapHTML({mode, current = null, next = null, minutes = null, active = "All"}) {
+  const on = h => mode === "filter" ? (active === h) : (h === current || h === next);
+  const anyOn = mode === "filter" ? active !== "All" : !!(current || next);
+  let link = "";
+  if (mode === "hero" && current && next && current !== next) {
+    const a = MAP_BLOCKS.find(b => b.hotel === current), b2 = MAP_BLOCKS.find(b => b.hotel === next);
+    if (a && b2) {
+      const [x1, y1] = mapCentre(a), [x2, y2] = mapCentre(b2);
+      /* Nudge the label off the line's midpoint, perpendicular to it, so it
+         doesn't land on whichever block the connector happens to cross. */
+      const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
+      const mx = (x1 + x2) / 2 - (dy / len) * 15, my = (y1 + y2) / 2 + (dx / len) * 15;
+      link = `<line class="link" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"></line>
+        <text class="link-label" x="${mx.toFixed(1)}" y="${(my + 4).toFixed(1)}">${minutes} min</text>`;
+    }
+  }
+  const blocks = MAP_BLOCKS.map(b => {
+    const isOn = on(b.hotel);
+    const cls = ["blk", isOn ? "on" : "", anyOn && !isOn ? "dim" : ""].filter(Boolean).join(" ");
+    const [cx, cy] = mapCentre(b);
+    return `<g class="${cls}" data-map="${esc(b.hotel)}" role="button" tabindex="0"
+        aria-pressed="${isOn}" aria-label="${esc(hotelShort(b.hotel))}" style="--h:var(${hotelVar(b.hotel)})">
+      <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="8"></rect>
+      <text x="${cx}" y="${cy}">${esc(hotelShort(b.hotel))}</text>
+    </g>`;
+  }).join("");
+  return `<svg class="venue-map" viewBox="0 0 ${MAP_W} ${MAP_H}" role="group"
+      aria-label="${mode === "filter" ? "Filter by hotel" : "Where you are and where you're going"}">${link}${blocks}</svg>`;
+}
+
+/* Manual location override: "I'm actually at the Westin".
+   Expires when the next pick starts, or after 90 minutes, whichever is first. */
+function setOverride(hotel) {
+  const cur = loadJSON("dc26.override", null);
+  if (cur && cur.hotel === hotel) { saveJSON("dc26.override", null); return; }
+  saveJSON("dc26.override", {hotel, at: getNow().getTime()});
+}
+function overrideLocation(now) {
+  const o = loadJSON("dc26.override", null);
+  if (!o || !o.hotel || !o.at) return null;
+  const setAt = new Date(o.at);
+  if (now < setAt || minutesBetween(setAt, now) >= 90) return null;
+  const nextAfter = events.find(e => picks.has(e.id) && e._s > setAt);
+  if (nextAfter && now >= nextAfter._s) return null;
+  return o.hotel;
+}
+function overrideAgeMin(now) {
+  const o = loadJSON("dc26.override", null);
+  return o && o.at ? minutesBetween(new Date(o.at), now) : null;
+}
+
 /* A con day runs to 5am, so a 1am Sunday panel still belongs to Saturday. */
 function conDayKey(d) { return dayOf(new Date(d.getTime() - 5 * 3600000)); }
 
@@ -706,7 +801,7 @@ function heroHTML(ev, now, onNow, thenNext) {
     kicker = "On now";
     target = ev._e;
     windowStart = ev._s;
-    const info = leaveInfo(ev.hotel, thenNext, now);
+    const info = leaveInfo(from, thenNext, now);
     if (info && info.leaveBy) {
       late = info.late;
       thenLine = `<div class="hthen">then: <b>leave by ${fmtShort(info.leaveBy)}</b> for the ${esc(hotelShort(thenNext.hotel))}</div>`;
@@ -732,6 +827,21 @@ function heroHTML(ev, now, onNow, thenNext) {
   }
   const total = Math.max(1, minutesBetween(windowStart, target));
   const leftMin = minutesBetween(now, target);
+
+  /* The map answers "which way", so it points at wherever we're headed:
+     the pick after this one when something is on now, else this pick. */
+  const dest = onNow ? (thenNext || null) : ev;
+  const mapFrom = from;
+  const walkMins = mapFrom && dest ? walkMin(mapFrom, dest.hotel) : null;
+  const mapHTML = `<div class="hero-map">${venueMapHTML({
+    mode: "hero", current: mapFrom, next: dest ? dest.hotel : null, minutes: walkMins})}</div>`;
+
+  const ovHotel = overrideLocation(now);
+  const age = ovHotel ? overrideAgeMin(now) : null;
+  const locLine = ovHotel
+    ? `<div class="hero-loc">At the <b>${esc(hotelShort(ovHotel))}</b> &middot; set ${age <= 0 ? "just now" : `${age} min ago`} &middot; <button data-act="clear-override">tap to clear</button></div>`
+    : "";
+
   return `<button class="hero${late ? " late" : ""}" data-hero="${esc(ev.id)}">
     ${ringHTML(leftMin / total, leftMin, late)}
     <div class="hbody">
@@ -740,7 +850,7 @@ function heroHTML(ev, now, onNow, thenNext) {
       <div class="hroom" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</div>
       ${leaveLine}${thenLine}
     </div>
-  </button>`;
+  </button>${mapHTML}${locLine}`;
 }
 
 /* ---- Now ---------------------------------------------------------- */
@@ -843,7 +953,7 @@ function renderBrowse() {
   let html = `<div class="controls">
     <input class="search" type="search" id="q" placeholder="Search anything: titles, guests, fandoms, words in descriptions" value="${esc(b.q)}" autocomplete="off">
     <div class="chips">${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}${chipHTML("All days", b.day === "All", "day", "All")}</div>
-    <div class="chips">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
+    <div class="browse-map">${venueMapHTML({mode: "filter", active: b.hotel})}</div>
     ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
     <div class="row-controls">
       <div class="seg" role="group" aria-label="Type">
@@ -955,10 +1065,19 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "ics") exportICS();
     if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
     if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id); }
+    if (a === "clear-override") { saveJSON("dc26.override", null); render(); }
     return;
   }
   const star = e.target.closest(".star");
   if (star) { togglePick(star.closest(".row").dataset.id); return; }
+  const blk = e.target.closest("[data-map]");
+  if (blk) {
+    const h = blk.dataset.map;
+    if (blk.closest(".browse-map")) { state.browse.hotel = state.browse.hotel === h ? "All" : h; state.browse.page = 1; }
+    else setOverride(h);
+    render();
+    return;
+  }
   const hero = e.target.closest("[data-hero]");
   if (hero) { openSheet("event", hero.dataset.hero); return; }
   const main = e.target.closest(".row-main");
@@ -1085,6 +1204,10 @@ panelEvent.addEventListener("click", e => {
   }
 });
 
+document.querySelector("main").addEventListener("keydown", e => {
+  const blk = e.target.closest && e.target.closest("[data-map]");
+  if (blk && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); blk.dispatchEvent(new MouseEvent("click", {bubbles: true})); }
+});
 document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); window.scrollTo(0, 0); });
 document.getElementById("settingsBtn").addEventListener("click", () => openSheet("settings"));
 document.getElementById("closeSheet").addEventListener("click", closeSheet);

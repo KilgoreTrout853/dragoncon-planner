@@ -143,6 +143,55 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(bar.hidden, "mini-bar stays hidden with no picks left today");
   window.eval(`(function(){ var keep = events.filter(e => e._e > getNow())[0].id; picks = new Set([keep]); savePicks(); render(); })()`); await sleep(20);
   document.querySelector('.nav button[data-tab="now"]').click(); await sleep(10);
+
+  // ---- step 4: venue map + manual location override ----
+  const hmap = document.querySelector("#view-now .hero-map .venue-map");
+  assert(hmap, "hero card carries a venue map");
+  const blocks = [...hmap.querySelectorAll("[data-map]")].map(g => g.dataset.map);
+  assert(blocks.length === 6, `map has six blocks (${blocks.length})`);
+  ["Marriott","Hyatt","Hilton","AmericasMart","Westin","Courtland Grand"].forEach(h =>
+    assert(blocks.includes(h), `map includes ${h}`));
+  assert([...hmap.querySelectorAll("[data-map]")].every(g => /var\(--h-/.test(g.getAttribute("style") || "")), "each block is filled with its hotel var");
+  // rough arrangement: Mart upper-left of Hyatt; Westin lower-left; Courtland lower-right of Hilton
+  const geo = window.eval("MAP_BLOCKS.reduce((m,b)=>(m[b.hotel]=b,m),{})");
+  assert(geo.AmericasMart.x < geo.Hyatt.x && geo.AmericasMart.y === geo.Hyatt.y, "Mart sits upper-left beside the Hyatt");
+  assert(geo.Westin.x < geo.Hilton.x && geo.Westin.y > geo.Marriott.y, "Westin sits lower-left");
+  assert(geo["Courtland Grand"].x > geo.Hilton.x && geo["Courtland Grand"].y >= geo.Hilton.y, "Courtland sits lower-right past the Hilton");
+  assert(geo.Hyatt.y < geo.Marriott.y && geo.Marriott.y < geo.Hilton.y, "Marriott/Hyatt/Hilton form the central column");
+  // override: tapping a block on the hero map sets it, with a timestamp
+  window.eval(`saveJSON("dc26.override", null)`);
+  document.querySelector('#view-now .hero-map [data-map="Westin"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(20);
+  const ov = JSON.parse(window.localStorage.getItem("dc26.override"));
+  assert(ov && ov.hotel === "Westin" && typeof ov.at === "number", "tapping a hero block stores an override with a timestamp");
+  assert(window.eval("currentLocation(getNow())") === "Westin", "override wins over every other location rule");
+  const locLine = document.querySelector("#view-now .hero-loc");
+  assert(locLine && /At the Westin/.test(locLine.textContent), "hero shows 'At the Westin'");
+  assert(/set .* ago|just now/.test(locLine.textContent), "hero shows how long ago it was set");
+  assert(locLine.querySelector('[data-act="clear-override"]'), "hero offers a way to clear it");
+  assert(document.querySelector('#view-now .hero-map [data-map="Westin"]').classList.contains("on"), "map highlights the override block");
+  // expiry: older than 90 minutes
+  assert(window.eval(`(function(){
+    var o = loadJSON("dc26.override", null);
+    saveJSON("dc26.override", {hotel: o.hotel, at: getNow().getTime() - 91*60000});
+    var r = overrideLocation(getNow());
+    saveJSON("dc26.override", o); return r; })()`) === null, "override expires after 90 minutes");
+  // expiry: the next pick has started
+  assert(window.eval(`(function(){
+    var o = loadJSON("dc26.override", null);
+    var n = getNow();
+    var nxt = events.find(e => picks.has(e.id) && e._s > n);
+    if (!nxt) return null;
+    saveJSON("dc26.override", {hotel: "Westin", at: n.getTime() - 1000});
+    var r = overrideLocation(new Date(nxt._s.getTime() + 60000));
+    saveJSON("dc26.override", o); return r; })()`) === null, "override expires once the next pick starts");
+  // tapping the same block again clears it
+  document.querySelector('#view-now .hero-map [data-map="Westin"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(20);
+  assert(!JSON.parse(window.localStorage.getItem("dc26.override") || "null"), "tapping the same block again clears the override");
+  // the clear link works too
+  document.querySelector('#view-now .hero-map [data-map="Hyatt"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(20);
+  document.querySelector('#view-now .hero-loc [data-act="clear-override"]').click(); await sleep(20);
+  assert(!JSON.parse(window.localStorage.getItem("dc26.override") || "null"), "the clear link removes the override");
+  assert(!document.querySelector("#view-now .hero-loc"), "the location line disappears once cleared");
   // browse: search
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(10);
   const q = document.getElementById("q"); q.value = "boroughs"; q.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(10);
@@ -154,10 +203,12 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // hotel chip
   const q2 = document.getElementById("q"); q2.value = ""; q2.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(10);
   assert(window.eval("state.browse.q") === "", "search cleared");
-  document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').click(); await sleep(10);
+  document.querySelector('#view-browse .browse-map [data-map="Westin"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(10);
+  assert(window.eval("state.browse.hotel") === "Westin", "map block sets the hotel filter");
   assert([...document.querySelectorAll("#view-browse .room")].every(r => !/Marriott|Hilton|Hyatt/.test(r.textContent)), "hotel filter applies");
   // noise toggle: Epic Photos hidden by default
-  document.querySelector('#view-browse [data-chip="hotel"][data-value="All"]').click(); await sleep(10);
+  document.querySelector('#view-browse .browse-map [data-map="Westin"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(10);
+  assert(window.eval("state.browse.hotel") === "All", "tapping the same block again clears the filter");
   assert(![...document.querySelectorAll("#view-browse .track")].some(t => t.textContent === "Epic Photos"), "photo sessions hidden by default");
   const before = window.eval("browseResults().length");
   document.getElementById("hideNoise").click(); await sleep(10);
