@@ -288,8 +288,9 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
 }
 .hero-loc b { color: var(--text); }
 .hero-loc button { background: none; border: 0; color: var(--gold); font: inherit; font-weight: 700; cursor: pointer; padding: 0; text-decoration: underline; }
-.browse-map { padding: 2px 0 4px; }
-.browse-map .venue-map { max-width: 340px; }
+.browse-map { padding: 0 0 2px; }
+.browse-map .venue-map { max-width: 244px; }
+.other-venues { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 2px; }
 
 /* Timeline: the day as a column, so gaps and clashes have a shape */
 .view-toggle { display: flex; gap: 6px; padding: 0 14px 10px; }
@@ -309,6 +310,16 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
 }
 .tl-block .tb-title { font-size: 13px; font-weight: 700; line-height: 1.15; }
 .tl-block .tb-room { font-size: 11px; font-weight: 600; opacity: .8; }
+.tl-block .tb-runs { font-size: 11px; font-weight: 700; opacity: .7; }
+/* A six-hour block is 360px of flat colour. Keep its true position and
+   height - the geometry is the point - but let the body fade toward the
+   page so shorter picks still read as the foreground. */
+.tl-block.long { border: 1px solid var(--h); }
+.tl-block.long::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 54px; bottom: 0;
+  background: linear-gradient(to bottom, transparent, var(--ink) 88%);
+  opacity: .85; pointer-events: none;
+}
 .tl-now { position: absolute; left: -46px; right: 0; height: 0; border-top: 2px solid var(--warn); z-index: 3; }
 .tl-now::after {
   content: "now"; position: absolute; left: 0; top: -8px; font-size: 11px; font-weight: 700;
@@ -756,6 +767,17 @@ function venueMapHTML({mode, current = null, next = null, minutes = null, active
       aria-label="${mode === "filter" ? "Filter by hotel" : "Where you are and where you're going"}">${link}${blocks}</svg>`;
 }
 
+/* Hardy Ivy Park, Streaming and anything else without a block on the map
+   still need a way to be filtered, so they keep chips beneath it. */
+function offMapHotels() {
+  return hotels.filter(h => !MAP_BLOCKS.some(b => b.hotel === h));
+}
+function offMapHotelsHTML(active) {
+  const rest = offMapHotels();
+  if (!rest.length) return "";
+  return `<div class="other-venues">${rest.map(h => chipHTML(hotelShort(h), active === h, "hotel", h)).join("")}</div>`;
+}
+
 /* Manual location override: "I'm actually at the Westin".
    Expires when the next pick starts, or after 90 minutes, whichever is first. */
 function setOverride(hotel) {
@@ -987,7 +1009,7 @@ function renderBrowse() {
   let html = `<div class="controls">
     <input class="search" type="search" id="q" placeholder="Search anything: titles, guests, fandoms, words in descriptions" value="${esc(b.q)}" autocomplete="off">
     <div class="chips">${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}${chipHTML("All days", b.day === "All", "day", "All")}</div>
-    <div class="browse-map">${venueMapHTML({mode: "filter", active: b.hotel})}</div>
+    <div class="browse-map">${venueMapHTML({mode: "filter", active: b.hotel})}${offMapHotelsHTML(b.hotel)}</div>
     ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
     <div class="row-controls">
       <div class="seg" role="group" aria-label="Type">
@@ -1070,9 +1092,11 @@ function timelineDayHTML(dayKey, list, now) {
   const blocks = items.map(({ev, col, cols}) => {
     const h = Math.max(24, top(ev._e.getTime()) - top(ev._s.getTime()) - 2);
     const w = 100 / cols;
-    return `<button class="tl-block" data-hero="${esc(ev.id)}" style="top:${top(ev._s.getTime()).toFixed(1)}px;height:${h.toFixed(1)}px;left:${(col * w).toFixed(2)}%;width:calc(${w.toFixed(2)}% - 3px);--h:var(${hotelVar(ev.hotel)})">
+    const long = h >= 150;
+    return `<button class="tl-block${long ? " long" : ""}" data-hero="${esc(ev.id)}" style="top:${top(ev._s.getTime()).toFixed(1)}px;height:${h.toFixed(1)}px;left:${(col * w).toFixed(2)}%;width:calc(${w.toFixed(2)}% - 3px);--h:var(${hotelVar(ev.hotel)})">
       <span class="tb-title">${esc(ev.title)}</span>
       <span class="tb-room">${esc(ev.room || ev.location || "")}</span>
+      ${long ? `<span class="tb-runs">runs to ${fmtShort(ev._e)}</span>` : ""}
     </button>`;
   }).join("");
 
@@ -1179,7 +1203,7 @@ document.querySelector("main").addEventListener("click", e => {
     const {chip: kind, value} = chip.dataset;
     if (kind === "now-hotel") { state.now.hotel = value; state.now.limit = 80; }
     else if (kind === "day") state.browse.day = value;
-    else if (kind === "hotel") state.browse.hotel = value;
+    else if (kind === "hotel") state.browse.hotel = state.browse.hotel === value ? "All" : value;
     else if (kind === "type") state.browse.type = value;
     else if (kind === "kind") state.browse.kind = value;
     state.browse.page = 1; render(); return;

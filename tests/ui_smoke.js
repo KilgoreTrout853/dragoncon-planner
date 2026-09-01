@@ -209,6 +209,18 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // noise toggle: Epic Photos hidden by default
   document.querySelector('#view-browse .browse-map [data-map="Westin"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(10);
   assert(window.eval("state.browse.hotel") === "All", "tapping the same block again clears the filter");
+  // venues with no block on the map keep chips, so they stay filterable
+  const offMap = window.eval("offMapHotels()");
+  if (offMap.length) {
+    const chips = [...document.querySelectorAll("#view-browse .other-venues [data-chip='hotel']")].map(c => c.dataset.value);
+    offMap.forEach(h => assert(chips.includes(h), `off-map venue ${h} still has a filter chip`));
+    const target = offMap[0];
+    document.querySelector(`#view-browse .other-venues [data-value="${target}"]`).click(); await sleep(10);
+    assert(window.eval("state.browse.hotel") === target, `chip filters to ${target}`);
+    assert(window.eval("browseResults().every(e => e.hotel === " + JSON.stringify(target) + ")"), `results are all ${target}`);
+    document.querySelector(`#view-browse .other-venues [data-value="${target}"]`).click(); await sleep(10);
+    assert(window.eval("state.browse.hotel") === "All", "tapping the chip again clears it");
+  }
   assert(![...document.querySelectorAll("#view-browse .track")].some(t => t.textContent === "Epic Photos"), "photo sessions hidden by default");
   const before = window.eval("browseResults().length");
   document.getElementById("hideNoise").click(); await sleep(10);
@@ -235,6 +247,15 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(heights.every((h, i) => Math.abs(h - (scale[i] - 2)) < 1.5 || h === 24),
     `block height tracks duration at 60px/hour (${heights.map(h=>h.toFixed(0))} vs ${scale})`);
   assert(window.eval("HOUR_PX") === 60, "HOUR_PX is 60");
+  // long blocks keep their true geometry but are marked for the fade
+  const longs = window.eval(`(function(){
+    var m = events.filter(e => picks.has(e.id));
+    return m.filter(e => (e._e - e._s)/60000 >= 152).length;
+  })()`);
+  assert([...mine.querySelectorAll(".tl-block.long")].length === longs,
+    `long blocks flagged for fading (${longs})`);
+  [...mine.querySelectorAll(".tl-block.long")].forEach(b =>
+    assert(/runs to /.test(b.textContent), "a long block says when it runs to"));
   // tapping a block opens the step-1 sheet
   mine.querySelector(".tl-block").click(); await sleep(20);
   assert(!document.getElementById("sheetWrap").hidden && !document.getElementById("panel-event").hidden, "tapping a timeline block opens the event sheet");
