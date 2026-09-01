@@ -1,5 +1,5 @@
 // Headless smoke test for index.html using jsdom. Run: node tests/ui_smoke.js
-const { JSDOM } = require("/home/claude/node_modules/jsdom");
+const { JSDOM } = require("jsdom");
 const fs = require("fs");
 const html = fs.readFileSync(__dirname + "/../index.html", "utf8")
   .replace("<script>", "<script>window.DC_EVENTS=" + fs.readFileSync(__dirname + "/sample-events.json", "utf8") + ";");

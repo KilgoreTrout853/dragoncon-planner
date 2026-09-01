@@ -6,6 +6,9 @@ anthropic_key.txt
 # Local backups from setup
 *.bak
 
+# Node (test deps only - index.html has no build step)
+node_modules/
+
 # Python
 __pycache__/
 *.pyc

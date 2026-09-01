@@ -1,0 +1,27 @@
+{
+  "name": "dragoncon-planner",
+  "version": "1.0.0",
+  "description": "A phone-first schedule planner built on the data behind the official Dragon Con app. Search everything at once, star what you want, and get walk-time warnings between hotels.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KilgoreTrout853/dragoncon-planner.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/KilgoreTrout853/dragoncon-planner/issues"
+  },
+  "homepage": "https://github.com/KilgoreTrout853/dragoncon-planner#readme",
+  "devDependencies": {
+    "jsdom": "^30.0.1"
+  }
+}
