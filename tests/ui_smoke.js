@@ -75,21 +75,25 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     return {walk: info.walk, gap: Math.round((nxt._s - info.leaveBy)/60000), hotel: nxt.hotel};
   })()`);
   assert(lb.gap === lb.walk + 10, `leave-by = start - walk - buffer (${lb.gap} = ${lb.walk} + 10)`);
-  // location resolution: falls back to home base when nothing is on now
-  const loc = window.eval(`(function(){
-    var before = settings.homeBase; settings.homeBase = "Hyatt";
-    var saved = [...picks]; picks = new Set();
-    var r = currentLocation(getNow());
-    picks = new Set(saved); settings.homeBase = before; return r;
+  // location is inferred from the schedule alone: on now, else just ended, else nothing
+  const chain = window.eval(`(function(){
+    var saved = [...picks];
+    var n = getNow();
+    var onNow = events.find(e => e._s <= n && n < e._e && e.hotel !== "Streaming");
+    picks = new Set([onNow.id]);
+    var a = currentLocation(n);
+    var ended = events.filter(e => e._e <= n && (n - e._e)/60000 <= 90 && e.hotel !== "Streaming")
+                      .sort(function(x,y){ return y._e - x._e; })[0];
+    picks = ended ? new Set([ended.id]) : new Set();
+    var b = currentLocation(n);
+    picks = new Set();
+    var c = currentLocation(n);
+    picks = new Set(saved);
+    return {onNow: a, onNowHotel: onNow.hotel, justEnded: b, endedHotel: ended ? ended.hotel : null, empty: c};
   })()`);
-  assert(loc === "Hyatt", "currentLocation falls back to home base");
-  const noLoc = window.eval(`(function(){
-    var before = settings.homeBase; settings.homeBase = "";
-    var saved = [...picks]; picks = new Set();
-    var r = currentLocation(getNow());
-    picks = new Set(saved); settings.homeBase = before; return r;
-  })()`);
-  assert(noLoc === null, "currentLocation is null with no picks and no home base");
+  assert(chain.onNow === chain.onNowHotel, "currentLocation uses the pick that's on now");
+  if (chain.endedHotel) assert(chain.justEnded === chain.endedHotel, "currentLocation falls back to a pick that just ended");
+  assert(chain.empty === null, "currentLocation is null when the schedule says nothing");
   // no 6-pick cap: star 8 upcoming picks and count rendered rows + hero
   window.eval(`(function(){
     var n = getNow();
@@ -158,40 +162,16 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(geo.Westin.x < geo.Hilton.x && geo.Westin.y > geo.Marriott.y, "Westin sits lower-left");
   assert(geo["Courtland Grand"].x > geo.Hilton.x && geo["Courtland Grand"].y >= geo.Hilton.y, "Courtland sits lower-right past the Hilton");
   assert(geo.Hyatt.y < geo.Marriott.y && geo.Marriott.y < geo.Hilton.y, "Marriott/Hyatt/Hilton form the central column");
-  // override: tapping a block on the hero map sets it, with a timestamp
-  window.eval(`saveJSON("dc26.override", null)`);
+  // the hero map is a picture, not a control: only Browse's copy is tappable
+  assert([...hmap.querySelectorAll("[data-map]")].every(g => !g.hasAttribute("role")), "hero map blocks are not buttons");
+  assert([...hmap.querySelectorAll("[data-map]")].every(g => g.getAttribute("aria-hidden") === "true"), "hero map blocks are hidden from assistive tech");
+  const beforeTap = window.eval("state.browse.hotel");
   document.querySelector('#view-now .hero-map [data-map="Westin"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(20);
-  const ov = JSON.parse(window.localStorage.getItem("dc26.override"));
-  assert(ov && ov.hotel === "Westin" && typeof ov.at === "number", "tapping a hero block stores an override with a timestamp");
-  assert(window.eval("currentLocation(getNow())") === "Westin", "override wins over every other location rule");
-  const locLine = document.querySelector("#view-now .hero-loc");
-  assert(locLine && /At the Westin/.test(locLine.textContent), "hero shows 'At the Westin'");
-  assert(/set .* ago|just now/.test(locLine.textContent), "hero shows how long ago it was set");
-  assert(locLine.querySelector('[data-act="clear-override"]'), "hero offers a way to clear it");
-  assert(document.querySelector('#view-now .hero-map [data-map="Westin"]').classList.contains("on"), "map highlights the override block");
-  // expiry: older than 90 minutes
-  assert(window.eval(`(function(){
-    var o = loadJSON("dc26.override", null);
-    saveJSON("dc26.override", {hotel: o.hotel, at: getNow().getTime() - 91*60000});
-    var r = overrideLocation(getNow());
-    saveJSON("dc26.override", o); return r; })()`) === null, "override expires after 90 minutes");
-  // expiry: the next pick has started
-  assert(window.eval(`(function(){
-    var o = loadJSON("dc26.override", null);
-    var n = getNow();
-    var nxt = events.find(e => picks.has(e.id) && e._s > n);
-    if (!nxt) return null;
-    saveJSON("dc26.override", {hotel: "Westin", at: n.getTime() - 1000});
-    var r = overrideLocation(new Date(nxt._s.getTime() + 60000));
-    saveJSON("dc26.override", o); return r; })()`) === null, "override expires once the next pick starts");
-  // tapping the same block again clears it
-  document.querySelector('#view-now .hero-map [data-map="Westin"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(20);
-  assert(!JSON.parse(window.localStorage.getItem("dc26.override") || "null"), "tapping the same block again clears the override");
-  // the clear link works too
-  document.querySelector('#view-now .hero-map [data-map="Hyatt"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(20);
-  document.querySelector('#view-now .hero-loc [data-act="clear-override"]').click(); await sleep(20);
-  assert(!JSON.parse(window.localStorage.getItem("dc26.override") || "null"), "the clear link removes the override");
-  assert(!document.querySelector("#view-now .hero-loc"), "the location line disappears once cleared");
+  assert(window.eval("state.browse.hotel") === beforeTap, "tapping the hero map changes nothing");
+  assert(!window.localStorage.getItem("dc26.override"), "no location override is stored");
+  assert(window.eval("typeof overrideLocation") === "undefined", "the override code is gone");
+  assert(window.eval("typeof settings.homeBase") === "undefined", "the home base setting is gone");
+  assert(!document.getElementById("homeBase"), "no home base control in Settings");
   // browse: search
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(10);
   const q = document.getElementById("q"); q.value = "boroughs"; q.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(10);
