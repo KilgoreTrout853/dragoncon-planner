@@ -56,6 +56,58 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   document.getElementById("sheetBack").click(); await sleep(10);
   assert(document.getElementById("sheetWrap").hidden, "backdrop tap closes the sheet");
   assert(!document.querySelector(".detail"), "inline row expansion is gone");
+
+  // ---- step 2: hero card, leave-by, ring, no 6-pick cap ----
+  const hero = document.querySelector("#view-now .hero");
+  assert(hero, "hero card renders for the next pick");
+  assert(hero.querySelector(".ring svg circle.prog"), "hero has an SVG countdown ring");
+  const prog = hero.querySelector(".ring circle.prog");
+  const dash = parseFloat(prog.getAttribute("stroke-dasharray")), off = parseFloat(prog.getAttribute("stroke-dashoffset"));
+  assert(dash > 0 && off >= 0 && off <= dash + 0.5, `ring dashoffset within its circumference (${off.toFixed(0)}/${dash.toFixed(0)})`);
+  assert(/On now|Your next/.test(hero.querySelector(".hkicker").textContent), "hero kicker reads On now or Your next");
+  assert(/var\(--h-/.test(hero.querySelector(".hroom").getAttribute("style") || ""), "hero room uses the hotel hue");
+  assert(window.eval("LEAVE_BUFFER_MIN") === 10, "LEAVE_BUFFER_MIN is 10");
+  // leave-by maths: from a known hotel to the next pick
+  const lb = window.eval(`(function(){
+    var n = getNow();
+    var nxt = events.filter(e => picks.has(e.id) && e._s > n)[0] || events.filter(e => e._s > n)[0];
+    var info = leaveInfo("Marriott", nxt, n);
+    return {walk: info.walk, gap: Math.round((nxt._s - info.leaveBy)/60000), hotel: nxt.hotel};
+  })()`);
+  assert(lb.gap === lb.walk + 10, `leave-by = start - walk - buffer (${lb.gap} = ${lb.walk} + 10)`);
+  // location resolution: falls back to home base when nothing is on now
+  const loc = window.eval(`(function(){
+    var before = settings.homeBase; settings.homeBase = "Hyatt";
+    var saved = [...picks]; picks = new Set();
+    var r = currentLocation(getNow());
+    picks = new Set(saved); settings.homeBase = before; return r;
+  })()`);
+  assert(loc === "Hyatt", "currentLocation falls back to home base");
+  const noLoc = window.eval(`(function(){
+    var before = settings.homeBase; settings.homeBase = "";
+    var saved = [...picks]; picks = new Set();
+    var r = currentLocation(getNow());
+    picks = new Set(saved); settings.homeBase = before; return r;
+  })()`);
+  assert(noLoc === null, "currentLocation is null with no picks and no home base");
+  // no 6-pick cap: star 8 upcoming picks and count rendered rows + hero
+  window.eval(`(function(){
+    var n = getNow();
+    events.filter(e => e._e > n).slice(0, 9).forEach(e => picks.add(e.id));
+    savePicks(); render();
+  })()`); await sleep(20);
+  const planned = window.eval("events.filter(e => picks.has(e.id) && e._e > getNow()).length");
+  const shownRows = document.querySelectorAll("#view-now .list.compact .row[data-list='next']").length;
+  assert(planned > 6, `more than six picks in play (${planned})`);
+  assert(shownRows + 1 >= planned, `all picks render, no 6-cap (hero + ${shownRows} rows for ${planned} picks)`);
+  assert(document.querySelector("#view-now .list.compact"), "remaining picks render as a compact list");
+  // tapping the hero opens the step-1 sheet
+  document.querySelector("#view-now .hero").click(); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && !document.getElementById("panel-event").hidden, "tapping the hero opens the event sheet");
+  document.getElementById("sheetBack").click(); await sleep(10);
+  // reset to a single pick so later assertions keep their shape
+  window.eval(`(function(){ var keep = events.filter(e => e._e > getNow())[0].id; picks = new Set([keep]); savePicks(); render(); })()`); await sleep(20);
+  assert(JSON.parse(window.localStorage.getItem("dc26.picks")).length === 1, "reset to one pick for later steps");
   // browse: search
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(10);
   const q = document.getElementById("q"); q.value = "boroughs"; q.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(10);

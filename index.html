@@ -32,7 +32,7 @@
   --h-Hilton: #79D19B;
   --h-Courtland: #C797F5;
   --h-Westin: #F5A63F;
-  --h-Mart: #E3D46A;
+  --h-Mart: #C6DC6B;   /* yellow-green: kept clear of --gold, which means "mine" */
   --h-Hardy: #9ED5C0;
   --h-Streaming: #8F97AE;
   --h-Other: #8F97AE;
@@ -194,6 +194,7 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .sheet h2 { margin: 0; font-size: 20px; }
 .sheet label { display: grid; gap: 6px; color: var(--muted); font-size: 15px; }
 .sheet input[type="range"] { width: 100%; accent-color: var(--gold); }
+.sheet select { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); font: inherit; }
 .sheet input[type="datetime-local"] { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); }
 .sheet .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; }
 .walk-table { font-size: 14px; color: var(--muted); }
@@ -218,6 +219,35 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   background: transparent; border: 1px solid var(--line); border-radius: 12px; color: var(--muted);
 }
 .ev-star[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+
+/* Hero card: the next thing you have to act on */
+.hero {
+  display: flex; gap: 14px; align-items: flex-start; width: 100%; text-align: left;
+  padding: 14px; background: var(--surface); border: 0; border-bottom: 1px solid var(--line);
+  color: var(--text); font: inherit; cursor: pointer;
+}
+.hero .ring { flex: none; position: relative; width: 62px; height: 62px; }
+.hero .ring svg { transform: rotate(-90deg); display: block; }
+.hero .ring .track-c { stroke: var(--line); }
+.hero .ring .prog { stroke: var(--gold); transition: stroke-dashoffset .6s linear; }
+.hero.late .ring .prog { stroke: var(--warn); }
+.hero .ring .num {
+  position: absolute; inset: 0; display: grid; place-items: center; line-height: 1;
+  font-size: 17px; font-weight: 700; color: var(--gold);
+}
+.hero.late .ring .num { color: var(--warn); }
+.hero .ring .num small { display: block; font-size: 10px; font-weight: 600; color: var(--muted); }
+.hero .hbody { display: grid; gap: 5px; min-width: 0; flex: 1; }
+.hero .hkicker { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.hero .htitle { font-size: 19px; font-weight: 700; line-height: 1.2; }
+.hero .hroom { font-size: 15px; font-weight: 700; color: var(--h); }
+.hero .hleave { font-size: 15px; font-weight: 700; color: var(--gold); }
+.hero.late .hleave { color: var(--warn); }
+.hero .hthen { font-size: 13px; color: var(--muted); }
+.hero .hthen b { color: var(--text); font-weight: 700; }
+.list.compact .row-main { padding-top: 8px; padding-bottom: 8px; }
+.list.compact .snippet { display: none; }
+@media (prefers-reduced-motion: reduce) { .hero .ring .prog { transition: none; } }
 </style>
 </head>
 <body>
@@ -262,6 +292,9 @@ mark { background: none; color: var(--gold); font-weight: 700; }
     <label>Crowd factor for walk estimates: <b id="crowdLabel"></b>
       <input type="range" id="crowd" min="1" max="2.5" step="0.1">
     </label>
+    <label>Home base (where you start the day, used for leave-by times)
+      <select id="homeBase"></select>
+    </label>
     <label class="toggle"><input type="checkbox" id="noiseDefault"> Hide photo sessions and video-room screenings by default</label>
     <label>Preview a different time (leave blank to use the real clock)
       <input type="datetime-local" id="previewTime">
@@ -304,6 +337,7 @@ const WALK = {
   "AmericasMart|Hyatt":7, "AmericasMart|Marriott":12, "AmericasMart|Westin":8, "AmericasMart|Hilton":15, "AmericasMart|Courtland Grand":18,
   "Hardy Ivy Park|Marriott":5, "Hardy Ivy Park|Hilton":4, "Hardy Ivy Park|Hyatt":10, "Hardy Ivy Park|Courtland Grand":8, "Hardy Ivy Park|Westin":12, "Hardy Ivy Park|AmericasMart":12,
 };
+const LEAVE_BUFFER_MIN = 10;   /* slack on every leave-by: lifts, crowds, one wrong turn */
 const NOISE_TRACKS = new Set(["Epic Photos","Video Room"]);
 const isNoise = ev => NOISE_TRACKS.has(ev.track) || /^photo session/i.test(ev.title);
 
@@ -371,7 +405,7 @@ function aliasesFor(ev, text) {
   return out.join(" ");
 }
 
-const settings = loadJSON("dc26.settings", {crowd: 1.3, hideNoise: true});
+const settings = loadJSON("dc26.settings", {crowd: 1.3, hideNoise: true, homeBase: ""});
 let picks = new Set(loadJSON("dc26.picks", []));
 let events = [], byId = new Map(), tracks = [], hotels = [];
 let meta = {};
@@ -573,6 +607,93 @@ function gapHTML(prev, next) {
   return "";
 }
 
+/* ---- Where you are, and when to leave ------------------------------ */
+
+/* Step 4 will let you tap a map block to say where you actually are.
+   Until then there is no override and this resolves to null. */
+function locationOverride(now) {
+  return (typeof overrideLocation === "function") ? overrideLocation(now) : null;
+}
+
+/* First match wins: manual override, what you're in now, where you just
+   were, your home base, or nothing (in which case we can show a walk
+   time but not a leave-by, because we don't know where you're walking from). */
+function currentLocation(now) {
+  const ov = locationOverride(now);
+  if (ov) return ov;
+  const on = events.find(e => picks.has(e.id) && e._s <= now && now < e._e);
+  if (on) return on.hotel;
+  const justEnded = events.filter(e => picks.has(e.id) && e._e <= now && minutesBetween(e._e, now) <= 90)
+    .sort((a, b) => b._e - a._e)[0];
+  if (justEnded) return justEnded.hotel;
+  return settings.homeBase || null;
+}
+
+function leaveInfo(from, next, now) {
+  if (!next) return null;
+  const walk = from ? walkMin(from, next.hotel) : null;
+  if (walk === null) return {walk: null, leaveBy: null, late: false, next};
+  const leaveBy = new Date(next._s.getTime() - (walk + LEAVE_BUFFER_MIN) * 60000);
+  return {walk, leaveBy, late: now >= leaveBy, next};
+}
+
+const RING_R = 26, RING_C = 2 * Math.PI * RING_R;
+function ringHTML(fraction, minutes, late) {
+  const f = Math.max(0, Math.min(1, fraction));
+  const label = minutes >= 60 ? `${Math.floor(minutes / 60)}h` : `${Math.max(0, minutes)}`;
+  return `<div class="ring"><svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
+      <circle class="track-c" cx="31" cy="31" r="${RING_R}" fill="none" stroke-width="5"></circle>
+      <circle class="prog" cx="31" cy="31" r="${RING_R}" fill="none" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${(RING_C * (1 - f)).toFixed(1)}"></circle>
+    </svg><div class="num">${label}<small>${minutes >= 60 ? "" : "min"}</small></div></div>`;
+}
+
+function heroHTML(ev, now, onNow, thenNext) {
+  const from = currentLocation(now);
+  const room = ev.room || ev.location || "Location TBA";
+  let kicker, leaveLine = "", thenLine = "", target, windowStart, late = false;
+
+  if (onNow) {
+    kicker = "On now";
+    target = ev._e;
+    windowStart = ev._s;
+    const info = leaveInfo(ev.hotel, thenNext, now);
+    if (info && info.leaveBy) {
+      late = info.late;
+      thenLine = `<div class="hthen">then: <b>leave by ${fmtShort(info.leaveBy)}</b> for the ${esc(hotelShort(thenNext.hotel))}</div>`;
+    } else if (info) {
+      thenLine = `<div class="hthen">then: ${esc(hotelShort(thenNext.hotel))} next</div>`;
+    }
+    leaveLine = `<div class="hleave">ends ${fmtShort(ev._e)}</div>`;
+  } else {
+    kicker = "Your next";
+    const info = leaveInfo(from, ev, now);
+    if (info && info.leaveBy) {
+      late = info.late;
+      target = info.leaveBy;
+      windowStart = new Date(info.leaveBy.getTime() - 60 * 60000);
+      leaveLine = `<div class="hleave">${late ? "leave now" : `leave by ${fmtShort(info.leaveBy)}`}</div>`;
+      thenLine = `<div class="hthen">${info.walk} min walk from the ${esc(hotelShort(from))} &middot; starts ${fmtShort(ev._s)}</div>`;
+    } else {
+      target = ev._s;
+      windowStart = new Date(ev._s.getTime() - 60 * 60000);
+      leaveLine = `<div class="hleave">starts ${fmtShort(ev._s)}</div>`;
+      thenLine = `<div class="hthen">Set a home base in Settings for a leave-by time</div>`;
+    }
+  }
+  const total = Math.max(1, minutesBetween(windowStart, target));
+  const leftMin = minutesBetween(now, target);
+  return `<button class="hero${late ? " late" : ""}" data-hero="${esc(ev.id)}">
+    ${ringHTML(leftMin / total, leftMin, late)}
+    <div class="hbody">
+      <div class="hkicker">${kicker}</div>
+      <div class="htitle">${esc(ev.title)}</div>
+      <div class="hroom" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</div>
+      ${leaveLine}${thenLine}
+    </div>
+  </button>`;
+}
+
 /* ---- Now ---------------------------------------------------------- */
 function renderNow() {
   const real = getNow();
@@ -587,15 +708,23 @@ function renderNow() {
   noticeEl.hidden = !banner; noticeEl.className = "notice"; noticeEl.innerHTML = banner;
 
   const horizon = new Date(now.getTime() + 60 * 60000);
-  const minePlan = events.filter(e => picks.has(e.id) && e._e > now).slice(0, 6);
+  const minePlan = events.filter(e => picks.has(e.id) && e._e > now);
   let mineHTML = "";
   if (minePlan.length) {
-    mineHTML = `<div class="section-title">Your next <span class="count">${picks.size} picked</span></div><ul class="list">`;
-    minePlan.forEach((ev, i) => {
-      const status = ev._s <= now ? `On now, ends ${fmtShort(ev._e)}` : `In ${minutesBetween(now, ev._s)} min`;
-      mineHTML += gapHTML(minePlan[i - 1], ev) + rowHTML(ev, {list: "next", status: i === 0 || ev._s <= now ? status : (minutesBetween(now, ev._s) <= 90 ? status : "")});
-    });
-    mineHTML += `</ul>`;
+    const onNowEv = minePlan.find(e => e._s <= now && now < e._e) || null;
+    const upcoming = minePlan.filter(e => e._s > now);
+    const heroEv = onNowEv || upcoming[0];
+    const thenNext = onNowEv ? upcoming[0] : null;
+    mineHTML = heroHTML(heroEv, now, !!onNowEv, thenNext);
+    const rest = minePlan.filter(e => e !== heroEv);
+    if (rest.length) {
+      mineHTML += `<div class="section-title">Rest of your day <span class="count">${picks.size} picked</span></div><ul class="list compact">`;
+      rest.forEach((ev, i) => {
+        const status = ev._s <= now ? `On now, ends ${fmtShort(ev._e)}` : `In ${minutesBetween(now, ev._s)} min`;
+        mineHTML += gapHTML(i === 0 ? heroEv : rest[i - 1], ev) + rowHTML(ev, {list: "next", status: minutesBetween(now, ev._s) <= 90 || ev._s <= now ? status : ""});
+      });
+      mineHTML += `</ul>`;
+    }
   } else {
     mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Star things in Browse and they show up here with walk times.</div>`;
   }
@@ -603,7 +732,7 @@ function renderNow() {
   const around = events.filter(e => e._e > now && e._s <= horizon && !(state.browse.hideNoise && isNoise(e)) && (state.now.hotel === "All" || e.hotel === state.now.hotel));
   const shown = around.slice(0, state.now.limit);
   let aroundHTML = `<div class="section-title">On now and in the next hour <span class="count">${around.length}</span></div>
-    <div class="controls" style="padding-top:0"><div class="chips">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotels.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list">`;
+    <div class="controls" style="padding-top:0"><div class="chips">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotels.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list compact">`;
   let lastKey = "";
   shown.forEach(ev => {
     const key = ev._s <= now ? "on" : fmtShort(ev._s);
@@ -781,6 +910,8 @@ document.querySelector("main").addEventListener("click", e => {
   }
   const star = e.target.closest(".star");
   if (star) { togglePick(star.closest(".row").dataset.id); return; }
+  const hero = e.target.closest("[data-hero]");
+  if (hero) { openSheet("event", hero.dataset.hero); return; }
   const main = e.target.closest(".row-main");
   if (main) openSheet("event", main.closest(".row").dataset.id);
 });
@@ -817,6 +948,10 @@ function fillSettings() {
   document.getElementById("crowd").value = settings.crowd;
   document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`;
   document.getElementById("noiseDefault").checked = settings.hideNoise;
+  const hb = document.getElementById("homeBase");
+  hb.innerHTML = `<option value="">No home base</option>` + hotels.filter(h => WALK[`${h}|Marriott`] || WALK[`Marriott|${h}`] || h === "Marriott")
+    .map(h => `<option value="${esc(h)}">${esc(h)}</option>`).join("");
+  hb.value = settings.homeBase || "";
   const m = location.hash.match(/now=([0-9T:-]+)/);
   document.getElementById("previewTime").value = m ? m[1].slice(0, 16) : "";
   document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
@@ -905,6 +1040,7 @@ document.getElementById("settingsBtn").addEventListener("click", () => openSheet
 document.getElementById("closeSheet").addEventListener("click", closeSheet);
 document.getElementById("sheetBack").addEventListener("click", closeSheet);
 document.getElementById("crowd").addEventListener("input", e => { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON("dc26.settings", settings); });
+document.getElementById("homeBase").addEventListener("change", e => { settings.homeBase = e.target.value; saveJSON("dc26.settings", settings); });
 document.getElementById("noiseDefault").addEventListener("change", e => { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON("dc26.settings", settings); });
 document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; if (v) location.hash = `now=${v}`; state.browse.day = null; closeSheet(); });
 document.getElementById("clearPreview").addEventListener("click", () => { history.replaceState(null, "", location.pathname); state.browse.day = null; closeSheet(); });
