@@ -220,6 +220,48 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   if (tight) { window.eval(`togglePick("${tight.id}")`); }
   document.querySelector('.nav button[data-tab="mine"]').click(); await sleep(10);
   const mine = document.getElementById("view-mine");
+
+  // ---- step 5: timeline is the default view on Mine ----
+  assert(window.eval("state.mineView") === "timeline", "Mine defaults to the timeline");
+  assert(mine.querySelector(".tl-grid"), "timeline grid renders");
+  assert(mine.querySelectorAll(".tl-block").length === (tight ? 2 : 1), `timeline draws a block per pick`);
+  assert(mine.querySelectorAll(".tl-hour").length >= 2, "hour ruler renders");
+  // 60px per hour, blocks sized by duration
+  const scale = window.eval(`(function(){
+    var m = events.filter(e => picks.has(e.id)).sort((a,b)=>a._s-b._s);
+    return m.map(e => Math.round((e._e - e._s)/60000));
+  })()`);
+  const heights = [...mine.querySelectorAll(".tl-block")].map(b => parseFloat(b.style.height));
+  assert(heights.every((h, i) => Math.abs(h - (scale[i] - 2)) < 1.5 || h === 24),
+    `block height tracks duration at 60px/hour (${heights.map(h=>h.toFixed(0))} vs ${scale})`);
+  assert(window.eval("HOUR_PX") === 60, "HOUR_PX is 60");
+  // tapping a block opens the step-1 sheet
+  mine.querySelector(".tl-block").click(); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && !document.getElementById("panel-event").hidden, "tapping a timeline block opens the event sheet");
+  document.getElementById("sheetBack").click(); await sleep(10);
+  // overlapping picks become side-by-side columns
+  const cols = window.eval(`(function(){
+    var n = getNow();
+    var base = events.filter(e => picks.has(e.id))[0];
+    var over = events.find(e => !picks.has(e.id) && e._s < base._e && e._e > base._s && e.id !== base.id);
+    if (!over) return null;
+    picks.add(over.id); savePicks(); render();
+    var l = layoutColumns(events.filter(e => picks.has(e.id) && conDayKey(e._s) === conDayKey(base._s)));
+    var pair = l.filter(i => i.ev.id === base.id || i.ev.id === over.id);
+    var r = {cols: Math.max.apply(null, pair.map(i => i.cols)), distinct: new Set(pair.map(i => i.col)).size};
+    picks.delete(over.id); savePicks(); render();
+    return r;
+  })()`); await sleep(20);
+  if (cols) {
+    assert(cols.cols >= 2, `overlapping picks widen the cluster to ${cols.cols} columns`);
+    assert(cols.distinct >= 2, "overlapping picks land in different columns");
+  }
+  // a con day ends at 5am: a 1am Sunday pick belongs to Saturday's timeline
+  assert(window.eval(`conDayKey(new Date("2026-09-06T01:00")) === "2026-09-05"`), "1am Sunday sits on Saturday's timeline");
+  // switch to the list view for the assertions that follow
+  mine.querySelector('[data-act="view-list"]').click(); await sleep(20);
+  assert(window.eval("state.mineView") === "list", "toggle switches to the list view");
+  assert(JSON.parse(window.localStorage.getItem("dc26.mineView")) === "list", "view choice persists");
   assert(mine.querySelectorAll(".row").length === (tight ? 2 : 1), "Mine lists picks");
   if (tight) assert(mine.querySelector(".gap"), "walk warning shown for tight transfer: " + (mine.querySelector(".gap") || {}).textContent);
   // ics export

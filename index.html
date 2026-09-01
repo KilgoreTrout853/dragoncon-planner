@@ -290,6 +290,40 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
 .hero-loc button { background: none; border: 0; color: var(--gold); font: inherit; font-weight: 700; cursor: pointer; padding: 0; text-decoration: underline; }
 .browse-map { padding: 2px 0 4px; }
 .browse-map .venue-map { max-width: 340px; }
+
+/* Timeline: the day as a column, so gaps and clashes have a shape */
+.view-toggle { display: flex; gap: 6px; padding: 0 14px 10px; }
+.view-toggle button {
+  flex: 1; height: 36px; border-radius: 10px; border: 1px solid var(--line);
+  background: transparent; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer;
+}
+.view-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--text); border-color: var(--gold); }
+.tl-day { padding: 0 14px 22px; }
+.tl-grid { position: relative; margin-left: 46px; }
+.tl-hour { position: absolute; left: -46px; right: 0; height: 0; border-top: 1px solid var(--line); }
+.tl-hour span { position: absolute; left: 0; top: -8px; font-size: 12px; color: var(--dim); width: 42px; }
+.tl-block {
+  position: absolute; overflow: hidden; border-radius: 8px; cursor: pointer; text-align: left;
+  background: var(--h); border: 0; padding: 5px 7px; color: var(--ink); font: inherit;
+  display: grid; align-content: start; gap: 1px;
+}
+.tl-block .tb-title { font-size: 13px; font-weight: 700; line-height: 1.15; }
+.tl-block .tb-room { font-size: 11px; font-weight: 600; opacity: .8; }
+.tl-now { position: absolute; left: -46px; right: 0; height: 0; border-top: 2px solid var(--warn); z-index: 3; }
+.tl-now::after {
+  content: "now"; position: absolute; left: 0; top: -8px; font-size: 11px; font-weight: 700;
+  color: var(--warn); background: var(--ink); padding-right: 4px;
+}
+.tl-link { position: absolute; z-index: 2; pointer-events: none; border-left: 2px dashed var(--muted); }
+.tl-link span {
+  /* right-aligned: block titles run from the left, so a badge pinned right
+     clears them even when two picks are back to back with no gap to sit in */
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%); white-space: nowrap;
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  background: var(--ink); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
+}
+.tl-link.tight { border-left-color: var(--warn); }
+.tl-link.tight span { color: var(--warn); }
 </style>
 </head>
 <body>
@@ -454,7 +488,7 @@ let picks = new Set(loadJSON("dc26.picks", []));
 let events = [], byId = new Map(), tracks = [], hotels = [];
 let meta = {};
 const state = {
-  tab: "now", sheetId: null,
+  tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
@@ -986,14 +1020,107 @@ function renderBrowse() {
 }
 
 /* ---- Mine --------------------------------------------------------- */
+/* Side-by-side columns for anything that overlaps in time. Events are
+   grouped into clusters that genuinely collide, and each cluster is
+   given only as many columns as it actually needs. */
+const HOUR_PX = 60;
+function layoutColumns(list) {
+  const sorted = [...list].sort((a, b) => a._s - b._s || a._e - b._e);
+  const out = [];
+  let cluster = [], clusterEnd = null;
+  const flush = () => {
+    if (!cluster.length) return;
+    const colEnds = [];
+    cluster.forEach(it => {
+      let c = colEnds.findIndex(end => end <= it.ev._s.getTime());
+      if (c === -1) { c = colEnds.length; colEnds.push(0); }
+      colEnds[c] = it.ev._e.getTime();
+      it.col = c;
+    });
+    cluster.forEach(it => it.cols = colEnds.length);
+    out.push(...cluster);
+    cluster = []; clusterEnd = null;
+  };
+  sorted.forEach(ev => {
+    if (clusterEnd !== null && ev._s.getTime() >= clusterEnd) flush();
+    cluster.push({ev, col: 0, cols: 1});
+    clusterEnd = clusterEnd === null ? ev._e.getTime() : Math.max(clusterEnd, ev._e.getTime());
+  });
+  flush();
+  return out;
+}
+
+function timelineDayHTML(dayKey, list, now) {
+  const items = layoutColumns(list);
+  const sorted = items.map(i => i.ev).sort((a, b) => a._s - b._s);
+  const startMs = Math.min(...sorted.map(e => e._s.getTime()));
+  const endMs = Math.max(...sorted.map(e => e._e.getTime()));
+  const origin = new Date(startMs); origin.setMinutes(0, 0, 0);
+  const last = new Date(endMs);
+  if (last.getMinutes() || last.getSeconds()) { last.setMinutes(0, 0, 0); last.setHours(last.getHours() + 1); }
+  const spanH = Math.max(1, Math.round((last - origin) / 3600000));
+  const top = t => ((t - origin) / 60000) * (HOUR_PX / 60);
+
+  let hours = "";
+  for (let h = 0; h <= spanH; h++) {
+    const at = new Date(origin.getTime() + h * 3600000);
+    hours += `<div class="tl-hour" style="top:${h * HOUR_PX}px"><span>${fmtShort(at)}</span></div>`;
+  }
+
+  const blocks = items.map(({ev, col, cols}) => {
+    const h = Math.max(24, top(ev._e.getTime()) - top(ev._s.getTime()) - 2);
+    const w = 100 / cols;
+    return `<button class="tl-block" data-hero="${esc(ev.id)}" style="top:${top(ev._s.getTime()).toFixed(1)}px;height:${h.toFixed(1)}px;left:${(col * w).toFixed(2)}%;width:calc(${w.toFixed(2)}% - 3px);--h:var(${hotelVar(ev.hotel)})">
+      <span class="tb-title">${esc(ev.title)}</span>
+      <span class="tb-room">${esc(ev.room || ev.location || "")}</span>
+    </button>`;
+  }).join("");
+
+  let links = "";
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1], next = sorted[i];
+    if (prev.hotel === next.hotel) continue;
+    const walk = walkMin(prev.hotel, next.hotel);
+    const gap = minutesBetween(prev._e, next._s);
+    const y1 = top(prev._e.getTime()), y2 = top(next._s.getTime());
+    const height = Math.max(18, y2 - y1);
+    links += `<div class="tl-link${gap < walk ? " tight" : ""}" style="top:${Math.min(y1, y2).toFixed(1)}px;height:${height.toFixed(1)}px">
+      <span>${walk} min</span></div>`;
+  }
+
+  const nowLine = conDayKey(now) === dayKey && now >= origin && now <= last
+    ? `<div class="tl-now" style="top:${top(now.getTime()).toFixed(1)}px"></div>` : "";
+
+  return `<div class="tl-day">
+    <div class="day-head" style="padding-left:0">${DAY_LONG[dayKey] || dayKey} <span class="count" style="font-size:14px;color:var(--dim);font-weight:400">${list.length}</span></div>
+    <div class="tl-grid" style="height:${spanH * HOUR_PX + 12}px">${hours}${links}${blocks}${nowLine}</div>
+  </div>`;
+}
+
+function renderMineTimeline(mine, now) {
+  const days = new Map();
+  mine.forEach(ev => {
+    const k = conDayKey(ev._s);
+    if (!days.has(k)) days.set(k, []);
+    days.get(k).push(ev);
+  });
+  return [...days.keys()].sort().map(k => timelineDayHTML(k, days.get(k), now)).join("");
+}
+
 function renderMine() {
   const mine = events.filter(e => picks.has(e.id));
   let html = `<div class="mine-actions">
     <button class="btn" data-act="ics" ${mine.length ? "" : "disabled"}>Export to calendar</button>
     <button class="btn quiet" data-act="clear" ${mine.length ? "" : "disabled"}>Remove all</button>
   </div>`;
+  if (mine.length) html += `<div class="view-toggle" role="group" aria-label="View">
+    <button data-act="view-timeline" aria-pressed="${state.mineView === "timeline"}">Timeline</button>
+    <button data-act="view-list" aria-pressed="${state.mineView === "list"}">List</button>
+  </div>`;
   if (!mine.length) {
     html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Browse. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
+  } else if (state.mineView === "timeline") {
+    html += renderMineTimeline(mine, getNow());
   } else {
     html += `<ul class="list">`;
     let lastDay = "", prev = null;
@@ -1066,6 +1193,10 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
     if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id); }
     if (a === "clear-override") { saveJSON("dc26.override", null); render(); }
+    if (a === "view-timeline" || a === "view-list") {
+      state.mineView = a === "view-timeline" ? "timeline" : "list";
+      saveJSON("dc26.mineView", state.mineView); render();
+    }
     return;
   }
   const star = e.target.closest(".star");
