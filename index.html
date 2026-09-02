@@ -123,6 +123,23 @@ main { max-width: 760px; margin: 0 auto; }
 .chip.celeb-chip[aria-pressed="true"] { background: var(--h-Hyatt); border-color: var(--h-Hyatt); color: var(--ink); }
 .chip.suggest.on { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
 .chip.suggest.on span { opacity: .65; }
+.divider {
+  padding: 10px 14px 8px; font-size: 13px; font-weight: 700; color: var(--muted);
+  background: var(--ink); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  letter-spacing: .03em;
+}
+.divider.fold { padding: 0; }
+.divider.fold button {
+  width: 100%; text-align: left; padding: 10px 14px 8px; background: none; border: 0;
+  font: inherit; font-weight: 700; color: var(--muted); cursor: pointer;
+}
+.no-exact {
+  padding: 9px 14px; font-size: 13px; color: var(--muted);
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.no-exact b { color: var(--text); }
+.hidden-note { padding: 10px 14px; font-size: 14px; color: var(--muted); }
+.hidden-note button { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--gold); text-decoration: underline; cursor: pointer; }
 .parsed-chips { padding-top: 2px; }
 .chip.parsed { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
 .chip.parsed span { opacity: .65; margin-left: 2px; }
@@ -460,7 +477,12 @@ const SYNONYMS = [
   ["batman", "superman", "justice league", "gotham", "dc comics", "wonder woman"],
   ["star trek", "trek", "starfleet", "tng", "ds9", "voyager", "strange new worlds", "klingon", "trekkie"],
   ["star wars", "mandalorian", "jedi", "sith", "andor", "skywalker", "lightsaber"],
-  ["d&d", "dnd", "dungeons & dragons", "dungeons and dragons", "ttrpg", "tabletop rpg", "role-playing", "roleplaying", "pathfinder", "dungeon master"],
+  ["d&d", "dnd", "dungeons & dragons", "dungeons and dragons", "ttrpg", "tabletop rpg", "role-playing", "roleplaying", "pathfinder", "dungeon master", "5e", "ddal", "adventurers league"],
+  ["skeptrack", "skeptics", "skeptic"],
+  ["whedon", "firefly", "buffy", "angel", "serenity"],
+  ["brit", "british", "brittrack", "doctor who"],
+  ["filk", "filk music", "filking"],
+  ["larp", "live-action roleplaying", "live action roleplaying"],
   ["warhammer", "40k", "40,000", "miniatures", "minis", "wargame", "wargaming"],
   ["lord of the rings", "lotr", "tolkien", "hobbit", "middle-earth", "rings of power"],
   ["game of thrones", "westeros", "house of the dragon", "targaryen"],
@@ -503,7 +525,10 @@ const SYNONYMS = [
   ["contest", "competition", "tournament", "championship"],
   ["dance", "dancing", "ball"],
 ];
-const STOPWORDS = new Set(["a","an","the","and","or","of","in","on","at","to","for","with","from","by","is","are","be","stuff","things","thing","something","anything","some","any","my","me","i","about","into","all"]);
+const STOPWORDS = new Set(["a","an","the","and","or","of","in","on","at","to","for","with","from","by","is","are","be","stuff","things","thing","something","anything","some","any","my","me","i","about","into","all",
+  /* Question words. "what is at the westin" is a hotel filter with noise
+     around it, not five search terms. */
+  "what","whats","where","when","who","which","there","happening","going","find","show"]);
 const KIND_LABELS = {qa: "Celebrity Q&A", panel: "Fan panel", screening: "Screening", workshop: "Workshop", signing: "Signing", photo: "Photo op", contest: "Contest", performance: "Performance", party: "Party", gaming: "Gaming", reading: "Reading", tour: "Tour", other: "Other"};
 let index = null;
 const processTerm = (term) => {
@@ -524,7 +549,7 @@ let meta = {};
 const state = {
   tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
+  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
 
@@ -974,6 +999,46 @@ function suggestHTML() {
   return row("People", s.people) + row("Fandoms &amp; topics", s.topics);
 }
 
+/* When nothing matched a word literally, every result is a guess at what was
+   meant - "drag" only reaches "dragons" by prefix. Ranking cannot fix that,
+   but pretending to be confident about it is the part that misleads. */
+function noExactMatchHTML(results) {
+  if (!state.browse.q.trim() || !results.length) return "";
+  const ranked = results.filter(e => e._hit);
+  if (!ranked.length || ranked.some(e => e._hit.exact)) return "";
+  const raw = (state.browse.parsed && state.browse.parsed.residual) || "";
+  const shown = (/^".+"$/.test(raw) ? raw.slice(1, -1) : raw).trim();
+  if (!shown) return "";
+  /* A prefix and a typo are different failures and deserve different words:
+     "philharmonic" does not start with "philharmonc". */
+  const typed = shown.toLowerCase().split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean);
+  const byPrefix = ranked.some(e => (e._hit.terms || []).some(m => typed.some(t => m.startsWith(t) && m !== t)));
+  const how = byPrefix ? "showing words that start with it" : "showing close spellings";
+  return `<div class="no-exact">No exact match for <b>${esc(shown)}</b> &mdash; ${how}.</div>`;
+}
+
+/* Searching a person by name and quietly dropping their photo sessions is
+   the wrong default when the name is the whole query - say what was held
+   back and offer it, rather than hiding it twice. */
+function hiddenForQueryHTML(results) {
+  const b = state.browse;
+  if (!b.q.trim() || b.showHidden || !b.hideNoise) return "";
+  const raw = (b.parsed && b.parsed.residual) || "";
+  const name = /^".+"$/.test(raw) ? raw.slice(1, -1) : raw.trim();
+  if (!name) return "";
+  /* Only for a person: a bare word like "photo" is already handled by the
+     kind override, and we don't want this line on every search. */
+  const isPerson = suggestDocs.some(d => d.group === "people" && d.name.toLowerCase() === name.toLowerCase());
+  if (!isPerson) return "";
+  const lower = name.toLowerCase();
+  const shown = new Set(results.map(e => e.id));
+  const hidden = events.filter(e => isNoise(e) && !shown.has(e.id)
+    && (e.speakers || []).some(p => (p.name || "").toLowerCase() === lower));
+  if (!hidden.length) return "";
+  const word = hidden.length === 1 ? "session" : "sessions";
+  return `<div class="hidden-note">${hidden.length} photo ${word} hidden &middot; <button data-act="show-hidden">show</button></div>`;
+}
+
 /* Show what the query was read as, and let the reader take it back off. */
 function parsedChipsHTML() {
   const chips = (state.browse.parsed && state.browse.parsed.chips) || [];
@@ -1032,7 +1097,9 @@ function queryRules() {
   add("concert", "kind", "performance", "Performance"); add("performance", "kind", "performance", "Performance");
   add("gaming", "kind", "gaming", "Gaming"); add("game", "kind", "gaming", "Gaming");
   add("18+", "adult", true, "18+"); add("adult", "adult", true, "18+");
-  add("kids", "adult", false, "No 18+"); add("family", "adult", false, "No 18+");
+  /* Someone searching "kids" wants the Kids Track, not merely the absence of
+     adult content - hiding 18+ is the lesser half of what they mean. */
+  ["kids", "kid", "family", "children"].forEach(w => add(w, "kidstrack", true, "Kids Track"));
   Object.keys(TIME_BANDS).forEach(w => add(w, "time", w, w[0].toUpperCase() + w.slice(1)));
   add("today", "rel", "today", "Today");
   add("tonight", "rel", "tonight", "Tonight");
@@ -1043,6 +1110,20 @@ let QUERY_RULES = null;
 
 /* Token matching, not regular expressions: the vocabulary contains "q&a"
    and "18+", and building patterns out of those invites escaping bugs. */
+/* "d&d" survives tokenising as one token and matches nothing; the index
+   holds "dungeons" and "dragons" as separate terms. Expand before searching
+   so the shorthand people actually type reaches the words that were indexed. */
+const QUERY_EXPANSIONS = [
+  [/\bd\s*&\s*d\b/gi, "dungeons dragons"],
+  [/\bdnd\b/gi, "dungeons dragons"],
+  [/\bdungeons\b(?!\s+(?:and|&)?\s*dragons\b)/gi, "dungeons dragons"],
+];
+function expandQuery(text) {
+  let out = String(text || "");
+  for (const [re, to] of QUERY_EXPANSIONS) out = out.replace(re, to);
+  return out.replace(/\s+/g, " ").trim();
+}
+
 function tokenise(text) { return String(text || "").toLowerCase().split(/[\s,]+/).filter(Boolean); }
 function stripPhrase(tokens, phrase) {
   const want = phrase.split(" ");
@@ -1093,6 +1174,10 @@ function finishParse(residual, found) {
       filters.day = day;
       if (f.value === "tonight") filters.time = "evening";
       chips.push({dim: "day", label: f.label, src: f.src});
+    } else if (f.dim === "kidstrack") {
+      filters.track = "Kids Track";
+      filters.adult = false;
+      chips.push({dim: "track", label: f.label, src: f.src});
     } else {
       filters[f.dim] = f.value;
       chips.push({dim: f.dim, label: f.label, src: f.src});
@@ -1118,36 +1203,97 @@ function activeFilters() {
     hotel: f.hotel !== undefined ? f.hotel : b.hotel,
     kind: f.kind !== undefined ? f.kind : b.kind,
     celebrity: b.celebrity,
-    type: b.type, track: b.track, fandom: b.fandom,
+    type: b.type,
+    track: f.track !== undefined ? f.track : b.track,
+    fandom: b.fandom,
     adultOnly: f.adult === true,
     hideAdult: f.adult === false ? true : (f.adult === true ? false : b.hideAdult),
     time: f.time,
-    hideNoise: b.hideNoise,
+    /* Asking for photo sessions or screenings outranks the setting that hides
+       them; so does tapping their chip, and so does the reveal link. */
+    hideNoise: b.hideNoise && !state.browse.showHidden
+      && !["photo", "screening"].includes(f.kind !== undefined ? f.kind : b.kind),
   };
 }
 
-function browseResults() {
-  state.browse.parsed = parseQuery(state.browse.q);
-  const q = state.browse.parsed.residual;
-  /* Every filter word was understood, so there is nothing left to rank by:
-     hand back the filtered set in the order it happens in. */
-  if (!q || !index) return events.filter(passesFilters).sort((a, b) => a._s - b._s);
-  /* A tapped suggestion arrives quoted: match that name exactly rather than
-     letting prefix and fuzzy drag in everyone with a similar surname. */
-  const phrase = /^".+"$/.test(q) ? q.slice(1, -1) : null;
-  const terms = phrase || q;
-  const nTerms = new Set(terms.split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean)).size || 1;
-  const opts = phrase ? {prefix: false, fuzzy: false, combineWith: "AND"} : undefined;
+const LOOSE_THRESHOLD = 8;
+
+/* How well one typed word matched: 1 if it matched an index term literally,
+   otherwise how much of that term it actually covered. "drag" is 67% of
+   "dragon" but only 44% of "dragoncon", and the shorter the fragment the
+   weaker the evidence - which is what stops a four-letter prefix from
+   ranking on the strength of somebody else's long title. */
+function termQuality(t, matched, match) {
+  if (match && match[t]) return 1;
+  let best = 0;
+  for (const m of matched) {
+    if (!m.startsWith(t) && !t.startsWith(m)) continue;
+    const r = Math.min(t.length, m.length) / Math.max(t.length, m.length);
+    if (r > best) best = r;
+  }
+  return best;
+}
+
+/* Rank one pass of MiniSearch. coverage rewards matching more of what was
+   typed; quality rewards matching it squarely rather than by a fragment. */
+function collectHits(text, opts, queryTerms, seen) {
   const out = [];
-  for (const h of index.search(terms, opts)) {
+  const n = queryTerms.length || 1;
+  for (const h of index.search(text, opts)) {
+    if (seen.has(h.id)) continue;
     const e = byId.get(h.id);
     if (!e || !passesFilters(e)) continue;
-    const coverage = new Set(h.queryTerms).size / nTerms;
-    e._hit = {score: h.score * (0.5 + coverage), terms: h.terms};
+    seen.add(h.id);
+    const coverage = new Set(h.queryTerms).size / n;
+    const matched = h.match ? Object.keys(h.match) : [];
+    const quality = queryTerms.reduce((acc, t) => acc + termQuality(t, matched, h.match), 0) / n;
+    const exact = queryTerms.some(t => h.match && h.match[t]);
+    e._hit = {score: h.score * (0.5 + coverage) * (1 + 0.5 * quality), terms: h.terms, exact};
     out.push(e);
   }
   out.sort((a, b) => b._hit.score - a._hit.score || a._s - b._s);
   return out;
+}
+
+function browseResults() {
+  state.browse.parsed = parseQuery(state.browse.q);
+  const raw = state.browse.parsed.residual;
+  /* A tapped suggestion arrives quoted: match that name exactly rather than
+     letting prefix and fuzzy drag in everyone with a similar surname. */
+  const phrase = /^".+"$/.test(raw) ? raw.slice(1, -1) : null;
+  const q = phrase === null ? expandQuery(raw) : raw;
+  const queryTerms = [...new Set((phrase || q).split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean))];
+
+  /* Nothing left to rank by - either every word was a filter, or what remains
+     is all stopwords ("what is at the westin"). Hand back the filtered set. */
+  if (!q || !index || !queryTerms.length) {
+    return events.filter(passesFilters).sort((a, b) => a._s - b._s).map(e => { e._hit = null; e._section = "main"; return e; });
+  }
+
+  const seen = new Set();
+  let main, loose = [];
+  if (phrase) {
+    main = collectHits(phrase, {prefix: false, fuzzy: false, combineWith: "AND"}, queryTerms, seen);
+  } else {
+    /* Everything typed, then - only if that was too thin - anything typed.
+       "board games" should not return all 1,300 events containing "games". */
+    main = collectHits(q, {combineWith: "AND"}, queryTerms, seen);
+    if (main.length < LOOSE_THRESHOLD) loose = collectHits(q, {combineWith: "OR"}, queryTerms, seen);
+  }
+
+  /* A search is a question about the whole con, so it crosses days - which
+     means it turns up things that already finished. They stay, behind a fold. */
+  const now = getNow();
+  const upcoming = [], past = [];
+  for (const e of main) (e._e > now ? upcoming : past).push(e);
+  const looseUpcoming = [], loosePast = [];
+  for (const e of loose) (e._e > now ? looseUpcoming : loosePast).push(e);
+
+  upcoming.forEach(e => e._section = "main");
+  looseUpcoming.forEach(e => e._section = "loose");
+  const pastAll = past.concat(loosePast);
+  pastAll.forEach(e => e._section = "past");
+  return upcoming.concat(looseUpcoming, pastAll);
 }
 
 function renderBrowse() {
@@ -1181,19 +1327,34 @@ function renderBrowse() {
     <label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label>
     ${hasTags ? `<label class="toggle"><input type="checkbox" id="hideAdult" ${b.hideAdult ? "checked" : ""}> Hide 18+</label>` : ""}
   </div>
-  <div class="section-title">${searching ? "Best matches first" : "Results"} <span class="count">${results.length}</span></div><ul class="list">`;
+  <div class="section-title">${searching ? "Best matches first" : "Results"} <span class="count">${results.length}</span></div>
+  ${noExactMatchHTML(results)}<ul class="list">`;
 
-  let lastDay = "", lastTime = "";
+  let lastDay = "", lastTime = "", lastSection = "";
   shown.forEach(ev => {
     /* An all-filter query ("signing sunday") ranks nothing, so there are no
        hit terms to highlight - that is not the same as not searching. */
-    if (searching) { html += rowHTML(ev, {list: "browse", showDay: true, terms: ev._hit ? ev._hit.terms : null}); return; }
+    if (searching) {
+      if (ev._section !== lastSection) {
+        lastSection = ev._section;
+        if (lastSection === "loose") {
+          html += `<li class="divider">Looser matches</li>`;
+        } else if (lastSection === "past") {
+          const n = results.filter(x => x._section === "past").length;
+          html += `<li class="divider fold"><button data-act="toggle-past" aria-expanded="${b.showPast}">Already happened (${n}) <span aria-hidden="true">${b.showPast ? "▾" : "▸"}</span></button></li>`;
+        }
+      }
+      if (lastSection === "past" && !b.showPast) return;
+      html += rowHTML(ev, {list: "browse", showDay: true, terms: ev._hit ? ev._hit.terms : null});
+      return;
+    }
     if (b.day === "All" && ev.day !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev.day] || ev.day}</li>`; lastDay = ev.day; lastTime = ""; }
     const t = fmtShort(ev._s);
     if (t !== lastTime) { html += `<li class="time-head">${t}</li>`; lastTime = t; }
     html += rowHTML(ev, {list: "browse"});
   });
   html += `</ul>`;
+  html += hiddenForQueryHTML(results);
   if (!results.length) html += `<div class="empty"><b>No matches.</b> Try fewer or different words, another day, or turn off the photo/video filter.</div>`;
   if (results.length > shown.length) html += `<button class="btn quiet more" data-act="more-browse">Show ${Math.min(PAGE, results.length - shown.length)} more of ${results.length - shown.length}</button>`;
   const view = document.getElementById("view-browse");
@@ -1393,6 +1554,8 @@ document.querySelector("main").addEventListener("click", e => {
       render();
       return;
     }
+    if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
+    if (a === "show-hidden") { state.browse.showHidden = true; state.browse.page = 1; render(); return; }
     if (a === "unparse") {
       const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
       state.browse.q = (stripped || tokenise(state.browse.q)).join(" ");
@@ -1437,6 +1600,9 @@ document.querySelector("main").addEventListener("input", e => {
   if (e.target.id === "q") {
     const was = state.browse.q.trim(), now = e.target.value;
     state.browse.q = now;
+    /* Both are answers to the last question, not standing preferences. */
+    state.browse.showHidden = false;
+    state.browse.showPast = false;
     if (!was && now.trim()) { state.browse.prevDay = state.browse.day; state.browse.day = "All"; }
     else if (was && !now.trim() && state.browse.prevDay) { state.browse.day = state.browse.prevDay; state.browse.prevDay = null; }
     state.browse.page = 1; renderBrowse();
