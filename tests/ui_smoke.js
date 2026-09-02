@@ -251,6 +251,50 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(window.eval("activeFilters().day") === "2026-09-05", "a parsed day overrides the day chip");
   window.eval(`(function(){ state.browse.q = ""; state.browse.day = "2026-09-05"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
   assert(window.eval("activeFilters().day") === "2026-09-05", "the chip takes over again once the word is gone");
+  // ---- search step 2: suggestions as you type ----
+  resetBrowse(); await sleep(10);
+  const SG = q => window.eval(`(function(){ state.browse.q = ${JSON.stringify(q)}; var s = suggestionsFor(${JSON.stringify(q)});
+    return {people: s.people.map(function(p){return p.name;}), topics: s.topics.map(function(t){return t.name;}),
+            pc: s.people.map(function(p){return p.count;}), tc: s.topics.map(function(t){return t.count;})}; })()`);
+  assert(window.eval("suggestDocs.length") >= 20, `a name index was built (${window.eval("suggestDocs.length")} names)`);
+  assert(window.eval("suggestDocs.filter(function(d){return d.group==='people';}).length") > 0, "people are indexed");
+  assert(window.eval("suggestDocs.filter(function(d){return d.group==='topics';}).length") > 0, "fandoms and topics are indexed");
+  const one = SG("a");
+  assert(!one.people.length && !one.topics.length, "one character suggests nothing");
+  const two = SG("ke");
+  assert(two.people.length || two.topics.length, `two characters start suggesting (${two.people.join(",")})`);
+  const sug = SG("ka");
+  assert(sug.people.length > 0, `"ka" suggests people (${sug.people.join(", ")})`);
+  assert(sug.people.length <= 5 && sug.topics.length <= 5, "at most five chips per row");
+  assert(sug.pc.every((c, i) => i === 0 || c <= sug.pc[i-1]), `people ranked by how many events match (${sug.pc.join(">")})`);
+  assert(sug.people.every(n => n.includes(" ") || /^[A-Z]/.test(n)), `suggestions are whole names, not fragments (${sug.people.join("|")})`);
+  const rick = SG("rick");
+  assert(rick.topics.includes("Rick and Morty"), `topics are suggested too (${rick.topics.join(", ")})`);
+  // the rows render, labelled
+  window.eval(`(function(){ state.browse.q = "ka"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  const labels = [...document.querySelectorAll("#view-browse .suggest-label")].map(l => l.textContent.trim());
+  assert(labels.some(l => /People/i.test(l)) || labels.some(l => /Fandoms/i.test(l)), `suggestion rows are labelled (${labels.join("|")})`);
+  // tapping a chip searches that name exactly
+  const target = window.eval(`(function(){ var s = suggestionsFor("ka"); return s.people[0].name; })()`);
+  document.querySelector(`#view-browse [data-act="suggest"][data-name="${target}"]`).click(); await sleep(40);
+  assert(window.eval("state.browse.q") === `"${target}"`, `tapping quotes the name (${window.eval("state.browse.q")})`);
+  const exact = window.eval("browseResults()");
+  assert(exact.length > 0, `the exact-phrase search returns results (${exact.length})`);
+  assert(exact.every(e => JSON.stringify([e.title, (e.tags||{}).fandoms, (e.tags||{}).topics, (e.speakers||[]).map(p=>p.name)]).toLowerCase().includes(target.toLowerCase())),
+    `every result actually mentions ${target}`);
+  // the suggestion rows give way to one active chip
+  assert(document.querySelector("#view-browse .chip.suggest.on"), "the chosen name shows as an active chip");
+  assert(!document.querySelector('#view-browse [data-act="suggest"]'), "the suggestion rows are hidden once a name is chosen");
+  document.querySelector('#view-browse [data-act="unsuggest"]').click(); await sleep(30);
+  assert(window.eval("state.browse.q") === "", "clearing the active chip empties the query");
+  // counts follow the noise filter, so a chip never promises more than it shows
+  const withNoiseHidden = window.eval(`(function(){ state.browse.hideNoise = true; var s = suggestionsFor("nath"); return s.people[0]; })()`);
+  const withNoiseShown  = window.eval(`(function(){ state.browse.hideNoise = false; var s = suggestionsFor("nath"); return s.people[0]; })()`);
+  if (withNoiseHidden && withNoiseShown && withNoiseHidden.name === withNoiseShown.name) {
+    assert(withNoiseHidden.count <= withNoiseShown.count,
+      `the chip count drops when photo sessions are hidden (${withNoiseHidden.count} <= ${withNoiseShown.count})`);
+  }
+
   window.eval(`(function(){ Object.assign(state.browse, ${browseSnapshot}); renderBrowse(); })()`); await sleep(20);
 
   // noise toggle: Epic Photos hidden by default

@@ -99,6 +99,12 @@ main { max-width: 760px; margin: 0 auto; }
 }
 .chip[aria-pressed="true"] { background: var(--text); color: var(--ink); border-color: var(--text); font-weight: 600; }
 .chip.hotel[aria-pressed="true"] { background: var(--h); border-color: var(--h); color: var(--ink); }
+.suggest-row { align-items: center; padding-top: 2px; }
+.suggest-label { flex: none; font-size: 12px; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; padding-right: 2px; }
+.chip.suggest { font-weight: 600; }
+.chip.suggest .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: 12px; }
+.chip.suggest.on { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
+.chip.suggest.on span { opacity: .65; }
 .parsed-chips { padding-top: 2px; }
 .chip.parsed { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
 .chip.parsed span { opacity: .65; margin-left: 2px; }
@@ -561,6 +567,7 @@ function buildIndex() {
     searchOptions: {processTerm, prefix: true, fuzzy: t => t.length > 4 ? 0.2 : false, combineWith: "OR",
       boost: {title: 5, fandoms: 4, speakers: 3, aliases: 2, tracks: 2, kind: 2, topics: 2, description: 1, location: 1}},
   });
+  buildSuggestIndex();
   index.addAll(events.map(e => {
     const tg = e.tags || {};
     const fandoms = (tg.fandoms || []).join(" "), topics = (tg.topics || []).join(" ");
@@ -570,6 +577,63 @@ function buildIndex() {
       fandoms, kind, topics, aliases: aliasesFor(e, text), location: e.location || ""};
   }));
 }
+/* A second, tiny index: one document per name, so we can suggest whole
+   names rather than fragments of event text. */
+let suggestIndex = null, suggestDocs = [];
+function buildSuggestIndex() {
+  /* Two counts per name. A celebrity's dozen entries are mostly photo
+     sessions, which are hidden by default - a chip promising 12 that yields
+     2 is worse than no number at all. */
+  const people = new Map(), topics = new Map();
+  const bump = (m, n, quiet) => {
+    if (n.length <= 2) return;
+    const c = m.get(n) || {all: 0, visible: 0};
+    c.all++; if (!quiet) c.visible++;
+    m.set(n, c);
+  };
+  events.forEach(e => {
+    const quiet = isNoise(e);
+    (e.speakers || []).forEach(p => bump(people, (p && p.name || "").trim(), quiet));
+    const tg = e.tags || {};
+    [...(tg.fandoms || []), ...(tg.topics || [])].forEach(t => bump(topics, String(t || "").trim(), quiet));
+  });
+  const doc = (group, prefix) => ([name, c]) => ({id: `${prefix}:${name}`, name, all: c.all, visible: c.visible, group});
+  suggestDocs = [
+    ...[...people].map(doc("people", "p")),
+    ...[...topics].map(doc("topics", "t")),
+  ];
+  suggestIndex = new MiniSearch({
+    fields: ["name"], storeFields: ["name", "all", "visible", "group"], processTerm,
+    searchOptions: {processTerm, prefix: true, fuzzy: false, combineWith: "AND"},
+  });
+  suggestIndex.addAll(suggestDocs);
+}
+
+/* autoSuggest completes the words typed; each completion is then resolved
+   back to whole names, because a chip saying "fillion" is no use. */
+function suggestionsFor(raw) {
+  const q = String(raw || "").trim();
+  if (!suggestIndex || q.length < 2) return {people: [], topics: []};
+  const seen = new Set(), hits = [];
+  const take = res => res.forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); hits.push(r); } });
+  take(suggestIndex.search(q, {prefix: true, fuzzy: false, combineWith: "AND"}));
+  for (const s of suggestIndex.autoSuggest(q, {fuzzy: false}).slice(0, 6)) {
+    if (s.suggestion.toLowerCase() === q.toLowerCase()) continue;
+    take(suggestIndex.search(s.suggestion, {prefix: true, fuzzy: false, combineWith: "AND"}));
+  }
+  const useVisible = state.browse.hideNoise;
+  const n = h => useVisible ? h.visible : h.all;
+  const pick = group => hits.filter(h => h.group === group && n(h) > 0)
+    .sort((a, b) => n(b) - n(a) || a.name.localeCompare(b.name))
+    .slice(0, 5)
+    .map(h => ({name: h.name, count: n(h)}));
+  const out = {people: pick("people"), topics: pick("topics")};
+  /* Once the box already holds exactly one of these, the row is just noise. */
+  const exact = n => n.toLowerCase() === q.replace(/^"|"$/g, "").toLowerCase();
+  if (out.people.some(x => exact(x.name)) || out.topics.some(x => exact(x.name))) return {people: [], topics: []};
+  return out;
+}
+
 function fandomCounts() {
   const m = new Map();
   events.forEach(e => (e.tags && e.tags.fandoms || []).forEach(f => m.set(f, (m.get(f) || 0) + 1)));
@@ -844,6 +908,23 @@ function renderNow() {
   document.getElementById("view-now").innerHTML = mineHTML + aroundHTML;
 }
 
+/* Two rows of chips under the box: who, and what. */
+function suggestHTML() {
+  const q = state.browse.q.trim();
+  const active = /^".+"$/.test(q) ? q.slice(1, -1) : null;
+  if (active) {
+    return `<div class="chips suggest-row"><button class="chip suggest on" data-act="unsuggest"
+      aria-pressed="true" aria-label="Clear ${esc(active)}">${esc(active)} <span aria-hidden="true">&times;</span></button></div>`;
+  }
+  const s = suggestionsFor(q);
+  if (!s.people.length && !s.topics.length) return "";
+  const row = (label, items) => items.length
+    ? `<div class="chips suggest-row"><span class="suggest-label">${label}</span>${items.map(i =>
+        `<button class="chip suggest" data-act="suggest" data-name="${esc(i.name)}">${esc(i.name)} <span class="n">${i.count}</span></button>`).join("")}</div>`
+    : "";
+  return row("People", s.people) + row("Fandoms &amp; topics", s.topics);
+}
+
 /* Show what the query was read as, and let the reader take it back off. */
 function parsedChipsHTML() {
   const chips = (state.browse.parsed && state.browse.parsed.chips) || [];
@@ -1000,9 +1081,14 @@ function browseResults() {
   /* Every filter word was understood, so there is nothing left to rank by:
      hand back the filtered set in the order it happens in. */
   if (!q || !index) return events.filter(passesFilters).sort((a, b) => a._s - b._s);
-  const nTerms = new Set(q.split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean)).size || 1;
+  /* A tapped suggestion arrives quoted: match that name exactly rather than
+     letting prefix and fuzzy drag in everyone with a similar surname. */
+  const phrase = /^".+"$/.test(q) ? q.slice(1, -1) : null;
+  const terms = phrase || q;
+  const nTerms = new Set(terms.split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean)).size || 1;
+  const opts = phrase ? {prefix: false, fuzzy: false, combineWith: "AND"} : undefined;
   const out = [];
-  for (const h of index.search(q)) {
+  for (const h of index.search(terms, opts)) {
     const e = byId.get(h.id);
     if (!e || !passesFilters(e)) continue;
     const coverage = new Set(h.queryTerms).size / nTerms;
@@ -1029,6 +1115,7 @@ function renderBrowse() {
     <div class="chips">${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}${chipHTML("All days", b.day === "All", "day", "All")}</div>
     <div class="chips">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
     ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
+    ${suggestHTML()}
     ${parsedChipsHTML()}
     <div class="row-controls">
       <div class="seg" role="group" aria-label="Type">
@@ -1237,6 +1324,20 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "ics") exportICS();
     if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
     if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id, li); }
+    if (a === "suggest") {
+      state.browse.q = `"${act.dataset.name}"`;
+      state.browse.page = 1;
+      if (state.browse.day !== "All") { state.browse.prevDay = state.browse.day; state.browse.day = "All"; }
+      render();
+      return;
+    }
+    if (a === "unsuggest") {
+      state.browse.q = "";
+      if (state.browse.prevDay) { state.browse.day = state.browse.prevDay; state.browse.prevDay = null; }
+      state.browse.page = 1;
+      render();
+      return;
+    }
     if (a === "unparse") {
       const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
       state.browse.q = (stripped || tokenise(state.browse.q)).join(" ");
