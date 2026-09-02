@@ -447,6 +447,66 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!document.getElementById("panel-settings").hidden && document.getElementById("panel-event").hidden, "settings panel shown, event panel hidden");
   document.getElementById("closeSheet").click(); await sleep(10);
   assert(document.getElementById("sheetWrap").hidden, "settings closes");
+  // ---- offline: what jsdom can actually reach ----
+  // (a) the worker parses, and registration is guarded
+  const swSrc = fs.readFileSync(__dirname + "/../sw.js", "utf8");
+  try { new Function(swSrc); assert(true, "sw.js parses"); }
+  catch (e) { assert(false, "sw.js parses: " + e.message); }
+  assert(/navigator\.serviceWorker\.register\(\s*["']\.\/sw\.js["']\s*\)/.test(html),
+    "index.html registers ./sw.js by relative path (scope stays under /dragoncon-planner/)");
+  assert(/if\s*\(\s*["']serviceWorker["']\s+in\s+navigator\s*\)/.test(html),
+    "registration is guarded by a serviceWorker capability check");
+  assert(/register\("\.\/sw\.js"\)\.catch\(err =>[\s\S]{0,120}console\.warn/.test(html),
+    "a failed registration is reported, not swallowed");
+  assert(/const CACHE\s*=\s*["']dc26-v1["']/.test(swSrc), "the cache name is versioned (dc26-v1)");
+  assert(/startsWith\(["']dc26-["']\)[\s\S]{0,80}caches\.delete/.test(swSrc), "older dc26-* caches are deleted on activate");
+  assert(/HTML_TIMEOUT_MS\s*=\s*3000/.test(swSrc), "the html network race times out at 3s");
+  assert(/schedule-updated/.test(swSrc) && /generated_at !== /.test(swSrc),
+    "the worker only announces an update when generated_at actually changed");
+  assert(/fonts\.gstatic\.com/.test(swSrc) && /opaque/.test(swSrc), "font requests are cached, opaque allowed");
+  // manifest and icon
+  const mf = JSON.parse(fs.readFileSync(__dirname + "/../manifest.json", "utf8"));
+  assert(mf.name === "Dragon Con 2026" && mf.short_name === "DC26", "manifest names the app");
+  assert(mf.display === "standalone" && mf.start_url === "./", "manifest is standalone from ./");
+  assert(mf.background_color === "#171A33" && mf.theme_color === "#171A33", "manifest colours match the app");
+  assert(mf.icons.some(i => i.src === "./icon.svg"), "manifest points at the icon");
+  assert(/<link rel="manifest" href="\.\/manifest\.json">/.test(html), "index.html links the manifest");
+  assert(/<link rel="apple-touch-icon" href="\.\/icon\.svg">/.test(html), "index.html sets an apple-touch-icon");
+  assert(fs.existsSync(__dirname + "/../icon.svg"), "the icon file exists");
+
+  // (b) the pill: shown by the worker's message, dismissed, and reloads on tap
+  const pill = document.getElementById("updatePill");
+  assert(pill && pill.hidden, "the update pill starts hidden");
+  window.eval("showUpdatePill()"); await sleep(20);
+  assert(!document.getElementById("updatePill").hidden, "a schedule-updated message shows the pill");
+  assert(/tap to refresh/i.test(pill.textContent), "the pill says what tapping does");
+  // it must not re-render the list underneath the reader
+  const rowsBefore = document.querySelectorAll("#view-browse .row").length;
+  window.eval("showUpdatePill()"); await sleep(20);
+  assert(document.querySelectorAll("#view-browse .row").length === rowsBefore, "showing the pill does not re-render the list");
+  const realReload = window.reloadNow;
+  window.__reloads = 0;
+  window.reloadNow = () => { window.__reloads++; };
+  pill.click(); await sleep(20);
+  assert(window.__reloads === 1, "tapping the pill reloads");
+  // a swipe must not also count as a tap
+  window.eval("pillDragged = true"); pill.click(); await sleep(20);
+  assert(window.__reloads === 1, "a swipe does not trigger the reload");
+  window.eval("pillDragged = false");
+  window.reloadNow = realReload;
+  window.eval("hideUpdatePill()"); await sleep(10);
+  assert(document.getElementById("updatePill").hidden, "the pill can be dismissed");
+
+  // (c) the freshness line marks a cached copy
+  const freshBefore = document.getElementById("fresh").textContent;
+  assert(!/offline copy/.test(freshBefore), "no offline marker while the network is fine");
+  window.eval("servedOffline = true; updateFresh();"); await sleep(10);
+  assert(/offline copy/.test(document.getElementById("fresh").textContent),
+    `a cached copy is labelled (${document.getElementById("fresh").textContent})`);
+  assert(/\d+ events, refreshed/.test(document.getElementById("fresh").textContent), "the existing freshness line survives");
+  window.eval("servedOffline = false; updateFresh();"); await sleep(10);
+  assert(!/offline copy/.test(document.getElementById("fresh").textContent), "the marker clears when back online");
+
   const errs = window.__errors || [];
   console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); window.close(); process.exit(process.exitCode || 0);
 })();
