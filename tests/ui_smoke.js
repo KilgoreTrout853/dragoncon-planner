@@ -466,6 +466,14 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/\.controls-sticky\s*\{[^}]*top:\s*var\(--hdr-h/.test(html), "it parks under the header, by measured height");
   assert(/function syncHeaderHeight\(\)[\s\S]{0,300}setProperty\("--hdr-h"/.test(html), "the header height is measured, not assumed");
   assert(/ResizeObserver\(syncHeaderHeight\)/.test(html), "and re-measured when the header changes size");
+  /* ResizeObserver is delivered on the rendering lifecycle, so a page that
+     isn't painting never hears about it. The offset must not depend on it. */
+  assert(/updateFresh[\s\S]{0,600}?syncHeaderHeight\(\);/.test(html),
+    "the header is re-measured when the freshness line changes it");
+  assert(/document\.fonts\.ready\.then\(syncHeaderHeight\)/.test(html),
+    "and once the font has loaded and changed the text metrics");
+  assert(/window\.addEventListener\("load", syncHeaderHeight\)/.test(html),
+    "and on load, so it never rests on the observer alone");
 
   // ---- offline: what jsdom can actually reach ----
   // (a) the worker parses, and registration is guarded
