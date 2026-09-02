@@ -569,6 +569,44 @@ const PAGE = 150;
 function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
 function saveJSON(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
 function savePicks() { saveJSON("dc26.picks", [...picks]); }
+
+/* ==================================================================
+   Follows. A pick is one event; a follow is a standing interest - a
+   track, a fandom, a topic, or a person - that keeps producing events
+   as the schedule changes. Stored in the order they were added,
+   because For You presents them that way.
+   ================================================================== */
+const FOLLOW_KINDS = ["track", "fandom", "topic", "person"];
+let follows = (loadJSON("dc26.follows", []) || [])
+  .filter(f => f && FOLLOW_KINDS.includes(f.kind) && typeof f.key === "string" && f.key);
+const followId = f => `${f.kind}:${f.key}`;
+function saveFollows() { saveJSON("dc26.follows", follows.map(f => ({kind: f.kind, key: f.key}))); }
+function isFollowing(kind, key) { return follows.some(f => f.kind === kind && f.key === key); }
+function toggleFollow(kind, key) {
+  const i = follows.findIndex(f => f.kind === kind && f.key === key);
+  if (i >= 0) follows.splice(i, 1); else follows.push({kind, key});
+  saveFollows();
+  return i < 0;                       // true when it is now followed
+}
+
+/* events is already in start order and filter preserves it, so these come
+   back chronological without re-sorting. */
+function eventsFor(follow) {
+  if (!follow || !follow.key) return [];
+  const key = follow.key;
+  switch (follow.kind) {
+    case "track":  return events.filter(e => (e.tracks || []).includes(key));
+    case "fandom": return events.filter(e => ((e.tags || {}).fandoms || []).includes(key));
+    case "topic":  return events.filter(e => ((e.tags || {}).topics || []).includes(key));
+    case "person": {
+      /* Someone's photo sessions are half the reason to follow them, so the
+         hide-photo-sessions setting deliberately does not apply here. */
+      const lower = key.toLowerCase();
+      return events.filter(e => (e.speakers || []).some(p => (p.name || "").toLowerCase() === lower));
+    }
+    default: return [];
+  }
+}
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pad = n => String(n).padStart(2, "0");
 const toDate = iso => new Date(iso);              // "2026-09-05T11:30" parses as local time

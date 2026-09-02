@@ -479,6 +479,60 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   }
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
 
+  // ---- step 1: the follow model ----
+  window.eval(`(function(){ follows = []; saveFollows(); })()`);
+  assert(window.eval(`JSON.stringify(FOLLOW_KINDS)`) === '["track","fandom","topic","person"]', "four kinds of follow");
+  // toggle, persist, round-trip
+  assert(window.eval(`toggleFollow("track", "Trek Track")`) === true, "following returns true");
+  assert(window.eval(`isFollowing("track", "Trek Track")`) === true, "and it is now followed");
+  assert(JSON.parse(window.localStorage.getItem("dc26.follows")).length === 1, "it persisted");
+  assert(JSON.parse(window.localStorage.getItem("dc26.follows"))[0].kind === "track", "with its kind");
+  assert(JSON.parse(window.localStorage.getItem("dc26.follows"))[0].key === "Trek Track", "and its exact key");
+  assert(window.eval(`toggleFollow("track", "Trek Track")`) === false, "unfollowing returns false");
+  assert(window.eval(`isFollowing("track", "Trek Track")`) === false, "and it is gone");
+  assert(JSON.parse(window.localStorage.getItem("dc26.follows")).length === 0, "the removal persisted too");
+  // order is preserved
+  window.eval(`(function(){ follows = []; toggleFollow("topic","Space"); toggleFollow("track","Costuming"); toggleFollow("fandom","Star Trek"); })()`);
+  assert(window.eval(`follows.map(function(f){return f.kind;}).join(",")`) === "topic,track,fandom", "follows keep the order they were added");
+  assert(window.eval(`followId(follows[0])`) === "topic:Space", "a follow has a stable id");
+  // junk in storage is ignored rather than trusted
+  assert(window.eval(`(function(){
+    var save = follows.slice();
+    saveJSON("dc26.follows", [{kind:"bogus",key:"x"}, {kind:"track"}, null, {kind:"track",key:"Costuming"}]);
+    var loaded = (loadJSON("dc26.follows", []) || []).filter(function(f){
+      return f && FOLLOW_KINDS.indexOf(f.kind) >= 0 && typeof f.key === "string" && f.key; });
+    follows = save; saveFollows();
+    return loaded.length; })()`) === 1, "malformed stored follows are dropped on load");
+  // eventsFor, one kind at a time
+  const forKind = (kind, key) => window.eval(`eventsFor({kind:${JSON.stringify(kind)},key:${JSON.stringify(key)}}).length`);
+  const anyTrack = window.eval(`(function(){ var t = {}; events.forEach(function(e){ (e.tracks||[]).forEach(function(x){ t[x]=(t[x]||0)+1; }); });
+    return Object.keys(t).sort(function(a,b){return t[b]-t[a];})[0]; })()`);
+  assert(forKind("track", anyTrack) > 0, `a track follow finds its events (${anyTrack})`);
+  assert(window.eval(`eventsFor({kind:"track",key:${JSON.stringify(anyTrack)}}).every(function(e){ return (e.tracks||[]).indexOf(${JSON.stringify(anyTrack)}) >= 0; })`),
+    "and only its events");
+  const anyFandom = window.eval(`(function(){ var t={}; events.forEach(function(e){ ((e.tags||{}).fandoms||[]).forEach(function(x){ t[x]=(t[x]||0)+1; }); });
+    return Object.keys(t).sort(function(a,b){return t[b]-t[a];})[0] || null; })()`);
+  if (anyFandom) {
+    assert(forKind("fandom", anyFandom) > 0, `a fandom follow finds its events (${anyFandom})`);
+    assert(window.eval(`eventsFor({kind:"fandom",key:${JSON.stringify(anyFandom)}}).every(function(e){ return ((e.tags||{}).fandoms||[]).indexOf(${JSON.stringify(anyFandom)}) >= 0; })`), "and only those");
+  }
+  const anyTopic = window.eval(`(function(){ var t={}; events.forEach(function(e){ ((e.tags||{}).topics||[]).forEach(function(x){ t[x]=(t[x]||0)+1; }); });
+    return Object.keys(t).sort(function(a,b){return t[b]-t[a];})[0] || null; })()`);
+  if (anyTopic) assert(forKind("topic", anyTopic) > 0, `a topic follow finds its events (${anyTopic})`);
+  const anyPerson = window.eval(`(function(){ var t={}; events.forEach(function(e){ (e.speakers||[]).forEach(function(p){ if(p.name) t[p.name]=(t[p.name]||0)+1; }); });
+    return Object.keys(t).sort(function(a,b){return t[b]-t[a];})[0] || null; })()`);
+  if (anyPerson) {
+    assert(forKind("person", anyPerson) > 0, `a person follow finds their events (${anyPerson})`);
+    assert(window.eval(`eventsFor({kind:"person",key:${JSON.stringify(anyPerson)}}).every(function(e){ return (e.speakers||[]).some(function(p){ return p.name === ${JSON.stringify(anyPerson)}; }); })`),
+      "and only theirs");
+  }
+  assert(forKind("track", "No Such Track At All") === 0, "an unknown key finds nothing");
+  assert(window.eval(`eventsFor(null).length`) === 0 && window.eval(`eventsFor({kind:"track"}).length`) === 0, "and so does a malformed follow");
+  // returned in start order
+  if (anyTrack) assert(window.eval(`(function(){ var t = eventsFor({kind:"track",key:${JSON.stringify(anyTrack)}}).map(function(e){return +e._s;});
+    return t.every(function(v,i){ return i===0 || v>=t[i-1]; }); })()`), "a follow's events come back in time order");
+  window.eval(`(function(){ follows = []; saveFollows(); })()`);
+
   // ---- browse header: All first, and the key rows stay put ----
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
   const dayVals = [...document.querySelectorAll('#view-browse [data-chip="day"]')].map(c => c.dataset.value);
@@ -714,6 +768,32 @@ async function realDataChecks() {
   const revealed = search("alan tudyk", {showHidden: true});
   assert(revealed.main >= hiddenCount, `tapping show includes them (${revealed.main} results, ${hiddenCount} were hidden)`);
   assert(person.main < revealed.main, "which is more than were shown before");
+
+  // follows: a person's photo sessions are the point, so the hide setting
+  // must not apply to them (needs real data: the fixture has no such person)
+  const celeb = w.eval(`(function(){
+    var best = null;
+    events.forEach(function(e){ if (!isNoise(e)) return;
+      (e.speakers||[]).forEach(function(p){ if (p.name) { best = best || {}; best[p.name] = (best[p.name]||0)+1; } }); });
+    if (!best) return null;
+    var name = Object.keys(best).sort(function(a,b){ return best[b]-best[a]; })[0];
+    return name ? {name: name, hidden: best[name]} : null; })()`);
+  assert(celeb, "the schedule has someone with photo sessions");
+  if (celeb) {
+    const all = w.eval(`eventsFor({kind:"person",key:${JSON.stringify(celeb.name)}}).length`);
+    const noisy = w.eval(`eventsFor({kind:"person",key:${JSON.stringify(celeb.name)}}).filter(isNoise).length`);
+    assert(noisy === celeb.hidden, `a person follow keeps their ${celeb.hidden} photo sessions (${celeb.name})`);
+    assert(all > noisy, "alongside their other events");
+    const withHideOn = w.eval(`(function(){ var was = state.browse.hideNoise; state.browse.hideNoise = true;
+      var n = eventsFor({kind:"person",key:${JSON.stringify(celeb.name)}}).length; state.browse.hideNoise = was; return n; })()`);
+    assert(withHideOn === all, "and the hide-photo-sessions setting does not change that");
+    // the other kinds are not exempt in the same way - they just report what matches
+    const tr = w.eval(`(function(){ var t={}; events.forEach(function(e){ (e.tracks||[]).forEach(function(x){ t[x]=(t[x]||0)+1; }); });
+      return Object.keys(t).sort(function(a,b){ return t[b]-t[a]; })[0]; })()`);
+    assert(w.eval(`eventsFor({kind:"track",key:${JSON.stringify(tr)}}).length`) ===
+           w.eval(`events.filter(function(e){ return (e.tracks||[]).indexOf(${JSON.stringify(tr)}) >= 0; }).length`),
+      "a track follow returns exactly the track's events");
+  }
 
   // 8. track aliases
   for (const [q, want] of [["skeptrack", "skeptic"], ["filk", "filk"], ["larp", "larp"]]) {
