@@ -359,6 +359,23 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   document.querySelector('.nav button[data-tab="mine"]').click(); await sleep(10);
   const mine = document.getElementById("view-mine");
 
+  // ---- the control strip: two rows of two, one footprint ----
+  const strip = [...mine.querySelectorAll(".mine-actions .btn, .view-toggle button")].map(b => b.textContent.trim());
+  assert(strip.join(" | ") === "Export to calendar | Remove all | Timeline | List", `four controls in order (${strip.join(" | ")})`);
+  assert(mine.querySelector(".mine-actions").compareDocumentPosition(mine.querySelector(".view-toggle")) & window.Node.DOCUMENT_POSITION_FOLLOWING,
+    "actions above the view toggle");
+  assert(/\.mine-actions \{[^}]*grid-template-columns: 1fr 1fr/.test(html), "the actions row is two equal columns");
+  const actH = (html.match(/\.mine-actions \.btn \{[^}]*height: (\d+)px/) || [])[1];
+  const togH = (html.match(/\.view-toggle button \{[^}]*height: (\d+)px/) || [])[1];
+  assert(actH && actH === togH, `actions and toggle share a height (${actH} vs ${togH})`);
+  const actR = (html.match(/\.mine-actions \.btn \{[^}]*border-radius: (\d+)px/) || [])[1];
+  const togR = (html.match(/\.view-toggle button \{[^}]*border-radius: (\d+)px/) || [])[1];
+  assert(actR && actR === togR, `and a corner radius (${actR} vs ${togR})`);
+  const actG = (html.match(/\.mine-actions \{[^}]*gap: (\d+)px/) || [])[1];
+  const togG = (html.match(/\.view-toggle \{[^}]*gap: (\d+)px/) || [])[1];
+  assert(actG && actG === togG, `and a gap (${actG} vs ${togG})`);
+  assert(mine.querySelectorAll(".mine-actions .btn[disabled]").length === 0, "with picks, both actions are live");
+
   // ---- step 5: timeline is the default view on Mine ----
   assert(window.eval("state.mineView") === "timeline", "Mine defaults to the timeline");
   assert(mine.querySelector(".tl-grid"), "timeline grid renders");
@@ -421,6 +438,9 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // clear all
   mine.querySelector('[data-act="clear"]').click(); await sleep(10);
   assert(document.getElementById("view-mine").textContent.includes("Nothing picked yet"), "clear all works");
+  assert(mine.querySelectorAll(".mine-actions .btn[disabled]").length === 2, "with nothing picked, both actions are disabled");
+  assert(!mine.querySelector(".view-toggle"), "and there is no view toggle to switch");
+  assert(/\.btn\[disabled\] \{[^}]*opacity/.test(html), "disabled buttons look disabled");
   // search quality: the four real queries
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(10);
   const top = async (query) => { const q = document.getElementById("q"); q.value = query; q.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(220); return window.eval("browseResults().slice(0,3).map(e => e.title)"); };
