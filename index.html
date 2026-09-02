@@ -263,28 +263,6 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .minibar.late .mb-when { color: var(--warn); }
 body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
 
-/* Schematic venue map. Not to scale: it exists to answer "which way, roughly". */
-.venue-map { width: 100%; height: auto; display: block; }
-.venue-map .blk { cursor: default; }
-.browse-map .venue-map .blk { cursor: pointer; }
-.venue-map .blk rect { fill: var(--h); fill-opacity: .18; stroke: var(--h); stroke-width: 1.5; }
-.venue-map .blk text { fill: var(--text); font-size: 13px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
-.venue-map .blk.on rect { fill-opacity: .92; }
-.venue-map .blk.on text { fill: var(--ink); }
-.venue-map .blk.dim rect { fill-opacity: .07; stroke-opacity: .35; }
-.venue-map .blk.dim text { fill: var(--dim); }
-.venue-map .link { stroke: var(--gold); stroke-width: 2.5; stroke-dasharray: 6 5; fill: none; }
-.venue-map .link-label {
-  fill: var(--gold); font-size: 12px; font-weight: 700; text-anchor: middle;
-  /* the connector crosses other blocks, so the label needs its own backing */
-  stroke: var(--surface); stroke-width: 3.5; paint-order: stroke fill; stroke-linejoin: round;
-}
-.venue-map .blk:focus-visible rect { stroke: var(--gold); stroke-width: 3; }
-.hero-map { padding: 0 14px 10px; background: var(--surface); border-bottom: 1px solid var(--line); }
-.hero-map .venue-map { max-width: 320px; margin: 0 auto; }
-.browse-map { padding: 0 0 2px; }
-.browse-map .venue-map { max-width: 244px; }
-.other-venues { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 2px; }
 
 /* Timeline: the day as a column, so gaps and clashes have a shape */
 .view-toggle { display: flex; gap: 6px; padding: 0 14px 10px; }
@@ -711,67 +689,6 @@ function gapHTML(prev, next) {
   return "";
 }
 
-/* Schematic venue map. Rough real arrangement, not a survey: Marriott,
-   Hyatt and Hilton run down the middle; Mart sits upper-left by the
-   Hyatt; Westin lower-left; Courtland lower-right past the Hilton. */
-const MAP_W = 300, MAP_H = 172;
-const MAP_BLOCKS = [
-  {hotel: "AmericasMart",    x: 6,   y: 6,   w: 86, h: 46},
-  {hotel: "Hyatt",           x: 106, y: 6,   w: 86, h: 46},
-  {hotel: "Marriott",        x: 106, y: 63,  w: 86, h: 46},
-  {hotel: "Hilton",          x: 106, y: 120, w: 86, h: 46},
-  {hotel: "Westin",          x: 6,   y: 120, w: 86, h: 46},
-  {hotel: "Courtland Grand", x: 206, y: 120, w: 88, h: 46},
-];
-const mapCentre = b => [b.x + b.w / 2, b.y + b.h / 2];
-
-/* mode "hero": highlight where you are and where you're going, joined by a
-   dashed line labelled with the crowd-adjusted walk.
-   mode "filter": highlight the selected hotel; everything else is normal. */
-function venueMapHTML({mode, current = null, next = null, minutes = null, active = "All"}) {
-  const interactive = mode === "filter";
-  const on = h => mode === "filter" ? (active === h) : (h === current || h === next);
-  const anyOn = mode === "filter" ? active !== "All" : !!(current || next);
-  let link = "";
-  if (mode === "hero" && current && next && current !== next) {
-    const a = MAP_BLOCKS.find(b => b.hotel === current), b2 = MAP_BLOCKS.find(b => b.hotel === next);
-    if (a && b2) {
-      const [x1, y1] = mapCentre(a), [x2, y2] = mapCentre(b2);
-      /* Nudge the label off the line's midpoint, perpendicular to it, so it
-         doesn't land on whichever block the connector happens to cross. */
-      const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
-      const mx = (x1 + x2) / 2 - (dy / len) * 15, my = (y1 + y2) / 2 + (dx / len) * 15;
-      link = `<line class="link" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"></line>
-        <text class="link-label" x="${mx.toFixed(1)}" y="${(my + 4).toFixed(1)}">${minutes} min</text>`;
-    }
-  }
-  const blocks = MAP_BLOCKS.map(b => {
-    const isOn = on(b.hotel);
-    const cls = ["blk", isOn ? "on" : "", anyOn && !isOn ? "dim" : ""].filter(Boolean).join(" ");
-    const [cx, cy] = mapCentre(b);
-    const control = interactive
-      ? ` role="button" tabindex="0" aria-pressed="${isOn}" aria-label="${esc(hotelShort(b.hotel))}"`
-      : ` aria-hidden="true"`;
-    return `<g class="${cls}" data-map="${esc(b.hotel)}"${control} style="--h:var(${hotelVar(b.hotel)})">
-      <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="8"></rect>
-      <text x="${cx}" y="${cy}">${esc(hotelShort(b.hotel))}</text>
-    </g>`;
-  }).join("");
-  return `<svg class="venue-map" viewBox="0 0 ${MAP_W} ${MAP_H}" role="group"
-      aria-label="${interactive ? "Filter by hotel" : `Walking route${current ? ` from the ${hotelShort(current)}` : ""}${next ? ` to the ${hotelShort(next)}` : ""}${minutes ? `, about ${minutes} minutes` : ""}`}">${link}${blocks}</svg>`;
-}
-
-/* Hardy Ivy Park, Streaming and anything else without a block on the map
-   still need a way to be filtered, so they keep chips beneath it. */
-function offMapHotels() {
-  return hotels.filter(h => !MAP_BLOCKS.some(b => b.hotel === h));
-}
-function offMapHotelsHTML(active) {
-  const rest = offMapHotels();
-  if (!rest.length) return "";
-  return `<div class="other-venues">${rest.map(h => chipHTML(hotelShort(h), active === h, "hotel", h)).join("")}</div>`;
-}
-
 /* A con day runs to 5am, so a 1am Sunday panel still belongs to Saturday. */
 function conDayKey(d) { return dayOf(new Date(d.getTime() - 5 * 3600000)); }
 
@@ -848,14 +765,6 @@ function heroHTML(ev, now, onNow, thenNext) {
   const total = Math.max(1, minutesBetween(windowStart, target));
   const leftMin = minutesBetween(now, target);
 
-  /* The map answers "which way", so it points at wherever we're headed:
-     the pick after this one when something is on now, else this pick. */
-  const dest = onNow ? (thenNext || null) : ev;
-  const mapFrom = from;
-  const walkMins = mapFrom && dest ? walkMin(mapFrom, dest.hotel) : null;
-  const mapHTML = `<div class="hero-map">${venueMapHTML({
-    mode: "hero", current: mapFrom, next: dest ? dest.hotel : null, minutes: walkMins})}</div>`;
-
   return `<button class="hero${late ? " late" : ""}" data-hero="${esc(ev.id)}">
     ${ringHTML(leftMin / total, leftMin, late)}
     <div class="hbody">
@@ -864,7 +773,7 @@ function heroHTML(ev, now, onNow, thenNext) {
       <div class="hroom" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</div>
       ${leaveLine}${thenLine}
     </div>
-  </button>${mapHTML}`;
+  </button>`;
 }
 
 /* ---- Now ---------------------------------------------------------- */
@@ -967,7 +876,7 @@ function renderBrowse() {
   let html = `<div class="controls">
     <input class="search" type="search" id="q" placeholder="Search anything: titles, guests, fandoms, words in descriptions" value="${esc(b.q)}" autocomplete="off">
     <div class="chips">${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}${chipHTML("All days", b.day === "All", "day", "All")}</div>
-    <div class="browse-map">${venueMapHTML({mode: "filter", active: b.hotel})}${offMapHotelsHTML(b.hotel)}</div>
+    <div class="chips">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
     ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
     <div class="row-controls">
       <div class="seg" role="group" aria-label="Type">
@@ -1182,14 +1091,6 @@ document.querySelector("main").addEventListener("click", e => {
   }
   const star = e.target.closest(".star");
   if (star) { const li = star.closest(".row"); togglePick(li.dataset.id, li); return; }
-  const blk = e.target.closest(".browse-map [data-map]");
-  if (blk) {
-    const h = blk.dataset.map;
-    state.browse.hotel = state.browse.hotel === h ? "All" : h;
-    state.browse.page = 1;
-    render();
-    return;
-  }
   const hero = e.target.closest("[data-hero]");
   if (hero) { openSheet("event", hero.dataset.hero); return; }
   const main = e.target.closest(".row-main");
@@ -1326,10 +1227,6 @@ panelEvent.addEventListener("click", e => {
   }
 });
 
-document.querySelector("main").addEventListener("keydown", e => {
-  const blk = e.target.closest && e.target.closest(".browse-map [data-map]");
-  if (blk && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); blk.dispatchEvent(new MouseEvent("click", {bubbles: true})); }
-});
 document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); window.scrollTo(0, 0); });
 document.getElementById("settingsBtn").addEventListener("click", () => openSheet("settings"));
 document.getElementById("closeSheet").addEventListener("click", closeSheet);

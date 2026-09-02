@@ -165,27 +165,10 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval(`(function(){ var keep = events.filter(e => e._e > getNow())[0].id; picks = new Set([keep]); savePicks(); render(); })()`); await sleep(20);
   document.querySelector('.nav button[data-tab="now"]').click(); await sleep(10);
 
-  // ---- step 4: venue map + manual location override ----
-  const hmap = document.querySelector("#view-now .hero-map .venue-map");
-  assert(hmap, "hero card carries a venue map");
-  const blocks = [...hmap.querySelectorAll("[data-map]")].map(g => g.dataset.map);
-  assert(blocks.length === 6, `map has six blocks (${blocks.length})`);
-  ["Marriott","Hyatt","Hilton","AmericasMart","Westin","Courtland Grand"].forEach(h =>
-    assert(blocks.includes(h), `map includes ${h}`));
-  assert([...hmap.querySelectorAll("[data-map]")].every(g => /var\(--h-/.test(g.getAttribute("style") || "")), "each block is filled with its hotel var");
-  // rough arrangement: Mart upper-left of Hyatt; Westin lower-left; Courtland lower-right of Hilton
-  const geo = window.eval("MAP_BLOCKS.reduce((m,b)=>(m[b.hotel]=b,m),{})");
-  assert(geo.AmericasMart.x < geo.Hyatt.x && geo.AmericasMart.y === geo.Hyatt.y, "Mart sits upper-left beside the Hyatt");
-  assert(geo.Westin.x < geo.Hilton.x && geo.Westin.y > geo.Marriott.y, "Westin sits lower-left");
-  assert(geo["Courtland Grand"].x > geo.Hilton.x && geo["Courtland Grand"].y >= geo.Hilton.y, "Courtland sits lower-right past the Hilton");
-  assert(geo.Hyatt.y < geo.Marriott.y && geo.Marriott.y < geo.Hilton.y, "Marriott/Hyatt/Hilton form the central column");
-  // the hero map is a picture, not a control: only Browse's copy is tappable
-  assert([...hmap.querySelectorAll("[data-map]")].every(g => !g.hasAttribute("role")), "hero map blocks are not buttons");
-  assert([...hmap.querySelectorAll("[data-map]")].every(g => g.getAttribute("aria-hidden") === "true"), "hero map blocks are hidden from assistive tech");
-  const beforeTap = window.eval("state.browse.hotel");
-  document.querySelector('#view-now .hero-map [data-map="Westin"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(20);
-  assert(window.eval("state.browse.hotel") === beforeTap, "tapping the hero map changes nothing");
-  assert(!window.localStorage.getItem("dc26.override"), "no location override is stored");
+  // ---- the venue map is gone: hotel filtering is chips again ----
+  assert(window.eval("typeof venueMapHTML") === "undefined", "the map component is gone");
+  assert(!document.querySelector(".venue-map"), "no map renders anywhere");
+  assert(!document.querySelector("#view-now .hero-map"), "the hero card has no map");
   assert(window.eval("typeof overrideLocation") === "undefined", "the override code is gone");
   assert(window.eval("typeof settings.homeBase") === "undefined", "the home base setting is gone");
   assert(!document.getElementById("homeBase"), "no home base control in Settings");
@@ -200,24 +183,15 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // hotel chip
   const q2 = document.getElementById("q"); q2.value = ""; q2.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(10);
   assert(window.eval("state.browse.q") === "", "search cleared");
-  document.querySelector('#view-browse .browse-map [data-map="Westin"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(10);
-  assert(window.eval("state.browse.hotel") === "Westin", "map block sets the hotel filter");
+  document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').click(); await sleep(10);
+  assert(window.eval("state.browse.hotel") === "Westin", "hotel chip sets the filter");
   assert([...document.querySelectorAll("#view-browse .room")].every(r => !/Marriott|Hilton|Hyatt/.test(r.textContent)), "hotel filter applies");
   // noise toggle: Epic Photos hidden by default
-  document.querySelector('#view-browse .browse-map [data-map="Westin"]').dispatchEvent(new window.MouseEvent("click", {bubbles: true})); await sleep(10);
-  assert(window.eval("state.browse.hotel") === "All", "tapping the same block again clears the filter");
-  // venues with no block on the map keep chips, so they stay filterable
-  const offMap = window.eval("offMapHotels()");
-  if (offMap.length) {
-    const chips = [...document.querySelectorAll("#view-browse .other-venues [data-chip='hotel']")].map(c => c.dataset.value);
-    offMap.forEach(h => assert(chips.includes(h), `off-map venue ${h} still has a filter chip`));
-    const target = offMap[0];
-    document.querySelector(`#view-browse .other-venues [data-value="${target}"]`).click(); await sleep(10);
-    assert(window.eval("state.browse.hotel") === target, `chip filters to ${target}`);
-    assert(window.eval("browseResults().every(e => e.hotel === " + JSON.stringify(target) + ")"), `results are all ${target}`);
-    document.querySelector(`#view-browse .other-venues [data-value="${target}"]`).click(); await sleep(10);
-    assert(window.eval("state.browse.hotel") === "All", "tapping the chip again clears it");
-  }
+  document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').click(); await sleep(10);
+  assert(window.eval("state.browse.hotel") === "All", "tapping the same chip again clears the filter");
+  // every venue in the data is reachable again, including Hardy Ivy and Streaming
+  const chipVals = [...document.querySelectorAll("#view-browse [data-chip='hotel']")].map(c => c.dataset.value);
+  window.eval("hotels").forEach(h => assert(chipVals.includes(h), `every venue has a chip: ${h}`));
   assert(![...document.querySelectorAll("#view-browse .track")].some(t => t.textContent === "Epic Photos"), "photo sessions hidden by default");
   const before = window.eval("browseResults().length");
   document.getElementById("hideNoise").click(); await sleep(10);
