@@ -447,6 +447,225 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!document.getElementById("panel-settings").hidden && document.getElementById("panel-event").hidden, "settings panel shown, event panel hidden");
   document.getElementById("closeSheet").click(); await sleep(10);
   assert(document.getElementById("sheetWrap").hidden, "settings closes");
+  // ---- step 0: five tabs, Browse renamed to Search ----
+  const navBtns = [...document.querySelectorAll(".nav button")];
+  const navLabels = navBtns.map(b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(""));
+  assert(navLabels.join(" · ") === "Now · Search · Explore · For you · Mine",
+    `the nav reads Now · Search · Explore · For you · Mine (${navLabels.join(" · ")})`);
+  assert(navBtns.length === 5, "five tabs");
+  /* textContent includes <script> bodies, where "Browse" survives in comments
+     and identifiers; only rendered text and aria labels matter here. */
+  const visibleText = () => {
+    const tw = document.createTreeWalker(document.body, window.NodeFilter.SHOW_TEXT);
+    let out = "", n;
+    while ((n = tw.nextNode())) {
+      const tag = n.parentElement && n.parentElement.tagName;
+      if (tag === "SCRIPT" || tag === "STYLE") continue;
+      out += " " + n.textContent;
+    }
+    [...document.querySelectorAll("[aria-label]")].forEach(el => { out += " " + el.getAttribute("aria-label"); });
+    return out;
+  };
+  assert(!/Browse/i.test(visibleText()), "the word Browse is gone from what the reader sees");
+  assert(navBtns.map(b => b.dataset.tab).join(",") === "now,browse,explore,foryou,mine",
+    "the internal identifiers are unchanged");
+  assert(/repeat\(5, 1fr\)/.test(html), "the nav lays out five columns");
+  // the two new views exist and switch
+  for (const t of ["explore", "foryou"]) {
+    document.querySelector(`.nav button[data-tab="${t}"]`).click(); await sleep(20);
+    assert(window.eval("state.tab") === t, `the ${t} tab switches`);
+    assert(!document.getElementById(`view-${t}`).hidden, `and its view shows`);
+    assert(document.getElementById("view-browse").hidden, "while the others hide");
+  }
+  document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
+
+  // ---- step 1: the follow model ----
+  window.eval(`(function(){ follows = []; saveFollows(); })()`);
+  assert(window.eval(`JSON.stringify(FOLLOW_KINDS)`) === '["track","fandom","topic","person"]', "four kinds of follow");
+  // toggle, persist, round-trip
+  assert(window.eval(`toggleFollow("track", "Trek Track")`) === true, "following returns true");
+  assert(window.eval(`isFollowing("track", "Trek Track")`) === true, "and it is now followed");
+  assert(JSON.parse(window.localStorage.getItem("dc26.follows")).length === 1, "it persisted");
+  assert(JSON.parse(window.localStorage.getItem("dc26.follows"))[0].kind === "track", "with its kind");
+  assert(JSON.parse(window.localStorage.getItem("dc26.follows"))[0].key === "Trek Track", "and its exact key");
+  assert(window.eval(`toggleFollow("track", "Trek Track")`) === false, "unfollowing returns false");
+  assert(window.eval(`isFollowing("track", "Trek Track")`) === false, "and it is gone");
+  assert(JSON.parse(window.localStorage.getItem("dc26.follows")).length === 0, "the removal persisted too");
+  // order is preserved
+  window.eval(`(function(){ follows = []; toggleFollow("topic","Space"); toggleFollow("track","Costuming"); toggleFollow("fandom","Star Trek"); })()`);
+  assert(window.eval(`follows.map(function(f){return f.kind;}).join(",")`) === "topic,track,fandom", "follows keep the order they were added");
+  assert(window.eval(`followId(follows[0])`) === "topic:Space", "a follow has a stable id");
+  // junk in storage is ignored rather than trusted
+  assert(window.eval(`(function(){
+    var save = follows.slice();
+    saveJSON("dc26.follows", [{kind:"bogus",key:"x"}, {kind:"track"}, null, {kind:"track",key:"Costuming"}]);
+    var loaded = (loadJSON("dc26.follows", []) || []).filter(function(f){
+      return f && FOLLOW_KINDS.indexOf(f.kind) >= 0 && typeof f.key === "string" && f.key; });
+    follows = save; saveFollows();
+    return loaded.length; })()`) === 1, "malformed stored follows are dropped on load");
+  // eventsFor, one kind at a time
+  const forKind = (kind, key) => window.eval(`eventsFor({kind:${JSON.stringify(kind)},key:${JSON.stringify(key)}}).length`);
+  const anyTrack = window.eval(`(function(){ var t = {}; events.forEach(function(e){ (e.tracks||[]).forEach(function(x){ t[x]=(t[x]||0)+1; }); });
+    return Object.keys(t).sort(function(a,b){return t[b]-t[a];})[0]; })()`);
+  assert(forKind("track", anyTrack) > 0, `a track follow finds its events (${anyTrack})`);
+  assert(window.eval(`eventsFor({kind:"track",key:${JSON.stringify(anyTrack)}}).every(function(e){ return (e.tracks||[]).indexOf(${JSON.stringify(anyTrack)}) >= 0; })`),
+    "and only its events");
+  const anyFandom = window.eval(`(function(){ var t={}; events.forEach(function(e){ ((e.tags||{}).fandoms||[]).forEach(function(x){ t[x]=(t[x]||0)+1; }); });
+    return Object.keys(t).sort(function(a,b){return t[b]-t[a];})[0] || null; })()`);
+  if (anyFandom) {
+    assert(forKind("fandom", anyFandom) > 0, `a fandom follow finds its events (${anyFandom})`);
+    assert(window.eval(`eventsFor({kind:"fandom",key:${JSON.stringify(anyFandom)}}).every(function(e){ return ((e.tags||{}).fandoms||[]).indexOf(${JSON.stringify(anyFandom)}) >= 0; })`), "and only those");
+  }
+  const anyTopic = window.eval(`(function(){ var t={}; events.forEach(function(e){ ((e.tags||{}).topics||[]).forEach(function(x){ t[x]=(t[x]||0)+1; }); });
+    return Object.keys(t).sort(function(a,b){return t[b]-t[a];})[0] || null; })()`);
+  if (anyTopic) assert(forKind("topic", anyTopic) > 0, `a topic follow finds its events (${anyTopic})`);
+  const anyPerson = window.eval(`(function(){ var t={}; events.forEach(function(e){ (e.speakers||[]).forEach(function(p){ if(p.name) t[p.name]=(t[p.name]||0)+1; }); });
+    return Object.keys(t).sort(function(a,b){return t[b]-t[a];})[0] || null; })()`);
+  if (anyPerson) {
+    assert(forKind("person", anyPerson) > 0, `a person follow finds their events (${anyPerson})`);
+    assert(window.eval(`eventsFor({kind:"person",key:${JSON.stringify(anyPerson)}}).every(function(e){ return (e.speakers||[]).some(function(p){ return p.name === ${JSON.stringify(anyPerson)}; }); })`),
+      "and only theirs");
+  }
+  assert(forKind("track", "No Such Track At All") === 0, "an unknown key finds nothing");
+  assert(window.eval(`eventsFor(null).length`) === 0 && window.eval(`eventsFor({kind:"track"}).length`) === 0, "and so does a malformed follow");
+  // returned in start order
+  if (anyTrack) assert(window.eval(`(function(){ var t = eventsFor({kind:"track",key:${JSON.stringify(anyTrack)}}).map(function(e){return +e._s;});
+    return t.every(function(v,i){ return i===0 || v>=t[i-1]; }); })()`), "a follow's events come back in time order");
+  window.eval(`(function(){ follows = []; saveFollows(); })()`);
+
+  // ---- step 2: Explore ----
+  window.eval(`(function(){ follows = []; saveFollows(); state.explore.page = null; state.explore.q = ""; state.tab = "explore"; render(); })()`);
+  await sleep(30);
+  const secTitles = [...document.querySelectorAll("#view-explore .section-title")].map(x => x.textContent.replace(/\s+/g, " ").trim());
+  /* The fixture has no fandom with 3+ events, so that section is correctly
+     absent here; the all-four check runs against the real schedule below. */
+  const order = ["Tracks", "Fandoms", "Topics", "People"];
+  const seen = secTitles.map(t => t.split(" ")[0]);
+  assert(seen.length >= 3, `the sections that have content render (${seen.join(" | ")})`);
+  assert(seen.every(x => order.includes(x)), "and are named from the four kinds");
+  assert(seen.join(",") === order.filter(o => seen.includes(o)).join(","), "in the order Tracks, Fandoms, Topics, People");
+  assert(!seen.includes("Fandoms"), "an empty section is skipped rather than shown empty");
+  assert(window.eval(`getCatalogue().fandom.every(function(f){ return f.count >= 3; })`), "fandom tiles need 3+ events");
+  assert(window.eval(`(function(){ var c = getCatalogue().track; for (var i = 1; i < c.length; i++) if (c[i].count > c[i-1].count) return false; return true; })()`),
+    "tiles are sorted by count, descending");
+  const firstTile = document.querySelector("#view-explore .tile");
+  assert(/\d/.test(firstTile.textContent), "each tile shows a count");
+  // the filter narrows tiles, not events
+  const allTiles = document.querySelectorAll("#view-explore .tile").length;
+  window.eval(`(function(){ state.explore.q = "cost"; renderExplore(); })()`); await sleep(20);
+  const narrowed = [...document.querySelectorAll("#view-explore .tile-name")].map(x => x.textContent);
+  assert(narrowed.length > 0 && narrowed.length < allTiles, `the filter narrows the tiles (${allTiles} -> ${narrowed.length})`);
+  assert(narrowed.every(n => /cost/i.test(n)), "to those whose name matches");
+  window.eval(`(function(){ state.explore.q = ""; renderExplore(); })()`); await sleep(20);
+  // a tile opens its page
+  const someTrack = window.eval(`getCatalogue().track[0].key`);
+  window.eval(`openExplorePage("track", ${JSON.stringify(someTrack)})`); await sleep(40);
+  assert(document.querySelector("#view-explore .eh-name").textContent === someTrack, `the tile opens its page (${someTrack})`);
+  assert(document.querySelector("#view-explore .eh-kind").textContent === "Track", "labelled with its kind");
+  assert(/\d+ events?/.test(document.querySelector("#view-explore .eh-count").textContent), "and its total count");
+  assert(document.querySelector("#view-explore .day-head"), "events are grouped under day headers");
+  assert(document.querySelectorAll("#view-explore .row").length > 0, "with standard rows");
+  assert(document.querySelector("#view-explore .row .star"), "that carry a star");
+  // the follow toggle
+  const fbtn = document.querySelector("#view-explore .follow-btn");
+  assert(fbtn.textContent.trim() === "Follow", "the page offers Follow");
+  fbtn.click(); await sleep(40);
+  assert(document.querySelector("#view-explore .follow-btn").textContent.trim() === "Following", "which becomes Following");
+  assert(window.eval(`isFollowing("track", ${JSON.stringify(someTrack)})`), "and the follow is recorded");
+  // deep link round-trip
+  assert(/explore=/.test(window.location.hash), `the page is deep-linked (${window.location.hash})`);
+  assert(window.eval(`JSON.stringify(readExploreHash())`) === JSON.stringify({kind: "track", key: someTrack}), "and the link parses back");
+  // back to the grid, with the follow marked
+  document.querySelector('[data-act="explore-back"]').click(); await sleep(40);
+  assert(!window.eval("state.explore.page"), "back returns to the grid");
+  assert(!/explore=/.test(window.location.hash), "and clears the deep link");
+  assert(document.querySelectorAll("#view-explore .tile.on").length === 1, "the followed tile carries a mark");
+  // the detail sheet offers a way through to a person
+  window.eval(`(function(){ state.tab = "browse"; render(); })()`); await sleep(20);
+  const spk = window.eval(`(function(){ var e = events.find(function(x){ return (x.speakers||[]).length > 0; }); return e ? e.id : null; })()`);
+  if (spk) {
+    window.eval(`openSheet("event", ${JSON.stringify(spk)})`); await sleep(30);
+    const seeAll = document.querySelector('#panel-event .see-all');
+    assert(seeAll, "the detail sheet offers See all beside a speaker");
+    assert(/^person:/.test(seeAll.dataset.explore), "pointing at that person's page");
+    seeAll.click(); await sleep(60);
+    assert(window.eval("state.tab") === "explore" && window.eval("state.explore.page.kind") === "person",
+      "and tapping it lands on the person page");
+    assert(document.getElementById("sheetWrap").hidden, "with the sheet closed behind it");
+    window.eval(`(function(){ state.explore.page = null; setExploreHash(null); })()`);
+  }
+  window.eval(`(function(){ follows = []; saveFollows(); state.tab = "browse"; state.explore.page = null; render(); })()`); await sleep(20);
+
+  // ---- step 3: For you ----
+  window.eval(`(function(){ follows = []; saveFollows(); state.tab = "foryou"; state.foryou.expanded = {}; state.foryou.showPast = {}; render(); })()`);
+  await sleep(30);
+  const fyEmpty = document.querySelector("#view-foryou .empty");
+  assert(fyEmpty && /Follow a few things and they'll show up here/.test(fyEmpty.textContent), "the empty state says what to do");
+  assert(document.querySelector('#view-foryou [data-act="foryou-add"]'), "and offers a way to Explore");
+  document.querySelector('#view-foryou [data-act="foryou-add"]').click(); await sleep(30);
+  assert(window.eval("state.tab") === "explore", "which switches to Explore");
+  // follow two things and come back
+  const twoFollows = window.eval(`(function(){
+    var t = getCatalogue().track[0].key;
+    var other = getCatalogue().track[1].key;
+    follows = []; toggleFollow("track", t); toggleFollow("track", other);
+    state.tab = "foryou"; render();
+    return JSON.stringify([t, other]); })()`);
+  await sleep(40);
+  const wanted = JSON.parse(twoFollows);
+  const chipNames = [...document.querySelectorAll("#view-foryou .fc-name")].map(x => x.textContent);
+  assert(chipNames.join("|") === wanted.join("|"), `chips list the follows in order (${chipNames.join(", ")})`);
+  assert(document.querySelectorAll('#view-foryou .follow-chip [data-act="unfollow"]').length === 2, "each chip has an unfollow control");
+  assert(document.querySelector('#view-foryou .fc-add'), "and there is a + chip at the end");
+  assert(document.querySelector('#view-foryou .fc-name').dataset.explore === "track:" + wanted[0], "a chip links to its Explore page");
+  // by interest
+  assert(window.eval("state.foryou.layout") === "interest", "By interest is the default");
+  const sections = [...document.querySelectorAll("#view-foryou .section-title")].map(x => x.textContent.trim());
+  assert(sections.length === 2, `a section per follow (${sections.length})`);
+  assert(sections[0].startsWith(wanted[0]), "in follow order");
+  const firstList = document.querySelector("#view-foryou .list");
+  assert(firstList.querySelectorAll(".row").length <= 8, "each section shows at most eight to start");
+  const moreBtn = document.querySelector('#view-foryou [data-act="fy-more"]');
+  if (moreBtn) {
+    const before = document.querySelectorAll("#view-foryou .row").length;
+    moreBtn.click(); await sleep(40);
+    assert(document.querySelectorAll("#view-foryou .row").length > before, "and 'more' expands it");
+  }
+  // by time
+  document.querySelector('[data-act="fy-time"]').click(); await sleep(40);
+  assert(window.eval("state.foryou.layout") === "time", "the layout toggles");
+  assert(JSON.parse(window.localStorage.getItem("dc26.foryouLayout")) === "time", "and persists");
+  const timeIds = [...document.querySelectorAll("#view-foryou .row")].map(r => r.dataset.id);
+  assert(timeIds.length === new Set(timeIds).size, `by time lists each event once (${timeIds.length})`);
+  assert(document.querySelectorAll("#view-foryou .day-head").length > 0, "grouped under day headers");
+  assert(document.querySelectorAll("#view-foryou .time-head").length > 0, "and hour headers");
+  // starring still behaves
+  const fyStar = document.querySelector("#view-foryou .row .star");
+  if (fyStar) {
+    const id = fyStar.closest(".row").dataset.id;
+    const had = window.eval(`picks.has(${JSON.stringify(id)})`);
+    fyStar.click(); await sleep(40);
+    assert(window.eval(`picks.has(${JSON.stringify(id)})`) !== had, "starring works from For you");
+    window.eval(`(function(){ picks.delete(${JSON.stringify(id)}); savePicks(); })()`);
+  }
+  // unfollowing from a chip drops its section
+  document.querySelector('[data-act="fy-interest"]').click(); await sleep(40);
+  const secBefore = document.querySelectorAll("#view-foryou .section-title").length;
+  document.querySelector('#view-foryou [data-act="unfollow"]').click(); await sleep(40);
+  assert(document.querySelectorAll("#view-foryou .section-title").length === secBefore - 1, "unfollowing from a chip removes its section");
+  assert(window.eval("follows.length") === 1, "and the follow itself");
+  window.eval(`(function(){ follows = []; saveFollows(); state.tab = "browse"; render(); })()`); await sleep(20);
+
+  // ---- step 4: picks are untouched by any of this ----
+  assert(window.eval(`typeof togglePick`) === "function", "togglePick still exists");
+  assert(/function togglePick\(id, anchor\)/.test(html), "with the anchoring signature the star fix gave it");
+  assert(window.eval(`typeof renderMiniBar`) === "function" && /nextPickInConDay/.test(html), "the mini-bar still reads picks, not follows");
+  assert(!/follows/.test(html.slice(html.indexOf("function renderMiniBar"), html.indexOf("function renderMiniBar") + 900)),
+    "and knows nothing about follows");
+  assert(!/follows/.test(html.slice(html.indexOf("function heroHTML"), html.indexOf("function heroHTML") + 2200)),
+    "nor does the hero card");
+  assert(JSON.parse(window.localStorage.getItem("dc26.picks") || "[]").length >= 0, "picks storage is its own key");
+
   // ---- browse header: All first, and the key rows stay put ----
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
   const dayVals = [...document.querySelectorAll('#view-browse [data-chip="day"]')].map(c => c.dataset.value);
@@ -682,6 +901,56 @@ async function realDataChecks() {
   const revealed = search("alan tudyk", {showHidden: true});
   assert(revealed.main >= hiddenCount, `tapping show includes them (${revealed.main} results, ${hiddenCount} were hidden)`);
   assert(person.main < revealed.main, "which is more than were shown before");
+
+  // follows: a person's photo sessions are the point, so the hide setting
+  // must not apply to them (needs real data: the fixture has no such person)
+  const celeb = w.eval(`(function(){
+    var best = null;
+    events.forEach(function(e){ if (!isNoise(e)) return;
+      (e.speakers||[]).forEach(function(p){ if (p.name) { best = best || {}; best[p.name] = (best[p.name]||0)+1; } }); });
+    if (!best) return null;
+    var name = Object.keys(best).sort(function(a,b){ return best[b]-best[a]; })[0];
+    return name ? {name: name, hidden: best[name]} : null; })()`);
+  assert(celeb, "the schedule has someone with photo sessions");
+  if (celeb) {
+    const all = w.eval(`eventsFor({kind:"person",key:${JSON.stringify(celeb.name)}}).length`);
+    const noisy = w.eval(`eventsFor({kind:"person",key:${JSON.stringify(celeb.name)}}).filter(isNoise).length`);
+    assert(noisy === celeb.hidden, `a person follow keeps their ${celeb.hidden} photo sessions (${celeb.name})`);
+    assert(all > noisy, "alongside their other events");
+    const withHideOn = w.eval(`(function(){ var was = state.browse.hideNoise; state.browse.hideNoise = true;
+      var n = eventsFor({kind:"person",key:${JSON.stringify(celeb.name)}}).length; state.browse.hideNoise = was; return n; })()`);
+    assert(withHideOn === all, "and the hide-photo-sessions setting does not change that");
+    // the other kinds are not exempt in the same way - they just report what matches
+    const tr = w.eval(`(function(){ var t={}; events.forEach(function(e){ (e.tracks||[]).forEach(function(x){ t[x]=(t[x]||0)+1; }); });
+      return Object.keys(t).sort(function(a,b){ return t[b]-t[a]; })[0]; })()`);
+    assert(w.eval(`eventsFor({kind:"track",key:${JSON.stringify(tr)}}).length`) ===
+           w.eval(`events.filter(function(e){ return (e.tracks||[]).indexOf(${JSON.stringify(tr)}) >= 0; }).length`),
+      "a track follow returns exactly the track's events");
+  }
+
+  // Explore against the real schedule: all four sections, correct counts
+  w.eval(`(function(){ follows = []; saveFollows(); state.tab = "explore"; state.explore.page = null; state.explore.q = ""; render(); })()`);
+  const realSecs = [...w.document.querySelectorAll("#view-explore .section-title")].map(x => x.textContent.trim().split(" ")[0]);
+  assert(realSecs.join(",") === "Tracks,Fandoms,Topics,People", `all four sections render (${realSecs.join(",")})`);
+  const cat = JSON.parse(w.eval(`JSON.stringify({track:getCatalogue().track.length, fandom:getCatalogue().fandom.length,
+    topic:getCatalogue().topic.length, person:getCatalogue().person.length})`));
+  assert(cat.track === w.eval(`(function(){ var t={}; events.forEach(function(e){ (e.tracks||[]).forEach(function(x){ t[x]=1; }); }); return Object.keys(t).length; })()`),
+    `every track gets a tile (${cat.track})`);
+  assert(w.eval(`getCatalogue().fandom.every(function(f){ return f.count >= 3; })`), "fandoms are limited to 3+ events");
+  assert(w.eval(`getCatalogue().fandom.length < (function(){ var t={}; events.forEach(function(e){ ((e.tags||{}).fandoms||[]).forEach(function(x){ t[x]=1; }); }); return Object.keys(t).length; })()`),
+    "which is fewer than all of them");
+  assert(cat.person > 0, `people are listed (${cat.person})`);
+  assert(w.eval(`getCatalogue().person.every(function(p){
+    if (p.count >= 5) return true;
+    return events.some(function(e){ return isCeleb(e) && (e.speakers||[]).some(function(s){ return s.name === p.key; }); }); })`),
+    "each person is either a celebrity guest or has 5+ events");
+  // a page's counts match eventsFor
+  const t0 = w.eval(`getCatalogue().track[0].key`);
+  w.eval(`openExplorePage("track", ${JSON.stringify(t0)})`);
+  const shownCount = w.document.querySelector("#view-explore .eh-count").textContent;
+  assert(shownCount.startsWith(String(w.eval(`eventsFor({kind:"track",key:${JSON.stringify(t0)}}).length`))),
+    `the page count matches eventsFor (${t0}: ${shownCount})`);
+  w.eval(`(function(){ state.explore.page = null; setExploreHash(null); follows = []; saveFollows(); state.tab = "browse"; render(); })()`);
 
   // 8. track aliases
   for (const [q, want] of [["skeptrack", "skeptic"], ["filk", "filk"], ["larp", "larp"]]) {

@@ -133,6 +133,47 @@ main { max-width: 760px; margin: 0 auto; }
   width: 100%; text-align: left; padding: 10px 14px 8px; background: none; border: 0;
   font: inherit; font-weight: 700; color: var(--muted); cursor: pointer;
 }
+/* Explore ------------------------------------------------------------ */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; padding: 0 14px 6px; }
+.tile {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 52px;
+  padding: 9px 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.tile.on { border-color: var(--gold); }
+.tile-name { font-size: 14px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.tile-meta { flex: none; display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: var(--dim); }
+.tile-mark { color: var(--gold); font-size: 11px; }
+.follow-chips { align-items: center; }
+.follow-chip {
+  flex: none; display: inline-flex; align-items: stretch; border: 1px solid var(--gold);
+  border-radius: 999px; overflow: hidden; background: transparent;
+}
+.follow-chip .fc-name {
+  background: none; border: 0; padding: 7px 4px 7px 12px; font: inherit; font-size: 14px; font-weight: 700;
+  color: var(--gold); cursor: pointer; white-space: nowrap;
+}
+.follow-chip .fc-x {
+  background: none; border: 0; padding: 7px 10px 7px 4px; font: inherit; font-size: 16px; line-height: 1;
+  color: var(--gold); opacity: .7; cursor: pointer;
+}
+.chip.fc-add { flex: none; }
+.flabel {
+  font-size: 11px; font-weight: 700; color: var(--gold); border: 1px solid var(--gold);
+  border-radius: 999px; padding: 0 6px; line-height: 17px; opacity: .85;
+}
+.explore-head { padding: 10px 14px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 5px; justify-items: start; }
+.explore-head .back { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
+.explore-head .eh-kind { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-top: 4px; }
+.explore-head .eh-name { margin: 0; font-size: 22px; line-height: 1.2; }
+.explore-head .eh-count { font-size: 14px; color: var(--muted); }
+.follow-btn { margin-top: 6px; }
+.follow-btn.on { background: transparent; color: var(--gold); border: 1px solid var(--gold); }
+.ev-people .who { white-space: nowrap; }
+.see-all {
+  background: none; border: 0; padding: 0 0 0 2px; font: inherit; font-size: 13px; font-weight: 700;
+  color: var(--gold); text-decoration: underline; cursor: pointer;
+}
 .no-exact {
   padding: 9px 14px; font-size: 13px; color: var(--muted);
   background: var(--surface); border-bottom: 1px solid var(--line);
@@ -216,17 +257,19 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 /* Bottom nav -------------------------------------------------------- */
 .nav {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-  display: grid; grid-template-columns: repeat(3, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   background: var(--ink); border-top: 1px solid var(--line);
   padding: 6px max(8px, calc(50% - 372px)) calc(6px + var(--safe-bottom));
 }
 .nav button {
   height: 58px; border: 0; background: none; color: var(--dim); border-radius: 12px;
-  display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: 14px;
+  display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: 13px;
+  /* Five labels across 375px leaves ~75px each; "Explore" is the longest. */
+  white-space: nowrap; padding: 0 2px; min-width: 0;
 }
-.nav button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .nav button[aria-current="page"] { color: var(--text); background: var(--surface); }
-.nav .badge { position: absolute; margin-left: 40px; margin-top: -34px; background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: 12px; padding: 1px 6px; font-weight: 700; }
+.nav .badge { position: absolute; margin-left: 30px; margin-top: -32px; background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: 12px; padding: 1px 6px; font-weight: 700; }
 
 /* Settings sheet ---------------------------------------------------- */
 .sheet-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9; }
@@ -394,6 +437,8 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
   <div id="notice" class="notice" hidden></div>
   <section class="view" id="view-now"></section>
   <section class="view" id="view-browse" hidden></section>
+  <section class="view" id="view-explore" hidden></section>
+  <section class="view" id="view-foryou" hidden></section>
   <section class="view" id="view-mine" hidden></section>
 </main>
 
@@ -406,7 +451,13 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Now
   </button>
   <button data-tab="browse">
-    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Browse
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search
+  </button>
+  <button data-tab="explore">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Explore
+  </button>
+  <button data-tab="foryou">
+    <svg viewBox="0 0 24 24"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>For you
   </button>
   <button data-tab="mine" style="position:relative">
     <svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>Mine
@@ -549,6 +600,8 @@ let meta = {};
 const state = {
   tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
+  explore: {q: "", page: null, scroll: 0, showPast: false},
+  foryou: {layout: loadJSON("dc26.foryouLayout", "interest"), expanded: {}, showPast: {}},
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
@@ -559,6 +612,44 @@ const PAGE = 150;
 function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
 function saveJSON(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
 function savePicks() { saveJSON("dc26.picks", [...picks]); }
+
+/* ==================================================================
+   Follows. A pick is one event; a follow is a standing interest - a
+   track, a fandom, a topic, or a person - that keeps producing events
+   as the schedule changes. Stored in the order they were added,
+   because For You presents them that way.
+   ================================================================== */
+const FOLLOW_KINDS = ["track", "fandom", "topic", "person"];
+let follows = (loadJSON("dc26.follows", []) || [])
+  .filter(f => f && FOLLOW_KINDS.includes(f.kind) && typeof f.key === "string" && f.key);
+const followId = f => `${f.kind}:${f.key}`;
+function saveFollows() { saveJSON("dc26.follows", follows.map(f => ({kind: f.kind, key: f.key}))); }
+function isFollowing(kind, key) { return follows.some(f => f.kind === kind && f.key === key); }
+function toggleFollow(kind, key) {
+  const i = follows.findIndex(f => f.kind === kind && f.key === key);
+  if (i >= 0) follows.splice(i, 1); else follows.push({kind, key});
+  saveFollows();
+  return i < 0;                       // true when it is now followed
+}
+
+/* events is already in start order and filter preserves it, so these come
+   back chronological without re-sorting. */
+function eventsFor(follow) {
+  if (!follow || !follow.key) return [];
+  const key = follow.key;
+  switch (follow.kind) {
+    case "track":  return events.filter(e => (e.tracks || []).includes(key));
+    case "fandom": return events.filter(e => ((e.tags || {}).fandoms || []).includes(key));
+    case "topic":  return events.filter(e => ((e.tags || {}).topics || []).includes(key));
+    case "person": {
+      /* Someone's photo sessions are half the reason to follow them, so the
+         hide-photo-sessions setting deliberately does not apply here. */
+      const lower = key.toLowerCase();
+      return events.filter(e => (e.speakers || []).some(p => (p.name || "").toLowerCase() === lower));
+    }
+    default: return [];
+  }
+}
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pad = n => String(n).padStart(2, "0");
 const toDate = iso => new Date(iso);              // "2026-09-05T11:30" parses as local time
@@ -624,6 +715,8 @@ async function load() {
   hotels = HOTEL_ORDER.filter(h => events.some(e => e.hotel === h));
   servedOffline = fromNetwork === false;
   buildIndex();
+  buildCatalogue();
+  applyExploreHash();          // a pasted #explore= link lands on its page
   // Drop picks that no longer exist (cancelled/removed upstream) but keep the ids around for the notice.
   const missing = [...picks].filter(id => !byId.has(id));
   if (missing.length) { missing.forEach(id => picks.delete(id)); savePicks(); }
@@ -728,12 +821,14 @@ function updateFresh() {
 function render() {
   updateClock();
   document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
-  ["now", "browse", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
+  ["now", "browse", "explore", "foryou", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
   const badge = document.getElementById("mineBadge");
   badge.hidden = picks.size === 0; badge.textContent = picks.size;
   if (!events.length) return;
   if (state.tab === "now") renderNow();
   if (state.tab === "browse") renderBrowse();
+  if (state.tab === "explore") renderExplore();
+  if (state.tab === "foryou") renderForYou();
   if (state.tab === "mine") renderMine();
   renderMiniBar();
 }
@@ -783,7 +878,7 @@ function rowHTML(ev, opts = {}) {
           <div class="title">${hl(ev.title)}</div>
           <div class="meta">
             <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</span>
-            ${status}${isCeleb(ev) ? CELEB_BADGE : ""}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
+            ${status}${isCeleb(ev) ? CELEB_BADGE : ""}${(opts.labels || []).map(l => `<span class="flabel">${esc(l)}</span>`).join("")}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
           </div>
           ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
         </div>
@@ -963,7 +1058,7 @@ function renderNow() {
       mineHTML += `</ul>`;
     }
   } else {
-    mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Star things in Browse and they show up here with walk times.</div>`;
+    mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Star things in Search and they show up here with walk times.</div>`;
   }
 
   const around = events.filter(e => e._e > now && e._s <= horizon && !(state.browse.hideNoise && isNoise(e)) && (state.now.hotel === "All" || e.hotel === state.now.hotel));
@@ -1364,6 +1459,241 @@ function renderBrowse() {
   if (focused) { const q = document.getElementById("q"); q.focus(); try { q.setSelectionRange(pos[0], pos[1]); } catch (e) {} }
 }
 
+/* ---- Explore ------------------------------------------------------- */
+
+const KIND_NOUN = {track: "Track", fandom: "Fandom", topic: "Topic", person: "Person"};
+
+/* Built once from the loaded schedule: everything you could follow, with how
+   many events each carries. Fandoms need 3+ to be worth a tile; people need
+   to be a celebrity guest or busy enough to be worth following. */
+let catalogue = null;
+function buildCatalogue() {
+  const tally = (get) => {
+    const m = new Map();
+    events.forEach(e => (get(e) || []).forEach(k => { if (k) m.set(k, (m.get(k) || 0) + 1); }));
+    return m;
+  };
+  const rank = m => [...m].map(([key, count]) => ({key, count}))
+    .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+
+  const people = new Map(), celebs = new Set();
+  events.forEach(e => {
+    (e.speakers || []).forEach(p => {
+      const n = (p && p.name || "").trim();
+      if (!n) return;
+      people.set(n, (people.get(n) || 0) + 1);
+      if (isCeleb(e)) celebs.add(n);
+    });
+  });
+
+  catalogue = {
+    track: rank(tally(e => e.tracks)),
+    fandom: rank(tally(e => (e.tags || {}).fandoms)).filter(t => t.count >= 3),
+    topic: rank(tally(e => (e.tags || {}).topics)),
+    person: rank(people).filter(t => celebs.has(t.key) || t.count >= 5),
+  };
+  return catalogue;
+}
+const getCatalogue = () => catalogue || buildCatalogue();
+
+/* The hash carries the preview clock too, so only the explore part is
+   rewritten and everything else is left exactly as it was. */
+function setExploreHash(value) {
+  const rest = location.hash.replace(/^#/, "").split("&").filter(x => x && !x.startsWith("explore="));
+  const parts = value ? rest.concat("explore=" + encodeURIComponent(value)) : rest;
+  const h = parts.join("&");
+  history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
+}
+function readExploreHash() {
+  const m = location.hash.match(/explore=([^&]+)/);
+  if (!m) return null;
+  const raw = decodeURIComponent(m[1]);
+  const i = raw.indexOf(":");
+  if (i <= 0) return null;
+  const kind = raw.slice(0, i), key = raw.slice(i + 1);
+  return FOLLOW_KINDS.includes(kind) && key ? {kind, key} : null;
+}
+function openExplorePage(kind, key, keepScroll) {
+  if (!keepScroll) state.explore.scroll = window.scrollY || 0;
+  state.explore.page = {kind, key};
+  state.explore.showPast = false;
+  state.tab = "explore";
+  setExploreHash(`${kind}:${key}`);
+  render();
+  window.scrollTo(0, 0);
+}
+function closeExplorePage() {
+  state.explore.page = null;
+  setExploreHash(null);
+  render();
+  window.scrollTo(0, state.explore.scroll || 0);
+}
+
+function tileHTML(kind, item) {
+  const on = isFollowing(kind, item.key);
+  return `<button class="tile${on ? " on" : ""}" data-explore="${esc(kind + ":" + item.key)}">
+    <span class="tile-name">${esc(item.key)}</span>
+    <span class="tile-meta">${on ? `<span class="tile-mark" aria-label="Following">&#9679;</span>` : ""}${item.count}</span>
+  </button>`;
+}
+
+function renderExploreGrid() {
+  const cat = getCatalogue();
+  const q = state.explore.q.trim().toLowerCase();
+  const match = list => q ? list.filter(t => t.key.toLowerCase().includes(q)) : list;
+  const sections = [
+    ["track", "Tracks"], ["fandom", "Fandoms"], ["topic", "Topics"], ["person", "People"],
+  ];
+  let html = `<div class="controls controls-sticky">
+    <input class="search" type="search" id="exploreQ" placeholder="Filter tracks, fandoms, topics, people"
+      value="${esc(state.explore.q)}" autocomplete="off" aria-label="Filter what you can follow">
+  </div>`;
+  let any = false;
+  for (const [kind, label] of sections) {
+    const items = match(cat[kind] || []);
+    if (!items.length) continue;
+    any = true;
+    html += `<div class="section-title">${label} <span class="count">${items.length}</span></div>
+      <div class="tiles">${items.map(i => tileHTML(kind, i)).join("")}</div>`;
+  }
+  if (!any) html += `<div class="empty"><b>Nothing matches.</b> Try fewer letters.</div>`;
+  document.getElementById("view-explore").innerHTML = html;
+}
+
+function renderExplorePage() {
+  const {kind, key} = state.explore.page;
+  const all = eventsFor({kind, key});
+  const now = getNow();
+  const upcoming = all.filter(e => e._e > now), past = all.filter(e => e._e <= now);
+  const on = isFollowing(kind, key);
+
+  let html = `<div class="explore-head">
+    <button class="back" data-act="explore-back" aria-label="Back to Explore">&#8592; Explore</button>
+    <div class="eh-kind">${KIND_NOUN[kind] || kind}</div>
+    <h2 class="eh-name">${esc(key)}</h2>
+    <div class="eh-count">${all.length} event${all.length === 1 ? "" : "s"}${past.length ? ` &middot; ${upcoming.length} still to come` : ""}</div>
+    <button class="btn follow-btn${on ? " on" : ""}" data-act="toggle-follow" aria-pressed="${on}">${on ? "Following" : "Follow"}</button>
+  </div>`;
+
+  const dayGroups = list => {
+    let out = "", lastDay = "";
+    list.forEach(ev => {
+      if (ev.day !== lastDay) { out += `<li class="day-head">${DAY_LONG[ev.day] || ev.day}</li>`; lastDay = ev.day; }
+      out += rowHTML(ev, {list: "explore"});
+    });
+    return out;
+  };
+
+  if (!all.length) {
+    html += `<div class="empty"><b>No events.</b> Nothing in the schedule matches this any more.</div>`;
+  } else {
+    if (upcoming.length) html += `<ul class="list">${dayGroups(upcoming)}</ul>`;
+    else html += `<div class="empty">Everything here has already happened.</div>`;
+    if (past.length) {
+      html += `<div class="divider fold"><button data-act="explore-past" aria-expanded="${state.explore.showPast}">Already happened (${past.length}) <span aria-hidden="true">${state.explore.showPast ? "▾" : "▸"}</span></button></div>`;
+      if (state.explore.showPast) html += `<ul class="list">${dayGroups(past)}</ul>`;
+    }
+  }
+  document.getElementById("view-explore").innerHTML = html;
+}
+
+function renderExplore() {
+  if (state.explore.page) renderExplorePage(); else renderExploreGrid();
+}
+
+/* ---- For you ------------------------------------------------------- */
+
+const FOR_YOU_PAGE = 8;
+
+function followChipsHTML() {
+  const chips = follows.map(f => `<span class="follow-chip">
+      <button class="fc-name" data-explore="${esc(followId(f))}">${esc(f.key)}</button>
+      <button class="fc-x" data-act="unfollow" data-follow="${esc(followId(f))}" aria-label="Unfollow ${esc(f.key)}">&times;</button>
+    </span>`).join("");
+  return `<div class="controls"><div class="chips follow-chips">${chips}
+    <button class="chip fc-add" data-act="foryou-add">${follows.length ? "+ Follow more" : "+ Find things to follow"}</button>
+  </div></div>`;
+}
+
+function foryouByInterest(now) {
+  let html = "";
+  follows.forEach(f => {
+    const id = followId(f);
+    const all = eventsFor(f);
+    const upcoming = all.filter(e => e._e > now), past = all.filter(e => e._e <= now);
+    const expanded = !!state.foryou.expanded[id];
+    const shown = expanded ? upcoming : upcoming.slice(0, FOR_YOU_PAGE);
+    html += `<div class="section-title">${esc(f.key)} <span class="count">${KIND_NOUN[f.kind] || f.kind} &middot; ${upcoming.length} to come</span></div>`;
+    if (!upcoming.length) {
+      html += `<div class="empty">Nothing left today or later.</div>`;
+    } else {
+      html += `<ul class="list">${shown.map(ev => rowHTML(ev, {list: `fy:${id}`, showDay: true})).join("")}</ul>`;
+      if (upcoming.length > shown.length) {
+        html += `<button class="btn quiet more" data-act="fy-more" data-follow="${esc(id)}">Show ${upcoming.length - shown.length} more</button>`;
+      }
+    }
+    if (past.length) {
+      const open = !!state.foryou.showPast[id];
+      html += `<div class="divider fold"><button data-act="fy-past" data-follow="${esc(id)}" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
+      if (open) html += `<ul class="list">${past.map(ev => rowHTML(ev, {list: `fyp:${id}`, showDay: true})).join("")}</ul>`;
+    }
+  });
+  return html;
+}
+
+function foryouByTime(now) {
+  /* One row per event, however many follows brought it here - the labels say
+     which, so a panel matched by two interests is not listed twice. */
+  const seen = new Map();
+  follows.forEach(f => eventsFor(f).forEach(e => {
+    if (!seen.has(e.id)) seen.set(e.id, {ev: e, labels: []});
+    const rec = seen.get(e.id);
+    if (!rec.labels.includes(f.key)) rec.labels.push(f.key);
+  }));
+  const rows = [...seen.values()].sort((a, b) => a.ev._s - b.ev._s);
+  const upcoming = rows.filter(r => r.ev._e > now), past = rows.filter(r => r.ev._e <= now);
+
+  const group = list => {
+    let out = "", lastDay = "", lastTime = "";
+    list.forEach(({ev, labels}) => {
+      const dk = conDayKey(ev._s);
+      if (dk !== lastDay) { out += `<li class="day-head">${DAY_LONG[dk] || dk}</li>`; lastDay = dk; lastTime = ""; }
+      const t = fmtShort(ev._s);
+      if (t !== lastTime) { out += `<li class="time-head">${t}</li>`; lastTime = t; }
+      out += rowHTML(ev, {list: "fytime", labels});
+    });
+    return out;
+  };
+
+  let html = "";
+  if (!upcoming.length) html += `<div class="empty">Nothing left today or later from what you follow.</div>`;
+  else html += `<ul class="list">${group(upcoming)}</ul>`;
+  if (past.length) {
+    const open = !!state.foryou.showPast.__time;
+    html += `<div class="divider fold"><button data-act="fy-past" data-follow="__time" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
+    if (open) html += `<ul class="list">${group(past)}</ul>`;
+  }
+  return html;
+}
+
+function renderForYou() {
+  const now = getNow();
+  let html = followChipsHTML();
+  if (!follows.length) {
+    html += `<div class="empty"><b>Follow a few things and they'll show up here.</b><br>
+      Tracks, fandoms, topics, or the guests you came for.
+      <div style="margin-top:12px"><button class="btn" data-act="foryou-add">Go to Explore</button></div></div>`;
+  } else {
+    const l = state.foryou.layout;
+    html += `<div class="view-toggle" role="group" aria-label="Layout">
+      <button data-act="fy-interest" aria-pressed="${l === "interest"}">By interest</button>
+      <button data-act="fy-time" aria-pressed="${l === "time"}">By time</button>
+    </div>`;
+    html += l === "time" ? foryouByTime(now) : foryouByInterest(now);
+  }
+  document.getElementById("view-foryou").innerHTML = html;
+}
+
 /* ---- Mine --------------------------------------------------------- */
 /* Side-by-side columns for anything that overlaps in time. Events are
    grouped into clusters that genuinely collide, and each cluster is
@@ -1465,7 +1795,7 @@ function renderMine() {
     <button data-act="view-list" aria-pressed="${state.mineView === "list"}">List</button>
   </div>`;
   if (!mine.length) {
-    html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Browse. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
+    html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Search. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
   } else if (state.mineView === "timeline") {
     html += renderMineTimeline(mine, getNow());
   } else {
@@ -1555,6 +1885,32 @@ document.querySelector("main").addEventListener("click", e => {
       return;
     }
     if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
+    if (a === "explore-back") { closeExplorePage(); return; }
+    if (a === "foryou-add") { state.tab = "explore"; state.explore.page = null; setExploreHash(null); render(); window.scrollTo(0, 0); return; }
+    if (a === "unfollow") {
+      const raw = act.dataset.follow || "", i = raw.indexOf(":");
+      if (i > 0) { toggleFollow(raw.slice(0, i), raw.slice(i + 1)); render(); }
+      return;
+    }
+    if (a === "fy-interest" || a === "fy-time") {
+      state.foryou.layout = a === "fy-time" ? "time" : "interest";
+      saveJSON("dc26.foryouLayout", state.foryou.layout);
+      render();
+      return;
+    }
+    if (a === "fy-more") { state.foryou.expanded[act.dataset.follow] = true; render(); return; }
+    if (a === "fy-past") {
+      const k = act.dataset.follow;
+      state.foryou.showPast[k] = !state.foryou.showPast[k];
+      render();
+      return;
+    }
+    if (a === "explore-past") { state.explore.showPast = !state.explore.showPast; render(); return; }
+    if (a === "toggle-follow") {
+      const pg = state.explore.page;
+      if (pg) { toggleFollow(pg.kind, pg.key); render(); }
+      return;
+    }
     if (a === "show-hidden") { state.browse.showHidden = true; state.browse.page = 1; render(); return; }
     if (a === "unparse") {
       const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
@@ -1571,6 +1927,12 @@ document.querySelector("main").addEventListener("click", e => {
   }
   const star = e.target.closest(".star");
   if (star) { const li = star.closest(".row"); togglePick(li.dataset.id, li); return; }
+  const tile = e.target.closest("[data-explore]");
+  if (tile) {
+    const raw = tile.dataset.explore, i = raw.indexOf(":");
+    if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
+    return;
+  }
   const hero = e.target.closest("[data-hero]");
   if (hero) { openSheet("event", hero.dataset.hero); return; }
   const main = e.target.closest(".row-main");
@@ -1597,6 +1959,7 @@ function togglePick(id, anchor) {
 const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
 
 document.querySelector("main").addEventListener("input", e => {
+  if (e.target.id === "exploreQ") { state.explore.q = e.target.value; renderExplore(); return; }
   if (e.target.id === "q") {
     const was = state.browse.q.trim(), now = e.target.value;
     state.browse.q = now;
@@ -1633,7 +1996,10 @@ function fillSettings() {
 
 function eventSheetHTML(ev) {
   const mine = picks.has(ev.id);
-  const people = (ev.speakers || []).map(p => p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name);
+  const peopleRows = (ev.speakers || []).filter(p => p && p.name).map(p => ({
+    name: p.name,
+    label: p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name,
+  }));
   const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
   const chips = [...(ev.tracks || []), ...((ev.tags && ev.tags.fandoms) || [])];
   return `<div class="ev-head">
@@ -1644,7 +2010,8 @@ function eventSheetHTML(ev) {
     </div>
     <div class="ev-body">
       ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
-      ${people.length ? `<div class="ev-people">With <span>${esc(people.join(", "))}</span></div>` : ""}
+      ${peopleRows.length ? `<div class="ev-people">With ${peopleRows.map(p =>
+        `<span class="who"><span>${esc(p.label)}</span> <button class="see-all" data-explore="person:${esc(p.name)}">See all</button></span>`).join(", ")}</div>` : ""}
       ${chips.length || (ev.tags && ev.tags.adult) ? `<div class="tagline">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${ev.tags && ev.tags.adult ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
     </div>
     <div class="ev-actions">
@@ -1741,6 +2108,13 @@ sheetEl.addEventListener("touchend", () => {
 sheetEl.addEventListener("touchcancel", () => { if (dragY !== null) { dragY = null; settle(false); } });
 
 panelEvent.addEventListener("click", e => {
+  const seeAll = e.target.closest("[data-explore]");
+  if (seeAll) {
+    const raw = seeAll.dataset.explore, i = raw.indexOf(":");
+    closeSheet();
+    if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
+    return;
+  }
   if (e.target.closest("#closeSheetEvent")) { closeSheet(); return; }
   const ev = byId.get(state.sheetId);
   if (!ev) return;
@@ -1761,7 +2135,12 @@ document.getElementById("noiseDefault").addEventListener("change", e => { settin
 document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; if (v) location.hash = `now=${v}`; state.browse.day = null; closeSheet(); });
 document.getElementById("clearPreview").addEventListener("click", () => { history.replaceState(null, "", location.pathname); state.browse.day = null; closeSheet(); });
 document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
-window.addEventListener("hashchange", () => { state.browse.day = null; render(); });
+function applyExploreHash() {
+  const target = readExploreHash();
+  if (target) { state.tab = "explore"; state.explore.page = target; state.explore.showPast = false; }
+  else if (state.explore.page) state.explore.page = null;
+}
+window.addEventListener("hashchange", () => { state.browse.day = null; applyExploreHash(); render(); });
 
 setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden) renderNow(); else renderMiniBar(); updateFresh(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
