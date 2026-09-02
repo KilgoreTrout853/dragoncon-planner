@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Dragon Con 2026 planner</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -289,6 +292,16 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .minibar .mb-title { font-size: 14px; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .minibar .mb-room { font-size: 12px; font-weight: 700; color: var(--h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .minibar .mb-when { flex: none; font-size: 14px; font-weight: 700; color: var(--gold); }
+/* Sits above the nav and the next-up bar, never over the list you're reading. */
+.update-pill {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 8;
+  bottom: calc(80px + var(--safe-bottom));
+  border: 0; border-radius: 999px; padding: 9px 16px; font: inherit; font-size: 14px; font-weight: 700;
+  background: var(--gold); color: var(--gold-ink); box-shadow: 0 4px 16px rgba(0,0,0,.45); cursor: pointer;
+  touch-action: none;
+}
+body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
+.update-pill.settling { transition: transform .2s ease-out, opacity .2s ease-out; }
 .minibar.late .mb-when { color: var(--warn); }
 body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
 
@@ -357,6 +370,8 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
   <section class="view" id="view-browse" hidden></section>
   <section class="view" id="view-mine" hidden></section>
 </main>
+
+<button class="update-pill" id="updatePill" hidden>Schedule updated &middot; tap to refresh</button>
 
 <button class="minibar" id="minibar" hidden></button>
 
@@ -495,6 +510,7 @@ function aliasesFor(ev, text) {
 const settings = loadJSON("dc26.settings", {crowd: 1.3, hideNoise: true});
 let picks = new Set(loadJSON("dc26.picks", []));
 let events = [], byId = new Map(), tracks = [], hotels = [];
+let fromNetwork = null, servedOffline = false;
 let meta = {};
 const state = {
   tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
@@ -546,10 +562,20 @@ async function load() {
       const r = await fetch("events.json", {cache: "no-cache"});
       if (!r.ok) throw new Error(r.status);
       data = await r.json();
+      fromNetwork = true;
     } catch (e) {
+      /* The service worker answers from cache when the network is gone, so a
+         throw here means no cache either - but a served-from-cache response
+         still reaches the branch above. Ask the worker which it was. */
+      try {
+        const cached = await caches.match("events.json", {ignoreSearch: true});
+        if (cached) { data = await cached.json(); fromNetwork = false; }
+      } catch (e2) { /* no Cache API: fall through to the empty state */ }
+      if (!data) {
       document.getElementById("view-now").innerHTML =
         `<div class="empty"><b>No schedule data yet.</b><br>events.json is missing or unreadable. Run <code>python scraper.py</code> in this folder, then reload.</div>`;
       return;
+      }
     }
   }
   meta = data;
@@ -562,6 +588,7 @@ async function load() {
   byId = new Map(events.map(e => [e.id, e]));
   tracks = [...new Set(events.map(e => e.track).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   hotels = HOTEL_ORDER.filter(h => events.some(e => e.hotel === h));
+  servedOffline = fromNetwork === false;
   buildIndex();
   // Drop picks that no longer exist (cancelled/removed upstream) but keep the ids around for the notice.
   const missing = [...picks].filter(id => !byId.has(id));
@@ -655,7 +682,9 @@ function updateFresh() {
   const ago = minutesBetween(new Date(meta.generated_at), new Date());
   const changed = meta.changed_at ? minutesBetween(new Date(meta.changed_at), new Date()) : null;
   const f = m => m < 60 ? `${m} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} d`;
-  el.textContent = `${events.length} events, refreshed ${f(ago)} ago` + (changed !== null && changed !== ago ? `, last change ${f(changed)} ago` : "");
+  el.textContent = `${events.length} events, refreshed ${f(ago)} ago`
+    + (changed !== null && changed !== ago ? `, last change ${f(changed)} ago` : "")
+    + (servedOffline ? " · offline copy" : "");
 }
 
 /* ==================================================================
@@ -1558,6 +1587,66 @@ window.addEventListener("hashchange", () => { state.browse.day = null; render();
 
 setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden) renderNow(); else renderMiniBar(); updateFresh(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+
+/* ==================================================================
+   Offline. The service worker keeps the app openable with no signal;
+   this end only has to handle being told the schedule moved on.
+   ================================================================== */
+const updatePill = document.getElementById("updatePill");
+
+function showUpdatePill() {
+  /* Never re-render underneath someone mid-scroll: a schedule refresh that
+     reshuffles rows while a thumb is moving costs them their place. Offer
+     the reload, let them take it. */
+  updatePill.classList.remove("settling");
+  updatePill.style.transform = "";
+  updatePill.style.opacity = "";
+  updatePill.hidden = false;
+}
+function hideUpdatePill() {
+  updatePill.hidden = true;
+  updatePill.classList.remove("settling");
+  updatePill.style.transform = "";
+  updatePill.style.opacity = "";
+}
+/* Named so the smoke test can observe the intent; jsdom won't let
+   location.reload be replaced. */
+function reloadNow() { location.reload(); }
+updatePill.addEventListener("click", () => { if (!pillDragged) reloadNow(); });
+
+/* Swipe it away if you'd rather keep reading. */
+let pillY = null, pillDx = 0, pillDragged = false;
+updatePill.addEventListener("touchstart", e => {
+  pillY = e.touches[0].clientX; pillDx = 0; pillDragged = false;
+  updatePill.classList.remove("settling");
+}, {passive: true});
+updatePill.addEventListener("touchmove", e => {
+  if (pillY === null) return;
+  pillDx = e.touches[0].clientX - pillY;
+  if (Math.abs(pillDx) > 6) pillDragged = true;
+  updatePill.style.transform = `translateX(calc(-50% + ${pillDx}px))`;
+  updatePill.style.opacity = String(Math.max(0, 1 - Math.abs(pillDx) / 160));
+}, {passive: true});
+updatePill.addEventListener("touchend", () => {
+  if (pillY === null) return;
+  const dx = pillDx; pillY = null;
+  updatePill.classList.add("settling");
+  if (Math.abs(dx) > 60) { updatePill.style.opacity = "0"; setTimeout(hideUpdatePill, 200); }
+  else { updatePill.style.transform = "translateX(-50%)"; updatePill.style.opacity = "1"; }
+});
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", e => {
+    if (e.data && e.data.type === "schedule-updated") showUpdatePill();
+  });
+  window.addEventListener("load", () => {
+    /* Don't swallow this. A worker that silently fails to register looks
+       exactly like one that works until you turn the signal off. */
+    navigator.serviceWorker.register("./sw.js").catch(err => {
+      console.warn("Offline support unavailable:", err && err.message || err);
+    });
+  });
+}
 
 load();
 </script>

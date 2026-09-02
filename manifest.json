@@ -1,0 +1,15 @@
+{
+  "name": "Dragon Con 2026",
+  "short_name": "DC26",
+  "description": "Search every Dragon Con panel and game, star what you want, and get walk-time warnings between hotels.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#171A33",
+  "theme_color": "#171A33",
+  "icons": [
+    {"src": "./icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any"},
+    {"src": "./icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable"}
+  ]
+}
