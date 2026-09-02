@@ -144,6 +144,24 @@ main { max-width: 760px; margin: 0 auto; }
 .tile-name { font-size: 14px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
 .tile-meta { flex: none; display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: var(--dim); }
 .tile-mark { color: var(--gold); font-size: 11px; }
+.follow-chips { align-items: center; }
+.follow-chip {
+  flex: none; display: inline-flex; align-items: stretch; border: 1px solid var(--gold);
+  border-radius: 999px; overflow: hidden; background: transparent;
+}
+.follow-chip .fc-name {
+  background: none; border: 0; padding: 7px 4px 7px 12px; font: inherit; font-size: 14px; font-weight: 700;
+  color: var(--gold); cursor: pointer; white-space: nowrap;
+}
+.follow-chip .fc-x {
+  background: none; border: 0; padding: 7px 10px 7px 4px; font: inherit; font-size: 16px; line-height: 1;
+  color: var(--gold); opacity: .7; cursor: pointer;
+}
+.chip.fc-add { flex: none; }
+.flabel {
+  font-size: 11px; font-weight: 700; color: var(--gold); border: 1px solid var(--gold);
+  border-radius: 999px; padding: 0 6px; line-height: 17px; opacity: .85;
+}
 .explore-head { padding: 10px 14px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 5px; justify-items: start; }
 .explore-head .back { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
 .explore-head .eh-kind { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-top: 4px; }
@@ -583,6 +601,7 @@ const state = {
   tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
   explore: {q: "", page: null, scroll: 0, showPast: false},
+  foryou: {layout: loadJSON("dc26.foryouLayout", "interest"), expanded: {}, showPast: {}},
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
@@ -859,7 +878,7 @@ function rowHTML(ev, opts = {}) {
           <div class="title">${hl(ev.title)}</div>
           <div class="meta">
             <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</span>
-            ${status}${isCeleb(ev) ? CELEB_BADGE : ""}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
+            ${status}${isCeleb(ev) ? CELEB_BADGE : ""}${(opts.labels || []).map(l => `<span class="flabel">${esc(l)}</span>`).join("")}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
           </div>
           ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
         </div>
@@ -1582,7 +1601,98 @@ function renderExplore() {
   if (state.explore.page) renderExplorePage(); else renderExploreGrid();
 }
 
-function renderForYou() { document.getElementById("view-foryou").innerHTML = `<div class="empty">For you.</div>`; }
+/* ---- For you ------------------------------------------------------- */
+
+const FOR_YOU_PAGE = 8;
+
+function followChipsHTML() {
+  const chips = follows.map(f => `<span class="follow-chip">
+      <button class="fc-name" data-explore="${esc(followId(f))}">${esc(f.key)}</button>
+      <button class="fc-x" data-act="unfollow" data-follow="${esc(followId(f))}" aria-label="Unfollow ${esc(f.key)}">&times;</button>
+    </span>`).join("");
+  return `<div class="controls"><div class="chips follow-chips">${chips}
+    <button class="chip fc-add" data-act="foryou-add">${follows.length ? "+ Follow more" : "+ Find things to follow"}</button>
+  </div></div>`;
+}
+
+function foryouByInterest(now) {
+  let html = "";
+  follows.forEach(f => {
+    const id = followId(f);
+    const all = eventsFor(f);
+    const upcoming = all.filter(e => e._e > now), past = all.filter(e => e._e <= now);
+    const expanded = !!state.foryou.expanded[id];
+    const shown = expanded ? upcoming : upcoming.slice(0, FOR_YOU_PAGE);
+    html += `<div class="section-title">${esc(f.key)} <span class="count">${KIND_NOUN[f.kind] || f.kind} &middot; ${upcoming.length} to come</span></div>`;
+    if (!upcoming.length) {
+      html += `<div class="empty">Nothing left today or later.</div>`;
+    } else {
+      html += `<ul class="list">${shown.map(ev => rowHTML(ev, {list: `fy:${id}`, showDay: true})).join("")}</ul>`;
+      if (upcoming.length > shown.length) {
+        html += `<button class="btn quiet more" data-act="fy-more" data-follow="${esc(id)}">Show ${upcoming.length - shown.length} more</button>`;
+      }
+    }
+    if (past.length) {
+      const open = !!state.foryou.showPast[id];
+      html += `<div class="divider fold"><button data-act="fy-past" data-follow="${esc(id)}" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
+      if (open) html += `<ul class="list">${past.map(ev => rowHTML(ev, {list: `fyp:${id}`, showDay: true})).join("")}</ul>`;
+    }
+  });
+  return html;
+}
+
+function foryouByTime(now) {
+  /* One row per event, however many follows brought it here - the labels say
+     which, so a panel matched by two interests is not listed twice. */
+  const seen = new Map();
+  follows.forEach(f => eventsFor(f).forEach(e => {
+    if (!seen.has(e.id)) seen.set(e.id, {ev: e, labels: []});
+    const rec = seen.get(e.id);
+    if (!rec.labels.includes(f.key)) rec.labels.push(f.key);
+  }));
+  const rows = [...seen.values()].sort((a, b) => a.ev._s - b.ev._s);
+  const upcoming = rows.filter(r => r.ev._e > now), past = rows.filter(r => r.ev._e <= now);
+
+  const group = list => {
+    let out = "", lastDay = "", lastTime = "";
+    list.forEach(({ev, labels}) => {
+      const dk = conDayKey(ev._s);
+      if (dk !== lastDay) { out += `<li class="day-head">${DAY_LONG[dk] || dk}</li>`; lastDay = dk; lastTime = ""; }
+      const t = fmtShort(ev._s);
+      if (t !== lastTime) { out += `<li class="time-head">${t}</li>`; lastTime = t; }
+      out += rowHTML(ev, {list: "fytime", labels});
+    });
+    return out;
+  };
+
+  let html = "";
+  if (!upcoming.length) html += `<div class="empty">Nothing left today or later from what you follow.</div>`;
+  else html += `<ul class="list">${group(upcoming)}</ul>`;
+  if (past.length) {
+    const open = !!state.foryou.showPast.__time;
+    html += `<div class="divider fold"><button data-act="fy-past" data-follow="__time" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
+    if (open) html += `<ul class="list">${group(past)}</ul>`;
+  }
+  return html;
+}
+
+function renderForYou() {
+  const now = getNow();
+  let html = followChipsHTML();
+  if (!follows.length) {
+    html += `<div class="empty"><b>Follow a few things and they'll show up here.</b><br>
+      Tracks, fandoms, topics, or the guests you came for.
+      <div style="margin-top:12px"><button class="btn" data-act="foryou-add">Go to Explore</button></div></div>`;
+  } else {
+    const l = state.foryou.layout;
+    html += `<div class="view-toggle" role="group" aria-label="Layout">
+      <button data-act="fy-interest" aria-pressed="${l === "interest"}">By interest</button>
+      <button data-act="fy-time" aria-pressed="${l === "time"}">By time</button>
+    </div>`;
+    html += l === "time" ? foryouByTime(now) : foryouByInterest(now);
+  }
+  document.getElementById("view-foryou").innerHTML = html;
+}
 
 /* ---- Mine --------------------------------------------------------- */
 /* Side-by-side columns for anything that overlaps in time. Events are
@@ -1776,6 +1886,25 @@ document.querySelector("main").addEventListener("click", e => {
     }
     if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
     if (a === "explore-back") { closeExplorePage(); return; }
+    if (a === "foryou-add") { state.tab = "explore"; state.explore.page = null; setExploreHash(null); render(); window.scrollTo(0, 0); return; }
+    if (a === "unfollow") {
+      const raw = act.dataset.follow || "", i = raw.indexOf(":");
+      if (i > 0) { toggleFollow(raw.slice(0, i), raw.slice(i + 1)); render(); }
+      return;
+    }
+    if (a === "fy-interest" || a === "fy-time") {
+      state.foryou.layout = a === "fy-time" ? "time" : "interest";
+      saveJSON("dc26.foryouLayout", state.foryou.layout);
+      render();
+      return;
+    }
+    if (a === "fy-more") { state.foryou.expanded[act.dataset.follow] = true; render(); return; }
+    if (a === "fy-past") {
+      const k = act.dataset.follow;
+      state.foryou.showPast[k] = !state.foryou.showPast[k];
+      render();
+      return;
+    }
     if (a === "explore-past") { state.explore.showPast = !state.explore.showPast; render(); return; }
     if (a === "toggle-follow") {
       const pg = state.explore.page;

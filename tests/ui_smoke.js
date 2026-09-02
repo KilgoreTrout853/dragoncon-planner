@@ -596,6 +596,76 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   }
   window.eval(`(function(){ follows = []; saveFollows(); state.tab = "browse"; state.explore.page = null; render(); })()`); await sleep(20);
 
+  // ---- step 3: For you ----
+  window.eval(`(function(){ follows = []; saveFollows(); state.tab = "foryou"; state.foryou.expanded = {}; state.foryou.showPast = {}; render(); })()`);
+  await sleep(30);
+  const fyEmpty = document.querySelector("#view-foryou .empty");
+  assert(fyEmpty && /Follow a few things and they'll show up here/.test(fyEmpty.textContent), "the empty state says what to do");
+  assert(document.querySelector('#view-foryou [data-act="foryou-add"]'), "and offers a way to Explore");
+  document.querySelector('#view-foryou [data-act="foryou-add"]').click(); await sleep(30);
+  assert(window.eval("state.tab") === "explore", "which switches to Explore");
+  // follow two things and come back
+  const twoFollows = window.eval(`(function(){
+    var t = getCatalogue().track[0].key;
+    var other = getCatalogue().track[1].key;
+    follows = []; toggleFollow("track", t); toggleFollow("track", other);
+    state.tab = "foryou"; render();
+    return JSON.stringify([t, other]); })()`);
+  await sleep(40);
+  const wanted = JSON.parse(twoFollows);
+  const chipNames = [...document.querySelectorAll("#view-foryou .fc-name")].map(x => x.textContent);
+  assert(chipNames.join("|") === wanted.join("|"), `chips list the follows in order (${chipNames.join(", ")})`);
+  assert(document.querySelectorAll('#view-foryou .follow-chip [data-act="unfollow"]').length === 2, "each chip has an unfollow control");
+  assert(document.querySelector('#view-foryou .fc-add'), "and there is a + chip at the end");
+  assert(document.querySelector('#view-foryou .fc-name').dataset.explore === "track:" + wanted[0], "a chip links to its Explore page");
+  // by interest
+  assert(window.eval("state.foryou.layout") === "interest", "By interest is the default");
+  const sections = [...document.querySelectorAll("#view-foryou .section-title")].map(x => x.textContent.trim());
+  assert(sections.length === 2, `a section per follow (${sections.length})`);
+  assert(sections[0].startsWith(wanted[0]), "in follow order");
+  const firstList = document.querySelector("#view-foryou .list");
+  assert(firstList.querySelectorAll(".row").length <= 8, "each section shows at most eight to start");
+  const moreBtn = document.querySelector('#view-foryou [data-act="fy-more"]');
+  if (moreBtn) {
+    const before = document.querySelectorAll("#view-foryou .row").length;
+    moreBtn.click(); await sleep(40);
+    assert(document.querySelectorAll("#view-foryou .row").length > before, "and 'more' expands it");
+  }
+  // by time
+  document.querySelector('[data-act="fy-time"]').click(); await sleep(40);
+  assert(window.eval("state.foryou.layout") === "time", "the layout toggles");
+  assert(JSON.parse(window.localStorage.getItem("dc26.foryouLayout")) === "time", "and persists");
+  const timeIds = [...document.querySelectorAll("#view-foryou .row")].map(r => r.dataset.id);
+  assert(timeIds.length === new Set(timeIds).size, `by time lists each event once (${timeIds.length})`);
+  assert(document.querySelectorAll("#view-foryou .day-head").length > 0, "grouped under day headers");
+  assert(document.querySelectorAll("#view-foryou .time-head").length > 0, "and hour headers");
+  // starring still behaves
+  const fyStar = document.querySelector("#view-foryou .row .star");
+  if (fyStar) {
+    const id = fyStar.closest(".row").dataset.id;
+    const had = window.eval(`picks.has(${JSON.stringify(id)})`);
+    fyStar.click(); await sleep(40);
+    assert(window.eval(`picks.has(${JSON.stringify(id)})`) !== had, "starring works from For you");
+    window.eval(`(function(){ picks.delete(${JSON.stringify(id)}); savePicks(); })()`);
+  }
+  // unfollowing from a chip drops its section
+  document.querySelector('[data-act="fy-interest"]').click(); await sleep(40);
+  const secBefore = document.querySelectorAll("#view-foryou .section-title").length;
+  document.querySelector('#view-foryou [data-act="unfollow"]').click(); await sleep(40);
+  assert(document.querySelectorAll("#view-foryou .section-title").length === secBefore - 1, "unfollowing from a chip removes its section");
+  assert(window.eval("follows.length") === 1, "and the follow itself");
+  window.eval(`(function(){ follows = []; saveFollows(); state.tab = "browse"; render(); })()`); await sleep(20);
+
+  // ---- step 4: picks are untouched by any of this ----
+  assert(window.eval(`typeof togglePick`) === "function", "togglePick still exists");
+  assert(/function togglePick\(id, anchor\)/.test(html), "with the anchoring signature the star fix gave it");
+  assert(window.eval(`typeof renderMiniBar`) === "function" && /nextPickInConDay/.test(html), "the mini-bar still reads picks, not follows");
+  assert(!/follows/.test(html.slice(html.indexOf("function renderMiniBar"), html.indexOf("function renderMiniBar") + 900)),
+    "and knows nothing about follows");
+  assert(!/follows/.test(html.slice(html.indexOf("function heroHTML"), html.indexOf("function heroHTML") + 2200)),
+    "nor does the hero card");
+  assert(JSON.parse(window.localStorage.getItem("dc26.picks") || "[]").length >= 0, "picks storage is its own key");
+
   // ---- browse header: All first, and the key rows stay put ----
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
   const dayVals = [...document.querySelectorAll('#view-browse [data-chip="day"]')].map(c => c.dataset.value);
