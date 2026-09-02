@@ -1,5 +1,7 @@
 """Generate a realistic sample events.json (for UI testing only; not shipped)."""
-import json, random, datetime as dt
+import json, random, datetime as dt, os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import scraper
 random.seed(7)
 real = [
  ("Critters","Hilton 202","Video Room",90,"Alien creatures terrorize a small town while bounty hunters chase them. A blend of Horror, Comedy, and Sci-Fi mayhem.",[]),
@@ -52,12 +54,14 @@ for day, count in [(2,6),(3,60),(4,150),(5,160),(6,150),(7,60)]:
 # Targeted events for search tests (with tags, as the tagger would produce)
 def add_tagged(day,hh,mm,title,loc,track,dur,desc,tags,kind="panel"):
     add(day,hh,mm,title,loc,track,dur,desc,[],kind); events[-1]["tags"]=tags
-add_tagged(5,20,0,"Georgia Philharmonic: Music from the Movies","Marriott Atrium Ballroom","Live Performances",120,"The Georgia Philharmonic performs film and television scores live.",{"fandoms":[],"kind":"performance","topics":["Music"],"adult":False,"guests":"creator"})
+add_tagged(5,20,0,"Georgia Philharmonic: Music from the Movies","Marriott Atrium Ballroom","Live Performances",120,"The Georgia Philharmonic performs film and television scores live.",{"fandoms":[],"kind":"performance","topics":["Music"],"adult":False,"guests":"celebrity"})
 add_tagged(4,16,0,"Rick & Morty: Wubba Lubba Dub Dub","Hilton Galleria 8","Animation",60,"Fans dissect the latest season and argue about the best Morty.",{"fandoms":["Rick and Morty"],"kind":"panel","topics":["Animation"],"adult":False,"guests":"fan"})
 add_tagged(6,13,0,"Video Game Cosplay Contest","Hyatt Centennial II-IV","Costuming",90,"Costumes from video game characters compete for prizes. Audience votes.",{"fandoms":["Video Games"],"kind":"contest","topics":["Costuming"],"adult":False,"guests":"fan"})
-add_tagged(5,14,30,"Ask a NASA Scientist: The Road to Mars","Hilton 209-211","Space",60,"Engineers from JPL talk about the next decade of crewed missions.",{"fandoms":[],"kind":"qa","topics":["Space","Science"],"adult":False,"guests":"creator"})
+add_tagged(5,14,30,"Ask a NASA Scientist: The Road to Mars","Hilton 209-211","Space",60,"Engineers from JPL talk about the next decade of crewed missions.",{"fandoms":[],"kind":"qa","topics":["Space","Science"],"adult":False,"guests":"celebrity"})
 add_tagged(5,23,30,"Late Night Puppet Slam","Hilton Salon","Puppetry",90,"Adults-only puppetry. 18+ only, ID required.",{"fandoms":[],"kind":"performance","topics":["Puppetry","Comedy"],"adult":True,"guests":"creator"})
-events.sort(key=lambda e:(e["start"],e["title"]))
+events, merged, removed = scraper.dedupe(events)
+if merged:
+    print(f"merged {merged} duplicate groups ({removed} rows) so the fixture matches the scraper")
 now=dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
 json.dump({"generated_at":now,"changed_at":now,"source":"sample","count":len(events),"failures":0,"events":events},open("tests/sample-events.json","w"),ensure_ascii=False,separators=(",",":"))
 print(len(events),"sample events")

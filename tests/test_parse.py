@@ -157,6 +157,120 @@ def test_duration_parse():
     assert scraper.parse_duration("") is None
 
 
+# ---------------------------------------------------------------------------
+# Duplicate merging
+# ---------------------------------------------------------------------------
+
+def _ev(eid, **kw):
+    """A minimal event; the merge only looks at these fields."""
+    e = {"id": eid, "type": "panel", "title": "Quick & Easy Board Games",
+         "start": "2026-09-05T13:00", "room": "A707", "location": "Hyatt A707",
+         "tracks": [], "track": None, "speakers": [], "description": "", "cancelled": False}
+    e.update(kw)
+    return e
+
+
+def test_dedupe_panel_and_gaming_pair_becomes_one_panel():
+    out, merged, removed = scraper.dedupe([
+        _ev("b", type="gaming", tracks=["Table Top Gaming"]),
+        _ev("a", type="panel", tracks=["Main Programming"]),
+    ])
+    assert len(out) == 1 and merged == 1 and removed == 1
+    assert out[0]["type"] == "panel"          # a panel cross-listed in gaming is a panel
+    assert out[0]["id"] == "a"                # smallest id survives
+
+
+def test_dedupe_keeps_the_copy_that_has_speakers():
+    people = [{"name": "Karl Urban", "role": "Speaker"}]
+    out, _, _ = scraper.dedupe([_ev("a", speakers=[]), _ev("b", speakers=people)])
+    assert len(out) == 1
+    assert [p["name"] for p in out[0]["speakers"]] == ["Karl Urban"]
+    assert out[0]["id"] == "a"                # survivor keeps its id, gains the speakers
+
+
+def test_dedupe_unions_speakers_in_order_of_first_appearance():
+    out, _, _ = scraper.dedupe([
+        _ev("a", speakers=[{"name": "Ann", "role": "Speaker"}, {"name": "Bo", "role": "Speaker"}]),
+        _ev("b", speakers=[{"name": "Bo", "role": "Moderator"}, {"name": "Cy", "role": "Speaker"}]),
+    ])
+    assert [p["name"] for p in out[0]["speakers"]] == ["Ann", "Bo", "Cy"]
+    assert out[0]["speakers"][1]["role"] == "Speaker"   # first appearance wins
+
+
+def test_dedupe_unions_tracks_and_takes_the_first():
+    out, _, _ = scraper.dedupe([
+        _ev("a", tracks=["Trek Track"], track="Trek Track"),
+        _ev("b", tracks=["Science"], track="Science"),
+    ])
+    assert out[0]["tracks"] == ["Trek Track", "Science"]
+    assert out[0]["track"] == "Trek Track"
+
+
+def test_dedupe_takes_the_longest_description():
+    out, _, _ = scraper.dedupe([
+        _ev("a", description="Short."),
+        _ev("b", description="A considerably longer description of the same panel."),
+    ])
+    assert out[0]["description"] == "A considerably longer description of the same panel."
+
+
+def test_dedupe_carries_tags_from_whichever_copy_has_them():
+    tags = {"fandoms": ["Star Trek"], "kind": "panel", "topics": [], "adult": False, "guests": "fan"}
+    # the tagged copy is NOT the one whose id survives
+    out, _, _ = scraper.dedupe([_ev("a"), _ev("b", tags=tags)])
+    assert out[0]["id"] == "a"
+    assert out[0]["tags"] == tags
+
+
+def test_dedupe_cancelled_is_sticky():
+    out, _, _ = scraper.dedupe([_ev("a", cancelled=False), _ev("b", cancelled=True)])
+    assert out[0]["cancelled"] is True
+
+
+def test_dedupe_group_of_three_collapses_to_one():
+    out, merged, removed = scraper.dedupe([
+        _ev("c", type="gaming"), _ev("a", speakers=[{"name": "Ann", "role": "Speaker"}]),
+        _ev("b", tracks=["Science"]),
+    ])
+    assert len(out) == 1 and merged == 1 and removed == 2
+    assert out[0]["id"] == "a"
+    assert [p["name"] for p in out[0]["speakers"]] == ["Ann"]
+
+
+def test_dedupe_is_deterministic_across_input_order():
+    a, b, c = _ev("c"), _ev("a"), _ev("b")
+    first, _, _ = scraper.dedupe([a, b, c])
+    second, _, _ = scraper.dedupe([c, b, a])
+    assert first[0]["id"] == second[0]["id"] == "a"
+
+
+def test_dedupe_normalises_title_room_whitespace_and_punctuation():
+    out, merged, _ = scraper.dedupe([
+        _ev("a", title="Quick & Easy Board Games", room="A707"),
+        _ev("b", title="quick &  easy board games.", room=" a707 "),
+    ])
+    assert merged == 1 and len(out) == 1
+
+
+def test_dedupe_leaves_genuinely_different_events_alone():
+    out, merged, removed = scraper.dedupe([
+        _ev("a"),
+        _ev("b", start="2026-09-05T14:00"),      # different time
+        _ev("c", room="A708"),                   # different room
+        _ev("d", title="Something Else"),        # different title
+    ])
+    assert len(out) == 4 and merged == 0 and removed == 0
+
+
+def test_dedupe_sorts_by_start_then_title():
+    out, _, _ = scraper.dedupe([
+        _ev("a", title="Zebra", start="2026-09-05T14:00"),
+        _ev("b", title="Apple", start="2026-09-05T14:00"),
+        _ev("c", title="Early", start="2026-09-05T09:00"),
+    ])
+    assert [e["title"] for e in out] == ["Early", "Apple", "Zebra"]
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):
