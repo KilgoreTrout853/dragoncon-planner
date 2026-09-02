@@ -320,6 +320,89 @@ def scrape(days, workers, limit, delay):
     return events, failures
 
 
+# ---------------------------------------------------------------------------
+# Duplicates
+#
+# The same event is often listed twice: once in the panel feed and once in
+# gaming, or cross-listed under two tracks, and the two copies rarely agree -
+# one carries the speakers, the other doesn't. They are the same room at the
+# same minute, so they collapse into one row.
+# ---------------------------------------------------------------------------
+
+def norm_text(s):
+    """Lowercase, collapse whitespace, drop trailing punctuation."""
+    return re.sub(r"\s+", " ", str(s or "")).strip().lower().rstrip(".,;:!?-–— ")
+
+
+def dupe_key(e):
+    return (norm_text(e.get("title")), e.get("start"), norm_text(e.get("room") or e.get("location")))
+
+
+def merge_group(group):
+    """One event from several. The smallest id survives, so the choice is
+    stable across refreshes and a starred pick keeps pointing at something."""
+    survivor = min(group, key=lambda e: e["id"])
+    out = dict(survivor)
+
+    # Union by name, first appearance wins - that copy's role is the one kept.
+    seen, speakers = set(), []
+    for e in group:
+        for p in e.get("speakers") or []:
+            name = (p or {}).get("name")
+            if name and name not in seen:
+                seen.add(name)
+                speakers.append(p)
+    out["speakers"] = speakers
+
+    tracks, seen_t = [], set()
+    for e in group:
+        for t in e.get("tracks") or []:
+            if t and t not in seen_t:
+                seen_t.add(t)
+                tracks.append(t)
+    out["tracks"] = tracks
+    out["track"] = tracks[0] if tracks else survivor.get("track")
+
+    # A panel listed in the gaming feed is still a panel.
+    out["type"] = "panel" if any(e.get("type") == "panel" for e in group) else survivor.get("type")
+
+    longest = max((e.get("description") or "" for e in group), key=len)
+    if longest:
+        out["description"] = longest
+
+    # The tagger keys on id; if the tagged copy isn't the survivor, its tags
+    # would be thrown away with it.
+    tags = next((e["tags"] for e in group if e.get("tags")), None)
+    if tags:
+        out["tags"] = tags
+
+    out["cancelled"] = any(bool(e.get("cancelled")) for e in group)
+    return out
+
+
+def dedupe(events):
+    """Collapse same title + start + room. Returns (events, groups_merged)."""
+    groups, order = {}, []
+    for e in events:
+        k = dupe_key(e)
+        if k not in groups:
+            groups[k] = []
+            order.append(k)
+        groups[k].append(e)
+
+    out, merged, removed = [], 0, 0
+    for k in order:
+        g = groups[k]
+        if len(g) == 1:
+            out.append(g[0])
+        else:
+            out.append(merge_group(g))
+            merged += 1
+            removed += len(g) - 1
+    out.sort(key=lambda e: (e["start"] or "9999", e["title"]))
+    return out, merged, removed
+
+
 def load_previous(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -348,6 +431,12 @@ def main():
     for e in events:
         if e["id"] in prev_tags:
             e["tags"] = prev_tags[e["id"]]
+    # Merge after carrying tags over, so a tagged copy that loses the id
+    # contest still hands its tags to the survivor.
+    events, merged_groups, removed_rows = dedupe(events)
+    if merged_groups:
+        print(f"Merged {merged_groups} duplicate groups, removing {removed_rows} rows", file=sys.stderr)
+
     if prev_tags:
         untagged = sum(1 for e in events if not e.get("tags"))
         print(f"Carried over tags for {len(events) - untagged} events; {untagged} new/untagged "
