@@ -133,6 +133,29 @@ main { max-width: 760px; margin: 0 auto; }
   width: 100%; text-align: left; padding: 10px 14px 8px; background: none; border: 0;
   font: inherit; font-weight: 700; color: var(--muted); cursor: pointer;
 }
+/* Explore ------------------------------------------------------------ */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; padding: 0 14px 6px; }
+.tile {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 52px;
+  padding: 9px 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.tile.on { border-color: var(--gold); }
+.tile-name { font-size: 14px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.tile-meta { flex: none; display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: var(--dim); }
+.tile-mark { color: var(--gold); font-size: 11px; }
+.explore-head { padding: 10px 14px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 5px; justify-items: start; }
+.explore-head .back { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
+.explore-head .eh-kind { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-top: 4px; }
+.explore-head .eh-name { margin: 0; font-size: 22px; line-height: 1.2; }
+.explore-head .eh-count { font-size: 14px; color: var(--muted); }
+.follow-btn { margin-top: 6px; }
+.follow-btn.on { background: transparent; color: var(--gold); border: 1px solid var(--gold); }
+.ev-people .who { white-space: nowrap; }
+.see-all {
+  background: none; border: 0; padding: 0 0 0 2px; font: inherit; font-size: 13px; font-weight: 700;
+  color: var(--gold); text-decoration: underline; cursor: pointer;
+}
 .no-exact {
   padding: 9px 14px; font-size: 13px; color: var(--muted);
   background: var(--surface); border-bottom: 1px solid var(--line);
@@ -559,6 +582,7 @@ let meta = {};
 const state = {
   tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
+  explore: {q: "", page: null, scroll: 0, showPast: false},
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
@@ -672,6 +696,8 @@ async function load() {
   hotels = HOTEL_ORDER.filter(h => events.some(e => e.hotel === h));
   servedOffline = fromNetwork === false;
   buildIndex();
+  buildCatalogue();
+  applyExploreHash();          // a pasted #explore= link lands on its page
   // Drop picks that no longer exist (cancelled/removed upstream) but keep the ids around for the notice.
   const missing = [...picks].filter(id => !byId.has(id));
   if (missing.length) { missing.forEach(id => picks.delete(id)); savePicks(); }
@@ -1414,8 +1440,148 @@ function renderBrowse() {
   if (focused) { const q = document.getElementById("q"); q.focus(); try { q.setSelectionRange(pos[0], pos[1]); } catch (e) {} }
 }
 
-/* ---- Explore / For you -------------------------------------------- */
-function renderExplore() { document.getElementById("view-explore").innerHTML = `<div class="empty">Explore.</div>`; }
+/* ---- Explore ------------------------------------------------------- */
+
+const KIND_NOUN = {track: "Track", fandom: "Fandom", topic: "Topic", person: "Person"};
+
+/* Built once from the loaded schedule: everything you could follow, with how
+   many events each carries. Fandoms need 3+ to be worth a tile; people need
+   to be a celebrity guest or busy enough to be worth following. */
+let catalogue = null;
+function buildCatalogue() {
+  const tally = (get) => {
+    const m = new Map();
+    events.forEach(e => (get(e) || []).forEach(k => { if (k) m.set(k, (m.get(k) || 0) + 1); }));
+    return m;
+  };
+  const rank = m => [...m].map(([key, count]) => ({key, count}))
+    .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+
+  const people = new Map(), celebs = new Set();
+  events.forEach(e => {
+    (e.speakers || []).forEach(p => {
+      const n = (p && p.name || "").trim();
+      if (!n) return;
+      people.set(n, (people.get(n) || 0) + 1);
+      if (isCeleb(e)) celebs.add(n);
+    });
+  });
+
+  catalogue = {
+    track: rank(tally(e => e.tracks)),
+    fandom: rank(tally(e => (e.tags || {}).fandoms)).filter(t => t.count >= 3),
+    topic: rank(tally(e => (e.tags || {}).topics)),
+    person: rank(people).filter(t => celebs.has(t.key) || t.count >= 5),
+  };
+  return catalogue;
+}
+const getCatalogue = () => catalogue || buildCatalogue();
+
+/* The hash carries the preview clock too, so only the explore part is
+   rewritten and everything else is left exactly as it was. */
+function setExploreHash(value) {
+  const rest = location.hash.replace(/^#/, "").split("&").filter(x => x && !x.startsWith("explore="));
+  const parts = value ? rest.concat("explore=" + encodeURIComponent(value)) : rest;
+  const h = parts.join("&");
+  history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
+}
+function readExploreHash() {
+  const m = location.hash.match(/explore=([^&]+)/);
+  if (!m) return null;
+  const raw = decodeURIComponent(m[1]);
+  const i = raw.indexOf(":");
+  if (i <= 0) return null;
+  const kind = raw.slice(0, i), key = raw.slice(i + 1);
+  return FOLLOW_KINDS.includes(kind) && key ? {kind, key} : null;
+}
+function openExplorePage(kind, key, keepScroll) {
+  if (!keepScroll) state.explore.scroll = window.scrollY || 0;
+  state.explore.page = {kind, key};
+  state.explore.showPast = false;
+  state.tab = "explore";
+  setExploreHash(`${kind}:${key}`);
+  render();
+  window.scrollTo(0, 0);
+}
+function closeExplorePage() {
+  state.explore.page = null;
+  setExploreHash(null);
+  render();
+  window.scrollTo(0, state.explore.scroll || 0);
+}
+
+function tileHTML(kind, item) {
+  const on = isFollowing(kind, item.key);
+  return `<button class="tile${on ? " on" : ""}" data-explore="${esc(kind + ":" + item.key)}">
+    <span class="tile-name">${esc(item.key)}</span>
+    <span class="tile-meta">${on ? `<span class="tile-mark" aria-label="Following">&#9679;</span>` : ""}${item.count}</span>
+  </button>`;
+}
+
+function renderExploreGrid() {
+  const cat = getCatalogue();
+  const q = state.explore.q.trim().toLowerCase();
+  const match = list => q ? list.filter(t => t.key.toLowerCase().includes(q)) : list;
+  const sections = [
+    ["track", "Tracks"], ["fandom", "Fandoms"], ["topic", "Topics"], ["person", "People"],
+  ];
+  let html = `<div class="controls controls-sticky">
+    <input class="search" type="search" id="exploreQ" placeholder="Filter tracks, fandoms, topics, people"
+      value="${esc(state.explore.q)}" autocomplete="off" aria-label="Filter what you can follow">
+  </div>`;
+  let any = false;
+  for (const [kind, label] of sections) {
+    const items = match(cat[kind] || []);
+    if (!items.length) continue;
+    any = true;
+    html += `<div class="section-title">${label} <span class="count">${items.length}</span></div>
+      <div class="tiles">${items.map(i => tileHTML(kind, i)).join("")}</div>`;
+  }
+  if (!any) html += `<div class="empty"><b>Nothing matches.</b> Try fewer letters.</div>`;
+  document.getElementById("view-explore").innerHTML = html;
+}
+
+function renderExplorePage() {
+  const {kind, key} = state.explore.page;
+  const all = eventsFor({kind, key});
+  const now = getNow();
+  const upcoming = all.filter(e => e._e > now), past = all.filter(e => e._e <= now);
+  const on = isFollowing(kind, key);
+
+  let html = `<div class="explore-head">
+    <button class="back" data-act="explore-back" aria-label="Back to Explore">&#8592; Explore</button>
+    <div class="eh-kind">${KIND_NOUN[kind] || kind}</div>
+    <h2 class="eh-name">${esc(key)}</h2>
+    <div class="eh-count">${all.length} event${all.length === 1 ? "" : "s"}${past.length ? ` &middot; ${upcoming.length} still to come` : ""}</div>
+    <button class="btn follow-btn${on ? " on" : ""}" data-act="toggle-follow" aria-pressed="${on}">${on ? "Following" : "Follow"}</button>
+  </div>`;
+
+  const dayGroups = list => {
+    let out = "", lastDay = "";
+    list.forEach(ev => {
+      if (ev.day !== lastDay) { out += `<li class="day-head">${DAY_LONG[ev.day] || ev.day}</li>`; lastDay = ev.day; }
+      out += rowHTML(ev, {list: "explore"});
+    });
+    return out;
+  };
+
+  if (!all.length) {
+    html += `<div class="empty"><b>No events.</b> Nothing in the schedule matches this any more.</div>`;
+  } else {
+    if (upcoming.length) html += `<ul class="list">${dayGroups(upcoming)}</ul>`;
+    else html += `<div class="empty">Everything here has already happened.</div>`;
+    if (past.length) {
+      html += `<div class="divider fold"><button data-act="explore-past" aria-expanded="${state.explore.showPast}">Already happened (${past.length}) <span aria-hidden="true">${state.explore.showPast ? "▾" : "▸"}</span></button></div>`;
+      if (state.explore.showPast) html += `<ul class="list">${dayGroups(past)}</ul>`;
+    }
+  }
+  document.getElementById("view-explore").innerHTML = html;
+}
+
+function renderExplore() {
+  if (state.explore.page) renderExplorePage(); else renderExploreGrid();
+}
+
 function renderForYou() { document.getElementById("view-foryou").innerHTML = `<div class="empty">For you.</div>`; }
 
 /* ---- Mine --------------------------------------------------------- */
@@ -1609,6 +1775,13 @@ document.querySelector("main").addEventListener("click", e => {
       return;
     }
     if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
+    if (a === "explore-back") { closeExplorePage(); return; }
+    if (a === "explore-past") { state.explore.showPast = !state.explore.showPast; render(); return; }
+    if (a === "toggle-follow") {
+      const pg = state.explore.page;
+      if (pg) { toggleFollow(pg.kind, pg.key); render(); }
+      return;
+    }
     if (a === "show-hidden") { state.browse.showHidden = true; state.browse.page = 1; render(); return; }
     if (a === "unparse") {
       const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
@@ -1625,6 +1798,12 @@ document.querySelector("main").addEventListener("click", e => {
   }
   const star = e.target.closest(".star");
   if (star) { const li = star.closest(".row"); togglePick(li.dataset.id, li); return; }
+  const tile = e.target.closest("[data-explore]");
+  if (tile) {
+    const raw = tile.dataset.explore, i = raw.indexOf(":");
+    if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
+    return;
+  }
   const hero = e.target.closest("[data-hero]");
   if (hero) { openSheet("event", hero.dataset.hero); return; }
   const main = e.target.closest(".row-main");
@@ -1651,6 +1830,7 @@ function togglePick(id, anchor) {
 const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
 
 document.querySelector("main").addEventListener("input", e => {
+  if (e.target.id === "exploreQ") { state.explore.q = e.target.value; renderExplore(); return; }
   if (e.target.id === "q") {
     const was = state.browse.q.trim(), now = e.target.value;
     state.browse.q = now;
@@ -1687,7 +1867,10 @@ function fillSettings() {
 
 function eventSheetHTML(ev) {
   const mine = picks.has(ev.id);
-  const people = (ev.speakers || []).map(p => p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name);
+  const peopleRows = (ev.speakers || []).filter(p => p && p.name).map(p => ({
+    name: p.name,
+    label: p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name,
+  }));
   const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
   const chips = [...(ev.tracks || []), ...((ev.tags && ev.tags.fandoms) || [])];
   return `<div class="ev-head">
@@ -1698,7 +1881,8 @@ function eventSheetHTML(ev) {
     </div>
     <div class="ev-body">
       ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
-      ${people.length ? `<div class="ev-people">With <span>${esc(people.join(", "))}</span></div>` : ""}
+      ${peopleRows.length ? `<div class="ev-people">With ${peopleRows.map(p =>
+        `<span class="who"><span>${esc(p.label)}</span> <button class="see-all" data-explore="person:${esc(p.name)}">See all</button></span>`).join(", ")}</div>` : ""}
       ${chips.length || (ev.tags && ev.tags.adult) ? `<div class="tagline">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${ev.tags && ev.tags.adult ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
     </div>
     <div class="ev-actions">
@@ -1795,6 +1979,13 @@ sheetEl.addEventListener("touchend", () => {
 sheetEl.addEventListener("touchcancel", () => { if (dragY !== null) { dragY = null; settle(false); } });
 
 panelEvent.addEventListener("click", e => {
+  const seeAll = e.target.closest("[data-explore]");
+  if (seeAll) {
+    const raw = seeAll.dataset.explore, i = raw.indexOf(":");
+    closeSheet();
+    if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
+    return;
+  }
   if (e.target.closest("#closeSheetEvent")) { closeSheet(); return; }
   const ev = byId.get(state.sheetId);
   if (!ev) return;
@@ -1815,7 +2006,12 @@ document.getElementById("noiseDefault").addEventListener("change", e => { settin
 document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; if (v) location.hash = `now=${v}`; state.browse.day = null; closeSheet(); });
 document.getElementById("clearPreview").addEventListener("click", () => { history.replaceState(null, "", location.pathname); state.browse.day = null; closeSheet(); });
 document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
-window.addEventListener("hashchange", () => { state.browse.day = null; render(); });
+function applyExploreHash() {
+  const target = readExploreHash();
+  if (target) { state.tab = "explore"; state.explore.page = target; state.explore.showPast = false; }
+  else if (state.explore.page) state.explore.page = null;
+}
+window.addEventListener("hashchange", () => { state.browse.day = null; applyExploreHash(); render(); });
 
 setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden) renderNow(); else renderMiniBar(); updateFresh(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });

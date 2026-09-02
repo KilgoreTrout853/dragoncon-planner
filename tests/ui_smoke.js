@@ -533,6 +533,69 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     return t.every(function(v,i){ return i===0 || v>=t[i-1]; }); })()`), "a follow's events come back in time order");
   window.eval(`(function(){ follows = []; saveFollows(); })()`);
 
+  // ---- step 2: Explore ----
+  window.eval(`(function(){ follows = []; saveFollows(); state.explore.page = null; state.explore.q = ""; state.tab = "explore"; render(); })()`);
+  await sleep(30);
+  const secTitles = [...document.querySelectorAll("#view-explore .section-title")].map(x => x.textContent.replace(/\s+/g, " ").trim());
+  /* The fixture has no fandom with 3+ events, so that section is correctly
+     absent here; the all-four check runs against the real schedule below. */
+  const order = ["Tracks", "Fandoms", "Topics", "People"];
+  const seen = secTitles.map(t => t.split(" ")[0]);
+  assert(seen.length >= 3, `the sections that have content render (${seen.join(" | ")})`);
+  assert(seen.every(x => order.includes(x)), "and are named from the four kinds");
+  assert(seen.join(",") === order.filter(o => seen.includes(o)).join(","), "in the order Tracks, Fandoms, Topics, People");
+  assert(!seen.includes("Fandoms"), "an empty section is skipped rather than shown empty");
+  assert(window.eval(`getCatalogue().fandom.every(function(f){ return f.count >= 3; })`), "fandom tiles need 3+ events");
+  assert(window.eval(`(function(){ var c = getCatalogue().track; for (var i = 1; i < c.length; i++) if (c[i].count > c[i-1].count) return false; return true; })()`),
+    "tiles are sorted by count, descending");
+  const firstTile = document.querySelector("#view-explore .tile");
+  assert(/\d/.test(firstTile.textContent), "each tile shows a count");
+  // the filter narrows tiles, not events
+  const allTiles = document.querySelectorAll("#view-explore .tile").length;
+  window.eval(`(function(){ state.explore.q = "cost"; renderExplore(); })()`); await sleep(20);
+  const narrowed = [...document.querySelectorAll("#view-explore .tile-name")].map(x => x.textContent);
+  assert(narrowed.length > 0 && narrowed.length < allTiles, `the filter narrows the tiles (${allTiles} -> ${narrowed.length})`);
+  assert(narrowed.every(n => /cost/i.test(n)), "to those whose name matches");
+  window.eval(`(function(){ state.explore.q = ""; renderExplore(); })()`); await sleep(20);
+  // a tile opens its page
+  const someTrack = window.eval(`getCatalogue().track[0].key`);
+  window.eval(`openExplorePage("track", ${JSON.stringify(someTrack)})`); await sleep(40);
+  assert(document.querySelector("#view-explore .eh-name").textContent === someTrack, `the tile opens its page (${someTrack})`);
+  assert(document.querySelector("#view-explore .eh-kind").textContent === "Track", "labelled with its kind");
+  assert(/\d+ events?/.test(document.querySelector("#view-explore .eh-count").textContent), "and its total count");
+  assert(document.querySelector("#view-explore .day-head"), "events are grouped under day headers");
+  assert(document.querySelectorAll("#view-explore .row").length > 0, "with standard rows");
+  assert(document.querySelector("#view-explore .row .star"), "that carry a star");
+  // the follow toggle
+  const fbtn = document.querySelector("#view-explore .follow-btn");
+  assert(fbtn.textContent.trim() === "Follow", "the page offers Follow");
+  fbtn.click(); await sleep(40);
+  assert(document.querySelector("#view-explore .follow-btn").textContent.trim() === "Following", "which becomes Following");
+  assert(window.eval(`isFollowing("track", ${JSON.stringify(someTrack)})`), "and the follow is recorded");
+  // deep link round-trip
+  assert(/explore=/.test(window.location.hash), `the page is deep-linked (${window.location.hash})`);
+  assert(window.eval(`JSON.stringify(readExploreHash())`) === JSON.stringify({kind: "track", key: someTrack}), "and the link parses back");
+  // back to the grid, with the follow marked
+  document.querySelector('[data-act="explore-back"]').click(); await sleep(40);
+  assert(!window.eval("state.explore.page"), "back returns to the grid");
+  assert(!/explore=/.test(window.location.hash), "and clears the deep link");
+  assert(document.querySelectorAll("#view-explore .tile.on").length === 1, "the followed tile carries a mark");
+  // the detail sheet offers a way through to a person
+  window.eval(`(function(){ state.tab = "browse"; render(); })()`); await sleep(20);
+  const spk = window.eval(`(function(){ var e = events.find(function(x){ return (x.speakers||[]).length > 0; }); return e ? e.id : null; })()`);
+  if (spk) {
+    window.eval(`openSheet("event", ${JSON.stringify(spk)})`); await sleep(30);
+    const seeAll = document.querySelector('#panel-event .see-all');
+    assert(seeAll, "the detail sheet offers See all beside a speaker");
+    assert(/^person:/.test(seeAll.dataset.explore), "pointing at that person's page");
+    seeAll.click(); await sleep(60);
+    assert(window.eval("state.tab") === "explore" && window.eval("state.explore.page.kind") === "person",
+      "and tapping it lands on the person page");
+    assert(document.getElementById("sheetWrap").hidden, "with the sheet closed behind it");
+    window.eval(`(function(){ state.explore.page = null; setExploreHash(null); })()`);
+  }
+  window.eval(`(function(){ follows = []; saveFollows(); state.tab = "browse"; state.explore.page = null; render(); })()`); await sleep(20);
+
   // ---- browse header: All first, and the key rows stay put ----
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
   const dayVals = [...document.querySelectorAll('#view-browse [data-chip="day"]')].map(c => c.dataset.value);
@@ -794,6 +857,30 @@ async function realDataChecks() {
            w.eval(`events.filter(function(e){ return (e.tracks||[]).indexOf(${JSON.stringify(tr)}) >= 0; }).length`),
       "a track follow returns exactly the track's events");
   }
+
+  // Explore against the real schedule: all four sections, correct counts
+  w.eval(`(function(){ follows = []; saveFollows(); state.tab = "explore"; state.explore.page = null; state.explore.q = ""; render(); })()`);
+  const realSecs = [...w.document.querySelectorAll("#view-explore .section-title")].map(x => x.textContent.trim().split(" ")[0]);
+  assert(realSecs.join(",") === "Tracks,Fandoms,Topics,People", `all four sections render (${realSecs.join(",")})`);
+  const cat = JSON.parse(w.eval(`JSON.stringify({track:getCatalogue().track.length, fandom:getCatalogue().fandom.length,
+    topic:getCatalogue().topic.length, person:getCatalogue().person.length})`));
+  assert(cat.track === w.eval(`(function(){ var t={}; events.forEach(function(e){ (e.tracks||[]).forEach(function(x){ t[x]=1; }); }); return Object.keys(t).length; })()`),
+    `every track gets a tile (${cat.track})`);
+  assert(w.eval(`getCatalogue().fandom.every(function(f){ return f.count >= 3; })`), "fandoms are limited to 3+ events");
+  assert(w.eval(`getCatalogue().fandom.length < (function(){ var t={}; events.forEach(function(e){ ((e.tags||{}).fandoms||[]).forEach(function(x){ t[x]=1; }); }); return Object.keys(t).length; })()`),
+    "which is fewer than all of them");
+  assert(cat.person > 0, `people are listed (${cat.person})`);
+  assert(w.eval(`getCatalogue().person.every(function(p){
+    if (p.count >= 5) return true;
+    return events.some(function(e){ return isCeleb(e) && (e.speakers||[]).some(function(s){ return s.name === p.key; }); }); })`),
+    "each person is either a celebrity guest or has 5+ events");
+  // a page's counts match eventsFor
+  const t0 = w.eval(`getCatalogue().track[0].key`);
+  w.eval(`openExplorePage("track", ${JSON.stringify(t0)})`);
+  const shownCount = w.document.querySelector("#view-explore .eh-count").textContent;
+  assert(shownCount.startsWith(String(w.eval(`eventsFor({kind:"track",key:${JSON.stringify(t0)}}).length`))),
+    `the page count matches eventsFor (${t0}: ${shownCount})`);
+  w.eval(`(function(){ state.explore.page = null; setExploreHash(null); follows = []; saveFollows(); state.tab = "browse"; render(); })()`);
 
   // 8. track aliases
   for (const [q, want] of [["skeptrack", "skeptic"], ["filk", "filk"], ["larp", "larp"]]) {
