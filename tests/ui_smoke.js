@@ -69,7 +69,24 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(oneText && (oneText.match(/BEGIN:VEVENT/g) || []).length === 1, "sheet exports exactly one VEVENT");
   assert(oneText && /DTSTART;TZID=America\/New_York:2026090[0-9]T\d{6}/.test(oneText), "single-event ICS carries the Eastern timezone");
   assert(oneText && oneText.includes(firstTitle.slice(0, 20)), "single-event ICS is the event from the sheet");
-  // close via backdrop
+  // the sheet owns the vertical gesture, so the page behind it cannot scroll
+  // while you drag - that was the "whole screen moves" complaint
+  const css = html;
+  assert(/\.sheet\s*\{[^}]*touch-action:\s*none/.test(css), "the sheet declares touch-action: none");
+  assert(/\.ev-body\s*\{[^}]*touch-action:\s*pan-y/.test(css), "the description still scrolls (touch-action: pan-y)");
+  assert(/\.sheet\.settling\s*\{[^}]*transition:\s*transform/.test(css), "the sheet animates when it settles");
+  assert(/prefers-reduced-motion[^}]*\}[\s\S]{0,200}?\.sheet\.settling\s*\{[^}]*transition:\s*none/.test(css)
+      || /@media \(prefers-reduced-motion: reduce\) \{[\s\S]{0,240}?\.sheet\.settling/.test(css),
+     "the settle animation is dropped under prefers-reduced-motion");
+  // closing must clear everything the drag touched, or the next open is offset
+  window.eval("setDrag(120)");
+  assert(document.getElementById("sheet").style.transform !== "", "drag applies a transform");
+  window.eval("closeSheet()"); await sleep(10);
+  assert(document.getElementById("sheet").style.transform === "", "closing clears the drag transform");
+  assert(document.getElementById("sheetBack").style.opacity === "", "closing clears the backdrop fade");
+  assert(!document.getElementById("sheet").classList.contains("settling"), "closing clears the settling class");
+  // reopen and close via backdrop
+  document.querySelector("#view-now .row-main").click(); await sleep(20);
   document.getElementById("sheetBack").click(); await sleep(10);
   assert(document.getElementById("sheetWrap").hidden, "backdrop tap closes the sheet");
   assert(!document.querySelector(".detail"), "inline row expansion is gone");

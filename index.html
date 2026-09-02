@@ -190,6 +190,20 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; max-width: 760px; margin: 0 auto;
   background: var(--surface); border-radius: 18px 18px 0 0; border: 1px solid var(--line); border-bottom: 0;
   padding: 16px 16px calc(20px + var(--safe-bottom)); display: grid; gap: 16px;
+  /* Claim the vertical gesture. Without this the browser scrolls the page
+     behind the sheet while you're dragging it, and both move at once. */
+  touch-action: none;
+  will-change: transform;
+}
+/* The description is the one part that should still scroll under a finger. */
+.ev-body { touch-action: pan-y; }
+/* Only while settling - during a drag the sheet must track the finger exactly. */
+.sheet.settling { transition: transform .22s cubic-bezier(.2, .7, .3, 1); }
+.sheet-back { transition: opacity .22s linear; }
+.sheet-back.dragging { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sheet.settling { transition: none; }
+  .sheet-back { transition: none; }
 }
 .sheet h2 { margin: 0; font-size: 20px; }
 .sheet label { display: grid; gap: 6px; color: var(--muted); font-size: 15px; }
@@ -1192,28 +1206,69 @@ function openSheet(kind = "settings", id = null) {
 function closeSheet() {
   sheetWrap.hidden = true;
   state.sheetId = null;
+  sheetEl.classList.remove("settling");
   sheetEl.style.transform = "";
+  sheetBackEl.style.opacity = "";
+  sheetBackEl.classList.remove("dragging");
+  dragY = null;
   render();
   window.scrollTo(0, sheetScrollY);
 }
 
-/* Swipe down to dismiss */
-let dragY = null;
+/* Swipe down to dismiss.
+   The sheet claims the gesture via touch-action, so the page behind it stays
+   put; the backdrop fades with the drag so the sheet feels attached to it. */
+const sheetBackEl = document.getElementById("sheetBack");
+let dragY = null, dragT = 0, dragDy = 0;
+
+function setDrag(dy) {
+  dragDy = dy;
+  sheetEl.style.transform = dy ? `translateY(${dy}px)` : "";
+  const h = sheetEl.offsetHeight || 1;
+  sheetBackEl.style.opacity = String(Math.max(0, 1 - (dy / h) * 0.9));
+}
+function settle(toClosed) {
+  sheetEl.classList.add("settling");
+  sheetBackEl.classList.remove("dragging");
+  if (toClosed) {
+    sheetEl.style.transform = `translateY(${sheetEl.offsetHeight}px)`;
+    sheetBackEl.style.opacity = "0";
+    const done = () => { sheetEl.removeEventListener("transitionend", done); closeSheet(); };
+    sheetEl.addEventListener("transitionend", done);
+    setTimeout(done, 320);            // belt and braces if the transition never fires
+  } else {
+    setDrag(0);
+    setTimeout(() => sheetEl.classList.remove("settling"), 240);
+  }
+}
+
 sheetEl.addEventListener("touchstart", e => {
   if (e.target.closest(".ev-body")) return;   // let the description scroll
   dragY = e.touches[0].clientY;
+  dragT = Date.now();
+  dragDy = 0;
+  sheetEl.classList.remove("settling");
+  sheetBackEl.classList.add("dragging");
 }, {passive: true});
+
 sheetEl.addEventListener("touchmove", e => {
   if (dragY === null) return;
   const dy = e.touches[0].clientY - dragY;
-  if (dy > 0) sheetEl.style.transform = `translateY(${dy}px)`;
+  setDrag(dy > 0 ? dy : dy / 4);              // slight resistance upward
 }, {passive: true});
-sheetEl.addEventListener("touchend", e => {
+
+sheetEl.addEventListener("touchend", () => {
   if (dragY === null) return;
-  const dy = (e.changedTouches[0].clientY - dragY);
+  const dy = dragDy, ms = Date.now() - dragT;
   dragY = null;
-  if (dy > 90) closeSheet(); else sheetEl.style.transform = "";
+  /* Below about one frame we have no reliable velocity, so don't invent one -
+     fall back to distance alone rather than treating a 30px nudge as a flick. */
+  const v = ms >= 16 ? dy / ms : 0;
+  const flicked = dy > 40 && v > 0.6;
+  settle(dy > 70 || flicked);
 });
+
+sheetEl.addEventListener("touchcancel", () => { if (dragY !== null) { dragY = null; settle(false); } });
 
 panelEvent.addEventListener("click", e => {
   if (e.target.closest("#closeSheetEvent")) { closeSheet(); return; }
