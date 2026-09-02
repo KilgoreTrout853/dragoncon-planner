@@ -1195,9 +1195,24 @@ function activeFilters() {
 
 const LOOSE_THRESHOLD = 8;
 
+/* How well one typed word matched: 1 if it matched an index term literally,
+   otherwise how much of that term it actually covered. "drag" is 67% of
+   "dragon" but only 44% of "dragoncon", and the shorter the fragment the
+   weaker the evidence - which is what stops a four-letter prefix from
+   ranking on the strength of somebody else's long title. */
+function termQuality(t, matched, match) {
+  if (match && match[t]) return 1;
+  let best = 0;
+  for (const m of matched) {
+    if (!m.startsWith(t) && !t.startsWith(m)) continue;
+    const r = Math.min(t.length, m.length) / Math.max(t.length, m.length);
+    if (r > best) best = r;
+  }
+  return best;
+}
+
 /* Rank one pass of MiniSearch. coverage rewards matching more of what was
-   typed; exactness rewards matching it literally rather than through prefix
-   or fuzzy, so "drag" stops outranking real matches on "Dragons". */
+   typed; quality rewards matching it squarely rather than by a fragment. */
 function collectHits(text, opts, queryTerms, seen) {
   const out = [];
   const n = queryTerms.length || 1;
@@ -1207,8 +1222,9 @@ function collectHits(text, opts, queryTerms, seen) {
     if (!e || !passesFilters(e)) continue;
     seen.add(h.id);
     const coverage = new Set(h.queryTerms).size / n;
-    const exact = queryTerms.filter(t => h.match && h.match[t]).length / n;
-    e._hit = {score: h.score * (0.5 + coverage) * (1 + 0.5 * exact), terms: h.terms};
+    const matched = h.match ? Object.keys(h.match) : [];
+    const quality = queryTerms.reduce((acc, t) => acc + termQuality(t, matched, h.match), 0) / n;
+    e._hit = {score: h.score * (0.5 + coverage) * (1 + 0.5 * quality), terms: h.terms};
     out.push(e);
   }
   out.sort((a, b) => b._hit.score - a._hit.score || a._s - b._s);

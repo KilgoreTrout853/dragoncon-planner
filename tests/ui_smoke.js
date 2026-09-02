@@ -610,8 +610,14 @@ async function realDataChecks() {
     `every result for "${who}" actually features them`);
 
   // 4. exactness bonus is computed from h.match
-  assert(/h\.match && h\.match\[t\]/.test(fs.readFileSync(__dirname + "/../index.html", "utf8")),
-    "the exactness fraction comes from MiniSearch's match map");
+  assert(/function termQuality\(t, matched, match\)/.test(fs.readFileSync(__dirname + "/../index.html", "utf8")),
+    "match quality is computed per term, from MiniSearch's match map");
+  assert(w.eval(`termQuality("trek", ["trek"], {trek:1})`) === 1, "an exact match scores 1");
+  assert(Math.abs(w.eval(`termQuality("drag", ["dragons"], {dragons:1})`) - 4/7) < 0.01,
+    "a prefix scores how much of the word it covers (drag/dragons = 0.57)");
+  assert(w.eval(`termQuality("drag", ["dragon"], {dragon:1})`) > w.eval(`termQuality("drag", ["dragoncon"], {dragoncon:1})`),
+    "covering more of the word scores higher (dragon beats dragoncon)");
+  assert(w.eval(`termQuality("zzz", ["dragons"], {dragons:1})`) === 0, "an unrelated term scores 0");
   const trek = search("trek");
   assert(has(trek.topTitles.slice(0, 3), "trek"), `"trek" still leads with Trek events (${trek.topTitles[0]})`);
 
