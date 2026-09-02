@@ -67,7 +67,24 @@ jobs:
           git add events.json
           if git diff --cached --quiet; then
             echo "No changes."
-          else
-            git commit -m "Refresh schedule $(date -u +%Y-%m-%dT%H:%MZ)"
-            git push
+            exit 0
           fi
+          git commit -m "Refresh schedule $(date -u +%Y-%m-%dT%H:%MZ)"
+          # The scrape takes ~20 minutes, and main may well have moved while it
+          # ran - a push that loses that race drops the whole refresh silently.
+          # events.json is the only file this job touches, so rebasing onto
+          # whatever landed meanwhile cannot conflict with anyone's work.
+          for attempt in 1 2 3; do
+            if git push; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected; main moved while we were scraping. Rebasing and retrying."
+            git pull --rebase --no-edit origin main || {
+              echo "Rebase failed - leaving main alone rather than forcing."
+              exit 1
+            }
+            sleep 5
+          done
+          echo "Still could not push after three attempts."
+          exit 1
