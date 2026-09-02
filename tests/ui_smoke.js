@@ -892,8 +892,12 @@ async function realDataChecks() {
   assert(w.eval(`browseResults().every(function(e){ return !e._hit; })`),
     `a question of only stopwords is not ranked (residual was "${westin.residual}")`);
   assert(w.eval(`browseResults().every(function(e){ return e.hotel === "Westin"; })`), "every result is at the Westin");
-  assert(w.eval(`(function(){ var t = browseResults().map(function(e){ return +e._s; });
-    return t.every(function(v,i){ return i === 0 || v >= t[i-1]; }); })()`), "in time order, not ranked");
+  /* Sections come first, time second: upcoming above the fold, past below,
+     each run chronological. */
+  assert(w.eval(`(function(){ var t = browseResults().filter(function(e){ return e._section === "main"; }).map(function(e){ return +e._s; });
+    return t.every(function(v,i){ return i === 0 || v >= t[i-1]; }); })()`), "in time order within the section, not ranked");
+  assert(w.eval(`(function(){ var t = browseResults().filter(function(e){ return e._section === "past"; }).map(function(e){ return +e._s; });
+    return t.every(function(v,i){ return i === 0 || v >= t[i-1]; }); })()`), "and the past run is chronological too");
 
   // 2. explicit kinds beat the hide toggle
   const photo = search("photo op tudyk");
@@ -958,6 +962,54 @@ async function realDataChecks() {
   assert(shownCount.startsWith(String(w.eval(`eventsFor({kind:"track",key:${JSON.stringify(t0)}}).length`))),
     `the page count matches eventsFor (${t0}: ${shownCount})`);
   w.eval(`(function(){ state.explore.page = null; setExploreHash(null); follows = []; saveFollows(); state.tab = "browse"; render(); })()`);
+
+  // ---- search-3 fix 1: a filter-only query means today ----
+  const lateNight = search("late night");
+  assert(lateNight.chips.includes("Late night"), "late night is still read as a time band");
+  assert(w.eval(`state.browse.todayScoped`) === true, "and with nothing left to rank, it scopes to today");
+  const conToday = w.eval(`conDayKey(getNow())`);
+  assert(w.eval(`browseResults().filter(function(e){ return e._section === "main"; }).every(function(e){ return conDayKey(e._s) === ${JSON.stringify(conToday)}; })`),
+    "every result belongs to today's con day");
+  assert(!lateNight.mainDays.includes("2026-09-02"), "nothing from Wednesday");
+  assert(w.eval(`browseResults().filter(function(e){ return e._section === "main" && e.day !== ${JSON.stringify(conToday)}; })
+    .every(function(e){ return e._s.getHours() < 5; })`),
+    "anything dated tomorrow is after midnight, not a different day");
+  const party = search("party");
+  assert(party.main > 0, `"party" returns today's parties (${party.main})`);
+  assert(party.past > 0, `with earlier ones behind the fold (${party.past})`);
+  assert(w.eval(`browseResults().filter(function(e){ return e._section === "main"; }).every(function(e){ return e._e > getNow(); })`),
+    "and everything above the fold is still to come");
+  // a day in the query wins
+  const partyFri = search("party friday");
+  assert(partyFri.chips.includes("Friday"), "a named day is still read");
+  assert(w.eval(`state.browse.todayScoped`) === false, "and turns the today scope off");
+  // a day chip wins
+  search("party", {day: "2026-09-06"});
+  assert(w.eval(`state.browse.todayScoped`) === false, "a day chip turns it off too");
+  assert(w.eval(`browseResults().every(function(e){ return e.day === "2026-09-06"; })`), "and its day is the one used");
+  // the chip widens it
+  const widened = search("party", {noToday: true});
+  assert(w.eval(`state.browse.todayScoped`) === false, "removing the Today chip widens to the whole con");
+  assert(widened.main > party.main, `which finds more (${widened.main} vs ${party.main})`);
+  assert(new Set(widened.mainDays).size > 1, "across more than one day");
+  // and the chip is offered
+  w.eval(`(function(){ Object.assign(state.browse,{q:"party",day:"All",noToday:false,page:1}); state.tab="browse"; render(); })()`);
+  assert(/Today/.test(w.document.querySelector("#view-browse .parsed-chips").textContent), "the Today chip is shown so it can be removed");
+  assert(w.document.querySelector('#view-browse [data-act="unparse-today"]'), "with a control to remove it");
+
+  // ---- search-3 fix 2: stopwords and short-term prefix ----
+  ["how", "can", "do", "does", "should", "will", "want", "wanna", "gonna"].forEach(word =>
+    assert(w.eval(`STOPWORDS.has(${JSON.stringify(word)})`), `"${word}" is a stopword`));
+  assert(w.eval(`typeof index._options.searchOptions.prefix`) === "function", "the main index decides prefix per term");
+  assert(w.eval(`index._options.searchOptions.prefix("ai")`) === false, "two letters do not prefix-match");
+  assert(w.eval(`index._options.searchOptions.prefix("mcu")`) === false, "nor three");
+  assert(w.eval(`index._options.searchOptions.prefix("trek")`) === true, "four or more do");
+  assert(w.eval(`suggestIndex._options.searchOptions.prefix`) === true, "the suggestion index is untouched");
+  for (const [q, want] of [["mcu", "mcu"], ["40k", "40k"], ["ai", "ai"], ["dnd", "dungeons"], ["trek", "trek"]]) {
+    const r = search(q);
+    assert(r.main > 0, `"${q}" still returns events (${r.main})`);
+    assert(r.topTitles.slice(0, 3).some(t => new RegExp(want, "i").test(t)), `"${q}" leads with ${want} events (${r.topTitles[0]})`);
+  }
 
   // 8. track aliases
   for (const [q, want] of [["skeptrack", "skeptic"], ["filk", "filk"], ["larp", "larp"]]) {
