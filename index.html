@@ -579,7 +579,10 @@ const SYNONYMS = [
 const STOPWORDS = new Set(["a","an","the","and","or","of","in","on","at","to","for","with","from","by","is","are","be","stuff","things","thing","something","anything","some","any","my","me","i","about","into","all",
   /* Question words. "what is at the westin" is a hotel filter with noise
      around it, not five search terms. */
-  "what","whats","where","when","who","which","there","happening","going","find","show"]);
+  "what","whats","where","when","who","which","there","happening","going","find","show",
+  /* Sentence scaffolding. "how" is the costly one: as a prefix it reaches
+     Howl's Moving Castle, which is nobody's idea of a match for "how to". */
+  "how","can","do","does","should","will","want","wanna","gonna"]);
 const KIND_LABELS = {qa: "Celebrity Q&A", panel: "Fan panel", screening: "Screening", workshop: "Workshop", signing: "Signing", photo: "Photo op", contest: "Contest", performance: "Performance", party: "Party", gaming: "Gaming", reading: "Reading", tour: "Tour", other: "Other"};
 let index = null;
 const processTerm = (term) => {
@@ -602,7 +605,7 @@ const state = {
   now: {hotel: "All", limit: 80},
   explore: {q: "", page: null, scroll: 0, showPast: false},
   foryou: {layout: loadJSON("dc26.foryouLayout", "interest"), expanded: {}, showPast: {}},
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
+  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, noToday: false, todayScoped: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
 
@@ -728,7 +731,10 @@ function buildIndex() {
   index = new MiniSearch({
     fields: ["title", "fandoms", "speakers", "aliases", "tracks", "kind", "topics", "description", "location"],
     storeFields: [], processTerm,
-    searchOptions: {processTerm, prefix: true, fuzzy: t => t.length > 4 ? 0.2 : false, combineWith: "OR",
+    /* Prefix matching on a two- or three-letter term is mostly noise - "ai"
+       would reach every word starting "ai". Short terms must match exactly;
+       the suggestion index keeps its own prefix rule and is unaffected. */
+    searchOptions: {processTerm, prefix: t => t.length >= 4, fuzzy: t => t.length > 4 ? 0.2 : false, combineWith: "OR",
       boost: {title: 5, fandoms: 4, speakers: 3, aliases: 2, tracks: 2, kind: 2, topics: 2, description: 1, location: 1}},
   });
   buildSuggestIndex();
@@ -1137,8 +1143,11 @@ function hiddenForQueryHTML(results) {
 /* Show what the query was read as, and let the reader take it back off. */
 function parsedChipsHTML() {
   const chips = (state.browse.parsed && state.browse.parsed.chips) || [];
-  if (!chips.length) return "";
-  return `<div class="chips parsed-chips" aria-label="Filters read from your search">${chips.map(c =>
+  const today = state.browse.todayScoped
+    ? `<button class="chip parsed" data-act="unparse-today" aria-label="Show the whole con instead of today">Today <span aria-hidden="true">&times;</span></button>`
+    : "";
+  if (!chips.length && !today) return "";
+  return `<div class="chips parsed-chips" aria-label="Filters read from your search">${today}${chips.map(c =>
     `<button class="chip parsed" data-act="unparse" data-src="${esc(c.src)}" aria-label="Remove ${esc(c.label)} filter">${esc(c.label)} <span aria-hidden="true">&times;</span></button>`).join("")}</div>`;
 }
 
@@ -1362,8 +1371,27 @@ function browseResults() {
   /* Nothing left to rank by - either every word was a filter, or what remains
      is all stopwords ("what is at the westin"). Hand back the filtered set. */
   if (!q || !index || !queryTerms.length) {
-    return events.filter(passesFilters).sort((a, b) => a._s - b._s).map(e => { e._hit = null; e._section = "main"; return e; });
+    /* "late night" and "party" are questions about tonight, not about the
+       whole weekend - so a query that resolved entirely to filters is scoped
+       to today unless it named a day itself, or a day chip is set, or the
+       reader took the Today chip off. */
+    const b = state.browse;
+    const parsedDay = b.parsed.filters.day;
+    const scope = !!b.q.trim() && !parsedDay && b.day === "All" && !b.noToday;
+    b.todayScoped = scope;
+    let list = events.filter(passesFilters);
+    if (scope) {
+      const today = conDayKey(getNow());
+      list = list.filter(e => conDayKey(e._s) === today);
+    }
+    list.sort((a, b2) => a._s - b2._s);
+    const nowT = getNow(), up = [], gone = [];
+    list.forEach(e => { e._hit = null; (e._e > nowT ? up : gone).push(e); });
+    up.forEach(e => e._section = "main");
+    gone.forEach(e => e._section = "past");
+    return up.concat(gone);
   }
+  state.browse.todayScoped = false;
 
   const seen = new Set();
   let main, loose = [];
@@ -1912,6 +1940,7 @@ document.querySelector("main").addEventListener("click", e => {
       return;
     }
     if (a === "show-hidden") { state.browse.showHidden = true; state.browse.page = 1; render(); return; }
+    if (a === "unparse-today") { state.browse.noToday = true; state.browse.page = 1; render(); return; }
     if (a === "unparse") {
       const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
       state.browse.q = (stripped || tokenise(state.browse.q)).join(" ");
@@ -1966,6 +1995,7 @@ document.querySelector("main").addEventListener("input", e => {
     /* Both are answers to the last question, not standing preferences. */
     state.browse.showHidden = false;
     state.browse.showPast = false;
+    state.browse.noToday = false;
     if (!was && now.trim()) { state.browse.prevDay = state.browse.day; state.browse.day = "All"; }
     else if (was && !now.trim() && state.browse.prevDay) { state.browse.day = state.browse.prevDay; state.browse.prevDay = null; }
     state.browse.page = 1; renderBrowse();
