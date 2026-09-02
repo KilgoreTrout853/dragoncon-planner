@@ -714,6 +714,13 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/schedule-updated/.test(swSrc) && /generated_at !== /.test(swSrc),
     "the worker only announces an update when generated_at actually changed");
   assert(/fonts\.gstatic\.com/.test(swSrc) && /opaque/.test(swSrc), "font requests are cached, opaque allowed");
+  /* respondWith only keeps the worker alive until the cached copy is handed
+     back, which is immediate - the background check needs its own lifetime or
+     the browser may kill it, and the cache would never refresh. */
+  assert(/event\.waitUntil\(update/.test(swSrc), "the background revalidation is kept alive with waitUntil");
+  assert(swSrc.indexOf("event.waitUntil(update") < swSrc.indexOf("event.respondWith(cachedDataOr"),
+    "and waitUntil is called synchronously in the fetch handler, before respondWith");
+  assert(!/staleWhileRevalidate/.test(swSrc), "the version that could be killed mid-check is gone");
   // manifest and icon
   const mf = JSON.parse(fs.readFileSync(__dirname + "/../manifest.json", "utf8"));
   assert(mf.name === "Dragon Con 2026" && mf.short_name === "DC26", "manifest names the app");
