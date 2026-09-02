@@ -233,17 +233,12 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   background: none; border: 0; color: var(--dim); font-size: 26px; line-height: 1; display: grid; place-items: center; padding: 0 8px 0 0;
 }
 .star[aria-pressed="true"] { color: var(--gold); }
-.detail { padding: 0 14px 14px 90px; color: var(--muted); font-size: 16px; display: grid; gap: 10px; }
-.detail p { margin: 0; white-space: pre-line; color: var(--text); }
-.detail .kv { display: grid; gap: 3px; font-size: 15px; }
-.detail .kv span { color: var(--text); }
 .btn {
   height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; font-size: 16px;
   background: var(--gold); color: var(--gold-ink); border: 0;
 }
 .btn.quiet { background: var(--raised); color: var(--text); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--warn); border: 1px solid var(--line); }
-.detail .btn { justify-self: start; }
 .gap {
   margin: 0 14px 0 80px; padding: 6px 10px; font-size: 14px; border-left: 3px solid var(--line); color: var(--muted);
 }
@@ -913,23 +908,6 @@ function snippetFor(ev, terms) {
   }
   const start = Math.max(0, pos - 40), end = Math.min(d.length, pos + 100);
   return (start > 0 ? "…" : "") + highlighter(terms)(d.slice(start, end)) + (end < d.length ? "…" : "");
-}
-function detailHTML(ev) {
-  const mine = picks.has(ev.id);
-  const people = (ev.speakers || []).map(p => p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name);
-  const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
-  return `<div class="detail">
-    ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
-    <div class="kv">
-      ${people.length ? `<div>With <span>${esc(people.join(", "))}</span></div>` : ""}
-      <div>Where <span>${esc(ev.location || "TBA")}</span></div>
-      <div>When <span>${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` (${dur})` : ""}</span></div>
-      ${(ev.tracks || []).length ? `<div>Track <span>${esc(ev.tracks.join(", "))}</span></div>` : ""}
-      ${ev.type === "gaming" ? `<div>Listed under <span>Gaming events</span></div>` : ""}
-    </div>
-    ${ev.tags ? `<div class="tagline">${[...(ev.tags.fandoms || []), ev.tags.kind ? KIND_LABELS[ev.tags.kind] || ev.tags.kind : "", ...(ev.tags.topics || [])].filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("")}${ev.tags.adult ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
-    <button class="btn ${mine ? "quiet" : ""}" data-act="toggle">${mine ? "Remove from my schedule" : "Add to my schedule"}</button>
-  </div>`;
 }
 
 function gapHTML(prev, next) {
@@ -1933,7 +1911,6 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "more-browse") { state.browse.page++; render(); }
     if (a === "ics") exportICS();
     if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
-    if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id, li); }
     if (a === "suggest") {
       state.browse.q = `"${act.dataset.name}"`;
       state.browse.page = 1;
