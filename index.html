@@ -216,17 +216,19 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 /* Bottom nav -------------------------------------------------------- */
 .nav {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-  display: grid; grid-template-columns: repeat(3, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   background: var(--ink); border-top: 1px solid var(--line);
   padding: 6px max(8px, calc(50% - 372px)) calc(6px + var(--safe-bottom));
 }
 .nav button {
   height: 58px; border: 0; background: none; color: var(--dim); border-radius: 12px;
-  display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: 14px;
+  display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: 13px;
+  /* Five labels across 375px leaves ~75px each; "Explore" is the longest. */
+  white-space: nowrap; padding: 0 2px; min-width: 0;
 }
-.nav button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .nav button[aria-current="page"] { color: var(--text); background: var(--surface); }
-.nav .badge { position: absolute; margin-left: 40px; margin-top: -34px; background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: 12px; padding: 1px 6px; font-weight: 700; }
+.nav .badge { position: absolute; margin-left: 30px; margin-top: -32px; background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: 12px; padding: 1px 6px; font-weight: 700; }
 
 /* Settings sheet ---------------------------------------------------- */
 .sheet-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9; }
@@ -394,6 +396,8 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
   <div id="notice" class="notice" hidden></div>
   <section class="view" id="view-now"></section>
   <section class="view" id="view-browse" hidden></section>
+  <section class="view" id="view-explore" hidden></section>
+  <section class="view" id="view-foryou" hidden></section>
   <section class="view" id="view-mine" hidden></section>
 </main>
 
@@ -406,7 +410,13 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Now
   </button>
   <button data-tab="browse">
-    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Browse
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search
+  </button>
+  <button data-tab="explore">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Explore
+  </button>
+  <button data-tab="foryou">
+    <svg viewBox="0 0 24 24"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>For you
   </button>
   <button data-tab="mine" style="position:relative">
     <svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>Mine
@@ -728,12 +738,14 @@ function updateFresh() {
 function render() {
   updateClock();
   document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
-  ["now", "browse", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
+  ["now", "browse", "explore", "foryou", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
   const badge = document.getElementById("mineBadge");
   badge.hidden = picks.size === 0; badge.textContent = picks.size;
   if (!events.length) return;
   if (state.tab === "now") renderNow();
   if (state.tab === "browse") renderBrowse();
+  if (state.tab === "explore") renderExplore();
+  if (state.tab === "foryou") renderForYou();
   if (state.tab === "mine") renderMine();
   renderMiniBar();
 }
@@ -963,7 +975,7 @@ function renderNow() {
       mineHTML += `</ul>`;
     }
   } else {
-    mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Star things in Browse and they show up here with walk times.</div>`;
+    mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Star things in Search and they show up here with walk times.</div>`;
   }
 
   const around = events.filter(e => e._e > now && e._s <= horizon && !(state.browse.hideNoise && isNoise(e)) && (state.now.hotel === "All" || e.hotel === state.now.hotel));
@@ -1364,6 +1376,10 @@ function renderBrowse() {
   if (focused) { const q = document.getElementById("q"); q.focus(); try { q.setSelectionRange(pos[0], pos[1]); } catch (e) {} }
 }
 
+/* ---- Explore / For you -------------------------------------------- */
+function renderExplore() { document.getElementById("view-explore").innerHTML = `<div class="empty">Explore.</div>`; }
+function renderForYou() { document.getElementById("view-foryou").innerHTML = `<div class="empty">For you.</div>`; }
+
 /* ---- Mine --------------------------------------------------------- */
 /* Side-by-side columns for anything that overlaps in time. Events are
    grouped into clusters that genuinely collide, and each cluster is
@@ -1465,7 +1481,7 @@ function renderMine() {
     <button data-act="view-list" aria-pressed="${state.mineView === "list"}">List</button>
   </div>`;
   if (!mine.length) {
-    html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Browse. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
+    html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Search. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
   } else if (state.mineView === "timeline") {
     html += renderMineTimeline(mine, getNow());
   } else {

@@ -447,6 +447,38 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!document.getElementById("panel-settings").hidden && document.getElementById("panel-event").hidden, "settings panel shown, event panel hidden");
   document.getElementById("closeSheet").click(); await sleep(10);
   assert(document.getElementById("sheetWrap").hidden, "settings closes");
+  // ---- step 0: five tabs, Browse renamed to Search ----
+  const navBtns = [...document.querySelectorAll(".nav button")];
+  const navLabels = navBtns.map(b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(""));
+  assert(navLabels.join(" · ") === "Now · Search · Explore · For you · Mine",
+    `the nav reads Now · Search · Explore · For you · Mine (${navLabels.join(" · ")})`);
+  assert(navBtns.length === 5, "five tabs");
+  /* textContent includes <script> bodies, where "Browse" survives in comments
+     and identifiers; only rendered text and aria labels matter here. */
+  const visibleText = () => {
+    const tw = document.createTreeWalker(document.body, window.NodeFilter.SHOW_TEXT);
+    let out = "", n;
+    while ((n = tw.nextNode())) {
+      const tag = n.parentElement && n.parentElement.tagName;
+      if (tag === "SCRIPT" || tag === "STYLE") continue;
+      out += " " + n.textContent;
+    }
+    [...document.querySelectorAll("[aria-label]")].forEach(el => { out += " " + el.getAttribute("aria-label"); });
+    return out;
+  };
+  assert(!/Browse/i.test(visibleText()), "the word Browse is gone from what the reader sees");
+  assert(navBtns.map(b => b.dataset.tab).join(",") === "now,browse,explore,foryou,mine",
+    "the internal identifiers are unchanged");
+  assert(/repeat\(5, 1fr\)/.test(html), "the nav lays out five columns");
+  // the two new views exist and switch
+  for (const t of ["explore", "foryou"]) {
+    document.querySelector(`.nav button[data-tab="${t}"]`).click(); await sleep(20);
+    assert(window.eval("state.tab") === t, `the ${t} tab switches`);
+    assert(!document.getElementById(`view-${t}`).hidden, `and its view shows`);
+    assert(document.getElementById("view-browse").hidden, "while the others hide");
+  }
+  document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
+
   // ---- browse header: All first, and the key rows stay put ----
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
   const dayVals = [...document.querySelectorAll('#view-browse [data-chip="day"]')].map(c => c.dataset.value);
