@@ -95,6 +95,15 @@ main { max-width: 760px; margin: 0 auto; }
 }
 .search::placeholder { color: var(--dim); }
 .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
+/* The search box and the day row follow you down a long list - those are the
+   two you reach for mid-scroll. The rest scroll away; sticking everything
+   would leave no room for results on a phone. */
+.controls-sticky {
+  position: sticky; top: var(--hdr-h, 74px); z-index: 4;
+  background: var(--ink); border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+.controls-rest { padding-top: 10px; }
 .chips::-webkit-scrollbar { display: none; }
 .chip {
   flex: 0 0 auto; height: 38px; padding: 0 13px; border-radius: 19px;
@@ -1152,9 +1161,11 @@ function renderBrowse() {
   const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
   const hasCelebs = hasTags && events.some(isCeleb);
 
-  let html = `<div class="controls">
+  let html = `<div class="controls controls-sticky">
     <input class="search" type="search" id="q" placeholder="Search anything: titles, guests, fandoms, words in descriptions" value="${esc(b.q)}" autocomplete="off">
-    <div class="chips">${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}${chipHTML("All days", b.day === "All", "day", "All")}</div>
+    <div class="chips">${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}</div>
+    </div>
+    <div class="controls controls-rest">
     <div class="chips">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
     ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${hasCelebs ? `<button class="chip celeb-chip" data-chip="celebrity" data-value="1" aria-pressed="${b.celebrity}">Celebrity</button>` : ""}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
     ${suggestHTML()}
@@ -1587,6 +1598,20 @@ window.addEventListener("hashchange", () => { state.browse.day = null; render();
 
 setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden) renderNow(); else renderMiniBar(); updateFresh(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+
+/* The sticky filters park directly under the header, whose height changes
+   with the clock and the freshness line - measure it rather than guess. */
+function syncHeaderHeight() {
+  const h = document.querySelector(".hdr");
+  if (h) document.documentElement.style.setProperty("--hdr-h", `${Math.round(h.getBoundingClientRect().height)}px`);
+}
+syncHeaderHeight();
+window.addEventListener("resize", syncHeaderHeight);
+window.addEventListener("orientationchange", syncHeaderHeight);
+if (window.ResizeObserver) {
+  const hdr = document.querySelector(".hdr");
+  if (hdr) new ResizeObserver(syncHeaderHeight).observe(hdr);
+}
 
 /* ==================================================================
    Offline. The service worker keeps the app openable with no signal;

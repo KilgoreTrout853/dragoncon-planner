@@ -447,6 +447,26 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!document.getElementById("panel-settings").hidden && document.getElementById("panel-event").hidden, "settings panel shown, event panel hidden");
   document.getElementById("closeSheet").click(); await sleep(10);
   assert(document.getElementById("sheetWrap").hidden, "settings closes");
+  // ---- browse header: All first, and the key rows stay put ----
+  document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
+  const dayVals = [...document.querySelectorAll('#view-browse [data-chip="day"]')].map(c => c.dataset.value);
+  assert(dayVals[0] === "All", `"All days" leads the day row (${dayVals.slice(0,3).join(",")})`);
+  const hotelVals = [...document.querySelectorAll('#view-browse [data-chip="hotel"]')].map(c => c.dataset.value);
+  assert(hotelVals[0] === "All", "the hotel row still leads with All, so the two rows match");
+  assert(dayVals.length === 7 && dayVals.slice(1).join(",") === window.eval("CON_DAYS.join(',')"),
+    "the six con days follow it, in order");
+  // the search box and day row are the sticky pair; the rest scrolls away
+  const sticky = document.querySelector("#view-browse .controls-sticky");
+  assert(sticky, "the search box and day row share a sticky container");
+  assert(sticky.querySelector("#q"), "the search box is inside it");
+  assert(sticky.querySelector('[data-chip="day"]'), "the day chips are inside it");
+  assert(!sticky.querySelector('[data-chip="hotel"]'), "the hotel row is not - it scrolls away");
+  assert(!sticky.querySelector('[data-chip="kind"]'), "nor the kind row");
+  assert(/\.controls-sticky\s*\{[^}]*position:\s*sticky/.test(html), "it is declared sticky");
+  assert(/\.controls-sticky\s*\{[^}]*top:\s*var\(--hdr-h/.test(html), "it parks under the header, by measured height");
+  assert(/function syncHeaderHeight\(\)[\s\S]{0,300}setProperty\("--hdr-h"/.test(html), "the header height is measured, not assumed");
+  assert(/ResizeObserver\(syncHeaderHeight\)/.test(html), "and re-measured when the header changes size");
+
   // ---- offline: what jsdom can actually reach ----
   // (a) the worker parses, and registration is guarded
   const swSrc = fs.readFileSync(__dirname + "/../sw.js", "utf8");
