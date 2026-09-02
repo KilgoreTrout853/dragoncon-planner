@@ -63,33 +63,34 @@ async function tellClients(message) {
 /* Serve the cached schedule at once, then look for a newer one. Only if
    generated_at actually moved do we replace it and tell the page - a
    reload prompt that fires on every load would be trained away in a day. */
-async function staleWhileRevalidate(request) {
+async function revalidateData(request) {
   const cache = await caches.open(CACHE);
   const cached = await cache.match(request, {ignoreSearch: true});
-
-  const update = (async () => {
-    try {
-      const fresh = await fetch(request, {cache: "no-store"});
-      if (!fresh || !fresh.ok) return null;
-      if (!cached) { await cache.put(request, fresh.clone()); return null; }
-      const [a, b] = await Promise.all([cached.clone().json(), fresh.clone().json()]);
-      await cache.put(request, fresh.clone());
-      if (a.generated_at !== b.generated_at) {
-        await tellClients({type: "schedule-updated", generated_at: b.generated_at});
-      } else {
-        await tellClients({type: "schedule-online"});
-      }
-      return fresh;
-    } catch (e) {
-      /* The page can't work this out for itself: we already handed it the
-         cached copy and its fetch resolved normally. Only we know the
-         revalidation never reached the network. */
-      await tellClients({type: "schedule-offline"});
-      return null;
+  try {
+    const fresh = await fetch(request, {cache: "no-store"});
+    if (!fresh || !fresh.ok) return null;
+    if (!cached) { await cache.put(request, fresh.clone()); return fresh; }
+    const [a, b] = await Promise.all([cached.clone().json(), fresh.clone().json()]);
+    await cache.put(request, fresh.clone());
+    if (a.generated_at !== b.generated_at) {
+      await tellClients({type: "schedule-updated", generated_at: b.generated_at});
+    } else {
+      await tellClients({type: "schedule-online"});
     }
-  })();
+    return fresh;
+  } catch (e) {
+    /* The page can't work this out for itself: we already handed it the
+       cached copy and its fetch resolved normally. Only we know the
+       revalidation never reached the network. */
+    await tellClients({type: "schedule-offline"});
+    return null;
+  }
+}
 
-  if (cached) { update.catch(() => {}); return cached; }
+async function cachedDataOr(request, update) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request, {ignoreSearch: true});
+  if (cached) return cached;
   const fresh = await update;
   return fresh || new Response('{"events":[]}', {headers: {"Content-Type": "application/json"}});
 }
@@ -132,7 +133,16 @@ self.addEventListener("fetch", event => {
 
   if (isFont(url)) { event.respondWith(cacheFirst(request)); return; }
   if (url.origin !== self.location.origin) return;
-  if (isData(url)) { event.respondWith(staleWhileRevalidate(request)); return; }
+  if (isData(url)) {
+    /* waitUntil must be called synchronously, here, not inside the async work:
+       respondWith only keeps the worker alive until the cached copy is handed
+       over, which is immediate - so without this the background check is
+       killed before it finishes and the cache never refreshes. */
+    const update = revalidateData(request);
+    event.waitUntil(update.catch(() => {}));
+    event.respondWith(cachedDataOr(request, update));
+    return;
+  }
   if (isHTML(request, url)) { event.respondWith(networkFirst(request)); return; }
 
   event.respondWith(cacheFirst(request).catch(() => fetch(request)));
