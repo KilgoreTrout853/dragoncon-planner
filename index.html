@@ -103,6 +103,12 @@ main { max-width: 760px; margin: 0 auto; }
 .suggest-label { flex: none; font-size: 12px; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; padding-right: 2px; }
 .chip.suggest { font-weight: 600; }
 .chip.suggest .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: 12px; }
+/* Not gold - gold means "mine". A quiet outline that reads as a label. */
+.celeb {
+  display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--h-Hyatt); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; line-height: 17px;
+}
+.chip.celeb-chip[aria-pressed="true"] { background: var(--h-Hyatt); border-color: var(--h-Hyatt); color: var(--ink); }
 .chip.suggest.on { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
 .chip.suggest.on span { opacity: .65; }
 .parsed-chips { padding-top: 2px; }
@@ -493,7 +499,7 @@ let meta = {};
 const state = {
   tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", hideAdult: false, hideNoise: settings.hideNoise, page: 1},
+  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
 
@@ -515,6 +521,10 @@ function walkMin(a, b) {
   const base = WALK[`${a}|${b}`] ?? WALK[`${b}|${a}`] ?? 12;
   return Math.round(base * settings.crowd);
 }
+/* "unknown" and untagged are not celebrities - absence of evidence isn't
+   evidence, so they drop out when the toggle is on. */
+const isCeleb = e => !!(e.tags && e.tags.guests === "celebrity");
+const CELEB_BADGE = `<span class="celeb" title="Celebrity guest">Celebrity</span>`;
 const hotelShort = h => HOTEL_SHORT[h] || h;
 const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
 
@@ -709,7 +719,7 @@ function rowHTML(ev, opts = {}) {
           <div class="title">${hl(ev.title)}</div>
           <div class="meta">
             <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</span>
-            ${status}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
+            ${status}${isCeleb(ev) ? CELEB_BADGE : ""}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
           </div>
           ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
         </div>
@@ -949,6 +959,7 @@ function passesFilters(e) {
     (f.track === "All" || (e.tracks || []).includes(f.track)) &&
     (f.fandom === "All" || (tg.fandoms || []).includes(f.fandom)) &&
     (f.kind === "All" || tg.kind === f.kind) &&
+    (!f.celebrity || tg.guests === "celebrity") &&
     (!f.adultOnly || !!tg.adult) &&
     (!f.hideAdult || !tg.adult) &&
     (!f.time || inTimeBand(e, f.time)) &&
@@ -1067,6 +1078,7 @@ function activeFilters() {
     day: f.day !== undefined ? f.day : b.day,
     hotel: f.hotel !== undefined ? f.hotel : b.hotel,
     kind: f.kind !== undefined ? f.kind : b.kind,
+    celebrity: b.celebrity,
     type: b.type, track: b.track, fandom: b.fandom,
     adultOnly: f.adult === true,
     hideAdult: f.adult === false ? true : (f.adult === true ? false : b.hideAdult),
@@ -1109,12 +1121,13 @@ function renderBrowse() {
   const hasTags = events.some(e => e.tags);
   const fandoms = hasTags ? fandomCounts() : [];
   const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
+  const hasCelebs = hasTags && events.some(isCeleb);
 
   let html = `<div class="controls">
     <input class="search" type="search" id="q" placeholder="Search anything: titles, guests, fandoms, words in descriptions" value="${esc(b.q)}" autocomplete="off">
     <div class="chips">${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}${chipHTML("All days", b.day === "All", "day", "All")}</div>
     <div class="chips">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
-    ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
+    ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${hasCelebs ? `<button class="chip celeb-chip" data-chip="celebrity" data-value="1" aria-pressed="${b.celebrity}">Celebrity</button>` : ""}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
     ${suggestHTML()}
     ${parsedChipsHTML()}
     <div class="row-controls">
@@ -1314,6 +1327,7 @@ document.querySelector("main").addEventListener("click", e => {
     else if (kind === "hotel") state.browse.hotel = state.browse.hotel === value ? "All" : value;
     else if (kind === "type") state.browse.type = value;
     else if (kind === "kind") state.browse.kind = value;
+    else if (kind === "celebrity") state.browse.celebrity = !state.browse.celebrity;
     state.browse.page = 1; render(); return;
   }
   const act = e.target.closest("[data-act]");
@@ -1419,6 +1433,7 @@ function eventSheetHTML(ev) {
       <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
       <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}</div>
       <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${esc(ev.room || ev.location || "Location TBA")}</div>
+      ${isCeleb(ev) ? `<div>${CELEB_BADGE}</div>` : ""}
     </div>
     <div class="ev-body">
       ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}

@@ -295,6 +295,50 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
       `the chip count drops when photo sessions are hidden (${withNoiseHidden.count} <= ${withNoiseShown.count})`);
   }
 
+  // ---- search step 3: celebrity chip and marker ----
+  resetBrowse(); await sleep(20);
+  const celebTotal = window.eval("events.filter(isCeleb).length");
+  assert(celebTotal > 0, `the fixture has celebrity events (${celebTotal})`);
+  const chip = document.querySelector('#view-browse [data-chip="celebrity"]');
+  assert(chip, "a Celebrity chip sits in the kind row");
+  assert(chip.closest(".chips") === document.querySelector('#view-browse [data-chip="kind"]').closest(".chips"),
+    "it is in the same row as the kind chips");
+  assert(chip.getAttribute("aria-pressed") === "false", "it starts off");
+  chip.click(); await sleep(30);
+  assert(window.eval("state.browse.celebrity") === true, "tapping turns it on");
+  assert(document.querySelector('#view-browse [data-chip="celebrity"]').getAttribute("aria-pressed") === "true", "and it shows as pressed");
+  const cres = window.eval("browseResults()");
+  assert(cres.length > 0, `celebrity events are returned (${cres.length})`);
+  assert(cres.every(e => e.tags && e.tags.guests === "celebrity"), "every result is a celebrity event");
+  assert(!cres.some(e => !e.tags || e.tags.guests === "unknown"), "unknown and untagged events are excluded");
+  // it stacks with the other filters rather than replacing them
+  window.eval(`(function(){ state.browse.day = "2026-09-05"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  const stacked = window.eval("browseResults()");
+  assert(stacked.every(e => e.day === "2026-09-05" && e.tags.guests === "celebrity"), "celebrity stacks with the day filter");
+  assert(stacked.length <= cres.length, `stacking narrows rather than widens (${stacked.length} <= ${cres.length})`);
+  // and with a parsed query filter
+  window.eval(`(function(){ state.browse.q = "saturday"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  assert(window.eval("browseResults()").every(e => e.tags.guests === "celebrity"), "celebrity survives a parsed query filter");
+  window.eval(`(function(){ state.browse.q = ""; renderBrowse(); })()`); await sleep(20);
+  // the marker shows on rows, and only on the right rows
+  const marked = [...document.querySelectorAll("#view-browse .row .celeb")];
+  assert(marked.length > 0, "rows carry a celebrity marker");
+  assert(marked.every(m => /celebrity/i.test(m.textContent)), "the marker says what it means");
+  window.eval(`(function(){ state.browse.celebrity = false; state.browse.day = "All"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  const rowsWithMark = [...document.querySelectorAll("#view-browse .row")].filter(r => r.querySelector(".celeb"));
+  assert(rowsWithMark.every(r => window.eval(`isCeleb(byId.get(${JSON.stringify(r.dataset.id)}))`)),
+    "with the filter off, only celebrity rows are marked");
+  // and in the detail sheet
+  const celebId = window.eval("events.filter(isCeleb)[0].id");
+  window.eval(`openSheet("event", ${JSON.stringify(celebId)})`); await sleep(30);
+  assert(document.querySelector("#panel-event .celeb"), "the detail sheet marks a celebrity event");
+  const plainId = window.eval("(events.find(function(e){ return e.tags && e.tags.guests !== 'celebrity'; })||{}).id");
+  if (plainId) {
+    window.eval(`openSheet("event", ${JSON.stringify(plainId)})`); await sleep(30);
+    assert(!document.querySelector("#panel-event .celeb"), "and does not mark a non-celebrity one");
+  }
+  document.getElementById("sheetBack").click(); await sleep(20);
+
   window.eval(`(function(){ Object.assign(state.browse, ${browseSnapshot}); renderBrowse(); })()`); await sleep(20);
 
   // noise toggle: Epic Photos hidden by default
