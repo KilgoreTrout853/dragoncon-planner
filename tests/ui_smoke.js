@@ -500,6 +500,15 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // (c) the freshness line marks a cached copy
   const freshBefore = document.getElementById("fresh").textContent;
   assert(!/offline copy/.test(freshBefore), "no offline marker while the network is fine");
+  // the worker decides, not the page: a cached response resolves normally, so
+  // only the worker knows the revalidation never reached the network
+  assert(/catch \(e\) \{[\s\S]{0,500}?tellClients\(\{type: "schedule-offline"\}\)/.test(swSrc),
+    "the worker reports offline when revalidation fails");
+  assert(/schedule-online/.test(swSrc), "the worker reports back online when it succeeds");
+  assert(/t === "schedule-offline"[\s\S]{0,80}servedOffline = true/.test(html),
+    "the page marks itself offline on that message");
+  assert(/t === "schedule-online"[\s\S]{0,80}servedOffline = false/.test(html),
+    "and clears the marker when the worker gets through");
   window.eval("servedOffline = true; updateFresh();"); await sleep(10);
   assert(/offline copy/.test(document.getElementById("fresh").textContent),
     `a cached copy is labelled (${document.getElementById("fresh").textContent})`);

@@ -76,10 +76,16 @@ async function staleWhileRevalidate(request) {
       await cache.put(request, fresh.clone());
       if (a.generated_at !== b.generated_at) {
         await tellClients({type: "schedule-updated", generated_at: b.generated_at});
+      } else {
+        await tellClients({type: "schedule-online"});
       }
       return fresh;
     } catch (e) {
-      return null;                       // no signal: the cached copy stands
+      /* The page can't work this out for itself: we already handed it the
+         cached copy and its fetch resolved normally. Only we know the
+         revalidation never reached the network. */
+      await tellClients({type: "schedule-offline"});
+      return null;
     }
   })();
 

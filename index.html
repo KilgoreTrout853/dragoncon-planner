@@ -564,9 +564,9 @@ async function load() {
       data = await r.json();
       fromNetwork = true;
     } catch (e) {
-      /* The service worker answers from cache when the network is gone, so a
-         throw here means no cache either - but a served-from-cache response
-         still reaches the branch above. Ask the worker which it was. */
+      /* Only reached with no worker at all: with one installed, a cached
+         response resolves normally and the worker reports offline by message
+         instead. This is the plain-browser, no-signal path. */
       try {
         const cached = await caches.match("events.json", {ignoreSearch: true});
         if (cached) { data = await cached.json(); fromNetwork = false; }
@@ -1637,7 +1637,13 @@ updatePill.addEventListener("touchend", () => {
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("message", e => {
-    if (e.data && e.data.type === "schedule-updated") showUpdatePill();
+    const t = e.data && e.data.type;
+    if (t === "schedule-updated") showUpdatePill();
+    /* The worker serves the cached schedule and then checks the network. Its
+       verdict arrives after the page has already rendered, so the freshness
+       line is corrected in place rather than guessed at load. */
+    if (t === "schedule-offline") { servedOffline = true; updateFresh(); }
+    if (t === "schedule-online") { servedOffline = false; updateFresh(); }
   });
   window.addEventListener("load", () => {
     /* Don't swallow this. A worker that silently fails to register looks
