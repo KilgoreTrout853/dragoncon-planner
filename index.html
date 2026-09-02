@@ -133,6 +133,11 @@ main { max-width: 760px; margin: 0 auto; }
   width: 100%; text-align: left; padding: 10px 14px 8px; background: none; border: 0;
   font: inherit; font-weight: 700; color: var(--muted); cursor: pointer;
 }
+.no-exact {
+  padding: 9px 14px; font-size: 13px; color: var(--muted);
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.no-exact b { color: var(--text); }
 .hidden-note { padding: 10px 14px; font-size: 14px; color: var(--muted); }
 .hidden-note button { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--gold); text-decoration: underline; cursor: pointer; }
 .parsed-chips { padding-top: 2px; }
@@ -994,6 +999,24 @@ function suggestHTML() {
   return row("People", s.people) + row("Fandoms &amp; topics", s.topics);
 }
 
+/* When nothing matched a word literally, every result is a guess at what was
+   meant - "drag" only reaches "dragons" by prefix. Ranking cannot fix that,
+   but pretending to be confident about it is the part that misleads. */
+function noExactMatchHTML(results) {
+  if (!state.browse.q.trim() || !results.length) return "";
+  const ranked = results.filter(e => e._hit);
+  if (!ranked.length || ranked.some(e => e._hit.exact)) return "";
+  const raw = (state.browse.parsed && state.browse.parsed.residual) || "";
+  const shown = (/^".+"$/.test(raw) ? raw.slice(1, -1) : raw).trim();
+  if (!shown) return "";
+  /* A prefix and a typo are different failures and deserve different words:
+     "philharmonic" does not start with "philharmonc". */
+  const typed = shown.toLowerCase().split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean);
+  const byPrefix = ranked.some(e => (e._hit.terms || []).some(m => typed.some(t => m.startsWith(t) && m !== t)));
+  const how = byPrefix ? "showing words that start with it" : "showing close spellings";
+  return `<div class="no-exact">No exact match for <b>${esc(shown)}</b> &mdash; ${how}.</div>`;
+}
+
 /* Searching a person by name and quietly dropping their photo sessions is
    the wrong default when the name is the whole query - say what was held
    back and offer it, rather than hiding it twice. */
@@ -1224,7 +1247,8 @@ function collectHits(text, opts, queryTerms, seen) {
     const coverage = new Set(h.queryTerms).size / n;
     const matched = h.match ? Object.keys(h.match) : [];
     const quality = queryTerms.reduce((acc, t) => acc + termQuality(t, matched, h.match), 0) / n;
-    e._hit = {score: h.score * (0.5 + coverage) * (1 + 0.5 * quality), terms: h.terms};
+    const exact = queryTerms.some(t => h.match && h.match[t]);
+    e._hit = {score: h.score * (0.5 + coverage) * (1 + 0.5 * quality), terms: h.terms, exact};
     out.push(e);
   }
   out.sort((a, b) => b._hit.score - a._hit.score || a._s - b._s);
@@ -1303,7 +1327,8 @@ function renderBrowse() {
     <label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label>
     ${hasTags ? `<label class="toggle"><input type="checkbox" id="hideAdult" ${b.hideAdult ? "checked" : ""}> Hide 18+</label>` : ""}
   </div>
-  <div class="section-title">${searching ? "Best matches first" : "Results"} <span class="count">${results.length}</span></div><ul class="list">`;
+  <div class="section-title">${searching ? "Best matches first" : "Results"} <span class="count">${results.length}</span></div>
+  ${noExactMatchHTML(results)}<ul class="list">`;
 
   let lastDay = "", lastTime = "", lastSection = "";
   shown.forEach(ev => {

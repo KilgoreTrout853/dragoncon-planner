@@ -621,6 +621,25 @@ async function realDataChecks() {
   const trek = search("trek");
   assert(has(trek.topTitles.slice(0, 3), "trek"), `"trek" still leads with Trek events (${trek.topTitles[0]})`);
 
+  // 4b. when nothing matched literally, say so rather than rank confidently
+  /* No regex inside the eval string - normalise the text out here instead. */
+  const noteFor = q => {
+    w.eval(`(function(){ state.tab = "browse";
+      Object.assign(state.browse, {q: ${JSON.stringify(q)}, day: "All", hotel: "All",
+        track: "All", kind: "All", hideNoise: true, showHidden: false, showPast: false, page: 1});
+      render(); })()`);
+    const n = w.document.querySelector(".no-exact");
+    return n ? n.textContent.replace(/\s+/g, " ").trim() : "";
+  };
+  const dragNote = noteFor("drag");
+  assert(/No exact match for/.test(dragNote), `"drag" admits it matched nothing literally (${dragNote})`);
+  assert(/start with it/.test(dragNote), "and says the results are prefixes");
+  const typoNote = noteFor("philharmonc");
+  assert(/close spellings/.test(typoNote), `a typo is described as a spelling miss, not a prefix (${typoNote})`);
+  assert(noteFor("trek") === "", "a query that matched literally gets no note");
+  assert(noteFor("star trek") === "", "nor a multi-word one that did");
+  assert(noteFor("kids") === "", "nor a query that was all filters and never ranked");
+
   // 5. d&d
   const dnd = search("dnd"), dd = search("d&d");
   assert(w.eval(`expandQuery("d&d")`) === "dungeons dragons", "d&d expands to the words the index holds");
