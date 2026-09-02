@@ -547,7 +547,123 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval("servedOffline = false; updateFresh();"); await sleep(10);
   assert(!/offline copy/.test(document.getElementById("fresh").textContent), "the marker clears when back online");
 
-  const errs = window.__errors || [];
-  console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); window.close(); process.exit(process.exitCode || 0);
+  window.close();
+  await realDataChecks();
+  console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); process.exit(process.exitCode || 0);
 })();
+
+/* ------------------------------------------------------------------ *
+ * Search quality against the real schedule.
+ *
+ * The sample fixture is 558 synthetic events; ranking questions like "does
+ * AND actually narrow this" only mean something against the 3,462 real ones.
+ * ------------------------------------------------------------------ */
+async function realDataChecks() {
+  const path = __dirname + "/../events.json";
+  if (!fs.existsSync(path)) { console.log("skip  real-data search checks (no events.json)"); return; }
+  const realDom = new JSDOM(
+    fs.readFileSync(__dirname + "/../index.html", "utf8")
+      .replace("<script>", "<script>window.DC_EVENTS=" + fs.readFileSync(path, "utf8") + ";"),
+    { runScripts: "dangerously", url: "https://example.test/#now=2026-09-05T13:05", pretendToBeVisual: true });
+  const w = realDom.window;
+  await sleep(2500);
+
+  const search = (q, over) => JSON.parse(w.eval(`(function(){
+    Object.assign(state.browse, {q: ${JSON.stringify(q)}, day: "All", hotel: "All", type: "All", track: "All",
+      fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, hideAdult: false,
+      hideNoise: true, page: 1}, ${JSON.stringify(over || {})});
+    var r = browseResults(), pick = function(s){ return r.filter(function(e){ return e._section === s; }); };
+    return JSON.stringify({
+      total: r.length, main: pick("main").length, loose: pick("loose").length, past: pick("past").length,
+      topTitles: pick("main").slice(0, 5).map(function(e){ return e.title; }),
+      mainDays: pick("main").map(function(e){ return e.day; }),
+      mainAllUpcoming: pick("main").every(function(e){ return e._e > getNow(); }),
+      chips: (state.browse.parsed.chips || []).map(function(c){ return c.label; }),
+      residual: state.browse.parsed.residual,
+      allNoise: pick("main").length > 0 && pick("main").every(function(e){ return isNoise(e); }),
+      tracksAll: pick("main").map(function(e){ return (e.tracks || []).join("|"); })
+    });
+  })()`));
+  const has = (list, frag) => list.some(t => t.toLowerCase().includes(frag.toLowerCase()));
+
+  // 1. past events sink below the fold
+  const st = search("star trek");
+  assert(st.main > 0 && st.mainAllUpcoming, `"star trek": everything above the fold is still to come (${st.main})`);
+  assert(!st.mainDays.includes("2026-09-04"), "no Friday events above the divider at Saturday 13:05");
+  assert(st.past > 0, `past matches are kept, below the fold (${st.past})`);
+
+  // 3. AND first, OR fallback
+  assert(st.loose === 0, "a query with plenty of AND matches shows no Looser section");
+  const bg = search("board games");
+  assert(bg.main < 900, `"board games" narrows under AND (${bg.main}, was ~1,300 under OR)`);
+  assert(has(bg.topTitles, "board game"), `"board games" leads with real board-game rows (${bg.topTitles[0]})`);
+  const thin = search("xylophone quidditch");
+  assert(thin.main < 8, "a thin query has few AND matches");
+
+  // quoted suggestion path is untouched
+  const who = w.eval(`(function(){ var d = suggestDocs.filter(function(d){ return d.group === "people" && d.visible >= 3; })
+    .sort(function(a,b){ return b.visible - a.visible; })[0]; return d.name; })()`);
+  const quoted = search('"' + who + '"');
+  assert(quoted.total > 0, `a tapped suggestion still returns results (${who}: ${quoted.total})`);
+  assert(quoted.loose === 0, "and nothing under a Looser divider");
+  assert(w.eval(`browseResults().every(function(e){ return (e.speakers||[]).some(function(p){ return p.name === ${JSON.stringify(who)}; }); })`),
+    `every result for "${who}" actually features them`);
+
+  // 4. exactness bonus is computed from h.match
+  assert(/h\.match && h\.match\[t\]/.test(fs.readFileSync(__dirname + "/../index.html", "utf8")),
+    "the exactness fraction comes from MiniSearch's match map");
+  const trek = search("trek");
+  assert(has(trek.topTitles.slice(0, 3), "trek"), `"trek" still leads with Trek events (${trek.topTitles[0]})`);
+
+  // 5. d&d
+  const dnd = search("dnd"), dd = search("d&d");
+  assert(w.eval(`expandQuery("d&d")`) === "dungeons dragons", "d&d expands to the words the index holds");
+  assert(w.eval(`expandQuery("dnd")`) === "dungeons dragons", "dnd expands too");
+  assert(has(dnd.topTitles.slice(0, 3), "d&d") || has(dnd.topTitles.slice(0, 3), "dungeons"),
+    `"dnd" leads with D&D events (${dnd.topTitles[0]})`);
+  assert(dd.main > 0 && has(dd.topTitles.concat(search("d&d").topTitles), "d&d") ||
+         has(dd.topTitles, "dungeons"), `"d&d" finds D&D sessions (${dd.topTitles[0]})`);
+
+  // 6. kids means the Kids Track
+  const kids = search("kids");
+  assert(kids.chips.includes("Kids Track"), "kids shows a Kids Track chip");
+  assert(kids.main > 0 && kids.tracksAll.every(t => t.includes("Kids Track")), `"kids" returns Kids Track only (${kids.main})`);
+  const kidsSat = search("kids saturday");
+  assert(kidsSat.chips.includes("Saturday") && kidsSat.chips.includes("Kids Track"), "kids stacks with a day");
+  assert(kidsSat.main > 0 && kidsSat.mainDays.every(d => d === "2026-09-05"), "and only returns that day");
+
+  // 7. question words fall through to the filtered list
+  const westin = search("what is at the westin");
+  assert(westin.chips.includes("Westin"), "the hotel is still read out of the question");
+  /* The residual is still "what is at the" - it is the *terms* that vanish
+     once processTerm drops the stopwords, and that is what makes the query
+     fall through to the filtered list unranked. */
+  assert(w.eval(`browseResults().every(function(e){ return !e._hit; })`),
+    `a question of only stopwords is not ranked (residual was "${westin.residual}")`);
+  assert(w.eval(`browseResults().every(function(e){ return e.hotel === "Westin"; })`), "every result is at the Westin");
+  assert(w.eval(`(function(){ var t = browseResults().map(function(e){ return +e._s; });
+    return t.every(function(v,i){ return i === 0 || v >= t[i-1]; }); })()`), "in time order, not ranked");
+
+  // 2. explicit kinds beat the hide toggle
+  const photo = search("photo op tudyk");
+  assert(photo.main > 0 && photo.allNoise, `"photo op tudyk" returns the photo sessions (${photo.main})`);
+  assert(has(photo.topTitles, "tudyk"), "and they are the right person's");
+  const person = search("alan tudyk");
+  const note = w.eval(`(function(){ var n = hiddenForQueryHTML(browseResults()); return n ? n.replace(/<[^>]*>/g, "") : ""; })()`);
+  assert(/\d+ photo sessions hidden/.test(note), `a person search says what was held back (${note.trim()})`);
+  const hiddenCount = parseInt(note, 10);
+  const actual = w.eval(`events.filter(function(e){ return isNoise(e) && (e.speakers||[]).some(function(p){ return /alan tudyk/i.test(p.name); }); }).length`);
+  assert(hiddenCount === actual, `with the right count (${hiddenCount} = ${actual})`);
+  const revealed = search("alan tudyk", {showHidden: true});
+  assert(revealed.main >= hiddenCount, `tapping show includes them (${revealed.main} results, ${hiddenCount} were hidden)`);
+  assert(person.main < revealed.main, "which is more than were shown before");
+
+  // 8. track aliases
+  for (const [q, want] of [["skeptrack", "skeptic"], ["filk", "filk"], ["larp", "larp"]]) {
+    const r = search(q);
+    assert(r.total > 0, `"${q}" finds something (${r.total})`);
+  }
+
+  w.close();
+}
 window.addEventListener("error", e => { console.error("JS ERROR:", e.message); process.exitCode = 1; });
