@@ -158,6 +158,17 @@ main { max-width: 760px; margin: 0 auto; }
   color: var(--gold); opacity: .7; cursor: pointer;
 }
 .chip.fc-add { flex: none; }
+/* Following sits above the tiles, behind a fold: a long feed would push the
+   grid off screen for someone who came to wander. */
+.following { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.fol-head {
+  width: 100%; display: flex; align-items: baseline; gap: 6px; padding: 14px 14px 4px;
+  background: none; border: 0; color: var(--text); font: inherit; font-size: 17px; font-weight: 700;
+  text-align: left; cursor: pointer;
+}
+.fol-head .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+.fol-head .caret { margin-left: auto; color: var(--dim); font-size: 15px; }
+.hint { padding: 0 14px 8px; font-size: 14px; color: var(--muted); }
 .flabel {
   font-size: 11px; font-weight: 700; color: var(--gold); border: 1px solid var(--gold);
   border-radius: 999px; padding: 0 6px; line-height: 17px; opacity: .85;
@@ -233,17 +244,12 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   background: none; border: 0; color: var(--dim); font-size: 26px; line-height: 1; display: grid; place-items: center; padding: 0 8px 0 0;
 }
 .star[aria-pressed="true"] { color: var(--gold); }
-.detail { padding: 0 14px 14px 90px; color: var(--muted); font-size: 16px; display: grid; gap: 10px; }
-.detail p { margin: 0; white-space: pre-line; color: var(--text); }
-.detail .kv { display: grid; gap: 3px; font-size: 15px; }
-.detail .kv span { color: var(--text); }
 .btn {
   height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; font-size: 16px;
   background: var(--gold); color: var(--gold-ink); border: 0;
 }
 .btn.quiet { background: var(--raised); color: var(--text); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--warn); border: 1px solid var(--line); }
-.detail .btn { justify-self: start; }
 .gap {
   margin: 0 14px 0 80px; padding: 6px 10px; font-size: 14px; border-left: 3px solid var(--line); color: var(--muted);
 }
@@ -257,19 +263,18 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 /* Bottom nav -------------------------------------------------------- */
 .nav {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-template-columns: repeat(4, 1fr);
   background: var(--ink); border-top: 1px solid var(--line);
   padding: 6px max(8px, calc(50% - 372px)) calc(6px + var(--safe-bottom));
 }
 .nav button {
   height: 58px; border: 0; background: none; color: var(--dim); border-radius: 12px;
-  display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: 13px;
-  /* Five labels across 375px leaves ~75px each; "Explore" is the longest. */
+  display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: 14px;
   white-space: nowrap; padding: 0 2px; min-width: 0;
 }
-.nav button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .nav button[aria-current="page"] { color: var(--text); background: var(--surface); }
-.nav .badge { position: absolute; margin-left: 30px; margin-top: -32px; background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: 12px; padding: 1px 6px; font-weight: 700; }
+.nav .badge { position: absolute; margin-left: 40px; margin-top: -34px; background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: 12px; padding: 1px 6px; font-weight: 700; }
 
 /* Settings sheet ---------------------------------------------------- */
 .sheet-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9; }
@@ -438,7 +443,6 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
   <section class="view" id="view-now"></section>
   <section class="view" id="view-browse" hidden></section>
   <section class="view" id="view-explore" hidden></section>
-  <section class="view" id="view-foryou" hidden></section>
   <section class="view" id="view-mine" hidden></section>
 </main>
 
@@ -455,9 +459,6 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
   </button>
   <button data-tab="explore">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Explore
-  </button>
-  <button data-tab="foryou">
-    <svg viewBox="0 0 24 24"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>For you
   </button>
   <button data-tab="mine" style="position:relative">
     <svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>Mine
@@ -604,7 +605,7 @@ const state = {
   tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
   explore: {q: "", page: null, scroll: 0, showPast: false},
-  foryou: {layout: loadJSON("dc26.foryouLayout", "interest"), expanded: {}, showPast: {}},
+  following: {layout: loadJSON("dc26.followingLayout", "interest"), expanded: {}, showPast: {}, open: loadJSON("dc26.followingOpen", true)},
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, noToday: false, todayScoped: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
@@ -620,7 +621,7 @@ function savePicks() { saveJSON("dc26.picks", [...picks]); }
    Follows. A pick is one event; a follow is a standing interest - a
    track, a fandom, a topic, or a person - that keeps producing events
    as the schedule changes. Stored in the order they were added,
-   because For You presents them that way.
+   because the Following feed presents them that way.
    ================================================================== */
 const FOLLOW_KINDS = ["track", "fandom", "topic", "person"];
 let follows = (loadJSON("dc26.follows", []) || [])
@@ -828,14 +829,13 @@ function render() {
   cancelQueuedBrowseRender();
   updateClock();
   document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
-  ["now", "browse", "explore", "foryou", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
+  ["now", "browse", "explore", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
   const badge = document.getElementById("mineBadge");
   badge.hidden = picks.size === 0; badge.textContent = picks.size;
   if (!events.length) return;
   if (state.tab === "now") renderNow();
   if (state.tab === "browse") renderBrowse();
   if (state.tab === "explore") renderExplore();
-  if (state.tab === "foryou") renderForYou();
   if (state.tab === "mine") renderMine();
   renderMiniBar();
 }
@@ -913,23 +913,6 @@ function snippetFor(ev, terms) {
   }
   const start = Math.max(0, pos - 40), end = Math.min(d.length, pos + 100);
   return (start > 0 ? "…" : "") + highlighter(terms)(d.slice(start, end)) + (end < d.length ? "…" : "");
-}
-function detailHTML(ev) {
-  const mine = picks.has(ev.id);
-  const people = (ev.speakers || []).map(p => p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name);
-  const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
-  return `<div class="detail">
-    ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
-    <div class="kv">
-      ${people.length ? `<div>With <span>${esc(people.join(", "))}</span></div>` : ""}
-      <div>Where <span>${esc(ev.location || "TBA")}</span></div>
-      <div>When <span>${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` (${dur})` : ""}</span></div>
-      ${(ev.tracks || []).length ? `<div>Track <span>${esc(ev.tracks.join(", "))}</span></div>` : ""}
-      ${ev.type === "gaming" ? `<div>Listed under <span>Gaming events</span></div>` : ""}
-    </div>
-    ${ev.tags ? `<div class="tagline">${[...(ev.tags.fandoms || []), ev.tags.kind ? KIND_LABELS[ev.tags.kind] || ev.tags.kind : "", ...(ev.tags.topics || [])].filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("")}${ev.tags.adult ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
-    <button class="btn ${mine ? "quiet" : ""}" data-act="toggle">${mine ? "Remove from my schedule" : "Add to my schedule"}</button>
-  </div>`;
 }
 
 function gapHTML(prev, next) {
@@ -1601,27 +1584,52 @@ function tileHTML(kind, item) {
   </button>`;
 }
 
-function renderExploreGrid() {
+function exploreSectionsHTML() {
   const cat = getCatalogue();
   const q = state.explore.q.trim().toLowerCase();
   const match = list => q ? list.filter(t => t.key.toLowerCase().includes(q)) : list;
   const sections = [
     ["track", "Tracks"], ["fandom", "Fandoms"], ["topic", "Topics"], ["person", "People"],
   ];
-  let html = `<div class="controls controls-sticky">
-    <input class="search" type="search" id="exploreQ" placeholder="Filter tracks, fandoms, topics, people"
-      value="${esc(state.explore.q)}" autocomplete="off" aria-label="Filter what you can follow">
-  </div>`;
-  let any = false;
+  let html = "", any = false;
   for (const [kind, label] of sections) {
     const items = match(cat[kind] || []);
     if (!items.length) continue;
+    html += `<div class="section-title">${label} <span class="count">${items.length}</span></div>`;
+    /* Nothing followed yet, so no Following section to point at: say where it will appear. */
+    if (!any && !follows.length) html += `<div class="hint">Follow a track, fandom or person and it'll show up here.</div>`;
     any = true;
-    html += `<div class="section-title">${label} <span class="count">${items.length}</span></div>
-      <div class="tiles">${items.map(i => tileHTML(kind, i)).join("")}</div>`;
+    html += `<div class="tiles">${items.map(i => tileHTML(kind, i)).join("")}</div>`;
   }
   if (!any) html += `<div class="empty"><b>Nothing matches.</b> Try fewer letters.</div>`;
-  document.getElementById("view-explore").innerHTML = html;
+  return html;
+}
+
+function renderExploreGrid() {
+  document.getElementById("view-explore").innerHTML = `${followingHTML()}
+    <div class="controls controls-sticky">
+      <input class="search" type="search" id="exploreQ" placeholder="Filter tracks, fandoms, topics, people"
+        value="${esc(state.explore.q)}" autocomplete="off" aria-label="Filter what you can follow">
+    </div>
+    <div id="exploreGrid">${exploreSectionsHTML()}</div>`;
+}
+
+/* Typing in the filter box redraws the tiles and nothing else. Rebuilding the
+   whole view would replace the input mid-word, and take the keyboard with it. */
+function renderExploreSections() {
+  const grid = document.getElementById("exploreGrid");
+  if (grid && !state.explore.page) grid.innerHTML = exploreSectionsHTML(); else renderExplore();
+}
+
+/* "+ Follow more" used to switch tabs; the tiles are now on the same page,
+   just below. Land the filter box where its sticky position would hold it. */
+function scrollToGrid() {
+  const box = document.querySelector("#view-explore .controls-sticky");
+  if (!box) return;
+  const hdr = parseFloat(document.documentElement.style.getPropertyValue("--hdr-h")) || 0;
+  const top = Math.max(0, box.getBoundingClientRect().top + (window.scrollY || 0) - hdr);
+  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  window.scrollTo({top, left: 0, behavior: reduce ? "auto" : "smooth"});
 }
 
 function renderExplorePage() {
@@ -1665,9 +1673,8 @@ function renderExplore() {
   if (state.explore.page) renderExplorePage(); else renderExploreGrid();
 }
 
-/* ---- For you ------------------------------------------------------- */
-
-const FOR_YOU_PAGE = 8;
+/* ---- Following (the top of Explore) --------------------------------- */
+const FOLLOWING_PAGE = 8;
 
 function followChipsHTML() {
   const chips = follows.map(f => `<span class="follow-chip">
@@ -1675,37 +1682,37 @@ function followChipsHTML() {
       <button class="fc-x" data-act="unfollow" data-follow="${esc(followId(f))}" aria-label="Unfollow ${esc(f.key)}">&times;</button>
     </span>`).join("");
   return `<div class="controls"><div class="chips follow-chips">${chips}
-    <button class="chip fc-add" data-act="foryou-add">${follows.length ? "+ Follow more" : "+ Find things to follow"}</button>
+    <button class="chip fc-add" data-act="fol-add">+ Follow more</button>
   </div></div>`;
 }
 
-function foryouByInterest(now) {
+function followingByInterest(now) {
   let html = "";
   follows.forEach(f => {
     const id = followId(f);
     const all = eventsFor(f);
     const upcoming = all.filter(e => e._e > now), past = all.filter(e => e._e <= now);
-    const expanded = !!state.foryou.expanded[id];
-    const shown = expanded ? upcoming : upcoming.slice(0, FOR_YOU_PAGE);
+    const expanded = !!state.following.expanded[id];
+    const shown = expanded ? upcoming : upcoming.slice(0, FOLLOWING_PAGE);
     html += `<div class="section-title">${esc(f.key)} <span class="count">${KIND_NOUN[f.kind] || f.kind} &middot; ${upcoming.length} to come</span></div>`;
     if (!upcoming.length) {
       html += `<div class="empty">Nothing left today or later.</div>`;
     } else {
-      html += `<ul class="list">${shown.map(ev => rowHTML(ev, {list: `fy:${id}`, showDay: true})).join("")}</ul>`;
+      html += `<ul class="list">${shown.map(ev => rowHTML(ev, {list: `fol:${id}`, showDay: true})).join("")}</ul>`;
       if (upcoming.length > shown.length) {
-        html += `<button class="btn quiet more" data-act="fy-more" data-follow="${esc(id)}">Show ${upcoming.length - shown.length} more</button>`;
+        html += `<button class="btn quiet more" data-act="fol-more" data-follow="${esc(id)}">Show ${upcoming.length - shown.length} more</button>`;
       }
     }
     if (past.length) {
-      const open = !!state.foryou.showPast[id];
-      html += `<div class="divider fold"><button data-act="fy-past" data-follow="${esc(id)}" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
-      if (open) html += `<ul class="list">${past.map(ev => rowHTML(ev, {list: `fyp:${id}`, showDay: true})).join("")}</ul>`;
+      const open = !!state.following.showPast[id];
+      html += `<div class="divider fold"><button data-act="fol-past" data-follow="${esc(id)}" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
+      if (open) html += `<ul class="list">${past.map(ev => rowHTML(ev, {list: `folp:${id}`, showDay: true})).join("")}</ul>`;
     }
   });
   return html;
 }
 
-function foryouByTime(now) {
+function followingByTime(now) {
   /* One row per event, however many follows brought it here - the labels say
      which, so a panel matched by two interests is not listed twice. */
   const seen = new Map();
@@ -1724,7 +1731,7 @@ function foryouByTime(now) {
       if (dk !== lastDay) { out += `<li class="day-head">${DAY_LONG[dk] || dk}</li>`; lastDay = dk; lastTime = ""; }
       const t = fmtShort(ev._s);
       if (t !== lastTime) { out += `<li class="time-head">${t}</li>`; lastTime = t; }
-      out += rowHTML(ev, {list: "fytime", labels});
+      out += rowHTML(ev, {list: "foltime", labels});
     });
     return out;
   };
@@ -1733,29 +1740,32 @@ function foryouByTime(now) {
   if (!upcoming.length) html += `<div class="empty">Nothing left today or later from what you follow.</div>`;
   else html += `<ul class="list">${group(upcoming)}</ul>`;
   if (past.length) {
-    const open = !!state.foryou.showPast.__time;
-    html += `<div class="divider fold"><button data-act="fy-past" data-follow="__time" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
+    const open = !!state.following.showPast.__time;
+    html += `<div class="divider fold"><button data-act="fol-past" data-follow="__time" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
     if (open) html += `<ul class="list">${group(past)}</ul>`;
   }
   return html;
 }
 
-function renderForYou() {
-  const now = getNow();
-  let html = followChipsHTML();
-  if (!follows.length) {
-    html += `<div class="empty"><b>Follow a few things and they'll show up here.</b><br>
-      Tracks, fandoms, topics, or the guests you came for.
-      <div style="margin-top:12px"><button class="btn" data-act="foryou-add">Go to Explore</button></div></div>`;
-  } else {
-    const l = state.foryou.layout;
-    html += `<div class="view-toggle" role="group" aria-label="Layout">
-      <button data-act="fy-interest" aria-pressed="${l === "interest"}">By interest</button>
-      <button data-act="fy-time" aria-pressed="${l === "time"}">By time</button>
-    </div>`;
-    html += l === "time" ? foryouByTime(now) : foryouByInterest(now);
+/* Only there when there is something to show; with no follows the grid
+   carries a one-line hint instead. Closed, the feed is not built at all. */
+function followingHTML() {
+  if (!follows.length) return "";
+  const open = state.following.open !== false;
+  let body = "";
+  if (open) {
+    const l = state.following.layout;
+    body = followChipsHTML() + `<div class="view-toggle" role="group" aria-label="Layout">
+      <button data-act="fol-interest" aria-pressed="${l === "interest"}">By interest</button>
+      <button data-act="fol-time" aria-pressed="${l === "time"}">By time</button>
+    </div>` + (l === "time" ? followingByTime(getNow()) : followingByInterest(getNow()));
   }
-  document.getElementById("view-foryou").innerHTML = html;
+  return `<section class="following" id="following">
+    <button class="fol-head" data-act="fol-toggle" aria-expanded="${open}" aria-controls="folBody">
+      Following <span class="count">(${follows.length})</span><span class="caret" aria-hidden="true">${open ? "▾" : "▸"}</span>
+    </button>
+    <div id="folBody"${open ? "" : " hidden"}>${body}</div>
+  </section>`;
 }
 
 /* ---- Mine --------------------------------------------------------- */
@@ -1933,7 +1943,6 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "more-browse") { state.browse.page++; render(); }
     if (a === "ics") exportICS();
     if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
-    if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id, li); }
     if (a === "suggest") {
       state.browse.q = `"${act.dataset.name}"`;
       state.browse.page = 1;
@@ -1950,22 +1959,28 @@ document.querySelector("main").addEventListener("click", e => {
     }
     if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
     if (a === "explore-back") { closeExplorePage(); return; }
-    if (a === "foryou-add") { state.tab = "explore"; state.explore.page = null; setExploreHash(null); render(); window.scrollTo(0, 0); return; }
+    if (a === "fol-add") { scrollToGrid(); return; }
+    if (a === "fol-toggle") {
+      state.following.open = state.following.open === false;
+      saveJSON("dc26.followingOpen", state.following.open);
+      render();
+      return;
+    }
     if (a === "unfollow") {
       const raw = act.dataset.follow || "", i = raw.indexOf(":");
       if (i > 0) { toggleFollow(raw.slice(0, i), raw.slice(i + 1)); render(); }
       return;
     }
-    if (a === "fy-interest" || a === "fy-time") {
-      state.foryou.layout = a === "fy-time" ? "time" : "interest";
-      saveJSON("dc26.foryouLayout", state.foryou.layout);
+    if (a === "fol-interest" || a === "fol-time") {
+      state.following.layout = a === "fol-time" ? "time" : "interest";
+      saveJSON("dc26.followingLayout", state.following.layout);
       render();
       return;
     }
-    if (a === "fy-more") { state.foryou.expanded[act.dataset.follow] = true; render(); return; }
-    if (a === "fy-past") {
+    if (a === "fol-more") { state.following.expanded[act.dataset.follow] = true; render(); return; }
+    if (a === "fol-past") {
       const k = act.dataset.follow;
-      state.foryou.showPast[k] = !state.foryou.showPast[k];
+      state.following.showPast[k] = !state.following.showPast[k];
       render();
       return;
     }
@@ -2034,7 +2049,7 @@ function queueBrowseRender() {
 function cancelQueuedBrowseRender() { clearTimeout(browseRenderTimer); browseRenderTimer = null; }
 
 document.querySelector("main").addEventListener("input", e => {
-  if (e.target.id === "exploreQ") { state.explore.q = e.target.value; renderExplore(); return; }
+  if (e.target.id === "exploreQ") { state.explore.q = e.target.value; renderExploreSections(); return; }
   if (e.target.id === "q") {
     const was = state.browse.q.trim(), now = e.target.value;
     state.browse.q = now;
