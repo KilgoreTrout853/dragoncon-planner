@@ -99,6 +99,9 @@ main { max-width: 760px; margin: 0 auto; }
 }
 .chip[aria-pressed="true"] { background: var(--text); color: var(--ink); border-color: var(--text); font-weight: 600; }
 .chip.hotel[aria-pressed="true"] { background: var(--h); border-color: var(--h); color: var(--ink); }
+.parsed-chips { padding-top: 2px; }
+.chip.parsed { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
+.chip.parsed span { opacity: .65; margin-left: 2px; }
 .row-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .seg button { height: 40px; padding: 0 12px; background: var(--surface); color: var(--muted); border: 0; font-weight: 500; }
@@ -841,6 +844,14 @@ function renderNow() {
   document.getElementById("view-now").innerHTML = mineHTML + aroundHTML;
 }
 
+/* Show what the query was read as, and let the reader take it back off. */
+function parsedChipsHTML() {
+  const chips = (state.browse.parsed && state.browse.parsed.chips) || [];
+  if (!chips.length) return "";
+  return `<div class="chips parsed-chips" aria-label="Filters read from your search">${chips.map(c =>
+    `<button class="chip parsed" data-act="unparse" data-src="${esc(c.src)}" aria-label="Remove ${esc(c.label)} filter">${esc(c.label)} <span aria-hidden="true">&times;</span></button>`).join("")}</div>`;
+}
+
 function chipHTML(label, on, kind, value, style) {
   const v = value ?? label;
   const cls = kind.endsWith("hotel") && v !== "All" ? `chip hotel` : `chip`;
@@ -850,19 +861,145 @@ function chipHTML(label, on, kind, value, style) {
 
 /* ---- Browse ------------------------------------------------------- */
 function passesFilters(e) {
-  const b = state.browse, tg = e.tags || {};
-  return (b.day === "All" || e.day === b.day) &&
-    (b.hotel === "All" || e.hotel === b.hotel) &&
-    (b.type === "All" || e.type === b.type) &&
-    (b.track === "All" || (e.tracks || []).includes(b.track)) &&
-    (b.fandom === "All" || (tg.fandoms || []).includes(b.fandom)) &&
-    (b.kind === "All" || tg.kind === b.kind) &&
-    (!b.hideAdult || !tg.adult) &&
-    (!b.hideNoise || !isNoise(e));
+  const f = activeFilters(), tg = e.tags || {};
+  return (f.day === "All" || e.day === f.day) &&
+    (f.hotel === "All" || e.hotel === f.hotel) &&
+    (f.type === "All" || e.type === f.type) &&
+    (f.track === "All" || (e.tracks || []).includes(f.track)) &&
+    (f.fandom === "All" || (tg.fandoms || []).includes(f.fandom)) &&
+    (f.kind === "All" || tg.kind === f.kind) &&
+    (!f.adultOnly || !!tg.adult) &&
+    (!f.hideAdult || !tg.adult) &&
+    (!f.time || inTimeBand(e, f.time)) &&
+    (!f.hideNoise || !isNoise(e));
 }
+/* ==================================================================
+   Query intent: "star trek saturday hilton" is three different asks.
+   Pull the filter words out, search on what's left, and show what we
+   took so the reader can put it back.
+   ================================================================== */
+const DAY_WORDS = {wed: 2, wednesday: 2, thu: 3, thur: 3, thurs: 3, thursday: 3, fri: 4, friday: 4,
+  sat: 5, saturday: 5, sun: 6, sunday: 6, mon: 7, monday: 7};
+const HOTEL_WORDS = {marriott: "Marriott", hyatt: "Hyatt", hilton: "Hilton", westin: "Westin",
+  courtland: "Courtland Grand", sheraton: "Courtland Grand", mart: "AmericasMart", americasmart: "AmericasMart"};
+const TIME_BANDS = {morning: [0, 12], afternoon: [12, 17], evening: [17, 21], "late night": [21, 29], late: [21, 29]};
+
+/* Longest phrases first so "photo op" wins over "photo" and "late night"
+   over "late". Each entry knows how to label itself and what text to strip. */
+function queryRules() {
+  const r = [];
+  const add = (word, dim, value, label) => r.push({word, dim, value, label});
+  Object.entries(DAY_WORDS).forEach(([w, dayNum]) => add(w, "day", `2026-09-0${dayNum}`, DAY_LONG[`2026-09-0${dayNum}`]));
+  Object.entries(HOTEL_WORDS).forEach(([w, h]) => add(w, "hotel", h, hotelShort(h)));
+  add("q&a", "kind", "qa", "Celebrity Q&A"); add("qa", "kind", "qa", "Celebrity Q&A");
+  add("signing", "kind", "signing", "Signing");
+  add("photo op", "kind", "photo", "Photo op"); add("photo", "kind", "photo", "Photo op");
+  add("screening", "kind", "screening", "Screening");
+  add("workshop", "kind", "workshop", "Workshop");
+  add("party", "kind", "party", "Party");
+  add("contest", "kind", "contest", "Contest");
+  add("concert", "kind", "performance", "Performance"); add("performance", "kind", "performance", "Performance");
+  add("gaming", "kind", "gaming", "Gaming"); add("game", "kind", "gaming", "Gaming");
+  add("18+", "adult", true, "18+"); add("adult", "adult", true, "18+");
+  add("kids", "adult", false, "No 18+"); add("family", "adult", false, "No 18+");
+  Object.keys(TIME_BANDS).forEach(w => add(w, "time", w, w[0].toUpperCase() + w.slice(1)));
+  add("today", "rel", "today", "Today");
+  add("tonight", "rel", "tonight", "Tonight");
+  add("tomorrow", "rel", "tomorrow", "Tomorrow");
+  return r.sort((a, b) => b.word.length - a.word.length);
+}
+let QUERY_RULES = null;
+
+/* Token matching, not regular expressions: the vocabulary contains "q&a"
+   and "18+", and building patterns out of those invites escaping bugs. */
+function tokenise(text) { return String(text || "").toLowerCase().split(/[\s,]+/).filter(Boolean); }
+function stripPhrase(tokens, phrase) {
+  const want = phrase.split(" ");
+  for (let i = 0; i + want.length <= tokens.length; i++) {
+    if (want.every((w, j) => tokens[i + j] === w)) return tokens.slice(0, i).concat(tokens.slice(i + want.length));
+  }
+  return null;
+}
+
+function parseQuery(raw) {
+  if (!QUERY_RULES) QUERY_RULES = queryRules();
+  let tokens = tokenise(raw);
+  const found = [], taken = new Set();
+  for (const rule of QUERY_RULES) {
+    if (taken.has(rule.dim) && rule.dim !== "rel") continue;
+    const after = stripPhrase(tokens, rule.word);
+    if (!after) continue;
+    tokens = after;
+    taken.add(rule.dim);
+    found.push({...rule, src: rule.word});
+  }
+  const residual = tokens.join(" ");
+
+  /* "gaming" alone is a filter; "gaming" inside a real query is a search
+     word, unless a day or hotel is pinning it down. */
+  const gi = found.findIndex(f => f.dim === "kind" && f.value === "gaming");
+  if (gi >= 0 && residual && !found.some(f => f.dim === "day" || f.dim === "hotel" || f.dim === "rel")) {
+    found.splice(gi, 1);
+    /* Re-strip from the original so the word goes back where it was written,
+       rather than being tacked on the end. */
+    let keep = tokenise(raw);
+    for (const f of found) { const a = stripPhrase(keep, f.word); if (a) keep = a; }
+    return finishParse(keep.join(" "), found);
+  }
+  return finishParse(residual, found);
+}
+
+function finishParse(residual, found) {
+  const filters = {};
+  const chips = [];
+  for (const f of found) {
+    if (f.dim === "rel") {
+      const base = conDayKey(getNow());
+      let day = base;
+      if (f.value === "tomorrow") {
+        const d = new Date(`${base}T12:00`); d.setDate(d.getDate() + 1); day = dayOf(d);
+      }
+      filters.day = day;
+      if (f.value === "tonight") filters.time = "evening";
+      chips.push({dim: "day", label: f.label, src: f.src});
+    } else {
+      filters[f.dim] = f.value;
+      chips.push({dim: f.dim, label: f.label, src: f.src});
+    }
+  }
+  return {residual, filters, chips};
+}
+
+function inTimeBand(e, band) {
+  const [lo, hi] = TIME_BANDS[band] || [];
+  if (lo === undefined) return true;
+  let h = e._s.getHours();
+  if (h < 5) h += 24;                    // a 1am panel belongs to the night before
+  return h >= lo && h < hi;
+}
+
+/* Chip filters still apply; a parsed word overrides the chip on its own
+   dimension for as long as the word is in the box. */
+function activeFilters() {
+  const b = state.browse, f = (state.browse.parsed && state.browse.parsed.filters) || {};
+  return {
+    day: f.day !== undefined ? f.day : b.day,
+    hotel: f.hotel !== undefined ? f.hotel : b.hotel,
+    kind: f.kind !== undefined ? f.kind : b.kind,
+    type: b.type, track: b.track, fandom: b.fandom,
+    adultOnly: f.adult === true,
+    hideAdult: f.adult === false ? true : (f.adult === true ? false : b.hideAdult),
+    time: f.time,
+    hideNoise: b.hideNoise,
+  };
+}
+
 function browseResults() {
-  const q = state.browse.q.trim();
-  if (!q || !index) return events.filter(passesFilters);
+  state.browse.parsed = parseQuery(state.browse.q);
+  const q = state.browse.parsed.residual;
+  /* Every filter word was understood, so there is nothing left to rank by:
+     hand back the filtered set in the order it happens in. */
+  if (!q || !index) return events.filter(passesFilters).sort((a, b) => a._s - b._s);
   const nTerms = new Set(q.split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean)).size || 1;
   const out = [];
   for (const h of index.search(q)) {
@@ -892,6 +1029,7 @@ function renderBrowse() {
     <div class="chips">${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}${chipHTML("All days", b.day === "All", "day", "All")}</div>
     <div class="chips">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
     ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
+    ${parsedChipsHTML()}
     <div class="row-controls">
       <div class="seg" role="group" aria-label="Type">
         ${["All", "panel", "gaming"].map(t => `<button data-chip="type" data-value="${t}" aria-pressed="${b.type === t}">${{All: "All", panel: "Panels", gaming: "Gaming"}[t]}</button>`).join("")}
@@ -906,7 +1044,9 @@ function renderBrowse() {
 
   let lastDay = "", lastTime = "";
   shown.forEach(ev => {
-    if (searching) { html += rowHTML(ev, {list: "browse", showDay: true, terms: ev._hit.terms}); return; }
+    /* An all-filter query ("signing sunday") ranks nothing, so there are no
+       hit terms to highlight - that is not the same as not searching. */
+    if (searching) { html += rowHTML(ev, {list: "browse", showDay: true, terms: ev._hit ? ev._hit.terms : null}); return; }
     if (b.day === "All" && ev.day !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev.day] || ev.day}</li>`; lastDay = ev.day; lastTime = ""; }
     const t = fmtShort(ev._s);
     if (t !== lastTime) { html += `<li class="time-head">${t}</li>`; lastTime = t; }
@@ -1097,6 +1237,13 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "ics") exportICS();
     if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
     if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id, li); }
+    if (a === "unparse") {
+      const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
+      state.browse.q = (stripped || tokenise(state.browse.q)).join(" ");
+      state.browse.page = 1;
+      render();
+      return;
+    }
     if (a === "view-timeline" || a === "view-list") {
       state.mineView = a === "view-timeline" ? "timeline" : "list";
       saveJSON("dc26.mineView", state.mineView); render();

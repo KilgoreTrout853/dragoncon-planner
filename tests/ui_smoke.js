@@ -203,6 +203,56 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').click(); await sleep(10);
   assert(window.eval("state.browse.hotel") === "Westin", "hotel chip sets the filter");
   assert([...document.querySelectorAll("#view-browse .room")].every(r => !/Marriott|Hilton|Hyatt/.test(r.textContent)), "hotel filter applies");
+  // ---- search step 1: query intent parsing ----
+  // work from a known filter state, then hand the previous one back so the
+  // search-quality assertions further down still see what they expect
+  const browseSnapshot = window.eval("JSON.stringify(state.browse)");
+  const resetBrowse = () => window.eval(`(function(){
+    Object.assign(state.browse, {q:"", day:"All", prevDay:null, hotel:"All", type:"All", track:"All",
+      fandom:"All", kind:"All", hideAdult:false, hideNoise:false, page:1});
+    renderBrowse();
+  })()`);
+  resetBrowse(); await sleep(20);
+  const P = q => window.eval(`(function(){ var p = parseQuery(${JSON.stringify(q)}); return {residual:p.residual, filters:p.filters, chips:p.chips.map(function(c){return c.label;})}; })()`);
+  const a1 = P("star trek saturday hilton");
+  assert(a1.residual === "star trek", `"star trek saturday hilton" searches only "star trek" (got "${a1.residual}")`);
+  assert(a1.filters.day === "2026-09-05" && a1.filters.hotel === "Hilton", "day and hotel pulled out of the query");
+  assert(a1.chips.join(",") === "Saturday,Hilton", `chips name what was taken (${a1.chips.join(",")})`);
+  const a2 = P("signing sunday");
+  assert(a2.residual === "" && a2.filters.kind === "signing" && a2.filters.day === "2026-09-06", "signing sunday is all filters");
+  const a3 = P("tonight");
+  assert(a3.filters.day === window.eval("conDayKey(getNow())") && a3.filters.time === "evening", "tonight means today, evening");
+  const a4 = P("late night party");
+  assert(a4.residual === "" && a4.filters.time === "late night" && a4.filters.kind === "party", "late night party is time + kind");
+  // "gaming" is a filter alone or with a day/hotel, a search word otherwise
+  assert(P("gaming").filters.kind === "gaming", "bare 'gaming' filters by kind");
+  assert(P("marriott gaming").filters.kind === "gaming", "'marriott gaming' filters by kind");
+  const a5 = P("board game night");
+  assert(!a5.filters.kind, "'board game night' keeps 'game' as a search word");
+  assert(a5.residual === "board game night", `the reverted word stays in place (got "${a5.residual}")`);
+  // an all-filter query returns the filtered set in time order.
+  // The fixture has no Sunday signings, so use a pair it does have.
+  resetBrowse(); await sleep(10);
+  window.eval(`(function(){ state.browse.q = "concert saturday"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  const sres = window.eval("browseResults()");
+  assert(sres.length > 0, `"concert saturday" returns results (${sres.length})`);
+  assert(sres.every(e => e.day === "2026-09-05" && e.tags && e.tags.kind === "performance"), "every result is a Saturday performance");
+  assert(!document.querySelector("#view-browse mark"), "an all-filter query highlights nothing (no search terms)");
+  const times = sres.map(e => +new Date(e.start));
+  assert(times.every((t, i) => i === 0 || t >= times[i-1]), "an all-filter query comes back in time order");
+  // the chips render and can be taken back off
+  const pchips = [...document.querySelectorAll("#view-browse .chip.parsed")];
+  assert(pchips.length === 2, `two parsed chips render (${pchips.length})`);
+  pchips.find(c => /Saturday/.test(c.textContent)).click(); await sleep(30);
+  assert(!/saturday/i.test(window.eval("state.browse.q")), "removing a chip strips that word from the query");
+  assert(window.eval("state.browse.q") === "concert", `the rest of the query survives (got "${window.eval("state.browse.q")}")`);
+  // a parsed word beats the chip on the same dimension
+  window.eval(`(function(){ state.browse.day = "2026-09-04"; state.browse.q = "saturday"; renderBrowse(); })()`); await sleep(30);
+  assert(window.eval("activeFilters().day") === "2026-09-05", "a parsed day overrides the day chip");
+  window.eval(`(function(){ state.browse.q = ""; state.browse.day = "2026-09-05"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  assert(window.eval("activeFilters().day") === "2026-09-05", "the chip takes over again once the word is gone");
+  window.eval(`(function(){ Object.assign(state.browse, ${browseSnapshot}); renderBrowse(); })()`); await sleep(20);
+
   // noise toggle: Epic Photos hidden by default
   document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').click(); await sleep(10);
   assert(window.eval("state.browse.hotel") === "All", "tapping the same chip again clears the filter");
