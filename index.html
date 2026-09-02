@@ -99,6 +99,21 @@ main { max-width: 760px; margin: 0 auto; }
 }
 .chip[aria-pressed="true"] { background: var(--text); color: var(--ink); border-color: var(--text); font-weight: 600; }
 .chip.hotel[aria-pressed="true"] { background: var(--h); border-color: var(--h); color: var(--ink); }
+.suggest-row { align-items: center; padding-top: 2px; }
+.suggest-label { flex: none; font-size: 12px; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; padding-right: 2px; }
+.chip.suggest { font-weight: 600; }
+.chip.suggest .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: 12px; }
+/* Not gold - gold means "mine". A quiet outline that reads as a label. */
+.celeb {
+  display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--h-Hyatt); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; line-height: 17px;
+}
+.chip.celeb-chip[aria-pressed="true"] { background: var(--h-Hyatt); border-color: var(--h-Hyatt); color: var(--ink); }
+.chip.suggest.on { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
+.chip.suggest.on span { opacity: .65; }
+.parsed-chips { padding-top: 2px; }
+.chip.parsed { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
+.chip.parsed span { opacity: .65; margin-left: 2px; }
 .row-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .seg button { height: 40px; padding: 0 12px; background: var(--surface); color: var(--muted); border: 0; font-weight: 500; }
@@ -484,7 +499,7 @@ let meta = {};
 const state = {
   tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", hideAdult: false, hideNoise: settings.hideNoise, page: 1},
+  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
 
@@ -506,6 +521,10 @@ function walkMin(a, b) {
   const base = WALK[`${a}|${b}`] ?? WALK[`${b}|${a}`] ?? 12;
   return Math.round(base * settings.crowd);
 }
+/* "unknown" and untagged are not celebrities - absence of evidence isn't
+   evidence, so they drop out when the toggle is on. */
+const isCeleb = e => !!(e.tags && e.tags.guests === "celebrity");
+const CELEB_BADGE = `<span class="celeb" title="Celebrity guest">Celebrity</span>`;
 const hotelShort = h => HOTEL_SHORT[h] || h;
 const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
 
@@ -558,6 +577,7 @@ function buildIndex() {
     searchOptions: {processTerm, prefix: true, fuzzy: t => t.length > 4 ? 0.2 : false, combineWith: "OR",
       boost: {title: 5, fandoms: 4, speakers: 3, aliases: 2, tracks: 2, kind: 2, topics: 2, description: 1, location: 1}},
   });
+  buildSuggestIndex();
   index.addAll(events.map(e => {
     const tg = e.tags || {};
     const fandoms = (tg.fandoms || []).join(" "), topics = (tg.topics || []).join(" ");
@@ -567,6 +587,63 @@ function buildIndex() {
       fandoms, kind, topics, aliases: aliasesFor(e, text), location: e.location || ""};
   }));
 }
+/* A second, tiny index: one document per name, so we can suggest whole
+   names rather than fragments of event text. */
+let suggestIndex = null, suggestDocs = [];
+function buildSuggestIndex() {
+  /* Two counts per name. A celebrity's dozen entries are mostly photo
+     sessions, which are hidden by default - a chip promising 12 that yields
+     2 is worse than no number at all. */
+  const people = new Map(), topics = new Map();
+  const bump = (m, n, quiet) => {
+    if (n.length <= 2) return;
+    const c = m.get(n) || {all: 0, visible: 0};
+    c.all++; if (!quiet) c.visible++;
+    m.set(n, c);
+  };
+  events.forEach(e => {
+    const quiet = isNoise(e);
+    (e.speakers || []).forEach(p => bump(people, (p && p.name || "").trim(), quiet));
+    const tg = e.tags || {};
+    [...(tg.fandoms || []), ...(tg.topics || [])].forEach(t => bump(topics, String(t || "").trim(), quiet));
+  });
+  const doc = (group, prefix) => ([name, c]) => ({id: `${prefix}:${name}`, name, all: c.all, visible: c.visible, group});
+  suggestDocs = [
+    ...[...people].map(doc("people", "p")),
+    ...[...topics].map(doc("topics", "t")),
+  ];
+  suggestIndex = new MiniSearch({
+    fields: ["name"], storeFields: ["name", "all", "visible", "group"], processTerm,
+    searchOptions: {processTerm, prefix: true, fuzzy: false, combineWith: "AND"},
+  });
+  suggestIndex.addAll(suggestDocs);
+}
+
+/* autoSuggest completes the words typed; each completion is then resolved
+   back to whole names, because a chip saying "fillion" is no use. */
+function suggestionsFor(raw) {
+  const q = String(raw || "").trim();
+  if (!suggestIndex || q.length < 2) return {people: [], topics: []};
+  const seen = new Set(), hits = [];
+  const take = res => res.forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); hits.push(r); } });
+  take(suggestIndex.search(q, {prefix: true, fuzzy: false, combineWith: "AND"}));
+  for (const s of suggestIndex.autoSuggest(q, {fuzzy: false}).slice(0, 6)) {
+    if (s.suggestion.toLowerCase() === q.toLowerCase()) continue;
+    take(suggestIndex.search(s.suggestion, {prefix: true, fuzzy: false, combineWith: "AND"}));
+  }
+  const useVisible = state.browse.hideNoise;
+  const n = h => useVisible ? h.visible : h.all;
+  const pick = group => hits.filter(h => h.group === group && n(h) > 0)
+    .sort((a, b) => n(b) - n(a) || a.name.localeCompare(b.name))
+    .slice(0, 5)
+    .map(h => ({name: h.name, count: n(h)}));
+  const out = {people: pick("people"), topics: pick("topics")};
+  /* Once the box already holds exactly one of these, the row is just noise. */
+  const exact = n => n.toLowerCase() === q.replace(/^"|"$/g, "").toLowerCase();
+  if (out.people.some(x => exact(x.name)) || out.topics.some(x => exact(x.name))) return {people: [], topics: []};
+  return out;
+}
+
 function fandomCounts() {
   const m = new Map();
   events.forEach(e => (e.tags && e.tags.fandoms || []).forEach(f => m.set(f, (m.get(f) || 0) + 1)));
@@ -642,7 +719,7 @@ function rowHTML(ev, opts = {}) {
           <div class="title">${hl(ev.title)}</div>
           <div class="meta">
             <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</span>
-            ${status}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
+            ${status}${isCeleb(ev) ? CELEB_BADGE : ""}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
           </div>
           ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
         </div>
@@ -841,6 +918,31 @@ function renderNow() {
   document.getElementById("view-now").innerHTML = mineHTML + aroundHTML;
 }
 
+/* Two rows of chips under the box: who, and what. */
+function suggestHTML() {
+  const q = state.browse.q.trim();
+  const active = /^".+"$/.test(q) ? q.slice(1, -1) : null;
+  if (active) {
+    return `<div class="chips suggest-row"><button class="chip suggest on" data-act="unsuggest"
+      aria-pressed="true" aria-label="Clear ${esc(active)}">${esc(active)} <span aria-hidden="true">&times;</span></button></div>`;
+  }
+  const s = suggestionsFor(q);
+  if (!s.people.length && !s.topics.length) return "";
+  const row = (label, items) => items.length
+    ? `<div class="chips suggest-row"><span class="suggest-label">${label}</span>${items.map(i =>
+        `<button class="chip suggest" data-act="suggest" data-name="${esc(i.name)}">${esc(i.name)} <span class="n">${i.count}</span></button>`).join("")}</div>`
+    : "";
+  return row("People", s.people) + row("Fandoms &amp; topics", s.topics);
+}
+
+/* Show what the query was read as, and let the reader take it back off. */
+function parsedChipsHTML() {
+  const chips = (state.browse.parsed && state.browse.parsed.chips) || [];
+  if (!chips.length) return "";
+  return `<div class="chips parsed-chips" aria-label="Filters read from your search">${chips.map(c =>
+    `<button class="chip parsed" data-act="unparse" data-src="${esc(c.src)}" aria-label="Remove ${esc(c.label)} filter">${esc(c.label)} <span aria-hidden="true">&times;</span></button>`).join("")}</div>`;
+}
+
 function chipHTML(label, on, kind, value, style) {
   const v = value ?? label;
   const cls = kind.endsWith("hotel") && v !== "All" ? `chip hotel` : `chip`;
@@ -850,22 +952,155 @@ function chipHTML(label, on, kind, value, style) {
 
 /* ---- Browse ------------------------------------------------------- */
 function passesFilters(e) {
-  const b = state.browse, tg = e.tags || {};
-  return (b.day === "All" || e.day === b.day) &&
-    (b.hotel === "All" || e.hotel === b.hotel) &&
-    (b.type === "All" || e.type === b.type) &&
-    (b.track === "All" || (e.tracks || []).includes(b.track)) &&
-    (b.fandom === "All" || (tg.fandoms || []).includes(b.fandom)) &&
-    (b.kind === "All" || tg.kind === b.kind) &&
-    (!b.hideAdult || !tg.adult) &&
-    (!b.hideNoise || !isNoise(e));
+  const f = activeFilters(), tg = e.tags || {};
+  return (f.day === "All" || e.day === f.day) &&
+    (f.hotel === "All" || e.hotel === f.hotel) &&
+    (f.type === "All" || e.type === f.type) &&
+    (f.track === "All" || (e.tracks || []).includes(f.track)) &&
+    (f.fandom === "All" || (tg.fandoms || []).includes(f.fandom)) &&
+    (f.kind === "All" || tg.kind === f.kind) &&
+    (!f.celebrity || tg.guests === "celebrity") &&
+    (!f.adultOnly || !!tg.adult) &&
+    (!f.hideAdult || !tg.adult) &&
+    (!f.time || inTimeBand(e, f.time)) &&
+    (!f.hideNoise || !isNoise(e));
 }
+/* ==================================================================
+   Query intent: "star trek saturday hilton" is three different asks.
+   Pull the filter words out, search on what's left, and show what we
+   took so the reader can put it back.
+   ================================================================== */
+const DAY_WORDS = {wed: 2, wednesday: 2, thu: 3, thur: 3, thurs: 3, thursday: 3, fri: 4, friday: 4,
+  sat: 5, saturday: 5, sun: 6, sunday: 6, mon: 7, monday: 7};
+const HOTEL_WORDS = {marriott: "Marriott", hyatt: "Hyatt", hilton: "Hilton", westin: "Westin",
+  courtland: "Courtland Grand", sheraton: "Courtland Grand", mart: "AmericasMart", americasmart: "AmericasMart"};
+const TIME_BANDS = {morning: [0, 12], afternoon: [12, 17], evening: [17, 21], "late night": [21, 29], late: [21, 29]};
+
+/* Longest phrases first so "photo op" wins over "photo" and "late night"
+   over "late". Each entry knows how to label itself and what text to strip. */
+function queryRules() {
+  const r = [];
+  const add = (word, dim, value, label) => r.push({word, dim, value, label});
+  Object.entries(DAY_WORDS).forEach(([w, dayNum]) => add(w, "day", `2026-09-0${dayNum}`, DAY_LONG[`2026-09-0${dayNum}`]));
+  Object.entries(HOTEL_WORDS).forEach(([w, h]) => add(w, "hotel", h, hotelShort(h)));
+  add("q&a", "kind", "qa", "Celebrity Q&A"); add("qa", "kind", "qa", "Celebrity Q&A");
+  add("signing", "kind", "signing", "Signing");
+  add("photo op", "kind", "photo", "Photo op"); add("photo", "kind", "photo", "Photo op");
+  add("screening", "kind", "screening", "Screening");
+  add("workshop", "kind", "workshop", "Workshop");
+  add("party", "kind", "party", "Party");
+  add("contest", "kind", "contest", "Contest");
+  add("concert", "kind", "performance", "Performance"); add("performance", "kind", "performance", "Performance");
+  add("gaming", "kind", "gaming", "Gaming"); add("game", "kind", "gaming", "Gaming");
+  add("18+", "adult", true, "18+"); add("adult", "adult", true, "18+");
+  add("kids", "adult", false, "No 18+"); add("family", "adult", false, "No 18+");
+  Object.keys(TIME_BANDS).forEach(w => add(w, "time", w, w[0].toUpperCase() + w.slice(1)));
+  add("today", "rel", "today", "Today");
+  add("tonight", "rel", "tonight", "Tonight");
+  add("tomorrow", "rel", "tomorrow", "Tomorrow");
+  return r.sort((a, b) => b.word.length - a.word.length);
+}
+let QUERY_RULES = null;
+
+/* Token matching, not regular expressions: the vocabulary contains "q&a"
+   and "18+", and building patterns out of those invites escaping bugs. */
+function tokenise(text) { return String(text || "").toLowerCase().split(/[\s,]+/).filter(Boolean); }
+function stripPhrase(tokens, phrase) {
+  const want = phrase.split(" ");
+  for (let i = 0; i + want.length <= tokens.length; i++) {
+    if (want.every((w, j) => tokens[i + j] === w)) return tokens.slice(0, i).concat(tokens.slice(i + want.length));
+  }
+  return null;
+}
+
+function parseQuery(raw) {
+  if (!QUERY_RULES) QUERY_RULES = queryRules();
+  let tokens = tokenise(raw);
+  const found = [], taken = new Set();
+  for (const rule of QUERY_RULES) {
+    if (taken.has(rule.dim) && rule.dim !== "rel") continue;
+    const after = stripPhrase(tokens, rule.word);
+    if (!after) continue;
+    tokens = after;
+    taken.add(rule.dim);
+    found.push({...rule, src: rule.word});
+  }
+  const residual = tokens.join(" ");
+
+  /* "gaming" alone is a filter; "gaming" inside a real query is a search
+     word, unless a day or hotel is pinning it down. */
+  const gi = found.findIndex(f => f.dim === "kind" && f.value === "gaming");
+  if (gi >= 0 && residual && !found.some(f => f.dim === "day" || f.dim === "hotel" || f.dim === "rel")) {
+    found.splice(gi, 1);
+    /* Re-strip from the original so the word goes back where it was written,
+       rather than being tacked on the end. */
+    let keep = tokenise(raw);
+    for (const f of found) { const a = stripPhrase(keep, f.word); if (a) keep = a; }
+    return finishParse(keep.join(" "), found);
+  }
+  return finishParse(residual, found);
+}
+
+function finishParse(residual, found) {
+  const filters = {};
+  const chips = [];
+  for (const f of found) {
+    if (f.dim === "rel") {
+      const base = conDayKey(getNow());
+      let day = base;
+      if (f.value === "tomorrow") {
+        const d = new Date(`${base}T12:00`); d.setDate(d.getDate() + 1); day = dayOf(d);
+      }
+      filters.day = day;
+      if (f.value === "tonight") filters.time = "evening";
+      chips.push({dim: "day", label: f.label, src: f.src});
+    } else {
+      filters[f.dim] = f.value;
+      chips.push({dim: f.dim, label: f.label, src: f.src});
+    }
+  }
+  return {residual, filters, chips};
+}
+
+function inTimeBand(e, band) {
+  const [lo, hi] = TIME_BANDS[band] || [];
+  if (lo === undefined) return true;
+  let h = e._s.getHours();
+  if (h < 5) h += 24;                    // a 1am panel belongs to the night before
+  return h >= lo && h < hi;
+}
+
+/* Chip filters still apply; a parsed word overrides the chip on its own
+   dimension for as long as the word is in the box. */
+function activeFilters() {
+  const b = state.browse, f = (state.browse.parsed && state.browse.parsed.filters) || {};
+  return {
+    day: f.day !== undefined ? f.day : b.day,
+    hotel: f.hotel !== undefined ? f.hotel : b.hotel,
+    kind: f.kind !== undefined ? f.kind : b.kind,
+    celebrity: b.celebrity,
+    type: b.type, track: b.track, fandom: b.fandom,
+    adultOnly: f.adult === true,
+    hideAdult: f.adult === false ? true : (f.adult === true ? false : b.hideAdult),
+    time: f.time,
+    hideNoise: b.hideNoise,
+  };
+}
+
 function browseResults() {
-  const q = state.browse.q.trim();
-  if (!q || !index) return events.filter(passesFilters);
-  const nTerms = new Set(q.split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean)).size || 1;
+  state.browse.parsed = parseQuery(state.browse.q);
+  const q = state.browse.parsed.residual;
+  /* Every filter word was understood, so there is nothing left to rank by:
+     hand back the filtered set in the order it happens in. */
+  if (!q || !index) return events.filter(passesFilters).sort((a, b) => a._s - b._s);
+  /* A tapped suggestion arrives quoted: match that name exactly rather than
+     letting prefix and fuzzy drag in everyone with a similar surname. */
+  const phrase = /^".+"$/.test(q) ? q.slice(1, -1) : null;
+  const terms = phrase || q;
+  const nTerms = new Set(terms.split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean)).size || 1;
+  const opts = phrase ? {prefix: false, fuzzy: false, combineWith: "AND"} : undefined;
   const out = [];
-  for (const h of index.search(q)) {
+  for (const h of index.search(terms, opts)) {
     const e = byId.get(h.id);
     if (!e || !passesFilters(e)) continue;
     const coverage = new Set(h.queryTerms).size / nTerms;
@@ -886,12 +1121,15 @@ function renderBrowse() {
   const hasTags = events.some(e => e.tags);
   const fandoms = hasTags ? fandomCounts() : [];
   const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
+  const hasCelebs = hasTags && events.some(isCeleb);
 
   let html = `<div class="controls">
     <input class="search" type="search" id="q" placeholder="Search anything: titles, guests, fandoms, words in descriptions" value="${esc(b.q)}" autocomplete="off">
     <div class="chips">${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}${chipHTML("All days", b.day === "All", "day", "All")}</div>
     <div class="chips">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
-    ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
+    ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${hasCelebs ? `<button class="chip celeb-chip" data-chip="celebrity" data-value="1" aria-pressed="${b.celebrity}">Celebrity</button>` : ""}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
+    ${suggestHTML()}
+    ${parsedChipsHTML()}
     <div class="row-controls">
       <div class="seg" role="group" aria-label="Type">
         ${["All", "panel", "gaming"].map(t => `<button data-chip="type" data-value="${t}" aria-pressed="${b.type === t}">${{All: "All", panel: "Panels", gaming: "Gaming"}[t]}</button>`).join("")}
@@ -906,7 +1144,9 @@ function renderBrowse() {
 
   let lastDay = "", lastTime = "";
   shown.forEach(ev => {
-    if (searching) { html += rowHTML(ev, {list: "browse", showDay: true, terms: ev._hit.terms}); return; }
+    /* An all-filter query ("signing sunday") ranks nothing, so there are no
+       hit terms to highlight - that is not the same as not searching. */
+    if (searching) { html += rowHTML(ev, {list: "browse", showDay: true, terms: ev._hit ? ev._hit.terms : null}); return; }
     if (b.day === "All" && ev.day !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev.day] || ev.day}</li>`; lastDay = ev.day; lastTime = ""; }
     const t = fmtShort(ev._s);
     if (t !== lastTime) { html += `<li class="time-head">${t}</li>`; lastTime = t; }
@@ -1087,6 +1327,7 @@ document.querySelector("main").addEventListener("click", e => {
     else if (kind === "hotel") state.browse.hotel = state.browse.hotel === value ? "All" : value;
     else if (kind === "type") state.browse.type = value;
     else if (kind === "kind") state.browse.kind = value;
+    else if (kind === "celebrity") state.browse.celebrity = !state.browse.celebrity;
     state.browse.page = 1; render(); return;
   }
   const act = e.target.closest("[data-act]");
@@ -1097,6 +1338,27 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "ics") exportICS();
     if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
     if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id, li); }
+    if (a === "suggest") {
+      state.browse.q = `"${act.dataset.name}"`;
+      state.browse.page = 1;
+      if (state.browse.day !== "All") { state.browse.prevDay = state.browse.day; state.browse.day = "All"; }
+      render();
+      return;
+    }
+    if (a === "unsuggest") {
+      state.browse.q = "";
+      if (state.browse.prevDay) { state.browse.day = state.browse.prevDay; state.browse.prevDay = null; }
+      state.browse.page = 1;
+      render();
+      return;
+    }
+    if (a === "unparse") {
+      const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
+      state.browse.q = (stripped || tokenise(state.browse.q)).join(" ");
+      state.browse.page = 1;
+      render();
+      return;
+    }
     if (a === "view-timeline" || a === "view-list") {
       state.mineView = a === "view-timeline" ? "timeline" : "list";
       saveJSON("dc26.mineView", state.mineView); render();
@@ -1171,6 +1433,7 @@ function eventSheetHTML(ev) {
       <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
       <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}</div>
       <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${esc(ev.room || ev.location || "Location TBA")}</div>
+      ${isCeleb(ev) ? `<div>${CELEB_BADGE}</div>` : ""}
     </div>
     <div class="ev-body">
       ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}

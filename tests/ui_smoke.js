@@ -203,6 +203,144 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').click(); await sleep(10);
   assert(window.eval("state.browse.hotel") === "Westin", "hotel chip sets the filter");
   assert([...document.querySelectorAll("#view-browse .room")].every(r => !/Marriott|Hilton|Hyatt/.test(r.textContent)), "hotel filter applies");
+  // ---- search step 1: query intent parsing ----
+  // work from a known filter state, then hand the previous one back so the
+  // search-quality assertions further down still see what they expect
+  const browseSnapshot = window.eval("JSON.stringify(state.browse)");
+  const resetBrowse = () => window.eval(`(function(){
+    Object.assign(state.browse, {q:"", day:"All", prevDay:null, hotel:"All", type:"All", track:"All",
+      fandom:"All", kind:"All", hideAdult:false, hideNoise:false, page:1});
+    renderBrowse();
+  })()`);
+  resetBrowse(); await sleep(20);
+  const P = q => window.eval(`(function(){ var p = parseQuery(${JSON.stringify(q)}); return {residual:p.residual, filters:p.filters, chips:p.chips.map(function(c){return c.label;})}; })()`);
+  const a1 = P("star trek saturday hilton");
+  assert(a1.residual === "star trek", `"star trek saturday hilton" searches only "star trek" (got "${a1.residual}")`);
+  assert(a1.filters.day === "2026-09-05" && a1.filters.hotel === "Hilton", "day and hotel pulled out of the query");
+  assert(a1.chips.join(",") === "Saturday,Hilton", `chips name what was taken (${a1.chips.join(",")})`);
+  const a2 = P("signing sunday");
+  assert(a2.residual === "" && a2.filters.kind === "signing" && a2.filters.day === "2026-09-06", "signing sunday is all filters");
+  const a3 = P("tonight");
+  assert(a3.filters.day === window.eval("conDayKey(getNow())") && a3.filters.time === "evening", "tonight means today, evening");
+  const a4 = P("late night party");
+  assert(a4.residual === "" && a4.filters.time === "late night" && a4.filters.kind === "party", "late night party is time + kind");
+  // "gaming" is a filter alone or with a day/hotel, a search word otherwise
+  assert(P("gaming").filters.kind === "gaming", "bare 'gaming' filters by kind");
+  assert(P("marriott gaming").filters.kind === "gaming", "'marriott gaming' filters by kind");
+  const a5 = P("board game night");
+  assert(!a5.filters.kind, "'board game night' keeps 'game' as a search word");
+  assert(a5.residual === "board game night", `the reverted word stays in place (got "${a5.residual}")`);
+  // an all-filter query returns the filtered set in time order.
+  // The fixture has no Sunday signings, so use a pair it does have.
+  resetBrowse(); await sleep(10);
+  window.eval(`(function(){ state.browse.q = "concert saturday"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  const sres = window.eval("browseResults()");
+  assert(sres.length > 0, `"concert saturday" returns results (${sres.length})`);
+  assert(sres.every(e => e.day === "2026-09-05" && e.tags && e.tags.kind === "performance"), "every result is a Saturday performance");
+  assert(!document.querySelector("#view-browse mark"), "an all-filter query highlights nothing (no search terms)");
+  const times = sres.map(e => +new Date(e.start));
+  assert(times.every((t, i) => i === 0 || t >= times[i-1]), "an all-filter query comes back in time order");
+  // the chips render and can be taken back off
+  const pchips = [...document.querySelectorAll("#view-browse .chip.parsed")];
+  assert(pchips.length === 2, `two parsed chips render (${pchips.length})`);
+  pchips.find(c => /Saturday/.test(c.textContent)).click(); await sleep(30);
+  assert(!/saturday/i.test(window.eval("state.browse.q")), "removing a chip strips that word from the query");
+  assert(window.eval("state.browse.q") === "concert", `the rest of the query survives (got "${window.eval("state.browse.q")}")`);
+  // a parsed word beats the chip on the same dimension
+  window.eval(`(function(){ state.browse.day = "2026-09-04"; state.browse.q = "saturday"; renderBrowse(); })()`); await sleep(30);
+  assert(window.eval("activeFilters().day") === "2026-09-05", "a parsed day overrides the day chip");
+  window.eval(`(function(){ state.browse.q = ""; state.browse.day = "2026-09-05"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  assert(window.eval("activeFilters().day") === "2026-09-05", "the chip takes over again once the word is gone");
+  // ---- search step 2: suggestions as you type ----
+  resetBrowse(); await sleep(10);
+  const SG = q => window.eval(`(function(){ state.browse.q = ${JSON.stringify(q)}; var s = suggestionsFor(${JSON.stringify(q)});
+    return {people: s.people.map(function(p){return p.name;}), topics: s.topics.map(function(t){return t.name;}),
+            pc: s.people.map(function(p){return p.count;}), tc: s.topics.map(function(t){return t.count;})}; })()`);
+  assert(window.eval("suggestDocs.length") >= 20, `a name index was built (${window.eval("suggestDocs.length")} names)`);
+  assert(window.eval("suggestDocs.filter(function(d){return d.group==='people';}).length") > 0, "people are indexed");
+  assert(window.eval("suggestDocs.filter(function(d){return d.group==='topics';}).length") > 0, "fandoms and topics are indexed");
+  const one = SG("a");
+  assert(!one.people.length && !one.topics.length, "one character suggests nothing");
+  const two = SG("ke");
+  assert(two.people.length || two.topics.length, `two characters start suggesting (${two.people.join(",")})`);
+  const sug = SG("ka");
+  assert(sug.people.length > 0, `"ka" suggests people (${sug.people.join(", ")})`);
+  assert(sug.people.length <= 5 && sug.topics.length <= 5, "at most five chips per row");
+  assert(sug.pc.every((c, i) => i === 0 || c <= sug.pc[i-1]), `people ranked by how many events match (${sug.pc.join(">")})`);
+  assert(sug.people.every(n => n.includes(" ") || /^[A-Z]/.test(n)), `suggestions are whole names, not fragments (${sug.people.join("|")})`);
+  const rick = SG("rick");
+  assert(rick.topics.includes("Rick and Morty"), `topics are suggested too (${rick.topics.join(", ")})`);
+  // the rows render, labelled
+  window.eval(`(function(){ state.browse.q = "ka"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  const labels = [...document.querySelectorAll("#view-browse .suggest-label")].map(l => l.textContent.trim());
+  assert(labels.some(l => /People/i.test(l)) || labels.some(l => /Fandoms/i.test(l)), `suggestion rows are labelled (${labels.join("|")})`);
+  // tapping a chip searches that name exactly
+  const target = window.eval(`(function(){ var s = suggestionsFor("ka"); return s.people[0].name; })()`);
+  document.querySelector(`#view-browse [data-act="suggest"][data-name="${target}"]`).click(); await sleep(40);
+  assert(window.eval("state.browse.q") === `"${target}"`, `tapping quotes the name (${window.eval("state.browse.q")})`);
+  const exact = window.eval("browseResults()");
+  assert(exact.length > 0, `the exact-phrase search returns results (${exact.length})`);
+  assert(exact.every(e => JSON.stringify([e.title, (e.tags||{}).fandoms, (e.tags||{}).topics, (e.speakers||[]).map(p=>p.name)]).toLowerCase().includes(target.toLowerCase())),
+    `every result actually mentions ${target}`);
+  // the suggestion rows give way to one active chip
+  assert(document.querySelector("#view-browse .chip.suggest.on"), "the chosen name shows as an active chip");
+  assert(!document.querySelector('#view-browse [data-act="suggest"]'), "the suggestion rows are hidden once a name is chosen");
+  document.querySelector('#view-browse [data-act="unsuggest"]').click(); await sleep(30);
+  assert(window.eval("state.browse.q") === "", "clearing the active chip empties the query");
+  // counts follow the noise filter, so a chip never promises more than it shows
+  const withNoiseHidden = window.eval(`(function(){ state.browse.hideNoise = true; var s = suggestionsFor("nath"); return s.people[0]; })()`);
+  const withNoiseShown  = window.eval(`(function(){ state.browse.hideNoise = false; var s = suggestionsFor("nath"); return s.people[0]; })()`);
+  if (withNoiseHidden && withNoiseShown && withNoiseHidden.name === withNoiseShown.name) {
+    assert(withNoiseHidden.count <= withNoiseShown.count,
+      `the chip count drops when photo sessions are hidden (${withNoiseHidden.count} <= ${withNoiseShown.count})`);
+  }
+
+  // ---- search step 3: celebrity chip and marker ----
+  resetBrowse(); await sleep(20);
+  const celebTotal = window.eval("events.filter(isCeleb).length");
+  assert(celebTotal > 0, `the fixture has celebrity events (${celebTotal})`);
+  const chip = document.querySelector('#view-browse [data-chip="celebrity"]');
+  assert(chip, "a Celebrity chip sits in the kind row");
+  assert(chip.closest(".chips") === document.querySelector('#view-browse [data-chip="kind"]').closest(".chips"),
+    "it is in the same row as the kind chips");
+  assert(chip.getAttribute("aria-pressed") === "false", "it starts off");
+  chip.click(); await sleep(30);
+  assert(window.eval("state.browse.celebrity") === true, "tapping turns it on");
+  assert(document.querySelector('#view-browse [data-chip="celebrity"]').getAttribute("aria-pressed") === "true", "and it shows as pressed");
+  const cres = window.eval("browseResults()");
+  assert(cres.length > 0, `celebrity events are returned (${cres.length})`);
+  assert(cres.every(e => e.tags && e.tags.guests === "celebrity"), "every result is a celebrity event");
+  assert(!cres.some(e => !e.tags || e.tags.guests === "unknown"), "unknown and untagged events are excluded");
+  // it stacks with the other filters rather than replacing them
+  window.eval(`(function(){ state.browse.day = "2026-09-05"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  const stacked = window.eval("browseResults()");
+  assert(stacked.every(e => e.day === "2026-09-05" && e.tags.guests === "celebrity"), "celebrity stacks with the day filter");
+  assert(stacked.length <= cres.length, `stacking narrows rather than widens (${stacked.length} <= ${cres.length})`);
+  // and with a parsed query filter
+  window.eval(`(function(){ state.browse.q = "saturday"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  assert(window.eval("browseResults()").every(e => e.tags.guests === "celebrity"), "celebrity survives a parsed query filter");
+  window.eval(`(function(){ state.browse.q = ""; renderBrowse(); })()`); await sleep(20);
+  // the marker shows on rows, and only on the right rows
+  const marked = [...document.querySelectorAll("#view-browse .row .celeb")];
+  assert(marked.length > 0, "rows carry a celebrity marker");
+  assert(marked.every(m => /celebrity/i.test(m.textContent)), "the marker says what it means");
+  window.eval(`(function(){ state.browse.celebrity = false; state.browse.day = "All"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  const rowsWithMark = [...document.querySelectorAll("#view-browse .row")].filter(r => r.querySelector(".celeb"));
+  assert(rowsWithMark.every(r => window.eval(`isCeleb(byId.get(${JSON.stringify(r.dataset.id)}))`)),
+    "with the filter off, only celebrity rows are marked");
+  // and in the detail sheet
+  const celebId = window.eval("events.filter(isCeleb)[0].id");
+  window.eval(`openSheet("event", ${JSON.stringify(celebId)})`); await sleep(30);
+  assert(document.querySelector("#panel-event .celeb"), "the detail sheet marks a celebrity event");
+  const plainId = window.eval("(events.find(function(e){ return e.tags && e.tags.guests !== 'celebrity'; })||{}).id");
+  if (plainId) {
+    window.eval(`openSheet("event", ${JSON.stringify(plainId)})`); await sleep(30);
+    assert(!document.querySelector("#panel-event .celeb"), "and does not mark a non-celebrity one");
+  }
+  document.getElementById("sheetBack").click(); await sleep(20);
+
+  window.eval(`(function(){ Object.assign(state.browse, ${browseSnapshot}); renderBrowse(); })()`); await sleep(20);
+
   // noise toggle: Epic Photos hidden by default
   document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').click(); await sleep(10);
   assert(window.eval("state.browse.hotel") === "All", "tapping the same chip again clears the filter");
