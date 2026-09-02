@@ -468,7 +468,10 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/ResizeObserver\(syncHeaderHeight\)/.test(html), "and re-measured when the header changes size");
   /* ResizeObserver is delivered on the rendering lifecycle, so a page that
      isn't painting never hears about it. The offset must not depend on it. */
-  assert(/updateFresh[\s\S]{0,600}?syncHeaderHeight\(\);/.test(html),
+  /* Anchored on the comment rather than a character window: the file is
+     checked out with CRLF on Windows, and a byte-distance assertion silently
+     changes meaning between platforms. */
+  assert(/syncHeaderHeight\(\);\s*\/\/ this line is what changes the header's height/.test(html),
     "the header is re-measured when the freshness line changes it");
   assert(/document\.fonts\.ready\.then\(syncHeaderHeight\)/.test(html),
     "and once the font has loaded and changed the text metrics");
