@@ -1,66 +1,102 @@
 # Dragon Con 2026 planner
 
-A phone-first schedule planner built on the data behind the official Dragon Con app. Search everything at once, star what you want, and get walk-time warnings between hotels.
+A phone-first schedule planner built on the data behind the official Dragon Con app. Search everything at once, star what you want, follow the tracks and guests you care about, and get walk-time warnings between hotels. Works with no signal.
+
+**Live:** https://kilgoretrout853.github.io/dragoncon-planner/
 
 ## What's in here
 
 | File | What it does |
 |---|---|
-| `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app and writes `events.json`. Takes a few minutes. |
-| `tag_events.py` | Has Claude tag each event with fandoms, kind (celebrity Q&A, fan panel, screening…), topics, and 18+. Powers the fandom picker, kind chips, and search. |
-| `index.html` | The planner. Reads `events.json` from the same folder. Nothing else needed. |
+| `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app, merges duplicates, and writes `events.json`. Takes ~20 minutes. |
+| `tag_events.py` | Has Claude tag each event with fandoms, kind (celebrity Q&A, fan panel, screening…), topics, guests, and 18+. Powers the fandom picker, kind chips, Celebrity filter, and search. |
+| `index.html` | The whole planner, one file. Reads `events.json` from the same folder. |
+| `sw.js` | Service worker: keeps the app opening and rendering with no signal. |
+| `manifest.json`, `icon.svg` | Make it installable to a home screen as "DC26". |
 | `.github/workflows/scrape.yml` | Re-runs the scraper every 3 hours during con week and commits fresh data. |
-| `tests/` | Parser tests and a headless UI test. Optional. |
+| `tests/` | 19 parser tests and 416 UI assertions. Not optional — run them before you push. |
 
-## Quick start (local, no GitHub)
+## Running it locally
 
 ```bash
 pip install requests beautifulsoup4
-python scraper.py --limit 30     # smoke test, ~10 seconds
-python scraper.py                # full scrape, ~3,600 events
-python tag_events.py --limit 80  # smoke test the tagger (uses `claude -p`, or ANTHROPIC_API_KEY if set)
-python tag_events.py             # tag everything, 15-30 minutes, saves as it goes
+python scraper.py --limit 30     # smoke test against the live site, ~30 seconds
+python scraper.py                # full scrape, ~3,460 events after merging duplicates
 python -m http.server 8000       # then open http://localhost:8000
 ```
 
-`index.html` has to be served over http (not opened as a file) or the browser blocks it from reading `events.json`.
+`index.html` must be served over http — opened as a file, the browser blocks it from reading `events.json`.
 
-## Recommended: GitHub Pages with auto-refresh
+**Tests need Node** (for jsdom) as well as Python:
 
-Open Claude Code in this folder and paste the prompt below. It will do the git and GitHub work for you; you only need to answer the `gh auth login` prompt in your browser if you're not already logged in.
+```bash
+npm install                      # jsdom, a dev dependency; no build step
+node tests/ui_smoke.js           # 416 assertions
+python tests/test_parse.py       # 19 parser tests
+```
 
-> I have a small project in this folder: `scraper.py`, `index.html`, `tests/`, and `.github/workflows/scrape.yml`. Please set it up on GitHub Pages:
->
-> 1. `pip install requests beautifulsoup4`, then run `python scraper.py --limit 30` and show me the first event from `events.json` so we can confirm the parser works against the live site. If it fails, read `scraper.py` (the selectors are documented in the parse functions) and fix it.
-> 2. Run the full `python scraper.py` and tell me how many events it found and how long it took.
-> 3. Run `python tag_events.py --limit 80` and show me the tags on three of the events. If that worked, run `python tag_events.py` for the full set (it calls `claude -p` in batches, saves progress as it goes, and takes 15-30 minutes; if it complains about running inside Claude Code, tell me and I'll run it in a separate terminal instead). Report the top fandoms it found.
-> 4. `git init`, commit everything including `events.json`, and create a **public** GitHub repo called `dragoncon-planner` with `gh repo create`, pushing `main`. Check `gh auth status` first and walk me through `gh auth login` if needed.
-> 5. Enable GitHub Pages from the `main` branch, root folder (`gh api` or tell me the exact clicks in Settings > Pages).
-> 6. Trigger the "Refresh schedule" workflow once with `gh workflow run` and confirm it succeeds.
-> 7. Give me the Pages URL, and confirm the page loads with events.
-
-Then open the URL on your phone and add it to your home screen. Your picks are saved on the phone.
-
-After the con, disable the workflow (Actions tab > Refresh schedule > "..." > Disable) or just leave it; it stops itself after Sep 8.
+The UI suite runs twice: once against `tests/sample-events.json` (558 synthetic events, deterministic) and once against the real `events.json`, because ranking questions are meaningless against synthetic rows.
 
 ## Using it
 
-- **Now** is the default tab. It shows your upcoming picks with countdowns and walk warnings, then everything on now or starting within the hour. Filter by hotel with the chips.
-- **Browse** search is ranked: title and guest hits outrank a mention buried in a description, prefixes and typos work ("philhar", "philharmonc"), matched words are highlighted, and typing a query widens to all days automatically. A synonym table near the top of `index.html` maps con vocabulary ("symphony" finds the Philharmonic, "Marvel" finds MCU panels, "space" finds NASA and astronomy); add your own lines. Stack filters on top: day, hotel, panels vs gaming, track, and once events are tagged, fandom, kind (celebrity Q&A, fan panel, screening, workshop, contest, performance, party…), and hide 18+. Photo sessions and video-room screenings are hidden by default (there are hundreds); the toggle shows them.
-- **Mine** lists picks by day and flags overlaps and tight transfers. "Export to calendar" downloads an .ics with the correct Eastern time zone; open it on your phone to add everything to Google or Apple Calendar.
-- Tap any row to expand it: description, panelists, exact room, and the add/remove button.
-- **Settings** (gear): crowd factor for walk estimates, default noise filter, preview any time (`#now=2026-09-05T14:00` in the URL does the same), and the walk-time table.
+Five tabs.
+
+- **Now** opens with a hero card for the one thing you have to act on: a countdown ring, when to leave, and a walk time to wherever you're going next. It turns amber once you're late. Below it, the rest of your day and everything on now or starting within the hour.
+- **Search** understands what you type. `star trek saturday hilton` searches "star trek" across Saturday's Hilton events and shows you which words it took as filters, each removable. `late night`, `signing sunday`, `tonight` and `kids` all work; a query that's entirely filters scopes to today unless you say otherwise. Typing two letters suggests guests and fandoms by name. Events that already happened sit behind a fold. When nothing matched a word literally, it says so rather than pretending.
+- **Explore** lists everything you could follow — every track, fandoms with 3+ events, topics, and guests — as tiles with counts. Tap one for its own page and a Follow button. Each page is linkable as `#explore=kind:key`.
+- **For you** gathers what you follow, either grouped by interest or merged into one timeline. An event reached by two follows appears once, labelled with both.
+- **Mine** shows your picks as a timeline by default — blocks sized by duration, clashes side by side, walk connectors between hotels, a now-line. Or as a list. "Export to calendar" downloads an `.ics` with the correct Eastern time zone.
+
+Tap any row for the detail sheet: description, panelists with a "See all" link to each person, exact room, star, and a single-event calendar export. Swipe it down to dismiss.
+
+**Settings** (gear): crowd factor for walk estimates, the default noise filter, preview any time (`#now=2026-09-05T14:00` in the URL does the same), and the walk-time table.
+
+Picks and follows live in the browser's storage, per device. They aren't shared between phones and there's no URL format for them yet.
+
+## Offline
+
+The service worker caches the app and the schedule, so it opens and renders in a building with no signal — which is the normal state of the Marriott lobby.
+
+- `index.html` is network-first with a 3-second timeout, so fixes land when there's signal and a saturated tower can't stop the app opening.
+- `events.json` is served from cache immediately and refreshed behind you. When it changes you get a "Schedule updated · tap to refresh" pill rather than the list moving under your thumb.
+- When the cached copy is what you're seeing, the line under the clock says `· offline copy`.
+
+To install: iPhone must use **Safari** (Share → Add to Home Screen); Android uses Chrome (⋮ → Install app). You get a **DC26** icon that opens without browser chrome.
+
+Bump `CACHE` in `sw.js` when you change `index.html` in a way that must reach people immediately; older `dc26-*` caches are dropped on activate.
 
 ## Tagging
 
-`tag_events.py` sends events to Claude in batches of 40 and writes back `tags: {fandoms, kind, topics, adult, guests}` on each event. It only sends untagged events, so after a refresh you re-run it for the new ones; `--all` retags everything. The scraper carries tags forward across refreshes, and the GitHub Action doesn't tag (it has no Claude access), so new events added during the con show up untagged until you run the tagger again locally. Search still finds them by their words.
+`tag_events.py` sends events to Claude in batches of 40 and writes back `tags: {fandoms, kind, topics, adult, guests}`. It only sends untagged events, so after a refresh you re-run it for the new ones; `--all` retags everything.
 
-Fandom names are normalized (`CANON` in the script) so the picker shows one "Marvel" rather than Marvel, MCU, and Avengers. If you see duplicates, add a line there and re-run with `--all`.
+**Use the API key path.** With `ANTHROPIC_API_KEY` set it makes one HTTPS request per batch and tags ~3,500 events in about seven minutes for well under a dollar. The `claude -p` fallback spawns a full CLI process per batch and is not practical at this scale — it managed 160 events in two hours before being stopped.
+
+```bash
+ANTHROPIC_API_KEY=$(cat anthropic_key.txt) python tag_events.py
+```
+
+`anthropic_key.txt` is gitignored. Delete it and revoke the key when you're done with the con.
+
+The scraper carries tags forward across refreshes by event id — including through duplicate merging, where the surviving id may not be the one that was tagged. The GitHub Action has no Claude access, so events added during the con arrive untagged until you re-run the tagger. Search still finds them by their words; the fandom, kind and Celebrity filters won't.
+
+Fandom names are normalised (`CANON` in the script) so the picker shows one "Marvel" rather than Marvel, MCU and Avengers.
+
+## Duplicates
+
+The same event is often listed twice — once in the panel feed and once in gaming, or cross-listed under two tracks — and the copies disagree, one carrying the speakers and the other not. `scraper.py` groups by normalised title, start and room and merges each group: smallest id survives (so existing picks keep pointing at something), speakers and tracks union, panel beats gaming, longest description wins, tags follow whichever copy had them. That's 146 groups and 192 rows on a typical scrape.
 
 ## Walk times
 
-The defaults are estimates in minutes, before the crowd factor. They live in the `WALK` table near the top of `index.html`. Edit them if you know better, especially Westin and Courtland Grand, which are the far ends.
+Estimates in minutes, before the crowd factor, in the `WALK` table near the top of `index.html`. Edit them if you know better — especially Westin and Courtland Grand, the far ends.
 
 ## If the scraper breaks
 
-The app is hosted by Core-apps at `https://app.core-apps.com/dragoncon26`. Day pages are `events/view_by_day?day=Sep++5` (two spaces) with `&type=Entertainment` for gaming. Each event page is `event/<id>` with a Location/Date/Duration table, a description, an optional Speakers list, and a Tracks section. Tests in `tests/test_parse.py` show the exact markup the parser expects.
+Hosted by Core-apps at `https://app.core-apps.com/dragoncon26`. Day pages are `events/view_by_day?day=Sep++5` (two spaces) with `&type=Entertainment` for gaming. Each event page is `event/<id>` with a Location/Date/Duration table, a description, an optional Speakers list, and a Tracks section. `tests/test_parse.py` shows the exact markup the parser expects.
+
+**The host signals rate limiting with `403`, not `429`.** That has to stay in the retry `status_forcelist` in `make_session()`; without it the first throttle turns every remaining fetch into an instant failure — it once cost 3,285 of 3,577 events.
+
+## The refresh workflow
+
+Runs every 3 hours through Sep 8, then stops itself via a date guard. Before committing it refuses a scrape that returned nothing or fell more than 20% — a throttled run can't overwrite good data. If `main` moved while it was scraping it rebases and retries rather than dropping the refresh.
+
+After the con, disable it (Actions → Refresh schedule → ⋯ → Disable) or leave it; it stops on its own.
