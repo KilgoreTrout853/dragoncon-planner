@@ -191,14 +191,14 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!document.getElementById("homeBase"), "no home base control in Settings");
   // browse: search
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(10);
-  const q = document.getElementById("q"); q.value = "boroughs"; q.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(10);
+  const q = document.getElementById("q"); q.value = "boroughs"; q.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(220);
   let results = window.eval("browseResults()");
   assert(results.length > 0 && results.length < 100 && results.every(e => /boroughs/i.test(e.title + " " + e.description)), `search filters to matches (${results.length})`);
   // all days chip
   document.querySelector('#view-browse [data-chip="day"][data-value="All"]').click(); await sleep(10);
   assert(document.querySelectorAll("#view-browse .t .day").length > 1, "All days + query shows per-row day labels");
   // hotel chip
-  const q2 = document.getElementById("q"); q2.value = ""; q2.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(10);
+  const q2 = document.getElementById("q"); q2.value = ""; q2.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(220);
   assert(window.eval("state.browse.q") === "", "search cleared");
   document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').click(); await sleep(10);
   assert(window.eval("state.browse.hotel") === "Westin", "hotel chip sets the filter");
@@ -423,7 +423,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(document.getElementById("view-mine").textContent.includes("Nothing picked yet"), "clear all works");
   // search quality: the four real queries
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(10);
-  const top = async (query) => { const q = document.getElementById("q"); q.value = query; q.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(10); return window.eval("browseResults().slice(0,3).map(e => e.title)"); };
+  const top = async (query) => { const q = document.getElementById("q"); q.value = query; q.dispatchEvent(new window.Event("input", { bubbles: true })); await sleep(220); return window.eval("browseResults().slice(0,3).map(e => e.title)"); };
   let r = await top("Video game costume contest"); assert(/Video Game Cosplay Contest/.test(r[0]), "ranking: 'Video game costume contest' -> " + r[0]);
   assert(window.eval("state.browse.day") === "All", "typing widens to all days");
   r = await top("nerdy space stuff"); assert(/NASA/.test(r[0]), "synonyms+stopwords: 'nerdy space stuff' -> " + r[0]);
@@ -447,6 +447,68 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!document.getElementById("panel-settings").hidden && document.getElementById("panel-event").hidden, "settings panel shown, event panel hidden");
   document.getElementById("closeSheet").click(); await sleep(10);
   assert(document.getElementById("sheetWrap").hidden, "settings closes");
+  // ---- render cost: typing is debounced, the minute tick patches ----
+  assert(window.eval("typeof queueBrowseRender") === "function", "browse renders are queued, not immediate");
+  assert(window.eval("SEARCH_DEBOUNCE_MS") >= 80 && window.eval("SEARCH_DEBOUNCE_MS") <= 300,
+    `the debounce is in a sensible range (${window.eval("SEARCH_DEBOUNCE_MS")}ms)`);
+  /* Earlier steps leave chips set; start from a known filter state. */
+  const perfSnapshot = window.eval("JSON.stringify(state.browse)");
+  window.eval(`(function(){ state.tab = "browse";
+    Object.assign(state.browse, {q:"", day:"All", prevDay:null, hotel:"All", type:"All", track:"All",
+      fandom:"All", kind:"All", celebrity:false, showHidden:false, showPast:false, noToday:false,
+      hideAdult:false, hideNoise:false, page:1});
+    render(); })()`); await sleep(30);
+  const typed = window.eval(`(function(){
+    var n = 0, real = renderBrowse;
+    window.renderBrowse = function(){ n++; return real.apply(this, arguments); };
+    var el = document.getElementById("q"), q = "boroughs";
+    for (var i = 1; i <= q.length; i++) { el.value = q.slice(0, i); el.dispatchEvent(new window.Event("input", {bubbles: true})); }
+    return n; })()`);
+  assert(typed === 0, `typing eight characters draws nothing while you type (${typed} renders)`);
+  /* Wait for the timer to actually fire rather than guessing at a delay -
+     timers in this harness can run several seconds late under load. */
+  for (let i = 0; i < 60 && window.eval("browseRenderTimer") !== null; i++) await sleep(50);
+  assert(window.eval("browseRenderTimer") === null, "the queued render eventually fires");
+  assert(document.querySelectorAll("#view-browse .row").length > 0, "and draws once you stop");
+  assert(window.eval(`state.browse.q`) === "boroughs", "the query itself was recorded immediately");
+  // a direct render cancels a pending one rather than drawing twice
+  window.eval(`(function(){ var el = document.getElementById("q"); el.value = "party";
+    el.dispatchEvent(new window.Event("input", {bubbles: true})); })()`);
+  assert(window.eval("browseRenderTimer") !== null, "a render is pending after a keystroke");
+  window.eval(`render()`);
+  assert(window.eval("browseRenderTimer") === null, "and a direct render cancels it");
+  window.eval(`(function(){ Object.assign(state.browse, ${perfSnapshot}); state.browse.q = ""; state.tab = "now"; render(); })()`); await sleep(30);
+
+  // the minute tick leaves the list alone when nothing has actually moved
+  assert(window.eval("typeof tickNow") === "function", "the tick has its own path");
+  assert(window.eval("typeof nowSignature") === "function" && window.eval("typeof nowModel") === "function",
+    "built on a model and a signature rather than a rebuild");
+  const tickProbe = JSON.parse(window.eval(`(function(){
+    picks = new Set(events.filter(function(e){ return e._e > getNow(); }).slice(0, 5).map(function(e){ return e.id; }));
+    state.tab = "now"; renderNow();
+    var view = document.getElementById("view-now");
+    var hero = view.querySelector(".hero");
+    var rows = [].slice.call(view.querySelectorAll(".row"));
+    tickNow();
+    var after = [].slice.call(view.querySelectorAll(".row"));
+    var r = {rowsSurvived: rows.length === after.length && rows.every(function(x, i){ return x === after[i]; }),
+             heroSurvived: view.querySelector(".hero") === hero, rowCount: after.length};
+    picks = new Set(); savePicks(); render();
+    return JSON.stringify(r); })()`));
+  assert(tickProbe.rowCount > 0, `the Now tab had rows to disturb (${tickProbe.rowCount})`);
+  assert(tickProbe.rowsSurvived, "a tick with nothing new leaves every row node in place");
+  assert(tickProbe.heroSurvived, "and leaves the hero card alone too");
+  // but a real change still redraws
+  const changed = window.eval(`(function(){
+    picks = new Set(); state.tab = "now"; renderNow();
+    var sigBefore = lastNowSig;
+    picks = new Set(events.filter(function(e){ return e._e > getNow(); }).slice(0, 3).map(function(e){ return e.id; }));
+    tickNow();
+    var redrew = lastNowSig !== sigBefore;
+    picks = new Set(); savePicks(); render();
+    return redrew; })()`);
+  assert(changed, "a tick that finds the plan changed falls back to a full render");
+
   // ---- step 0: five tabs, Browse renamed to Search ----
   const navBtns = [...document.querySelectorAll(".nav button")];
   const navLabels = navBtns.map(b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(""));
