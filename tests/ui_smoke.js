@@ -509,12 +509,12 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     return redrew; })()`);
   assert(changed, "a tick that finds the plan changed falls back to a full render");
 
-  // ---- step 0: five tabs, Browse renamed to Search ----
+  // ---- step 0: four tabs - Browse renamed to Search, For you folded into Explore ----
   const navBtns = [...document.querySelectorAll(".nav button")];
   const navLabels = navBtns.map(b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(""));
-  assert(navLabels.join(" · ") === "Now · Search · Explore · For you · Mine",
-    `the nav reads Now · Search · Explore · For you · Mine (${navLabels.join(" · ")})`);
-  assert(navBtns.length === 5, "five tabs");
+  assert(navLabels.join(" · ") === "Now · Search · Explore · Mine",
+    `the nav reads Now · Search · Explore · Mine (${navLabels.join(" · ")})`);
+  assert(navBtns.length === 4, "four tabs");
   /* textContent includes <script> bodies, where "Browse" survives in comments
      and identifiers; only rendered text and aria labels matter here. */
   const visibleText = () => {
@@ -529,16 +529,19 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     return out;
   };
   assert(!/Browse/i.test(visibleText()), "the word Browse is gone from what the reader sees");
-  assert(navBtns.map(b => b.dataset.tab).join(",") === "now,browse,explore,foryou,mine",
+  assert(navBtns.map(b => b.dataset.tab).join(",") === "now,browse,explore,mine",
     "the internal identifiers are unchanged");
-  assert(/repeat\(5, 1fr\)/.test(html), "the nav lays out five columns");
-  // the two new views exist and switch
-  for (const t of ["explore", "foryou"]) {
-    document.querySelector(`.nav button[data-tab="${t}"]`).click(); await sleep(20);
-    assert(window.eval("state.tab") === t, `the ${t} tab switches`);
-    assert(!document.getElementById(`view-${t}`).hidden, `and its view shows`);
-    assert(document.getElementById("view-browse").hidden, "while the others hide");
-  }
+  assert(!document.querySelector('.nav button[data-tab="foryou"]'), "the For you tab is gone");
+  assert(!document.getElementById("view-foryou"), "and so is its view");
+  assert(!/foryou/i.test(html), "and nothing in the source still refers to it");
+  assert(/repeat\(4, 1fr\)/.test(html), "the nav lays out four columns");
+  assert(/\.nav button \{[^}]*font-size: 14px/.test(html), "with labels back at 14px");
+  assert(/\.nav button svg \{[^}]*width: 24px/.test(html), "and icons back at 24px");
+  // the explore view exists and switches
+  document.querySelector('.nav button[data-tab="explore"]').click(); await sleep(20);
+  assert(window.eval("state.tab") === "explore", "the explore tab switches");
+  assert(!document.getElementById("view-explore").hidden, "and its view shows");
+  assert(document.getElementById("view-browse").hidden, "while the others hide");
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
 
   // ---- step 1: the follow model ----
@@ -619,6 +622,15 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(narrowed.length > 0 && narrowed.length < allTiles, `the filter narrows the tiles (${allTiles} -> ${narrowed.length})`);
   assert(narrowed.every(n => /cost/i.test(n)), "to those whose name matches");
   window.eval(`(function(){ state.explore.q = ""; renderExplore(); })()`); await sleep(20);
+  // typing in the filter box must not rebuild the box under the keyboard
+  const boxBefore = document.getElementById("exploreQ");
+  boxBefore.value = "cost"; boxBefore.dispatchEvent(new window.Event("input", {bubbles: true})); await sleep(20);
+  assert(document.getElementById("exploreQ") === boxBefore, "typing in the filter keeps the same input element");
+  const typedTiles = [...document.querySelectorAll("#view-explore .tile-name")].map(x => x.textContent);
+  assert(typedTiles.length > 0 && typedTiles.every(x => /cost/i.test(x)), `and narrows the tiles (${typedTiles.length})`);
+  boxBefore.value = ""; boxBefore.dispatchEvent(new window.Event("input", {bubbles: true})); await sleep(20);
+  assert(window.eval("state.explore.q") === "" && document.querySelectorAll("#view-explore .tile").length === allTiles,
+    "clearing it brings everything back");
   // a tile opens its page
   const someTrack = window.eval(`getCatalogue().track[0].key`);
   window.eval(`openExplorePage("track", ${JSON.stringify(someTrack)})`); await sleep(40);
@@ -658,64 +670,116 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   }
   window.eval(`(function(){ follows = []; saveFollows(); state.tab = "browse"; state.explore.page = null; render(); })()`); await sleep(20);
 
-  // ---- step 3: For you ----
-  window.eval(`(function(){ follows = []; saveFollows(); state.tab = "foryou"; state.foryou.expanded = {}; state.foryou.showPast = {}; render(); })()`);
+  // ---- step 3: Following lives at the top of Explore ----
+  window.eval(`(function(){ follows = []; saveFollows(); state.tab = "explore"; state.explore.page = null; state.explore.q = "";
+    state.following.expanded = {}; state.following.showPast = {}; state.following.open = true; render(); })()`);
   await sleep(30);
-  const fyEmpty = document.querySelector("#view-foryou .empty");
-  assert(fyEmpty && /Follow a few things and they'll show up here/.test(fyEmpty.textContent), "the empty state says what to do");
-  assert(document.querySelector('#view-foryou [data-act="foryou-add"]'), "and offers a way to Explore");
-  document.querySelector('#view-foryou [data-act="foryou-add"]').click(); await sleep(30);
-  assert(window.eval("state.tab") === "explore", "which switches to Explore");
-  // follow two things and come back
+  const ex = document.getElementById("view-explore");
+  assert(!ex.querySelector(".following"), "with nothing followed there is no Following section");
+  assert(!ex.querySelector(".empty"), "and no empty state");
+  assert(ex.querySelectorAll(".tile").length > 0, "Explore is just the grid");
+  const hint = ex.querySelector(".hint");
+  assert(hint && hint.textContent.trim() === "Follow a track, fandom or person and it'll show up here.", "with a one-line hint");
+  const firstSection = ex.querySelector(".section-title");
+  assert(hint && firstSection && firstSection.nextElementSibling === hint, "sitting under the first section header");
+  // follow two things
   const twoFollows = window.eval(`(function(){
     var t = getCatalogue().track[0].key;
     var other = getCatalogue().track[1].key;
     follows = []; toggleFollow("track", t); toggleFollow("track", other);
-    state.tab = "foryou"; render();
+    render();
     return JSON.stringify([t, other]); })()`);
   await sleep(40);
   const wanted = JSON.parse(twoFollows);
-  const chipNames = [...document.querySelectorAll("#view-foryou .fc-name")].map(x => x.textContent);
+  const fol = () => document.getElementById("following");
+  const folHead = () => (document.querySelector("#following .fol-head") || {textContent: ""}).textContent.replace(/\s+/g, " ").trim();
+  assert(fol(), "following two things puts a Following section on Explore");
+  assert(!ex.querySelector(".hint"), "and the hint goes away");
+  assert(/^Following \(2\)/.test(folHead()), `headed Following (2) (${folHead()})`);
+  assert(document.querySelector("#following .fol-head").getAttribute("aria-expanded") === "true", "open to start");
+  assert(ex.firstElementChild === fol(), "pinned above everything else");
+  const FOLLOWS = window.Node.DOCUMENT_POSITION_FOLLOWING;
+  const exQ = document.getElementById("exploreQ");
+  assert(exQ && (fol().compareDocumentPosition(exQ) & FOLLOWS), "the tile filter box stays with the grid, below it");
+  assert(fol().compareDocumentPosition(ex.querySelector(".tiles")) & FOLLOWS, "and so do the tiles");
+  const chipNames = [...document.querySelectorAll("#following .fc-name")].map(x => x.textContent);
   assert(chipNames.join("|") === wanted.join("|"), `chips list the follows in order (${chipNames.join(", ")})`);
-  assert(document.querySelectorAll('#view-foryou .follow-chip [data-act="unfollow"]').length === 2, "each chip has an unfollow control");
-  assert(document.querySelector('#view-foryou .fc-add'), "and there is a + chip at the end");
-  assert(document.querySelector('#view-foryou .fc-name').dataset.explore === "track:" + wanted[0], "a chip links to its Explore page");
+  assert(document.querySelectorAll('#following .follow-chip [data-act="unfollow"]').length === 2, "each chip has an unfollow control");
+  assert(document.querySelector('#following .fc-add'), "and there is a + chip at the end");
+  assert(document.querySelector('#following .fc-name').dataset.explore === "track:" + wanted[0], "a chip links to its Explore page");
   // by interest
-  assert(window.eval("state.foryou.layout") === "interest", "By interest is the default");
-  const sections = [...document.querySelectorAll("#view-foryou .section-title")].map(x => x.textContent.trim());
-  assert(sections.length === 2, `a section per follow (${sections.length})`);
+  assert(window.eval("state.following.layout") === "interest", "By interest is the default");
+  const sections = [...document.querySelectorAll("#following .section-title")].map(x => x.textContent.trim());
+  assert(sections.length === 2, `a section per follow inside Following (${sections.length})`);
   assert(sections[0].startsWith(wanted[0]), "in follow order");
-  const firstList = document.querySelector("#view-foryou .list");
+  const firstList = document.querySelector("#following .list");
   assert(firstList.querySelectorAll(".row").length <= 8, "each section shows at most eight to start");
-  const moreBtn = document.querySelector('#view-foryou [data-act="fy-more"]');
+  const moreBtn = document.querySelector('#following [data-act="fol-more"]');
   if (moreBtn) {
-    const before = document.querySelectorAll("#view-foryou .row").length;
+    const before = document.querySelectorAll("#following .row").length;
     moreBtn.click(); await sleep(40);
-    assert(document.querySelectorAll("#view-foryou .row").length > before, "and 'more' expands it");
+    assert(document.querySelectorAll("#following .row").length > before, "and 'more' expands it");
   }
   // by time
-  document.querySelector('[data-act="fy-time"]').click(); await sleep(40);
-  assert(window.eval("state.foryou.layout") === "time", "the layout toggles");
-  assert(JSON.parse(window.localStorage.getItem("dc26.foryouLayout")) === "time", "and persists");
-  const timeIds = [...document.querySelectorAll("#view-foryou .row")].map(r => r.dataset.id);
-  assert(timeIds.length === new Set(timeIds).size, `by time lists each event once (${timeIds.length})`);
-  assert(document.querySelectorAll("#view-foryou .day-head").length > 0, "grouped under day headers");
-  assert(document.querySelectorAll("#view-foryou .time-head").length > 0, "and hour headers");
+  document.querySelector('[data-act="fol-time"]').click(); await sleep(40);
+  assert(window.eval("state.following.layout") === "time", "the layout toggles");
+  assert(JSON.parse(window.localStorage.getItem("dc26.followingLayout")) === "time", "and persists");
+  const timeIds = [...document.querySelectorAll("#following .row")].map(r => r.dataset.id);
+  assert(timeIds.length > 0 && timeIds.length === new Set(timeIds).size, `by time lists each event once (${timeIds.length})`);
+  assert(document.querySelectorAll("#following .day-head").length > 0, "grouped under day headers");
+  assert(document.querySelectorAll("#following .time-head").length > 0, "and hour headers");
+  assert(document.querySelectorAll("#exploreGrid .tile").length > 0, "the grid is still there under it");
   // starring still behaves
-  const fyStar = document.querySelector("#view-foryou .row .star");
-  if (fyStar) {
-    const id = fyStar.closest(".row").dataset.id;
+  const folStar = document.querySelector("#following .row .star");
+  if (folStar) {
+    const id = folStar.closest(".row").dataset.id;
     const had = window.eval(`picks.has(${JSON.stringify(id)})`);
-    fyStar.click(); await sleep(40);
-    assert(window.eval(`picks.has(${JSON.stringify(id)})`) !== had, "starring works from For you");
+    folStar.click(); await sleep(40);
+    assert(window.eval(`picks.has(${JSON.stringify(id)})`) !== had, "starring works from Following");
     window.eval(`(function(){ picks.delete(${JSON.stringify(id)}); savePicks(); })()`);
   }
-  // unfollowing from a chip drops its section
-  document.querySelector('[data-act="fy-interest"]').click(); await sleep(40);
-  const secBefore = document.querySelectorAll("#view-foryou .section-title").length;
-  document.querySelector('#view-foryou [data-act="unfollow"]').click(); await sleep(40);
-  assert(document.querySelectorAll("#view-foryou .section-title").length === secBefore - 1, "unfollowing from a chip removes its section");
+  // the + chip scrolls down to the grid instead of leaving the tab
+  const scrolls = [];
+  const realScrollTo = window.scrollTo;
+  window.scrollTo = function (a, b) { scrolls.push(typeof a === "object" ? a : {top: b, left: a}); };
+  document.querySelector('#following .fc-add').click(); await sleep(20);
+  window.scrollTo = realScrollTo;
+  assert(window.eval("state.tab") === "explore" && !window.eval("state.explore.page"), "the + chip stays on the Explore grid");
+  assert(scrolls.length === 1 && scrolls[0].top >= 0, `and scrolls to the grid (${JSON.stringify(scrolls)})`);
+  assert(fol() && document.querySelector("#following .fc-name"), "with Following still open above it");
+  // fold it away, and it stays folded
+  document.querySelector("#following .fol-head").click(); await sleep(40);
+  assert(document.querySelector("#following .fol-head").getAttribute("aria-expanded") === "false", "tapping the header closes Following");
+  assert(document.getElementById("folBody").hidden, "hiding the feed");
+  assert(!document.querySelector("#following .fc-name"), "chips and all");
+  assert(/^Following \(2\)/.test(folHead()), "the header still shows the count");
+  assert(document.querySelectorAll("#exploreGrid .tile").length > 0, "and the grid is right there");
+  assert(JSON.parse(window.localStorage.getItem("dc26.followingOpen")) === false, "closed is remembered");
+  window.eval(`(function(){ state.following.open = loadJSON("dc26.followingOpen", true); render(); })()`); await sleep(40);
+  assert(document.querySelector("#following .fol-head").getAttribute("aria-expanded") === "false", "and survives reloading the state");
+  document.querySelector("#following .fol-head").click(); await sleep(40);
+  assert(document.querySelector("#following .fol-head").getAttribute("aria-expanded") === "true", "tapping again reopens it");
+  assert(JSON.parse(window.localStorage.getItem("dc26.followingOpen")) === true, "and remembers that too");
+  // unfollowing from a chip drops its section and the count
+  document.querySelector('[data-act="fol-interest"]').click(); await sleep(40);
+  const secBefore = document.querySelectorAll("#following .section-title").length;
+  document.querySelector('#following [data-act="unfollow"]').click(); await sleep(40);
+  assert(document.querySelectorAll("#following .section-title").length === secBefore - 1, "unfollowing from a chip removes its section");
+  assert(/^Following \(1\)/.test(folHead()), `and the header count drops (${folHead()})`);
   assert(window.eval("follows.length") === 1, "and the follow itself");
+  // a page deep link still works with Following present, and back brings it back
+  window.location.hash = "#now=2026-09-05T13:05&explore=" + encodeURIComponent("track:" + wanted[1]);
+  window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  const pageName = document.querySelector("#view-explore .eh-name");
+  assert(pageName && pageName.textContent === wanted[1], `a deep link opens its page (${pageName && pageName.textContent})`);
+  assert(!document.getElementById("following"), "the page stands alone, without the Following section");
+  document.querySelector('[data-act="explore-back"]').click(); await sleep(40);
+  assert(document.getElementById("following") && /^Following \(1\)/.test(folHead()), "back returns to the grid with Following on top");
+  assert(!/explore=/.test(window.location.hash) && /now=/.test(window.location.hash), "the hash keeps the preview clock and drops the page");
+  // unfollow the last one: the section goes, the hint returns
+  document.querySelector('#following [data-act="unfollow"]').click(); await sleep(40);
+  assert(!document.getElementById("following"), "unfollowing the last one removes the section");
+  assert(ex.querySelector(".hint"), "and the hint is back");
   window.eval(`(function(){ follows = []; saveFollows(); state.tab = "browse"; render(); })()`); await sleep(20);
 
   // ---- step 4: picks are untouched by any of this ----
