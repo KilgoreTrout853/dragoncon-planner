@@ -258,7 +258,12 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .empty { padding: 28px 14px; color: var(--muted); font-size: 16px; }
 .empty b { color: var(--text); }
 .more { margin: 14px; }
-.mine-actions { padding: 12px 14px 0; display: flex; gap: 8px; flex-wrap: wrap; }
+/* Two rows of two on one grid: the actions take the view toggle's footprint,
+   so the top of Mine reads as one control strip rather than a stack of odd
+   shapes. Export keeps its gold fill; it is the one you came here for. */
+.mine-actions { padding: 12px 14px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mine-actions .btn { height: 40px; padding: 0 12px; border-radius: 10px; font-size: 15px; font-weight: 700; }
+.btn[disabled] { opacity: .45; }
 
 /* Bottom nav -------------------------------------------------------- */
 .nav {
@@ -381,10 +386,10 @@ body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
 
 
 /* Timeline: the day as a column, so gaps and clashes have a shape */
-.view-toggle { display: flex; gap: 6px; padding: 0 14px 10px; }
+.view-toggle { display: flex; gap: 8px; padding: 0 14px 10px; }
 .view-toggle button {
-  flex: 1; height: 36px; border-radius: 10px; border: 1px solid var(--line);
-  background: transparent; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer;
+  flex: 1; height: 40px; border-radius: 10px; border: 1px solid var(--line);
+  background: transparent; color: var(--muted); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
 }
 .view-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--text); border-color: var(--gold); }
 .tl-day { padding: 0 14px 22px; }
