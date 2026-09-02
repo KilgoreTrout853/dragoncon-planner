@@ -32,7 +32,7 @@
   --h-Hilton: #79D19B;
   --h-Courtland: #C797F5;
   --h-Westin: #F5A63F;
-  --h-Mart: #E3D46A;
+  --h-Mart: #C6DC6B;   /* yellow-green: kept clear of --gold, which means "mine" */
   --h-Hardy: #9ED5C0;
   --h-Streaming: #8F97AE;
   --h-Other: #8F97AE;
@@ -190,6 +190,20 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; max-width: 760px; margin: 0 auto;
   background: var(--surface); border-radius: 18px 18px 0 0; border: 1px solid var(--line); border-bottom: 0;
   padding: 16px 16px calc(20px + var(--safe-bottom)); display: grid; gap: 16px;
+  /* Claim the vertical gesture. Without this the browser scrolls the page
+     behind the sheet while you're dragging it, and both move at once. */
+  touch-action: none;
+  will-change: transform;
+}
+/* The description is the one part that should still scroll under a finger. */
+.ev-body { touch-action: pan-y; }
+/* Only while settling - during a drag the sheet must track the finger exactly. */
+.sheet.settling { transition: transform .22s cubic-bezier(.2, .7, .3, 1); }
+.sheet-back { transition: opacity .22s linear; }
+.sheet-back.dragging { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sheet.settling { transition: none; }
+  .sheet-back { transition: none; }
 }
 .sheet h2 { margin: 0; font-size: 20px; }
 .sheet label { display: grid; gap: 6px; color: var(--muted); font-size: 15px; }
@@ -198,6 +212,115 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .sheet .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; }
 .walk-table { font-size: 14px; color: var(--muted); }
 .walk-table td { padding: 2px 6px 2px 0; }
+
+/* Bottom sheet: one wrapper, two panels (settings, event) */
+.sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: -4px auto 0; flex: none; }
+.sheet-panel { display: grid; gap: 16px; }
+.sheet-panel[hidden] { display: none; }
+.ev-head { display: grid; gap: 6px; }
+.ev-head h2 { margin: 0; font-size: 21px; line-height: 1.25; }
+.ev-when { color: var(--muted); font-size: 15px; }
+.ev-room { font-size: 19px; font-weight: 700; color: var(--h); line-height: 1.2; }
+.ev-body { display: grid; gap: 12px; max-height: 48vh; overflow-y: auto; overscroll-behavior: contain; }
+.ev-body p { margin: 0; white-space: pre-line; font-size: 16px; }
+.ev-people { color: var(--muted); font-size: 15px; }
+.ev-people span { color: var(--text); }
+.ev-actions { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.ev-actions .btn { flex: 1 1 auto; }
+.ev-star {
+  font-size: 24px; line-height: 1; width: 56px; flex: none; cursor: pointer;
+  background: transparent; border: 1px solid var(--line); border-radius: 12px; color: var(--muted);
+}
+.ev-star[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+
+/* Hero card: the next thing you have to act on */
+.hero {
+  display: flex; gap: 14px; align-items: flex-start; width: 100%; text-align: left;
+  padding: 14px; background: var(--surface); border: 0; border-bottom: 1px solid var(--line);
+  color: var(--text); font: inherit; cursor: pointer;
+}
+.hero .ring { flex: none; position: relative; width: 62px; height: 62px; }
+.hero .ring svg { transform: rotate(-90deg); display: block; }
+.hero .ring .track-c { stroke: var(--line); }
+.hero .ring .prog { stroke: var(--gold); transition: stroke-dashoffset .6s linear; }
+.hero.late .ring .prog { stroke: var(--warn); }
+.hero .ring .num {
+  position: absolute; inset: 0; display: grid; place-items: center; line-height: 1;
+  font-size: 17px; font-weight: 700; color: var(--gold);
+}
+.hero.late .ring .num { color: var(--warn); }
+.hero .ring .num small { display: block; font-size: 10px; font-weight: 600; color: var(--muted); }
+.hero .hbody { display: grid; gap: 5px; min-width: 0; flex: 1; }
+.hero .hkicker { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.hero .htitle { font-size: 19px; font-weight: 700; line-height: 1.2; }
+.hero .hroom { font-size: 15px; font-weight: 700; color: var(--h); }
+.hero .hleave { font-size: 15px; font-weight: 700; color: var(--gold); }
+.hero.late .hleave { color: var(--warn); }
+.hero .hthen { font-size: 13px; color: var(--muted); }
+.hero .hthen b { color: var(--text); font-weight: 700; }
+.list.compact .row-main { padding-top: 8px; padding-bottom: 8px; }
+.list.compact .snippet { display: none; }
+@media (prefers-reduced-motion: reduce) { .hero .ring .prog { transition: none; } }
+
+/* Sticky next-up bar: what's next while you're browsing something else */
+.minibar {
+  position: fixed; left: 0; right: 0; bottom: calc(70px + var(--safe-bottom)); z-index: 6;
+  height: 48px; box-sizing: border-box; width: 100%; border: 0;
+  padding: 0 max(14px, calc(50% - 366px)); font: inherit; color: var(--text); text-align: left;
+  background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+}
+.minibar .mb-body { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.minibar .mb-title { font-size: 14px; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.minibar .mb-room { font-size: 12px; font-weight: 700; color: var(--h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.minibar .mb-when { flex: none; font-size: 14px; font-weight: 700; color: var(--gold); }
+.minibar.late .mb-when { color: var(--warn); }
+body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
+
+
+/* Timeline: the day as a column, so gaps and clashes have a shape */
+.view-toggle { display: flex; gap: 6px; padding: 0 14px 10px; }
+.view-toggle button {
+  flex: 1; height: 36px; border-radius: 10px; border: 1px solid var(--line);
+  background: transparent; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer;
+}
+.view-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--text); border-color: var(--gold); }
+.tl-day { padding: 0 14px 22px; }
+.tl-grid { position: relative; margin-left: 46px; }
+.tl-hour { position: absolute; left: -46px; right: 0; height: 0; border-top: 1px solid var(--line); }
+.tl-hour span { position: absolute; left: 0; top: -8px; font-size: 12px; color: var(--dim); width: 42px; }
+.tl-block {
+  position: absolute; overflow: hidden; border-radius: 8px; cursor: pointer; text-align: left;
+  background: var(--h); border: 0; padding: 5px 7px; color: var(--ink); font: inherit;
+  display: grid; align-content: start; gap: 1px;
+}
+.tl-block .tb-title { font-size: 13px; font-weight: 700; line-height: 1.15; }
+.tl-block .tb-room { font-size: 11px; font-weight: 600; opacity: .8; }
+.tl-block .tb-runs { font-size: 11px; font-weight: 700; opacity: .7; }
+/* A six-hour block is 360px of flat colour. Keep its true position and
+   height - the geometry is the point - but let the body fade toward the
+   page so shorter picks still read as the foreground. */
+.tl-block.long { border: 1px solid var(--h); }
+.tl-block.long::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 54px; bottom: 0;
+  background: linear-gradient(to bottom, transparent, var(--ink) 88%);
+  opacity: .85; pointer-events: none;
+}
+.tl-now { position: absolute; left: -46px; right: 0; height: 0; border-top: 2px solid var(--warn); z-index: 3; }
+.tl-now::after {
+  content: "now"; position: absolute; left: 0; top: -8px; font-size: 11px; font-weight: 700;
+  color: var(--warn); background: var(--ink); padding-right: 4px;
+}
+.tl-link { position: absolute; z-index: 2; pointer-events: none; border-left: 2px dashed var(--muted); }
+.tl-link span {
+  /* right-aligned: block titles run from the left, so a badge pinned right
+     clears them even when two picks are back to back with no gap to sit in */
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%); white-space: nowrap;
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  background: var(--ink); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
+}
+.tl-link.tight { border-left-color: var(--warn); }
+.tl-link.tight span { color: var(--warn); }
 </style>
 </head>
 <body>
@@ -220,6 +343,8 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   <section class="view" id="view-mine" hidden></section>
 </main>
 
+<button class="minibar" id="minibar" hidden></button>
+
 <nav class="nav" aria-label="Sections">
   <button data-tab="now" aria-current="page">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Now
@@ -235,7 +360,9 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 
 <div id="sheetWrap" hidden>
   <div class="sheet-back" id="sheetBack"></div>
-  <div class="sheet" role="dialog" aria-labelledby="sheetTitle">
+  <div class="sheet" role="dialog" aria-labelledby="sheetTitle" id="sheet">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="sheet-panel" id="panel-settings">
     <h2 id="sheetTitle">Settings</h2>
     <label>Crowd factor for walk estimates: <b id="crowdLabel"></b>
       <input type="range" id="crowd" min="1" max="2.5" step="0.1">
@@ -256,6 +383,8 @@ mark { background: none; color: var(--gold); font-weight: 700; }
       <button class="btn danger" id="resetPicks">Remove all picks</button>
       <button class="btn" id="closeSheet">Done</button>
     </div>
+    </div>
+    <div class="sheet-panel" id="panel-event" hidden></div>
   </div>
 </div>
 
@@ -280,6 +409,7 @@ const WALK = {
   "AmericasMart|Hyatt":7, "AmericasMart|Marriott":12, "AmericasMart|Westin":8, "AmericasMart|Hilton":15, "AmericasMart|Courtland Grand":18,
   "Hardy Ivy Park|Marriott":5, "Hardy Ivy Park|Hilton":4, "Hardy Ivy Park|Hyatt":10, "Hardy Ivy Park|Courtland Grand":8, "Hardy Ivy Park|Westin":12, "Hardy Ivy Park|AmericasMart":12,
 };
+const LEAVE_BUFFER_MIN = 10;   /* slack on every leave-by: lifts, crowds, one wrong turn */
 const NOISE_TRACKS = new Set(["Epic Photos","Video Room"]);
 const isNoise = ev => NOISE_TRACKS.has(ev.track) || /^photo session/i.test(ev.title);
 
@@ -352,7 +482,7 @@ let picks = new Set(loadJSON("dc26.picks", []));
 let events = [], byId = new Map(), tracks = [], hotels = [];
 let meta = {};
 const state = {
-  tab: "now", openId: null,
+  tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
@@ -464,6 +594,30 @@ function render() {
   if (state.tab === "now") renderNow();
   if (state.tab === "browse") renderBrowse();
   if (state.tab === "mine") renderMine();
+  renderMiniBar();
+}
+
+function renderMiniBar() {
+  const bar = document.getElementById("minibar");
+  const next = state.tab === "now" || !events.length ? null : nextPickInConDay(getNow());
+  if (!next) {
+    bar.hidden = true;
+    document.body.classList.remove("has-minibar");
+    return;
+  }
+  const now = getNow();
+  const info = leaveInfo(currentLocation(now), next, now);
+  const when = info && info.leaveBy
+    ? (info.late ? "leave now" : `leave by ${fmtShort(info.leaveBy)}`)
+    : `in ${minutesBetween(now, next._s)} min`;
+  bar.classList.toggle("late", !!(info && info.late));
+  bar.innerHTML = `<span class="mb-body">
+      <span class="mb-title">${esc(next.title)}</span>
+      <span class="mb-room" style="--h:var(${hotelVar(next.hotel)})">${esc(next.room || next.location || "Location TBA")}</span>
+    </span><span class="mb-when">${esc(when)}</span>`;
+  bar.setAttribute("aria-label", `Next: ${next.title}, ${when}. Go to Now.`);
+  bar.hidden = false;
+  document.body.classList.add("has-minibar");
 }
 
 function updateClock() {
@@ -474,7 +628,7 @@ function updateClock() {
 
 function rowHTML(ev, opts = {}) {
   const s = fmt(ev._s), e = fmt(ev._e);
-  const mine = picks.has(ev.id), open = state.openId === `${opts.list || ""}:${ev.id}`;
+  const mine = picks.has(ev.id), open = state.sheetId === ev.id;
   const room = ev.room || ev.location || "Location TBA";
   const status = opts.status ? `<span class="status">${esc(opts.status)}</span>` : "";
   const cls = ["row", mine ? "mine" : "", open ? "open" : "", ev.cancelled ? "cancelled" : ""].filter(Boolean).join(" ");
@@ -482,7 +636,7 @@ function rowHTML(ev, opts = {}) {
   const snippet = opts.terms ? snippetFor(ev, opts.terms) : "";
   return `<li class="${cls}" data-id="${esc(ev.id)}" data-list="${esc(opts.list || "")}">
     <div class="row-line">
-      <button class="row-main" aria-expanded="${open}">
+      <button class="row-main" aria-haspopup="dialog">
         <div class="t">${opts.showDay ? `<span class="day">${DAY_LABEL[ev.day] || ""}</span>` : ""}<span class="start">${s.t}<span class="ampm">${s.ap}</span></span><span class="end">to ${e.t} ${e.ap}</span></div>
         <div class="body">
           <div class="title">${hl(ev.title)}</div>
@@ -495,7 +649,6 @@ function rowHTML(ev, opts = {}) {
       </button>
       <button class="star" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>
     </div>
-    ${open ? detailHTML(ev) : ""}
   </li>`;
 }
 
@@ -550,6 +703,93 @@ function gapHTML(prev, next) {
   return "";
 }
 
+/* A con day runs to 5am, so a 1am Sunday panel still belongs to Saturday. */
+function conDayKey(d) { return dayOf(new Date(d.getTime() - 5 * 3600000)); }
+
+function nextPickInConDay(now) {
+  const key = conDayKey(now);
+  return events.find(e => picks.has(e.id) && e._s > now && conDayKey(e._s) === key) || null;
+}
+
+/* ---- Where you are, and when to leave ------------------------------ */
+
+/* Inferred from your own schedule, never asked for: what you're in now,
+   else where you just were. Null when neither applies - we can still show
+   a start time, just not a leave-by, because we don't know where from. */
+function currentLocation(now) {
+  const on = events.find(e => picks.has(e.id) && e._s <= now && now < e._e);
+  if (on) return on.hotel;
+  const justEnded = events.filter(e => picks.has(e.id) && e._e <= now && minutesBetween(e._e, now) <= 90)
+    .sort((a, b) => b._e - a._e)[0];
+  return justEnded ? justEnded.hotel : null;
+}
+
+function leaveInfo(from, next, now) {
+  if (!next) return null;
+  const walk = from ? walkMin(from, next.hotel) : null;
+  if (walk === null) return {walk: null, leaveBy: null, late: false, next};
+  const leaveBy = new Date(next._s.getTime() - (walk + LEAVE_BUFFER_MIN) * 60000);
+  return {walk, leaveBy, late: now >= leaveBy, next};
+}
+
+const RING_R = 26, RING_C = 2 * Math.PI * RING_R;
+function ringHTML(fraction, minutes, late) {
+  const f = Math.max(0, Math.min(1, fraction));
+  const label = minutes >= 60 ? `${Math.floor(minutes / 60)}h` : `${Math.max(0, minutes)}`;
+  return `<div class="ring"><svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
+      <circle class="track-c" cx="31" cy="31" r="${RING_R}" fill="none" stroke-width="5"></circle>
+      <circle class="prog" cx="31" cy="31" r="${RING_R}" fill="none" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${(RING_C * (1 - f)).toFixed(1)}"></circle>
+    </svg><div class="num">${label}<small>${minutes >= 60 ? "" : "min"}</small></div></div>`;
+}
+
+function heroHTML(ev, now, onNow, thenNext) {
+  const from = currentLocation(now);
+  const room = ev.room || ev.location || "Location TBA";
+  let kicker, leaveLine = "", thenLine = "", target, windowStart, late = false;
+
+  if (onNow) {
+    kicker = "On now";
+    target = ev._e;
+    windowStart = ev._s;
+    const info = leaveInfo(from, thenNext, now);
+    if (info && info.leaveBy) {
+      late = info.late;
+      thenLine = `<div class="hthen">then: <b>leave by ${fmtShort(info.leaveBy)}</b> for the ${esc(hotelShort(thenNext.hotel))}</div>`;
+    } else if (info) {
+      thenLine = `<div class="hthen">then: ${esc(hotelShort(thenNext.hotel))} next</div>`;
+    }
+    leaveLine = `<div class="hleave">ends ${fmtShort(ev._e)}</div>`;
+  } else {
+    kicker = "Your next";
+    const info = leaveInfo(from, ev, now);
+    if (info && info.leaveBy) {
+      late = info.late;
+      target = info.leaveBy;
+      windowStart = new Date(info.leaveBy.getTime() - 60 * 60000);
+      leaveLine = `<div class="hleave">${late ? "leave now" : `leave by ${fmtShort(info.leaveBy)}`}</div>`;
+      thenLine = `<div class="hthen">${info.walk} min walk from the ${esc(hotelShort(from))} &middot; starts ${fmtShort(ev._s)}</div>`;
+    } else {
+      target = ev._s;
+      windowStart = new Date(ev._s.getTime() - 60 * 60000);
+      leaveLine = `<div class="hleave">starts ${fmtShort(ev._s)}</div>`;
+      thenLine = "";
+    }
+  }
+  const total = Math.max(1, minutesBetween(windowStart, target));
+  const leftMin = minutesBetween(now, target);
+
+  return `<button class="hero${late ? " late" : ""}" data-hero="${esc(ev.id)}">
+    ${ringHTML(leftMin / total, leftMin, late)}
+    <div class="hbody">
+      <div class="hkicker">${kicker}</div>
+      <div class="htitle">${esc(ev.title)}</div>
+      <div class="hroom" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</div>
+      ${leaveLine}${thenLine}
+    </div>
+  </button>`;
+}
+
 /* ---- Now ---------------------------------------------------------- */
 function renderNow() {
   const real = getNow();
@@ -564,15 +804,23 @@ function renderNow() {
   noticeEl.hidden = !banner; noticeEl.className = "notice"; noticeEl.innerHTML = banner;
 
   const horizon = new Date(now.getTime() + 60 * 60000);
-  const minePlan = events.filter(e => picks.has(e.id) && e._e > now).slice(0, 6);
+  const minePlan = events.filter(e => picks.has(e.id) && e._e > now);
   let mineHTML = "";
   if (minePlan.length) {
-    mineHTML = `<div class="section-title">Your next <span class="count">${picks.size} picked</span></div><ul class="list">`;
-    minePlan.forEach((ev, i) => {
-      const status = ev._s <= now ? `On now, ends ${fmtShort(ev._e)}` : `In ${minutesBetween(now, ev._s)} min`;
-      mineHTML += gapHTML(minePlan[i - 1], ev) + rowHTML(ev, {list: "next", status: i === 0 || ev._s <= now ? status : (minutesBetween(now, ev._s) <= 90 ? status : "")});
-    });
-    mineHTML += `</ul>`;
+    const onNowEv = minePlan.find(e => e._s <= now && now < e._e) || null;
+    const upcoming = minePlan.filter(e => e._s > now);
+    const heroEv = onNowEv || upcoming[0];
+    const thenNext = onNowEv ? upcoming[0] : null;
+    mineHTML = heroHTML(heroEv, now, !!onNowEv, thenNext);
+    const rest = minePlan.filter(e => e !== heroEv);
+    if (rest.length) {
+      mineHTML += `<div class="section-title">Rest of your day <span class="count">${picks.size} picked</span></div><ul class="list compact">`;
+      rest.forEach((ev, i) => {
+        const status = ev._s <= now ? `On now, ends ${fmtShort(ev._e)}` : `In ${minutesBetween(now, ev._s)} min`;
+        mineHTML += gapHTML(i === 0 ? heroEv : rest[i - 1], ev) + rowHTML(ev, {list: "next", status: minutesBetween(now, ev._s) <= 90 || ev._s <= now ? status : ""});
+      });
+      mineHTML += `</ul>`;
+    }
   } else {
     mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Star things in Browse and they show up here with walk times.</div>`;
   }
@@ -580,7 +828,7 @@ function renderNow() {
   const around = events.filter(e => e._e > now && e._s <= horizon && !(state.browse.hideNoise && isNoise(e)) && (state.now.hotel === "All" || e.hotel === state.now.hotel));
   const shown = around.slice(0, state.now.limit);
   let aroundHTML = `<div class="section-title">On now and in the next hour <span class="count">${around.length}</span></div>
-    <div class="controls" style="padding-top:0"><div class="chips">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotels.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list">`;
+    <div class="controls" style="padding-top:0"><div class="chips">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotels.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list compact">`;
   let lastKey = "";
   shown.forEach(ev => {
     const key = ev._s <= now ? "on" : fmtShort(ev._s);
@@ -675,14 +923,109 @@ function renderBrowse() {
 }
 
 /* ---- Mine --------------------------------------------------------- */
+/* Side-by-side columns for anything that overlaps in time. Events are
+   grouped into clusters that genuinely collide, and each cluster is
+   given only as many columns as it actually needs. */
+const HOUR_PX = 60;
+function layoutColumns(list) {
+  const sorted = [...list].sort((a, b) => a._s - b._s || a._e - b._e);
+  const out = [];
+  let cluster = [], clusterEnd = null;
+  const flush = () => {
+    if (!cluster.length) return;
+    const colEnds = [];
+    cluster.forEach(it => {
+      let c = colEnds.findIndex(end => end <= it.ev._s.getTime());
+      if (c === -1) { c = colEnds.length; colEnds.push(0); }
+      colEnds[c] = it.ev._e.getTime();
+      it.col = c;
+    });
+    cluster.forEach(it => it.cols = colEnds.length);
+    out.push(...cluster);
+    cluster = []; clusterEnd = null;
+  };
+  sorted.forEach(ev => {
+    if (clusterEnd !== null && ev._s.getTime() >= clusterEnd) flush();
+    cluster.push({ev, col: 0, cols: 1});
+    clusterEnd = clusterEnd === null ? ev._e.getTime() : Math.max(clusterEnd, ev._e.getTime());
+  });
+  flush();
+  return out;
+}
+
+function timelineDayHTML(dayKey, list, now) {
+  const items = layoutColumns(list);
+  const sorted = items.map(i => i.ev).sort((a, b) => a._s - b._s);
+  const startMs = Math.min(...sorted.map(e => e._s.getTime()));
+  const endMs = Math.max(...sorted.map(e => e._e.getTime()));
+  const origin = new Date(startMs); origin.setMinutes(0, 0, 0);
+  const last = new Date(endMs);
+  if (last.getMinutes() || last.getSeconds()) { last.setMinutes(0, 0, 0); last.setHours(last.getHours() + 1); }
+  const spanH = Math.max(1, Math.round((last - origin) / 3600000));
+  const top = t => ((t - origin) / 60000) * (HOUR_PX / 60);
+
+  let hours = "";
+  for (let h = 0; h <= spanH; h++) {
+    const at = new Date(origin.getTime() + h * 3600000);
+    hours += `<div class="tl-hour" style="top:${h * HOUR_PX}px"><span>${fmtShort(at)}</span></div>`;
+  }
+
+  const blocks = items.map(({ev, col, cols}) => {
+    const h = Math.max(24, top(ev._e.getTime()) - top(ev._s.getTime()) - 2);
+    const w = 100 / cols;
+    const long = h >= 150;
+    return `<button class="tl-block${long ? " long" : ""}" data-hero="${esc(ev.id)}" style="top:${top(ev._s.getTime()).toFixed(1)}px;height:${h.toFixed(1)}px;left:${(col * w).toFixed(2)}%;width:calc(${w.toFixed(2)}% - 3px);--h:var(${hotelVar(ev.hotel)})">
+      <span class="tb-title">${esc(ev.title)}</span>
+      <span class="tb-room">${esc(ev.room || ev.location || "")}</span>
+      ${long ? `<span class="tb-runs">runs to ${fmtShort(ev._e)}</span>` : ""}
+    </button>`;
+  }).join("");
+
+  let links = "";
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1], next = sorted[i];
+    if (prev.hotel === next.hotel) continue;
+    const walk = walkMin(prev.hotel, next.hotel);
+    const gap = minutesBetween(prev._e, next._s);
+    const y1 = top(prev._e.getTime()), y2 = top(next._s.getTime());
+    const height = Math.max(18, y2 - y1);
+    links += `<div class="tl-link${gap < walk ? " tight" : ""}" style="top:${Math.min(y1, y2).toFixed(1)}px;height:${height.toFixed(1)}px">
+      <span>${walk} min</span></div>`;
+  }
+
+  const nowLine = conDayKey(now) === dayKey && now >= origin && now <= last
+    ? `<div class="tl-now" style="top:${top(now.getTime()).toFixed(1)}px"></div>` : "";
+
+  return `<div class="tl-day">
+    <div class="day-head" style="padding-left:0">${DAY_LONG[dayKey] || dayKey} <span class="count" style="font-size:14px;color:var(--dim);font-weight:400">${list.length}</span></div>
+    <div class="tl-grid" style="height:${spanH * HOUR_PX + 12}px">${hours}${links}${blocks}${nowLine}</div>
+  </div>`;
+}
+
+function renderMineTimeline(mine, now) {
+  const days = new Map();
+  mine.forEach(ev => {
+    const k = conDayKey(ev._s);
+    if (!days.has(k)) days.set(k, []);
+    days.get(k).push(ev);
+  });
+  return [...days.keys()].sort().map(k => timelineDayHTML(k, days.get(k), now)).join("");
+}
+
 function renderMine() {
   const mine = events.filter(e => picks.has(e.id));
   let html = `<div class="mine-actions">
     <button class="btn" data-act="ics" ${mine.length ? "" : "disabled"}>Export to calendar</button>
     <button class="btn quiet" data-act="clear" ${mine.length ? "" : "disabled"}>Remove all</button>
   </div>`;
+  if (mine.length) html += `<div class="view-toggle" role="group" aria-label="View">
+    <button data-act="view-timeline" aria-pressed="${state.mineView === "timeline"}">Timeline</button>
+    <button data-act="view-list" aria-pressed="${state.mineView === "list"}">List</button>
+  </div>`;
   if (!mine.length) {
     html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Browse. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
+  } else if (state.mineView === "timeline") {
+    html += renderMineTimeline(mine, getNow());
   } else {
     html += `<ul class="list">`;
     let lastDay = "", prev = null;
@@ -702,8 +1045,11 @@ function renderMine() {
 function icsEscape(s) { return String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
 function fold(line) { const out = []; while (line.length > 74) { out.push(line.slice(0, 74)); line = " " + line.slice(74); } out.push(line); return out.join("\r\n"); }
 function icsDate(d) { return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`; }
-function exportICS() {
-  const mine = events.filter(e => picks.has(e.id));
+function exportICS() { downloadICS(events.filter(e => picks.has(e.id)), "dragoncon-2026-my-schedule.ics"); }
+function exportEventICS(ev) {
+  downloadICS([ev], `dragoncon-2026-${(ev.title || "event").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "event"}.ics`);
+}
+function downloadICS(mine, filename) {
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//dragoncon-planner//EN", "CALSCALE:GREGORIAN", "X-WR-CALNAME:Dragon Con 2026",
     "BEGIN:VTIMEZONE", "TZID:America/New_York",
@@ -720,7 +1066,7 @@ function exportICS() {
   lines.push("END:VCALENDAR");
   const blob = new Blob([lines.join("\r\n") + "\r\n"], {type: "text/calendar;charset=utf-8"});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = "dragoncon-2026-my-schedule.ics"; document.body.appendChild(a); a.click();
+  const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
 }
 
@@ -729,7 +1075,7 @@ function exportICS() {
    ================================================================== */
 document.querySelector(".nav").addEventListener("click", e => {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
-  state.tab = b.dataset.tab; state.openId = null; render(); window.scrollTo(0, 0);
+  state.tab = b.dataset.tab; render(); window.scrollTo(0, 0);
 });
 
 document.querySelector("main").addEventListener("click", e => {
@@ -738,7 +1084,7 @@ document.querySelector("main").addEventListener("click", e => {
     const {chip: kind, value} = chip.dataset;
     if (kind === "now-hotel") { state.now.hotel = value; state.now.limit = 80; }
     else if (kind === "day") state.browse.day = value;
-    else if (kind === "hotel") state.browse.hotel = value;
+    else if (kind === "hotel") state.browse.hotel = state.browse.hotel === value ? "All" : value;
     else if (kind === "type") state.browse.type = value;
     else if (kind === "kind") state.browse.kind = value;
     state.browse.page = 1; render(); return;
@@ -750,23 +1096,39 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "more-browse") { state.browse.page++; render(); }
     if (a === "ics") exportICS();
     if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
-    if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id); }
+    if (a === "toggle") { const li = act.closest(".row"); togglePick(li.dataset.id, li); }
+    if (a === "view-timeline" || a === "view-list") {
+      state.mineView = a === "view-timeline" ? "timeline" : "list";
+      saveJSON("dc26.mineView", state.mineView); render();
+    }
     return;
   }
   const star = e.target.closest(".star");
-  if (star) { togglePick(star.closest(".row").dataset.id); return; }
+  if (star) { const li = star.closest(".row"); togglePick(li.dataset.id, li); return; }
+  const hero = e.target.closest("[data-hero]");
+  if (hero) { openSheet("event", hero.dataset.hero); return; }
   const main = e.target.closest(".row-main");
-  if (main) {
-    const li = main.closest(".row"), key = `${li.dataset.list}:${li.dataset.id}`;
-    state.openId = state.openId === key ? null : key; render();
-    if (state.openId) { const el = document.querySelector(`.row[data-list="${li.dataset.list}"][data-id="${(window.CSS && CSS.escape) ? CSS.escape(li.dataset.id) : li.dataset.id}"]`); if (el && el.scrollIntoView) { const r = el.getBoundingClientRect(); if (r.top < 70) el.scrollIntoView({block: "start"}); } }
-  }
+  if (main) openSheet("event", main.closest(".row").dataset.id);
 });
 
-function togglePick(id) {
+/* Starring changes what renders above the row you just tapped - the first
+   pick inserts the whole hero card - which used to shove the list down by
+   200px or more, so the next tap landed on whatever had slid into place.
+   Keep the tapped row under the finger: measure it, re-render, put it back. */
+function togglePick(id, anchor) {
+  const wasTop = anchor ? anchor.getBoundingClientRect().top : null;
+  const list = anchor ? anchor.dataset.list || "" : "";
   if (picks.has(id)) picks.delete(id); else picks.add(id);
-  savePicks(); render();
+  savePicks();
+  render();
+  if (wasTop === null) return;
+  const sel = `.row[data-id="${cssEsc(id)}"]${list ? `[data-list="${cssEsc(list)}"]` : ""}`;
+  const el = document.querySelector(sel);
+  if (!el) return;
+  const delta = el.getBoundingClientRect().top - wasTop;
+  if (Math.abs(delta) > 1) window.scrollBy(0, delta);
 }
+const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
 
 document.querySelector("main").addEventListener("input", e => {
   if (e.target.id === "q") {
@@ -784,19 +1146,144 @@ document.querySelector("main").addEventListener("change", e => {
   if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
 });
 
-/* Settings sheet */
+/* Bottom sheet: one wrapper, two panels (settings, event) */
 const sheetWrap = document.getElementById("sheetWrap");
-function openSheet() {
+const sheetEl = document.getElementById("sheet");
+const panelSettings = document.getElementById("panel-settings");
+const panelEvent = document.getElementById("panel-event");
+let sheetScrollY = 0;
+
+function fillSettings() {
   document.getElementById("crowd").value = settings.crowd;
   document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`;
   document.getElementById("noiseDefault").checked = settings.hideNoise;
   const m = location.hash.match(/now=([0-9T:-]+)/);
   document.getElementById("previewTime").value = m ? m[1].slice(0, 16) : "";
   document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
+}
+
+function eventSheetHTML(ev) {
+  const mine = picks.has(ev.id);
+  const people = (ev.speakers || []).map(p => p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name);
+  const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
+  const chips = [...(ev.tracks || []), ...((ev.tags && ev.tags.fandoms) || [])];
+  return `<div class="ev-head">
+      <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
+      <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}</div>
+      <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${esc(ev.room || ev.location || "Location TBA")}</div>
+    </div>
+    <div class="ev-body">
+      ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
+      ${people.length ? `<div class="ev-people">With <span>${esc(people.join(", "))}</span></div>` : ""}
+      ${chips.length || (ev.tags && ev.tags.adult) ? `<div class="tagline">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${ev.tags && ev.tags.adult ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
+    </div>
+    <div class="ev-actions">
+      <button class="ev-star" id="sheetStar" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>
+      <button class="btn quiet" id="sheetICS">Add this to calendar</button>
+      <button class="btn" id="closeSheetEvent">Done</button>
+    </div>`;
+}
+
+function openSheet(kind = "settings", id = null) {
+  sheetScrollY = window.scrollY || window.pageYOffset || 0;
+  const isEvent = kind === "event";
+  if (isEvent) {
+    const ev = byId.get(id);
+    if (!ev) return;
+    state.sheetId = id;
+    panelEvent.innerHTML = eventSheetHTML(ev);
+  } else {
+    state.sheetId = null;
+    fillSettings();
+  }
+  panelSettings.hidden = isEvent;
+  panelEvent.hidden = !isEvent;
+  sheetEl.setAttribute("aria-labelledby", isEvent ? "sheetTitleEvent" : "sheetTitle");
+  sheetEl.style.transform = "";
   sheetWrap.hidden = false;
 }
-function closeSheet() { sheetWrap.hidden = true; render(); }
-document.getElementById("settingsBtn").addEventListener("click", openSheet);
+
+function closeSheet() {
+  sheetWrap.hidden = true;
+  state.sheetId = null;
+  sheetEl.classList.remove("settling");
+  sheetEl.style.transform = "";
+  sheetBackEl.style.opacity = "";
+  sheetBackEl.classList.remove("dragging");
+  dragY = null;
+  render();
+  window.scrollTo(0, sheetScrollY);
+}
+
+/* Swipe down to dismiss.
+   The sheet claims the gesture via touch-action, so the page behind it stays
+   put; the backdrop fades with the drag so the sheet feels attached to it. */
+const sheetBackEl = document.getElementById("sheetBack");
+let dragY = null, dragT = 0, dragDy = 0;
+
+function setDrag(dy) {
+  dragDy = dy;
+  sheetEl.style.transform = dy ? `translateY(${dy}px)` : "";
+  const h = sheetEl.offsetHeight || 1;
+  sheetBackEl.style.opacity = String(Math.max(0, 1 - (dy / h) * 0.9));
+}
+function settle(toClosed) {
+  sheetEl.classList.add("settling");
+  sheetBackEl.classList.remove("dragging");
+  if (toClosed) {
+    sheetEl.style.transform = `translateY(${sheetEl.offsetHeight}px)`;
+    sheetBackEl.style.opacity = "0";
+    const done = () => { sheetEl.removeEventListener("transitionend", done); closeSheet(); };
+    sheetEl.addEventListener("transitionend", done);
+    setTimeout(done, 320);            // belt and braces if the transition never fires
+  } else {
+    setDrag(0);
+    setTimeout(() => sheetEl.classList.remove("settling"), 240);
+  }
+}
+
+sheetEl.addEventListener("touchstart", e => {
+  if (e.target.closest(".ev-body")) return;   // let the description scroll
+  dragY = e.touches[0].clientY;
+  dragT = Date.now();
+  dragDy = 0;
+  sheetEl.classList.remove("settling");
+  sheetBackEl.classList.add("dragging");
+}, {passive: true});
+
+sheetEl.addEventListener("touchmove", e => {
+  if (dragY === null) return;
+  const dy = e.touches[0].clientY - dragY;
+  setDrag(dy > 0 ? dy : dy / 4);              // slight resistance upward
+}, {passive: true});
+
+sheetEl.addEventListener("touchend", () => {
+  if (dragY === null) return;
+  const dy = dragDy, ms = Date.now() - dragT;
+  dragY = null;
+  /* Below about one frame we have no reliable velocity, so don't invent one -
+     fall back to distance alone rather than treating a 30px nudge as a flick. */
+  const v = ms >= 16 ? dy / ms : 0;
+  const flicked = dy > 40 && v > 0.6;
+  settle(dy > 70 || flicked);
+});
+
+sheetEl.addEventListener("touchcancel", () => { if (dragY !== null) { dragY = null; settle(false); } });
+
+panelEvent.addEventListener("click", e => {
+  if (e.target.closest("#closeSheetEvent")) { closeSheet(); return; }
+  const ev = byId.get(state.sheetId);
+  if (!ev) return;
+  if (e.target.closest("#sheetICS")) { exportEventICS(ev); return; }
+  if (e.target.closest("#sheetStar")) {
+    if (picks.has(ev.id)) picks.delete(ev.id); else picks.add(ev.id);
+    savePicks();
+    panelEvent.innerHTML = eventSheetHTML(ev);
+  }
+});
+
+document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); window.scrollTo(0, 0); });
+document.getElementById("settingsBtn").addEventListener("click", () => openSheet("settings"));
 document.getElementById("closeSheet").addEventListener("click", closeSheet);
 document.getElementById("sheetBack").addEventListener("click", closeSheet);
 document.getElementById("crowd").addEventListener("input", e => { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON("dc26.settings", settings); });
@@ -806,7 +1293,7 @@ document.getElementById("clearPreview").addEventListener("click", () => { histor
 document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
 window.addEventListener("hashchange", () => { state.browse.day = null; render(); });
 
-setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden && !state.openId) renderNow(); updateFresh(); }, 60000);
+setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden) renderNow(); else renderMiniBar(); updateFresh(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
 
 load();
