@@ -825,6 +825,7 @@ function updateFresh() {
    Rendering
    ================================================================== */
 function render() {
+  cancelQueuedBrowseRender();
   updateClock();
   document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
   ["now", "browse", "explore", "foryou", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
@@ -1033,28 +1034,64 @@ function heroHTML(ev, now, onNow, thenNext) {
 }
 
 /* ---- Now ---------------------------------------------------------- */
-function renderNow() {
+/* Outside con week the Now tab previews a sensible moment instead of an
+   empty one. Shared so the minute tick sees the same clock as the render. */
+function effectiveNow() {
   const real = getNow();
-  let now = real, banner = "";
   if (real < new Date("2026-09-02T00:00")) {
-    now = new Date("2026-09-03T10:00");
-    banner = `<b>Con starts Thursday.</b> Showing Thursday 10:00 AM as a preview. Use Settings to preview any other time.`;
-  } else if (real > new Date("2026-09-08T06:00")) {
-    banner = `<b>That's a wrap.</b> Showing Monday afternoon.`; now = new Date("2026-09-07T13:00");
+    return {now: new Date("2026-09-03T10:00"),
+      banner: `<b>Con starts Thursday.</b> Showing Thursday 10:00 AM as a preview. Use Settings to preview any other time.`};
   }
+  if (real > new Date("2026-09-08T06:00")) {
+    return {now: new Date("2026-09-07T13:00"), banner: `<b>That's a wrap.</b> Showing Monday afternoon.`};
+  }
+  return {now: real, banner: ""};
+}
+
+/* What the Now tab would show, without building any of it. */
+function nowModel(now) {
+  const horizon = new Date(now.getTime() + 60 * 60000);
+  const minePlan = events.filter(e => picks.has(e.id) && e._e > now);
+  const onNowEv = minePlan.find(e => e._s <= now && now < e._e) || null;
+  const upcoming = minePlan.filter(e => e._s > now);
+  const heroEv = minePlan.length ? (onNowEv || upcoming[0]) : null;
+  const rest = heroEv ? minePlan.filter(e => e !== heroEv) : [];
+  const around = events.filter(e => e._e > now && e._s <= horizon
+    && !(state.browse.hideNoise && isNoise(e))
+    && (state.now.hotel === "All" || e.hotel === state.now.hotel));
+  return {minePlan, onNowEv, upcoming, heroEv, rest, around, shown: around.slice(0, state.now.limit)};
+}
+
+const statusShown = (ev, now) => ev._s <= now || minutesBetween(now, ev._s) <= 90;
+
+/* Everything that decides which elements exist. The clock is deliberately
+   absent: a new minute changes the words, not the structure. */
+function nowSignature(m, now, banner) {
+  return [
+    banner,
+    m.heroEv ? m.heroEv.id : "-",
+    m.onNowEv ? "on" : "next",
+    m.rest.map(e => e.id + (statusShown(e, now) ? "!" : "")).join(","),
+    m.around.length,
+    m.shown.map(e => (e._s <= now ? "o" : "u") + e.id).join(","),
+  ].join("|");
+}
+let lastNowSig = null;
+
+function renderNow() {
+  const {now, banner} = effectiveNow();
   const noticeEl = document.getElementById("notice");
   noticeEl.hidden = !banner; noticeEl.className = "notice"; noticeEl.innerHTML = banner;
 
-  const horizon = new Date(now.getTime() + 60 * 60000);
-  const minePlan = events.filter(e => picks.has(e.id) && e._e > now);
+  const model = nowModel(now);
+  lastNowSig = nowSignature(model, now, banner);
+  const minePlan = model.minePlan;
   let mineHTML = "";
   if (minePlan.length) {
-    const onNowEv = minePlan.find(e => e._s <= now && now < e._e) || null;
-    const upcoming = minePlan.filter(e => e._s > now);
-    const heroEv = onNowEv || upcoming[0];
+    const onNowEv = model.onNowEv, upcoming = model.upcoming, heroEv = model.heroEv;
     const thenNext = onNowEv ? upcoming[0] : null;
     mineHTML = heroHTML(heroEv, now, !!onNowEv, thenNext);
-    const rest = minePlan.filter(e => e !== heroEv);
+    const rest = model.rest;
     if (rest.length) {
       mineHTML += `<div class="section-title">Rest of your day <span class="count">${picks.size} picked</span></div><ul class="list compact">`;
       rest.forEach((ev, i) => {
@@ -1067,8 +1104,7 @@ function renderNow() {
     mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Star things in Search and they show up here with walk times.</div>`;
   }
 
-  const around = events.filter(e => e._e > now && e._s <= horizon && !(state.browse.hideNoise && isNoise(e)) && (state.now.hotel === "All" || e.hotel === state.now.hotel));
-  const shown = around.slice(0, state.now.limit);
+  const around = model.around, shown = model.shown;
   let aroundHTML = `<div class="section-title">On now and in the next hour <span class="count">${around.length}</span></div>
     <div class="controls" style="padding-top:0"><div class="chips">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotels.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list compact">`;
   let lastKey = "";
@@ -1987,6 +2023,16 @@ function togglePick(id, anchor) {
 }
 const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
 
+/* Long enough to swallow a burst of typing, short enough not to feel laggy. */
+const SEARCH_DEBOUNCE_MS = 140;
+let browseRenderTimer = null;
+function queueBrowseRender() {
+  clearTimeout(browseRenderTimer);
+  browseRenderTimer = setTimeout(() => { browseRenderTimer = null; renderBrowse(); }, SEARCH_DEBOUNCE_MS);
+}
+/* Anything that redraws for another reason should not then redraw again. */
+function cancelQueuedBrowseRender() { clearTimeout(browseRenderTimer); browseRenderTimer = null; }
+
 document.querySelector("main").addEventListener("input", e => {
   if (e.target.id === "exploreQ") { state.explore.q = e.target.value; renderExplore(); return; }
   if (e.target.id === "q") {
@@ -1998,7 +2044,11 @@ document.querySelector("main").addEventListener("input", e => {
     state.browse.noToday = false;
     if (!was && now.trim()) { state.browse.prevDay = state.browse.day; state.browse.day = "All"; }
     else if (was && !now.trim() && state.browse.prevDay) { state.browse.day = state.browse.prevDay; state.browse.prevDay = null; }
-    state.browse.page = 1; renderBrowse();
+    state.browse.page = 1;
+    /* Rebuilding Browse costs ~120KB of HTML and 2,000 nodes. Doing that on
+       every keystroke makes typing lag on a phone; the query itself is already
+       recorded, so only the drawing waits. */
+    queueBrowseRender();
   }
 });
 document.querySelector("main").addEventListener("change", e => {
@@ -2172,7 +2222,38 @@ function applyExploreHash() {
 }
 window.addEventListener("hashchange", () => { state.browse.day = null; applyExploreHash(); render(); });
 
-setInterval(() => { updateClock(); if (state.tab === "now" && sheetWrap.hidden) renderNow(); else renderMiniBar(); updateFresh(); }, 60000);
+/* A minute changes the countdowns, not usually the list. Rebuilding the whole
+   Now tab every 60s threw away and recreated every node under the reader's
+   thumb; this redraws the hero and the "in N min" labels and leaves the rest
+   alone, falling back to a full render the moment the structure really moves. */
+function tickNow() {
+  const {now, banner} = effectiveNow();
+  const model = nowModel(now);
+  const sig = nowSignature(model, now, banner);
+  if (sig !== lastNowSig || !document.querySelector("#view-now .hero, #view-now .empty")) { renderNow(); return; }
+
+  const view = document.getElementById("view-now");
+  const heroEl = view.querySelector(".hero");
+  if (heroEl && model.heroEv) {
+    const holder = document.createElement("div");
+    holder.innerHTML = heroHTML(model.heroEv, now, !!model.onNowEv, model.onNowEv ? model.upcoming[0] : null);
+    const fresh = holder.firstElementChild;
+    /* A countdown reading "2h" says the same thing a minute later; swapping the
+       card anyway would drop a tap that happened to land on the tick. */
+    if (fresh && fresh.outerHTML !== heroEl.outerHTML) heroEl.replaceWith(fresh);
+  }
+  model.rest.forEach(ev => {
+    const el = view.querySelector(`.row[data-list="next"][data-id="${cssEsc(ev.id)}"] .status`);
+    if (!el) return;
+    el.textContent = ev._s <= now ? `On now, ends ${fmtShort(ev._e)}` : `In ${minutesBetween(now, ev._s)} min`;
+  });
+}
+
+setInterval(() => {
+  updateClock();
+  if (state.tab === "now" && sheetWrap.hidden) tickNow(); else renderMiniBar();
+  updateFresh();
+}, 60000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
 
 /* The sticky filters park directly under the header, whose height changes
