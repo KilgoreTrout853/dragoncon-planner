@@ -694,6 +694,7 @@ function updateFresh() {
   el.textContent = `${events.length} events, refreshed ${f(ago)} ago`
     + (changed !== null && changed !== ago ? `, last change ${f(changed)} ago` : "")
     + (servedOffline ? " · offline copy" : "");
+  syncHeaderHeight();          // this line is what changes the header's height
 }
 
 /* ==================================================================
@@ -1605,9 +1606,16 @@ function syncHeaderHeight() {
   const h = document.querySelector(".hdr");
   if (h) document.documentElement.style.setProperty("--hdr-h", `${Math.round(h.getBoundingClientRect().height)}px`);
 }
-syncHeaderHeight();
+/* Measure at the moments the header is known to change, not only through an
+   observer: ResizeObserver is delivered on the rendering lifecycle, so a page
+   that isn't painting - a background tab, a hidden view - never hears about
+   it. The first measurement also lands before the freshness line has any
+   text, which is 17px short. */
+requestAnimationFrame(syncHeaderHeight);
 window.addEventListener("resize", syncHeaderHeight);
 window.addEventListener("orientationchange", syncHeaderHeight);
+window.addEventListener("load", syncHeaderHeight);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncHeaderHeight).catch(() => {});
 if (window.ResizeObserver) {
   const hdr = document.querySelector(".hdr");
   if (hdr) new ResizeObserver(syncHeaderHeight).observe(hdr);
