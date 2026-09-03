@@ -716,6 +716,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval("openSheet('settings')");
   const dev = document.getElementById("deviceLine").textContent;
   assert(/^(Home-screen app|Web page) · viewport \d+×\d+, visual .+, screen .+ · insets top .+, bottom .+/.test(dev), `settings carries a device readout (${dev})`);
+  assert(/ · build \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/.test(dev), "ending in the build stamp from the page's last-modified time");
   window.eval("closeSheet()");
   assert(/document\.addEventListener\("touchmove", edgeTouchMove, \{passive: false\}\)/.test(html), "on iOS the move listener is the kind that may cancel");
 

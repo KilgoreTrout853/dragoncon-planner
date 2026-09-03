@@ -2304,7 +2304,11 @@ function deviceLine() {
   const standalone = !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
   const vv = window.visualViewport ? Math.round(window.visualViewport.height) : "-";
   const scr = window.screen ? `${screen.width}×${screen.height}` : "-";
-  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets}${IS_IOS ? " · iOS" : ""}`;
+  /* GitHub Pages stamps every deploy with a Last-Modified header; the page
+     can read it, so "which build is this" is a glance rather than a guess. */
+  const built = new Date(document.lastModified);
+  const stamp = isNaN(built) ? "" : ` · build ${built.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets}${IS_IOS ? " · iOS" : ""}${stamp}`;
 }
 
 function eventSheetHTML(ev) {
