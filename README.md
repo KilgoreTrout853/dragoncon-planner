@@ -14,7 +14,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `manifest.json`, `icon.svg` | Make it installable to a home screen as "DC26". |
 | `.github/workflows/scrape.yml` | Re-runs the scraper every 3 hours during con week and commits fresh data. |
-| `tests/` | 24 parser tests and 484 UI assertions. Not optional — run them before you push. |
+| `tests/` | 24 parser tests and 490 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -31,7 +31,7 @@ python -m http.server 8000       # then open http://localhost:8000
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 484 assertions
+node tests/ui_smoke.js           # 490 assertions
 python tests/test_parse.py       # 24 parser tests
 ```
 
@@ -45,6 +45,8 @@ Four tabs.
 - **Search** understands what you type. `star trek saturday hilton` searches "star trek" across Saturday's Hilton events and shows you which words it took as filters, each removable. `late night`, `signing sunday`, `tonight` and `kids` all work; a query that's entirely filters scopes to today unless you say otherwise. Typing two letters suggests guests and fandoms by name. Events that already happened sit behind a fold. When nothing matched a word literally, it says so rather than pretending.
 - **Explore** lists everything you could follow — every track, fandoms with 3+ events, topics, and guests — as tiles with counts. Tap one for its own page and a Follow button. Each page is linkable as `#explore=kind:key`. Once you follow something, a **Following** section sits above the grid with what you follow, grouped by interest or merged into one timeline; an event reached by two follows appears once, labelled with both. It folds away behind its header, and stays folded if you leave it that way.
 - **Mine** shows your picks as a timeline by default — blocks sized by duration, clashes side by side, walk connectors between hotels, a now-line. Or as a list. "Export to calendar" downloads an `.ics` with the correct Eastern time zone.
+
+A con day runs to 5 AM, everywhere in the app: a 1 AM panel sits under the day before on the day chips, in day headers, in Mine and on the Now tab. The detail sheet and the calendar export keep the real date and say which night it belongs to.
 
 Tap any row for the detail sheet: description, panelists with a "See all" link to each person, exact room, star, and a single-event calendar export. Swipe it down to dismiss.
 
