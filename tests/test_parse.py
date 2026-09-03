@@ -272,6 +272,43 @@ def test_dedupe_sorts_by_start_then_title():
 
 
 # ---------------------------------------------------------------------------
+# Descriptions: read once, with the line breaks the page had
+# ---------------------------------------------------------------------------
+
+# Verbatim shape of a gaming event page: a <p> opened inside a <p> that is
+# never closed, and <br> between lines. html.parser nests the paragraphs.
+DETAIL_NESTED_P = """
+<div class="template_header"><h1 class="header_title">CMP 2083-16: War Never Changes</h1></div>
+<div class="template_content">
+  <div class="section"><div class="section_inner">
+    <table class="table">
+      <tr><td>Location</td><td>Mart Building 3, Floor 2</td></tr>
+      <tr><td>Date</td><td>Saturday, Sep  5 9:00 AM</td></tr>
+      <tr><td>Duration</td><td>5 hours</td></tr>
+    </table>
+  </div></div>
+  <div class="section section-about"><div class="section_inner">
+    <p class="{PCLASS}" data-item-id="{IID}" id="{PID}"><p><strong><u>A Shadowrun Missions Event for Characters of Any Karma</u></strong><br/>The runners are surprise guest stars.<br/><br/>Bring a character.</p>
+  </div></div>
+</div>
+"""
+
+
+def test_nested_paragraph_is_read_once_with_its_line_breaks():
+    d = scraper.parse_detail(DETAIL_NESTED_P)
+    assert d["description"] == (
+        "A Shadowrun Missions Event for Characters of Any Karma\n"
+        "The runners are surprise guest stars.\n"
+        "Bring a character.")
+    assert d["description"].count("Shadowrun") == 1
+
+
+def test_plain_paragraphs_still_join_on_newlines():
+    d = scraper.parse_detail(DETAIL_WITH_SPEAKERS)
+    assert d["description"] == "A world where becoming part of something greater may be the ultimate reward...or the end."
+
+
+# ---------------------------------------------------------------------------
 # Cancelled: only when the event says so up front
 # ---------------------------------------------------------------------------
 

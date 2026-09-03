@@ -142,7 +142,10 @@ def parse_detail(html):
         heading = section.select_one("h2.section_heading")
         name = clean(heading.get_text()) if heading else ""
         if not heading:
-            paras = [clean(p.get_text()) for p in section.select("p")]
+            # The site often opens a <p> inside a <p> it never closed, and
+            # html.parser nests them. The outer's text already holds the
+            # inner's, so reading both wrote 195 descriptions out twice.
+            paras = [para_text(p) for p in section.select("p") if p.find_parent("p") is None]
             paras = [p for p in paras if p]
             if paras and not out["description"]:
                 out["description"] = "\n".join(paras)
@@ -163,6 +166,15 @@ def parse_detail(html):
 
 def clean(s):
     return re.sub(r"\s+", " ", s or "").strip()
+
+
+def para_text(p):
+    """A paragraph's text, with <br> kept as a line break. get_text() alone
+    ran the lines together: "Any Karma<br>The runners" became "KarmaThe"."""
+    for br in p.find_all("br"):
+        br.replace_with("\n")
+    lines = [clean(line) for line in p.get_text().split("\n")]
+    return "\n".join(line for line in lines if line)
 
 
 def parse_start(date_text):
