@@ -680,6 +680,26 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(html.includes("viewport-fit=cover"), "which matters because the page opts into drawing under the bars");
   const htmlCss = html.slice(html.indexOf("html {"), html.indexOf("html {") + 200);
   assert(htmlCss.includes("overscroll-behavior-y: none"), "the root refuses the overscroll stretch, so a fixed nav cannot bounce with it");
+  // iOS ignores that rule for the page, so a drag at the edge is refused by hand
+  const edge = JSON.parse(window.eval(`(function(){
+    var out = {};
+    var fake = function(x, y, target){ var p = false; return {touches: [{clientX: x, clientY: y}], target: target || document.body,
+      preventDefault: function(){ p = true; }, prevented: function(){ return p; }}; };
+    /* jsdom has no layout: the page is at its top and its bottom at once */
+    var s = fake(100, 100); edgeTouchStart(s); var m = fake(100, 160); edgeTouchMove(m); out.downAtTop = m.prevented();
+    s = fake(100, 300); edgeTouchStart(s); m = fake(100, 240); edgeTouchMove(m); out.upAtBottom = m.prevented();
+    s = fake(100, 300); edgeTouchStart(s); m = fake(220, 310); edgeTouchMove(m); out.sideways = m.prevented();
+    s = fake(100, 300, document.getElementById("sheet")); edgeTouchStart(s); m = fake(100, 360); edgeTouchMove(m); out.inSheet = m.prevented();
+    s = fake(100, 300, document.getElementById("q") || document.body); edgeTouchStart(s); m = fake(100, 360); edgeTouchMove(m); out.onInput = m.prevented();
+    s = fake(100, 300); edgeTouchStart(s); m = {touches: [{clientX: 100, clientY: 360}, {clientX: 200, clientY: 360}], preventDefault: function(){ out.twoFingers = true; }}; edgeTouchMove(m);
+    return JSON.stringify(out); })()`));
+  assert(edge.downAtTop, "a drag down with the page at its top is refused");
+  assert(edge.upAtBottom, "so is a drag up with the page at its bottom");
+  assert(!edge.sideways, "a mostly sideways drag is not");
+  assert(!edge.inSheet, "nor a drag that began in the sheet");
+  assert(!edge.twoFingers, "nor a two-finger gesture");
+  assert(window.eval("IS_IOS") === false, "and none of it is wired up outside iOS");
+  assert(/document\.addEventListener\("touchmove", edgeTouchMove, \{passive: false\}\)/.test(html), "on iOS the move listener is the kind that may cancel");
 
   // ---- a cancelled event says so, not just a strike-through ----
   const cancelProbe = JSON.parse(window.eval(`(function(){

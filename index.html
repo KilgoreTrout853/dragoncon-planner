@@ -2467,6 +2467,37 @@ if (window.ResizeObserver) {
    Offline. The service worker keeps the app openable with no signal;
    this end only has to handle being told the schedule moved on.
    ================================================================== */
+/* iOS rubber-bands the whole page, fixed nav included, whenever a drag runs
+   past an edge - and on a short page like Now every upward drag does. Safari
+   ignores overscroll-behavior for the page itself, so refuse the gesture at
+   the edge instead: a drag down with the page at its top, or up with the
+   page at its bottom, is cancelled before it can overscroll. Touches that
+   begin in the sheet or on a control are left alone, and so is anything
+   more sideways than vertical. A fling that coasts into an edge is not a
+   drag and can still bounce; that one is out of reach from here. */
+const IS_IOS = /iP(hone|ad|od)/.test(navigator.platform)
+  || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints > 1);
+const edgeTouch = {x: 0, y: 0, ignore: false};
+function edgeTouchStart(e) {
+  const t = e.touches && e.touches[0];
+  if (!t) return;
+  edgeTouch.x = t.clientX; edgeTouch.y = t.clientY;
+  edgeTouch.ignore = !!(e.target && e.target.closest && e.target.closest("#sheetWrap, input, select, textarea"));
+}
+function edgeTouchMove(e) {
+  if (edgeTouch.ignore || !e.touches || e.touches.length !== 1) return;
+  const t = e.touches[0], dy = t.clientY - edgeTouch.y, dx = t.clientX - edgeTouch.x;
+  if (Math.abs(dx) > Math.abs(dy)) return;
+  const el = document.scrollingElement || document.documentElement;
+  const atTop = el.scrollTop <= 0;
+  const atBottom = el.scrollTop + window.innerHeight >= el.scrollHeight - 1;
+  if ((dy > 0 && atTop) || (dy < 0 && atBottom)) e.preventDefault();
+}
+if (IS_IOS) {
+  document.addEventListener("touchstart", edgeTouchStart, {passive: true});
+  document.addEventListener("touchmove", edgeTouchMove, {passive: false});
+}
+
 const updatePill = document.getElementById("updatePill");
 
 function showUpdatePill() {
