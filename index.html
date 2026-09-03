@@ -164,6 +164,7 @@ main { max-width: 760px; margin: 0 auto; }
   color: var(--gold); opacity: .7; cursor: pointer;
 }
 .chip.fc-add { flex: none; }
+.explore-jump .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: 12px; }
 /* Following sits above the tiles, behind a fold: a long feed would push the
    grid off screen for someone who came to wander. */
 .following { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
@@ -620,7 +621,7 @@ let meta = {};
 const state = {
   tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
-  explore: {q: "", page: null, scroll: 0, showPast: false},
+  explore: {q: "", page: null, scroll: 0, showPast: false, expanded: {}},
   following: {layout: loadJSON("dc26.followingLayout", "interest"), expanded: {}, showPast: {}, open: loadJSON("dc26.followingOpen", true)},
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, noToday: false, todayScoped: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
@@ -1611,15 +1612,38 @@ function buildCatalogue() {
     });
   });
 
+  /* Tracks are looked up by name, so they go A to Z, with the two noise
+     tracks last: sorted by count the page opened with Epic Photos, which
+     Search hides by default. Fandoms and topics keep count order - there the
+     number is the point. People split in two: guests by how busy they are,
+     panelists A to Z, because "6 events" says nothing about a name you don't
+     know. Both are still one kind of follow. */
+  const byName = (a, b) => a.key.localeCompare(b.key);
+  const person = rank(people).filter(t => celebs.has(t.key) || t.count >= 5);
   catalogue = {
-    track: rank(tally(e => e.tracks)),
+    track: [...tally(e => e.tracks)].map(([key, count]) => ({key, count}))
+      .sort((a, b) => (NOISE_TRACKS.has(a.key) - NOISE_TRACKS.has(b.key)) || byName(a, b)),
     fandom: rank(tally(e => (e.tags || {}).fandoms)).filter(t => t.count >= 3),
     topic: rank(tally(e => (e.tags || {}).topics)),
-    person: rank(people).filter(t => celebs.has(t.key) || t.count >= 5),
+    person,
+    guest: person.filter(t => celebs.has(t.key)),
+    panelist: person.filter(t => !celebs.has(t.key)).sort(byName),
   };
   return catalogue;
 }
 const getCatalogue = () => catalogue || buildCatalogue();
+
+/* What the grid shows, in order. id names the list; kind is the follow. */
+const EXPLORE_SECTIONS = [
+  {id: "track", kind: "track", label: "Tracks"},
+  {id: "fandom", kind: "fandom", label: "Fandoms"},
+  {id: "topic", kind: "topic", label: "Topics"},
+  {id: "guest", kind: "person", label: "Guests"},
+  {id: "panelist", kind: "person", label: "Panelists"},
+];
+/* 657 tiles is thirty phone screens. Each section opens with its head and
+   a Show all; the filter box is the way to reach the tail by name. */
+const EXPLORE_HEAD = 12;
 
 /* The hash carries the preview clock too, so only the explore part is
    rewritten and everything else is left exactly as it was. */
@@ -1666,21 +1690,32 @@ function exploreSectionsHTML() {
   const cat = getCatalogue();
   const q = state.explore.q.trim().toLowerCase();
   const match = list => q ? list.filter(t => t.key.toLowerCase().includes(q)) : list;
-  const sections = [
-    ["track", "Tracks"], ["fandom", "Fandoms"], ["topic", "Topics"], ["person", "People"],
-  ];
   let html = "", any = false;
-  for (const [kind, label] of sections) {
-    const items = match(cat[kind] || []);
+  for (const sec of EXPLORE_SECTIONS) {
+    const items = match(cat[sec.id] || []);
     if (!items.length) continue;
-    html += `<div class="section-title">${label} <span class="count">${items.length}</span></div>`;
+    /* A filter shows every match; otherwise the head, until Show all. */
+    const open = !!q || !!state.explore.expanded[sec.id];
+    const shown = open ? items : items.slice(0, EXPLORE_HEAD);
+    html += `<div class="section-title" id="explore-${sec.id}">${sec.label} <span class="count">${items.length}</span></div>`;
     /* Nothing followed yet, so no Following section to point at: say where it will appear. */
     if (!any && !follows.length) html += `<div class="hint">Follow a track, fandom or person and it'll show up here.</div>`;
     any = true;
-    html += `<div class="tiles">${items.map(i => tileHTML(kind, i)).join("")}</div>`;
+    html += `<div class="tiles">${shown.map(i => tileHTML(sec.kind, i)).join("")}</div>`;
+    if (shown.length < items.length) {
+      html += `<button class="btn quiet more" data-act="explore-all" data-section="${sec.id}">Show all ${items.length}</button>`;
+    }
   }
   if (!any) html += `<div class="empty"><b>Nothing matches.</b> Try fewer letters.</div>`;
   return html;
+}
+
+function exploreJumpHTML() {
+  const cat = getCatalogue();
+  return `<div class="chips explore-jump" aria-label="Jump to a section">${EXPLORE_SECTIONS.map(sec => {
+    const n = (cat[sec.id] || []).length;
+    return n ? `<button class="chip" data-act="explore-jump" data-section="${sec.id}">${sec.label} <span class="n">${n}</span></button>` : "";
+  }).join("")}</div>`;
 }
 
 function renderExploreGrid() {
@@ -1688,6 +1723,7 @@ function renderExploreGrid() {
     <div class="controls controls-sticky">
       <input class="search" type="search" id="exploreQ" placeholder="Filter tracks, fandoms, topics, people"
         value="${esc(state.explore.q)}" autocomplete="off" aria-label="Filter what you can follow">
+      ${exploreJumpHTML()}
     </div>
     <div id="exploreGrid">${exploreSectionsHTML()}</div>`;
 }
@@ -1699,15 +1735,26 @@ function renderExploreSections() {
   if (grid && !state.explore.page) grid.innerHTML = exploreSectionsHTML(); else renderExplore();
 }
 
+function smoothScrollTo(top) {
+  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  window.scrollTo({top: Math.max(0, top), left: 0, behavior: reduce ? "auto" : "smooth"});
+}
 /* "+ Follow more" used to switch tabs; the tiles are now on the same page,
    just below. Land the filter box where its sticky position would hold it. */
 function scrollToGrid() {
   const box = document.querySelector("#view-explore .controls-sticky");
   if (!box) return;
   const hdr = parseFloat(document.documentElement.style.getPropertyValue("--hdr-h")) || 0;
-  const top = Math.max(0, box.getBoundingClientRect().top + (window.scrollY || 0) - hdr);
-  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  window.scrollTo({top, left: 0, behavior: reduce ? "auto" : "smooth"});
+  smoothScrollTo(box.getBoundingClientRect().top + (window.scrollY || 0) - hdr);
+}
+/* A section header lands just under the sticky filter block. */
+function scrollToExploreSection(id) {
+  const el = document.getElementById(`explore-${id}`);
+  const box = document.querySelector("#view-explore .controls-sticky");
+  if (!el) return;
+  const hdr = parseFloat(document.documentElement.style.getPropertyValue("--hdr-h")) || 0;
+  const stickyH = box ? box.getBoundingClientRect().height : 0;
+  smoothScrollTo(el.getBoundingClientRect().top + (window.scrollY || 0) - hdr - stickyH);
 }
 
 function renderExplorePage() {
@@ -2039,6 +2086,8 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "dismiss-news") { pickNews = []; savePickNews(); render(); return; }
     if (a === "explore-back") { closeExplorePage(); return; }
     if (a === "fol-add") { scrollToGrid(); return; }
+    if (a === "explore-jump") { scrollToExploreSection(act.dataset.section); return; }
+    if (a === "explore-all") { state.explore.expanded[act.dataset.section] = true; renderExploreSections(); return; }
     if (a === "fol-toggle") {
       state.following.open = state.following.open === false;
       saveJSON("dc26.followingOpen", state.following.open);
