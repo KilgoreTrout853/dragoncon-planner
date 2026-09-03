@@ -695,6 +695,9 @@ function savePicks() {
   saveJSON("dc26.pickInfo", pickInfo);
 }
 function savePickNews() { saveJSON("dc26.pickNews", pickNews); }
+/* "Hilton Salon" and "Hilton-Salon" are one room; a refresh that respells
+   it is not a move. */
+const samePlace = (a, b) => String(a || "").toLowerCase().replace(/[^a-z0-9]+/g, "") === String(b || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 function whenWhere(x) {
   const d = toDate(x.start);
   return `${DAY_LABEL[dayOf(d)] || ""} ${fmtShort(d)}, ${x.location || "location TBA"}`.trim();
@@ -712,7 +715,7 @@ function reconcilePicks() {
       changed = true;
       return;
     }
-    if (was && (was.start !== e.start || (was.location || "") !== (e.location || ""))) {
+    if (was && (was.start !== e.start || !samePlace(was.location, e.location))) {
       pickNews.push({kind: "moved", title: e.title, was: whenWhere(was), now: whenWhere(e)});
       changed = true;
     }
@@ -772,6 +775,17 @@ const toDate = iso => new Date(iso);              // "2026-09-05T11:30" parses a
 function fmt(d) { let h = d.getHours(), m = d.getMinutes(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return {t: `${h}:${pad(m)}`, ap}; }
 function fmtShort(d) { const f = fmt(d); return `${f.t} ${f.ap}`; }
 function minutesBetween(a, b) { return Math.round((b - a) / 60000); }
+/* "310 min" is a number, "5 h 10 min" is a plan. */
+/* The source marks offsite venues with a leading "O ": "O Joystick Gamebar".
+   The scraper now drops it; this covers data scraped before it did. */
+function cleanRoom(hotel, room) {
+  return hotel === "Other" ? String(room || "").replace(/^O\s+/, "") : room;
+}
+function fmtMins(m) {
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60), r = m % 60;
+  return r ? `${h} h ${r} min` : `${h} h`;
+}
 function walkMin(a, b) {
   if (!a || !b || a === "Streaming" || b === "Streaming") return 0;
   if (a === b) return Math.round(5 * settings.crowd);
@@ -823,10 +837,11 @@ async function load() {
   events = (data.events || []).filter(e => e.start).map(e => {
     const s = toDate(e.start), en = e.end ? toDate(e.end) : new Date(s.getTime() + 60 * 60000);
     const people = (e.speakers || []).map(p => p.name).join(" ");
+    const room = cleanRoom(e.hotel, e.room);
     /* _cd is the con day: it runs to 5am, so a 1am panel belongs to the night
        before. Every list, chip and header uses it; only the sheet and the
        calendar export state the calendar date. */
-    return {...e, _s: s, _e: en, _cd: conDayKey(s), _people: people};
+    return {...e, room, _s: s, _e: en, _cd: conDayKey(s), _people: people};
   });
   events.sort((a, b) => a._s - b._s || a.title.localeCompare(b.title));
   byId = new Map(events.map(e => [e.id, e]));
@@ -994,7 +1009,7 @@ function renderMiniBar() {
   const info = leaveInfo(currentLocation(now), next, now);
   const when = info && info.leaveBy
     ? (info.late ? "leave now" : `leave by ${fmtShort(info.leaveBy)}`)
-    : `in ${minutesBetween(now, next._s)} min`;
+    : `in ${fmtMins(minutesBetween(now, next._s))}`;
   bar.classList.toggle("late", !!(info && info.late));
   bar.innerHTML = `<span class="mb-body">
       <span class="mb-title">${esc(next.title)}</span>
@@ -1606,11 +1621,12 @@ function renderBrowse() {
   const fandoms = hasTags ? fandomCounts() : [];
   const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
 
-  let html = `<div class="controls controls-sticky">
-    <input class="search" type="search" id="q" placeholder="Search anything: titles, guests, fandoms, words in descriptions" value="${esc(b.q)}" autocomplete="off">
-    <div class="chips" data-row="day">${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}</div>
-    </div>
-    <div class="controls controls-rest">
+  const dayChips = `${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}`;
+  const sticky = `<div class="controls controls-sticky">
+    <input class="search" type="search" id="q" placeholder="Search titles, guests, fandoms, words" value="${esc(b.q)}" autocomplete="off" enterkeyhint="search">
+    <div class="chips" data-row="day" id="dayChips">${dayChips}</div>
+    </div>`;
+  let html = `<div class="controls controls-rest">
     <div class="chips" data-row="hotel">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
     ${hasTags ? `<div class="chips" data-row="kind">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
     ${suggestHTML()}
@@ -1654,11 +1670,20 @@ function renderBrowse() {
   html += hiddenForQueryHTML(results);
   if (!results.length) html += `<div class="empty"><b>No matches.</b> Try fewer or different words, another day, or turn off the photo/video filter.</div>`;
   if (results.length > shown.length) html += `<button class="btn quiet more" data-act="more-browse">Show ${Math.min(PAGE, results.length - shown.length)} more of ${results.length - shown.length}</button>`;
+  /* The search box is never rebuilt once it exists. Replacing a focused
+     input under an open iOS keyboard left the keyboard attached to a node
+     that was gone, and dismissing it then landed in the Fandom select. Only
+     what surrounds the box is redrawn; the box has its value kept in step
+     for the times the query is set by a chip rather than by typing. */
   const view = document.getElementById("view-browse");
-  const focused = document.activeElement && document.activeElement.id === "q";
-  const pos = focused ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
-  view.innerHTML = html;
-  if (focused) { const q = document.getElementById("q"); q.focus(); try { q.setSelectionRange(pos[0], pos[1]); } catch (e) {} }
+  const q = document.getElementById("q"), rest = document.getElementById("browseRest");
+  if (q && rest) {
+    if (q.value !== b.q) q.value = b.q;
+    document.getElementById("dayChips").innerHTML = dayChips;
+    rest.innerHTML = html;
+  } else {
+    view.innerHTML = sticky + `<div id="browseRest">${html}</div>`;
+  }
 }
 
 /* ---- Explore ------------------------------------------------------- */
@@ -2371,6 +2396,10 @@ document.querySelector("main").addEventListener("input", e => {
        recorded, so only the drawing waits. */
     queueBrowseRender();
   }
+});
+/* The keyboard's return key reads Search and puts the keyboard away. */
+document.querySelector("main").addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target && e.target.id === "q") { e.preventDefault(); e.target.blur(); }
 });
 document.querySelector("main").addEventListener("change", e => {
   if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }

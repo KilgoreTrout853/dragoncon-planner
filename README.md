@@ -15,7 +15,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Re-runs the scraper every 3 hours during con week and commits fresh data. |
-| `tests/` | 24 parser tests and 573 UI assertions. Not optional — run them before you push. |
+| `tests/` | 25 parser tests and 587 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -32,8 +32,8 @@ python -m http.server 8000       # then open http://localhost:8000
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 573 assertions
-python tests/test_parse.py       # 24 parser tests
+node tests/ui_smoke.js           # 587 assertions
+python tests/test_parse.py       # 25 parser tests
 ```
 
 The UI suite runs twice: once against `tests/sample-events.json` (558 synthetic events, deterministic) and once against the real `events.json`, because ranking questions are meaningless against synthetic rows.

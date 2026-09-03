@@ -135,6 +135,13 @@ def test_midnight_fallback_without_duration():
     assert ev["end"] == "2026-09-06T01:00" and ev["duration_min"] == 120
 
 
+def test_offsite_marker_is_dropped_from_the_room():
+    assert scraper.split_hotel("O Joystick Gamebar") == ("Other", "Joystick Gamebar")
+    assert scraper.split_hotel("O Georgia Aquarium") == ("Other", "Georgia Aquarium")
+    assert scraper.split_hotel("Walton Spring Park") == ("Other", "Walton Spring Park")
+    assert scraper.split_hotel("Onesie Lounge") == ("Other", "Onesie Lounge")
+
+
 def test_hotel_mapping():
     cases = {
         "Hilton 202": ("Hilton", "202"),
