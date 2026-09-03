@@ -645,7 +645,7 @@ const state = {
   now: {hotel: "All", limit: 80},
   explore: {q: "", page: null, scroll: 0, showPast: false, expanded: {}, active: null},
   following: {layout: loadJSON("dc26.followingLayout", "interest"), expanded: {}, showPast: {}, open: loadJSON("dc26.followingOpen", true)},
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", showHidden: false, showPast: false, noToday: false, todayScoped: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
+  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
 
@@ -1471,7 +1471,8 @@ function activeFilters() {
     track: f.track !== undefined ? f.track : b.track,
     fandom: b.fandom,
     adultOnly: f.adult === true,
-    hideAdult: f.adult === false ? true : (f.adult === true ? false : b.hideAdult),
+    /* Only a query word hides 18+ now ("kids"); the checkbox is gone. */
+    hideAdult: f.adult === false,
     time: f.time,
     /* Asking for photo sessions or screenings outranks the setting that hides
        them; so does tapping their chip, and so does the reveal link. */
@@ -1607,7 +1608,6 @@ function renderBrowse() {
       <select class="track" id="track" aria-label="Track"><option value="All">All tracks</option>${tracks.map(t => `<option value="${esc(t)}" ${b.track === t ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
     </div>
     <label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label>
-    ${hasTags ? `<label class="toggle"><input type="checkbox" id="hideAdult" ${b.hideAdult ? "checked" : ""}> Hide 18+</label>` : ""}
   </div>
   <div class="section-title">${searching ? "Best matches first" : "Results"} <span class="count">${results.length}</span></div>
   ${noExactMatchHTML(results)}<ul class="list">`;
@@ -2355,7 +2355,6 @@ document.querySelector("main").addEventListener("input", e => {
 document.querySelector("main").addEventListener("change", e => {
   if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }
   if (e.target.id === "fandom") { state.browse.fandom = e.target.value; state.browse.page = 1; render(); }
-  if (e.target.id === "hideAdult") { state.browse.hideAdult = e.target.checked; state.browse.page = 1; render(); }
   if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
 });
 

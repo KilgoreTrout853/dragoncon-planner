@@ -209,7 +209,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const browseSnapshot = window.eval("JSON.stringify(state.browse)");
   const resetBrowse = () => window.eval(`(function(){
     Object.assign(state.browse, {q:"", day:"All", prevDay:null, hotel:"All", type:"All", track:"All",
-      fandom:"All", kind:"All", hideAdult:false, hideNoise:false, page:1});
+      fandom:"All", kind:"All", hideNoise:false, page:1});
     renderBrowse();
   })()`);
   resetBrowse(); await sleep(20);
@@ -439,8 +439,11 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   await top(""); assert(window.eval("state.browse.day") !== "All", "clearing the query restores the day");
   document.querySelector('#view-browse [data-chip="day"][data-value="All"]').click(); await sleep(10);
   const beforeAdult = window.eval("browseResults().length");
-  document.getElementById("hideAdult").click(); await sleep(10);
-  assert(window.eval("browseResults().length") === beforeAdult - 1 && !window.eval("browseResults().some(e => e.tags && e.tags.adult)"), "hide 18+ works");
+  assert(!document.getElementById("hideAdult"), "there is no Hide 18+ toggle any more");
+  window.eval(`(function(){ state.browse.q = "kids"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  assert(window.eval("browseResults().length") > 0 && !window.eval("browseResults().some(e => e.tags && e.tags.adult)"), "but the word kids still keeps 18+ out");
+  window.eval(`(function(){ state.browse.q = ""; state.browse.day = "All"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
+  assert(window.eval("browseResults().length") === beforeAdult, "and with it cleared everything is back");
   document.querySelector('#view-browse [data-chip="kind"][data-value="contest"]').click(); await sleep(10);
   assert(window.eval("browseResults().every(e => e.tags.kind === 'contest')"), "kind chip filters");
   // settings sheet
@@ -458,7 +461,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval(`(function(){ state.tab = "browse";
     Object.assign(state.browse, {q:"", day:"All", prevDay:null, hotel:"All", type:"All", track:"All",
       fandom:"All", kind:"All", showHidden:false, showPast:false, noToday:false,
-      hideAdult:false, hideNoise:false, page:1});
+      hideNoise:false, page:1});
     render(); })()`); await sleep(30);
   const typed = window.eval(`(function(){
     var n = 0, real = renderBrowse;
@@ -552,7 +555,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const oneAm = JSON.parse(window.eval(`(function(){
     /* earlier blocks leave chips set; start from the default filters */
     Object.assign(state.browse, {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All",
-      kind: "All", showHidden: false, showPast: false, noToday: false, hideAdult: false, hideNoise: true, page: 1});
+      kind: "All", showHidden: false, showPast: false, noToday: false, hideNoise: true, page: 1});
     state.tab = "browse"; render();
     var chip = state.browse.day;
     /* not a photo session or screening: the default noise filter would hide it */
@@ -1215,7 +1218,7 @@ async function realDataChecks() {
 
   const search = (q, over) => JSON.parse(w.eval(`(function(){
     Object.assign(state.browse, {q: ${JSON.stringify(q)}, day: "All", hotel: "All", type: "All", track: "All",
-      fandom: "All", kind: "All", showHidden: false, showPast: false, hideAdult: false,
+      fandom: "All", kind: "All", showHidden: false, showPast: false,
       hideNoise: true, page: 1}, ${JSON.stringify(over || {})});
     var r = browseResults(), pick = function(s){ return r.filter(function(e){ return e._section === s; }); };
     return JSON.stringify({
