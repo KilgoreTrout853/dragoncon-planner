@@ -15,7 +15,19 @@
 <title>Dragon Con 2026 planner</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./icon.svg">
+<!-- iOS does not accept SVG here; without a PNG the home-screen icon is a
+     screenshot of the page. The PNGs come from make_icons.py. -->
+<link rel="apple-touch-icon" href="./icon-180.png">
+<meta name="apple-mobile-web-app-title" content="DC26">
+<!-- Link previews in chats: a card with the mark beats a bare URL. -->
+<meta property="og:title" content="Dragon Con 2026 planner">
+<meta property="og:description" content="Search every Dragon Con panel and game, star what you want, and get walk-time warnings between hotels.">
+<meta property="og:image" content="https://kilgoretrout853.github.io/dragoncon-planner/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://kilgoretrout853.github.io/dragoncon-planner/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">

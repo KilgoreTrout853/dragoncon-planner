@@ -17,10 +17,11 @@
    Bump CACHE when index.html or sw.js changes; older dc26-* caches are
    removed on activate. */
 
-const CACHE = "dc26-v2";
+const CACHE = "dc26-v3";
 const HTML_TIMEOUT_MS = 3000;
 const DATA = "events.json";
-const SHELL = ["./", "./index.html", "./events.json", "./manifest.json", "./icon.svg"];
+const SHELL = ["./", "./index.html", "./events.json", "./manifest.json", "./icon.svg",
+               "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 const isFont = url =>
   url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
