@@ -186,6 +186,7 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 }
 .chip.fc-add { flex: none; }
 .explore-jump .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: 12px; }
+.explore-jump .chip[aria-pressed="true"] .n { color: inherit; opacity: .7; }
 /* Following sits above the tiles, behind a fold: a long feed would push the
    grid off screen for someone who came to wander. */
 .following { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
@@ -643,7 +644,7 @@ let meta = {};
 const state = {
   tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
-  explore: {q: "", page: null, scroll: 0, showPast: false, expanded: {}},
+  explore: {q: "", page: null, scroll: 0, showPast: false, expanded: {}, active: null},
   following: {layout: loadJSON("dc26.followingLayout", "interest"), expanded: {}, showPast: {}, open: loadJSON("dc26.followingOpen", true)},
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, noToday: false, todayScoped: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
@@ -1749,7 +1750,7 @@ function exploreJumpHTML() {
   const cat = getCatalogue();
   return `<div class="chips explore-jump" aria-label="Jump to a section">${EXPLORE_SECTIONS.map(sec => {
     const n = (cat[sec.id] || []).length;
-    return n ? `<button class="chip" data-act="explore-jump" data-section="${sec.id}">${sec.label} <span class="n">${n}</span></button>` : "";
+    return n ? `<button class="chip" data-act="explore-jump" data-section="${sec.id}" aria-pressed="${state.explore.active === sec.id}">${sec.label} <span class="n">${n}</span></button>` : "";
   }).join("")}</div>`;
 }
 
@@ -1802,7 +1803,48 @@ function renderExploreGrid() {
       ${exploreJumpHTML()}
     </div>
     <div id="exploreGrid">${exploreSectionsHTML()}</div>`;
+  syncActiveSection();
 }
+
+/* The chip for the section on screen reads as pressed, like a day chip in
+   Search. The section on screen is the last one whose header has passed
+   the sticky block; above the first header nothing is pressed. */
+function pickActiveSection(headers, line) {
+  let active = null;
+  for (const h of headers) if (h.top <= line) active = h.id;
+  return active;
+}
+function activeExploreSection() {
+  const box = document.querySelector("#view-explore .controls-sticky");
+  if (!box) return null;
+  const line = box.getBoundingClientRect().bottom + 1;
+  const headers = EXPLORE_SECTIONS.map(sec => {
+    const el = document.getElementById(`explore-${sec.id}`);
+    return el ? {id: sec.id, top: el.getBoundingClientRect().top} : null;
+  }).filter(Boolean);
+  return pickActiveSection(headers, line);
+}
+function markActiveSection(id) {
+  state.explore.active = id;
+  document.querySelectorAll('#view-explore [data-act="explore-jump"]')
+    .forEach(b => b.setAttribute("aria-pressed", String(b.dataset.section === id)));
+}
+function syncActiveSection() {
+  if (state.tab !== "explore" || state.explore.page) return;
+  markActiveSection(activeExploreSection());
+}
+/* A tap marks its chip at once and holds it while the smooth scroll runs,
+   so the chips passed on the way do not flicker through. */
+let spyQueued = false, spyHoldUntil = 0;
+scroller.addEventListener("scroll", () => {
+  if (spyQueued) return;
+  spyQueued = true;
+  requestAnimationFrame(() => {
+    spyQueued = false;
+    if (Date.now() < spyHoldUntil) return;
+    syncActiveSection();
+  });
+}, {passive: true});
 
 /* Typing in the filter box redraws the tiles and nothing else. Rebuilding the
    whole view would replace the input mid-word, and take the keyboard with it. */
@@ -2159,7 +2201,12 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "dismiss-news") { pickNews = []; savePickNews(); render(); return; }
     if (a === "explore-back") { closeExplorePage(); return; }
     if (a === "fol-add") { scrollToGrid(); return; }
-    if (a === "explore-jump") { scrollToExploreSection(act.dataset.section); return; }
+    if (a === "explore-jump") {
+      markActiveSection(act.dataset.section);
+      spyHoldUntil = Date.now() + 700;
+      scrollToExploreSection(act.dataset.section);
+      return;
+    }
     if (a === "explore-all") { state.explore.expanded[act.dataset.section] = true; renderExploreSections(); return; }
     if (a === "fol-toggle") {
       state.following.open = state.following.open === false;
@@ -2304,7 +2351,11 @@ function deviceLine() {
   const standalone = !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
   const vv = window.visualViewport ? Math.round(window.visualViewport.height) : "-";
   const scr = window.screen ? `${screen.width}×${screen.height}` : "-";
-  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets}${IS_IOS ? " · iOS" : ""}`;
+  /* GitHub Pages stamps every deploy with a Last-Modified header; the page
+     can read it, so "which build is this" is a glance rather than a guess. */
+  const built = new Date(document.lastModified);
+  const stamp = isNaN(built) ? "" : ` · build ${built.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets}${IS_IOS ? " · iOS" : ""}${stamp}`;
 }
 
 function eventSheetHTML(ev) {
