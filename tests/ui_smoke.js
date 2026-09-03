@@ -644,6 +644,14 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(np.afterDismiss.news === 0 && np.afterDismiss.stored === 0 && !np.afterDismiss.shown, "OK dismisses it for good");
   assert(np.again === 0, "and a second look finds nothing new to report");
 
+  // ---- the header pads for the status bar on phones that draw under it ----
+  assert(html.includes("--safe-top: env(safe-area-inset-top"), "a top inset variable exists alongside the bottom one");
+  const hdrCss = html.slice(html.indexOf(".hdr {"), html.indexOf(".hdr {") + 400);
+  assert(/padding: calc\(10px \+ var\(--safe-top\)\)/.test(hdrCss), "and the header adds it to its top padding");
+  assert(html.includes("viewport-fit=cover"), "which matters because the page opts into drawing under the bars");
+  const htmlCss = html.slice(html.indexOf("html {"), html.indexOf("html {") + 200);
+  assert(htmlCss.includes("overscroll-behavior-y: none"), "the root refuses the overscroll stretch, so a fixed nav cannot bounce with it");
+
   // ---- a cancelled event says so, not just a strike-through ----
   const cancelProbe = JSON.parse(window.eval(`(function(){
     /* An event in the "on now and in the next hour" list: a pick would become
