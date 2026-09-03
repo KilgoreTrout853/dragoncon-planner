@@ -271,6 +271,41 @@ def test_dedupe_sorts_by_start_then_title():
     assert [e["title"] for e in out] == ["Early", "Apple", "Zebra"]
 
 
+# ---------------------------------------------------------------------------
+# Cancelled: only when the event says so up front
+# ---------------------------------------------------------------------------
+
+def test_cancelled_when_the_title_or_opening_line_says_so():
+    assert scraper.is_cancelled("CANCELLED: Trek Trivia", "") is True
+    assert scraper.is_cancelled("Canceled - Trek Trivia", "") is True
+    assert scraper.is_cancelled("Trek Trivia (Cancelled)", "") is True
+    assert scraper.is_cancelled("Trek Trivia - CANCELLED", "") is True
+    assert scraper.is_cancelled("Trek Trivia", "This event has been cancelled.") is True
+    assert scraper.is_cancelled("Trek Trivia", "CANCELLED: the guest could not travel.") is True
+
+
+def test_a_panel_about_cancellations_is_not_cancelled():
+    # All three were struck through by the old anywhere-in-the-text match.
+    assert scraper.is_cancelled(
+        "Hopes, Dreams, & Cancellations: The MSFM Festivus Panel",
+        "'Reboot incoming!' CANCELLED. 'A new & reimagined' CANCELLED. How many times have we heard it?") is False
+    assert scraper.is_cancelled(
+        "Classic TV Table Read: Manimal",
+        "we shouldn't devote valuable schedule space to a silly show canceled in 1983") is False
+    assert scraper.is_cancelled(
+        "Doctor Who: Into the Wilderness Years?",
+        "So, the 2026 Doctor Who Christmas special has been cancelled, and the show has been put on hiatus") is False
+
+
+def test_build_event_uses_the_narrow_cancelled_rule():
+    items = scraper.parse_day_list(DAY_HTML)
+    detail = scraper.parse_detail(DETAIL_WITH_SPEAKERS)
+    detail["description"] = "A show canceled in 1983, revisited with love."
+    assert scraper.build_event(items[0], detail, "panel")["cancelled"] is False
+    detail["title"] = "CANCELLED: " + detail["title"]
+    assert scraper.build_event(items[0], detail, "panel")["cancelled"] is True
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

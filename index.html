@@ -215,6 +215,11 @@ select.track {
 .row.open { background: var(--surface); }
 .row.mine .title::before { content: "★ "; color: var(--gold); }
 .row.cancelled .title { text-decoration: line-through; color: var(--muted); }
+/* A strike-through alone reads as a rendering glitch; say the word. */
+.cancelled-tag {
+  display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--warn); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; line-height: 17px;
+}
 .row-main {
   width: 100%; display: grid; grid-template-columns: 66px 1fr; gap: 10px; text-align: left;
   background: none; border: 0; padding: 11px 0 11px 14px; align-items: start;
@@ -890,7 +895,7 @@ function rowHTML(ev, opts = {}) {
           <div class="title">${hl(ev.title)}</div>
           <div class="meta">
             <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</span>
-            ${status}${isCeleb(ev) ? CELEB_BADGE : ""}${(opts.labels || []).map(l => `<span class="flabel">${esc(l)}</span>`).join("")}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
+            ${ev.cancelled ? `<span class="cancelled-tag">Cancelled</span>` : ""}${status}${isCeleb(ev) ? CELEB_BADGE : ""}${(opts.labels || []).map(l => `<span class="flabel">${esc(l)}</span>`).join("")}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
           </div>
           ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
         </div>
@@ -2120,6 +2125,7 @@ function eventSheetHTML(ev) {
       <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
       <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}</div>
       <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${esc(ev.room || ev.location || "Location TBA")}</div>
+      ${ev.cancelled ? `<div><span class="cancelled-tag">Cancelled</span></div>` : ""}
       ${isCeleb(ev) ? `<div>${CELEB_BADGE}</div>` : ""}
     </div>
     <div class="ev-body">
