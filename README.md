@@ -96,6 +96,6 @@ Hosted by Core-apps at `https://app.core-apps.com/dragoncon26`. Day pages are `e
 
 ## The refresh workflow
 
-Runs every 3 hours through Sep 8, then stops itself via a date guard. Before committing it refuses a scrape that returned nothing or fell more than 20% — a throttled run can't overwrite good data. If `main` moved while it was scraping it rebases and retries rather than dropping the refresh.
+Runs every 3 hours through Sep 8, then stops itself via a date guard. Before committing it refuses a scrape that returned nothing or fell more than 20% — a throttled run can't overwrite good data. If `main` moved while it was scraping it rebases and retries rather than dropping the refresh. Two refreshes never run at once: a run started by hand that overlaps the cron waits for it, because both would rewrite `events.json` and the rebase can't resolve that.
 
 After the con, disable it (Actions → Refresh schedule → ⋯ → Disable) or leave it; it stops on its own.

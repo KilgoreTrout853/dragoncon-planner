@@ -8,6 +8,14 @@ on:
 permissions:
   contents: write
 
+# Two refreshes at once - a run started by hand overlapping the cron - both
+# rewrite events.json, and the rebase in the push step cannot resolve that;
+# it dropped a scrape on Sep 2. Queue them instead: a second run waits for
+# the first to finish, and a third replaces the waiting second.
+concurrency:
+  group: refresh-schedule
+  cancel-in-progress: false
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
@@ -72,8 +80,9 @@ jobs:
           git commit -m "Refresh schedule $(date -u +%Y-%m-%dT%H:%MZ)"
           # The scrape takes ~20 minutes, and main may well have moved while it
           # ran - a push that loses that race drops the whole refresh silently.
-          # events.json is the only file this job touches, so rebasing onto
-          # whatever landed meanwhile cannot conflict with anyone's work.
+          # events.json is the only file this job touches, and the concurrency
+          # group keeps two refreshes from running at once, so rebasing onto
+          # whatever landed meanwhile cannot conflict.
           for attempt in 1 2 3; do
             if git push; then
               echo "Pushed on attempt $attempt."
