@@ -649,6 +649,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const hdrCss = html.slice(html.indexOf(".hdr {"), html.indexOf(".hdr {") + 400);
   assert(/padding: calc\(10px \+ var\(--safe-top\)\)/.test(hdrCss), "and the header adds it to its top padding");
   assert(html.includes("viewport-fit=cover"), "which matters because the page opts into drawing under the bars");
+  const htmlCss = html.slice(html.indexOf("html {"), html.indexOf("html {") + 200);
+  assert(htmlCss.includes("overscroll-behavior-y: none"), "the root refuses the overscroll stretch, so a fixed nav cannot bounce with it");
 
   // ---- a cancelled event says so, not just a strike-through ----
   const cancelProbe = JSON.parse(window.eval(`(function(){

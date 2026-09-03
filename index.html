@@ -43,7 +43,10 @@
   --safe-top: env(safe-area-inset-top, 0px);        /* the status bar, on phones that draw under it */
 }
 * { box-sizing: border-box; }
-html { background: var(--ink); color-scheme: dark; }
+/* No overscroll stretch. Android 12+ stretches the whole page layer when you
+   scroll past the end, fixed nav included, so the bar bounced on every long
+   list. This also drops pull-to-refresh, which the update pill covers. */
+html { background: var(--ink); color-scheme: dark; overscroll-behavior-y: none; }
 body {
   margin: 0; font-family: var(--font); font-size: 17px; line-height: 1.3;
   color: var(--text); background: var(--ink);
