@@ -9,12 +9,12 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | File | What it does |
 |---|---|
 | `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app, merges duplicates, and writes `events.json`. Takes ~20 minutes. |
-| `tag_events.py` | Has Claude tag each event with fandoms, kind (celebrity Q&A, fan panel, screening…), topics, guests, and 18+. Powers the fandom picker, kind chips, Celebrity filter, and search. |
+| `tag_events.py` | Has Claude tag each event with fandoms, kind (celebrity Q&A, fan panel, screening…), topics, guests, and 18+. Powers the fandom picker, kind chips, the Celebrity badge and Guests section, and search. |
 | `index.html` | The whole planner, one file. Reads `events.json` from the same folder. |
 | `sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `manifest.json`, `icon.svg` | Make it installable to a home screen as "DC26". |
 | `.github/workflows/scrape.yml` | Re-runs the scraper every 3 hours during con week and commits fresh data. |
-| `tests/` | 24 parser tests and 552 UI assertions. Not optional — run them before you push. |
+| `tests/` | 24 parser tests and 546 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -31,7 +31,7 @@ python -m http.server 8000       # then open http://localhost:8000
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 552 assertions
+node tests/ui_smoke.js           # 546 assertions
 python tests/test_parse.py       # 24 parser tests
 ```
 
@@ -78,7 +78,7 @@ ANTHROPIC_API_KEY=$(cat anthropic_key.txt) python tag_events.py
 
 `anthropic_key.txt` is gitignored. Delete it and revoke the key when you're done with the con.
 
-The scraper carries tags forward across refreshes by event id — including through duplicate merging, where the surviving id may not be the one that was tagged. The GitHub Action has no Claude access, so events added during the con arrive untagged until you re-run the tagger. Search still finds them by their words; the fandom, kind and Celebrity filters won't.
+The scraper carries tags forward across refreshes by event id — including through duplicate merging, where the surviving id may not be the one that was tagged. The GitHub Action has no Claude access, so events added during the con arrive untagged until you re-run the tagger. Search still finds them by their words; the fandom and kind filters won't, and they carry no Celebrity badge.
 
 Fandom names are normalised (`CANON` in the script) so the picker shows one "Marvel" rather than Marvel, MCU and Avengers.
 

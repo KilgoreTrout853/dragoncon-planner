@@ -147,7 +147,6 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
   display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
   color: var(--h-Hyatt); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; line-height: 17px;
 }
-.chip.celeb-chip[aria-pressed="true"] { background: var(--h-Hyatt); border-color: var(--h-Hyatt); color: var(--ink); }
 .chip.suggest.on { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
 .chip.suggest.on span { opacity: .65; }
 .divider {
@@ -646,7 +645,7 @@ const state = {
   now: {hotel: "All", limit: 80},
   explore: {q: "", page: null, scroll: 0, showPast: false, expanded: {}, active: null},
   following: {layout: loadJSON("dc26.followingLayout", "interest"), expanded: {}, showPast: {}, open: loadJSON("dc26.followingOpen", true)},
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, noToday: false, todayScoped: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
+  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
 
@@ -1330,7 +1329,6 @@ function passesFilters(e) {
     (f.track === "All" || (e.tracks || []).includes(f.track)) &&
     (f.fandom === "All" || (tg.fandoms || []).includes(f.fandom)) &&
     (f.kind === "All" || tg.kind === f.kind) &&
-    (!f.celebrity || tg.guests === "celebrity") &&
     (!f.adultOnly || !!tg.adult) &&
     (!f.hideAdult || !tg.adult) &&
     (!f.time || inTimeBand(e, f.time)) &&
@@ -1469,12 +1467,12 @@ function activeFilters() {
     day: f.day !== undefined ? f.day : b.day,
     hotel: f.hotel !== undefined ? f.hotel : b.hotel,
     kind: f.kind !== undefined ? f.kind : b.kind,
-    celebrity: b.celebrity,
     type: b.type,
     track: f.track !== undefined ? f.track : b.track,
     fandom: b.fandom,
     adultOnly: f.adult === true,
-    hideAdult: f.adult === false ? true : (f.adult === true ? false : b.hideAdult),
+    /* Only a query word hides 18+ now ("kids"); the checkbox is gone. */
+    hideAdult: f.adult === false,
     time: f.time,
     /* Asking for photo sessions or screenings outranks the setting that hides
        them; so does tapping their chip, and so does the reveal link. */
@@ -1592,7 +1590,6 @@ function renderBrowse() {
   const hasTags = events.some(e => e.tags);
   const fandoms = hasTags ? fandomCounts() : [];
   const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
-  const hasCelebs = hasTags && events.some(isCeleb);
 
   let html = `<div class="controls controls-sticky">
     <input class="search" type="search" id="q" placeholder="Search anything: titles, guests, fandoms, words in descriptions" value="${esc(b.q)}" autocomplete="off">
@@ -1600,7 +1597,7 @@ function renderBrowse() {
     </div>
     <div class="controls controls-rest">
     <div class="chips" data-row="hotel">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
-    ${hasTags ? `<div class="chips" data-row="kind">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${hasCelebs ? `<button class="chip celeb-chip" data-chip="celebrity" data-value="1" aria-pressed="${b.celebrity}">Celebrity</button>` : ""}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
+    ${hasTags ? `<div class="chips" data-row="kind">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
     ${suggestHTML()}
     ${parsedChipsHTML()}
     <div class="row-controls">
@@ -1611,7 +1608,6 @@ function renderBrowse() {
       <select class="track" id="track" aria-label="Track"><option value="All">All tracks</option>${tracks.map(t => `<option value="${esc(t)}" ${b.track === t ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
     </div>
     <label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label>
-    ${hasTags ? `<label class="toggle"><input type="checkbox" id="hideAdult" ${b.hideAdult ? "checked" : ""}> Hide 18+</label>` : ""}
   </div>
   <div class="section-title">${searching ? "Best matches first" : "Results"} <span class="count">${results.length}</span></div>
   ${noExactMatchHTML(results)}<ul class="list">`;
@@ -2209,7 +2205,6 @@ document.querySelector("main").addEventListener("click", e => {
     else if (kind === "hotel") state.browse.hotel = state.browse.hotel === value ? "All" : value;
     else if (kind === "type") state.browse.type = value;
     else if (kind === "kind") state.browse.kind = value;
-    else if (kind === "celebrity") state.browse.celebrity = !state.browse.celebrity;
     state.browse.page = 1; render();
     revealChip(document.querySelector(`.chips [data-chip="${kind}"][data-value="${cssEsc(value)}"]`));
     return;
@@ -2360,7 +2355,6 @@ document.querySelector("main").addEventListener("input", e => {
 document.querySelector("main").addEventListener("change", e => {
   if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }
   if (e.target.id === "fandom") { state.browse.fandom = e.target.value; state.browse.page = 1; render(); }
-  if (e.target.id === "hideAdult") { state.browse.hideAdult = e.target.checked; state.browse.page = 1; render(); }
   if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
 });
 
