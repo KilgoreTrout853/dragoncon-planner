@@ -887,6 +887,17 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   document.querySelector('#view-explore [data-act="explore-jump"][data-section="' + jumps[jumps.length - 1] + '"]').click(); await sleep(20);
   const jumpScrolls = window.eval("__scrolls"); window.eval("pageScrollTo = __realPST");
   assert(jumpScrolls.length === 1 && jumpScrolls[0].top >= 0 && window.eval("state.tab") === "explore", "tapping a chip scrolls to its section");
+  // the chip for the section on screen reads as pressed
+  const pressedAfterTap = [...document.querySelectorAll('#view-explore [data-act="explore-jump"]')].filter(b => b.getAttribute("aria-pressed") === "true").map(b => b.dataset.section);
+  assert(pressedAfterTap.join(",") === jumps[jumps.length - 1], `a tapped chip is pressed at once, and only it (${pressedAfterTap.join(",")})`);
+  assert(window.eval(`pickActiveSection([{id:"track",top:-500},{id:"fandom",top:-10},{id:"topic",top:300}], 203)`) === "fandom",
+    "the section on screen is the last header past the sticky line");
+  assert(window.eval(`pickActiveSection([{id:"track",top:400}], 203)`) === null, "above the first header nothing is pressed");
+  assert(window.eval(`pickActiveSection([], 203)`) === null, "and no headers means nothing pressed");
+  window.eval(`(function(){ state.explore.active = null; renderExplore(); })()`); await sleep(20);
+  const pressedAfterRender = document.querySelectorAll('#view-explore [data-act="explore-jump"][aria-pressed="true"]').length;
+  assert(pressedAfterRender === 1, `a render marks exactly one chip from the headers' positions (${pressedAfterRender})`);
+  assert(/\.explore-jump \.chip\[aria-pressed="true"\] \.n \{[^}]*color: inherit/.test(html), "and the count stays readable on a pressed chip");
   window.eval(`(function(){ state.explore.expanded = {}; renderExplore(); })()`); await sleep(20);
   // the filter narrows tiles, not events
   const allTiles = document.querySelectorAll("#view-explore .tile").length;
