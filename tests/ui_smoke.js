@@ -678,6 +678,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const hdrCss = html.slice(html.indexOf(".hdr {"), html.indexOf(".hdr {") + 400);
   assert(/padding: calc\(10px \+ var\(--safe-top\)\)/.test(hdrCss), "and the header adds it to its top padding");
   assert(html.includes("viewport-fit=cover"), "which matters because the page opts into drawing under the bars");
+  assert(/apple-mobile-web-app-status-bar-style" content="black"/.test(html), "the iOS status bar is opaque: translucent leaves the web view short by its height on iOS 26");
   const htmlCss = html.slice(html.indexOf("html {"), html.indexOf("html {") + 200);
   assert(htmlCss.includes("overscroll-behavior-y: none"), "the root refuses the overscroll stretch, so a fixed nav cannot bounce with it");
   // iOS ignores that rule for the page, so a drag at the edge is refused by hand

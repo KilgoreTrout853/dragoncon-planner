@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#171A33">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- Opaque, not translucent. On iOS 26 a translucent status bar gives the
+     home-screen app a web view that starts under the status bar but is
+     short by its height, leaving a dead strip at the bottom of the screen
+     that nothing can draw into; the nav then floated a thumb above the
+     home indicator on every tab. Opaque puts the web view below the bar
+     and runs it to the bottom edge. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Dragon Con 2026 planner</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
