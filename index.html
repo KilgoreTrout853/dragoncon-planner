@@ -1036,10 +1036,19 @@ function effectiveNow() {
   return {now: real, banner: ""};
 }
 
-/* What the Now tab would show, without building any of it. */
+/* What the Now tab would show, without building any of it.
+   The plan is today's - the con day, which runs to 5am - because "your next"
+   and "leave by" are about the next few hours, and a Saturday pick seen from
+   Thursday was being announced as starting at 2:30 PM with no day on it.
+   Anything still running past 5am counts as today too. A pick on a later
+   day gets one line naming the day, so the tab never looks empty when the
+   plan is not. */
 function nowModel(now) {
   const horizon = new Date(now.getTime() + 60 * 60000);
-  const minePlan = events.filter(e => picks.has(e.id) && e._e > now);
+  const today = conDayKey(now);
+  const future = events.filter(e => picks.has(e.id) && e._e > now);
+  const minePlan = future.filter(e => conDayKey(e._s) === today || e._s <= now);
+  const later = minePlan.length ? null : (future.find(e => conDayKey(e._s) > today) || null);
   const onNowEv = minePlan.find(e => e._s <= now && now < e._e) || null;
   const upcoming = minePlan.filter(e => e._s > now);
   const heroEv = minePlan.length ? (onNowEv || upcoming[0]) : null;
@@ -1047,7 +1056,7 @@ function nowModel(now) {
   const around = events.filter(e => e._e > now && e._s <= horizon
     && !(state.browse.hideNoise && isNoise(e))
     && (state.now.hotel === "All" || e.hotel === state.now.hotel));
-  return {minePlan, onNowEv, upcoming, heroEv, rest, around, shown: around.slice(0, state.now.limit)};
+  return {minePlan, later, onNowEv, upcoming, heroEv, rest, around, shown: around.slice(0, state.now.limit)};
 }
 
 const statusShown = (ev, now) => ev._s <= now || minutesBetween(now, ev._s) <= 90;
@@ -1058,6 +1067,7 @@ function nowSignature(m, now, banner) {
   return [
     banner,
     m.heroEv ? m.heroEv.id : "-",
+    m.later ? m.later.id : "-",
     m.onNowEv ? "on" : "next",
     m.rest.map(e => e.id + (statusShown(e, now) ? "!" : "")).join(","),
     m.around.length,
@@ -1081,13 +1091,17 @@ function renderNow() {
     mineHTML = heroHTML(heroEv, now, !!onNowEv, thenNext);
     const rest = model.rest;
     if (rest.length) {
-      mineHTML += `<div class="section-title">Rest of your day <span class="count">${picks.size} picked</span></div><ul class="list compact">`;
+      mineHTML += `<div class="section-title">Rest of your day <span class="count">${minePlan.length} today</span></div><ul class="list compact">`;
       rest.forEach((ev, i) => {
         const status = ev._s <= now ? `On now, ends ${fmtShort(ev._e)}` : `In ${minutesBetween(now, ev._s)} min`;
         mineHTML += gapHTML(i === 0 ? heroEv : rest[i - 1], ev) + rowHTML(ev, {list: "next", status: minutesBetween(now, ev._s) <= 90 || ev._s <= now ? status : ""});
       });
       mineHTML += `</ul>`;
     }
+  } else if (model.later) {
+    const day = DAY_LONG[conDayKey(model.later._s)] || model.later.day;
+    mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Your next pick is on ${day}.</div>
+      <ul class="list compact">${rowHTML(model.later, {list: "next", showDay: true})}</ul>`;
   } else {
     mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Star things in Search and they show up here with walk times.</div>`;
   }
