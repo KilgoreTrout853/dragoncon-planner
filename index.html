@@ -40,6 +40,7 @@
   --h-Streaming: #8F97AE;
   --h-Other: #8F97AE;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);        /* the status bar, on phones that draw under it */
 }
 * { box-sizing: border-box; }
 html { background: var(--ink); color-scheme: dark; }
@@ -59,7 +60,7 @@ button { cursor: pointer; }
 .hdr {
   position: sticky; top: 0; z-index: 5;
   background: var(--ink); border-bottom: 1px solid var(--line);
-  padding: 10px max(14px, calc(50% - 366px)) 8px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+  padding: calc(10px + var(--safe-top)) max(14px, calc(50% - 366px)) 8px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
 }
 .hdr .brand { font-size: 13px; color: var(--muted); font-weight: 500; }
 .hdr .clock { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.05; }
