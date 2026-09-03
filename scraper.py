@@ -215,7 +215,8 @@ def split_hotel(location):
             if hotel == "AmericasMart":
                 room = clean(loc)
             return hotel, room or loc
-    return ("Other" if loc else "Unknown"), loc
+    # Offsite venues carry a leading "O " marker: "O Joystick Gamebar".
+    return ("Other" if loc else "Unknown"), re.sub(r"^O\s+", "", loc)
 
 
 PANELIST_RE = re.compile(r"Additional Panelists?\s*:\s*(.+)$", re.IGNORECASE | re.DOTALL)

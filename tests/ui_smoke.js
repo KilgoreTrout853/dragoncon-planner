@@ -758,6 +758,31 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!nudge.installBtnHere, "here, with no prompt captured, there is no Install button");
   assert(/beforeinstallprompt/.test(html) && /e\.preventDefault\(\); installPrompt = e/.test(html), "the browser install prompt is captured for the button to fire");
 
+  // ---- last sweep: durations read as plans, the placeholder fits, offsite venues lose their marker ----
+  assert(window.eval(`[fmtMins(45), fmtMins(60), fmtMins(310), fmtMins(120)].join("|")`) === "45 min|1 h|5 h 10 min|2 h", "minutes over an hour read as hours");
+  const barText = JSON.parse(window.eval(`(function(){
+    var n = getNow();
+    var far = events.find(function(e){ return e._s > new Date(n.getTime() + 3 * 3600000) && conDayKey(e._s) === conDayKey(n) && e.hotel !== "Streaming"; });
+    picks = new Set([far.id]); savePicks(); state.tab = "browse"; render();
+    var t = document.getElementById("minibar").textContent.replace(/\\s+/g, " ");
+    picks = new Set(); savePicks(); render();
+    return JSON.stringify({text: t, mins: Math.round((far._s - n) / 60000)}); })()`));
+  assert(/ in \d+ h/.test(barText.text), `the mini-bar says hours for a pick ${barText.mins} min out (${barText.text.slice(-24)})`);
+  const placeholder = (html.match(/id="q" placeholder="([^"]+)"/) || [])[1] || "";
+  assert(placeholder.length > 0 && placeholder.length <= 40, `the search placeholder fits a phone (${placeholder.length} chars)`);
+  assert(window.eval(`cleanRoom("Other", "O Joystick Gamebar")`) === "Joystick Gamebar" && window.eval(`cleanRoom("Other", "Walton Spring Park")`) === "Walton Spring Park"
+    && window.eval(`cleanRoom("Hilton", "Salon")`) === "Salon", "an offsite venue loses its O marker and nothing else does");
+  assert(window.eval(`samePlace("Hilton Salon", "Hilton-Salon") && !samePlace("Hilton Salon", "Hilton Galleria 5")`), "a respelled room is the same place; a different room is not");
+  const respell = JSON.parse(window.eval(`(function(){
+    var ev = events.find(function(e){ return e._s > getNow() && e.hotel !== "Streaming"; });
+    picks = new Set([ev.id]); savePicks();
+    pickInfo[ev.id] = {title: ev.title, start: ev.start, location: ev.location.replace(/ /g, "-").toUpperCase()};
+    saveJSON("dc26.pickInfo", pickInfo); pickNews = []; savePickNews();
+    reconcilePicks();
+    var n = pickNews.length; picks = new Set(); savePicks(); pickNews = []; savePickNews();
+    return JSON.stringify({news: n}); })()`));
+  assert(respell.news === 0, "a refresh that only respells the room makes no news");
+
   // ---- a cancelled event says so, not just a strike-through ----
   const cancelProbe = JSON.parse(window.eval(`(function(){
     /* An event in the "on now and in the next hour" list: a pick would become
