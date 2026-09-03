@@ -12,9 +12,10 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `tag_events.py` | Has Claude tag each event with fandoms, kind (celebrity Q&A, fan panel, screening…), topics, guests, and 18+. Powers the fandom picker, kind chips, the Celebrity badge and Guests section, and search. |
 | `index.html` | The whole planner, one file. Reads `events.json` from the same folder. |
 | `sw.js` | Service worker: keeps the app opening and rendering with no signal. |
-| `manifest.json`, `icon.svg` | Make it installable to a home screen as "DC26". |
+| `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
+| `make_icons.py` | Renders the PNG icons and the preview image from the design in `icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Re-runs the scraper every 3 hours during con week and commits fresh data. |
-| `tests/` | 24 parser tests and 549 UI assertions. Not optional — run them before you push. |
+| `tests/` | 24 parser tests and 564 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -31,7 +32,7 @@ python -m http.server 8000       # then open http://localhost:8000
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 549 assertions
+node tests/ui_smoke.js           # 564 assertions
 python tests/test_parse.py       # 24 parser tests
 ```
 

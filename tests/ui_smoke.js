@@ -1130,7 +1130,24 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "registration is guarded by a serviceWorker capability check");
   assert(/register\("\.\/sw\.js"\)\.catch\(err =>[\s\S]{0,120}console\.warn/.test(html),
     "a failed registration is reported, not swallowed");
-  assert(/const CACHE\s*=\s*["']dc26-v2["']/.test(swSrc), "the cache name is versioned (dc26-v2)");
+  assert(/const CACHE\s*=\s*["']dc26-v3["']/.test(swSrc), "the cache name is versioned (dc26-v3)");
+  // installable from a chat link: PNG icons, an app title, and a preview card
+  assert(/<link rel="apple-touch-icon" href="\.\/icon-180\.png">/.test(html), "the Apple touch icon is a PNG, not the SVG iOS ignores");
+  assert(/<meta name="apple-mobile-web-app-title" content="DC26">/.test(html), "the home-screen title is DC26");
+  for (const tag of ["og:title", "og:description", "og:image", "og:url", "og:type"]) {
+    assert(new RegExp(`<meta property="${tag}" content="[^"]+">`).test(html), `the head carries ${tag}`);
+  }
+  assert(/<meta property="og:image" content="https:\/\/kilgoretrout853\.github\.io\/dragoncon-planner\/og-image\.png">/.test(html), "og:image is an absolute URL on the Pages site");
+  assert(/<meta name="twitter:card" content="summary_large_image">/.test(html), "and the card is the large-image kind");
+  const manifest = JSON.parse(fs.readFileSync(__dirname + "/../manifest.json", "utf8"));
+  const pngIcons = manifest.icons.filter(i => i.type === "image/png");
+  assert(pngIcons.some(i => i.sizes === "192x192" && i.purpose === "any") && pngIcons.some(i => i.sizes === "512x512" && i.purpose === "maskable"),
+    "the manifest offers 192 and 512 PNGs, any and maskable");
+  for (const f of ["icon-180.png", "icon-192.png", "icon-512.png", "og-image.png"]) {
+    const b = fs.readFileSync(__dirname + "/../" + f);
+    assert(b.length > 1000 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47, `${f} exists and is a PNG (${b.length} bytes)`);
+  }
+  assert(/SHELL = \[[^\]]*"\.\/icon-180\.png"[^\]]*"\.\/icon-512\.png"/.test(swSrc), "the worker precaches the icons");
   // a page that arrives after the 3s race is stored for the next launch, not thrown away
   assert(/function fetchAndCache\(request\)/.test(swSrc) && /cache\.put\(request, res\.clone\(\)\)/.test(swSrc.slice(swSrc.indexOf("function fetchAndCache"))),
     "the html fetch stores its response whenever it lands");
@@ -1155,7 +1172,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(mf.background_color === "#171A33" && mf.theme_color === "#171A33", "manifest colours match the app");
   assert(mf.icons.some(i => i.src === "./icon.svg"), "manifest points at the icon");
   assert(/<link rel="manifest" href="\.\/manifest\.json">/.test(html), "index.html links the manifest");
-  assert(/<link rel="apple-touch-icon" href="\.\/icon\.svg">/.test(html), "index.html sets an apple-touch-icon");
+  assert(/<link rel="apple-touch-icon" href="\.\/icon-180\.png">/.test(html), "index.html sets a PNG apple-touch-icon");
   assert(fs.existsSync(__dirname + "/../icon.svg"), "the icon file exists");
 
   // (b) the pill: shown by the worker's message, dismissed, and reloads on tap
