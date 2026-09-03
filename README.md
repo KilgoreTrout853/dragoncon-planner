@@ -15,7 +15,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Re-runs the scraper every 3 hours during con week and commits fresh data. |
-| `tests/` | 24 parser tests and 564 UI assertions. Not optional — run them before you push. |
+| `tests/` | 24 parser tests and 573 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -32,7 +32,7 @@ python -m http.server 8000       # then open http://localhost:8000
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 564 assertions
+node tests/ui_smoke.js           # 573 assertions
 python tests/test_parse.py       # 24 parser tests
 ```
 
@@ -63,7 +63,7 @@ The service worker caches the app and the schedule, so it opens and renders in a
 - `events.json` is served from cache immediately and refreshed behind you. When it changes you get a "Schedule updated · tap to refresh" pill rather than the list moving under your thumb.
 - When the cached copy is what you're seeing, the line under the clock says `· offline copy`.
 
-To install: iPhone must use **Safari** (Share → Add to Home Screen); Android uses Chrome (⋮ → Install app). You get a **DC26** icon that opens without browser chrome. The content area scrolls inside its own container rather than the page, so the header and the nav stay put on an iPhone instead of riding the system's bottom inset. The status bar is opaque on purpose: on iOS 26 a translucent one leaves the web view short by its own height, with a dead strip at the bottom of the screen. iOS reads these web-app settings once, when the icon is added, so a change to them only reaches a phone after the icon is deleted and added again from Safari. The last line of Settings shows the build time, so you can tell which version a phone is running.
+To install: iPhone must use **Safari** (Share → Add to Home Screen); Android uses Chrome (⋮ → Install app). Until it is installed, the Now tab opens with a nudge saying so, which can be put off for a week at a time. You get a **DC26** icon that opens without browser chrome. The content area scrolls inside its own container rather than the page, so the header and the nav stay put on an iPhone instead of riding the system's bottom inset. The status bar is opaque on purpose: on iOS 26 a translucent one leaves the web view short by its own height, with a dead strip at the bottom of the screen. iOS reads these web-app settings once, when the icon is added, so a change to them only reaches a phone after the icon is deleted and added again from Safari. The last line of Settings shows the build time, so you can tell which version a phone is running.
 
 Bump `CACHE` in `sw.js` when you change `index.html` in a way that must reach people immediately; older `dc26-*` caches are dropped on activate.
 

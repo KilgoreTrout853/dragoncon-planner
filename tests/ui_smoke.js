@@ -732,6 +732,32 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval(`revealChip = __realReveal; state.browse.hotel = "All"; state.tab = "browse"; render();`); await sleep(20);
   assert(/only ever moves the row sideways/i.test(html), "revealChip only moves the row sideways, never the page");
 
+  // ---- an install nudge on Now until the app is on the home screen ----
+  const nudge = JSON.parse(window.eval(`(function(){
+    localStorage.removeItem("dc26.nudgeSnoozedUntil"); state.tab = "now"; render();
+    var out = {shown: !!document.getElementById("nudge"), first: document.getElementById("nudge") === document.querySelector("#view-now > *"),
+      text: (document.getElementById("nudge") || {}).textContent || ""};
+    var real = isStandalone; isStandalone = function(){ return true; }; render();
+    out.installedHides = !document.getElementById("nudge");
+    isStandalone = real; render();
+    document.querySelector('#view-now [data-act="nudge-later"]').click();
+    out.afterLater = {shown: !!document.getElementById("nudge"), until: loadJSON("dc26.nudgeSnoozedUntil", 0)};
+    saveJSON("dc26.nudgeSnoozedUntil", Date.now() - 1000); render();
+    out.afterWeek = !!document.getElementById("nudge");
+    localStorage.removeItem("dc26.nudgeSnoozedUntil");
+    out.ios = nudgeCopy(true, false); out.android = nudgeCopy(false, true); out.other = nudgeCopy(false, false);
+    out.installBtnHere = !!document.querySelector('#view-now [data-act="nudge-install"]');
+    return JSON.stringify(out); })()`));
+  assert(nudge.shown && nudge.first, "outside a home-screen install, Now opens with the nudge");
+  assert(nudge.installedHides, "and an installed app never shows it");
+  assert(!nudge.afterLater.shown && nudge.afterLater.until > Date.now() + 6 * 24 * 3600 * 1000, "Not now hides it for a week");
+  assert(nudge.afterWeek, "after which it comes back");
+  assert(/Open in Safari/.test(nudge.ios.body) && /Add to Home Screen/.test(nudge.ios.body) && !nudge.ios.install, "the iOS copy covers the chat-app browser and never offers a button it cannot honour");
+  assert(nudge.android.install && /Install this app/.test(nudge.android.lead), "with a browser install prompt in hand, Android gets a real Install button");
+  assert(!nudge.other.install && /home screen/i.test(nudge.other.lead), "anything else gets the generic wording");
+  assert(!nudge.installBtnHere, "here, with no prompt captured, there is no Install button");
+  assert(/beforeinstallprompt/.test(html) && /e\.preventDefault\(\); installPrompt = e/.test(html), "the browser install prompt is captured for the button to fire");
+
   // ---- a cancelled event says so, not just a strike-through ----
   const cancelProbe = JSON.parse(window.eval(`(function(){
     /* An event in the "on now and in the next hour" list: a pick would become

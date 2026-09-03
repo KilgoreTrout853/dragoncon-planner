@@ -107,6 +107,8 @@ button { cursor: pointer; }
 .notice.warn { border-color: var(--warn); color: var(--text); }
 .pick-news ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
 .pick-news .btn { margin-top: 12px; height: 38px; }
+.nudge .btns { display: flex; gap: 8px; margin-top: 12px; }
+.nudge .btn { height: 38px; }
 
 /* Views -------------------------------------------------------------- */
 main {
@@ -1204,6 +1206,7 @@ function nowSignature(m, now, banner) {
     m.heroEv ? m.heroEv.id : "-",
     m.later ? m.later.id : "-",
     pickNews.length,
+    nudgeVisible() ? "nudge" : "-",
     m.onNowEv ? "on" : "next",
     m.rest.map(e => e.id + (statusShown(e, now) ? "!" : "")).join(","),
     m.around.length,
@@ -1220,7 +1223,7 @@ function renderNow() {
   const model = nowModel(now);
   lastNowSig = nowSignature(model, now, banner);
   const minePlan = model.minePlan;
-  let mineHTML = pickNewsHTML();
+  let mineHTML = nudgeHTML() + pickNewsHTML();
   if (minePlan.length) {
     const onNowEv = model.onNowEv, upcoming = model.upcoming, heroEv = model.heroEv;
     const thenNext = onNowEv ? upcoming[0] : null;
@@ -2244,6 +2247,11 @@ document.querySelector("main").addEventListener("click", e => {
     }
     if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
     if (a === "dismiss-news") { pickNews = []; savePickNews(); render(); return; }
+    if (a === "nudge-later") { saveJSON("dc26.nudgeSnoozedUntil", Date.now() + NUDGE_SNOOZE_MS); render(); return; }
+    if (a === "nudge-install") {
+      if (installPrompt) { const p = installPrompt; installPrompt = null; p.prompt(); }
+      return;
+    }
     if (a === "explore-back") { closeExplorePage(); return; }
     if (a === "fol-add") { scrollToGrid(); return; }
     if (a === "explore-jump") {
@@ -2622,6 +2630,40 @@ if (window.ResizeObserver) {
    a control are left alone, and so is anything more sideways than vertical. */
 const IS_IOS = /iP(hone|ad|od)/.test(navigator.platform)
   || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints > 1);
+/* Installing is the point for someone who arrived from a chat link: the
+   app works with no signal only once it is on the home screen. So the Now
+   tab opens with a nudge until the app is installed, dismissible for a week
+   at a time. No user-agent sniffing: one honest iOS message covers Safari
+   and the in-app browsers, and Android gets the real install prompt when
+   the browser offers one. */
+const NUDGE_SNOOZE_MS = 7 * 24 * 3600 * 1000;
+let installPrompt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; if (state.tab === "now") render(); });
+window.addEventListener("appinstalled", () => { installPrompt = null; render(); });
+function isStandalone() {
+  return !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+}
+function nudgeVisible() {
+  if (isStandalone()) return false;
+  const until = loadJSON("dc26.nudgeSnoozedUntil", 0);
+  return !(until && Date.now() < until);
+}
+function nudgeCopy(ios, canPrompt) {
+  if (ios) return {
+    lead: "Add this to your home screen.",
+    body: "In Safari: Share, then Add to Home Screen. If you opened this from a chat, tap the menu (the dots or the compass) and choose Open in Safari first. Once installed it works with no signal.",
+    install: false,
+  };
+  if (canPrompt) return {lead: "Install this app.", body: "It opens like an app and works with no signal.", install: true};
+  return {lead: "Add this to your home screen.", body: "From the menu (the three dots): Install app, or Add to Home screen. Once installed it works with no signal.", install: false};
+}
+function nudgeHTML() {
+  if (!nudgeVisible()) return "";
+  const c = nudgeCopy(IS_IOS, !!installPrompt);
+  return `<div class="notice nudge" id="nudge"><b>${esc(c.lead)}</b> ${esc(c.body)}
+    <div class="btns">${c.install ? `<button class="btn" data-act="nudge-install">Install app</button>` : ""}<button class="btn quiet" data-act="nudge-later">Not now</button></div></div>`;
+}
+
 const edgeTouch = {x: 0, y: 0, ignore: false};
 function edgeTouchStart(e) {
   const t = e.touches && e.touches[0];
