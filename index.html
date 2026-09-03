@@ -77,6 +77,8 @@ button { cursor: pointer; }
 }
 .notice b { color: var(--text); font-weight: 600; }
 .notice.warn { border-color: var(--warn); color: var(--text); }
+.pick-news ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+.pick-news .btn { margin-top: 12px; height: 38px; }
 
 /* Views -------------------------------------------------------------- */
 main { max-width: 760px; margin: 0 auto; }
@@ -625,7 +627,53 @@ const PAGE = 150;
    ================================================================== */
 function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
 function saveJSON(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
-function savePicks() { saveJSON("dc26.picks", [...picks]); }
+/* What each pick looked like when it was starred, so a later refresh can say
+   what changed. The rows alone would show the new time, or nothing at all,
+   and the reader would find out at the door. */
+let pickInfo = loadJSON("dc26.pickInfo", {}) || {};
+let pickNews = loadJSON("dc26.pickNews", []) || [];
+const snapshotOf = e => ({title: e.title, start: e.start, location: e.location || ""});
+function savePicks() {
+  saveJSON("dc26.picks", [...picks]);
+  const info = {};
+  picks.forEach(id => { const e = byId.get(id); if (e) info[id] = snapshotOf(e); else if (pickInfo[id]) info[id] = pickInfo[id]; });
+  pickInfo = info;
+  saveJSON("dc26.pickInfo", pickInfo);
+}
+function savePickNews() { saveJSON("dc26.pickNews", pickNews); }
+function whenWhere(x) {
+  const d = toDate(x.start);
+  return `${DAY_LABEL[dayOf(d)] || ""} ${fmtShort(d)}, ${x.location || "location TBA"}`.trim();
+}
+/* Compare each pick with its snapshot. A vanished event leaves the plan but
+   stays in the news; a moved one stays in the plan and its snapshot moves
+   with it, so it is reported once. The news keeps until it is dismissed. */
+function reconcilePicks() {
+  let changed = false;
+  [...picks].forEach(id => {
+    const was = pickInfo[id], e = byId.get(id);
+    if (!e) {
+      pickNews.push({kind: "gone", title: was ? was.title : "One of your picks", was: was ? whenWhere(was) : ""});
+      picks.delete(id);
+      changed = true;
+      return;
+    }
+    if (was && (was.start !== e.start || (was.location || "") !== (e.location || ""))) {
+      pickNews.push({kind: "moved", title: e.title, was: whenWhere(was), now: whenWhere(e)});
+      changed = true;
+    }
+  });
+  if (changed) { savePicks(); savePickNews(); }
+  else if ([...picks].some(id => !pickInfo[id])) savePicks();   // picks from before snapshots existed
+}
+function pickNewsHTML() {
+  if (!pickNews.length) return "";
+  const items = pickNews.map(n => n.kind === "gone"
+    ? `<li><b>${esc(n.title)}</b> was removed from the schedule${n.was ? `. It was ${esc(n.was)}` : ""}.</li>`
+    : `<li><b>${esc(n.title)}</b> moved to ${esc(n.now)}. It was ${esc(n.was)}.</li>`).join("");
+  return `<div class="notice warn pick-news"><b>Your picks changed in the last schedule refresh.</b><ul>${items}</ul>
+    <button class="btn quiet" data-act="dismiss-news">OK</button></div>`;
+}
 
 /* ==================================================================
    Follows. A pick is one event; a follow is a standing interest - a
@@ -731,9 +779,7 @@ async function load() {
   buildIndex();
   buildCatalogue();
   applyExploreHash();          // a pasted #explore= link lands on its page
-  // Drop picks that no longer exist (cancelled/removed upstream) but keep the ids around for the notice.
-  const missing = [...picks].filter(id => !byId.has(id));
-  if (missing.length) { missing.forEach(id => picks.delete(id)); savePicks(); }
+  reconcilePicks();            // picks that vanished or moved since they were starred
   updateFresh();
   render();
 }
@@ -1073,6 +1119,7 @@ function nowSignature(m, now, banner) {
     banner,
     m.heroEv ? m.heroEv.id : "-",
     m.later ? m.later.id : "-",
+    pickNews.length,
     m.onNowEv ? "on" : "next",
     m.rest.map(e => e.id + (statusShown(e, now) ? "!" : "")).join(","),
     m.around.length,
@@ -1089,11 +1136,11 @@ function renderNow() {
   const model = nowModel(now);
   lastNowSig = nowSignature(model, now, banner);
   const minePlan = model.minePlan;
-  let mineHTML = "";
+  let mineHTML = pickNewsHTML();
   if (minePlan.length) {
     const onNowEv = model.onNowEv, upcoming = model.upcoming, heroEv = model.heroEv;
     const thenNext = onNowEv ? upcoming[0] : null;
-    mineHTML = heroHTML(heroEv, now, !!onNowEv, thenNext);
+    mineHTML += heroHTML(heroEv, now, !!onNowEv, thenNext);
     const rest = model.rest;
     if (rest.length) {
       mineHTML += `<div class="section-title">Rest of your day <span class="count">${minePlan.length} today</span></div><ul class="list compact">`;
@@ -1105,10 +1152,10 @@ function renderNow() {
     }
   } else if (model.later) {
     const day = DAY_LONG[conDayKey(model.later._s)] || model.later.day;
-    mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Your next pick is on ${day}.</div>
+    mineHTML += `<div class="empty"><b>Nothing picked for later today.</b> Your next pick is on ${day}.</div>
       <ul class="list compact">${rowHTML(model.later, {list: "next", showDay: true})}</ul>`;
   } else {
-    mineHTML = `<div class="empty"><b>Nothing picked for later today.</b> Star things in Search and they show up here with walk times.</div>`;
+    mineHTML += `<div class="empty"><b>Nothing picked for later today.</b> Star things in Search and they show up here with walk times.</div>`;
   }
 
   const around = model.around, shown = model.shown;
@@ -1884,7 +1931,7 @@ function renderMineTimeline(mine, now) {
 
 function renderMine() {
   const mine = events.filter(e => picks.has(e.id));
-  let html = `<div class="mine-actions">
+  let html = pickNewsHTML() + `<div class="mine-actions">
     <button class="btn" data-act="ics" ${mine.length ? "" : "disabled"}>Export to calendar</button>
     <button class="btn quiet" data-act="clear" ${mine.length ? "" : "disabled"}>Remove all</button>
   </div>`;
@@ -1982,6 +2029,7 @@ document.querySelector("main").addEventListener("click", e => {
       return;
     }
     if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
+    if (a === "dismiss-news") { pickNews = []; savePickNews(); render(); return; }
     if (a === "explore-back") { closeExplorePage(); return; }
     if (a === "fol-add") { scrollToGrid(); return; }
     if (a === "fol-toggle") {

@@ -565,6 +565,46 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(dp.onNow.kicker === "On now" && !/leave by/.test(dp.onNow.then),
     `an on-now hero does not tell you to leave for a Sunday event (${dp.onNow.then.trim()})`);
 
+  // ---- a pick that vanishes or moves in a refresh is reported, not swallowed ----
+  const newsProbe = JSON.parse(window.eval(`(function(){
+    var n = getNow();
+    var live = events.filter(function(e){ return e._s > n && e.hotel !== "Streaming"; });
+    var moved = live[0], keep = live[1];
+    picks = new Set([moved.id, keep.id, "ghost-1"]); savePicks();
+    /* as if these had been starred before a refresh changed things */
+    pickInfo["ghost-1"] = {title: "Hazbin Hotel Cast", start: "2026-09-06T16:00", location: "Hilton Salon"};
+    pickInfo[moved.id] = {title: moved.title, start: "2026-09-05T10:00", location: "Westin Peachtree Ballroom"};
+    saveJSON("dc26.pickInfo", pickInfo);
+    pickNews = []; savePickNews();
+    reconcilePicks();
+    state.tab = "now"; render();
+    var nowText = ((document.querySelector("#view-now .pick-news") || {}).textContent || "").replace(/\\s+/g, " ");
+    state.tab = "mine"; render();
+    var mineText = ((document.querySelector("#view-mine .pick-news") || {}).textContent || "").replace(/\\s+/g, " ");
+    var out = {picks: Array.from(picks), news: pickNews.length, nowText: nowText, mineText: mineText,
+      stored: (loadJSON("dc26.pickNews", []) || []).length,
+      snapshotMoved: !!pickInfo[moved.id] && pickInfo[moved.id].start === moved.start,
+      ghostForgotten: !pickInfo["ghost-1"]};
+    document.querySelector('#view-mine [data-act="dismiss-news"]').click();
+    out.afterDismiss = {news: pickNews.length, stored: (loadJSON("dc26.pickNews", []) || []).length,
+      shown: !!document.querySelector("#view-mine .pick-news")};
+    reconcilePicks();
+    out.again = pickNews.length;
+    picks = new Set(); savePicks(); state.tab = "now"; render();
+    return JSON.stringify({moved: moved.id, keep: keep.id, out: out}); })()`));
+  const np = newsProbe.out;
+  assert(!np.picks.includes("ghost-1") && np.picks.length === 2, "a pick whose event is gone leaves the plan");
+  assert(np.news === 2, `and both the vanished and the moved pick make the news (${np.news})`);
+  assert(/Hazbin Hotel Cast/.test(np.nowText) && /removed/.test(np.nowText) && /Sun 4:00 PM, Hilton Salon/.test(np.nowText),
+    `Now names the vanished event and when it was (${np.nowText.slice(0, 120)})`);
+  assert(/moved to/.test(np.nowText) && /Westin Peachtree Ballroom/.test(np.nowText), "and says where the moved one used to be");
+  assert(/Hazbin Hotel Cast/.test(np.mineText), "Mine shows the same notice");
+  assert(np.stored === 2, "the news is stored, so it survives a reload");
+  assert(np.snapshotMoved, "the moved pick's snapshot now matches the new time");
+  assert(np.ghostForgotten, "and the vanished one's snapshot is gone");
+  assert(np.afterDismiss.news === 0 && np.afterDismiss.stored === 0 && !np.afterDismiss.shown, "OK dismisses it for good");
+  assert(np.again === 0, "and a second look finds nothing new to report");
+
   // ---- a cancelled event says so, not just a strike-through ----
   const cancelProbe = JSON.parse(window.eval(`(function(){
     /* An event in the "on now and in the next hour" list: a pick would become
