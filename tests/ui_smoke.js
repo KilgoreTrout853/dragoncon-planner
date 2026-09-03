@@ -565,6 +565,28 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(dp.onNow.kicker === "On now" && !/leave by/.test(dp.onNow.then),
     `an on-now hero does not tell you to leave for a Sunday event (${dp.onNow.then.trim()})`);
 
+  // ---- a cancelled event says so, not just a strike-through ----
+  const cancelProbe = JSON.parse(window.eval(`(function(){
+    /* An event in the "on now and in the next hour" list: a pick would become
+       the hero card, which is not a row. */
+    var n = getNow();
+    var ev = events.find(function(e){ return e._e > n && e._s <= new Date(n.getTime() + 3600000) && !isNoise(e) && e.hotel !== "Streaming"; });
+    ev.cancelled = true;
+    picks = new Set(); savePicks(); state.tab = "now"; state.now.hotel = "All"; render();
+    var row = document.querySelector('#view-now .row[data-list="around"][data-id="' + ev.id + '"]');
+    openSheet("event", ev.id);
+    var out = {found: !!row, rowStruck: !!row && row.classList.contains("cancelled"),
+      rowTag: !!row && !!row.querySelector(".cancelled-tag"),
+      sheetTag: !!document.querySelector("#panel-event .ev-head .cancelled-tag")};
+    closeSheet();
+    ev.cancelled = false; render();
+    return JSON.stringify(out); })()`));
+  assert(cancelProbe.found, "the probe found its row in the on-now list");
+  assert(cancelProbe.rowStruck, "a cancelled event's row is struck through");
+  assert(cancelProbe.rowTag, "and carries a Cancelled label");
+  assert(cancelProbe.sheetTag, "and the sheet says Cancelled under the room");
+  assert(/\.cancelled-tag \{[^}]*var\(--warn\)/.test(html), "in the warning colour");
+
   // ---- step 0: four tabs - Browse renamed to Search, For you folded into Explore ----
   const navBtns = [...document.querySelectorAll(".nav button")];
   const navLabels = navBtns.map(b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(""));

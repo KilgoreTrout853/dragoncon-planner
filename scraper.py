@@ -208,6 +208,20 @@ def split_hotel(location):
 
 PANELIST_RE = re.compile(r"Additional Panelists?\s*:\s*(.+)$", re.IGNORECASE | re.DOTALL)
 
+# A cancelled event says so up front: "CANCELLED: ..." leading or trailing the
+# title, in brackets, or a description that opens with it. Anywhere else the
+# word is just a word. Matching it anywhere struck through a panel about TV
+# cancellations, a table read of a show "canceled in 1983", and the Doctor Who
+# wilderness years, none of which was cancelled.
+TITLE_CANCELLED_RE = re.compile(r"^\W*cancel+ed\b|\bcancel+ed\W*$|[(\[]\s*cancel+ed\s*[)\]]", re.IGNORECASE)
+DESC_CANCELLED_RE = re.compile(
+    r"^\W*(?:(?:this|the)\s+(?:event|panel|session|program|game|signing)\s+(?:has\s+been\s+|is\s+|was\s+)?)?cancel+ed\b",
+    re.IGNORECASE)
+
+
+def is_cancelled(title, description):
+    return bool(TITLE_CANCELLED_RE.search(clean(title))) or bool(DESC_CANCELLED_RE.search(clean(description)))
+
 
 def extract_panelists(description):
     """Descriptions often end with 'Additional Panelists: A, B(Moderator), C (Virtual)'."""
@@ -247,7 +261,7 @@ def build_event(list_item, detail, kind):
     title = detail["title"] or list_item["title"]
     description = detail["description"]
     speakers = detail["speakers"] or extract_panelists(description)
-    flagged = bool(re.search(r"\bcancel+ed\b", title + " " + description, re.IGNORECASE))
+    flagged = is_cancelled(title, description)
 
     return {
         "id": list_item["id"],
