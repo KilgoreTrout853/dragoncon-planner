@@ -769,17 +769,59 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const secTitles = [...document.querySelectorAll("#view-explore .section-title")].map(x => x.textContent.replace(/\s+/g, " ").trim());
   /* The fixture has no fandom with 3+ events, so that section is correctly
      absent here; the all-four check runs against the real schedule below. */
-  const order = ["Tracks", "Fandoms", "Topics", "People"];
+  const order = ["Tracks", "Fandoms", "Topics", "Guests", "Panelists"];
   const seen = secTitles.map(t => t.split(" ")[0]);
   assert(seen.length >= 3, `the sections that have content render (${seen.join(" | ")})`);
-  assert(seen.every(x => order.includes(x)), "and are named from the four kinds");
-  assert(seen.join(",") === order.filter(o => seen.includes(o)).join(","), "in the order Tracks, Fandoms, Topics, People");
+  assert(seen.every(x => order.includes(x)), "and are named from the five sections");
+  assert(seen.join(",") === order.filter(o => seen.includes(o)).join(","), "in the order Tracks, Fandoms, Topics, Guests, Panelists");
   assert(!seen.includes("Fandoms"), "an empty section is skipped rather than shown empty");
   assert(window.eval(`getCatalogue().fandom.every(function(f){ return f.count >= 3; })`), "fandom tiles need 3+ events");
-  assert(window.eval(`(function(){ var c = getCatalogue().track; for (var i = 1; i < c.length; i++) if (c[i].count > c[i-1].count) return false; return true; })()`),
-    "tiles are sorted by count, descending");
+  assert(window.eval(`(function(){ var c = getCatalogue().track.filter(function(t){ return !NOISE_TRACKS.has(t.key); });
+    for (var i = 1; i < c.length; i++) if (c[i].key.localeCompare(c[i-1].key) < 0) return false; return true; })()`), "tracks run A to Z");
+  assert(window.eval(`(function(){ var c = getCatalogue().track, n = c.filter(function(t){ return NOISE_TRACKS.has(t.key); }).length;
+    return n > 0 && c.slice(-n).every(function(t){ return NOISE_TRACKS.has(t.key); }); })()`), "with the photo and video-room tracks last");
+  assert(window.eval(`(function(){ var c = getCatalogue().fandom; for (var i = 1; i < c.length; i++) if (c[i].count > c[i-1].count) return false; return true; })()`),
+    "fandoms stay sorted by count");
+  assert(window.eval(`(function(){ var c = getCatalogue().panelist; for (var i = 1; i < c.length; i++) if (c[i].key.localeCompare(c[i-1].key) < 0) return false; return true; })()`),
+    "panelists run A to Z");
+  assert(window.eval(`getCatalogue().guest.length + getCatalogue().panelist.length === getCatalogue().person.length`),
+    "guests and panelists together are everyone followable");
   const firstTile = document.querySelector("#view-explore .tile");
   assert(/\d/.test(firstTile.textContent), "each tile shows a count");
+  // each section opens with its head and a Show all
+  const fold = JSON.parse(window.eval(`(function(){
+    var grid = document.getElementById("exploreGrid"), out = {}, cur = null;
+    [].forEach.call(grid.children, function(el){
+      if (el.classList.contains("section-title")) { cur = el.id.replace("explore-", ""); out[cur] = {tiles: 0, all: null}; }
+      else if (cur && el.classList.contains("tiles")) out[cur].tiles += el.querySelectorAll(".tile").length;
+      else if (cur && el.dataset && el.dataset.act === "explore-all") out[cur].all = el.textContent.trim();
+    });
+    return JSON.stringify({sections: out, head: EXPLORE_HEAD, tracks: getCatalogue().track.length}); })()`));
+  assert(fold.sections.track && fold.sections.track.tiles === Math.min(fold.head, fold.tracks), `Tracks opens with its head (${fold.sections.track.tiles} of ${fold.tracks})`);
+  assert(fold.tracks <= fold.head || fold.sections.track.all === "Show all " + fold.tracks, `and offers Show all ${fold.tracks} (${fold.sections.track.all})`);
+  assert(Object.values(fold.sections).every(x => x.tiles <= fold.head), "no section shows more than its head to start");
+  const boxKeep = document.getElementById("exploreQ");
+  const showAll = document.querySelector('#exploreGrid [data-act="explore-all"][data-section="track"]');
+  assert(showAll, "the fixture has enough tracks to fold");
+  showAll.click(); await sleep(20);
+  const opened = JSON.parse(window.eval(`(function(){
+    var t = document.getElementById("explore-track"), tiles = 0, el = t.nextElementSibling;
+    while (el && !el.classList.contains("section-title")) { if (el.classList.contains("tiles")) tiles += el.querySelectorAll(".tile").length; el = el.nextElementSibling; }
+    return JSON.stringify({tiles: tiles, btn: !!document.querySelector('#exploreGrid [data-act="explore-all"][data-section="track"]')}); })()`));
+  assert(opened.tiles === fold.tracks && !opened.btn, `Show all opens every track (${opened.tiles}) and the button goes`);
+  assert(document.getElementById("exploreQ") === boxKeep, "without rebuilding the filter box");
+  assert(window.eval("state.explore.expanded.track") === true, "and the choice holds for this visit");
+  // the jump bar under the filter box
+  const jumps = [...document.querySelectorAll('#view-explore .controls-sticky [data-act="explore-jump"]')].map(b => b.dataset.section);
+  assert(jumps.length >= 3 && jumps.join(",") === Object.keys(fold.sections).join(","), `a jump chip per rendered section, in order (${jumps.join(",")})`);
+  assert(document.querySelector('#view-explore .controls-sticky [data-act="explore-jump"] .n'), "each chip carries its count");
+  const jumpScrolls = [];
+  const realScroll = window.scrollTo;
+  window.scrollTo = function (a, b) { jumpScrolls.push(typeof a === "object" ? a : {top: b}); };
+  document.querySelector('#view-explore [data-act="explore-jump"][data-section="' + jumps[jumps.length - 1] + '"]').click(); await sleep(20);
+  window.scrollTo = realScroll;
+  assert(jumpScrolls.length === 1 && jumpScrolls[0].top >= 0 && window.eval("state.tab") === "explore", "tapping a chip scrolls to its section");
+  window.eval(`(function(){ state.explore.expanded = {}; renderExplore(); })()`); await sleep(20);
   // the filter narrows tiles, not events
   const allTiles = document.querySelectorAll("#view-explore .tile").length;
   window.eval(`(function(){ state.explore.q = "cost"; renderExplore(); })()`); await sleep(20);
@@ -1233,7 +1275,13 @@ async function realDataChecks() {
   // Explore against the real schedule: all four sections, correct counts
   w.eval(`(function(){ follows = []; saveFollows(); state.tab = "explore"; state.explore.page = null; state.explore.q = ""; render(); })()`);
   const realSecs = [...w.document.querySelectorAll("#view-explore .section-title")].map(x => x.textContent.trim().split(" ")[0]);
-  assert(realSecs.join(",") === "Tracks,Fandoms,Topics,People", `all four sections render (${realSecs.join(",")})`);
+  assert(realSecs.join(",") === "Tracks,Fandoms,Topics,Guests,Panelists", `all five sections render (${realSecs.join(",")})`);
+  assert(w.eval(`getCatalogue().guest.length > 100 && getCatalogue().guest.every(function(p){
+    return events.some(function(e){ return isCeleb(e) && (e.speakers||[]).some(function(s){ return s.name === p.key; }); }); })`),
+    `every Guest is a celebrity guest (${w.eval("getCatalogue().guest.length")})`);
+  assert(w.eval(`getCatalogue().panelist.every(function(p){ return p.count >= 5; })`), "and every Panelist has 5+ events");
+  assert(w.eval(`getCatalogue().track[0].key`) !== "Epic Photos" && w.eval(`getCatalogue().track[getCatalogue().track.length - 1].key`) === "Video Room",
+    `Epic Photos no longer leads the tracks; Video Room comes last (${w.eval("getCatalogue().track[0].key")})`);
   const cat = JSON.parse(w.eval(`JSON.stringify({track:getCatalogue().track.length, fandom:getCatalogue().fandom.length,
     topic:getCatalogue().topic.length, person:getCatalogue().person.length})`));
   assert(cat.track === w.eval(`(function(){ var t={}; events.forEach(function(e){ (e.tracks||[]).forEach(function(x){ t[x]=1; }); }); return Object.keys(t).length; })()`),
