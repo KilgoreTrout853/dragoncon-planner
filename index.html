@@ -168,6 +168,7 @@ main { max-width: 760px; margin: 0 auto; }
 /* Following sits above the tiles, behind a fold: a long feed would push the
    grid off screen for someone who came to wander. */
 .following { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.suggested { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
 .fol-head {
   width: 100%; display: flex; align-items: baseline; gap: 6px; padding: 14px 14px 4px;
   background: none; border: 0; color: var(--text); font: inherit; font-size: 17px; font-weight: 700;
@@ -1718,8 +1719,49 @@ function exploreJumpHTML() {
   }).join("")}</div>`;
 }
 
+/* Tracks, fandoms and guests behind the reader's own picks that they do not
+   follow yet, derived on every render. A starred photo session says
+   something about the guest, not the track, so the noise tracks stay out;
+   only things with a tile of their own are offered, so each has a page. */
+const SUGGEST_MAX = 6;
+function suggestedFollows() {
+  if (!picks.size) return [];
+  const cat = getCatalogue();
+  const lists = {track: cat.track, fandom: cat.fandom, person: cat.guest};
+  const tally = new Map();
+  const bump = (kind, key) => {
+    if (!key || isFollowing(kind, key)) return;
+    const item = lists[kind].find(t => t.key === key);
+    if (!item) return;
+    const id = `${kind}:${key}`;
+    const rec = tally.get(id) || {kind, key, count: item.count, picks: 0};
+    rec.picks++;
+    tally.set(id, rec);
+  };
+  picks.forEach(id => {
+    const e = byId.get(id);
+    if (!e) return;
+    (e.tracks || []).forEach(t => { if (!NOISE_TRACKS.has(t)) bump("track", t); });
+    ((e.tags || {}).fandoms || []).forEach(f => bump("fandom", f));
+    (e.speakers || []).forEach(p => bump("person", (p && p.name || "").trim()));
+  });
+  return [...tally.values()]
+    .sort((a, b) => b.picks - a.picks || b.count - a.count || a.key.localeCompare(b.key))
+    .slice(0, SUGGEST_MAX);
+}
+function suggestedHTML() {
+  const items = suggestedFollows();
+  if (!items.length) return "";
+  const n = picks.size;
+  return `<section class="suggested" id="suggested">
+    <div class="section-title">Because you starred <span class="count">${n} thing${n === 1 ? "" : "s"}</span></div>
+    <div class="hint">Tracks, fandoms and guests behind your picks that you don't follow yet.</div>
+    <div class="tiles">${items.map(r => tileHTML(r.kind, r)).join("")}</div>
+  </section>`;
+}
+
 function renderExploreGrid() {
-  document.getElementById("view-explore").innerHTML = `${followingHTML()}
+  document.getElementById("view-explore").innerHTML = `${followingHTML()}${suggestedHTML()}
     <div class="controls controls-sticky">
       <input class="search" type="search" id="exploreQ" placeholder="Filter tracks, fandoms, topics, people"
         value="${esc(state.explore.q)}" autocomplete="off" aria-label="Filter what you can follow">

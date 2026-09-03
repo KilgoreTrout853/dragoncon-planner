@@ -604,6 +604,35 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval(`(function(){ state.tab = "now"; state.browse.day = null; render(); })()`); await sleep(20);
   assert(window.eval("state.browse.day") === null || window.eval("conDayKey(getNow())") === "2026-09-05", "the clock is back on Saturday afternoon");
 
+  // ---- because you starred: suggestions drawn from the reader's own picks ----
+  const sugStrip = JSON.parse(window.eval(`(function(){
+    follows = []; saveFollows(); picks = new Set(); savePicks();
+    state.tab = "explore"; state.explore.page = null; state.explore.q = ""; state.explore.expanded = {}; render();
+    var out = {none: !!document.getElementById("suggested")};
+    var ev = events.find(function(e){ return (e.tracks || []).some(function(t){ return !NOISE_TRACKS.has(t); }); });
+    picks = new Set([ev.id]); savePicks(); render();
+    var sec = document.getElementById("suggested");
+    out.one = {shown: !!sec,
+      title: sec ? sec.querySelector(".section-title").textContent.replace(/\\s+/g, " ").trim() : "",
+      tiles: sec ? [].map.call(sec.querySelectorAll(".tile"), function(t){ return t.dataset.explore; }) : [],
+      aboveFilter: !!sec && !!(sec.compareDocumentPosition(document.getElementById("exploreQ")) & 4)};
+    var track = ev.tracks.filter(function(t){ return !NOISE_TRACKS.has(t); })[0];
+    toggleFollow("track", track); render();
+    sec = document.getElementById("suggested");
+    out.afterFollow = sec ? [].map.call(sec.querySelectorAll(".tile"), function(t){ return t.dataset.explore; }) : [];
+    follows = []; saveFollows();
+    var noise = events.find(function(e){ return NOISE_TRACKS.has(e.track) && !(e.speakers || []).length; });
+    picks = new Set([noise.id]); savePicks(); render();
+    out.noise = !!document.getElementById("suggested");
+    picks = new Set(); savePicks(); render();
+    return JSON.stringify({track: track, out: out}); })()`));
+  assert(!sugStrip.out.none, "with nothing starred there is no suggestions strip");
+  assert(sugStrip.out.one.shown && /^Because you starred 1 thing\b/.test(sugStrip.out.one.title), `one pick brings a strip headed by the count (${sugStrip.out.one.title})`);
+  assert(sugStrip.out.one.tiles.includes("track:" + sugStrip.track), `it offers the pick's track (${sugStrip.out.one.tiles.join(", ")})`);
+  assert(sugStrip.out.one.aboveFilter, "and sits above the filter box");
+  assert(!sugStrip.out.afterFollow.includes("track:" + sugStrip.track), "following it takes it off the strip");
+  assert(!sugStrip.out.noise, "a starred screening with no guest suggests nothing");
+
   // ---- a pick that vanishes or moves in a refresh is reported, not swallowed ----
   const newsProbe = JSON.parse(window.eval(`(function(){
     var n = getNow();
@@ -1282,6 +1311,16 @@ async function realDataChecks() {
   assert(w.eval(`getCatalogue().panelist.every(function(p){ return p.count >= 5; })`), "and every Panelist has 5+ events");
   assert(w.eval(`getCatalogue().track[0].key`) !== "Epic Photos" && w.eval(`getCatalogue().track[getCatalogue().track.length - 1].key`) === "Video Room",
     `Epic Photos no longer leads the tracks; Video Room comes last (${w.eval("getCatalogue().track[0].key")})`);
+  // a starred celebrity panel suggests its guest, not its photo sessions
+  const sugReal = JSON.parse(w.eval(`(function(){
+    follows = []; saveFollows();
+    var ev = events.find(function(e){ return isCeleb(e) && !isNoise(e) && (e.speakers || []).length === 1; });
+    picks = new Set([ev.id]); savePicks(); state.tab = "explore"; state.explore.page = null; state.explore.q = ""; render();
+    var tiles = [].map.call(document.querySelectorAll("#suggested .tile"), function(t){ return t.dataset.explore; });
+    picks = new Set(); savePicks(); render();
+    return JSON.stringify({guest: ev.speakers[0].name, tiles: tiles}); })()`));
+  assert(sugReal.tiles.includes("person:" + sugReal.guest), `a starred celebrity panel suggests its guest (${sugReal.guest}: ${sugReal.tiles.join(", ")})`);
+  assert(!sugReal.tiles.includes("track:Epic Photos"), "and never the photo-session track");
   const cat = JSON.parse(w.eval(`JSON.stringify({track:getCatalogue().track.length, fandom:getCatalogue().fandom.length,
     topic:getCatalogue().topic.length, person:getCatalogue().person.length})`));
   assert(cat.track === w.eval(`(function(){ var t={}; events.forEach(function(e){ (e.tracks||[]).forEach(function(x){ t[x]=1; }); }); return Object.keys(t).length; })()`),
