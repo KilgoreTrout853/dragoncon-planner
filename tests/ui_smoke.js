@@ -690,6 +690,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     s = fake(100, 300); edgeTouchStart(s); m = fake(100, 240); edgeTouchMove(m); out.upAtBottom = m.prevented();
     s = fake(100, 300); edgeTouchStart(s); m = fake(220, 310); edgeTouchMove(m); out.sideways = m.prevented();
     s = fake(100, 300, document.getElementById("sheet")); edgeTouchStart(s); m = fake(100, 360); edgeTouchMove(m); out.inSheet = m.prevented();
+    s = fake(100, 300, document.getElementById("view-now")); edgeTouchStart(s); m = fake(100, 360); edgeTouchMove(m); out.inMain = m.prevented();
     s = fake(100, 300, document.getElementById("q") || document.body); edgeTouchStart(s); m = fake(100, 360); edgeTouchMove(m); out.onInput = m.prevented();
     s = fake(100, 300); edgeTouchStart(s); m = {touches: [{clientX: 100, clientY: 360}, {clientX: 200, clientY: 360}], preventDefault: function(){ out.twoFingers = true; }}; edgeTouchMove(m);
     return JSON.stringify(out); })()`));
@@ -697,6 +698,15 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(edge.upAtBottom, "so is a drag up with the page at its bottom");
   assert(!edge.sideways, "a mostly sideways drag is not");
   assert(!edge.inSheet, "nor a drag that began in the sheet");
+  assert(!edge.inMain, "nor one inside main, which scrolls and bounces on its own");
+  // the page never scrolls; main does, and everything that scrolls goes through one door
+  const mainCss = html.slice(html.indexOf("main {"), html.indexOf("main {") + 400);
+  assert(/position: fixed/.test(mainCss) && /overflow-y: auto/.test(mainCss), "main is the scroll container");
+  assert(/html, body \{[^}]*overflow: hidden/.test(html), "and the page around it cannot scroll");
+  assert(/\.hdr \{[^}]*position: fixed/.test(html), "the header is fixed above it");
+  assert(!/window\.scroll(To|By)\(|window\.scrollY|pageYOffset/.test(html.slice(html.indexOf("const PAGE = 150;"))), "no code scrolls the window directly");
+  const sc = JSON.parse(window.eval(`(function(){ pageScrollTo(120); var a = pageScrollTop(); pageScrollBy(30); var b = pageScrollTop(); pageScrollTo(0); return JSON.stringify({a: a, b: b, c: pageScrollTop()}); })()`));
+  assert((sc.a === 120 && sc.b === 150 && sc.c === 0) || (sc.a === 0 && sc.b === 0), `the scroll helpers address main (${JSON.stringify(sc)})`);
   assert(!edge.twoFingers, "nor a two-finger gesture");
   assert(window.eval("IS_IOS") === false, "and none of it is wired up outside iOS");
   assert(/document\.addEventListener\("touchmove", edgeTouchMove, \{passive: false\}\)/.test(html), "on iOS the move listener is the kind that may cancel");
@@ -864,11 +874,9 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const jumps = [...document.querySelectorAll('#view-explore .controls-sticky [data-act="explore-jump"]')].map(b => b.dataset.section);
   assert(jumps.length >= 3 && jumps.join(",") === Object.keys(fold.sections).join(","), `a jump chip per rendered section, in order (${jumps.join(",")})`);
   assert(document.querySelector('#view-explore .controls-sticky [data-act="explore-jump"] .n'), "each chip carries its count");
-  const jumpScrolls = [];
-  const realScroll = window.scrollTo;
-  window.scrollTo = function (a, b) { jumpScrolls.push(typeof a === "object" ? a : {top: b}); };
+  window.eval(`window.__scrolls = []; window.__realPST = pageScrollTo; pageScrollTo = function(t){ __scrolls.push({top: t}); };`);
   document.querySelector('#view-explore [data-act="explore-jump"][data-section="' + jumps[jumps.length - 1] + '"]').click(); await sleep(20);
-  window.scrollTo = realScroll;
+  const jumpScrolls = window.eval("__scrolls"); window.eval("pageScrollTo = __realPST");
   assert(jumpScrolls.length === 1 && jumpScrolls[0].top >= 0 && window.eval("state.tab") === "explore", "tapping a chip scrolls to its section");
   window.eval(`(function(){ state.explore.expanded = {}; renderExplore(); })()`); await sleep(20);
   // the filter narrows tiles, not events
@@ -995,11 +1003,9 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     window.eval(`(function(){ picks.delete(${JSON.stringify(id)}); savePicks(); })()`);
   }
   // the + chip scrolls down to the grid instead of leaving the tab
-  const scrolls = [];
-  const realScrollTo = window.scrollTo;
-  window.scrollTo = function (a, b) { scrolls.push(typeof a === "object" ? a : {top: b, left: a}); };
+  window.eval(`window.__scrolls = []; window.__realPST = pageScrollTo; pageScrollTo = function(t){ __scrolls.push({top: t}); };`);
   document.querySelector('#following .fc-add').click(); await sleep(20);
-  window.scrollTo = realScrollTo;
+  const scrolls = window.eval("__scrolls"); window.eval("pageScrollTo = __realPST");
   assert(window.eval("state.tab") === "explore" && !window.eval("state.explore.page"), "the + chip stays on the Explore grid");
   assert(scrolls.length === 1 && scrolls[0].top >= 0, `and scrolls to the grid (${JSON.stringify(scrolls)})`);
   assert(fol() && document.querySelector("#following .fc-name"), "with Following still open above it");

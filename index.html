@@ -47,11 +47,16 @@
    scroll past the end, fixed nav included, so the bar bounced on every long
    list. This also drops pull-to-refresh, which the update pill covers. */
 html { background: var(--ink); color-scheme: dark; overscroll-behavior-y: none; }
+/* The page itself never scrolls; main does, below. When the page is the
+   scroller, iOS moves the bottom safe-area inset as it scrolls and
+   rubber-bands the whole layer, and a fixed nav padded by that inset goes
+   along for the ride. A scroller of our own keeps the header and nav where
+   they are on every tab. */
+html, body { height: 100%; overflow: hidden; }
 body {
   margin: 0; font-family: var(--font); font-size: 17px; line-height: 1.3;
   color: var(--text); background: var(--ink);
   -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
-  padding-bottom: calc(76px + var(--safe-bottom));
 }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -61,7 +66,7 @@ button { cursor: pointer; }
 
 /* Header ------------------------------------------------------------ */
 .hdr {
-  position: sticky; top: 0; z-index: 5;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 5;
   background: var(--ink); border-bottom: 1px solid var(--line);
   padding: calc(10px + var(--safe-top)) max(14px, calc(50% - 366px)) 8px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
 }
@@ -85,7 +90,16 @@ button { cursor: pointer; }
 .pick-news .btn { margin-top: 12px; height: 38px; }
 
 /* Views -------------------------------------------------------------- */
-main { max-width: 760px; margin: 0 auto; }
+main {
+  position: fixed; top: 0; bottom: 0; left: 0; right: 0; max-width: 760px; margin: 0 auto;
+  overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch;
+}
+/* Room for the header above and the nav below, as content rather than
+   padding: a scroll container's top padding shifts where sticky children
+   measure from, and Safari has not always scrolled its end padding. */
+main::before { content: ""; display: block; height: var(--hdr-h, 82px); }
+main::after { content: ""; display: block; height: calc(76px + var(--safe-bottom)); }
+body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .view { padding: 0 0 12px; }
 .section-title {
   padding: 18px 14px 6px; font-size: 15px; color: var(--muted); font-weight: 600;
@@ -395,7 +409,6 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
 .update-pill.settling { transition: transform .2s ease-out, opacity .2s ease-out; }
 .minibar.late .mb-when { color: var(--warn); }
-body.has-minibar { padding-bottom: calc(124px + var(--safe-bottom)); }
 
 
 /* Timeline: the day as a column, so gaps and clashes have a shape */
@@ -627,6 +640,19 @@ const state = {
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", celebrity: false, showHidden: false, showPast: false, noToday: false, todayScoped: false, hideAdult: false, hideNoise: settings.hideNoise, page: 1},
 };
 const PAGE = 150;
+
+/* Everything that scrolls the page goes through here, because the page is
+   not the scroller - main is (see the CSS). jsdom has no scrollTo on
+   elements, so fall back to scrollTop. */
+const scroller = document.querySelector("main");
+const pageScrollTop = () => scroller.scrollTop || 0;
+function pageScrollTo(top, smooth) {
+  const y = Math.max(0, top || 0);
+  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (typeof scroller.scrollTo === "function") scroller.scrollTo({top: y, left: 0, behavior: smooth && !reduce ? "smooth" : "auto"});
+  else scroller.scrollTop = y;
+}
+function pageScrollBy(dy) { scroller.scrollTop = pageScrollTop() + dy; }
 
 /* ==================================================================
    Helpers
@@ -1664,19 +1690,19 @@ function readExploreHash() {
   return FOLLOW_KINDS.includes(kind) && key ? {kind, key} : null;
 }
 function openExplorePage(kind, key, keepScroll) {
-  if (!keepScroll) state.explore.scroll = window.scrollY || 0;
+  if (!keepScroll) state.explore.scroll = pageScrollTop();
   state.explore.page = {kind, key};
   state.explore.showPast = false;
   state.tab = "explore";
   setExploreHash(`${kind}:${key}`);
   render();
-  window.scrollTo(0, 0);
+  pageScrollTo(0);
 }
 function closeExplorePage() {
   state.explore.page = null;
   setExploreHash(null);
   render();
-  window.scrollTo(0, state.explore.scroll || 0);
+  pageScrollTo(state.explore.scroll || 0);
 }
 
 function tileHTML(kind, item) {
@@ -1777,17 +1803,14 @@ function renderExploreSections() {
   if (grid && !state.explore.page) grid.innerHTML = exploreSectionsHTML(); else renderExplore();
 }
 
-function smoothScrollTo(top) {
-  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  window.scrollTo({top: Math.max(0, top), left: 0, behavior: reduce ? "auto" : "smooth"});
-}
+function smoothScrollTo(top) { pageScrollTo(top, true); }
 /* "+ Follow more" used to switch tabs; the tiles are now on the same page,
    just below. Land the filter box where its sticky position would hold it. */
 function scrollToGrid() {
   const box = document.querySelector("#view-explore .controls-sticky");
   if (!box) return;
   const hdr = parseFloat(document.documentElement.style.getPropertyValue("--hdr-h")) || 0;
-  smoothScrollTo(box.getBoundingClientRect().top + (window.scrollY || 0) - hdr);
+  smoothScrollTo(box.getBoundingClientRect().top + pageScrollTop() - hdr);
 }
 /* A section header lands just under the sticky filter block. */
 function scrollToExploreSection(id) {
@@ -1796,7 +1819,7 @@ function scrollToExploreSection(id) {
   if (!el) return;
   const hdr = parseFloat(document.documentElement.style.getPropertyValue("--hdr-h")) || 0;
   const stickyH = box ? box.getBoundingClientRect().height : 0;
-  smoothScrollTo(el.getBoundingClientRect().top + (window.scrollY || 0) - hdr - stickyH);
+  smoothScrollTo(el.getBoundingClientRect().top + pageScrollTop() - hdr - stickyH);
 }
 
 function renderExplorePage() {
@@ -2088,7 +2111,7 @@ function downloadICS(mine, filename) {
    ================================================================== */
 document.querySelector(".nav").addEventListener("click", e => {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
-  state.tab = b.dataset.tab; render(); window.scrollTo(0, 0);
+  state.tab = b.dataset.tab; render(); pageScrollTo(0);
 });
 
 document.querySelector("main").addEventListener("click", e => {
@@ -2204,7 +2227,7 @@ function togglePick(id, anchor) {
   const el = document.querySelector(sel);
   if (!el) return;
   const delta = el.getBoundingClientRect().top - wasTop;
-  if (Math.abs(delta) > 1) window.scrollBy(0, delta);
+  if (Math.abs(delta) > 1) pageScrollBy(delta);
 }
 const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
 
@@ -2288,7 +2311,7 @@ function eventSheetHTML(ev) {
 }
 
 function openSheet(kind = "settings", id = null) {
-  sheetScrollY = window.scrollY || window.pageYOffset || 0;
+  sheetScrollY = pageScrollTop();
   const isEvent = kind === "event";
   if (isEvent) {
     const ev = byId.get(id);
@@ -2315,7 +2338,7 @@ function closeSheet() {
   sheetBackEl.classList.remove("dragging");
   dragY = null;
   render();
-  window.scrollTo(0, sheetScrollY);
+  pageScrollTo(sheetScrollY);
 }
 
 /* Swipe down to dismiss.
@@ -2392,7 +2415,7 @@ panelEvent.addEventListener("click", e => {
   }
 });
 
-document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); window.scrollTo(0, 0); });
+document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); pageScrollTo(0); });
 document.getElementById("settingsBtn").addEventListener("click", () => openSheet("settings"));
 document.getElementById("closeSheet").addEventListener("click", closeSheet);
 document.getElementById("sheetBack").addEventListener("click", closeSheet);
@@ -2467,14 +2490,11 @@ if (window.ResizeObserver) {
    Offline. The service worker keeps the app openable with no signal;
    this end only has to handle being told the schedule moved on.
    ================================================================== */
-/* iOS rubber-bands the whole page, fixed nav included, whenever a drag runs
-   past an edge - and on a short page like Now every upward drag does. Safari
-   ignores overscroll-behavior for the page itself, so refuse the gesture at
-   the edge instead: a drag down with the page at its top, or up with the
-   page at its bottom, is cancelled before it can overscroll. Touches that
-   begin in the sheet or on a control are left alone, and so is anything
-   more sideways than vertical. A fling that coasts into an edge is not a
-   drag and can still bounce; that one is out of reach from here. */
+/* main scrolls and bounces on its own; the page around it never scrolls,
+   yet iOS will still rubber-band it when a drag lands on the header or the
+   nav. Safari ignores overscroll-behavior for the page itself, so refuse
+   those drags by hand. Touches that begin inside main, in the sheet, or on
+   a control are left alone, and so is anything more sideways than vertical. */
 const IS_IOS = /iP(hone|ad|od)/.test(navigator.platform)
   || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints > 1);
 const edgeTouch = {x: 0, y: 0, ignore: false};
@@ -2482,7 +2502,7 @@ function edgeTouchStart(e) {
   const t = e.touches && e.touches[0];
   if (!t) return;
   edgeTouch.x = t.clientX; edgeTouch.y = t.clientY;
-  edgeTouch.ignore = !!(e.target && e.target.closest && e.target.closest("#sheetWrap, input, select, textarea"));
+  edgeTouch.ignore = !!(e.target && e.target.closest && e.target.closest("main, #sheetWrap, input, select, textarea"));
 }
 function edgeTouchMove(e) {
   if (edgeTouch.ignore || !e.touches || e.touches.length !== 1) return;
