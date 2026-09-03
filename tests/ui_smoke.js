@@ -236,7 +236,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval(`(function(){ state.browse.q = "concert saturday"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
   const sres = window.eval("browseResults()");
   assert(sres.length > 0, `"concert saturday" returns results (${sres.length})`);
-  assert(sres.every(e => e.day === "2026-09-05" && e.tags && e.tags.kind === "performance"), "every result is a Saturday performance");
+  assert(sres.every(e => e._cd === "2026-09-05" && e.tags && e.tags.kind === "performance"), "every result is a Saturday performance");
   assert(!document.querySelector("#view-browse mark"), "an all-filter query highlights nothing (no search terms)");
   const times = sres.map(e => +new Date(e.start));
   assert(times.every((t, i) => i === 0 || t >= times[i-1]), "an all-filter query comes back in time order");
@@ -314,7 +314,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // it stacks with the other filters rather than replacing them
   window.eval(`(function(){ state.browse.day = "2026-09-05"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
   const stacked = window.eval("browseResults()");
-  assert(stacked.every(e => e.day === "2026-09-05" && e.tags.guests === "celebrity"), "celebrity stacks with the day filter");
+  assert(stacked.every(e => e._cd === "2026-09-05" && e.tags.guests === "celebrity"), "celebrity stacks with the day filter");
   assert(stacked.length <= cres.length, `stacking narrows rather than widens (${stacked.length} <= ${cres.length})`);
   // and with a parsed query filter
   window.eval(`(function(){ state.browse.q = "saturday"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
@@ -564,6 +564,45 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(dp.mixed.count === "2 today", `and the count is today's, not every pick (${dp.mixed.count})`);
   assert(dp.onNow.kicker === "On now" && !/leave by/.test(dp.onNow.then),
     `an on-now hero does not tell you to leave for a Sunday event (${dp.onNow.then.trim()})`);
+
+  // ---- one definition of "day": the con day, which runs to 5am, everywhere ----
+  window.location.hash = "#now=2026-09-06T01:00"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  const oneAm = JSON.parse(window.eval(`(function(){
+    /* earlier blocks leave chips set; start from the default filters */
+    Object.assign(state.browse, {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All",
+      kind: "All", celebrity: false, showHidden: false, showPast: false, noToday: false, hideAdult: false, hideNoise: true, page: 1});
+    state.tab = "browse"; render();
+    var chip = state.browse.day;
+    /* not a photo session or screening: the default noise filter would hide it */
+    var late = events.find(function(e){ return e.day === "2026-09-06" && e._s.getHours() < 5 && !isNoise(e); });
+    state.browse.day = "2026-09-05"; renderBrowse();
+    var underSat = browseResults().some(function(e){ return e.id === late.id; });
+    state.browse.day = "2026-09-06"; renderBrowse();
+    var underSun = browseResults().some(function(e){ return e.id === late.id; });
+    state.browse.q = late.title; state.browse.day = "All"; renderBrowse();
+    var row = document.querySelector('#view-browse .row[data-id="' + late.id + '"]');
+    var label = row ? row.querySelector(".t .day").textContent : null;
+    state.browse.q = "";
+    picks = new Set([late.id]); savePicks();
+    state.mineView = "list"; state.tab = "mine"; render();
+    var listDay = document.querySelector("#view-mine .day-head").textContent.trim();
+    state.mineView = "timeline"; render();
+    var tlDay = document.querySelector("#view-mine .tl-day .day-head").textContent.trim();
+    openSheet("event", late.id);
+    var when = document.querySelector("#panel-event .ev-when").textContent.replace(/\\s+/g, " ").trim();
+    closeSheet();
+    picks = new Set(); savePicks(); state.tab = "browse"; state.browse.day = null; render();
+    return JSON.stringify({chip: chip, late: late.start, underSat: underSat, underSun: underSun, label: label,
+      listDay: listDay, tlDay: tlDay, when: when}); })()`));
+  assert(oneAm.chip === "2026-09-05", `at 1 AM Sunday, Search opens on the Saturday chip (${oneAm.chip})`);
+  assert(oneAm.underSat && !oneAm.underSun, `a small-hours Sunday event (${oneAm.late}) is under Sat, not Sun`);
+  assert(oneAm.label === "Sat", `and its row is labelled Sat (${oneAm.label})`);
+  assert(/^Saturday/.test(oneAm.listDay) && /^Saturday/.test(oneAm.tlDay),
+    `Mine's list and timeline file it under the same day (${oneAm.listDay} / ${oneAm.tlDay})`);
+  assert(/^Sunday, /.test(oneAm.when) && /Saturday night/.test(oneAm.when), `the sheet keeps the date and names the night (${oneAm.when})`);
+  window.location.hash = "#now=2026-09-05T13:05"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  window.eval(`(function(){ state.tab = "now"; state.browse.day = null; render(); })()`); await sleep(20);
+  assert(window.eval("state.browse.day") === null || window.eval("conDayKey(getNow())") === "2026-09-05", "the clock is back on Saturday afternoon");
 
   // ---- a pick that vanishes or moves in a refresh is reported, not swallowed ----
   const newsProbe = JSON.parse(window.eval(`(function(){
@@ -1230,7 +1269,7 @@ async function realDataChecks() {
   // a day chip wins
   search("party", {day: "2026-09-06"});
   assert(w.eval(`state.browse.todayScoped`) === false, "a day chip turns it off too");
-  assert(w.eval(`browseResults().every(function(e){ return e.day === "2026-09-06"; })`), "and its day is the one used");
+  assert(w.eval(`browseResults().every(function(e){ return e._cd === "2026-09-06"; })`), "and its day is the one used");
   // the chip widens it
   const widened = search("party", {noToday: true});
   assert(w.eval(`state.browse.todayScoped`) === false, "removing the Today chip widens to the whole con");

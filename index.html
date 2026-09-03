@@ -769,7 +769,10 @@ async function load() {
   events = (data.events || []).filter(e => e.start).map(e => {
     const s = toDate(e.start), en = e.end ? toDate(e.end) : new Date(s.getTime() + 60 * 60000);
     const people = (e.speakers || []).map(p => p.name).join(" ");
-    return {...e, _s: s, _e: en, _people: people};
+    /* _cd is the con day: it runs to 5am, so a 1am panel belongs to the night
+       before. Every list, chip and header uses it; only the sheet and the
+       calendar export state the calendar date. */
+    return {...e, _s: s, _e: en, _cd: conDayKey(s), _people: people};
   });
   events.sort((a, b) => a._s - b._s || a.title.localeCompare(b.title));
   byId = new Map(events.map(e => [e.id, e]));
@@ -936,7 +939,7 @@ function rowHTML(ev, opts = {}) {
   return `<li class="${cls}" data-id="${esc(ev.id)}" data-list="${esc(opts.list || "")}">
     <div class="row-line">
       <button class="row-main" aria-haspopup="dialog">
-        <div class="t">${opts.showDay ? `<span class="day">${DAY_LABEL[ev.day] || ""}</span>` : ""}<span class="start">${s.t}<span class="ampm">${s.ap}</span></span><span class="end">to ${e.t} ${e.ap}</span></div>
+        <div class="t">${opts.showDay ? `<span class="day">${DAY_LABEL[ev._cd] || ""}</span>` : ""}<span class="start">${s.t}<span class="ampm">${s.ap}</span></span><span class="end">to ${e.t} ${e.ap}</span></div>
         <div class="body">
           <div class="title">${hl(ev.title)}</div>
           <div class="meta">
@@ -972,7 +975,7 @@ function snippetFor(ev, terms) {
 }
 
 function gapHTML(prev, next) {
-  if (!prev || !next || prev.day !== next.day && minutesBetween(prev._e, next._s) > 240) return "";
+  if (!prev || !next || prev._cd !== next._cd && minutesBetween(prev._e, next._s) > 240) return "";
   const gap = minutesBetween(prev._e, next._s);
   const walk = walkMin(prev.hotel, next.hotel);
   const move = prev.hotel !== next.hotel ? `${hotelShort(prev.hotel)} to ${hotelShort(next.hotel)}` : `same building`;
@@ -1251,7 +1254,7 @@ function chipHTML(label, on, kind, value, style) {
 /* ---- Browse ------------------------------------------------------- */
 function passesFilters(e) {
   const f = activeFilters(), tg = e.tags || {};
-  return (f.day === "All" || e.day === f.day) &&
+  return (f.day === "All" || e._cd === f.day) &&
     (f.hotel === "All" || e.hotel === f.hotel) &&
     (f.type === "All" || e.type === f.type) &&
     (f.track === "All" || (e.tracks || []).includes(f.track)) &&
@@ -1511,11 +1514,11 @@ function browseResults() {
 
 function renderBrowse() {
   const b = state.browse;
-  if (b.day === null) { const d = dayOf(getNow()); b.day = CON_DAYS.includes(d) ? d : "2026-09-03"; }
+  if (b.day === null) { const d = conDayKey(getNow()); b.day = CON_DAYS.includes(d) ? d : "2026-09-03"; }
   const searching = !!b.q.trim();
   const results = browseResults();
   const shown = results.slice(0, PAGE * b.page);
-  const noiseCount = events.filter(e => isNoise(e) && (b.day === "All" || e.day === b.day)).length;
+  const noiseCount = events.filter(e => isNoise(e) && (b.day === "All" || e._cd === b.day)).length;
   const hasTags = events.some(e => e.tags);
   const fandoms = hasTags ? fandomCounts() : [];
   const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
@@ -1561,7 +1564,7 @@ function renderBrowse() {
       html += rowHTML(ev, {list: "browse", showDay: true, terms: ev._hit ? ev._hit.terms : null});
       return;
     }
-    if (b.day === "All" && ev.day !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev.day] || ev.day}</li>`; lastDay = ev.day; lastTime = ""; }
+    if (b.day === "All" && ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd}</li>`; lastDay = ev._cd; lastTime = ""; }
     const t = fmtShort(ev._s);
     if (t !== lastTime) { html += `<li class="time-head">${t}</li>`; lastTime = t; }
     html += rowHTML(ev, {list: "browse"});
@@ -1721,7 +1724,7 @@ function renderExplorePage() {
   const dayGroups = list => {
     let out = "", lastDay = "";
     list.forEach(ev => {
-      if (ev.day !== lastDay) { out += `<li class="day-head">${DAY_LONG[ev.day] || ev.day}</li>`; lastDay = ev.day; }
+      if (ev._cd !== lastDay) { out += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd}</li>`; lastDay = ev._cd; }
       out += rowHTML(ev, {list: "explore"});
     });
     return out;
@@ -1947,7 +1950,7 @@ function renderMine() {
     html += `<ul class="list">`;
     let lastDay = "", prev = null;
     mine.forEach(ev => {
-      if (ev.day !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev.day] || ev.day} <span class="count" style="font-size:14px;color:var(--dim);font-weight:400">${mine.filter(x => x.day === ev.day).length}</span></li>`; lastDay = ev.day; prev = null; }
+      if (ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd} <span class="count" style="font-size:14px;color:var(--dim);font-weight:400">${mine.filter(x => x._cd === ev._cd).length}</span></li>`; lastDay = ev._cd; prev = null; }
       html += gapHTML(prev, ev) + rowHTML(ev, {list: "mine"});
       prev = ev;
     });
@@ -2171,7 +2174,7 @@ function eventSheetHTML(ev) {
   const chips = [...(ev.tracks || []), ...((ev.tags && ev.tags.fandoms) || [])];
   return `<div class="ev-head">
       <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
-      <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}</div>
+      <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}${ev._cd !== ev.day ? ` &middot; ${DAY_LONG[ev._cd] || ev._cd} night` : ""}</div>
       <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${esc(ev.room || ev.location || "Location TBA")}</div>
       ${ev.cancelled ? `<div><span class="cancelled-tag">Cancelled</span></div>` : ""}
       ${isCeleb(ev) ? `<div>${CELEB_BADGE}</div>` : ""}
