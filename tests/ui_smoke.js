@@ -720,6 +720,33 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval("closeSheet()");
   assert(/document\.addEventListener\("touchmove", edgeTouchMove, \{passive: false\}\)/.test(html), "on iOS the move listener is the kind that may cancel");
 
+  // ---- chip rows keep their place across renders, and a tapped chip is brought into view ----
+  window.eval(`(function(){ state.tab = "browse"; state.browse.q = ""; state.browse.hotel = "All"; state.browse.page = 1; render(); })()`); await sleep(20);
+  const rowKept = JSON.parse(window.eval(`(function(){
+    var row = document.querySelector('#view-browse .chips[data-row="hotel"]');
+    row.scrollLeft = 120;
+    var before = row.scrollLeft;
+    render();
+    var after = document.querySelector('#view-browse .chips[data-row="hotel"]');
+    return JSON.stringify({before: before, after: after.scrollLeft, sameNode: after === row,
+      rows: [].map.call(document.querySelectorAll("#view-browse .chips[data-row]"), function(r){ return r.dataset.row; })}); })()`));
+  assert(rowKept.rows.join(",") === "day,hotel,kind", `the Search chip rows are named (${rowKept.rows.join(",")})`);
+  assert(!rowKept.sameNode, "a render rebuilds the row");
+  assert(rowKept.before === 120 && rowKept.after === 120, `and puts it back where it was (${rowKept.before} -> ${rowKept.after})`);
+  assert(document.querySelector('#view-now, #view-browse') && /data-row="now-hotel"/.test(html) && /data-row="explore-jump"/.test(html) && /data-row="follows"/.test(html),
+    "the Now, Explore and Following rows are named too");
+  window.eval(`window.__revealed = []; window.__realReveal = revealChip; revealChip = function(c){ __revealed.push(c ? (c.dataset.value || c.dataset.section || "?") : null); };`);
+  document.querySelector('#view-browse [data-chip="hotel"][data-value="Hilton"]').click(); await sleep(20);
+  const revealed = window.eval("__revealed");
+  assert(revealed.length === 1 && revealed[0] === "Hilton", `tapping a hotel chip brings that chip into view (${revealed.join(",")})`);
+  assert(document.querySelector('#view-browse [data-chip="hotel"][data-value="Hilton"]').getAttribute("aria-pressed") === "true", "and it shows pressed");
+  window.eval(`(function(){ __revealed = []; state.tab = "explore"; state.explore.page = null; render(); markActiveSection("topic"); markActiveSection("topic"); markActiveSection("track"); })()`);
+  const revealedEx = window.eval("__revealed");
+  assert(revealedEx.filter(x => x === "topic").length === 1 && revealedEx.includes("track"),
+    `on Explore a chip is revealed when it becomes current, and only then (${revealedEx.join(",")})`);
+  window.eval(`revealChip = __realReveal; state.browse.hotel = "All"; state.tab = "browse"; render();`); await sleep(20);
+  assert(/only ever moves the row sideways/i.test(html), "revealChip only moves the row sideways, never the page");
+
   // ---- a cancelled event says so, not just a strike-through ----
   const cancelProbe = JSON.parse(window.eval(`(function(){
     /* An event in the "on now and in the next hour" list: a pick would become
@@ -894,6 +921,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "the section on screen is the last header past the sticky line");
   assert(window.eval(`pickActiveSection([{id:"track",top:400}], 203)`) === null, "above the first header nothing is pressed");
   assert(window.eval(`pickActiveSection([], 203)`) === null, "and no headers means nothing pressed");
+  assert(window.eval(`pickActiveSection([{id:"track",top:-500},{id:"panelist",top:300}], 203, true)`) === "panelist",
+    "at the end of the page the last section is current even if its header never reached the line");
   window.eval(`(function(){ state.explore.active = null; renderExplore(); })()`); await sleep(20);
   const pressedAfterRender = document.querySelectorAll('#view-explore [data-act="explore-jump"][aria-pressed="true"]').length;
   assert(pressedAfterRender === 1, `a render marks exactly one chip from the headers' positions (${pressedAfterRender})`);

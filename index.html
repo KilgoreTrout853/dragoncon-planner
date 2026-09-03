@@ -925,6 +925,33 @@ function updateFresh() {
 /* ==================================================================
    Rendering
    ================================================================== */
+/* Chip rows scroll sideways, and a render rebuilds them from scratch - which
+   used to snap every row back to its left edge, so the chip just tapped at
+   the far end vanished. Remember where each named row was and put it back. */
+function chipRowsSnapshot() {
+  const m = {};
+  document.querySelectorAll(".chips[data-row]").forEach(el => { if (el.scrollLeft) m[el.dataset.row] = el.scrollLeft; });
+  return m;
+}
+function chipRowsRestore(m) {
+  document.querySelectorAll(".chips[data-row]").forEach(el => { if (m[el.dataset.row]) el.scrollLeft = m[el.dataset.row]; });
+}
+/* Bring one chip fully into its row: the one just tapped, or on Explore the
+   one that just became current. Only ever moves the row sideways, and only
+   as far as it has to; the row is otherwise the reader's to scroll. */
+function revealChip(chip) {
+  const row = chip && chip.closest(".chips");
+  if (!row) return;
+  const pad = 14, r = chip.getBoundingClientRect(), R = row.getBoundingClientRect();
+  let dx = 0;
+  if (r.left < R.left + pad) dx = r.left - R.left - pad;
+  else if (r.right > R.right - pad) dx = r.right - R.right + pad;
+  if (!dx) return;
+  const left = Math.max(0, row.scrollLeft + dx);
+  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (typeof row.scrollTo === "function") row.scrollTo({left, behavior: reduce ? "auto" : "smooth"}); else row.scrollLeft = left;
+}
+
 function render() {
   cancelQueuedBrowseRender();
   updateClock();
@@ -933,10 +960,12 @@ function render() {
   const badge = document.getElementById("mineBadge");
   badge.hidden = picks.size === 0; badge.textContent = picks.size;
   if (!events.length) return;
+  const rows = chipRowsSnapshot();
   if (state.tab === "now") renderNow();
   if (state.tab === "browse") renderBrowse();
   if (state.tab === "explore") renderExplore();
   if (state.tab === "mine") renderMine();
+  chipRowsRestore(rows);
   renderMiniBar();
 }
 
@@ -1204,7 +1233,7 @@ function renderNow() {
 
   const around = model.around, shown = model.shown;
   let aroundHTML = `<div class="section-title">On now and in the next hour <span class="count">${around.length}</span></div>
-    <div class="controls" style="padding-top:0"><div class="chips">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotels.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list compact">`;
+    <div class="controls" style="padding-top:0"><div class="chips" data-row="now-hotel">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotels.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list compact">`;
   let lastKey = "";
   shown.forEach(ev => {
     const key = ev._s <= now ? "on" : fmtShort(ev._s);
@@ -1567,11 +1596,11 @@ function renderBrowse() {
 
   let html = `<div class="controls controls-sticky">
     <input class="search" type="search" id="q" placeholder="Search anything: titles, guests, fandoms, words in descriptions" value="${esc(b.q)}" autocomplete="off">
-    <div class="chips">${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}</div>
+    <div class="chips" data-row="day">${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}</div>
     </div>
     <div class="controls controls-rest">
-    <div class="chips">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
-    ${hasTags ? `<div class="chips">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${hasCelebs ? `<button class="chip celeb-chip" data-chip="celebrity" data-value="1" aria-pressed="${b.celebrity}">Celebrity</button>` : ""}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
+    <div class="chips" data-row="hotel">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
+    ${hasTags ? `<div class="chips" data-row="kind">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${hasCelebs ? `<button class="chip celeb-chip" data-chip="celebrity" data-value="1" aria-pressed="${b.celebrity}">Celebrity</button>` : ""}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
     ${suggestHTML()}
     ${parsedChipsHTML()}
     <div class="row-controls">
@@ -1748,7 +1777,7 @@ function exploreSectionsHTML() {
 
 function exploreJumpHTML() {
   const cat = getCatalogue();
-  return `<div class="chips explore-jump" aria-label="Jump to a section">${EXPLORE_SECTIONS.map(sec => {
+  return `<div class="chips explore-jump" data-row="explore-jump" aria-label="Jump to a section">${EXPLORE_SECTIONS.map(sec => {
     const n = (cat[sec.id] || []).length;
     return n ? `<button class="chip" data-act="explore-jump" data-section="${sec.id}" aria-pressed="${state.explore.active === sec.id}">${sec.label} <span class="n">${n}</span></button>` : "";
   }).join("")}</div>`;
@@ -1809,7 +1838,10 @@ function renderExploreGrid() {
 /* The chip for the section on screen reads as pressed, like a day chip in
    Search. The section on screen is the last one whose header has passed
    the sticky block; above the first header nothing is pressed. */
-function pickActiveSection(headers, line) {
+function pickActiveSection(headers, line, atEnd) {
+  /* The last section is usually too short to carry its header up to the
+     line before the page runs out of scroll, so at the end it is current. */
+  if (atEnd && headers.length) return headers[headers.length - 1].id;
   let active = null;
   for (const h of headers) if (h.top <= line) active = h.id;
   return active;
@@ -1822,12 +1854,16 @@ function activeExploreSection() {
     const el = document.getElementById(`explore-${sec.id}`);
     return el ? {id: sec.id, top: el.getBoundingClientRect().top} : null;
   }).filter(Boolean);
-  return pickActiveSection(headers, line);
+  const atEnd = scroller.scrollHeight > scroller.clientHeight
+    && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+  return pickActiveSection(headers, line, atEnd);
 }
 function markActiveSection(id) {
+  const changed = state.explore.active !== id;
   state.explore.active = id;
   document.querySelectorAll('#view-explore [data-act="explore-jump"]')
     .forEach(b => b.setAttribute("aria-pressed", String(b.dataset.section === id)));
+  if (changed && id) revealChip(document.querySelector(`#view-explore [data-act="explore-jump"][data-section="${id}"]`));
 }
 function syncActiveSection() {
   if (state.tab !== "explore" || state.explore.page) return;
@@ -1921,7 +1957,7 @@ function followChipsHTML() {
       <button class="fc-name" data-explore="${esc(followId(f))}">${esc(f.key)}</button>
       <button class="fc-x" data-act="unfollow" data-follow="${esc(followId(f))}" aria-label="Unfollow ${esc(f.key)}">&times;</button>
     </span>`).join("");
-  return `<div class="controls"><div class="chips follow-chips">${chips}
+  return `<div class="controls"><div class="chips follow-chips" data-row="follows">${chips}
     <button class="chip fc-add" data-act="fol-add">+ Follow more</button>
   </div></div>`;
 }
@@ -2174,7 +2210,9 @@ document.querySelector("main").addEventListener("click", e => {
     else if (kind === "type") state.browse.type = value;
     else if (kind === "kind") state.browse.kind = value;
     else if (kind === "celebrity") state.browse.celebrity = !state.browse.celebrity;
-    state.browse.page = 1; render(); return;
+    state.browse.page = 1; render();
+    revealChip(document.querySelector(`.chips [data-chip="${kind}"][data-value="${cssEsc(value)}"]`));
+    return;
   }
   const act = e.target.closest("[data-act]");
   if (act) {
@@ -2291,7 +2329,12 @@ const SEARCH_DEBOUNCE_MS = 140;
 let browseRenderTimer = null;
 function queueBrowseRender() {
   clearTimeout(browseRenderTimer);
-  browseRenderTimer = setTimeout(() => { browseRenderTimer = null; renderBrowse(); }, SEARCH_DEBOUNCE_MS);
+  browseRenderTimer = setTimeout(() => {
+    browseRenderTimer = null;
+    const rows = chipRowsSnapshot();
+    renderBrowse();
+    chipRowsRestore(rows);
+  }, SEARCH_DEBOUNCE_MS);
 }
 /* Anything that redraws for another reason should not then redraw again. */
 function cancelQueuedBrowseRender() { clearTimeout(browseRenderTimer); browseRenderTimer = null; }
