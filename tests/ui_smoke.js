@@ -529,6 +529,42 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     return redrew; })()`);
   assert(changed, "a tick that finds the plan changed falls back to a full render");
 
+  // ---- Now is about today: a Saturday pick seen from Thursday is not "your next" ----
+  // The clock is Saturday 1:05 PM. Sunday picks must not become the hero.
+  const dayPlan = JSON.parse(window.eval(`(function(){
+    var n = getNow();
+    var sun = events.filter(function(e){ return conDayKey(e._s) === "2026-09-06" && e._s > n && e.hotel !== "Streaming"; });
+    var satLater = events.filter(function(e){ return conDayKey(e._s) === conDayKey(n) && e._s > n && e.hotel !== "Streaming"; });
+    var satOn = events.find(function(e){ return e._s <= n && n < e._e && e.hotel !== "Streaming"; });
+    picks = new Set([sun[0].id, sun[1].id]); savePicks(); state.tab = "now"; render();
+    var view = document.getElementById("view-now");
+    var out = {sunOnly: {hero: !!view.querySelector(".hero"), empty: (view.querySelector(".empty") || {}).textContent || "",
+      nextRow: (function(){ var r = view.querySelector('.row[data-list="next"]'); return r ? {id: r.dataset.id, day: (r.querySelector(".t .day") || {}).textContent} : null; })(),
+      restTitle: !!view.querySelector(".section-title") && /Rest of your day/.test(view.textContent),
+      minibar: document.getElementById("minibar").hidden}};
+    picks = new Set([sun[0].id, satLater[0].id, satLater[1].id]); savePicks(); render();
+    out.mixed = {heroId: (view.querySelector(".hero") || {dataset: {}}).dataset.hero,
+      restIds: [].map.call(view.querySelectorAll('.row[data-list="next"]'), function(r){ return r.dataset.id; }),
+      count: (view.querySelector(".section-title .count") || {}).textContent};
+    picks = new Set([satOn.id, sun[0].id]); savePicks(); render();
+    var h = view.querySelector(".hero");
+    out.onNow = {kicker: h ? h.querySelector(".hkicker").textContent : null, then: h ? (h.querySelector(".hthen") || {}).textContent || "" : null};
+    picks = new Set(); savePicks(); render();
+    return JSON.stringify({sun0: sun[0].id, sat0: satLater[0].id, sat1: satLater[1].id, satOn: satOn.id, out: out}); })()`));
+  const dp = dayPlan.out;
+  assert(!dp.sunOnly.hero, "with only Sunday picks, Saturday's Now has no hero");
+  assert(/Nothing picked for later today/.test(dp.sunOnly.empty) && /Sunday/.test(dp.sunOnly.empty),
+    `it says so, and names the day of the next pick (${dp.sunOnly.empty.trim().slice(0, 70)})`);
+  assert(dp.sunOnly.nextRow && dp.sunOnly.nextRow.id === dayPlan.sun0 && dp.sunOnly.nextRow.day === "Sun",
+    "and shows that pick as one row, labelled Sun");
+  assert(!dp.sunOnly.restTitle, "there is no 'Rest of your day' for a day with nothing in it");
+  assert(dp.sunOnly.minibar, "and the mini-bar agrees: nothing today");
+  assert(dp.mixed.heroId === dayPlan.sat0, "with Saturday picks too, the hero is today's next");
+  assert(dp.mixed.restIds.join(",") === dayPlan.sat1, `the rest of the day is today's only (${dp.mixed.restIds.length} rows)`);
+  assert(dp.mixed.count === "2 today", `and the count is today's, not every pick (${dp.mixed.count})`);
+  assert(dp.onNow.kicker === "On now" && !/leave by/.test(dp.onNow.then),
+    `an on-now hero does not tell you to leave for a Sunday event (${dp.onNow.then.trim()})`);
+
   // ---- step 0: four tabs - Browse renamed to Search, For you folded into Explore ----
   const navBtns = [...document.querySelectorAll(".nav button")];
   const navLabels = navBtns.map(b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(""));
