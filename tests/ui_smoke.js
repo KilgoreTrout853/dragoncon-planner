@@ -1130,7 +1130,12 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "registration is guarded by a serviceWorker capability check");
   assert(/register\("\.\/sw\.js"\)\.catch\(err =>[\s\S]{0,120}console\.warn/.test(html),
     "a failed registration is reported, not swallowed");
-  assert(/const CACHE\s*=\s*["']dc26-v1["']/.test(swSrc), "the cache name is versioned (dc26-v1)");
+  assert(/const CACHE\s*=\s*["']dc26-v2["']/.test(swSrc), "the cache name is versioned (dc26-v2)");
+  // a page that arrives after the 3s race is stored for the next launch, not thrown away
+  assert(/function fetchAndCache\(request\)/.test(swSrc) && /cache\.put\(request, res\.clone\(\)\)/.test(swSrc.slice(swSrc.indexOf("function fetchAndCache"))),
+    "the html fetch stores its response whenever it lands");
+  assert(/const net = fetchAndCache\(request\);[\s\S]{0,120}event\.waitUntil\(net/.test(swSrc), "and is kept alive past the response with waitUntil");
+  assert(/networkFirst\(request, net\)/.test(swSrc), "while the race uses that same fetch rather than a second one");
   assert(/startsWith\(["']dc26-["']\)[\s\S]{0,80}caches\.delete/.test(swSrc), "older dc26-* caches are deleted on activate");
   assert(/HTML_TIMEOUT_MS\s*=\s*3000/.test(swSrc), "the html network race times out at 3s");
   assert(/schedule-updated/.test(swSrc) && /generated_at !== /.test(swSrc),
