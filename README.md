@@ -62,7 +62,7 @@ The service worker caches the app and the schedule, so it opens and renders in a
 - `events.json` is served from cache immediately and refreshed behind you. When it changes you get a "Schedule updated · tap to refresh" pill rather than the list moving under your thumb.
 - When the cached copy is what you're seeing, the line under the clock says `· offline copy`.
 
-To install: iPhone must use **Safari** (Share → Add to Home Screen); Android uses Chrome (⋮ → Install app). You get a **DC26** icon that opens without browser chrome. The content area scrolls inside its own container rather than the page, so the header and the nav stay put on an iPhone instead of riding the system's bottom inset.
+To install: iPhone must use **Safari** (Share → Add to Home Screen); Android uses Chrome (⋮ → Install app). You get a **DC26** icon that opens without browser chrome. The content area scrolls inside its own container rather than the page, so the header and the nav stay put on an iPhone instead of riding the system's bottom inset. The status bar is opaque on purpose: on iOS 26 a translucent one leaves the web view short by its own height, with a dead strip at the bottom of the screen. iOS reads these web-app settings once, when the icon is added, so a change to them only reaches a phone after the icon is deleted and added again from Safari. The last line of Settings shows the build time, so you can tell which version a phone is running.
 
 Bump `CACHE` in `sw.js` when you change `index.html` in a way that must reach people immediately; older `dc26-*` caches are dropped on activate.
 
