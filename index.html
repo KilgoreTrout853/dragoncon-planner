@@ -85,6 +85,7 @@ button { cursor: pointer; }
   background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 15px;
 }
 .notice b { color: var(--text); font-weight: 600; }
+.device { font-size: 12px; color: var(--dim); line-height: 1.4; }
 .notice.warn { border-color: var(--warn); color: var(--text); }
 .pick-news ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
 .pick-news .btn { margin-top: 12px; height: 38px; }
@@ -518,6 +519,7 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
       <summary style="color:var(--muted);cursor:pointer">Walk-time defaults (minutes, before crowd factor)</summary>
       <table class="walk-table" id="walkTable"></table>
     </details>
+    <div class="device" id="deviceLine"></div>
     <div class="rowbtns">
       <button class="btn danger" id="resetPicks">Remove all picks</button>
       <button class="btn" id="closeSheet">Done</button>
@@ -2280,6 +2282,23 @@ function fillSettings() {
   const m = location.hash.match(/now=([0-9T:-]+)/);
   document.getElementById("previewTime").value = m ? m[1].slice(0, 16) : "";
   document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
+  document.getElementById("deviceLine").textContent = deviceLine();
+}
+
+/* What the phone is telling us, for the times a screenshot is not enough:
+   how the app was opened, the viewport against the screen, and the insets
+   the system reports before any cap of ours. */
+function deviceLine() {
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)";
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const insets = `top ${cs.paddingTop || "?"}, bottom ${cs.paddingBottom || "?"}`;
+  probe.remove();
+  const standalone = !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  const vv = window.visualViewport ? Math.round(window.visualViewport.height) : "-";
+  const scr = window.screen ? `${screen.width}×${screen.height}` : "-";
+  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets}${IS_IOS ? " · iOS" : ""}`;
 }
 
 function eventSheetHTML(ev) {
@@ -2516,6 +2535,10 @@ function edgeTouchMove(e) {
 if (IS_IOS) {
   document.addEventListener("touchstart", edgeTouchStart, {passive: true});
   document.addEventListener("touchmove", edgeTouchMove, {passive: false});
+  /* iOS 26 hands a home-screen web app a bottom inset of about 90px, nearly
+     three times the home indicator, and draws nothing in the difference. Take
+     the indicator's height and no more; Android's insets are real and stay. */
+  document.documentElement.style.setProperty("--safe-bottom", "min(env(safe-area-inset-bottom, 0px), 34px)");
 }
 
 const updatePill = document.getElementById("updatePill");

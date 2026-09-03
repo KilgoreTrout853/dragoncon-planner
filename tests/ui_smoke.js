@@ -709,6 +709,13 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert((sc.a === 120 && sc.b === 150 && sc.c === 0) || (sc.a === 0 && sc.b === 0), `the scroll helpers address main (${JSON.stringify(sc)})`);
   assert(!edge.twoFingers, "nor a two-finger gesture");
   assert(window.eval("IS_IOS") === false, "and none of it is wired up outside iOS");
+  assert(/setProperty\("--safe-bottom", "min\(env\(safe-area-inset-bottom, 0px\), 34px\)"\)/.test(html), "on iOS the bottom inset is capped at the home indicator");
+  assert(document.documentElement.style.getPropertyValue("--safe-bottom") === "", "and not anywhere else");
+  // the settings sheet reports what the device says
+  window.eval("openSheet('settings')");
+  const dev = document.getElementById("deviceLine").textContent;
+  assert(/^(Home-screen app|Web page) · viewport \d+×\d+, visual .+, screen .+ · insets top .+, bottom .+/.test(dev), `settings carries a device readout (${dev})`);
+  window.eval("closeSheet()");
   assert(/document\.addEventListener\("touchmove", edgeTouchMove, \{passive: false\}\)/.test(html), "on iOS the move listener is the kind that may cancel");
 
   // ---- a cancelled event says so, not just a strike-through ----
