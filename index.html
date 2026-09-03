@@ -1621,11 +1621,12 @@ function renderBrowse() {
   const fandoms = hasTags ? fandomCounts() : [];
   const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
 
-  let html = `<div class="controls controls-sticky">
-    <input class="search" type="search" id="q" placeholder="Search titles, guests, fandoms, words" value="${esc(b.q)}" autocomplete="off">
-    <div class="chips" data-row="day">${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}</div>
-    </div>
-    <div class="controls controls-rest">
+  const dayChips = `${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}`;
+  const sticky = `<div class="controls controls-sticky">
+    <input class="search" type="search" id="q" placeholder="Search titles, guests, fandoms, words" value="${esc(b.q)}" autocomplete="off" enterkeyhint="search">
+    <div class="chips" data-row="day" id="dayChips">${dayChips}</div>
+    </div>`;
+  let html = `<div class="controls controls-rest">
     <div class="chips" data-row="hotel">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
     ${hasTags ? `<div class="chips" data-row="kind">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
     ${suggestHTML()}
@@ -1669,11 +1670,20 @@ function renderBrowse() {
   html += hiddenForQueryHTML(results);
   if (!results.length) html += `<div class="empty"><b>No matches.</b> Try fewer or different words, another day, or turn off the photo/video filter.</div>`;
   if (results.length > shown.length) html += `<button class="btn quiet more" data-act="more-browse">Show ${Math.min(PAGE, results.length - shown.length)} more of ${results.length - shown.length}</button>`;
+  /* The search box is never rebuilt once it exists. Replacing a focused
+     input under an open iOS keyboard left the keyboard attached to a node
+     that was gone, and dismissing it then landed in the Fandom select. Only
+     what surrounds the box is redrawn; the box has its value kept in step
+     for the times the query is set by a chip rather than by typing. */
   const view = document.getElementById("view-browse");
-  const focused = document.activeElement && document.activeElement.id === "q";
-  const pos = focused ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
-  view.innerHTML = html;
-  if (focused) { const q = document.getElementById("q"); q.focus(); try { q.setSelectionRange(pos[0], pos[1]); } catch (e) {} }
+  const q = document.getElementById("q"), rest = document.getElementById("browseRest");
+  if (q && rest) {
+    if (q.value !== b.q) q.value = b.q;
+    document.getElementById("dayChips").innerHTML = dayChips;
+    rest.innerHTML = html;
+  } else {
+    view.innerHTML = sticky + `<div id="browseRest">${html}</div>`;
+  }
 }
 
 /* ---- Explore ------------------------------------------------------- */
@@ -2386,6 +2396,10 @@ document.querySelector("main").addEventListener("input", e => {
        recorded, so only the drawing waits. */
     queueBrowseRender();
   }
+});
+/* The keyboard's return key reads Search and puts the keyboard away. */
+document.querySelector("main").addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target && e.target.id === "q") { e.preventDefault(); e.target.blur(); }
 });
 document.querySelector("main").addEventListener("change", e => {
   if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }

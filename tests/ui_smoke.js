@@ -783,6 +783,25 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     return JSON.stringify({news: n}); })()`));
   assert(respell.news === 0, "a refresh that only respells the room makes no news");
 
+  // ---- the search box is never rebuilt under the keyboard ----
+  window.eval(`(function(){ state.tab = "browse"; state.browse.q = ""; state.browse.page = 1; render(); })()`); await sleep(20);
+  const qBox = document.getElementById("q");
+  assert(qBox && qBox.getAttribute("enterkeyhint") === "search", "the keyboard's return key reads Search");
+  qBox.value = "trek"; qBox.dispatchEvent(new window.Event("input", {bubbles: true}));
+  for (let i = 0; i < 60 && window.eval("browseRenderTimer") !== null; i++) await sleep(50);
+  assert(document.getElementById("q") === qBox, "typing redraws the results but keeps the same input element");
+  assert(document.querySelectorAll("#view-browse .row").length > 0, "and the results did redraw");
+  window.eval("render()"); await sleep(20);
+  assert(document.getElementById("q") === qBox, "a full render keeps it too");
+  assert(document.querySelector('#dayChips [data-chip="day"][data-value="All"]').getAttribute("aria-pressed") === "true", "while the day chips did update, to All days for a query");
+  window.eval(`(function(){ state.browse.q = '"Trek Track"'; renderBrowse(); })()`); await sleep(20);
+  assert(document.getElementById("q") === qBox && qBox.value === '"Trek Track"', "a query set by a chip shows in the same box");
+  qBox.focus();
+  qBox.dispatchEvent(new window.KeyboardEvent("keydown", {key: "Enter", bubbles: true, cancelable: true}));
+  assert(document.activeElement !== qBox, "Enter puts the keyboard away by blurring the box");
+  window.eval(`(function(){ state.browse.q = ""; state.browse.day = null; state.browse.page = 1; render(); })()`); await sleep(20);
+  assert(document.getElementById("q").value === "", "and clearing the query clears the box");
+
   // ---- a cancelled event says so, not just a strike-through ----
   const cancelProbe = JSON.parse(window.eval(`(function(){
     /* An event in the "on now and in the next hour" list: a pick would become
