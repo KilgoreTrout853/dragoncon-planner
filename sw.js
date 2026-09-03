@@ -17,7 +17,7 @@
    Bump CACHE when index.html or sw.js changes; older dc26-* caches are
    removed on activate. */
 
-const CACHE = "dc26-v1";
+const CACHE = "dc26-v2";
 const HTML_TIMEOUT_MS = 3000;
 const DATA = "events.json";
 const SHELL = ["./", "./index.html", "./events.json", "./manifest.json", "./icon.svg"];
@@ -95,16 +95,26 @@ async function cachedDataOr(request, update) {
   return fresh || new Response('{"events":[]}', {headers: {"Content-Type": "application/json"}});
 }
 
+/* The page, fetched and stored whenever it arrives - including after the
+   race below has already given up on it. Otherwise a tower that is slow but
+   working would serve the stale copy on every launch, for ever. */
+function fetchAndCache(request) {
+  return fetch(request).then(async res => {
+    if (res && res.ok) { const cache = await caches.open(CACHE); await cache.put(request, res.clone()); }
+    return res;
+  });
+}
+
 /* Race the network against a timer, not against nothing: a request that
    hangs on a saturated tower is worse than one that fails. */
-async function networkFirst(request) {
+async function networkFirst(request, net) {
   const cache = await caches.open(CACHE);
   try {
     const res = await Promise.race([
-      fetch(request),
+      net,
       new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), HTML_TIMEOUT_MS)),
     ]);
-    if (res && res.ok) { await cache.put(request, res.clone()); return res; }
+    if (res && res.ok) return res;
     throw new Error("bad response");
   } catch (e) {
     const cached = (await cache.match(request, {ignoreSearch: true})) ||
@@ -143,7 +153,13 @@ self.addEventListener("fetch", event => {
     event.respondWith(cachedDataOr(request, update));
     return;
   }
-  if (isHTML(request, url)) { event.respondWith(networkFirst(request)); return; }
+  if (isHTML(request, url)) {
+    /* Keep the late arrival alive past the response, as with the schedule. */
+    const net = fetchAndCache(request);
+    event.waitUntil(net.catch(() => {}));
+    event.respondWith(networkFirst(request, net));
+    return;
+  }
 
   event.respondWith(cacheFirst(request).catch(() => fetch(request)));
 });

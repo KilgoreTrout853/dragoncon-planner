@@ -14,7 +14,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `manifest.json`, `icon.svg` | Make it installable to a home screen as "DC26". |
 | `.github/workflows/scrape.yml` | Re-runs the scraper every 3 hours during con week and commits fresh data. |
-| `tests/` | 24 parser tests and 546 UI assertions. Not optional — run them before you push. |
+| `tests/` | 24 parser tests and 549 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -31,7 +31,7 @@ python -m http.server 8000       # then open http://localhost:8000
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 546 assertions
+node tests/ui_smoke.js           # 549 assertions
 python tests/test_parse.py       # 24 parser tests
 ```
 
@@ -58,7 +58,7 @@ Picks and follows live in the browser's storage, per device. They aren't shared 
 
 The service worker caches the app and the schedule, so it opens and renders in a building with no signal — which is the normal state of the Marriott lobby.
 
-- `index.html` is network-first with a 3-second timeout, so fixes land when there's signal and a saturated tower can't stop the app opening.
+- `index.html` is network-first with a 3-second timeout, so fixes land when there's signal and a saturated tower can't stop the app opening. A copy that arrives after the limit is stored for the next launch, so a slow tower delays a fix by one open rather than for ever.
 - `events.json` is served from cache immediately and refreshed behind you. When it changes you get a "Schedule updated · tap to refresh" pill rather than the list moving under your thumb.
 - When the cached copy is what you're seeing, the line under the clock says `· offline copy`.
 
