@@ -139,8 +139,9 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .section-title .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
 
 /* Map ------------------------------------------------------------------
-   A schematic of the con hotels. Blocks wear their room-chip hue; the
-   park is the one green that is not a hotel. ----------------------- */
+   A schematic of the con hotels. Blocks wear their room-chip hue as an
+   opaque tint, so the route and the streets pass under them rather than
+   through their labels; the park is the one green that is not a hotel. */
 .map-wrap { padding: 12px 14px 0; }
 .map { display: block; width: 100%; height: auto; }
 .map-ground { fill: var(--surface); }
@@ -148,9 +149,9 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .map-street.faint { stroke-width: 2; opacity: .55; }
 .map-street-label { font-family: var(--font); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; fill: var(--dim); }
 .map-bridge { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 4; stroke-linecap: round; }
-.map-hotel rect { fill: var(--h); fill-opacity: .18; stroke: var(--h); stroke-width: 1.5; }
+.map-hotel rect { fill: color-mix(in srgb, var(--h) 18%, var(--surface)); stroke: var(--h); stroke-width: 1.5; }
 .map-hotel text { font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: .06em; fill: var(--h); text-anchor: middle; dominant-baseline: central; }
-.map-park rect { fill-opacity: .12; }
+.map-park rect { fill: color-mix(in srgb, var(--h) 12%, var(--surface)); }
 .map-park text { font-size: 9px; }
 .map-hotel, .map-pill { cursor: pointer; }
 .map-hotel:focus-visible rect { stroke-width: 3; }
@@ -161,6 +162,7 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 @keyframes map-pulse { 0%, 100% { stroke-opacity: 1; stroke-width: 2; } 50% { stroke-opacity: .35; stroke-width: 4; } }
 @media (prefers-reduced-motion: reduce) { .map-ring.next { animation: none; } }
 .map-leave { pointer-events: none; }
+.map-route { fill: none; stroke: var(--gold); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; opacity: .75; pointer-events: none; }
 .map-leave path { fill: none; stroke: var(--gold); stroke-width: 2; stroke-dasharray: 5 4; stroke-linecap: round; }
 .map-leave rect { fill: var(--gold); }
 .map-leave text { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--gold-ink); text-anchor: middle; dominant-baseline: central; }
@@ -1124,6 +1126,20 @@ function mapNowSVG(day) {
     <text x="${f(l.x)}" y="${f(l.y)}">${esc(label)}</text></g>` + rings;
 }
 
+/* The day's picks as a path through their hotels in time order, so the
+   shape of the day shows at a glance. A pick in the same hotel as the one
+   before it adds nothing. Drawn beneath the blocks and the pills. */
+function mapRouteSVG(day) {
+  const stops = [];
+  events.forEach(e => {
+    if (!picks.has(e.id) || e._cd !== day || !MAP_HOTELS[e.hotel]) return;
+    if (stops[stops.length - 1] !== e.hotel) stops.push(e.hotel);
+  });
+  if (stops.length < 2) return "";
+  const pts = stops.map(h => { const c = mapCentre(MAP_HOTELS[h]); return `${c.x},${c.y}`; }).join(" ");
+  return `<polyline class="map-route" data-stops="${esc(stops.join("|"))}" points="${pts}"/>`;
+}
+
 function mapSVG(day) {
   const counts = mapCounts(day);
   const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="56" x2="${x}" y2="490"/>
@@ -1137,11 +1153,11 @@ function mapSVG(day) {
     <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.park ? 6 : 10}"/>
     <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(hotelShort(h).toUpperCase())}</text></g>`; }).join("");
   const pills = Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h])).join("");
-  const nowLayer = mapNowSVG(day);
+  const nowLayer = mapNowSVG(day), route = mapRouteSVG(day);
   return `<svg class="map" viewBox="0 0 ${MAP_W} ${MAP_H}" role="group" aria-label="Schematic map of the con hotels, not to scale">
     <rect class="map-ground" width="${MAP_W}" height="${MAP_H}" rx="14"/>
     ${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
-    ${bridges}${blocks}${nowLayer}${pills}</svg>`;
+    ${bridges}${route}${blocks}${nowLayer}${pills}</svg>`;
 }
 
 /* The day the map shows: the one tapped, else the con day the clock is in,

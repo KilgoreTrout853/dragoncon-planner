@@ -1334,7 +1334,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const park = svg.querySelector('[data-hotel="Hardy Ivy Park"]');
   assert(park.classList.contains("map-park") && /--park/.test(park.getAttribute("style")) && !/--h-/.test(park.getAttribute("style")), "the park wears green, not a hotel hue");
   assert(/--h-Hyatt/.test(svg.querySelector('[data-hotel="Hyatt"]').getAttribute("style")) && /--h-Courtland\b/.test(svg.querySelector('[data-hotel="Courtland Grand"]').getAttribute("style")), "each hotel wears its own hue");
-  assert(/\.map-hotel text \{[^}]*var\(--font\)/.test(html) && /\.map-hotel rect \{[^}]*fill-opacity/.test(html), "labels use the app font and blocks are a low-opacity fill with a full stroke");
+  assert(/\.map-hotel text \{[^}]*var\(--font\)/.test(html) && /\.map-hotel rect \{[^}]*color-mix\(in srgb, var\(--h\) 18%, var\(--surface\)\)/.test(html) && /\.map-hotel rect \{[^}]*stroke: var\(--h\)/.test(html),
+    "labels use the app font and blocks are an opaque low tint of their hue with a full stroke");
 
   // ---- Map, step 2: day chips ----
   const dayRow = mapView.querySelector('.chips[data-row="map-day"]');
@@ -1456,6 +1457,30 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval(`picks = new Set([${JSON.stringify(nowSetup.onId)}]); savePicks(); render();`); await sleep(20);
   assert(rings() === `now:${nowSetup.on}` && !mapView.querySelector(".map-leave"), "with no next pick, only the now ring");
   assert(/state\.tab === "map" && sheetWrap\.hidden\) \{ const rows = chipRowsSnapshot\(\); renderMap\(\)/.test(html), "the minute tick redraws the map, keeping the chip row where it was");
+
+  // ---- Map, step 5: the route of the day ----
+  const routeSetup = JSON.parse(window.eval(`(function(){
+    var day = "2026-09-05", sat = events.filter(function(e){ return e._cd === day && MAP_HOTELS[e.hotel] && !e.cancelled; });
+    var after = function(h, prev){ return sat.find(function(e){ return e.hotel === h && (!prev || e._s >= prev._e); }); };
+    var a = after("Hyatt"), a2 = after("Hyatt", a), b = after("Marriott", a2), c = after("Hilton", b), d = after("Hilton", c), w = after("Westin", d);
+    var chosen = [a, a2, b, c, d, w].filter(Boolean);
+    picks = new Set(chosen.map(function(e){ return e.id; })); savePicks(); state.map.day = null; render();
+    var stops = [], seq = [];
+    events.forEach(function(e){ if (!picks.has(e.id) || e._cd !== day || !MAP_HOTELS[e.hotel]) return; seq.push(e.hotel); if (stops[stops.length - 1] !== e.hotel) stops.push(e.hotel); });
+    return JSON.stringify({ids: chosen.map(function(e){ return e.id; }), seq: seq, stops: stops,
+      centres: stops.map(function(h){ var b = MAP_HOTELS[h]; return (b.x + b.w / 2) + "," + (b.y + b.h / 2); })}); })()`));
+  assert(routeSetup.ids.length >= 5 && routeSetup.seq.length > routeSetup.stops.length && routeSetup.stops.length >= 3, `a day of ${routeSetup.ids.length} picks that stays put in a hotel now and then (${routeSetup.seq.join(" > ")})`);
+  const route = mapView.querySelector("polyline.map-route");
+  const routePts = route ? route.getAttribute("points").trim().split(/\s+/) : [];
+  assert(route && routePts.length === routeSetup.stops.length, `one segment per change of hotel: ${routePts.length - 1} segments for ${routeSetup.stops.length} stops`);
+  assert(routePts.join(" ") === routeSetup.centres.join(" ") && route.dataset.stops === routeSetup.stops.join("|"), "through the hotel centres in time order");
+  assert(/\.map-route \{[^}]*var\(--gold\)/.test(html) && /\.map-route \{[^}]*stroke-width: 1\.5/.test(html) && /\.map-route \{[^}]*fill: none/.test(html), "a thin gold line");
+  const routeOrder = mapView.querySelector("svg.map").innerHTML;
+  assert(routeOrder.indexOf("map-route") < routeOrder.indexOf("map-hotel") && routeOrder.indexOf("map-route") < routeOrder.indexOf("map-pill"), "drawn behind the blocks and the pills");
+  mapView.querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click(); await sleep(20);
+  assert(!mapView.querySelector(".map-route"), "no route on a day without picks");
+  window.eval(`picks = new Set(${JSON.stringify(routeSetup.ids.slice(0, 2))}); savePicks(); state.map.day = null; render();`); await sleep(20);
+  assert(!mapView.querySelector(".map-route") && mapView.querySelector('.map-pill[data-hotel="Hyatt"] text').textContent === "2", "two picks in one hotel make a pill but no route");
   window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
 
   window.close();
