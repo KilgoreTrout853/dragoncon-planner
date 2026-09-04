@@ -839,12 +839,12 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(cancelProbe.sheetTag, "and the sheet says Cancelled under the room");
   assert(/\.cancelled-tag \{[^}]*var\(--warn\)/.test(html), "in the warning colour");
 
-  // ---- step 0: four tabs - Browse renamed to Search, For you folded into Explore ----
+  // ---- step 0: the nav - Browse renamed to Search, For you folded into Explore, Map added ----
   const navBtns = [...document.querySelectorAll(".nav button")];
   const navLabels = navBtns.map(b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(""));
-  assert(navLabels.join(" · ") === "Now · Search · Explore · Mine",
-    `the nav reads Now · Search · Explore · Mine (${navLabels.join(" · ")})`);
-  assert(navBtns.length === 4, "four tabs");
+  assert(navLabels.join(" · ") === "Now · Search · Explore · Map · Mine",
+    `the nav reads Now · Search · Explore · Map · Mine (${navLabels.join(" · ")})`);
+  assert(navBtns.length === 5, "five tabs");
   /* textContent includes <script> bodies, where "Browse" survives in comments
      and identifiers; only rendered text and aria labels matter here. */
   const visibleText = () => {
@@ -859,12 +859,12 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     return out;
   };
   assert(!/Browse/i.test(visibleText()), "the word Browse is gone from what the reader sees");
-  assert(navBtns.map(b => b.dataset.tab).join(",") === "now,browse,explore,mine",
+  assert(navBtns.map(b => b.dataset.tab).join(",") === "now,browse,explore,map,mine",
     "the internal identifiers are unchanged");
   assert(!document.querySelector('.nav button[data-tab="foryou"]'), "the For you tab is gone");
   assert(!document.getElementById("view-foryou"), "and so is its view");
   assert(!/foryou/i.test(html), "and nothing in the source still refers to it");
-  assert(/repeat\(4, 1fr\)/.test(html), "the nav lays out four columns");
+  assert(/repeat\(5, 1fr\)/.test(html), "the nav lays out five columns");
   assert(/\.nav button \{[^}]*font-size: 14px/.test(html), "with labels back at 14px");
   assert(/\.nav button svg \{[^}]*width: 24px/.test(html), "and icons back at 24px");
   // the explore view exists and switches
@@ -1301,6 +1301,187 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/\d+ events, refreshed/.test(document.getElementById("fresh").textContent), "the existing freshness line survives");
   window.eval("servedOffline = false; updateFresh();"); await sleep(10);
   assert(!/offline copy/.test(document.getElementById("fresh").textContent), "the marker clears when back online");
+
+  // ---- Map, step 1: the base map ----
+  document.querySelector('.nav button[data-tab="map"]').click(); await sleep(20);
+  const mapView = document.getElementById("view-map");
+  assert(!mapView.hidden && document.getElementById("view-mine").hidden && document.getElementById("view-browse").hidden
+    && document.querySelector('.nav button[data-tab="map"]').getAttribute("aria-current") === "page", "the Map tab shows its own view");
+  const svg = mapView.querySelector("svg.map");
+  assert(svg && svg.getAttribute("viewBox") === "0 0 380 520" && mapView.querySelectorAll("svg").length === 1, "one portrait SVG, 380 by 520");
+  const walkHotels = [...new Set(Object.keys(window.eval("WALK")).flatMap(k => k.split("|")))].sort();
+  const mapHotels = [...svg.querySelectorAll("[data-hotel]")].map(g => g.dataset.hotel).sort();
+  assert(mapHotels.join("|") === walkHotels.join("|"), `one block per walk-table hotel (${mapHotels.join(", ")})`);
+  assert(!mapHotels.includes("Other") && !mapHotels.includes("Streaming") && !mapHotels.includes("Unknown"), "no block for Other, Streaming or Unknown");
+  const centre = h => { const r = svg.querySelector(`[data-hotel="${h}"] rect`);
+    return {x: +r.getAttribute("x") + r.getAttribute("width") / 2, y: +r.getAttribute("y") + r.getAttribute("height") / 2}; };
+  const hyatt = centre("Hyatt"), marriott = centre("Marriott"), hilton = centre("Hilton"), mart = centre("AmericasMart"),
+    westin = centre("Westin"), courtland = centre("Courtland Grand"), hardy = centre("Hardy Ivy Park");
+  const peachtree = +svg.querySelector('[data-street="Peachtree"]').getAttribute("x1");
+  assert(hilton.x > marriott.x && marriott.x > hyatt.x, "east of Peachtree: Hyatt, Marriott, Hilton, left to right");
+  assert(Math.abs(hyatt.y - marriott.y) <= 10 && Math.abs(marriott.y - hilton.y) <= 10, "the three sit in one row");
+  assert(mart.x < peachtree && peachtree < hyatt.x && Math.abs(peachtree - 95) <= 20, `Peachtree runs between the Mart and the Hyatt, a quarter of the way across (${peachtree})`);
+  assert(westin.y > mart.y && Math.abs(westin.x - mart.x) <= 10 && Math.abs(mart.y - hyatt.y) <= 10, "the Westin is below the Mart, which is level with the Hyatt");
+  assert(courtland.y > hilton.y && Math.abs(courtland.x - hilton.x) <= 10, "the Courtland is below the Hilton, in its column");
+  assert(hardy.y < hyatt.y, "Hardy Ivy Park is above the Hyatt");
+  const bridges = [...svg.querySelectorAll("[data-bridge]")].map(l => l.dataset.bridge).sort();
+  assert(bridges.join(";") === "AmericasMart|Westin;Hyatt|Marriott;Marriott|Hilton", `three skybridges, none across Peachtree (${bridges.join("; ")})`);
+  assert(/\.map-bridge \{[^}]*stroke-dasharray/.test(html), "skybridges are dashed");
+  assert([...svg.querySelectorAll("[data-street]")].map(l => l.dataset.street).sort().join(",") === "Courtland,Peachtree", "two streets and nothing else");
+  assert(svg.querySelector('[data-street="Courtland"]').classList.contains("faint") && !svg.querySelector('[data-street="Peachtree"]').classList.contains("faint"), "Courtland St is the fainter one");
+  const mapLabels = [...svg.querySelectorAll("[data-hotel] text")].map(t => t.textContent);
+  assert(mapLabels.includes("MART") && mapLabels.includes("COURTLAND") && mapLabels.includes("HARDY IVY") && mapLabels.every(l => l === l.toUpperCase()), `labels are abbreviated and uppercase (${mapLabels.join(", ")})`);
+  const park = svg.querySelector('[data-hotel="Hardy Ivy Park"]');
+  assert(park.classList.contains("map-park") && /--park/.test(park.getAttribute("style")) && !/--h-/.test(park.getAttribute("style")), "the park wears green, not a hotel hue");
+  assert(/--h-Hyatt/.test(svg.querySelector('[data-hotel="Hyatt"]').getAttribute("style")) && /--h-Courtland\b/.test(svg.querySelector('[data-hotel="Courtland Grand"]').getAttribute("style")), "each hotel wears its own hue");
+  assert(/\.map-hotel text \{[^}]*var\(--font\)/.test(html) && /\.map-hotel rect \{[^}]*color-mix\(in srgb, var\(--h\) 18%, var\(--surface\)\)/.test(html) && /\.map-hotel rect \{[^}]*stroke: var\(--h\)/.test(html),
+    "labels use the app font and blocks are an opaque low tint of their hue with a full stroke");
+
+  // ---- Map, step 2: day chips ----
+  const dayRow = mapView.querySelector('.chips[data-row="map-day"]');
+  assert(dayRow && (dayRow.compareDocumentPosition(mapView.querySelector("svg.map")) & window.Node.DOCUMENT_POSITION_FOLLOWING), "a day chip row sits above the map");
+  const dayChips = [...dayRow.querySelectorAll("[data-chip='map-day']")];
+  assert(dayChips.map(c => c.dataset.value).join(",") === window.eval("CON_DAYS").join(",") && dayChips.every(c => c.classList.contains("chip")),
+    `it lists the con days as the same chips Search uses (${dayChips.map(c => c.textContent).join(" ")})`);
+  assert(dayChips.map(c => c.textContent).join(",") === "Wed,Thu,Fri,Sat,Sun,Mon", "with the same short labels");
+  const pressedDay = () => [...mapView.querySelectorAll('[data-chip="map-day"][aria-pressed="true"]')].map(c => c.dataset.value).join(",");
+  assert(window.eval("state.map.day") === null && pressedDay() === "2026-09-05" && mapView.querySelector(".map-wrap").dataset.day === "2026-09-05",
+    "untouched, it follows the clock: Saturday at the Saturday preview");
+  dayChips[4].click(); await sleep(20);
+  assert(window.eval("state.map.day") === "2026-09-06" && pressedDay() === "2026-09-06" && mapView.querySelector(".map-wrap").dataset.day === "2026-09-06",
+    "tapping Sun selects Sunday and the map below follows");
+  // the 5 AM boundary, from the same helper as the timeline
+  window.eval("state.map.day = null");
+  window.location.hash = "#now=2026-09-06T01:00"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  assert(window.eval("state.tab") === "map" && pressedDay() === "2026-09-05", "1 AM Sunday is still Saturday on the map");
+  window.eval("state.map.day = '2026-09-07'");
+  window.location.hash = "#now=2026-09-05T13:05"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  assert(window.eval("state.map.day") === null && pressedDay() === "2026-09-05", "a new preview time lets the map follow the clock again");
+  assert(/data-row="map-day"/.test(html), "the row is named, so it keeps its place across renders");
+
+  // ---- Map, step 3: pick pills and the hotel sheet ----
+  const picksBefore = JSON.parse(window.eval("JSON.stringify([...picks])"));
+  const mapPicks = JSON.parse(window.eval(`(function(){
+    var on = function(day, h, n){ return events.filter(function(e){ return e._cd === day && e.hotel === h && !e.cancelled; }).slice(0, n).map(function(e){ return e.id; }); };
+    var ids = on("2026-09-05", "Hyatt", 2).concat(on("2026-09-05", "Marriott", 1), on("2026-09-06", "Hilton", 1));
+    picks = new Set(ids); savePicks(); state.map.day = null; render();
+    return JSON.stringify(ids); })()`));
+  assert(mapPicks.length === 4, `four test picks: two Hyatt and one Marriott on Saturday, one Hilton on Sunday (${mapPicks.length})`);
+  const pillsOf = () => Object.fromEntries([...mapView.querySelectorAll(".map-pill")].map(p => [p.dataset.hotel, p.querySelector("text").textContent]));
+  assert(JSON.stringify(pillsOf()) === JSON.stringify({Hyatt: "2", Marriott: "1"}), `pills count Saturday's picks per hotel and hide at zero (${JSON.stringify(pillsOf())})`);
+  const pillRect = mapView.querySelector('.map-pill[data-hotel="Hyatt"] rect'), hyattBlock = mapView.querySelector('.map-hotel[data-hotel="Hyatt"] rect');
+  const pillC = {x: +pillRect.getAttribute("x") + pillRect.getAttribute("width") / 2, y: +pillRect.getAttribute("y") + pillRect.getAttribute("height") / 2};
+  const corner = {x: +hyattBlock.getAttribute("x") + +hyattBlock.getAttribute("width"), y: +hyattBlock.getAttribute("y")};
+  assert(Math.abs(pillC.x - corner.x) <= 12 && Math.abs(pillC.y - corner.y) <= 12, "the pill sits on the block's top-right corner");
+  assert(/\.map-pill rect \{[^}]*var\(--gold\)/.test(html) && /\.map-pill text \{[^}]*var\(--gold-ink\)/.test(html), "pills are the mine gold");
+  assert(/aria-label="Hyatt: 2 picks on Saturday"/.test(mapView.innerHTML) && /aria-label="Westin: no picks on Saturday"/.test(mapView.innerHTML), "each block says what it holds");
+  // day chips change the counts
+  mapView.querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click(); await sleep(20);
+  assert(JSON.stringify(pillsOf()) === JSON.stringify({Hilton: "1"}), `Sunday shows Sunday's pills (${JSON.stringify(pillsOf())})`);
+  mapView.querySelector('[data-chip="map-day"][data-value="2026-09-05"]').click(); await sleep(20);
+  assert(JSON.stringify(pillsOf()) === JSON.stringify({Hyatt: "2", Marriott: "1"}), "and Saturday shows Saturday's again");
+  // tapping a hotel opens its sheet
+  const tapMap = sel => mapView.querySelector(sel).dispatchEvent(new window.MouseEvent("click", {bubbles: true}));
+  const hotelPanel = document.getElementById("panel-hotel");
+  tapMap('.map-hotel[data-hotel="Hyatt"] rect'); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && !hotelPanel.hidden && document.getElementById("panel-event").hidden && document.getElementById("panel-settings").hidden, "tapping a hotel opens the hotel sheet");
+  assert(document.getElementById("sheetTitleHotel").textContent === "Hyatt" && document.getElementById("sheet").getAttribute("aria-labelledby") === "sheetTitleHotel", "headed by the hotel's name");
+  const sheetRows = [...hotelPanel.querySelectorAll(".row")];
+  const wantRows = JSON.parse(window.eval(`JSON.stringify(events.filter(function(e){ return picks.has(e.id) && e.hotel === "Hyatt" && e._cd === "2026-09-05"; }).map(function(e){ return e.id; }))`));
+  assert(sheetRows.length === 2 && sheetRows.map(r => r.dataset.id).join(",") === wantRows.join(","), "with the Hyatt picks that day, in time order");
+  assert(sheetRows.every(r => r.querySelector(".star[aria-pressed='true']") && r.querySelector(".row-main") && r.querySelector(".room")), "as standard rows with stars");
+  assert(/Saturday/.test(hotelPanel.textContent) && /2 picks/.test(hotelPanel.textContent), "and a line saying which day and how many");
+  // the detail sheet works from inside it
+  sheetRows[0].querySelector(".row-main").click(); await sleep(20);
+  assert(!document.getElementById("panel-event").hidden && hotelPanel.hidden && document.getElementById("sheetTitleEvent").textContent === window.eval(`byId.get(${JSON.stringify(wantRows[0])}).title`), "a row opens the event sheet");
+  window.eval("closeSheet()"); await sleep(20);
+  // the star works from inside it, and the map behind keeps up
+  tapMap('.map-hotel[data-hotel="Hyatt"] rect'); await sleep(20);
+  hotelPanel.querySelector(".row .star").click(); await sleep(20);
+  assert(window.eval("picks.size") === 3 && hotelPanel.querySelectorAll(".row").length === 1 && pillsOf().Hyatt === "1", `unstarring in the sheet drops the row and the pill behind (${pillsOf().Hyatt})`);
+  hotelPanel.querySelector(".row .star").click(); await sleep(20);
+  assert(window.eval("picks.size") === 2 && !hotelPanel.querySelector(".row") && /No picks here on Saturday/.test(hotelPanel.textContent) && !pillsOf().Hyatt, "unstarring the last one shows the empty state and the pill goes");
+  window.eval(`picks = new Set(${JSON.stringify(mapPicks)}); savePicks(); closeSheet();`); await sleep(20);
+  // a pill is the hotel
+  tapMap('.map-pill[data-hotel="Marriott"] text'); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && document.getElementById("sheetTitleHotel").textContent === "Marriott" && hotelPanel.querySelectorAll(".row").length === 1, "tapping a pill opens that hotel's sheet");
+  window.eval("closeSheet()"); await sleep(20);
+  // an empty hotel offers a search
+  tapMap('.map-hotel[data-hotel="Westin"] rect'); await sleep(20);
+  const searchBtn = hotelPanel.querySelector('[data-act="map-search"]');
+  assert(/No picks here on Saturday/.test(hotelPanel.textContent) && searchBtn && searchBtn.textContent.trim() === "Search the Westin on Saturday", `an empty hotel says so and offers a search (${searchBtn && searchBtn.textContent.trim()})`);
+  searchBtn.click(); await sleep(30);
+  assert(document.getElementById("sheetWrap").hidden && window.eval("state.tab") === "browse" && !document.getElementById("view-browse").hidden, "the button switches to Search");
+  assert(window.eval("state.browse.hotel") === "Westin" && window.eval("state.browse.day") === "2026-09-05" && window.eval("state.browse.q") === "", "with the hotel and the day as filters");
+  assert(document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').getAttribute("aria-pressed") === "true" && document.querySelector('#view-browse [data-chip="day"][data-value="2026-09-05"]').getAttribute("aria-pressed") === "true", "and the chips show them pressed");
+  assert(window.eval(`browseResults().length > 0 && browseResults().every(function(e){ return e.hotel === "Westin" && e._cd === "2026-09-05"; })`), "listing that hotel's Saturday");
+  assert(window.eval(`hotelPhrase("Hardy Ivy Park")`) === "Hardy Ivy Park" && window.eval(`hotelPhrase("AmericasMart")`) === "the Mart", "the park takes no article; the Mart is the Mart");
+  // keyboard: Enter on a focused block
+  window.eval(`state.tab = "map"; render();`); await sleep(20);
+  mapView.querySelector('.map-hotel[data-hotel="Hilton"]').dispatchEvent(new window.KeyboardEvent("keydown", {key: "Enter", bubbles: true})); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && document.getElementById("sheetTitleHotel").textContent === "Hilton" && mapView.querySelector('.map-hotel[data-hotel="Hilton"]').getAttribute("role") === "button", "blocks are buttons: Enter opens the sheet");
+  window.eval("closeSheet()"); await sleep(20);
+  // put things back
+  window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.browse.hotel = "All"; state.browse.day = null; state.tab = "map"; state.map.day = null; render();`); await sleep(20);
+
+  // ---- Map, step 4: now and next ----
+  const nowSetup = JSON.parse(window.eval(`(function(){
+    var n = getNow(), onMap = function(e){ return !!MAP_HOTELS[e.hotel] && !e.cancelled; };
+    var on = events.find(function(e){ return e._s <= n && n < e._e && onMap(e); });
+    var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && onMap(e) && e.hotel !== on.hotel; });
+    picks = new Set([on.id, next.id]); savePicks(); state.map.day = null; render();
+    var info = leaveInfo(currentLocation(n), next, n);
+    return JSON.stringify({on: on.hotel, onId: on.id, next: next.hotel, nextId: next.id, label: info.late ? "leave now" : "leave by " + fmtShort(info.leaveBy)}); })()`));
+  const rings = () => [...mapView.querySelectorAll(".map-ring")].map(r => `${r.classList.contains("now") ? "now" : "next"}:${r.dataset.hotel}`).sort().join(" ");
+  assert(rings() === [`next:${nowSetup.next}`, `now:${nowSetup.on}`].sort().join(" "), `today: a ring on the on-now hotel and one on the next (${rings()})`);
+  assert(/\.map-ring \{[^}]*var\(--gold\)/.test(html) && /\.map-ring\.next \{[^}]*animation: map-pulse/.test(html) && /@keyframes map-pulse/.test(html), "rings are gold and the next one pulses");
+  assert(/prefers-reduced-motion: reduce\) \{ \.map-ring\.next \{ animation: none/.test(html), "and holds still under reduced motion");
+  const leave = mapView.querySelector(".map-leave");
+  assert(leave && leave.dataset.from === nowSetup.on && leave.dataset.to === nowSetup.next && leave.querySelector("path"), `a dashed line runs from where you are to the next pick's hotel (${nowSetup.on} to ${nowSetup.next})`);
+  assert(leave.querySelector("text").textContent === nowSetup.label, `labelled with the hero's leave-by (${leave.querySelector("text").textContent})`);
+  assert(/\.map-leave path \{[^}]*stroke-dasharray/.test(html) && /\.map-leave path \{[^}]*var\(--gold\)/.test(html), "in dashed gold");
+  const nearBlock = (pt, h) => { const r = JSON.parse(window.eval(`JSON.stringify(MAP_HOTELS[${JSON.stringify(h)}])`)); return pt.x >= r.x - 12 && pt.x <= r.x + r.w + 12 && pt.y >= r.y - 12 && pt.y <= r.y + r.h + 12; };
+  const arc = leave.querySelector("path").getAttribute("d").match(/^M ([\d.]+) ([\d.]+) Q [\d.]+ [\d.]+ ([\d.]+) ([\d.]+)$/);
+  assert(arc && nearBlock({x: +arc[1], y: +arc[2]}, nowSetup.on) && nearBlock({x: +arc[3], y: +arc[4]}, nowSetup.next), "its ends sit at the two blocks, and it bows between them");
+  const mapOrder = mapView.querySelector("svg.map").innerHTML;
+  assert(mapOrder.indexOf("map-hotel") < mapOrder.indexOf("map-leave") && mapOrder.indexOf("map-leave") < mapOrder.indexOf("map-ring") && mapOrder.indexOf("map-ring") < mapOrder.lastIndexOf("map-pill"),
+    "the line runs under the rings, rings over the blocks, pills over everything");
+  // other days: nothing
+  mapView.querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click(); await sleep(20);
+  assert(!mapView.querySelector(".map-ring") && !mapView.querySelector(".map-leave"), "no rings or line on another day");
+  window.eval("state.map.day = null; render();"); await sleep(20);
+  // no location: the next ring stays, the line goes
+  window.eval(`picks = new Set([${JSON.stringify(nowSetup.nextId)}]); savePicks(); render();`); await sleep(20);
+  assert(rings() === `next:${nowSetup.next}` && !mapView.querySelector(".map-leave"), "with nowhere to leave from, the next ring stays and the line goes");
+  // no next pick: only the now ring
+  window.eval(`picks = new Set([${JSON.stringify(nowSetup.onId)}]); savePicks(); render();`); await sleep(20);
+  assert(rings() === `now:${nowSetup.on}` && !mapView.querySelector(".map-leave"), "with no next pick, only the now ring");
+  assert(/state\.tab === "map" && sheetWrap\.hidden\) \{ const rows = chipRowsSnapshot\(\); renderMap\(\)/.test(html), "the minute tick redraws the map, keeping the chip row where it was");
+
+  // ---- Map, step 5: the route of the day ----
+  const routeSetup = JSON.parse(window.eval(`(function(){
+    var day = "2026-09-05", sat = events.filter(function(e){ return e._cd === day && MAP_HOTELS[e.hotel] && !e.cancelled; });
+    var after = function(h, prev){ return sat.find(function(e){ return e.hotel === h && (!prev || e._s >= prev._e); }); };
+    var a = after("Hyatt"), a2 = after("Hyatt", a), b = after("Marriott", a2), c = after("Hilton", b), d = after("Hilton", c), w = after("Westin", d);
+    var chosen = [a, a2, b, c, d, w].filter(Boolean);
+    picks = new Set(chosen.map(function(e){ return e.id; })); savePicks(); state.map.day = null; render();
+    var stops = [], seq = [];
+    events.forEach(function(e){ if (!picks.has(e.id) || e._cd !== day || !MAP_HOTELS[e.hotel]) return; seq.push(e.hotel); if (stops[stops.length - 1] !== e.hotel) stops.push(e.hotel); });
+    return JSON.stringify({ids: chosen.map(function(e){ return e.id; }), seq: seq, stops: stops,
+      centres: stops.map(function(h){ var b = MAP_HOTELS[h]; return (b.x + b.w / 2) + "," + (b.y + b.h / 2); })}); })()`));
+  assert(routeSetup.ids.length >= 5 && routeSetup.seq.length > routeSetup.stops.length && routeSetup.stops.length >= 3, `a day of ${routeSetup.ids.length} picks that stays put in a hotel now and then (${routeSetup.seq.join(" > ")})`);
+  const route = mapView.querySelector("polyline.map-route");
+  const routePts = route ? route.getAttribute("points").trim().split(/\s+/) : [];
+  assert(route && routePts.length === routeSetup.stops.length, `one segment per change of hotel: ${routePts.length - 1} segments for ${routeSetup.stops.length} stops`);
+  assert(routePts.join(" ") === routeSetup.centres.join(" ") && route.dataset.stops === routeSetup.stops.join("|"), "through the hotel centres in time order");
+  assert(/\.map-route \{[^}]*var\(--gold\)/.test(html) && /\.map-route \{[^}]*stroke-width: 1\.5/.test(html) && /\.map-route \{[^}]*fill: none/.test(html), "a thin gold line");
+  const routeOrder = mapView.querySelector("svg.map").innerHTML;
+  assert(routeOrder.indexOf("map-route") < routeOrder.indexOf("map-hotel") && routeOrder.indexOf("map-route") < routeOrder.indexOf("map-pill"), "drawn behind the blocks and the pills");
+  mapView.querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click(); await sleep(20);
+  assert(!mapView.querySelector(".map-route"), "no route on a day without picks");
+  window.eval(`picks = new Set(${JSON.stringify(routeSetup.ids.slice(0, 2))}); savePicks(); state.map.day = null; render();`); await sleep(20);
+  assert(!mapView.querySelector(".map-route") && mapView.querySelector('.map-pill[data-hotel="Hyatt"] text').textContent === "2", "two picks in one hotel make a pill but no route");
+  window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
 
   window.close();
   await realDataChecks();
