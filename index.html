@@ -1319,23 +1319,43 @@ function nextPickInConDay(now) {
 
 /* ---- Where you are, and when to leave ------------------------------ */
 
-/* Inferred from your own schedule, never asked for: what you're in now,
-   else where you just were. Null when neither applies - we can still show
-   a start time, just not a leave-by, because we don't know where from. */
+/* The only place the app will claim you are: the hotel of a pick that is
+   on right now. Nothing is inferred from where you were - a pick that has
+   ended says nothing about where you went next, and a stream that is on
+   could be watched from anywhere. Null otherwise; we can still show a
+   start time, just not a leave-by. */
 function currentLocation(now) {
   const on = events.find(e => picks.has(e.id) && e._s <= now && now < e._e);
-  if (on) return on.hotel;
-  const justEnded = events.filter(e => picks.has(e.id) && e._e <= now && minutesBetween(e._e, now) <= 90)
-    .sort((a, b) => b._e - a._e)[0];
-  return justEnded ? justEnded.hotel : null;
+  return on && on.hotel !== "Streaming" ? on.hotel : null;
 }
 
+/* The pick before this one in the same con day, if any. */
+function previousPick(next) {
+  let prev = null;
+  for (const e of events) {
+    if (e._s >= next._s) break;
+    if (picks.has(e.id) && e._cd === next._cd) prev = e;
+  }
+  return prev;
+}
+
+/* A leave-by only when we know where you are - a pick is on now - and the
+   next pick is somewhere else. Otherwise the start time, plus a walk
+   estimate from wherever the previous pick today was, when that was a
+   different building: the walk at the crowd factor with no buffer, so it
+   reads as an estimate ("~12 min from the Westin"), not an instruction. */
 function leaveInfo(from, next, now) {
   if (!next) return null;
-  const walk = from ? walkMin(from, next.hotel) : null;
-  if (walk === null) return {walk: null, leaveBy: null, late: false, next};
-  const leaveBy = new Date(next._s.getTime() - (walk + LEAVE_BUFFER_MIN) * 60000);
-  return {walk, leaveBy, late: now >= leaveBy, next};
+  if (from && from !== next.hotel) {
+    const walk = walkMin(from, next.hotel);
+    const leaveBy = new Date(next._s.getTime() - (walk + LEAVE_BUFFER_MIN) * 60000);
+    return {from, walk, leaveBy, late: now >= leaveBy, next, estimate: null};
+  }
+  const prev = previousPick(next);
+  const walk = prev && prev.hotel !== next.hotel ? walkMin(prev.hotel, next.hotel) : 0;
+  const where = prev && (prev.hotel === "Other" ? (prev.room || "offsite") : hotelPhrase(prev.hotel));
+  const estimate = walk > 0 ? {walk, from: prev.hotel, label: `~${walk} min from ${where}`} : null;
+  return {from, walk: null, leaveBy: null, late: false, next, estimate};
 }
 
 const RING_R = 26, RING_C = 2 * Math.PI * RING_R;
@@ -1360,27 +1380,26 @@ function heroHTML(ev, now, onNow, thenNext) {
     windowStart = ev._s;
     const info = leaveInfo(from, thenNext, now);
     if (info && info.leaveBy) {
+      /* The one case with a leave-by: we know where you are because you
+         are in something. Say which building. */
       late = info.late;
-      thenLine = `<div class="hthen">then: <b>leave by ${fmtShort(info.leaveBy)}</b> for the ${esc(hotelShort(thenNext.hotel))}</div>`;
-    } else if (info) {
-      thenLine = `<div class="hthen">then: ${esc(hotelShort(thenNext.hotel))} next</div>`;
+      const here = ev.hotel === "Other" ? esc(ev.room || "here") : esc(hotelPhrase(ev.hotel));
+      leaveLine = `<div class="hleave">${late ? `leave ${here} now` : `leave ${here} by ${fmtShort(info.leaveBy)}`}</div>`;
+      thenLine = `<div class="hthen">then: <b>${esc(hotelShort(thenNext.hotel))}</b> at ${fmtShort(thenNext._s)}</div>`;
+    } else {
+      leaveLine = `<div class="hleave">ends ${fmtShort(ev._e)}</div>`;
+      if (info) thenLine = `<div class="hthen">then: ${esc(hotelShort(thenNext.hotel))} next</div>`;
     }
-    leaveLine = `<div class="hleave">ends ${fmtShort(ev._e)}</div>`;
   } else {
+    /* Nothing is on, so nowhere is known: no leave-by. The ring counts to
+       the start, and the walk from the previous pick is offered as an
+       estimate, not an instruction. */
     kicker = "Your next";
     const info = leaveInfo(from, ev, now);
-    if (info && info.leaveBy) {
-      late = info.late;
-      target = info.leaveBy;
-      windowStart = new Date(info.leaveBy.getTime() - 60 * 60000);
-      leaveLine = `<div class="hleave">${late ? "leave now" : `leave by ${fmtShort(info.leaveBy)}`}</div>`;
-      thenLine = `<div class="hthen">${info.walk} min walk from the ${esc(hotelShort(from))} &middot; starts ${fmtShort(ev._s)}</div>`;
-    } else {
-      target = ev._s;
-      windowStart = new Date(ev._s.getTime() - 60 * 60000);
-      leaveLine = `<div class="hleave">starts ${fmtShort(ev._s)}</div>`;
-      thenLine = "";
-    }
+    target = ev._s;
+    windowStart = new Date(ev._s.getTime() - 60 * 60000);
+    leaveLine = `<div class="hleave">starts ${fmtShort(ev._s)}</div>`;
+    thenLine = info && info.estimate ? `<div class="hthen hwalk">${esc(info.estimate.label)}</div>` : "";
   }
   const total = Math.max(1, minutesBetween(windowStart, target));
   const leftMin = minutesBetween(now, target);
