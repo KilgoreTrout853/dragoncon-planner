@@ -15,7 +15,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Re-runs the scraper every 3 hours during con week and commits fresh data. |
-| `tests/` | 25 parser tests and 614 UI assertions. Not optional — run them before you push. |
+| `tests/` | 25 parser tests and 622 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -32,7 +32,7 @@ python -m http.server 8000       # then open http://localhost:8000
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 614 assertions
+node tests/ui_smoke.js           # 622 assertions
 python tests/test_parse.py       # 25 parser tests
 ```
 
@@ -45,7 +45,7 @@ Five tabs.
 - **Now** opens with a hero card for the one thing you have to act on: a countdown ring, when to leave, and a walk time to wherever you're going next. It turns amber once you're late. Below it, the rest of your day and everything on now or starting within the hour.
 - **Search** understands what you type. `star trek saturday hilton` searches "star trek" across Saturday's Hilton events and shows you which words it took as filters, each removable. `late night`, `signing sunday`, `tonight` and `kids` all work; a query that's entirely filters scopes to today unless you say otherwise. Typing two letters suggests guests and fandoms by name. Events that already happened sit behind a fold. When nothing matched a word literally, it says so rather than pretending.
 - **Explore** lists everything you could follow as tiles with counts, in five sections: Tracks A to Z, Fandoms with 3+ events, Topics, Guests, and Panelists with 5+ events. Each section opens with a dozen tiles and a Show all; the chips under the filter box jump between sections, and the chip for the section on screen shows as pressed. Tap a tile for its own page and a Follow button. Once you have starred something, a "Because you starred" strip above the filter offers the tracks, fandoms and guests behind your picks that you don't follow yet. Each page is linkable as `#explore=kind:key`. Once you follow something, a **Following** section sits above the grid with what you follow, grouped by interest or merged into one timeline; an event reached by two follows appears once, labelled with both. It folds away behind its header, and stays folded if you leave it that way.
-- **Map** is a schematic of the con hotels, transit-map style and not to scale: Peachtree St up the left, the Hyatt, Marriott and Hilton in a skybridged row east of it, the Mart and the Westin west of it with their own skybridge, the Courtland below the Hilton, and Hardy Ivy Park above the Hyatt. Hotel level only; streams and offsite venues are not on it.
+- **Map** is a schematic of the con hotels, transit-map style and not to scale: Peachtree St up the left, the Hyatt, Marriott and Hilton in a skybridged row east of it, the Mart and the Westin west of it with their own skybridge, the Courtland below the Hilton, and Hardy Ivy Park above the Hyatt. Hotel level only; streams and offsite venues are not on it. A row of day chips above it picks the con day, starting on today with the same 5 AM boundary as the rest of the app.
 - **Mine** shows your picks as a timeline by default — blocks sized by duration, clashes side by side, walk connectors between hotels, a now-line. Or as a list. "Export to calendar" downloads an `.ics` with the correct Eastern time zone.
 
 A con day runs to 5 AM, everywhere in the app: a 1 AM panel sits under the day before on the day chips, in day headers, in Mine and on the Now tab. The detail sheet and the calendar export keep the real date and say which night it belongs to.

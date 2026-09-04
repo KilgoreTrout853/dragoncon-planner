@@ -1336,6 +1336,28 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/--h-Hyatt/.test(svg.querySelector('[data-hotel="Hyatt"]').getAttribute("style")) && /--h-Courtland\b/.test(svg.querySelector('[data-hotel="Courtland Grand"]').getAttribute("style")), "each hotel wears its own hue");
   assert(/\.map-hotel text \{[^}]*var\(--font\)/.test(html) && /\.map-hotel rect \{[^}]*fill-opacity/.test(html), "labels use the app font and blocks are a low-opacity fill with a full stroke");
 
+  // ---- Map, step 2: day chips ----
+  const dayRow = mapView.querySelector('.chips[data-row="map-day"]');
+  assert(dayRow && (dayRow.compareDocumentPosition(mapView.querySelector("svg.map")) & window.Node.DOCUMENT_POSITION_FOLLOWING), "a day chip row sits above the map");
+  const dayChips = [...dayRow.querySelectorAll("[data-chip='map-day']")];
+  assert(dayChips.map(c => c.dataset.value).join(",") === window.eval("CON_DAYS").join(",") && dayChips.every(c => c.classList.contains("chip")),
+    `it lists the con days as the same chips Search uses (${dayChips.map(c => c.textContent).join(" ")})`);
+  assert(dayChips.map(c => c.textContent).join(",") === "Wed,Thu,Fri,Sat,Sun,Mon", "with the same short labels");
+  const pressedDay = () => [...mapView.querySelectorAll('[data-chip="map-day"][aria-pressed="true"]')].map(c => c.dataset.value).join(",");
+  assert(window.eval("state.map.day") === null && pressedDay() === "2026-09-05" && mapView.querySelector(".map-wrap").dataset.day === "2026-09-05",
+    "untouched, it follows the clock: Saturday at the Saturday preview");
+  dayChips[4].click(); await sleep(20);
+  assert(window.eval("state.map.day") === "2026-09-06" && pressedDay() === "2026-09-06" && mapView.querySelector(".map-wrap").dataset.day === "2026-09-06",
+    "tapping Sun selects Sunday and the map below follows");
+  // the 5 AM boundary, from the same helper as the timeline
+  window.eval("state.map.day = null");
+  window.location.hash = "#now=2026-09-06T01:00"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  assert(window.eval("state.tab") === "map" && pressedDay() === "2026-09-05", "1 AM Sunday is still Saturday on the map");
+  window.eval("state.map.day = '2026-09-07'");
+  window.location.hash = "#now=2026-09-05T13:05"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  assert(window.eval("state.map.day") === null && pressedDay() === "2026-09-05", "a new preview time lets the map follow the clock again");
+  assert(/data-row="map-day"/.test(html), "the row is named, so it keeps its place across renders");
+
   window.close();
   await realDataChecks();
   console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); process.exit(process.exitCode || 0);
