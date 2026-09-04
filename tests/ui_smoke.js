@@ -1423,6 +1423,41 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // put things back
   window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.browse.hotel = "All"; state.browse.day = null; state.tab = "map"; state.map.day = null; render();`); await sleep(20);
 
+  // ---- Map, step 4: now and next ----
+  const nowSetup = JSON.parse(window.eval(`(function(){
+    var n = getNow(), onMap = function(e){ return !!MAP_HOTELS[e.hotel] && !e.cancelled; };
+    var on = events.find(function(e){ return e._s <= n && n < e._e && onMap(e); });
+    var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && onMap(e) && e.hotel !== on.hotel; });
+    picks = new Set([on.id, next.id]); savePicks(); state.map.day = null; render();
+    var info = leaveInfo(currentLocation(n), next, n);
+    return JSON.stringify({on: on.hotel, onId: on.id, next: next.hotel, nextId: next.id, label: info.late ? "leave now" : "leave by " + fmtShort(info.leaveBy)}); })()`));
+  const rings = () => [...mapView.querySelectorAll(".map-ring")].map(r => `${r.classList.contains("now") ? "now" : "next"}:${r.dataset.hotel}`).sort().join(" ");
+  assert(rings() === [`next:${nowSetup.next}`, `now:${nowSetup.on}`].sort().join(" "), `today: a ring on the on-now hotel and one on the next (${rings()})`);
+  assert(/\.map-ring \{[^}]*var\(--gold\)/.test(html) && /\.map-ring\.next \{[^}]*animation: map-pulse/.test(html) && /@keyframes map-pulse/.test(html), "rings are gold and the next one pulses");
+  assert(/prefers-reduced-motion: reduce\) \{ \.map-ring\.next \{ animation: none/.test(html), "and holds still under reduced motion");
+  const leave = mapView.querySelector(".map-leave");
+  assert(leave && leave.dataset.from === nowSetup.on && leave.dataset.to === nowSetup.next && leave.querySelector("path"), `a dashed line runs from where you are to the next pick's hotel (${nowSetup.on} to ${nowSetup.next})`);
+  assert(leave.querySelector("text").textContent === nowSetup.label, `labelled with the hero's leave-by (${leave.querySelector("text").textContent})`);
+  assert(/\.map-leave path \{[^}]*stroke-dasharray/.test(html) && /\.map-leave path \{[^}]*var\(--gold\)/.test(html), "in dashed gold");
+  const nearBlock = (pt, h) => { const r = JSON.parse(window.eval(`JSON.stringify(MAP_HOTELS[${JSON.stringify(h)}])`)); return pt.x >= r.x - 12 && pt.x <= r.x + r.w + 12 && pt.y >= r.y - 12 && pt.y <= r.y + r.h + 12; };
+  const arc = leave.querySelector("path").getAttribute("d").match(/^M ([\d.]+) ([\d.]+) Q [\d.]+ [\d.]+ ([\d.]+) ([\d.]+)$/);
+  assert(arc && nearBlock({x: +arc[1], y: +arc[2]}, nowSetup.on) && nearBlock({x: +arc[3], y: +arc[4]}, nowSetup.next), "its ends sit at the two blocks, and it bows between them");
+  const mapOrder = mapView.querySelector("svg.map").innerHTML;
+  assert(mapOrder.indexOf("map-hotel") < mapOrder.indexOf("map-leave") && mapOrder.indexOf("map-leave") < mapOrder.indexOf("map-ring") && mapOrder.indexOf("map-ring") < mapOrder.lastIndexOf("map-pill"),
+    "the line runs under the rings, rings over the blocks, pills over everything");
+  // other days: nothing
+  mapView.querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click(); await sleep(20);
+  assert(!mapView.querySelector(".map-ring") && !mapView.querySelector(".map-leave"), "no rings or line on another day");
+  window.eval("state.map.day = null; render();"); await sleep(20);
+  // no location: the next ring stays, the line goes
+  window.eval(`picks = new Set([${JSON.stringify(nowSetup.nextId)}]); savePicks(); render();`); await sleep(20);
+  assert(rings() === `next:${nowSetup.next}` && !mapView.querySelector(".map-leave"), "with nowhere to leave from, the next ring stays and the line goes");
+  // no next pick: only the now ring
+  window.eval(`picks = new Set([${JSON.stringify(nowSetup.onId)}]); savePicks(); render();`); await sleep(20);
+  assert(rings() === `now:${nowSetup.on}` && !mapView.querySelector(".map-leave"), "with no next pick, only the now ring");
+  assert(/state\.tab === "map" && sheetWrap\.hidden\) \{ const rows = chipRowsSnapshot\(\); renderMap\(\)/.test(html), "the minute tick redraws the map, keeping the chip row where it was");
+  window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
+
   window.close();
   await realDataChecks();
   console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); process.exit(process.exitCode || 0);
