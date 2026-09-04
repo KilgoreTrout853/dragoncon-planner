@@ -152,6 +152,10 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .map-hotel text { font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: .06em; fill: var(--h); text-anchor: middle; dominant-baseline: central; }
 .map-park rect { fill-opacity: .12; }
 .map-park text { font-size: 9px; }
+.map-hotel, .map-pill { cursor: pointer; }
+.map-hotel:focus-visible rect { stroke-width: 3; }
+.map-pill rect { fill: var(--gold); }
+.map-pill text { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--gold-ink); text-anchor: middle; dominant-baseline: central; }
 
 /* Controls ----------------------------------------------------------- */
 .controls { padding: 12px 14px 0; display: grid; gap: 10px; }
@@ -383,7 +387,7 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .walk-table { font-size: 14px; color: var(--muted); }
 .walk-table td { padding: 2px 6px 2px 0; }
 
-/* Bottom sheet: one wrapper, two panels (settings, event) */
+/* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
 .sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: -4px auto 0; flex: none; }
 .sheet-panel { display: grid; gap: 16px; }
 .sheet-panel[hidden] { display: none; }
@@ -575,6 +579,7 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
     </div>
     </div>
     <div class="sheet-panel" id="panel-event" hidden></div>
+    <div class="sheet-panel" id="panel-hotel" hidden></div>
   </div>
 </div>
 
@@ -688,7 +693,7 @@ let events = [], byId = new Map(), tracks = [], hotels = [], hotelChips = [];
 let fromNetwork = null, servedOffline = false;
 let meta = {};
 const state = {
-  tab: "now", sheetId: null, mineView: loadJSON("dc26.mineView", "timeline"),
+  tab: "now", sheetId: null, sheetHotel: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
   map: {day: null},                       /* null: follow the clock */
   explore: {q: "", page: null, scroll: 0, showPast: false, expanded: {}, active: null},
@@ -1039,7 +1044,35 @@ const MAP_HOTELS = {
 /* Each pair is left-to-right or top-to-bottom. None crosses Peachtree. */
 const MAP_BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
 
-function mapSVG() {
+/* "Search the Hyatt on Saturday": hotels take "the", the park does not. */
+const hotelPhrase = h => h === "Hardy Ivy Park" ? h : `the ${hotelShort(h)}`;
+/* The user's picks in one hotel on one con day, in time order (events is). */
+const mapPicksAt = (hotel, day) => events.filter(e => picks.has(e.id) && e.hotel === hotel && e._cd === day);
+function mapCounts(day) {
+  const counts = {};
+  events.forEach(e => { if (picks.has(e.id) && e._cd === day && MAP_HOTELS[e.hotel]) counts[e.hotel] = (counts[e.hotel] || 0) + 1; });
+  return counts;
+}
+/* A gold pill on the block's top-right corner; none at all when zero. */
+function mapPillSVG(hotel, b, n) {
+  if (!n) return "";
+  const cx = b.x + b.w - 2, cy = b.y + 2, w = n > 9 ? 30 : 22, h = 18;
+  return `<g class="map-pill" data-hotel="${esc(hotel)}" data-count="${n}"><rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="${h / 2}"/><text x="${cx}" y="${cy}">${n}</text></g>`;
+}
+function hotelSheetHTML(hotel, day) {
+  const rows = mapPicksAt(hotel, day), dayName = DAY_LONG[day] || day;
+  const count = rows.length ? `${rows.length} pick${rows.length === 1 ? "" : "s"}` : "no picks";
+  const body = rows.length
+    ? `<div class="ev-body"><ul class="list compact">${rows.map(ev => rowHTML(ev, {list: "map"})).join("")}</ul></div>`
+    : `<div class="ev-body"><p style="color:var(--muted)">No picks here on ${esc(dayName)}.</p>
+        <div class="rowbtns"><button class="btn quiet" data-act="map-search" data-hotel="${esc(hotel)}" data-day="${day}">Search ${esc(hotelPhrase(hotel))} on ${esc(dayName)}</button></div></div>`;
+  return `<div class="ev-head"><h2 id="sheetTitleHotel">${esc(hotel)}</h2><div class="ev-when">${esc(dayName)} &middot; ${count}</div></div>
+    ${body}
+    <div class="ev-actions"><button class="btn" id="closeSheetHotel">Done</button></div>`;
+}
+
+function mapSVG(day) {
+  const counts = mapCounts(day);
   const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="56" x2="${x}" y2="490"/>
     <text class="map-street-label" transform="translate(${x - 7} 140) rotate(-90)">${name} St</text>`;
   const bridges = MAP_BRIDGES.map(([a, b]) => {
@@ -1047,13 +1080,14 @@ function mapSVG() {
     const [x1, y1, x2, y2] = beside ? [A.x + A.w, A.y + A.h / 2, B.x, B.y + B.h / 2] : [A.x + A.w / 2, A.y + A.h, B.x + B.w / 2, B.y];
     return `<line class="map-bridge" data-bridge="${esc(a)}|${esc(b)}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
   }).join("");
-  const blocks = Object.entries(MAP_HOTELS).map(([h, b]) => `<g class="map-hotel${b.park ? " map-park" : ""}" data-hotel="${esc(h)}" style="--h:var(${b.park ? "--park" : hotelVar(h)})">
+  const blocks = Object.entries(MAP_HOTELS).map(([h, b]) => { const n = counts[h] || 0; return `<g class="map-hotel${b.park ? " map-park" : ""}" data-hotel="${esc(h)}" role="button" tabindex="0" aria-label="${esc(h)}: ${n ? `${n} pick${n === 1 ? "" : "s"}` : "no picks"} on ${esc(DAY_LONG[day] || day)}" style="--h:var(${b.park ? "--park" : hotelVar(h)})">
     <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.park ? 6 : 10}"/>
-    <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(hotelShort(h).toUpperCase())}</text></g>`).join("");
-  return `<svg class="map" viewBox="0 0 ${MAP_W} ${MAP_H}" role="img" aria-label="Schematic map of the con hotels, not to scale">
+    <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(hotelShort(h).toUpperCase())}</text></g>`; }).join("");
+  const pills = Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h])).join("");
+  return `<svg class="map" viewBox="0 0 ${MAP_W} ${MAP_H}" role="group" aria-label="Schematic map of the con hotels, not to scale">
     <rect class="map-ground" width="${MAP_W}" height="${MAP_H}" rx="14"/>
     ${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
-    ${bridges}${blocks}</svg>`;
+    ${bridges}${blocks}${pills}</svg>`;
 }
 
 /* The day the map shows: the one tapped, else the con day the clock is in,
@@ -1068,7 +1102,7 @@ function renderMap() {
   const day = mapDay();
   const chips = CON_DAYS.map(d => chipHTML(DAY_LABEL[d], day === d, "map-day", d)).join("");
   document.getElementById("view-map").innerHTML = `<div class="controls"><div class="chips" data-row="map-day">${chips}</div></div>
-    <div class="map-wrap" data-day="${day}">${mapSVG()}</div>`;
+    <div class="map-wrap" data-day="${day}">${mapSVG(day)}</div>`;
 }
 
 function render() {
@@ -2342,6 +2376,8 @@ document.querySelector("main").addEventListener("click", e => {
     revealChip(document.querySelector(`.chips [data-chip="${kind}"][data-value="${cssEsc(value)}"]`));
     return;
   }
+  const mapHotel = e.target.closest(".map-hotel, .map-pill");
+  if (mapHotel) { openSheet("hotel", mapHotel.dataset.hotel); return; }
   const act = e.target.closest("[data-act]");
   if (act) {
     const a = act.dataset.act;
@@ -2493,6 +2529,8 @@ document.querySelector("main").addEventListener("input", e => {
 /* The keyboard's return key reads Search and puts the keyboard away. */
 document.querySelector("main").addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target && e.target.id === "q") { e.preventDefault(); e.target.blur(); }
+  const block = (e.key === "Enter" || e.key === " ") && e.target && e.target.closest && e.target.closest(".map-hotel");
+  if (block) { e.preventDefault(); openSheet("hotel", block.dataset.hotel); }
 });
 document.querySelector("main").addEventListener("change", e => {
   if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }
@@ -2500,11 +2538,12 @@ document.querySelector("main").addEventListener("change", e => {
   if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
 });
 
-/* Bottom sheet: one wrapper, two panels (settings, event) */
+/* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
 const sheetWrap = document.getElementById("sheetWrap");
 const sheetEl = document.getElementById("sheet");
 const panelSettings = document.getElementById("panel-settings");
 const panelEvent = document.getElementById("panel-event");
+const panelHotel = document.getElementById("panel-hotel");
 let sheetScrollY = 0;
 
 function fillSettings() {
@@ -2566,20 +2605,18 @@ function eventSheetHTML(ev) {
 }
 
 function openSheet(kind = "settings", id = null) {
+  if (kind === "event" && !byId.get(id)) return;
+  if (kind === "hotel" && !MAP_HOTELS[id]) return;
   sheetScrollY = pageScrollTop();
-  const isEvent = kind === "event";
-  if (isEvent) {
-    const ev = byId.get(id);
-    if (!ev) return;
-    state.sheetId = id;
-    panelEvent.innerHTML = eventSheetHTML(ev);
-  } else {
-    state.sheetId = null;
-    fillSettings();
-  }
-  panelSettings.hidden = isEvent;
-  panelEvent.hidden = !isEvent;
-  sheetEl.setAttribute("aria-labelledby", isEvent ? "sheetTitleEvent" : "sheetTitle");
+  state.sheetId = kind === "event" ? id : null;
+  state.sheetHotel = kind === "hotel" ? id : null;
+  if (kind === "event") panelEvent.innerHTML = eventSheetHTML(byId.get(id));
+  else if (kind === "hotel") panelHotel.innerHTML = hotelSheetHTML(id, mapDay());
+  else fillSettings();
+  panelSettings.hidden = kind !== "settings";
+  panelEvent.hidden = kind !== "event";
+  panelHotel.hidden = kind !== "hotel";
+  sheetEl.setAttribute("aria-labelledby", {event: "sheetTitleEvent", hotel: "sheetTitleHotel"}[kind] || "sheetTitle");
   sheetEl.style.transform = "";
   sheetWrap.hidden = false;
 }
@@ -2587,6 +2624,7 @@ function openSheet(kind = "settings", id = null) {
 function closeSheet() {
   sheetWrap.hidden = true;
   state.sheetId = null;
+  state.sheetHotel = null;
   sheetEl.classList.remove("settling");
   sheetEl.style.transform = "";
   sheetBackEl.style.opacity = "";
@@ -2668,6 +2706,30 @@ panelEvent.addEventListener("click", e => {
     savePicks();
     panelEvent.innerHTML = eventSheetHTML(ev);
   }
+});
+
+/* The hotel sheet: its rows work like rows anywhere, and an empty hotel
+   offers the search that would fill it. */
+panelHotel.addEventListener("click", e => {
+  const search = e.target.closest('[data-act="map-search"]');
+  if (search) {
+    const {hotel, day} = search.dataset;
+    Object.assign(state.browse, {q: "", day, prevDay: null, hotel, page: 1, showHidden: false, showPast: false, noToday: false});
+    state.tab = "browse";
+    closeSheet();
+    pageScrollTo(0);
+    return;
+  }
+  if (e.target.closest("#closeSheetHotel")) { closeSheet(); return; }
+  if (!state.sheetHotel) return;
+  const star = e.target.closest(".star");
+  if (star) {
+    togglePick(star.closest(".row").dataset.id);
+    panelHotel.innerHTML = hotelSheetHTML(state.sheetHotel, mapDay());
+    return;
+  }
+  const main = e.target.closest(".row-main");
+  if (main) openSheet("event", main.closest(".row").dataset.id);
 });
 
 document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); pageScrollTo(0); });

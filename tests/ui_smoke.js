@@ -1358,6 +1358,71 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(window.eval("state.map.day") === null && pressedDay() === "2026-09-05", "a new preview time lets the map follow the clock again");
   assert(/data-row="map-day"/.test(html), "the row is named, so it keeps its place across renders");
 
+  // ---- Map, step 3: pick pills and the hotel sheet ----
+  const picksBefore = JSON.parse(window.eval("JSON.stringify([...picks])"));
+  const mapPicks = JSON.parse(window.eval(`(function(){
+    var on = function(day, h, n){ return events.filter(function(e){ return e._cd === day && e.hotel === h && !e.cancelled; }).slice(0, n).map(function(e){ return e.id; }); };
+    var ids = on("2026-09-05", "Hyatt", 2).concat(on("2026-09-05", "Marriott", 1), on("2026-09-06", "Hilton", 1));
+    picks = new Set(ids); savePicks(); state.map.day = null; render();
+    return JSON.stringify(ids); })()`));
+  assert(mapPicks.length === 4, `four test picks: two Hyatt and one Marriott on Saturday, one Hilton on Sunday (${mapPicks.length})`);
+  const pillsOf = () => Object.fromEntries([...mapView.querySelectorAll(".map-pill")].map(p => [p.dataset.hotel, p.querySelector("text").textContent]));
+  assert(JSON.stringify(pillsOf()) === JSON.stringify({Hyatt: "2", Marriott: "1"}), `pills count Saturday's picks per hotel and hide at zero (${JSON.stringify(pillsOf())})`);
+  const pillRect = mapView.querySelector('.map-pill[data-hotel="Hyatt"] rect'), hyattBlock = mapView.querySelector('.map-hotel[data-hotel="Hyatt"] rect');
+  const pillC = {x: +pillRect.getAttribute("x") + pillRect.getAttribute("width") / 2, y: +pillRect.getAttribute("y") + pillRect.getAttribute("height") / 2};
+  const corner = {x: +hyattBlock.getAttribute("x") + +hyattBlock.getAttribute("width"), y: +hyattBlock.getAttribute("y")};
+  assert(Math.abs(pillC.x - corner.x) <= 12 && Math.abs(pillC.y - corner.y) <= 12, "the pill sits on the block's top-right corner");
+  assert(/\.map-pill rect \{[^}]*var\(--gold\)/.test(html) && /\.map-pill text \{[^}]*var\(--gold-ink\)/.test(html), "pills are the mine gold");
+  assert(/aria-label="Hyatt: 2 picks on Saturday"/.test(mapView.innerHTML) && /aria-label="Westin: no picks on Saturday"/.test(mapView.innerHTML), "each block says what it holds");
+  // day chips change the counts
+  mapView.querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click(); await sleep(20);
+  assert(JSON.stringify(pillsOf()) === JSON.stringify({Hilton: "1"}), `Sunday shows Sunday's pills (${JSON.stringify(pillsOf())})`);
+  mapView.querySelector('[data-chip="map-day"][data-value="2026-09-05"]').click(); await sleep(20);
+  assert(JSON.stringify(pillsOf()) === JSON.stringify({Hyatt: "2", Marriott: "1"}), "and Saturday shows Saturday's again");
+  // tapping a hotel opens its sheet
+  const tapMap = sel => mapView.querySelector(sel).dispatchEvent(new window.MouseEvent("click", {bubbles: true}));
+  const hotelPanel = document.getElementById("panel-hotel");
+  tapMap('.map-hotel[data-hotel="Hyatt"] rect'); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && !hotelPanel.hidden && document.getElementById("panel-event").hidden && document.getElementById("panel-settings").hidden, "tapping a hotel opens the hotel sheet");
+  assert(document.getElementById("sheetTitleHotel").textContent === "Hyatt" && document.getElementById("sheet").getAttribute("aria-labelledby") === "sheetTitleHotel", "headed by the hotel's name");
+  const sheetRows = [...hotelPanel.querySelectorAll(".row")];
+  const wantRows = JSON.parse(window.eval(`JSON.stringify(events.filter(function(e){ return picks.has(e.id) && e.hotel === "Hyatt" && e._cd === "2026-09-05"; }).map(function(e){ return e.id; }))`));
+  assert(sheetRows.length === 2 && sheetRows.map(r => r.dataset.id).join(",") === wantRows.join(","), "with the Hyatt picks that day, in time order");
+  assert(sheetRows.every(r => r.querySelector(".star[aria-pressed='true']") && r.querySelector(".row-main") && r.querySelector(".room")), "as standard rows with stars");
+  assert(/Saturday/.test(hotelPanel.textContent) && /2 picks/.test(hotelPanel.textContent), "and a line saying which day and how many");
+  // the detail sheet works from inside it
+  sheetRows[0].querySelector(".row-main").click(); await sleep(20);
+  assert(!document.getElementById("panel-event").hidden && hotelPanel.hidden && document.getElementById("sheetTitleEvent").textContent === window.eval(`byId.get(${JSON.stringify(wantRows[0])}).title`), "a row opens the event sheet");
+  window.eval("closeSheet()"); await sleep(20);
+  // the star works from inside it, and the map behind keeps up
+  tapMap('.map-hotel[data-hotel="Hyatt"] rect'); await sleep(20);
+  hotelPanel.querySelector(".row .star").click(); await sleep(20);
+  assert(window.eval("picks.size") === 3 && hotelPanel.querySelectorAll(".row").length === 1 && pillsOf().Hyatt === "1", `unstarring in the sheet drops the row and the pill behind (${pillsOf().Hyatt})`);
+  hotelPanel.querySelector(".row .star").click(); await sleep(20);
+  assert(window.eval("picks.size") === 2 && !hotelPanel.querySelector(".row") && /No picks here on Saturday/.test(hotelPanel.textContent) && !pillsOf().Hyatt, "unstarring the last one shows the empty state and the pill goes");
+  window.eval(`picks = new Set(${JSON.stringify(mapPicks)}); savePicks(); closeSheet();`); await sleep(20);
+  // a pill is the hotel
+  tapMap('.map-pill[data-hotel="Marriott"] text'); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && document.getElementById("sheetTitleHotel").textContent === "Marriott" && hotelPanel.querySelectorAll(".row").length === 1, "tapping a pill opens that hotel's sheet");
+  window.eval("closeSheet()"); await sleep(20);
+  // an empty hotel offers a search
+  tapMap('.map-hotel[data-hotel="Westin"] rect'); await sleep(20);
+  const searchBtn = hotelPanel.querySelector('[data-act="map-search"]');
+  assert(/No picks here on Saturday/.test(hotelPanel.textContent) && searchBtn && searchBtn.textContent.trim() === "Search the Westin on Saturday", `an empty hotel says so and offers a search (${searchBtn && searchBtn.textContent.trim()})`);
+  searchBtn.click(); await sleep(30);
+  assert(document.getElementById("sheetWrap").hidden && window.eval("state.tab") === "browse" && !document.getElementById("view-browse").hidden, "the button switches to Search");
+  assert(window.eval("state.browse.hotel") === "Westin" && window.eval("state.browse.day") === "2026-09-05" && window.eval("state.browse.q") === "", "with the hotel and the day as filters");
+  assert(document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').getAttribute("aria-pressed") === "true" && document.querySelector('#view-browse [data-chip="day"][data-value="2026-09-05"]').getAttribute("aria-pressed") === "true", "and the chips show them pressed");
+  assert(window.eval(`browseResults().length > 0 && browseResults().every(function(e){ return e.hotel === "Westin" && e._cd === "2026-09-05"; })`), "listing that hotel's Saturday");
+  assert(window.eval(`hotelPhrase("Hardy Ivy Park")`) === "Hardy Ivy Park" && window.eval(`hotelPhrase("AmericasMart")`) === "the Mart", "the park takes no article; the Mart is the Mart");
+  // keyboard: Enter on a focused block
+  window.eval(`state.tab = "map"; render();`); await sleep(20);
+  mapView.querySelector('.map-hotel[data-hotel="Hilton"]').dispatchEvent(new window.KeyboardEvent("keydown", {key: "Enter", bubbles: true})); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && document.getElementById("sheetTitleHotel").textContent === "Hilton" && mapView.querySelector('.map-hotel[data-hotel="Hilton"]').getAttribute("role") === "button", "blocks are buttons: Enter opens the sheet");
+  window.eval("closeSheet()"); await sleep(20);
+  // put things back
+  window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.browse.hotel = "All"; state.browse.day = null; state.tab = "map"; state.map.day = null; render();`); await sleep(20);
+
   window.close();
   await realDataChecks();
   console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); process.exit(process.exitCode || 0);
