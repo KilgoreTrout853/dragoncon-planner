@@ -839,12 +839,12 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(cancelProbe.sheetTag, "and the sheet says Cancelled under the room");
   assert(/\.cancelled-tag \{[^}]*var\(--warn\)/.test(html), "in the warning colour");
 
-  // ---- step 0: four tabs - Browse renamed to Search, For you folded into Explore ----
+  // ---- step 0: the nav - Browse renamed to Search, For you folded into Explore, Map added ----
   const navBtns = [...document.querySelectorAll(".nav button")];
   const navLabels = navBtns.map(b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(""));
-  assert(navLabels.join(" · ") === "Now · Search · Explore · Mine",
-    `the nav reads Now · Search · Explore · Mine (${navLabels.join(" · ")})`);
-  assert(navBtns.length === 4, "four tabs");
+  assert(navLabels.join(" · ") === "Now · Search · Explore · Map · Mine",
+    `the nav reads Now · Search · Explore · Map · Mine (${navLabels.join(" · ")})`);
+  assert(navBtns.length === 5, "five tabs");
   /* textContent includes <script> bodies, where "Browse" survives in comments
      and identifiers; only rendered text and aria labels matter here. */
   const visibleText = () => {
@@ -859,12 +859,12 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     return out;
   };
   assert(!/Browse/i.test(visibleText()), "the word Browse is gone from what the reader sees");
-  assert(navBtns.map(b => b.dataset.tab).join(",") === "now,browse,explore,mine",
+  assert(navBtns.map(b => b.dataset.tab).join(",") === "now,browse,explore,map,mine",
     "the internal identifiers are unchanged");
   assert(!document.querySelector('.nav button[data-tab="foryou"]'), "the For you tab is gone");
   assert(!document.getElementById("view-foryou"), "and so is its view");
   assert(!/foryou/i.test(html), "and nothing in the source still refers to it");
-  assert(/repeat\(4, 1fr\)/.test(html), "the nav lays out four columns");
+  assert(/repeat\(5, 1fr\)/.test(html), "the nav lays out five columns");
   assert(/\.nav button \{[^}]*font-size: 14px/.test(html), "with labels back at 14px");
   assert(/\.nav button svg \{[^}]*width: 24px/.test(html), "and icons back at 24px");
   // the explore view exists and switches
@@ -1301,6 +1301,40 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/\d+ events, refreshed/.test(document.getElementById("fresh").textContent), "the existing freshness line survives");
   window.eval("servedOffline = false; updateFresh();"); await sleep(10);
   assert(!/offline copy/.test(document.getElementById("fresh").textContent), "the marker clears when back online");
+
+  // ---- Map, step 1: the base map ----
+  document.querySelector('.nav button[data-tab="map"]').click(); await sleep(20);
+  const mapView = document.getElementById("view-map");
+  assert(!mapView.hidden && document.getElementById("view-mine").hidden && document.getElementById("view-browse").hidden
+    && document.querySelector('.nav button[data-tab="map"]').getAttribute("aria-current") === "page", "the Map tab shows its own view");
+  const svg = mapView.querySelector("svg.map");
+  assert(svg && svg.getAttribute("viewBox") === "0 0 380 520" && mapView.querySelectorAll("svg").length === 1, "one portrait SVG, 380 by 520");
+  const walkHotels = [...new Set(Object.keys(window.eval("WALK")).flatMap(k => k.split("|")))].sort();
+  const mapHotels = [...svg.querySelectorAll("[data-hotel]")].map(g => g.dataset.hotel).sort();
+  assert(mapHotels.join("|") === walkHotels.join("|"), `one block per walk-table hotel (${mapHotels.join(", ")})`);
+  assert(!mapHotels.includes("Other") && !mapHotels.includes("Streaming") && !mapHotels.includes("Unknown"), "no block for Other, Streaming or Unknown");
+  const centre = h => { const r = svg.querySelector(`[data-hotel="${h}"] rect`);
+    return {x: +r.getAttribute("x") + r.getAttribute("width") / 2, y: +r.getAttribute("y") + r.getAttribute("height") / 2}; };
+  const hyatt = centre("Hyatt"), marriott = centre("Marriott"), hilton = centre("Hilton"), mart = centre("AmericasMart"),
+    westin = centre("Westin"), courtland = centre("Courtland Grand"), hardy = centre("Hardy Ivy Park");
+  const peachtree = +svg.querySelector('[data-street="Peachtree"]').getAttribute("x1");
+  assert(hilton.x > marriott.x && marriott.x > hyatt.x, "east of Peachtree: Hyatt, Marriott, Hilton, left to right");
+  assert(Math.abs(hyatt.y - marriott.y) <= 10 && Math.abs(marriott.y - hilton.y) <= 10, "the three sit in one row");
+  assert(mart.x < peachtree && peachtree < hyatt.x && Math.abs(peachtree - 95) <= 20, `Peachtree runs between the Mart and the Hyatt, a quarter of the way across (${peachtree})`);
+  assert(westin.y > mart.y && Math.abs(westin.x - mart.x) <= 10 && Math.abs(mart.y - hyatt.y) <= 10, "the Westin is below the Mart, which is level with the Hyatt");
+  assert(courtland.y > hilton.y && Math.abs(courtland.x - hilton.x) <= 10, "the Courtland is below the Hilton, in its column");
+  assert(hardy.y < hyatt.y, "Hardy Ivy Park is above the Hyatt");
+  const bridges = [...svg.querySelectorAll("[data-bridge]")].map(l => l.dataset.bridge).sort();
+  assert(bridges.join(";") === "AmericasMart|Westin;Hyatt|Marriott;Marriott|Hilton", `three skybridges, none across Peachtree (${bridges.join("; ")})`);
+  assert(/\.map-bridge \{[^}]*stroke-dasharray/.test(html), "skybridges are dashed");
+  assert([...svg.querySelectorAll("[data-street]")].map(l => l.dataset.street).sort().join(",") === "Courtland,Peachtree", "two streets and nothing else");
+  assert(svg.querySelector('[data-street="Courtland"]').classList.contains("faint") && !svg.querySelector('[data-street="Peachtree"]').classList.contains("faint"), "Courtland St is the fainter one");
+  const mapLabels = [...svg.querySelectorAll("[data-hotel] text")].map(t => t.textContent);
+  assert(mapLabels.includes("MART") && mapLabels.includes("COURTLAND") && mapLabels.includes("HARDY IVY") && mapLabels.every(l => l === l.toUpperCase()), `labels are abbreviated and uppercase (${mapLabels.join(", ")})`);
+  const park = svg.querySelector('[data-hotel="Hardy Ivy Park"]');
+  assert(park.classList.contains("map-park") && /--park/.test(park.getAttribute("style")) && !/--h-/.test(park.getAttribute("style")), "the park wears green, not a hotel hue");
+  assert(/--h-Hyatt/.test(svg.querySelector('[data-hotel="Hyatt"]').getAttribute("style")) && /--h-Courtland\b/.test(svg.querySelector('[data-hotel="Courtland Grand"]').getAttribute("style")), "each hotel wears its own hue");
+  assert(/\.map-hotel text \{[^}]*var\(--font\)/.test(html) && /\.map-hotel rect \{[^}]*fill-opacity/.test(html), "labels use the app font and blocks are a low-opacity fill with a full stroke");
 
   window.close();
   await realDataChecks();

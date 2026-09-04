@@ -66,6 +66,7 @@
   --h-Hardy: #9ED5C0;
   --h-Streaming: #8F97AE;
   --h-Other: #8F97AE;
+  --park: #3FA34D;     /* Hardy Ivy Park on the map: a green that is not the Hilton's */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);        /* the status bar, on phones that draw under it */
 }
@@ -136,6 +137,21 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
   display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
 }
 .section-title .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* Map ------------------------------------------------------------------
+   A schematic of the con hotels. Blocks wear their room-chip hue; the
+   park is the one green that is not a hotel. ----------------------- */
+.map-wrap { padding: 12px 14px 0; }
+.map { display: block; width: 100%; height: auto; }
+.map-ground { fill: var(--surface); }
+.map-street { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
+.map-street.faint { stroke-width: 2; opacity: .55; }
+.map-street-label { font-family: var(--font); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; fill: var(--dim); }
+.map-bridge { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 4; stroke-linecap: round; }
+.map-hotel rect { fill: var(--h); fill-opacity: .18; stroke: var(--h); stroke-width: 1.5; }
+.map-hotel text { font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: .06em; fill: var(--h); text-anchor: middle; dominant-baseline: central; }
+.map-park rect { fill-opacity: .12; }
+.map-park text { font-size: 9px; }
 
 /* Controls ----------------------------------------------------------- */
 .controls { padding: 12px 14px 0; display: grid; gap: 10px; }
@@ -325,7 +341,7 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 /* Bottom nav -------------------------------------------------------- */
 .nav {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   background: var(--ink); border-top: 1px solid var(--line);
   padding: 6px max(8px, calc(50% - 372px)) calc(6px + var(--safe-bottom));
 }
@@ -504,6 +520,7 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
   <section class="view" id="view-now"></section>
   <section class="view" id="view-browse" hidden></section>
   <section class="view" id="view-explore" hidden></section>
+  <section class="view" id="view-map" hidden></section>
   <section class="view" id="view-mine" hidden></section>
 </main>
 
@@ -520,6 +537,9 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
   </button>
   <button data-tab="explore">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Explore
+  </button>
+  <button data-tab="map">
+    <svg viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Map
   </button>
   <button data-tab="mine" style="position:relative">
     <svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>Mine
@@ -997,11 +1017,53 @@ function revealChip(chip) {
   if (typeof row.scrollTo === "function") row.scrollTo({left, behavior: reduce ? "auto" : "smooth"}); else row.scrollLeft = left;
 }
 
+
+/* ---- Map ---------------------------------------------------------- */
+/* A diagram, not a survey. Peachtree runs up the left quarter; the three
+   skybridged hotels sit in a row east of it and get the width; the Mart
+   and the Westin pair up west of it; the Courtland is two blocks under
+   the Hilton. Keys are the walk table's names, so counts, rings and
+   routes join up by hotel. Streams and offsite venues have no place here. */
+const MAP_W = 380, MAP_H = 520, MAP_BLOCK = 60;
+const MAP_STREETS = {Peachtree: 92, Courtland: 336};
+const MAP_HOTELS = {
+  "AmericasMart":    {x: 14,  y: 190, w: 66, h: MAP_BLOCK},
+  "Westin":          {x: 14,  y: 370, w: 66, h: MAP_BLOCK},
+  "Hyatt":           {x: 108, y: 190, w: 72, h: MAP_BLOCK},
+  "Marriott":        {x: 204, y: 190, w: 72, h: MAP_BLOCK},
+  "Hilton":          {x: 300, y: 190, w: 72, h: MAP_BLOCK},
+  "Courtland Grand": {x: 300, y: 370, w: 72, h: MAP_BLOCK},
+  "Hardy Ivy Park":  {x: 108, y: 146, w: 72, h: 24, park: true},
+};
+/* Each pair is left-to-right or top-to-bottom. None crosses Peachtree. */
+const MAP_BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
+
+function mapSVG() {
+  const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="56" x2="${x}" y2="490"/>
+    <text class="map-street-label" transform="translate(${x - 7} 140) rotate(-90)">${name} St</text>`;
+  const bridges = MAP_BRIDGES.map(([a, b]) => {
+    const A = MAP_HOTELS[a], B = MAP_HOTELS[b], beside = Math.abs(A.y - B.y) < A.h;
+    const [x1, y1, x2, y2] = beside ? [A.x + A.w, A.y + A.h / 2, B.x, B.y + B.h / 2] : [A.x + A.w / 2, A.y + A.h, B.x + B.w / 2, B.y];
+    return `<line class="map-bridge" data-bridge="${esc(a)}|${esc(b)}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  }).join("");
+  const blocks = Object.entries(MAP_HOTELS).map(([h, b]) => `<g class="map-hotel${b.park ? " map-park" : ""}" data-hotel="${esc(h)}" style="--h:var(${b.park ? "--park" : hotelVar(h)})">
+    <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.park ? 6 : 10}"/>
+    <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(hotelShort(h).toUpperCase())}</text></g>`).join("");
+  return `<svg class="map" viewBox="0 0 ${MAP_W} ${MAP_H}" role="img" aria-label="Schematic map of the con hotels, not to scale">
+    <rect class="map-ground" width="${MAP_W}" height="${MAP_H}" rx="14"/>
+    ${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
+    ${bridges}${blocks}</svg>`;
+}
+
+function renderMap() {
+  document.getElementById("view-map").innerHTML = `<div class="map-wrap">${mapSVG()}</div>`;
+}
+
 function render() {
   cancelQueuedBrowseRender();
   updateClock();
   document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
-  ["now", "browse", "explore", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
+  ["now", "browse", "explore", "map", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
   const badge = document.getElementById("mineBadge");
   badge.hidden = picks.size === 0; badge.textContent = picks.size;
   if (!events.length) return;
@@ -1009,6 +1071,7 @@ function render() {
   if (state.tab === "now") renderNow();
   if (state.tab === "browse") renderBrowse();
   if (state.tab === "explore") renderExplore();
+  if (state.tab === "map") renderMap();
   if (state.tab === "mine") renderMine();
   chipRowsRestore(rows);
   renderMiniBar();
