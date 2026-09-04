@@ -571,6 +571,10 @@ const DAY_LONG = {"2026-09-02":"Wednesday","2026-09-03":"Thursday","2026-09-04":
 const HOTEL_ORDER = ["Marriott","Hyatt","Hilton","Courtland Grand","Westin","AmericasMart","Hardy Ivy Park","Streaming","Other","Unknown"];
 const HOTEL_VAR = {"Marriott":"Marriott","Hyatt":"Hyatt","Hilton":"Hilton","Courtland Grand":"Courtland","Westin":"Westin","AmericasMart":"Mart","Hardy Ivy Park":"Hardy","Streaming":"Streaming","Other":"Other","Unknown":"Other"};
 const HOTEL_SHORT = {"Courtland Grand":"Courtland","AmericasMart":"Mart","Hardy Ivy Park":"Hardy Ivy"};
+/* Streaming and the offsite venues share one chip. Neither is a con hotel,
+   both wear the same grey, and together they are under 3% of the schedule.
+   The data keeps them apart: a stream has no walk, an offsite venue does. */
+const HOTEL_GROUP = {"Streaming":"Other","Other":"Other","Unknown":"Other"};
 // Rough walking minutes between venues at con pace. Edit freely. Same venue = 5 (room changes, elevators).
 const WALK = {
   "Marriott|Hyatt":8, "Marriott|Hilton":7, "Hyatt|Hilton":12,
@@ -660,7 +664,7 @@ function aliasesFor(ev, text) {
 
 const settings = loadJSON("dc26.settings", {crowd: 1.3, hideNoise: true});
 let picks = new Set(loadJSON("dc26.picks", []));
-let events = [], byId = new Map(), tracks = [], hotels = [];
+let events = [], byId = new Map(), tracks = [], hotels = [], hotelChips = [];
 let fromNetwork = null, servedOffline = false;
 let meta = {};
 const state = {
@@ -807,6 +811,9 @@ const isCeleb = e => !!(e.tags && e.tags.guests === "celebrity");
 const CELEB_BADGE = `<span class="celeb" title="Celebrity guest">Celebrity</span>`;
 const hotelShort = h => HOTEL_SHORT[h] || h;
 const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
+const hotelGroup = h => HOTEL_GROUP[h] || h;
+/* A chip value is a venue or a group of them; "All" is everything. */
+const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hotel) === v;
 
 /* Real clock, or a preview time via #now=2026-09-05T14:00 */
 function getNow() {
@@ -856,6 +863,7 @@ async function load() {
   byId = new Map(events.map(e => [e.id, e]));
   tracks = [...new Set(events.map(e => e.track).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   hotels = HOTEL_ORDER.filter(h => events.some(e => e.hotel === h));
+  hotelChips = [...new Set(hotels.map(hotelGroup))];
   servedOffline = fromNetwork === false;
   buildIndex();
   buildCatalogue();
@@ -1216,7 +1224,7 @@ function nowModel(now) {
   const rest = heroEv ? minePlan.filter(e => e !== heroEv) : [];
   const around = events.filter(e => e._e > now && e._s <= horizon
     && !(state.browse.hideNoise && isNoise(e))
-    && (state.now.hotel === "All" || e.hotel === state.now.hotel));
+    && hotelMatches(e, state.now.hotel));
   return {minePlan, later, onNowEv, upcoming, heroEv, rest, around, shown: around.slice(0, state.now.limit)};
 }
 
@@ -1271,7 +1279,7 @@ function renderNow() {
 
   const around = model.around, shown = model.shown;
   let aroundHTML = `<div class="section-title">On now and in the next hour <span class="count">${around.length}</span></div>
-    <div class="controls" style="padding-top:0"><div class="chips" data-row="now-hotel">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotels.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list compact">`;
+    <div class="controls" style="padding-top:0"><div class="chips" data-row="now-hotel">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotelChips.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list compact">`;
   let lastKey = "";
   shown.forEach(ev => {
     const key = ev._s <= now ? "on" : fmtShort(ev._s);
@@ -1363,7 +1371,7 @@ function chipHTML(label, on, kind, value, style) {
 function passesFilters(e) {
   const f = activeFilters(), tg = e.tags || {};
   return (f.day === "All" || e._cd === f.day) &&
-    (f.hotel === "All" || e.hotel === f.hotel) &&
+    hotelMatches(e, f.hotel) &&
     (f.type === "All" || e.type === f.type) &&
     (f.track === "All" || (e.tracks || []).includes(f.track)) &&
     (f.fandom === "All" || (tg.fandoms || []).includes(f.fandom)) &&
@@ -1636,7 +1644,7 @@ function renderBrowse() {
     <div class="chips" data-row="day" id="dayChips">${dayChips}</div>
     </div>`;
   let html = `<div class="controls controls-rest">
-    <div class="chips" data-row="hotel">${chipHTML("All", b.hotel === "All", "hotel")}${hotels.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
+    <div class="chips" data-row="hotel">${chipHTML("All", b.hotel === "All", "hotel")}${hotelChips.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
     ${hasTags ? `<div class="chips" data-row="kind">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
     ${suggestHTML()}
     ${parsedChipsHTML()}

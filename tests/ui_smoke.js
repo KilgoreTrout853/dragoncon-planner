@@ -326,9 +326,24 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // noise toggle: Epic Photos hidden by default
   document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').click(); await sleep(10);
   assert(window.eval("state.browse.hotel") === "All", "tapping the same chip again clears the filter");
-  // every venue in the data is reachable again, including Hardy Ivy and Streaming
+  // every venue in the data is reachable again, including Hardy Ivy; Streaming
+  // and the offsite venues share the one Other chip
   const chipVals = [...document.querySelectorAll("#view-browse [data-chip='hotel']")].map(c => c.dataset.value);
-  window.eval("hotels").forEach(h => assert(chipVals.includes(h), `every venue has a chip: ${h}`));
+  window.eval("hotels").forEach(h => assert(chipVals.includes(window.eval(`hotelGroup("${h}")`)), `every venue has a chip: ${h}`));
+  assert(!chipVals.includes("Streaming") && chipVals.filter(v => v === "Other").length === 1, `one Other chip and no Streaming chip (${chipVals.join(",")})`);
+  assert(window.eval(`hotelMatches({hotel: "Streaming"}, "Other") && hotelMatches({hotel: "Other"}, "Other") && !hotelMatches({hotel: "Hilton"}, "Other") && hotelMatches({hotel: "Streaming"}, "Streaming") && hotelMatches({hotel: "Hilton"}, "All")`),
+    "Other matches streams and offsite venues and nothing else; a venue still matches itself");
+  document.querySelector('#view-browse [data-chip="hotel"][data-value="Other"]').click(); await sleep(10);
+  const otherRows = window.eval("browseResults()");
+  assert(window.eval("state.browse.hotel") === "Other" && otherRows.length > 0 && otherRows.every(e => e.hotel === "Streaming" || e.hotel === "Other"),
+    `tapping Other shows streams and offsite venues together (${otherRows.length})`);
+  assert(otherRows.some(e => e.hotel === "Streaming"), "streams are in it");
+  assert(!window.eval(`events.some(e => e.hotel === "Other" && !isNoise(e))`) || otherRows.some(e => e.hotel === "Other"), "and so are the offsite venues, when the data has any");
+  assert(document.querySelector('#view-browse [data-chip="hotel"][data-value="Other"]').getAttribute("aria-pressed") === "true", "the Other chip reads as pressed");
+  const nowVals = JSON.parse(window.eval(`(function(){ state.tab = "now"; render(); var v = [].map.call(document.querySelectorAll('#view-now [data-chip="now-hotel"]'), function(c){ return c.dataset.value; }); state.tab = "browse"; render(); return JSON.stringify(v); })()`));
+  assert(!nowVals.includes("Streaming") && nowVals.filter(v => v === "Other").length === 1 && nowVals.length === chipVals.length, `the Now tab's venue row is the same set (${nowVals.join(",")})`);
+  document.querySelector('#view-browse [data-chip="hotel"][data-value="Other"]').click(); await sleep(10);
+  assert(window.eval("state.browse.hotel") === "All", "tapping Other again clears it");
   assert(![...document.querySelectorAll("#view-browse .track")].some(t => t.textContent === "Epic Photos"), "photo sessions hidden by default");
   const before = window.eval("browseResults().length");
   document.getElementById("hideNoise").click(); await sleep(10);
@@ -1339,6 +1354,18 @@ async function realDataChecks() {
   assert(has(bg.topTitles, "board game"), `"board games" leads with real board-game rows (${bg.topTitles[0]})`);
   const thin = search("xylophone quidditch");
   assert(thin.main < 8, "a thin query has few AND matches");
+
+  // the one Other chip covers both the streams and the offsite venues; the
+  // sample fixture has no offsite rows, so only the real data can say so
+  const other = JSON.parse(w.eval(`(function(){
+    Object.assign(state.browse, {q: "", day: "All", hotel: "Other", type: "All", track: "All",
+      fandom: "All", kind: "All", showHidden: false, showPast: true, hideNoise: false, page: 1});
+    var r = browseResults();
+    return JSON.stringify({total: r.length, hotels: r.map(function(e){ return e.hotel; })});
+  })()`));
+  assert(other.total > 0 && other.hotels.every(h => h === "Streaming" || h === "Other")
+    && other.hotels.includes("Streaming") && other.hotels.includes("Other"),
+    `the Other chip covers both the streams and the offsite venues (${other.total})`);
 
   // quoted suggestion path is untouched
   const who = w.eval(`(function(){ var d = suggestDocs.filter(function(d){ return d.group === "people" && d.visible >= 3; })
