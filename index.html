@@ -75,6 +75,9 @@
    scroll past the end, fixed nav included, so the bar bounced on every long
    list. This also drops pull-to-refresh, which the update pill covers. */
 html { background: var(--ink); color-scheme: dark; overscroll-behavior-y: none; }
+/* Larger text (Settings): text sizes are in rem so this one number scales
+   them all; boxes stay in px and were checked at 375px wide with it on. */
+html.bigtext { font-size: 115%; }
 /* The page itself never scrolls; main does, below. When the page is the
    scroller, iOS moves the bottom safe-area inset as it scrolls and
    rubber-bands the whole layer, and a fixed nav padded by that inset goes
@@ -82,7 +85,7 @@ html { background: var(--ink); color-scheme: dark; overscroll-behavior-y: none; 
    they are on every tab. */
 html, body { height: 100%; overflow: hidden; }
 body {
-  margin: 0; font-family: var(--font); font-size: 17px; line-height: 1.3;
+  margin: 0; font-family: var(--font); font-size: 1.0625rem; line-height: 1.3;
   color: var(--text); background: var(--ink);
   -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
 }
@@ -96,11 +99,17 @@ button { cursor: pointer; }
 .hdr {
   position: fixed; top: 0; left: 0; right: 0; z-index: 5;
   background: var(--ink); border-bottom: 1px solid var(--line);
-  padding: calc(10px + var(--safe-top)) max(14px, calc(50% - 366px)) 8px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+  padding: calc(10px + var(--safe-top)) max(14px, calc(50% - 366px)) 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
-.hdr .brand { font-size: 13px; color: var(--muted); font-weight: 500; }
-.hdr .clock { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.05; }
-.hdr .fresh { font-size: 13px; color: var(--dim); margin-top: 2px; }
+/* One line: clock, count, freshness. The brand is a small label above it,
+   on the Now tab only; everywhere else the line is the whole header. */
+.hdr .hdr-text { flex: 1; min-width: 0; }
+.hdr .brand { font-size: .75rem; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
+.hdr .hdr-line { font-size: clamp(.8125rem, 4vw, .9375rem); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdr .fresh { color: var(--muted); }
+/* When the line is still too long - a preview clock, a narrow phone - the
+   word "refreshed" goes before anything is clipped. Measured, not guessed. */
+.hdr .hdr-line.tight .word { display: none; }
 .icon-btn {
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
   width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted);
@@ -110,10 +119,10 @@ button { cursor: pointer; }
 /* Notices ------------------------------------------------------------ */
 .notice {
   margin: 12px 14px 0; padding: 10px 12px; border-radius: 10px;
-  background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 15px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: .9375rem;
 }
 .notice b { color: var(--text); font-weight: 600; }
-.device { font-size: 12px; color: var(--dim); line-height: 1.4; }
+.device { font-size: .75rem; color: var(--dim); line-height: 1.4; }
 .notice.warn { border-color: var(--warn); color: var(--text); }
 .pick-news ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
 .pick-news .btn { margin-top: 12px; height: 38px; }
@@ -133,7 +142,7 @@ main::after { content: ""; display: block; height: calc(76px + var(--safe-bottom
 body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .view { padding: 0 0 12px; }
 .section-title {
-  padding: 18px 14px 6px; font-size: 15px; color: var(--muted); font-weight: 600;
+  padding: 18px 14px 6px; font-size: .9375rem; color: var(--muted); font-weight: 600;
   display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
 }
 .section-title .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
@@ -143,7 +152,14 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
    opaque tint, so the route and the streets pass under them rather than
    through their labels; the park is the one green that is not a hotel. */
 .map-wrap { padding: 12px 14px 0; }
-.map { display: block; width: 100%; height: auto; }
+/* The map fits the screen: the header, the chip strip, the caption band
+   and the nav come off the viewport and the SVG takes what is left,
+   keeping its shape, down to a floor below which the tab scrolls instead
+   (the chips stay pinned). --map-chrome is chips + wrap padding + band +
+   nav spacer + the view's bottom padding; the mini-bar never shows on this tab. */
+.map { display: block; width: 100%; height: auto; margin: 0 auto; --map-chrome: 207px;
+  max-height: max(360px, calc(100dvh - var(--hdr-h, 63px) - var(--map-chrome) - var(--safe-bottom))); }
+.map-under { min-height: 44px; }
 .map-ground { fill: var(--surface); }
 .map-street { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
 .map-street.faint { stroke-width: 2; opacity: .55; }
@@ -162,11 +178,9 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .map-ring.next { stroke-width: 2; animation: map-pulse 1.6s ease-in-out infinite; }
 @keyframes map-pulse { 0%, 100% { stroke-opacity: 1; stroke-width: 2; } 50% { stroke-opacity: .35; stroke-width: 4; } }
 @media (prefers-reduced-motion: reduce) { .map-ring.next { animation: none; } }
-.map-route { fill: none; stroke: var(--gold); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; opacity: .75; pointer-events: none; }
-.map-leave line { stroke: var(--gold); stroke-width: 2; stroke-dasharray: 5 4; stroke-linecap: round; pointer-events: none; }
-.map-caption { padding-top: 10px; font-size: 15px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.map-caption { padding-top: 10px; font-size: .9375rem; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
 .map-caption .late { color: var(--warn); }
-.map-offmap { padding-top: 4px; font-size: 14px; color: var(--muted); }
+.map-offmap { padding-top: 4px; font-size: .875rem; color: var(--muted); }
 
 /* Controls ----------------------------------------------------------- */
 .controls { padding: 12px 14px 0; display: grid; gap: 10px; }
@@ -193,18 +207,18 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .chip[aria-pressed="true"] { background: var(--text); color: var(--ink); border-color: var(--text); font-weight: 600; }
 .chip.hotel[aria-pressed="true"] { background: var(--h); border-color: var(--h); color: var(--ink); }
 .suggest-row { align-items: center; padding-top: 2px; }
-.suggest-label { flex: none; font-size: 12px; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; padding-right: 2px; }
+.suggest-label { flex: none; font-size: .75rem; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; padding-right: 2px; }
 .chip.suggest { font-weight: 600; }
-.chip.suggest .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: 12px; }
+.chip.suggest .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: .75rem; }
 /* Not gold - gold means "mine". A quiet outline that reads as a label. */
 .celeb {
-  display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  display: inline-block; font-size: .6875rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
   color: var(--h-Hyatt); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; line-height: 17px;
 }
 .chip.suggest.on { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
 .chip.suggest.on span { opacity: .65; }
 .divider {
-  padding: 10px 14px 8px; font-size: 13px; font-weight: 700; color: var(--muted);
+  padding: 10px 14px 8px; font-size: .8125rem; font-weight: 700; color: var(--muted);
   background: var(--ink); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
   letter-spacing: .03em;
 }
@@ -221,24 +235,24 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
   color: var(--text); font: inherit; text-align: left; cursor: pointer;
 }
 .tile.on { border-color: var(--gold); }
-.tile-name { font-size: 14px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
-.tile-meta { flex: none; display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: var(--dim); }
-.tile-mark { color: var(--gold); font-size: 11px; }
+.tile-name { font-size: .875rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.tile-meta { flex: none; display: flex; align-items: center; gap: 5px; font-size: .8125rem; font-weight: 700; color: var(--dim); }
+.tile-mark { color: var(--gold); font-size: .6875rem; }
 .follow-chips { align-items: center; }
 .follow-chip {
   flex: none; display: inline-flex; align-items: stretch; border: 1px solid var(--gold);
   border-radius: 999px; overflow: hidden; background: transparent;
 }
 .follow-chip .fc-name {
-  background: none; border: 0; padding: 7px 4px 7px 12px; font: inherit; font-size: 14px; font-weight: 700;
+  background: none; border: 0; padding: 7px 4px 7px 12px; font: inherit; font-size: .875rem; font-weight: 700;
   color: var(--gold); cursor: pointer; white-space: nowrap;
 }
 .follow-chip .fc-x {
-  background: none; border: 0; padding: 7px 10px 7px 4px; font: inherit; font-size: 16px; line-height: 1;
+  background: none; border: 0; padding: 7px 10px 7px 4px; font: inherit; font-size: 1rem; line-height: 1;
   color: var(--gold); opacity: .7; cursor: pointer;
 }
 .chip.fc-add { flex: none; }
-.explore-jump .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: 12px; }
+.explore-jump .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: .75rem; }
 .explore-jump .chip[aria-pressed="true"] .n { color: inherit; opacity: .7; }
 /* Following sits above the tiles, behind a fold: a long feed would push the
    grid off screen for someone who came to wander. */
@@ -246,34 +260,34 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .suggested { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
 .fol-head {
   width: 100%; display: flex; align-items: baseline; gap: 6px; padding: 14px 14px 4px;
-  background: none; border: 0; color: var(--text); font: inherit; font-size: 17px; font-weight: 700;
+  background: none; border: 0; color: var(--text); font: inherit; font-size: 1.0625rem; font-weight: 700;
   text-align: left; cursor: pointer;
 }
 .fol-head .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
-.fol-head .caret { margin-left: auto; color: var(--dim); font-size: 15px; }
-.hint { padding: 0 14px 8px; font-size: 14px; color: var(--muted); }
+.fol-head .caret { margin-left: auto; color: var(--dim); font-size: .9375rem; }
+.hint { padding: 0 14px 8px; font-size: .875rem; color: var(--muted); }
 .flabel {
-  font-size: 11px; font-weight: 700; color: var(--gold); border: 1px solid var(--gold);
+  font-size: .6875rem; font-weight: 700; color: var(--gold); border: 1px solid var(--gold);
   border-radius: 999px; padding: 0 6px; line-height: 17px; opacity: .85;
 }
 .explore-head { padding: 10px 14px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 5px; justify-items: start; }
 .explore-head .back { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
-.explore-head .eh-kind { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-top: 4px; }
-.explore-head .eh-name { margin: 0; font-size: 22px; line-height: 1.2; }
-.explore-head .eh-count { font-size: 14px; color: var(--muted); }
+.explore-head .eh-kind { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-top: 4px; }
+.explore-head .eh-name { margin: 0; font-size: 1.375rem; line-height: 1.2; }
+.explore-head .eh-count { font-size: .875rem; color: var(--muted); }
 .follow-btn { margin-top: 6px; }
 .follow-btn.on { background: transparent; color: var(--gold); border: 1px solid var(--gold); }
 .ev-people .who { white-space: nowrap; }
 .see-all {
-  background: none; border: 0; padding: 0 0 0 2px; font: inherit; font-size: 13px; font-weight: 700;
+  background: none; border: 0; padding: 0 0 0 2px; font: inherit; font-size: .8125rem; font-weight: 700;
   color: var(--gold); text-decoration: underline; cursor: pointer;
 }
 .no-exact {
-  padding: 9px 14px; font-size: 13px; color: var(--muted);
+  padding: 9px 14px; font-size: .8125rem; color: var(--muted);
   background: var(--surface); border-bottom: 1px solid var(--line);
 }
 .no-exact b { color: var(--text); }
-.hidden-note { padding: 10px 14px; font-size: 14px; color: var(--muted); }
+.hidden-note { padding: 10px 14px; font-size: .875rem; color: var(--muted); }
 .hidden-note button { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--gold); text-decoration: underline; cursor: pointer; }
 .parsed-chips { padding-top: 2px; }
 .chip.parsed { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
@@ -287,20 +301,20 @@ select.track {
   flex: 1 1 160px; min-width: 0; height: 40px; padding: 0 10px; border-radius: 10px;
   background: var(--surface); border: 1px solid var(--line); color: var(--text);
 }
-.toggle { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 15px; min-height: 40px; }
+.toggle { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .9375rem; min-height: 40px; }
 .toggle input { width: 22px; height: 22px; accent-color: var(--gold); margin: 0; }
 
 /* Rows: a departures board. Time is loudest; the room chip carries the hotel color. */
 .list { list-style: none; margin: 0; padding: 0; }
-.day-head { padding: 22px 14px 4px; font-size: 20px; font-weight: 700; }
-.time-head { padding: 12px 14px 2px; font-size: 13px; color: var(--dim); font-variant-numeric: tabular-nums; border-top: 1px solid var(--line); }
+.day-head { padding: 22px 14px 4px; font-size: 1.25rem; font-weight: 700; }
+.time-head { padding: 12px 14px 2px; font-size: .8125rem; color: var(--dim); font-variant-numeric: tabular-nums; border-top: 1px solid var(--line); }
 .row { border-top: 1px solid var(--line); }
 .row.open { background: var(--surface); }
 .row.mine .title::before { content: "★ "; color: var(--gold); }
 .row.cancelled .title { text-decoration: line-through; color: var(--muted); }
 /* A strike-through alone reads as a rendering glitch; say the word. */
 .cancelled-tag {
-  display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  display: inline-block; font-size: .6875rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
   color: var(--warn); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; line-height: 17px;
 }
 .row-main {
@@ -309,48 +323,48 @@ select.track {
 }
 .row-line { display: grid; grid-template-columns: 1fr 56px; align-items: stretch; }
 .t { font-variant-numeric: tabular-nums; line-height: 1.05; padding-top: 1px; }
-.t .start { font-size: 20px; font-weight: 700; display: block; }
-.t .ampm { font-size: 11px; font-weight: 600; color: var(--muted); margin-left: 2px; }
-.t .end { display: block; font-size: 13px; color: var(--dim); margin-top: 3px; }
+.t .start { font-size: 1.25rem; font-weight: 700; display: block; }
+.t .ampm { font-size: .6875rem; font-weight: 600; color: var(--muted); margin-left: 2px; }
+.t .end { display: block; font-size: .8125rem; color: var(--dim); margin-top: 3px; }
 .body { min-width: 0; }
-.title { font-size: 18px; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: 14px; color: var(--muted); }
+.title { font-size: 1.125rem; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: .875rem; color: var(--muted); }
 .room {
-  display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: 13px;
+  display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: .8125rem;
   background: color-mix(in srgb, var(--h) 18%, transparent); color: var(--h); border: 1px solid color-mix(in srgb, var(--h) 45%, transparent);
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .track { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .status { color: var(--gold); font-weight: 600; }
 mark { background: none; color: var(--gold); font-weight: 700; }
-.t .day { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 1px; letter-spacing: .02em; }
-.snippet { margin-top: 5px; font-size: 14px; color: var(--muted); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.t .day { display: block; font-size: .6875rem; font-weight: 600; color: var(--muted); margin-bottom: 1px; letter-spacing: .02em; }
+.snippet { margin-top: 5px; font-size: .875rem; color: var(--muted); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .tagline { display: flex; flex-wrap: wrap; gap: 6px; }
-.tag { font-size: 13px; padding: 2px 8px; border-radius: 6px; background: var(--raised); border: 1px solid var(--line); color: var(--text); }
+.tag { font-size: .8125rem; padding: 2px 8px; border-radius: 6px; background: var(--raised); border: 1px solid var(--line); color: var(--text); }
 .tag.adult { color: var(--warn); }
 .star {
-  background: none; border: 0; color: var(--dim); font-size: 26px; line-height: 1; display: grid; place-items: center; padding: 0 8px 0 0;
+  background: none; border: 0; color: var(--dim); font-size: 1.625rem; line-height: 1; display: grid; place-items: center; padding: 0 8px 0 0;
 }
 .star[aria-pressed="true"] { color: var(--gold); }
 .btn {
-  height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; font-size: 16px;
+  height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; font-size: 1rem;
   background: var(--gold); color: var(--gold-ink); border: 0;
 }
 .btn.quiet { background: var(--raised); color: var(--text); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--warn); border: 1px solid var(--line); }
 .gap {
-  margin: 0 14px 0 80px; padding: 6px 10px; font-size: 14px; border-left: 3px solid var(--line); color: var(--muted);
+  margin: 0 14px 0 80px; padding: 6px 10px; font-size: .875rem; border-left: 3px solid var(--line); color: var(--muted);
 }
 .gap.tight { border-color: var(--warn); color: var(--text); }
 .gap.overlap { border-color: var(--warn); color: var(--warn); font-weight: 600; }
-.empty { padding: 28px 14px; color: var(--muted); font-size: 16px; }
+.empty { padding: 28px 14px; color: var(--muted); font-size: 1rem; }
 .empty b { color: var(--text); }
 .more { margin: 14px; }
 /* Two rows of two on one grid: the actions take the view toggle's footprint,
    so the top of Mine reads as one control strip rather than a stack of odd
    shapes. Export keeps its gold fill; it is the one you came here for. */
 .mine-actions { padding: 12px 14px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.mine-actions .btn { height: 40px; padding: 0 12px; border-radius: 10px; font-size: 15px; font-weight: 700; }
+.mine-actions .btn { height: 40px; padding: 0 12px; border-radius: 10px; font-size: .9375rem; font-weight: 700; }
 .btn[disabled] { opacity: .45; }
 
 /* Bottom nav -------------------------------------------------------- */
@@ -362,12 +376,12 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 }
 .nav button {
   height: 58px; border: 0; background: none; color: var(--dim); border-radius: 12px;
-  display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: 14px;
+  display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: .875rem;
   white-space: nowrap; padding: 0 2px; min-width: 0;
 }
 .nav button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .nav button[aria-current="page"] { color: var(--text); background: var(--surface); }
-.nav .badge { position: absolute; margin-left: 40px; margin-top: -34px; background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: 12px; padding: 1px 6px; font-weight: 700; }
+.nav .badge { position: absolute; margin-left: 40px; margin-top: -34px; background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: .75rem; padding: 1px 6px; font-weight: 700; }
 
 /* Settings sheet ---------------------------------------------------- */
 .sheet-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9; }
@@ -390,12 +404,17 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   .sheet.settling { transition: none; }
   .sheet-back { transition: none; }
 }
-.sheet h2 { margin: 0; font-size: 20px; }
-.sheet label { display: grid; gap: 6px; color: var(--muted); font-size: 15px; }
+.sheet h2 { margin: 0; font-size: 1.25rem; }
+.sheet label { display: grid; gap: 6px; color: var(--muted); font-size: .9375rem; }
 .sheet input[type="range"] { width: 100%; accent-color: var(--gold); }
 .sheet input[type="datetime-local"] { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); }
 .sheet .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; }
-.walk-table { font-size: 14px; color: var(--muted); }
+/* Settings: the two everyday controls up top; the rest folds under
+   Advanced, which scrolls on its own inside the sheet. Remove all picks
+   is last and on its own, away from Done. */
+.advanced > summary { color: var(--muted); cursor: pointer; font-size: .9375rem; font-weight: 600; padding: 4px 0; }
+.advanced-body { display: grid; gap: 16px; padding-top: 12px; max-height: 45vh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+.walk-table { font-size: .875rem; color: var(--muted); }
 .walk-table td { padding: 2px 6px 2px 0; }
 
 /* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
@@ -403,17 +422,17 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .sheet-panel { display: grid; gap: 16px; }
 .sheet-panel[hidden] { display: none; }
 .ev-head { display: grid; gap: 6px; }
-.ev-head h2 { margin: 0; font-size: 21px; line-height: 1.25; }
-.ev-when { color: var(--muted); font-size: 15px; }
-.ev-room { font-size: 19px; font-weight: 700; color: var(--h); line-height: 1.2; }
+.ev-head h2 { margin: 0; font-size: 1.3125rem; line-height: 1.25; }
+.ev-when { color: var(--muted); font-size: .9375rem; }
+.ev-room { font-size: 1.1875rem; font-weight: 700; color: var(--h); line-height: 1.2; }
 .ev-body { display: grid; gap: 12px; max-height: 48vh; overflow-y: auto; overscroll-behavior: contain; }
-.ev-body p { margin: 0; white-space: pre-line; font-size: 16px; }
-.ev-people { color: var(--muted); font-size: 15px; }
+.ev-body p { margin: 0; white-space: pre-line; font-size: 1rem; }
+.ev-people { color: var(--muted); font-size: .9375rem; }
 .ev-people span { color: var(--text); }
 .ev-actions { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
 .ev-actions .btn { flex: 1 1 auto; }
 .ev-star {
-  font-size: 24px; line-height: 1; width: 56px; flex: none; cursor: pointer;
+  font-size: 1.5rem; line-height: 1; width: 56px; flex: none; cursor: pointer;
   background: transparent; border: 1px solid var(--line); border-radius: 12px; color: var(--muted);
 }
 .ev-star[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
@@ -431,17 +450,17 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .hero.late .ring .prog { stroke: var(--warn); }
 .hero .ring .num {
   position: absolute; inset: 0; display: grid; place-items: center; line-height: 1;
-  font-size: 17px; font-weight: 700; color: var(--gold);
+  font-size: 1.0625rem; font-weight: 700; color: var(--gold);
 }
 .hero.late .ring .num { color: var(--warn); }
-.hero .ring .num small { display: block; font-size: 10px; font-weight: 600; color: var(--muted); }
+.hero .ring .num small { display: block; font-size: .625rem; font-weight: 600; color: var(--muted); }
 .hero .hbody { display: grid; gap: 5px; min-width: 0; flex: 1; }
-.hero .hkicker { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.hero .htitle { font-size: 19px; font-weight: 700; line-height: 1.2; }
-.hero .hroom { font-size: 15px; font-weight: 700; color: var(--h); }
-.hero .hleave { font-size: 15px; font-weight: 700; color: var(--gold); }
+.hero .hkicker { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.hero .htitle { font-size: 1.1875rem; font-weight: 700; line-height: 1.2; }
+.hero .hroom { font-size: .9375rem; font-weight: 700; color: var(--h); }
+.hero .hleave { font-size: .9375rem; font-weight: 700; color: var(--gold); }
 .hero.late .hleave { color: var(--warn); }
-.hero .hthen { font-size: 13px; color: var(--muted); }
+.hero .hthen { font-size: .8125rem; color: var(--muted); }
 .hero .hthen b { color: var(--text); font-weight: 700; }
 .list.compact .row-main { padding-top: 8px; padding-bottom: 8px; }
 .list.compact .snippet { display: none; }
@@ -456,14 +475,14 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   display: flex; align-items: center; gap: 10px; cursor: pointer;
 }
 .minibar .mb-body { display: grid; gap: 1px; min-width: 0; flex: 1; }
-.minibar .mb-title { font-size: 14px; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.minibar .mb-room { font-size: 12px; font-weight: 700; color: var(--h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.minibar .mb-when { flex: none; font-size: 14px; font-weight: 700; color: var(--gold); }
+.minibar .mb-title { font-size: .875rem; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.minibar .mb-room { font-size: .75rem; font-weight: 700; color: var(--h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.minibar .mb-when { flex: none; font-size: .875rem; font-weight: 700; color: var(--gold); }
 /* Sits above the nav and the next-up bar, never over the list you're reading. */
 .update-pill {
   position: fixed; left: 50%; transform: translateX(-50%); z-index: 8;
   bottom: calc(80px + var(--safe-bottom));
-  border: 0; border-radius: 999px; padding: 9px 16px; font: inherit; font-size: 14px; font-weight: 700;
+  border: 0; border-radius: 999px; padding: 9px 16px; font: inherit; font-size: .875rem; font-weight: 700;
   background: var(--gold); color: var(--gold-ink); box-shadow: 0 4px 16px rgba(0,0,0,.45); cursor: pointer;
   touch-action: none;
 }
@@ -476,21 +495,27 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
 .view-toggle { display: flex; gap: 8px; padding: 0 14px 10px; }
 .view-toggle button {
   flex: 1; height: 40px; border-radius: 10px; border: 1px solid var(--line);
-  background: transparent; color: var(--muted); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  background: transparent; color: var(--muted); font: inherit; font-size: .9375rem; font-weight: 700; cursor: pointer;
 }
 .view-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--text); border-color: var(--gold); }
 .tl-day { padding: 0 14px 22px; }
-.tl-grid { position: relative; margin-left: 46px; }
-.tl-hour { position: absolute; left: -46px; right: 0; height: 0; border-top: 1px solid var(--line); }
-.tl-hour span { position: absolute; left: 0; top: -8px; font-size: 12px; color: var(--dim); width: 42px; }
+/* The hour gutter is in rem so Larger text widens it with its labels. */
+.tl-grid { position: relative; margin-left: 3rem; }
+.tl-hour { position: absolute; left: -3rem; right: 0; height: 0; border-top: 1px solid var(--line); }
+.tl-hour span { position: absolute; left: 0; top: -8px; font-size: .75rem; color: var(--dim); white-space: nowrap; }
 .tl-block {
   position: absolute; overflow: hidden; border-radius: 8px; cursor: pointer; text-align: left;
   background: var(--h); border: 0; padding: 5px 7px; color: var(--ink); font: inherit;
   display: grid; align-content: start; gap: 1px;
 }
-.tl-block .tb-title { font-size: 13px; font-weight: 700; line-height: 1.15; }
-.tl-block .tb-room { font-size: 11px; font-weight: 600; opacity: .8; }
-.tl-block .tb-runs { font-size: 11px; font-weight: 700; opacity: .7; }
+.tl-block .tb-title { font-size: .8125rem; font-weight: 700; line-height: 1.15; }
+.tl-block .tb-room { font-size: .6875rem; font-weight: 600; opacity: .8; }
+.tl-block .tb-runs { font-size: .6875rem; font-weight: 700; opacity: .7; }
+/* A block is as tall as its event is long, so text that will not fit gives
+   way in order, by measurement: the title drops to one line, then the room
+   goes. Larger text made this matter for hour-long picks. */
+.tl-block.tight .tb-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tl-block.tighter .tb-room { display: none; }
 /* A six-hour block is 360px of flat colour. Keep its true position and
    height - the geometry is the point - but let the body fade toward the
    page so shorter picks still read as the foreground. */
@@ -502,7 +527,7 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
 }
 .tl-now { position: absolute; left: -46px; right: 0; height: 0; border-top: 2px solid var(--warn); z-index: 3; }
 .tl-now::after {
-  content: "now"; position: absolute; left: 0; top: -8px; font-size: 11px; font-weight: 700;
+  content: "now"; position: absolute; left: 0; top: -8px; font-size: .6875rem; font-weight: 700;
   color: var(--warn); background: var(--ink); padding-right: 4px;
 }
 .tl-link { position: absolute; z-index: 2; pointer-events: none; border-left: 2px dashed var(--muted); }
@@ -510,7 +535,7 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
   /* right-aligned: block titles run from the left, so a badge pinned right
      clears them even when two picks are back to back with no gap to sit in */
   position: absolute; right: 4px; top: 50%; transform: translateY(-50%); white-space: nowrap;
-  font-size: 11px; font-weight: 700; color: var(--muted);
+  font-size: .6875rem; font-weight: 700; color: var(--muted);
   background: var(--ink); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
 }
 .tl-link.tight { border-left-color: var(--warn); }
@@ -520,10 +545,9 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
 <body>
 
 <header class="hdr">
-  <div>
-    <div class="brand">Dragon Con 2026</div>
-    <div class="clock" id="clock">…</div>
-    <div class="fresh" id="fresh"></div>
+  <div class="hdr-text">
+    <div class="brand" id="brand">Dragon Con 2026</div>
+    <div class="hdr-line"><span class="clock" id="clock">…</span><span class="fresh" id="fresh"></span></div>
   </div>
   <button class="icon-btn" id="settingsBtn" aria-label="Settings">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -572,21 +596,29 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
       <input type="range" id="crowd" min="1" max="2.5" step="0.1">
     </label>
     <label class="toggle"><input type="checkbox" id="noiseDefault"> Hide photo sessions and video-room screenings by default</label>
-    <label>Preview a different time (leave blank to use the real clock)
-      <input type="datetime-local" id="previewTime">
-    </label>
-    <div class="rowbtns">
-      <button class="btn quiet" id="applyPreview">Apply preview time</button>
-      <button class="btn quiet" id="clearPreview">Use real time</button>
-    </div>
-    <details>
-      <summary style="color:var(--muted);cursor:pointer">Walk-time defaults (minutes, before crowd factor)</summary>
-      <table class="walk-table" id="walkTable"></table>
+    <label class="toggle"><input type="checkbox" id="bigText"> Larger text</label>
+    <details class="advanced" id="advanced">
+      <summary>Advanced</summary>
+      <div class="advanced-body">
+        <label>Preview a different time (leave blank to use the real clock)
+          <input type="datetime-local" id="previewTime">
+        </label>
+        <div class="rowbtns">
+          <button class="btn quiet" id="applyPreview">Apply preview time</button>
+          <button class="btn quiet" id="clearPreview">Use real time</button>
+        </div>
+        <details>
+          <summary style="color:var(--muted);cursor:pointer">Walk-time defaults (minutes, before crowd factor)</summary>
+          <table class="walk-table" id="walkTable"></table>
+        </details>
+        <div class="device" id="deviceLine"></div>
+      </div>
     </details>
-    <div class="device" id="deviceLine"></div>
+    <div class="rowbtns">
+      <button class="btn" id="closeSheet">Done</button>
+    </div>
     <div class="rowbtns">
       <button class="btn danger" id="resetPicks">Remove all picks</button>
-      <button class="btn" id="closeSheet">Done</button>
     </div>
     </div>
     <div class="sheet-panel" id="panel-event" hidden></div>
@@ -731,6 +763,7 @@ function pageScrollBy(dy) { scroller.scrollTop = pageScrollTop() + dy; }
    ================================================================== */
 function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
 function saveJSON(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
+document.documentElement.classList.toggle("bigtext", !!loadJSON("dc26.bigtext", false));
 /* What each pick looked like when it was starred, so a later refresh can say
    what changed. The rows alone would show the new time, or nothing at all,
    and the reader would find out at the door. */
@@ -996,11 +1029,9 @@ function updateFresh() {
   const el = document.getElementById("fresh");
   if (!meta.generated_at) { el.textContent = ""; return; }
   const ago = minutesBetween(new Date(meta.generated_at), new Date());
-  const changed = meta.changed_at ? minutesBetween(new Date(meta.changed_at), new Date()) : null;
   const f = m => m < 60 ? `${m} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} d`;
-  el.textContent = `${events.length} events, refreshed ${f(ago)} ago`
-    + (changed !== null && changed !== ago ? `, last change ${f(changed)} ago` : "")
-    + (servedOffline ? " · offline copy" : "");
+  el.innerHTML = ` &middot; ${events.length.toLocaleString("en-US")} events &middot; <span class="word">refreshed </span>${f(ago)} ago`
+    + (servedOffline ? " &middot; offline copy" : "");
   syncHeaderHeight();          // this line is what changes the header's height
 }
 
@@ -1085,7 +1116,6 @@ function hotelSheetHTML(hotel, day) {
     <div class="ev-actions"><button class="btn" id="closeSheetHotel">Done</button></div>`;
 }
 
-const mapCentre = b => ({x: b.x + b.w / 2, y: b.y + b.h / 2});
 /* What today's overlay is made of, computed once per render: the on-now and
    next picks, where the reader is, and the hero's leave-by. Null on any day
    but the one the clock is in. */
@@ -1106,15 +1136,6 @@ function mapRingsSVG(st) {
     return `<rect class="map-ring ${cls}" data-hotel="${esc(h)}" x="${b.x - pad}" y="${b.y - pad}" width="${b.w + 2 * pad}" height="${b.h + 2 * pad}" rx="${(b.park ? 6 : 10) + pad}"/>`;
   };
   return (st.onNow ? ring(st.onNow.hotel, "now") : "") + (st.next ? ring(st.next.hotel, "next") : "");
-}
-/* A dashed gold line from where the reader is to the next pick's hotel,
-   centre to centre, in the route's layer beneath the blocks so it never
-   crosses one. The caption under the map carries the words. */
-function mapLeaveSVG(from, to) {
-  const A = MAP_HOTELS[from], B = MAP_HOTELS[to];
-  if (!A || !B || from === to) return "";
-  const a = mapCentre(A), b = mapCentre(B);
-  return `<g class="map-leave" data-from="${esc(from)}" data-to="${esc(to)}"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/></g>`;
 }
 /* One line under the map for today: where you are and where you are going
    with the hero's leave-by, or just what is next when there is no walk to
@@ -1137,20 +1158,6 @@ function mapCaptionHTML(st) {
 /* Picks that day at venues the map does not draw: streams and offsite. */
 const mapOffMapCount = day => events.filter(e => picks.has(e.id) && e._cd === day && !MAP_HOTELS[e.hotel]).length;
 
-/* The day's picks as a path through their hotels in time order, so the
-   shape of the day shows at a glance. A pick in the same hotel as the one
-   before it adds nothing. Drawn beneath the blocks and the pills. */
-function mapRouteSVG(day) {
-  const stops = [];
-  events.forEach(e => {
-    if (!picks.has(e.id) || e._cd !== day || !MAP_HOTELS[e.hotel]) return;
-    if (stops[stops.length - 1] !== e.hotel) stops.push(e.hotel);
-  });
-  if (stops.length < 2) return "";
-  const pts = stops.map(h => { const c = mapCentre(MAP_HOTELS[h]); return `${c.x},${c.y}`; }).join(" ");
-  return `<polyline class="map-route" data-stops="${esc(stops.join("|"))}" points="${pts}"/>`;
-}
-
 function mapSVG(day, st = mapNowState(day), counts = mapCounts(day)) {
   const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="40" x2="${x}" y2="${MAP_H - 20}"/>
     <text class="map-street-label" transform="translate(${x - 7} 140) rotate(-90)">${name} St</text>`;
@@ -1163,12 +1170,11 @@ function mapSVG(day, st = mapNowState(day), counts = mapCounts(day)) {
     <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.park ? 6 : 10}"/>
     <text${label.length > 8 ? ' class="long"' : ""} x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(label)}</text></g>`; }).join("");
   const pills = Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h])).join("");
-  const route = mapRouteSVG(day), rings = mapRingsSVG(st);
-  const leave = st && st.next && st.from && st.info && st.info.leaveBy ? mapLeaveSVG(st.from, st.next.hotel) : "";
+  const rings = mapRingsSVG(st);
   return `<svg class="map" viewBox="0 0 ${MAP_W} ${MAP_H}" role="group" aria-label="Schematic map of the con hotels, not to scale">
     <rect class="map-ground" width="${MAP_W}" height="${MAP_H}" rx="14"/>
     ${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
-    ${bridges}${route}${leave}${blocks}${rings}${pills}</svg>`;
+    ${bridges}${blocks}${rings}${pills}</svg>`;
 }
 
 /* The day the map shows: the one tapped, else the con day the clock is in,
@@ -1183,8 +1189,8 @@ function renderMap() {
   const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day);
   const chips = CON_DAYS.map(d => chipHTML(DAY_LABEL[d], day === d, "map-day", d)).join("");
   const offLine = off ? `<div class="map-offmap">${off} pick${off === 1 ? "" : "s"} streaming or offsite</div>` : "";
-  document.getElementById("view-map").innerHTML = `<div class="controls"><div class="chips" data-row="map-day">${chips}</div></div>
-    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts)}${st ? mapCaptionHTML(st) : ""}${offLine}</div>`;
+  document.getElementById("view-map").innerHTML = `<div class="controls controls-sticky"><div class="chips" data-row="map-day">${chips}</div></div>
+    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts)}<div class="map-under">${st ? mapCaptionHTML(st) : ""}${offLine}</div></div>`;
   lastMapSig = mapSignature(day, st, counts, off);
 }
 
@@ -1209,6 +1215,8 @@ function render() {
   cancelQueuedBrowseRender();
   updateClock();
   document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  document.getElementById("brand").hidden = state.tab !== "now";
+  syncHeaderHeight();          // the brand comes and goes with the tab, and the spacers follow the header
   ["now", "browse", "explore", "map", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
   const badge = document.getElementById("mineBadge");
   badge.hidden = picks.size === 0; badge.textContent = picks.size;
@@ -1225,7 +1233,9 @@ function render() {
 
 function renderMiniBar() {
   const bar = document.getElementById("minibar");
-  const next = state.tab === "now" || !events.length ? null : nextPickInConDay(getNow());
+  /* Not on Now, which is about the next pick already, and not on the Map,
+     whose caption says the same thing. */
+  const next = state.tab === "now" || state.tab === "map" || !events.length ? null : nextPickInConDay(getNow());
   if (!next) {
     bar.hidden = true;
     document.body.classList.remove("has-minibar");
@@ -1250,6 +1260,16 @@ function updateClock() {
   const now = getNow();
   const preview = location.hash.includes("now=");
   document.getElementById("clock").textContent = `${DAY_LABEL[dayOf(now)] || now.toLocaleDateString(undefined, {weekday: "short"})} ${fmtShort(now)}` + (preview ? " (preview)" : "");
+  fitHeaderLine();
+}
+
+/* The header line must not clip: if it would, hide the word "refreshed"
+   and measure again. jsdom reports no widths, so this is a no-op there. */
+function fitHeaderLine() {
+  const line = document.querySelector(".hdr-line");
+  if (!line) return;
+  line.classList.remove("tight");
+  if (line.scrollWidth > line.clientWidth) line.classList.add("tight");
 }
 
 function rowHTML(ev, opts = {}) {
@@ -2400,7 +2420,7 @@ function timelineDayHTML(dayKey, list, now) {
     ? `<div class="tl-now" style="top:${top(now.getTime()).toFixed(1)}px"></div>` : "";
 
   return `<div class="tl-day">
-    <div class="day-head" style="padding-left:0">${DAY_LONG[dayKey] || dayKey} <span class="count" style="font-size:14px;color:var(--dim);font-weight:400">${list.length}</span></div>
+    <div class="day-head" style="padding-left:0">${DAY_LONG[dayKey] || dayKey} <span class="count" style="font-size:.875rem;color:var(--dim);font-weight:400">${list.length}</span></div>
     <div class="tl-grid" style="height:${spanH * HOUR_PX + 12}px">${hours}${links}${blocks}${nowLine}</div>
   </div>`;
 }
@@ -2433,13 +2453,24 @@ function renderMine() {
     html += `<ul class="list">`;
     let lastDay = "", prev = null;
     mine.forEach(ev => {
-      if (ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd} <span class="count" style="font-size:14px;color:var(--dim);font-weight:400">${mine.filter(x => x._cd === ev._cd).length}</span></li>`; lastDay = ev._cd; prev = null; }
+      if (ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd} <span class="count" style="font-size:.875rem;color:var(--dim);font-weight:400">${mine.filter(x => x._cd === ev._cd).length}</span></li>`; lastDay = ev._cd; prev = null; }
       html += gapHTML(prev, ev) + rowHTML(ev, {list: "mine"});
       prev = ev;
     });
     html += `</ul>`;
   }
   document.getElementById("view-mine").innerHTML = html;
+  fitTimelineBlocks();
+}
+
+/* Measured, so it only acts where it has to; jsdom reports no heights and
+   leaves every block alone. */
+function fitTimelineBlocks() {
+  document.querySelectorAll("#view-mine .tl-block").forEach(b => {
+    b.classList.remove("tight", "tighter");
+    if (b.scrollHeight > b.clientHeight + 1) b.classList.add("tight");
+    if (b.scrollHeight > b.clientHeight + 1) b.classList.add("tighter");
+  });
 }
 
 /* ==================================================================
@@ -2669,6 +2700,7 @@ function fillSettings() {
   document.getElementById("crowd").value = settings.crowd;
   document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`;
   document.getElementById("noiseDefault").checked = settings.hideNoise;
+  document.getElementById("bigText").checked = document.documentElement.classList.contains("bigtext");
   const m = location.hash.match(/now=([0-9T:-]+)/);
   document.getElementById("previewTime").value = m ? m[1].slice(0, 16) : "";
   document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
@@ -2857,6 +2889,14 @@ document.getElementById("closeSheet").addEventListener("click", closeSheet);
 document.getElementById("sheetBack").addEventListener("click", closeSheet);
 document.getElementById("crowd").addEventListener("input", e => { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON("dc26.settings", settings); });
 document.getElementById("noiseDefault").addEventListener("change", e => { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON("dc26.settings", settings); });
+/* Its own key, so nothing that resets settings ever shrinks someone's text.
+   The header is re-measured because its line just changed height. */
+document.getElementById("bigText").addEventListener("change", e => {
+  document.documentElement.classList.toggle("bigtext", e.target.checked);
+  saveJSON("dc26.bigtext", e.target.checked);
+  syncHeaderHeight();
+  render();                    // the timeline re-measures its blocks at the new size
+});
 document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; if (v) location.hash = `now=${v}`; state.browse.day = null; closeSheet(); });
 document.getElementById("clearPreview").addEventListener("click", () => { history.replaceState(null, "", location.pathname); state.browse.day = null; closeSheet(); });
 document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
@@ -2908,6 +2948,7 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) rend
 function syncHeaderHeight() {
   const h = document.querySelector(".hdr");
   if (h) document.documentElement.style.setProperty("--hdr-h", `${Math.round(h.getBoundingClientRect().height)}px`);
+  fitHeaderLine();
 }
 /* Measure at the moments the header is known to change, not only through an
    observer: ResizeObserver is delivered on the rendering lifecycle, so a page
@@ -3040,7 +3081,12 @@ updatePill.addEventListener("touchend", () => {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("message", e => {
     const t = e.data && e.data.type;
-    if (t === "schedule-updated") showUpdatePill();
+    if (t === "schedule-updated") {
+      /* The worker hands over the new generated_at; the header can say how
+         fresh the waiting copy is while the pill offers it. */
+      if (e.data.generated_at) { meta.generated_at = e.data.generated_at; updateFresh(); }
+      showUpdatePill();
+    }
     /* The worker serves the cached schedule and then checks the network. Its
        verdict arrives after the page has already rendered, so the freshness
        line is corrected in place rather than guessed at load. */
@@ -3055,6 +3101,36 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+/* Coming back to the app after a while: check the schedule once, quietly.
+   The service worker does the checking when there is one - a fetch of
+   events.json is served from cache and revalidated behind it, and the
+   worker says if generated_at moved, which shows the pill above. Without
+   a worker the fetch is real and we compare ourselves. Nothing re-renders
+   under the reader either way; the pill offers the reload. Timers stop in
+   the background too, so the freshness text is brought up to date first. */
+const RECHECK_MS = 15 * 60000;
+let lastScheduleCheck = Date.now();          // loading was a check
+async function recheckSchedule() {
+  updateFresh();
+  if (Date.now() - lastScheduleCheck < RECHECK_MS) return false;
+  lastScheduleCheck = Date.now();
+  try {
+    const r = await fetch("events.json", {cache: "no-cache"});
+    const viaWorker = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+    if (!viaWorker && r && r.ok) {
+      const data = await r.json();
+      if (data.generated_at && data.generated_at !== meta.generated_at) {
+        meta.generated_at = data.generated_at;
+        updateFresh();
+        showUpdatePill();
+      }
+    }
+  } catch (e) { /* no signal: nothing to say, the copy on screen stands */ }
+  return true;
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") recheckSchedule(); });
+window.addEventListener("pageshow", () => { recheckSchedule(); });
 
 load();
 </script>

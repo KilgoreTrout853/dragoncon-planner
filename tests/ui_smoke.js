@@ -12,7 +12,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
 (async () => {
   await sleep(50);
   assert(text("clock").startsWith("Sat 1:05 PM"), "clock shows preview time: " + text("clock"));
-  assert(/\d+ events, refreshed/.test(text("fresh")), "freshness line: " + text("fresh"));
+  assert(/[\d,]+ events · refreshed/.test(text("fresh")), "freshness line: " + text("fresh"));
   const now = document.getElementById("view-now");
   assert(now.textContent.includes("Nothing picked"), "empty picks state on Now");
   const onNowRows = now.querySelectorAll(".row").length;
@@ -155,7 +155,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
       r.bar = document.getElementById("minibar").hidden ? null : document.getElementById("minibar").querySelector(".mb-when").textContent.trim();
       state.tab = "map"; state.map.day = null; render();
       var c = document.querySelector("#view-map .map-caption");
-      r.caption = c ? c.textContent.trim() : null; r.line = !!document.querySelector("#view-map .map-leave");
+      r.caption = c ? c.textContent.trim() : null;
       r.nextRing = !!document.querySelector("#view-map .map-ring.next"); r.nowRing = !!document.querySelector("#view-map .map-ring.now");
       return r;
     };
@@ -177,15 +177,15 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(ng.noLoc.ring === ringFor(ng.minsToStart), `its ring counts down to the start (${ng.noLoc.ring} for ${ng.minsToStart} min)`);
   assert(ng.noLoc.walkLine === `~${ng.walk} min from ${phraseOf(ng.prev)}` && /\.hero \.hthen \{[^}]*var\(--muted\)/.test(html), `the walk estimate is a muted line (${ng.noLoc.walkLine})`);
   assert(ng.noLoc.bar === `in ${window.eval(`fmtMins(${ng.minsToStart})`)}`, `the mini-bar counts down (${ng.noLoc.bar})`);
-  assert(ng.noLoc.caption === `Next: ${shortOf(ng.next)} · ${ng.nextStart}` && !ng.noLoc.line && ng.noLoc.nextRing && !ng.noLoc.nowRing,
-    `the map says what is next, draws no line, and keeps the next ring (${ng.noLoc.caption})`);
+  assert(ng.noLoc.caption === `Next: ${shortOf(ng.next)} · ${ng.nextStart}` && ng.noLoc.nextRing && !ng.noLoc.nowRing,
+    `the map says what is next and keeps the next ring (${ng.noLoc.caption})`);
   assert(ng.sameHotel.walkLine === "" && ng.sameHotel.leave.startsWith("starts "), "no walk estimate when the previous pick was in the same hotel");
   assert(ng.noPrev.walkLine === "" && ng.noPrev.leave.startsWith("starts "), "and none without a previous pick today");
   assert(ng.onNowInfo.leaveBy && ng.onNow.leave === (ng.onNowInfo.late ? `leave ${phraseOf(ng.on)} now` : `leave ${phraseOf(ng.on)} by ${ng.onNowInfo.leaveBy}`) && ng.onNow.ring === ringFor(ng.minsToEnd),
     `with a pick on, the hero says leave the hotel you are in, and its ring runs to the end (${ng.onNow.leave}; ${ng.onNow.ring})`);
   assert(ng.onNow.bar === (ng.onNowInfo.late ? "leave now" : `leave by ${ng.onNowInfo.leaveBy}`), `the mini-bar says leave by (${ng.onNow.bar})`);
-  assert(ng.onNow.caption === `${shortOf(ng.on)} → ${shortOf(ng.next)} · ${ng.onNowInfo.late ? "leave now" : "leave by " + ng.onNowInfo.leaveBy}` && ng.onNow.line && ng.onNow.nextRing && ng.onNow.nowRing,
-    `and the map draws the line and says so (${ng.onNow.caption})`);
+  assert(ng.onNow.caption === `${shortOf(ng.on)} → ${shortOf(ng.next)} · ${ng.onNowInfo.late ? "leave now" : "leave by " + ng.onNowInfo.leaveBy}` && ng.onNow.nextRing && ng.onNow.nowRing,
+    `and the map says so, with both rings (${ng.onNow.caption})`);
   // no 6-pick cap: star 8 upcoming picks and count rendered rows + hero
   window.eval(`(function(){
     var n = getNow();
@@ -924,7 +924,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!document.getElementById("view-foryou"), "and so is its view");
   assert(!/foryou/i.test(html), "and nothing in the source still refers to it");
   assert(/repeat\(5, 1fr\)/.test(html), "the nav lays out five columns");
-  assert(/\.nav button \{[^}]*font-size: 14px/.test(html), "with labels back at 14px");
+  assert(/\.nav button \{[^}]*font-size: \.875rem/.test(html), "with labels back at 14px (.875rem, so Larger text can scale them)");
   assert(/\.nav button svg \{[^}]*width: 24px/.test(html), "and icons back at 24px");
   // the explore view exists and switches
   document.querySelector('.nav button[data-tab="explore"]').click(); await sleep(20);
@@ -1357,7 +1357,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval("servedOffline = true; updateFresh();"); await sleep(10);
   assert(/offline copy/.test(document.getElementById("fresh").textContent),
     `a cached copy is labelled (${document.getElementById("fresh").textContent})`);
-  assert(/\d+ events, refreshed/.test(document.getElementById("fresh").textContent), "the existing freshness line survives");
+  assert(/[\d,]+ events · refreshed/.test(document.getElementById("fresh").textContent), "the existing freshness line survives");
   window.eval("servedOffline = false; updateFresh();"); await sleep(10);
   assert(!/offline copy/.test(document.getElementById("fresh").textContent), "the marker clears when back online");
 
@@ -1517,71 +1517,29 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(rings() === [`next:${nowSetup.next}`, `now:${nowSetup.on}`].sort().join(" "), `today: a ring on the on-now hotel and one on the next (${rings()})`);
   assert(/\.map-ring \{[^}]*var\(--gold\)/.test(html) && /\.map-ring\.next \{[^}]*animation: map-pulse/.test(html) && /@keyframes map-pulse/.test(html), "rings are gold and the next one pulses");
   assert(/prefers-reduced-motion: reduce\) \{ \.map-ring\.next \{ animation: none/.test(html), "and holds still under reduced motion");
-  const leave = mapView.querySelector(".map-leave");
-  assert(leave && leave.dataset.from === nowSetup.on && leave.dataset.to === nowSetup.next && leave.querySelector("line"), `a dashed line runs from where you are to the next pick's hotel (${nowSetup.on} to ${nowSetup.next})`);
-  assert(/\.map-leave line \{[^}]*stroke-dasharray/.test(html) && /\.map-leave line \{[^}]*var\(--gold\)/.test(html), "in dashed gold");
-  const nearBlock = (pt, h) => { const r = JSON.parse(window.eval(`JSON.stringify(MAP_HOTELS[${JSON.stringify(h)}])`)); return pt.x >= r.x - 12 && pt.x <= r.x + r.w + 12 && pt.y >= r.y - 12 && pt.y <= r.y + r.h + 12; };
-  const ln = leave.querySelector("line");
-  assert(nearBlock({x: +ln.getAttribute("x1"), y: +ln.getAttribute("y1")}, nowSetup.on) && nearBlock({x: +ln.getAttribute("x2"), y: +ln.getAttribute("y2")}, nowSetup.next), "its ends sit at the two blocks");
-  assert(!leave.querySelector("text") && !leave.querySelector("rect"), "and it carries no label of its own");
+  assert(!mapView.querySelector(".map-leave") && !mapView.querySelector(".map-route") && !/map-leave|map-route|mapLeaveSVG|mapRouteSVG|mapCentre/.test(html),
+    "no dashed line and no route, in the SVG or the source: the rings, the pills and the caption carry it");
   const mapOrder = mapView.querySelector("svg.map").innerHTML;
-  assert(mapOrder.indexOf("map-leave") < mapOrder.indexOf("map-hotel") && mapOrder.indexOf("map-hotel") < mapOrder.indexOf("map-ring") && mapOrder.indexOf("map-ring") < mapOrder.lastIndexOf("map-pill"),
-    "the line runs under the blocks, rings over the blocks, pills over everything");
+  assert(mapOrder.indexOf("map-hotel") < mapOrder.indexOf("map-ring") && mapOrder.indexOf("map-ring") < mapOrder.lastIndexOf("map-pill"), "rings over the blocks, pills over everything");
   const caption = () => { const c = mapView.querySelector(".map-caption"); return c ? c.textContent.trim() : null; };
   const short = h => window.eval(`hotelShort(${JSON.stringify(h)})`);
   assert(caption() === `${short(nowSetup.on)} → ${short(nowSetup.next)} · ${nowSetup.label}`, `a caption under the map says where and when (${caption()})`);
-  assert(mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-caption"), "directly under the SVG");
+  assert(mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under") && mapView.querySelector(".map-under").firstElementChild === mapView.querySelector(".map-caption"), "directly under the SVG, first in the caption band");
   // other days: nothing
   mapView.querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click(); await sleep(20);
-  assert(!mapView.querySelector(".map-ring") && !mapView.querySelector(".map-leave") && caption() === null, "no rings, line or caption on another day");
+  assert(!mapView.querySelector(".map-ring") && caption() === null, "no rings or caption on another day");
   window.eval("state.map.day = null; render();"); await sleep(20);
   // no location: the next ring stays, the line goes, the caption says what is next
   window.eval(`picks = new Set([${JSON.stringify(nowSetup.nextId)}]); savePicks(); render();`); await sleep(20);
-  assert(rings() === `next:${nowSetup.next}` && !mapView.querySelector(".map-leave") && caption() === `Next: ${short(nowSetup.next)} · ${nowSetup.nextAt}`,
-    `with nowhere to leave from, the next ring stays, the line goes and the caption says what is next (${caption()})`);
+  assert(rings() === `next:${nowSetup.next}` && caption() === `Next: ${short(nowSetup.next)} · ${nowSetup.nextAt}`,
+    `with nowhere to leave from, the next ring stays and the caption says what is next (${caption()})`);
   // no next pick: only the now ring, and nothing to say
   window.eval(`picks = new Set([${JSON.stringify(nowSetup.onId)}]); savePicks(); render();`); await sleep(20);
-  assert(rings() === `now:${nowSetup.on}` && !mapView.querySelector(".map-leave") && caption() === null, "with no next pick, only the now ring");
+  assert(rings() === `now:${nowSetup.on}` && caption() === null, "with no next pick, only the now ring");
   assert(/state\.tab === "map" && sheetWrap\.hidden\) \{ tickMap\(\)/.test(html), "the minute tick goes through tickMap");
   window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
 
-  // ---- Map, step 5: the route of the day ----
-  const routeSetup = JSON.parse(window.eval(`(function(){
-    var day = "2026-09-05", sat = events.filter(function(e){ return e._cd === day && MAP_HOTELS[e.hotel] && !e.cancelled; });
-    var after = function(h, prev){ return sat.find(function(e){ return e.hotel === h && (!prev || e._s >= prev._e); }); };
-    var a = after("Hyatt"), a2 = after("Hyatt", a), b = after("Marriott", a2), c = after("Hilton", b), d = after("Hilton", c), w = after("Westin", d);
-    var chosen = [a, a2, b, c, d, w].filter(Boolean);
-    picks = new Set(chosen.map(function(e){ return e.id; })); savePicks(); state.map.day = null; render();
-    var stops = [], seq = [];
-    events.forEach(function(e){ if (!picks.has(e.id) || e._cd !== day || !MAP_HOTELS[e.hotel]) return; seq.push(e.hotel); if (stops[stops.length - 1] !== e.hotel) stops.push(e.hotel); });
-    return JSON.stringify({ids: chosen.map(function(e){ return e.id; }), seq: seq, stops: stops,
-      centres: stops.map(function(h){ var b = MAP_HOTELS[h]; return (b.x + b.w / 2) + "," + (b.y + b.h / 2); })}); })()`));
-  assert(routeSetup.ids.length >= 5 && routeSetup.seq.length > routeSetup.stops.length && routeSetup.stops.length >= 3, `a day of ${routeSetup.ids.length} picks that stays put in a hotel now and then (${routeSetup.seq.join(" > ")})`);
-  const route = mapView.querySelector("polyline.map-route");
-  const routePts = route ? route.getAttribute("points").trim().split(/\s+/) : [];
-  assert(route && routePts.length === routeSetup.stops.length, `one segment per change of hotel: ${routePts.length - 1} segments for ${routeSetup.stops.length} stops`);
-  assert(routePts.join(" ") === routeSetup.centres.join(" ") && route.dataset.stops === routeSetup.stops.join("|"), "through the hotel centres in time order");
-  assert(/\.map-route \{[^}]*var\(--gold\)/.test(html) && /\.map-route \{[^}]*stroke-width: 1\.5/.test(html) && /\.map-route \{[^}]*fill: none/.test(html), "a thin gold line");
-  const routeOrder = mapView.querySelector("svg.map").innerHTML;
-  assert(routeOrder.indexOf("map-route") < routeOrder.indexOf("map-hotel") && routeOrder.indexOf("map-route") < routeOrder.indexOf("map-pill"), "drawn behind the blocks and the pills");
-  mapView.querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click(); await sleep(20);
-  assert(!mapView.querySelector(".map-route"), "no route on a day without picks");
-  window.eval(`picks = new Set(${JSON.stringify(routeSetup.ids.slice(0, 2))}); savePicks(); state.map.day = null; render();`); await sleep(20);
-  assert(!mapView.querySelector(".map-route") && mapView.querySelector('.map-pill[data-hotel="Hyatt"] text').textContent === "2", "two picks in one hotel make a pill but no route");
-  window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
-
   // ---- Map fixes ----
-  // 1. the leave-by line lies under the blocks for every ordered pair of hotels
-  const mapHotelNames = JSON.parse(window.eval("JSON.stringify(Object.keys(MAP_HOTELS))"));
-  const badPairs = [];
-  mapHotelNames.forEach(a => mapHotelNames.forEach(b => {
-    if (a === b) return;
-    const out = window.eval(`mapSVG("2026-09-05", {onNow: null, next: {hotel: ${JSON.stringify(b)}}, from: ${JSON.stringify(a)}, info: {leaveBy: new Date(), late: false}}, {})`);
-    const i = out.indexOf('class="map-leave"'), j = out.indexOf('class="map-hotel');
-    if (!(i >= 0 && j > i && out.includes(`data-from="${a}" data-to="${b}"`) && /<g class="map-leave"[^>]*><line /.test(out))) badPairs.push(`${a}>${b}`);
-  }));
-  assert(mapHotelNames.length === 7 && badPairs.length === 0, `every ordered pair of hotels draws the leave line under the blocks (${badPairs.length} bad of 42)`);
-  assert(/\$\{bridges\}\$\{route\}\$\{leave\}\$\{blocks\}/.test(html), "in the same layer as the route");
   // a late pair: stand five minutes before the next pick starts
   const lateSetup = JSON.parse(window.eval(`(function(){
     var onMap = function(e){ return !!MAP_HOTELS[e.hotel] && !e.cancelled; }, pad = function(n){ return (n < 10 ? "0" : "") + n; };
@@ -1608,8 +1566,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     picks = new Set([on.id, st.id]); savePicks(); state.map.day = null; render();
     return JSON.stringify({on: on.hotel, at: fmtShort(st._s)}); })()`));
   assert(streamSetup, "found a stream to pick next");
-  assert(caption() === `Next: streaming · ${streamSetup.at}` && !mapView.querySelector(".map-leave") && rings() === `now:${streamSetup.on}`,
-    `a streaming next gets a caption, no line and no next ring (${caption()}; ${rings()})`);
+  assert(caption() === `Next: streaming · ${streamSetup.at}` && rings() === `now:${streamSetup.on}`,
+    `a streaming next gets a caption and no next ring (${caption()}; ${rings()})`);
   const offLine = mapView.querySelector(".map-offmap");
   assert(offLine && offLine.textContent.trim() === "1 pick streaming or offsite" && mapView.querySelector(".map-caption").nextElementSibling === offLine,
     `and the pick off the map is counted right under the caption (${offLine && offLine.textContent.trim()})`);
@@ -1631,6 +1589,122 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const busy = JSON.parse(window.eval(`(function(){ var extra = events.find(function(e){ return e._cd === "2026-09-05" && e.hotel === "Hyatt" && !picks.has(e.id); }); picks.add(extra.id); savePicks(); return JSON.stringify([tickMap(), __mapRenders, tickMap(), __mapRenders]); })()`));
   assert(busy[0] === true && busy[1] === 1 && busy[2] === false && busy[3] === 1, "a change in the counts draws once, and the next quiet tick draws nothing");
   window.eval(`renderMap = __renderMapReal; picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
+
+  // ---- polish 1: a compact header ----
+  const hdrLine = document.querySelector(".hdr .hdr-line");
+  assert(hdrLine && hdrLine.contains(document.getElementById("clock")) && hdrLine.contains(document.getElementById("fresh")), "the clock and the freshness text share one line");
+  assert(/\.hdr \.hdr-line \{[^}]*white-space: nowrap/.test(html) && /\.hdr \.hdr-line \{[^}]*font-size: clamp\(\.8125rem, 4vw, \.9375rem\)/.test(html) && /\.hdr \.hdr-line \{[^}]*font-weight: 700/.test(html) && !/\.hdr \.clock \{/.test(html),
+    "in the clock style at a smaller size that follows the phone's width, and it never wraps");
+  assert(document.querySelector("#fresh .word") && document.querySelector("#fresh .word").textContent === "refreshed " && /\.hdr \.hdr-line\.tight \.word \{ display: none/.test(html)
+    && /function fitHeaderLine\(\)[\s\S]{0,200}scrollWidth > line\.clientWidth/.test(html) && /fitHeaderLine\(\);\n\}/.test(html.replace(/\r\n/g, "\n")),
+    "when the line would clip, the word refreshed goes first, by measurement");
+  assert(/^ · [\d,]+ events · refreshed \d+ (min|h|d) ago/.test(document.getElementById("fresh").textContent), `the freshness text reads as the rest of the line (${document.getElementById("fresh").textContent})`);
+  const brand = document.getElementById("brand");
+  window.eval(`state.tab = "now"; render();`); await sleep(10);
+  assert(brand && !brand.hidden && brand.textContent === "Dragon Con 2026" && /\.hdr \.brand \{[^}]*font-size: \.75rem/.test(html), "the brand shows on Now as a small label");
+  assert(brand.compareDocumentPosition(hdrLine) & window.Node.DOCUMENT_POSITION_FOLLOWING, "above the line");
+  for (const t of ["browse", "explore", "map", "mine"]) { window.eval(`state.tab = ${JSON.stringify(t)}; render();`); await sleep(10); assert(brand.hidden, `and not on ${t}`); }
+  assert(/document\.getElementById\("brand"\)\.hidden = state\.tab !== "now";\s*syncHeaderHeight\(\);/.test(html), "the header is re-measured when the brand comes and goes");
+  window.eval(`state.tab = "now"; render();`); await sleep(10);
+
+  // ---- polish 2: sticky map chips, and a map that fits the screen ----
+  window.eval(`state.tab = "map"; state.map.day = null; render();`); await sleep(20);
+  const mapSticky = mapView.querySelector(".controls-sticky");
+  assert(mapSticky && mapSticky === mapView.firstElementChild && mapSticky.querySelector('[data-chip="map-day"]'), "the day chips sit in the same sticky strip Search uses");
+  assert(!mapSticky.querySelector("svg") && mapView.querySelector(".map-wrap") === mapSticky.nextElementSibling, "and the map itself scrolls under it");
+  assert(/\.map \{[^}]*max-height: max\(360px, calc\(100dvh - var\(--hdr-h, 63px\) - var\(--map-chrome\) - var\(--safe-bottom\)\)\)/.test(html) && /\.map \{[^}]*width: 100%/.test(html) && /\.map \{[^}]*height: auto/.test(html),
+    "the SVG keeps its shape and takes the height the screen leaves it, down to a floor");
+  assert(/\.map \{[^}]*--map-chrome: 207px/.test(html) && !/has-minibar \.map/.test(html), "the chrome is chips, padding, band and nav; the mini-bar never shows here");
+  assert(mapView.querySelector(".map-under") && /\.map-under \{[^}]*min-height: 44px/.test(html) && mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under"),
+    "a caption band of fixed height sits under the SVG, so the map's size does not jump with the caption");
+  assert(mapView.querySelector("svg.map").getAttribute("viewBox") === "0 0 380 460", "with the viewBox untouched");
+
+  // ---- polish 3: no mini-bar on the Map tab ----
+  const barState = JSON.parse(window.eval(`(function(){
+    var saved = [...picks], n = getNow();
+    var later = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && MAP_HOTELS[e.hotel]; });
+    picks = new Set([later.id]); savePicks();
+    var read = function(tab){ state.tab = tab; render(); return {hidden: document.getElementById("minibar").hidden, cls: document.body.classList.contains("has-minibar")}; };
+    var out = {browse: read("browse"), map: read("map"), explore: read("explore"), mine: read("mine"), now: read("now"), back: read("map")};
+    picks = new Set(saved); savePicks(); state.tab = "map"; render();
+    return JSON.stringify(out); })()`));
+  assert(!barState.browse.hidden && barState.browse.cls && !barState.explore.hidden && !barState.mine.hidden, "with a pick later today the mini-bar shows on Search, Explore and Mine");
+  assert(barState.map.hidden && !barState.map.cls && barState.back.hidden && !barState.back.cls, "but not on the Map, whose caption already says what is next, and the body reserves no room for it there");
+  assert(barState.now.hidden, "nor on Now, as before");
+
+  // ---- polish 5: refresh on foreground ----
+  const fg = JSON.parse(await window.eval(`(async function(){
+    var calls = [], realFetch = window.fetch, gen = meta.generated_at, newer = new Date(new Date(gen).getTime() + 3600000).toISOString();
+    var reply = gen;
+    window.fetch = function(url, opts){ calls.push([String(url), opts && opts.cache]); return Promise.resolve({ok: true, json: function(){ return Promise.resolve({generated_at: reply, events: []}); }}); };
+    hideUpdatePill();
+    var wait = function(){ return new Promise(function(r){ setTimeout(r, 20); }); };
+    var fire = function(){ document.dispatchEvent(new Event("visibilitychange")); };
+    lastScheduleCheck = Date.now();
+    fire(); await wait();
+    var withinInterval = calls.length;
+    lastScheduleCheck = Date.now() - 16 * 60000;
+    fire(); fire(); await wait();
+    var afterInterval = calls.length, pillSame = document.getElementById("updatePill").hidden, genSame = meta.generated_at;
+    reply = newer; lastScheduleCheck = Date.now() - 16 * 60000;
+    window.dispatchEvent(new Event("pageshow")); await wait();
+    var afterPageshow = calls.length, pillShown = !document.getElementById("updatePill").hidden, freshText = document.getElementById("fresh").textContent, metaGen = meta.generated_at;
+    window.fetch = realFetch; meta.generated_at = gen; hideUpdatePill(); updateFresh();
+    return JSON.stringify({visible: document.visibilityState, withinInterval: withinInterval, afterInterval: afterInterval, afterPageshow: afterPageshow, calls: calls,
+      pillSame: pillSame, genSame: genSame === gen, pillShown: pillShown, freshText: freshText, metaGen: metaGen, newer: newer}); })()`));
+  assert(fg.visible === "visible" && fg.withinInterval === 0, `a return within 15 minutes of the last check asks for nothing (${fg.withinInterval} fetches)`);
+  assert(fg.afterInterval === 1 && fg.calls[0][0] === "events.json" && fg.calls[0][1] === "no-cache", `after the interval, two visibility events in a row make one check, of events.json with cache: no-cache (${fg.afterInterval})`);
+  assert(fg.pillSame && fg.genSame, "an unchanged schedule shows no pill and leaves the freshness alone");
+  assert(fg.afterPageshow === 2 && fg.pillShown && fg.metaGen === fg.newer && /refreshed/.test(fg.freshText),
+    `pageshow checks too, and a newer generated_at shows the pill and updates the freshness text (${fg.freshText.trim()})`);
+  assert(!/render\(\)/.test(window.eval("recheckSchedule.toString()")), "the check never re-renders under the reader; the pill offers the reload");
+  assert(/RECHECK_MS = 15 \* 60000/.test(html) && /document\.addEventListener\("visibilitychange"/.test(html) && /addEventListener\("pageshow"/.test(html), "the interval is 15 minutes, on visibilitychange and pageshow");
+  assert(/t === "schedule-updated"\) \{[\s\S]{0,200}meta\.generated_at = e\.data\.generated_at; updateFresh\(\);/.test(html), "with a worker, its schedule-updated message carries the new generated_at into the freshness text");
+
+  // ---- polish 6: Settings, the everyday two up top and the rest under Advanced ----
+  window.eval(`openSheet("settings")`); await sleep(20);
+  const setPanel = document.getElementById("panel-settings"), adv = document.getElementById("advanced");
+  const setKids = [...setPanel.children];
+  assert(setKids[0].id === "sheetTitle" && setKids[1].contains(document.getElementById("crowd")) && setKids[2].contains(document.getElementById("noiseDefault")), "Crowd factor and Hide photo sessions come first");
+  assert(setKids[3].contains(document.getElementById("bigText")), "and Larger text");
+  assert(adv && adv.tagName === "DETAILS" && setKids[4] === adv && !adv.open && adv.querySelector("summary").textContent.trim() === "Advanced", "then a collapsed Advanced section");
+  assert(["previewTime", "applyPreview", "clearPreview", "walkTable", "deviceLine"].every(id => adv.contains(document.getElementById(id))), "holding the preview clock, the walk-time defaults and the device readout with the build stamp");
+  assert(/ · build \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/.test(document.getElementById("deviceLine").textContent), "the build stamp is still filled in behind the fold");
+  const setBtns = [...setPanel.querySelectorAll("button")].filter(b => !adv.contains(b));
+  assert(setBtns.map(b => b.id).join(",") === "closeSheet,resetPicks", `outside Advanced only Done and Remove all picks remain, in that order (${setBtns.map(b => b.id).join(",")})`);
+  const reset = document.getElementById("resetPicks");
+  assert(reset === [...setPanel.querySelectorAll("button, input, select, summary")].pop() && reset.classList.contains("danger") && !adv.contains(reset) && reset.parentElement !== document.getElementById("closeSheet").parentElement,
+    "Remove all picks is last, still destructive, outside Advanced and on its own row");
+  assert(/\.advanced-body \{[^}]*overflow-y: auto/.test(html) && /\.advanced-body \{[^}]*touch-action: pan-y/.test(html), "Advanced scrolls inside the sheet when it is long");
+  adv.open = true; await sleep(10);
+  window.eval("closeSheet()"); await sleep(10);
+  window.eval(`openSheet("settings")`); await sleep(20);
+  assert(document.getElementById("advanced").open === true, "opening Settings again leaves Advanced as you left it; the sheet does not force it shut");
+  document.getElementById("advanced").open = false;
+  window.eval("closeSheet()"); await sleep(10);
+
+  // ---- polish 7: larger text ----
+  window.eval(`openSheet("settings")`); await sleep(20);
+  const big = document.getElementById("bigText");
+  assert(big && big.type === "checkbox" && big.closest("label").textContent.trim() === "Larger text" && !document.getElementById("advanced").contains(big), "a Larger text toggle sits with the everyday controls");
+  assert(!document.documentElement.classList.contains("bigtext") && !big.checked, "off by default");
+  big.click(); await sleep(10);
+  assert(document.documentElement.classList.contains("bigtext") && window.localStorage.getItem("dc26.bigtext") === "true", "on: the html element takes the class and the choice is saved as dc26.bigtext");
+  assert(/html\.bigtext \{ font-size: 115%; \}/.test(html), "which sets the root size to 115%");
+  big.click(); await sleep(10);
+  assert(!document.documentElement.classList.contains("bigtext") && window.localStorage.getItem("dc26.bigtext") === "false", "off again, and saved");
+  assert(/classList\.toggle\("bigtext", !!loadJSON\("dc26\.bigtext", false\)\)/.test(html), "the saved choice is applied at startup, before the first paint");
+  const styleBlock = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
+  const scaled = styleBlock.split("\n").filter(l => !/^\.map-(street-label|hotel text|park text|pill text)/.test(l)).join("\n");
+  assert(!/font-size: [\d.]+px/.test(scaled) && /font-size: [\d.]+rem/.test(scaled) && /body \{[^}]*font-size: 1\.0625rem/.test(html), "every text size outside the map's SVG is in rem, so it follows the root");
+  assert(/\.map-hotel text \{[^}]*font-size: 11px/.test(html) && /\.map-pill text \{[^}]*font-size: 11px/.test(html), "the map's labels stay in the SVG's own units, scaled with the drawing rather than the toggle");
+  assert(!/style="font-size:\d+px/.test(html), "and no inline pixel size hides in a template");
+  assert(/\.tl-block\.tight \.tb-title \{[^}]*text-overflow: ellipsis/.test(html) && /\.tl-block\.tighter \.tb-room \{ display: none/.test(html)
+    && /function fitTimelineBlocks\(\)[\s\S]{0,400}scrollHeight > b\.clientHeight/.test(html) && /innerHTML = html;\s*fitTimelineBlocks\(\);/.test(html),
+    "timeline blocks that cannot hold their text give way by measurement: one-line title first, then no room");
+  assert(/\.tl-hour span \{[^}]*white-space: nowrap/.test(html) && /\.tl-grid \{[^}]*margin-left: 3rem/.test(html) && /\.tl-hour \{[^}]*left: -3rem/.test(html), "the hour gutter is in rem and its labels never wrap");
+  assert(/saveJSON\("dc26\.bigtext", e\.target\.checked\);\s*syncHeaderHeight\(\);\s*render\(\);/.test(html), "toggling re-measures the header and re-renders, so the timeline refits");
+  window.eval("closeSheet()"); await sleep(10);
 
   window.close();
   await realDataChecks();
