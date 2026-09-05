@@ -3038,7 +3038,12 @@ updatePill.addEventListener("touchend", () => {
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("message", e => {
     const t = e.data && e.data.type;
-    if (t === "schedule-updated") showUpdatePill();
+    if (t === "schedule-updated") {
+      /* The worker hands over the new generated_at; the header can say how
+         fresh the waiting copy is while the pill offers it. */
+      if (e.data.generated_at) { meta.generated_at = e.data.generated_at; updateFresh(); }
+      showUpdatePill();
+    }
     /* The worker serves the cached schedule and then checks the network. Its
        verdict arrives after the page has already rendered, so the freshness
        line is corrected in place rather than guessed at load. */
@@ -3053,6 +3058,36 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+/* Coming back to the app after a while: check the schedule once, quietly.
+   The service worker does the checking when there is one - a fetch of
+   events.json is served from cache and revalidated behind it, and the
+   worker says if generated_at moved, which shows the pill above. Without
+   a worker the fetch is real and we compare ourselves. Nothing re-renders
+   under the reader either way; the pill offers the reload. Timers stop in
+   the background too, so the freshness text is brought up to date first. */
+const RECHECK_MS = 15 * 60000;
+let lastScheduleCheck = Date.now();          // loading was a check
+async function recheckSchedule() {
+  updateFresh();
+  if (Date.now() - lastScheduleCheck < RECHECK_MS) return false;
+  lastScheduleCheck = Date.now();
+  try {
+    const r = await fetch("events.json", {cache: "no-cache"});
+    const viaWorker = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+    if (!viaWorker && r && r.ok) {
+      const data = await r.json();
+      if (data.generated_at && data.generated_at !== meta.generated_at) {
+        meta.generated_at = data.generated_at;
+        updateFresh();
+        showUpdatePill();
+      }
+    }
+  } catch (e) { /* no signal: nothing to say, the copy on screen stands */ }
+  return true;
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") recheckSchedule(); });
+window.addEventListener("pageshow", () => { recheckSchedule(); });
 
 load();
 </script>

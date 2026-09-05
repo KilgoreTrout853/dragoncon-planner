@@ -1632,6 +1632,35 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(barState.map.hidden && !barState.map.cls && barState.back.hidden && !barState.back.cls, "but not on the Map, whose caption already says what is next, and the body reserves no room for it there");
   assert(barState.now.hidden, "nor on Now, as before");
 
+  // ---- polish 5: refresh on foreground ----
+  const fg = JSON.parse(await window.eval(`(async function(){
+    var calls = [], realFetch = window.fetch, gen = meta.generated_at, newer = new Date(new Date(gen).getTime() + 3600000).toISOString();
+    var reply = gen;
+    window.fetch = function(url, opts){ calls.push([String(url), opts && opts.cache]); return Promise.resolve({ok: true, json: function(){ return Promise.resolve({generated_at: reply, events: []}); }}); };
+    hideUpdatePill();
+    var wait = function(){ return new Promise(function(r){ setTimeout(r, 20); }); };
+    var fire = function(){ document.dispatchEvent(new Event("visibilitychange")); };
+    lastScheduleCheck = Date.now();
+    fire(); await wait();
+    var withinInterval = calls.length;
+    lastScheduleCheck = Date.now() - 16 * 60000;
+    fire(); fire(); await wait();
+    var afterInterval = calls.length, pillSame = document.getElementById("updatePill").hidden, genSame = meta.generated_at;
+    reply = newer; lastScheduleCheck = Date.now() - 16 * 60000;
+    window.dispatchEvent(new Event("pageshow")); await wait();
+    var afterPageshow = calls.length, pillShown = !document.getElementById("updatePill").hidden, freshText = document.getElementById("fresh").textContent, metaGen = meta.generated_at;
+    window.fetch = realFetch; meta.generated_at = gen; hideUpdatePill(); updateFresh();
+    return JSON.stringify({visible: document.visibilityState, withinInterval: withinInterval, afterInterval: afterInterval, afterPageshow: afterPageshow, calls: calls,
+      pillSame: pillSame, genSame: genSame === gen, pillShown: pillShown, freshText: freshText, metaGen: metaGen, newer: newer}); })()`));
+  assert(fg.visible === "visible" && fg.withinInterval === 0, `a return within 15 minutes of the last check asks for nothing (${fg.withinInterval} fetches)`);
+  assert(fg.afterInterval === 1 && fg.calls[0][0] === "events.json" && fg.calls[0][1] === "no-cache", `after the interval, two visibility events in a row make one check, of events.json with cache: no-cache (${fg.afterInterval})`);
+  assert(fg.pillSame && fg.genSame, "an unchanged schedule shows no pill and leaves the freshness alone");
+  assert(fg.afterPageshow === 2 && fg.pillShown && fg.metaGen === fg.newer && /refreshed/.test(fg.freshText),
+    `pageshow checks too, and a newer generated_at shows the pill and updates the freshness text (${fg.freshText.trim()})`);
+  assert(!/render\(\)/.test(window.eval("recheckSchedule.toString()")), "the check never re-renders under the reader; the pill offers the reload");
+  assert(/RECHECK_MS = 15 \* 60000/.test(html) && /document\.addEventListener\("visibilitychange"/.test(html) && /addEventListener\("pageshow"/.test(html), "the interval is 15 minutes, on visibilitychange and pageshow");
+  assert(/t === "schedule-updated"\) \{[\s\S]{0,200}meta\.generated_at = e\.data\.generated_at; updateFresh\(\);/.test(html), "with a worker, its schedule-updated message carries the new generated_at into the freshness text");
+
   window.close();
   await realDataChecks();
   console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); process.exit(process.exitCode || 0);
