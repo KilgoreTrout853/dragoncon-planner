@@ -153,6 +153,7 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .map-hotel text { font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: .06em; fill: var(--h); text-anchor: middle; dominant-baseline: central; }
 .map-park rect { fill: color-mix(in srgb, var(--h) 12%, var(--surface)); }
 .map-park text { font-size: 9px; }
+.map-hotel text.long { font-size: 9.5px; letter-spacing: .04em; }   /* COURTLAND measures 60 px at 11px; the block is 60 */
 .map-hotel, .map-pill { cursor: pointer; }
 .map-hotel:focus-visible rect { stroke-width: 3; }
 .map-pill rect { fill: var(--gold); }
@@ -1035,21 +1036,23 @@ function revealChip(chip) {
 
 
 /* ---- Map ---------------------------------------------------------- */
-/* A diagram, not a survey. Peachtree runs up the left quarter; the three
-   skybridged hotels sit in a row east of it and get the width; the Mart
-   and the Westin pair up west of it; the Courtland is two blocks under
-   the Hilton. Keys are the walk table's names, so counts, rings and
-   routes join up by hotel. Streams and offsite venues have no place here. */
-const MAP_W = 380, MAP_H = 520, MAP_BLOCK = 60;
-const MAP_STREETS = {Peachtree: 92, Courtland: 336};
+/* The venues' real positions at one scale - about 0.54 px per metre, the
+   Hyatt's centre at (150, 250) - so the distances mean something: the
+   Hyatt and the Marriott nearly touch, the Hilton is a real walk, the
+   Westin sits south-east of the Mart just west of Peachtree, and the
+   Marriott-Hilton bridge crosses Courtland St, as it does in life. Keys
+   are the walk table's names, so counts, rings and routes join up by
+   hotel. Streams and offsite venues have no place here. */
+const MAP_W = 380, MAP_H = 460;
+const MAP_STREETS = {Peachtree: 110, Courtland: 296};
 const MAP_HOTELS = {
-  "AmericasMart":    {x: 14,  y: 190, w: 66, h: MAP_BLOCK},
-  "Westin":          {x: 14,  y: 370, w: 66, h: MAP_BLOCK},
-  "Hyatt":           {x: 108, y: 190, w: 72, h: MAP_BLOCK},
-  "Marriott":        {x: 204, y: 190, w: 72, h: MAP_BLOCK},
-  "Hilton":          {x: 300, y: 190, w: 72, h: MAP_BLOCK},
-  "Courtland Grand": {x: 300, y: 370, w: 72, h: MAP_BLOCK},
-  "Hardy Ivy Park":  {x: 108, y: 146, w: 72, h: 24, park: true},
+  "AmericasMart":    {x: 12,  y: 216, w: 72, h: 64},
+  "Westin":          {x: 48,  y: 332, w: 60, h: 56},
+  "Hyatt":           {x: 120, y: 222, w: 60, h: 56},
+  "Marriott":        {x: 190, y: 222, w: 60, h: 56},
+  "Hilton":          {x: 307, y: 222, w: 60, h: 56},
+  "Courtland Grand": {x: 300, y: 347, w: 60, h: 56},
+  "Hardy Ivy Park":  {x: 117, y: 124, w: 60, h: 24, park: true},
 };
 /* Each pair is left-to-right or top-to-bottom. None crosses Peachtree. */
 const MAP_BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
@@ -1149,16 +1152,16 @@ function mapRouteSVG(day) {
 }
 
 function mapSVG(day, st = mapNowState(day), counts = mapCounts(day)) {
-  const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="56" x2="${x}" y2="490"/>
+  const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="40" x2="${x}" y2="${MAP_H - 20}"/>
     <text class="map-street-label" transform="translate(${x - 7} 140) rotate(-90)">${name} St</text>`;
   const bridges = MAP_BRIDGES.map(([a, b]) => {
     const A = MAP_HOTELS[a], B = MAP_HOTELS[b], beside = Math.abs(A.y - B.y) < A.h;
     const [x1, y1, x2, y2] = beside ? [A.x + A.w, A.y + A.h / 2, B.x, B.y + B.h / 2] : [A.x + A.w / 2, A.y + A.h, B.x + B.w / 2, B.y];
     return `<line class="map-bridge" data-bridge="${esc(a)}|${esc(b)}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
   }).join("");
-  const blocks = Object.entries(MAP_HOTELS).map(([h, b]) => { const n = counts[h] || 0; return `<g class="map-hotel${b.park ? " map-park" : ""}" data-hotel="${esc(h)}" role="button" tabindex="0" aria-label="${esc(h)}: ${n ? `${n} pick${n === 1 ? "" : "s"}` : "no picks"} on ${esc(DAY_LONG[day] || day)}" style="--h:var(${b.park ? "--park" : hotelVar(h)})">
+  const blocks = Object.entries(MAP_HOTELS).map(([h, b]) => { const n = counts[h] || 0, label = hotelShort(h).toUpperCase(); return `<g class="map-hotel${b.park ? " map-park" : ""}" data-hotel="${esc(h)}" role="button" tabindex="0" aria-label="${esc(h)}: ${n ? `${n} pick${n === 1 ? "" : "s"}` : "no picks"} on ${esc(DAY_LONG[day] || day)}" style="--h:var(${b.park ? "--park" : hotelVar(h)})">
     <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.park ? 6 : 10}"/>
-    <text x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(hotelShort(h).toUpperCase())}</text></g>`; }).join("");
+    <text${label.length > 8 ? ' class="long"' : ""} x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(label)}</text></g>`; }).join("");
   const pills = Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h])).join("");
   const route = mapRouteSVG(day), rings = mapRingsSVG(st);
   const leave = st && st.next && st.from && st.info && st.info.leaveBy ? mapLeaveSVG(st.from, st.next.hotel) : "";
