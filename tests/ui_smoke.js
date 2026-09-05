@@ -1656,7 +1656,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!mapSticky.querySelector("svg") && mapView.querySelector(".map-wrap") === mapSticky.nextElementSibling, "and the map itself scrolls under it");
   assert(/\.map \{[^}]*max-height: max\(360px, calc\(100dvh - var\(--hdr-h, 63px\) - var\(--map-chrome\) - var\(--safe-bottom\)\)\)/.test(html) && /\.map \{[^}]*width: 100%/.test(html) && /\.map \{[^}]*height: auto/.test(html),
     "the SVG keeps its shape and takes the height the screen leaves it, down to a floor");
-  assert(/\.map \{[^}]*--map-chrome: 194px/.test(html) && !/has-minibar \.map/.test(html), "the chrome is chips, padding, band and nav; the mini-bar never shows here");
+  assert(/\.map \{[^}]*--map-chrome: 207px/.test(html) && !/has-minibar \.map/.test(html), "the chrome is chips, padding, band and nav; the mini-bar never shows here");
   assert(mapView.querySelector(".map-under") && /\.map-under \{[^}]*min-height: 44px/.test(html) && mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under"),
     "a caption band of fixed height sits under the SVG, so the map's size does not jump with the caption");
   assert(mapView.querySelector("svg.map").getAttribute("viewBox") === "0 0 380 460", "with the viewBox untouched");

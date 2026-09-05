@@ -153,8 +153,8 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
    and the nav come off the viewport and the SVG takes what is left,
    keeping its shape, down to a floor below which the tab scrolls instead
    (the chips stay pinned). --map-chrome is chips + wrap padding + band +
-   nav spacer; the mini-bar never shows on this tab. */
-.map { display: block; width: 100%; height: auto; margin: 0 auto; --map-chrome: 194px;
+   nav spacer + the view's bottom padding; the mini-bar never shows on this tab. */
+.map { display: block; width: 100%; height: auto; margin: 0 auto; --map-chrome: 207px;
   max-height: max(360px, calc(100dvh - var(--hdr-h, 63px) - var(--map-chrome) - var(--safe-bottom))); }
 .map-under { min-height: 44px; }
 .map-ground { fill: var(--surface); }
