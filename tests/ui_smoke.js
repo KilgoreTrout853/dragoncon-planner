@@ -154,8 +154,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
       state.tab = "browse"; render();
       r.bar = document.getElementById("minibar").hidden ? null : document.getElementById("minibar").querySelector(".mb-when").textContent.trim();
       state.tab = "map"; state.map.day = null; render();
-      var c = document.querySelector("#view-map .map-caption");
-      r.caption = c ? c.textContent.trim() : null;
+      var w = document.querySelector("#view-map .nc-when");
+      r.when = w ? w.textContent.trim() : null; r.whenCls = w ? w.className : "";
       r.nextRing = !!document.querySelector("#view-map .map-ring.next"); r.nowRing = !!document.querySelector("#view-map .map-ring.now");
       return r;
     };
@@ -177,15 +177,15 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(ng.noLoc.ring === ringFor(ng.minsToStart), `its ring counts down to the start (${ng.noLoc.ring} for ${ng.minsToStart} min)`);
   assert(ng.noLoc.walkLine === `~${ng.walk} min from ${phraseOf(ng.prev)}` && /\.hero \.hthen \{[^}]*var\(--muted\)/.test(html), `the walk estimate is a muted line (${ng.noLoc.walkLine})`);
   assert(ng.noLoc.bar === `in ${window.eval(`fmtMins(${ng.minsToStart})`)}`, `the mini-bar counts down (${ng.noLoc.bar})`);
-  assert(ng.noLoc.caption === `Next: ${shortOf(ng.next)} · ${ng.nextStart}` && ng.noLoc.nextRing && !ng.noLoc.nowRing,
-    `the map says what is next and keeps the next ring (${ng.noLoc.caption})`);
+  assert(ng.noLoc.when === `${ng.nextStart} · in ${window.eval(`fmtMins(${ng.minsToStart})`)}` && !/leave/.test(ng.noLoc.whenCls) && ng.noLoc.nextRing && !ng.noLoc.nowRing,
+    `the map's card counts down to the start and the map keeps the next ring (${ng.noLoc.when})`);
   assert(ng.sameHotel.walkLine === "" && ng.sameHotel.leave.startsWith("starts "), "no walk estimate when the previous pick was in the same hotel");
   assert(ng.noPrev.walkLine === "" && ng.noPrev.leave.startsWith("starts "), "and none without a previous pick today");
   assert(ng.onNowInfo.leaveBy && ng.onNow.leave === (ng.onNowInfo.late ? `leave ${phraseOf(ng.on)} now` : `leave ${phraseOf(ng.on)} by ${ng.onNowInfo.leaveBy}`) && ng.onNow.ring === ringFor(ng.minsToEnd),
     `with a pick on, the hero says leave the hotel you are in, and its ring runs to the end (${ng.onNow.leave}; ${ng.onNow.ring})`);
   assert(ng.onNow.bar === (ng.onNowInfo.late ? "leave now" : `leave by ${ng.onNowInfo.leaveBy}`), `the mini-bar says leave by (${ng.onNow.bar})`);
-  assert(ng.onNow.caption === `${shortOf(ng.on)} → ${shortOf(ng.next)} · ${ng.onNowInfo.late ? "leave now" : "leave by " + ng.onNowInfo.leaveBy}` && ng.onNow.nextRing && ng.onNow.nowRing,
-    `and the map says so, with both rings (${ng.onNow.caption})`);
+  assert(ng.onNow.when === (ng.onNowInfo.late ? `leave ${phraseOf(ng.on)} now` : `leave ${phraseOf(ng.on)} by ${ng.onNowInfo.leaveBy}`) && /leave/.test(ng.onNow.whenCls) && ng.onNow.nextRing && ng.onNow.nowRing,
+    `and the map's card says so too, with both rings (${ng.onNow.when})`);
   // no 6-pick cap: star 8 upcoming picks and count rendered rows + hero
   window.eval(`(function(){
     var n = getNow();
@@ -1511,7 +1511,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && onMap(e) && e.hotel !== on.hotel; });
     picks = new Set([on.id, next.id]); savePicks(); state.map.day = null; render();
     var info = leaveInfo(currentLocation(n), next, n);
-    return JSON.stringify({on: on.hotel, onId: on.id, next: next.hotel, nextId: next.id, nextAt: fmtShort(next._s),
+    return JSON.stringify({on: on.hotel, onId: on.id, next: next.hotel, nextId: next.id, nextAt: fmtShort(next._s), nextIn: fmtMins(Math.round((next._s - n) / 60000)),
       label: info.late ? "leave now" : "leave by " + fmtShort(info.leaveBy)}); })()`));
   const rings = () => [...mapView.querySelectorAll(".map-ring")].map(r => `${r.classList.contains("now") ? "now" : "next"}:${r.dataset.hotel}`).sort().join(" ");
   assert(rings() === [`next:${nowSetup.next}`, `now:${nowSetup.on}`].sort().join(" "), `today: a ring on the on-now hotel and one on the next (${rings()})`);
@@ -1521,21 +1521,23 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "no dashed line and no route, in the SVG or the source: the rings, the pills and the caption carry it");
   const mapOrder = mapView.querySelector("svg.map").innerHTML;
   assert(mapOrder.indexOf("map-hotel") < mapOrder.indexOf("map-ring") && mapOrder.indexOf("map-ring") < mapOrder.lastIndexOf("map-pill"), "rings over the blocks, pills over everything");
-  const caption = () => { const c = mapView.querySelector(".map-caption"); return c ? c.textContent.trim() : null; };
+  const cardWhen = () => { const w = mapView.querySelector(".nc-when"); return w ? w.textContent.trim() : null; };
   const short = h => window.eval(`hotelShort(${JSON.stringify(h)})`);
-  assert(caption() === `${short(nowSetup.on)} → ${short(nowSetup.next)} · ${nowSetup.label}`, `a caption under the map says where and when (${caption()})`);
-  assert(mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under") && mapView.querySelector(".map-under").firstElementChild === mapView.querySelector(".map-caption"), "directly under the SVG, first in the caption band");
+  const phraseOn = window.eval(`hotelPhrase(${JSON.stringify(nowSetup.on)})`);
+  assert(cardWhen() === (nowSetup.label === "leave now" ? `leave ${phraseOn} now` : nowSetup.label.replace("leave by", `leave ${phraseOn} by`)) && mapView.querySelector(".nc-when.leave"),
+    `the card under the map says when to leave the building you are in (${cardWhen()})`);
+  assert(mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under") && mapView.querySelector(".map-under .next-card"), "directly under the SVG sits the card");
   // other days: nothing
   mapView.querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click(); await sleep(20);
-  assert(!mapView.querySelector(".map-ring") && caption() === null, "no rings or caption on another day");
+  assert(!mapView.querySelector(".map-ring") && mapView.querySelector(".next-card"), "no rings on another day; the card stays, it is about now");
   window.eval("state.map.day = null; render();"); await sleep(20);
   // no location: the next ring stays, the line goes, the caption says what is next
   window.eval(`picks = new Set([${JSON.stringify(nowSetup.nextId)}]); savePicks(); render();`); await sleep(20);
-  assert(rings() === `next:${nowSetup.next}` && caption() === `Next: ${short(nowSetup.next)} · ${nowSetup.nextAt}`,
-    `with nowhere to leave from, the next ring stays and the caption says what is next (${caption()})`);
+  assert(rings() === `next:${nowSetup.next}` && cardWhen() === `${nowSetup.nextAt} · in ${nowSetup.nextIn}`,
+    `with nowhere to leave from, the next ring stays and the card counts down (${cardWhen()})`);
   // no next pick: only the now ring, and nothing to say
   window.eval(`picks = new Set([${JSON.stringify(nowSetup.onId)}]); savePicks(); render();`); await sleep(20);
-  assert(rings() === `now:${nowSetup.on}` && caption() === null, "with no next pick, only the now ring");
+  assert(rings() === `now:${nowSetup.on}` && mapView.querySelector(".next-on") && mapView.querySelector(".next-card.empty"), "with no next pick, only the now ring; the On now line stays and the card says how to get a next pick");
   assert(/state\.tab === "map" && sheetWrap\.hidden\) \{ tickMap\(\)/.test(html), "the minute tick goes through tickMap");
   window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
 
@@ -1554,8 +1556,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     return null; })()`));
   assert(lateSetup, "found a pair to be late for");
   window.location.hash = `#now=${lateSetup.at}`; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
-  assert(window.eval("state.tab") === "map" && caption() === `${short(lateSetup.on)} → ${short(lateSetup.next)} · leave now`, `late: the caption says leave now (${caption()})`);
-  assert(mapView.querySelector(".map-caption .late") && /\.map-caption \.late \{[^}]*var\(--warn\)/.test(html), "in the warn colour");
+  assert(window.eval("state.tab") === "map" && cardWhen() === `leave ${window.eval(`hotelPhrase(${JSON.stringify(lateSetup.on)})`)} now`, `late: the card says leave now (${cardWhen()})`);
+  assert(mapView.querySelector(".nc-when.late") && /\.next-card \.nc-when\.late \{ color: var\(--warn\)/.test(html), "in the warn colour");
   window.location.hash = "#now=2026-09-05T13:05"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
   // a streaming next: a caption that says so, no line, no next ring, and the off-map count
   const streamSetup = JSON.parse(window.eval(`(function(){
@@ -1566,13 +1568,14 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     picks = new Set([on.id, st.id]); savePicks(); state.map.day = null; render();
     return JSON.stringify({on: on.hotel, at: fmtShort(st._s)}); })()`));
   assert(streamSetup, "found a stream to pick next");
-  assert(caption() === `Next: streaming · ${streamSetup.at}` && rings() === `now:${streamSetup.on}`,
-    `a streaming next gets a caption and no next ring (${caption()}; ${rings()})`);
+  assert(mapView.querySelector(".nc-where").textContent.trim() === "Streaming" && cardWhen().startsWith(`${streamSetup.at} · in `) && rings() === `now:${streamSetup.on}`,
+    `a streaming next shows Streaming as its room, counts down, and gets no next ring (${cardWhen()}; ${rings()})`);
   const offLine = mapView.querySelector(".map-offmap");
-  assert(offLine && offLine.textContent.trim() === "1 pick streaming or offsite" && mapView.querySelector(".map-caption").nextElementSibling === offLine,
-    `and the pick off the map is counted right under the caption (${offLine && offLine.textContent.trim()})`);
-  assert(window.eval(`(function(){ var d = document.createElement("div"); d.innerHTML = mapCaptionHTML({next: {hotel: "Other", room: "Joystick Gamebar", _s: new Date("2026-09-05T14:30")}, from: "Hyatt", info: {leaveBy: new Date(), late: false}}); return d.textContent; })()`) === "Next: Joystick Gamebar · 2:30 PM",
-    "an offsite next reads as its venue");
+  assert(offLine && offLine.textContent.trim() === "1 pick streaming or offsite" && mapView.querySelector(".next-card").nextElementSibling === offLine,
+    `and the pick off the map is counted right under the card (${offLine && offLine.textContent.trim()})`);
+  const offsiteCard = JSON.parse(window.eval(`(function(){ var d = document.createElement("div"); d.innerHTML = mapCardHTML({now: getNow(), onNow: null, later: null, from: null, info: {leaveBy: null, late: false, estimate: null},
+    next: {id: "x", title: "Arcade night", hotel: "Other", room: "Joystick Gamebar", _s: new Date(getNow().getTime() + 30 * 60000)}}); return JSON.stringify({where: d.querySelector(".nc-where").textContent, when: d.querySelector(".nc-when").textContent}); })()`));
+  assert(offsiteCard.where === "Joystick Gamebar" && / · in 30 min$/.test(offsiteCard.when), `an offsite next shows its venue as the room (${offsiteCard.where}; ${offsiteCard.when})`);
   // 2. a two-digit pill on the Courtland stays inside the canvas
   const tenSetup = JSON.parse(window.eval(`(function(){
     var ids = events.filter(function(e){ return e._cd === "2026-09-05" && e.hotel === "Courtland Grand"; }).slice(0, 10).map(function(e){ return e.id; });
@@ -1612,11 +1615,12 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const mapSticky = mapView.querySelector(".controls-sticky");
   assert(mapSticky && mapSticky === mapView.firstElementChild && mapSticky.querySelector('[data-chip="map-day"]'), "the day chips sit in the same sticky strip Search uses");
   assert(!mapSticky.querySelector("svg") && mapView.querySelector(".map-wrap") === mapSticky.nextElementSibling, "and the map itself scrolls under it");
-  assert(/\.map \{[^}]*max-height: max\(360px, calc\(100dvh - var\(--hdr-h, 63px\) - var\(--map-chrome\) - var\(--safe-bottom\)\)\)/.test(html) && /\.map \{[^}]*width: 100%/.test(html) && /\.map \{[^}]*height: auto/.test(html),
-    "the SVG keeps its shape and takes the height the screen leaves it, down to a floor");
-  assert(/\.map \{[^}]*--map-chrome: 207px/.test(html) && !/has-minibar \.map/.test(html), "the chrome is chips, padding, band and nav; the mini-bar never shows here");
-  assert(mapView.querySelector(".map-under") && /\.map-under \{[^}]*min-height: 44px/.test(html) && mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under"),
-    "a caption band of fixed height sits under the SVG, so the map's size does not jump with the caption");
+  assert(/#view-map \{ display: flex; flex-direction: column; min-height: calc\(100dvh - var\(--hdr-h, 63px\) - 76px - var\(--safe-bottom\)\)/.test(html)
+    && /\.map \{[^}]*flex: 1 1 0/.test(html) && /\.map \{[^}]*min-height: 360px/.test(html) && /\.map \{[^}]*width: 100%/.test(html) && /\.map \{[^}]*height: auto/.test(html),
+    "the tab is a column that fills the screen; the SVG keeps its shape and takes the height the card leaves it, down to a floor");
+  assert(!/--map-chrome/.test(html) && !/has-minibar \.map/.test(html), "no chrome arithmetic remains; the mini-bar never shows here");
+  assert(mapView.querySelector(".map-under") && /\.map-under \{ flex: none/.test(html) && mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under"),
+    "the card band sits under the SVG and keeps its own height");
   assert(mapView.querySelector("svg.map").getAttribute("viewBox") === "0 0 380 460", "with the viewBox untouched");
 
   // ---- polish 3: no mini-bar on the Map tab ----
@@ -1705,6 +1709,68 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/\.tl-hour span \{[^}]*white-space: nowrap/.test(html) && /\.tl-grid \{[^}]*margin-left: 3rem/.test(html) && /\.tl-hour \{[^}]*left: -3rem/.test(html), "the hour gutter is in rem and its labels never wrap");
   assert(/saveJSON\("dc26\.bigtext", e\.target\.checked\);\s*syncHeaderHeight\(\);\s*render\(\);/.test(html), "toggling re-measures the header and re-renders, so the timeline refits");
   window.eval("closeSheet()"); await sleep(10);
+
+  // ---- map card: the next pick under the map ----
+  const cardState = JSON.parse(window.eval(`(function(){
+    var saved = [...picks], n = getNow(), today = conDayKey(n), onMap = function(e){ return !!MAP_HOTELS[e.hotel] && !e.cancelled; };
+    var on = events.find(function(e){ return e._s <= n && n < e._e && onMap(e); });
+    var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === today && onMap(e) && e.hotel !== on.hotel; });
+    var prev = events.find(function(e){ return e._e <= n && conDayKey(e._s) === today && onMap(e) && e.hotel !== next.hotel; });
+    var sun = events.find(function(e){ return conDayKey(e._s) === "2026-09-06" && onMap(e); });
+    var mon = events.find(function(e){ return conDayKey(e._s) === "2026-09-07" && onMap(e); });
+    var read = function(){ state.tab = "map"; state.map.day = null; render();
+      var card = document.querySelector("#view-map .next-card"), onl = document.querySelector("#view-map .next-on");
+      var g = function(s){ var el = card && card.querySelector(s); return el ? el.textContent.trim() : null; };
+      var blockHue = null;
+      if (card && card.dataset.hero) { var ev = byId.get(card.dataset.hero); var b = document.querySelector('#view-map .map-hotel[data-hotel="' + ev.hotel + '"]'); blockHue = b ? b.getAttribute("style") : null; }
+      return {empty: !!(card && card.classList.contains("empty")), tag: card && card.tagName, text: card ? card.textContent.trim() : null, hero: card ? card.dataset.hero || null : null,
+        label: g(".nc-label"), title: g(".nc-title"), where: g(".nc-where"), when: g(".nc-when"), whenCls: card && card.querySelector(".nc-when") ? card.querySelector(".nc-when").className : "",
+        walk: g(".nc-walk"), hue: card ? card.getAttribute("style") : null, blockHue: blockHue, on: onl ? onl.textContent.trim() : null, onHero: onl ? onl.dataset.hero : null}; };
+    var out = {};
+    picks = new Set([prev.id, next.id]); savePicks(); out.plain = read();
+    out.plainExpect = {title: next.title, where: (next.room || next.location) + " · " + hotelShort(next.hotel), when: fmtShort(next._s) + " · in " + fmtMins(Math.round((next._s - n) / 60000)), walk: leaveInfo(null, next, n).estimate.label, id: next.id};
+    picks = new Set([on.id, next.id]); savePicks(); out.onNow = read();
+    var info = leaveInfo(on.hotel, next, n);
+    out.onNowExpect = {when: info.late ? "leave " + hotelPhrase(on.hotel) + " now" : "leave " + hotelPhrase(on.hotel) + " by " + fmtShort(info.leaveBy), late: info.late,
+      onLine: "On now: " + on.title + " · ends " + fmtShort(on._e) + " · " + hotelShort(on.hotel), onId: on.id};
+    picks = new Set([sun.id]); savePicks(); out.tomorrow = read(); out.tomorrowExpect = {title: sun.title, when: fmtShort(sun._s), id: sun.id};
+    picks = mon ? new Set([mon.id]) : new Set(); savePicks(); out.monday = mon ? read() : null;
+    picks = new Set(); savePicks(); out.empty = read();
+    picks = new Set(saved); savePicks(); state.map.day = null; render();
+    return JSON.stringify(out); })()`));
+  const pl = cardState.plain, pe = cardState.plainExpect;
+  assert(!pl.empty && pl.tag === "BUTTON" && pl.title === pe.title && pl.hero === pe.id, `the card shows the next pick (${pl.title})`);
+  assert(pl.where === pe.where && /var\(--h-/.test(pl.hue) && pl.hue === pl.blockHue, `room and hotel in the hotel's own hue, the same var as its block (${pl.where}; ${pl.hue})`);
+  assert(pl.when === pe.when && !/leave/.test(pl.whenCls), `the timing line is the start and how long until it (${pl.when})`);
+  assert(pl.walk === pe.walk, `the walk estimate is a muted line when leaveInfo has one (${pl.walk})`);
+  assert(pl.on === null && !pl.label, "nothing is on, so no On now line and no day label");
+  const onc = cardState.onNow, oe = cardState.onNowExpect;
+  assert(onc.when === oe.when && /leave/.test(onc.whenCls) && (oe.late ? /late/.test(onc.whenCls) : !/late/.test(onc.whenCls)), `with a pick on in another hotel, the timing line says when to leave it (${onc.when})`);
+  assert(onc.on === oe.onLine && onc.onHero === oe.onId, `and a slim line above names what is on now (${onc.on})`);
+  assert(/\.next-on \{[^}]*white-space: nowrap/.test(html) && /\.next-on \{[^}]*text-overflow: ellipsis/.test(html), "truncated to one line");
+  assert(/\.next-card \.nc-when\.leave \{ color: var\(--gold\)/.test(html) && /\.next-card \.nc-when\.late \{ color: var\(--warn\)/.test(html), "leave-by in gold, warn colour when late");
+  const tm = cardState.tomorrow, te = cardState.tomorrowExpect;
+  assert(tm.label === "Tomorrow" && tm.title === te.title && tm.when === te.when && tm.hero === te.id && !tm.walk && !tm.on, `nothing left today: the first pick of tomorrow, labelled, time only (${tm.label}: ${tm.when})`);
+  if (cardState.monday) assert(cardState.monday.label === "Monday", `a pick two days out is labelled with its day (${cardState.monday.label})`);
+  assert(cardState.empty.empty && cardState.empty.tag === "DIV" && /Star things in Search and your next pick shows here\./.test(cardState.empty.text) && !cardState.empty.hero, "no picks at all: how to get one, and nothing to tap");
+  assert(/\.next-card \.nc-title \{[^}]*-webkit-line-clamp: 2/.test(html) && /\.next-card \.nc-title \{[^}]*font-size: 1\.125rem/.test(html), "the title is row style, up to two lines");
+  // a tap opens the detail sheet
+  window.eval(`(function(){ var n = getNow(); var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && MAP_HOTELS[e.hotel]; }); picks = new Set([next.id]); savePicks(); state.tab = "map"; render(); })()`); await sleep(20);
+  const cardEl = mapView.querySelector(".next-card");
+  cardEl.click(); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && !document.getElementById("panel-event").hidden && document.getElementById("sheetTitleEvent").textContent === cardEl.querySelector(".nc-title").textContent, "tapping the card opens the event's detail sheet");
+  window.eval("closeSheet()"); await sleep(20);
+  // the tick leaves an unchanged card and map alone; a change to the card alone leaves the SVG alone
+  window.eval(`window.__mapRenders = 0; window.__renderMapReal = renderMap; renderMap = function(){ __mapRenders++; return __renderMapReal(); };`);
+  const quietCard = JSON.parse(window.eval("JSON.stringify([tickMap(), tickMap(), __mapRenders])"));
+  assert(quietCard[0] === false && quietCard[1] === false && quietCard[2] === 0, "two quiet ticks draw nothing, so the pulse is not restarted");
+  const streamOnly = JSON.parse(window.eval(`(function(){ var n = getNow(), nx = nowModel(n).upcoming[0];
+    var st = events.find(function(e){ return e._s > nx._s && conDayKey(e._s) === conDayKey(n) && e.hotel === "Streaming"; }); if (!st) return null;
+    var svg = document.querySelector("#view-map svg"); picks.add(st.id); savePicks(); var r = tickMap();
+    return JSON.stringify({ticked: r, renders: __mapRenders, sameSvg: document.querySelector("#view-map svg") === svg, off: (document.querySelector("#view-map .map-offmap") || {}).textContent || null}); })()`));
+  assert(streamOnly === null || (streamOnly.ticked === true && streamOnly.renders === 0 && streamOnly.sameSvg && /1 pick streaming or offsite/.test(streamOnly.off)),
+    streamOnly ? "a change that touches only the card refreshes the card and leaves the SVG untouched" : "(no later stream in the fixture; the card-only refresh is untested here)");
+  window.eval(`renderMap = __renderMapReal; picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
 
   window.close();
   await realDataChecks();
