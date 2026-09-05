@@ -924,7 +924,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!document.getElementById("view-foryou"), "and so is its view");
   assert(!/foryou/i.test(html), "and nothing in the source still refers to it");
   assert(/repeat\(5, 1fr\)/.test(html), "the nav lays out five columns");
-  assert(/\.nav button \{[^}]*font-size: 14px/.test(html), "with labels back at 14px");
+  assert(/\.nav button \{[^}]*font-size: \.875rem/.test(html), "with labels back at 14px (.875rem, so Larger text can scale them)");
   assert(/\.nav button svg \{[^}]*width: 24px/.test(html), "and icons back at 24px");
   // the explore view exists and switches
   document.querySelector('.nav button[data-tab="explore"]').click(); await sleep(20);
@@ -1593,7 +1593,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // ---- polish 1: a compact header ----
   const hdrLine = document.querySelector(".hdr .hdr-line");
   assert(hdrLine && hdrLine.contains(document.getElementById("clock")) && hdrLine.contains(document.getElementById("fresh")), "the clock and the freshness text share one line");
-  assert(/\.hdr \.hdr-line \{[^}]*white-space: nowrap/.test(html) && /\.hdr \.hdr-line \{[^}]*font-size: clamp\(13px, 4vw, 15px\)/.test(html) && /\.hdr \.hdr-line \{[^}]*font-weight: 700/.test(html) && !/\.hdr \.clock \{/.test(html),
+  assert(/\.hdr \.hdr-line \{[^}]*white-space: nowrap/.test(html) && /\.hdr \.hdr-line \{[^}]*font-size: clamp\(\.8125rem, 4vw, \.9375rem\)/.test(html) && /\.hdr \.hdr-line \{[^}]*font-weight: 700/.test(html) && !/\.hdr \.clock \{/.test(html),
     "in the clock style at a smaller size that follows the phone's width, and it never wraps");
   assert(document.querySelector("#fresh .word") && document.querySelector("#fresh .word").textContent === "refreshed " && /\.hdr \.hdr-line\.tight \.word \{ display: none/.test(html)
     && /function fitHeaderLine\(\)[\s\S]{0,200}scrollWidth > line\.clientWidth/.test(html) && /fitHeaderLine\(\);\n\}/.test(html.replace(/\r\n/g, "\n")),
@@ -1601,7 +1601,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/^ · [\d,]+ events · refreshed \d+ (min|h|d) ago/.test(document.getElementById("fresh").textContent), `the freshness text reads as the rest of the line (${document.getElementById("fresh").textContent})`);
   const brand = document.getElementById("brand");
   window.eval(`state.tab = "now"; render();`); await sleep(10);
-  assert(brand && !brand.hidden && brand.textContent === "Dragon Con 2026" && /\.hdr \.brand \{[^}]*font-size: 12px/.test(html), "the brand shows on Now as a small label");
+  assert(brand && !brand.hidden && brand.textContent === "Dragon Con 2026" && /\.hdr \.brand \{[^}]*font-size: \.75rem/.test(html), "the brand shows on Now as a small label");
   assert(brand.compareDocumentPosition(hdrLine) & window.Node.DOCUMENT_POSITION_FOLLOWING, "above the line");
   for (const t of ["browse", "explore", "map", "mine"]) { window.eval(`state.tab = ${JSON.stringify(t)}; render();`); await sleep(10); assert(brand.hidden, `and not on ${t}`); }
   assert(/document\.getElementById\("brand"\)\.hidden = state\.tab !== "now";\s*syncHeaderHeight\(\);/.test(html), "the header is re-measured when the brand comes and goes");
@@ -1666,7 +1666,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const setPanel = document.getElementById("panel-settings"), adv = document.getElementById("advanced");
   const setKids = [...setPanel.children];
   assert(setKids[0].id === "sheetTitle" && setKids[1].contains(document.getElementById("crowd")) && setKids[2].contains(document.getElementById("noiseDefault")), "Crowd factor and Hide photo sessions come first");
-  assert(adv && adv.tagName === "DETAILS" && setKids[3] === adv && !adv.open && adv.querySelector("summary").textContent.trim() === "Advanced", "then a collapsed Advanced section");
+  assert(setKids[3].contains(document.getElementById("bigText")), "and Larger text");
+  assert(adv && adv.tagName === "DETAILS" && setKids[4] === adv && !adv.open && adv.querySelector("summary").textContent.trim() === "Advanced", "then a collapsed Advanced section");
   assert(["previewTime", "applyPreview", "clearPreview", "walkTable", "deviceLine"].every(id => adv.contains(document.getElementById(id))), "holding the preview clock, the walk-time defaults and the device readout with the build stamp");
   assert(/ · build \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/.test(document.getElementById("deviceLine").textContent), "the build stamp is still filled in behind the fold");
   const setBtns = [...setPanel.querySelectorAll("button")].filter(b => !adv.contains(b));
@@ -1680,6 +1681,28 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval(`openSheet("settings")`); await sleep(20);
   assert(document.getElementById("advanced").open === true, "opening Settings again leaves Advanced as you left it; the sheet does not force it shut");
   document.getElementById("advanced").open = false;
+  window.eval("closeSheet()"); await sleep(10);
+
+  // ---- polish 7: larger text ----
+  window.eval(`openSheet("settings")`); await sleep(20);
+  const big = document.getElementById("bigText");
+  assert(big && big.type === "checkbox" && big.closest("label").textContent.trim() === "Larger text" && !document.getElementById("advanced").contains(big), "a Larger text toggle sits with the everyday controls");
+  assert(!document.documentElement.classList.contains("bigtext") && !big.checked, "off by default");
+  big.click(); await sleep(10);
+  assert(document.documentElement.classList.contains("bigtext") && window.localStorage.getItem("dc26.bigtext") === "true", "on: the html element takes the class and the choice is saved as dc26.bigtext");
+  assert(/html\.bigtext \{ font-size: 115%; \}/.test(html), "which sets the root size to 115%");
+  big.click(); await sleep(10);
+  assert(!document.documentElement.classList.contains("bigtext") && window.localStorage.getItem("dc26.bigtext") === "false", "off again, and saved");
+  assert(/classList\.toggle\("bigtext", !!loadJSON\("dc26\.bigtext", false\)\)/.test(html), "the saved choice is applied at startup, before the first paint");
+  const styleBlock = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
+  const scaled = styleBlock.split("\n").filter(l => !/^\.map-(street-label|hotel text|park text|pill text)/.test(l)).join("\n");
+  assert(!/font-size: [\d.]+px/.test(scaled) && /font-size: [\d.]+rem/.test(scaled) && /body \{[^}]*font-size: 1\.0625rem/.test(html), "every text size outside the map's SVG is in rem, so it follows the root");
+  assert(/\.map-hotel text \{[^}]*font-size: 11px/.test(html) && /\.map-pill text \{[^}]*font-size: 11px/.test(html), "the map's labels stay in the SVG's own units, scaled with the drawing rather than the toggle");
+  assert(!/style="font-size:\d+px/.test(html), "and no inline pixel size hides in a template");
+  assert(/\.tl-block\.tight \.tb-title \{[^}]*text-overflow: ellipsis/.test(html) && /\.tl-block\.tighter \.tb-room \{ display: none/.test(html)
+    && /function fitTimelineBlocks\(\)[\s\S]{0,400}scrollHeight > b\.clientHeight/.test(html) && /innerHTML = html;\s*fitTimelineBlocks\(\);/.test(html),
+    "timeline blocks that cannot hold their text give way by measurement: one-line title first, then no room");
+  assert(/saveJSON\("dc26\.bigtext", e\.target\.checked\);\s*syncHeaderHeight\(\);\s*render\(\);/.test(html), "toggling re-measures the header and re-renders, so the timeline refits");
   window.eval("closeSheet()"); await sleep(10);
 
   window.close();

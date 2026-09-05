@@ -15,7 +15,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Re-runs the scraper every 3 hours during con week and commits fresh data. |
-| `tests/` | 25 parser tests and 727 UI assertions. Not optional — run them before you push. |
+| `tests/` | 25 parser tests and 739 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -32,7 +32,7 @@ python -m http.server 8000       # then open http://localhost:8000
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 727 assertions
+node tests/ui_smoke.js           # 739 assertions
 python tests/test_parse.py       # 25 parser tests
 ```
 
@@ -52,7 +52,7 @@ A con day runs to 5 AM, everywhere in the app: a 1 AM panel sits under the day b
 
 Tap any row for the detail sheet: description, panelists with a "See all" link to each person, exact room, star, and a single-event calendar export. Swipe it down to dismiss.
 
-**Settings** (gear): crowd factor for walk estimates and the default noise filter up top. Under **Advanced**: preview any time (`#now=2026-09-05T14:00` in the URL does the same), the walk-time table, and a device readout that ends with the build time. Remove all picks is last, on its own.
+**Settings** (gear): crowd factor for walk estimates, the default noise filter and a Larger text switch up top. Under **Advanced**: preview any time (`#now=2026-09-05T14:00` in the URL does the same), the walk-time table, and a device readout that ends with the build time. Remove all picks is last, on its own.
 
 Picks and follows live in the browser's storage, per device. They aren't shared between phones and there's no URL format for them yet.
 
