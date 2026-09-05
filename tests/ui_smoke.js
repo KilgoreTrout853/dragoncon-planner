@@ -101,33 +101,91 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/On now|Your next/.test(hero.querySelector(".hkicker").textContent), "hero kicker reads On now or Your next");
   assert(/var\(--h-/.test(hero.querySelector(".hroom").getAttribute("style") || ""), "hero room uses the hotel hue");
   assert(window.eval("LEAVE_BUFFER_MIN") === 10, "LEAVE_BUFFER_MIN is 10");
-  // leave-by maths: from a known hotel to the next pick
+  // leave-by maths: from the hotel you are in to the next pick, somewhere else
   const lb = window.eval(`(function(){
     var n = getNow();
-    var nxt = events.filter(e => picks.has(e.id) && e._s > n)[0] || events.filter(e => e._s > n)[0];
+    var nxt = events.find(function(e){ return e._s > n && e.hotel !== "Marriott" && e.hotel !== "Streaming"; });
     var info = leaveInfo("Marriott", nxt, n);
-    return {walk: info.walk, gap: Math.round((nxt._s - info.leaveBy)/60000), hotel: nxt.hotel};
+    var same = leaveInfo("Marriott", events.find(function(e){ return e._s > n && e.hotel === "Marriott"; }), n);
+    return {walk: info.walk, gap: Math.round((nxt._s - info.leaveBy)/60000), hotel: nxt.hotel, sameLeaveBy: same.leaveBy, sameEst: same.estimate};
   })()`);
   assert(lb.gap === lb.walk + 10, `leave-by = start - walk - buffer (${lb.gap} = ${lb.walk} + 10)`);
-  // location is inferred from the schedule alone: on now, else just ended, else nothing
+  assert(lb.sameLeaveBy === null, "no leave-by for a next pick in the hotel you are already in");
+  // location is a fact or nothing: the hotel of a pick that is on now, never a guess from one that ended
   const chain = window.eval(`(function(){
     var saved = [...picks];
-    var n = getNow();
+    var n = getNow(), today = conDayKey(n);
     var onNow = events.find(e => e._s <= n && n < e._e && e.hotel !== "Streaming");
     picks = new Set([onNow.id]);
     var a = currentLocation(n);
-    var ended = events.filter(e => e._e <= n && (n - e._e)/60000 <= 90 && e.hotel !== "Streaming")
-                      .sort(function(x,y){ return y._e - x._e; })[0];
-    picks = ended ? new Set([ended.id]) : new Set();
+    var ended = events.filter(e => e._e <= n && conDayKey(e._s) === today && e.hotel !== "Streaming").sort(function(x,y){ return y._e - x._e; })[0];
+    picks = new Set([ended.id]);
     var b = currentLocation(n);
     picks = new Set();
     var c = currentLocation(n);
+    var stream = events.find(e => e._s <= n && n < e._e && e.hotel === "Streaming");
+    picks = stream ? new Set([stream.id]) : new Set();
+    var d = currentLocation(n);
     picks = new Set(saved);
-    return {onNow: a, onNowHotel: onNow.hotel, justEnded: b, endedHotel: ended ? ended.hotel : null, empty: c};
+    return {onNow: a, onNowHotel: onNow.hotel, ended: b, endedAgo: Math.round((n - ended._e) / 60000), empty: c, stream: d, streamFound: !!stream};
   })()`);
-  assert(chain.onNow === chain.onNowHotel, "currentLocation uses the pick that's on now");
-  if (chain.endedHotel) assert(chain.justEnded === chain.endedHotel, "currentLocation falls back to a pick that just ended");
-  assert(chain.empty === null, "currentLocation is null when the schedule says nothing");
+  assert(chain.onNow === chain.onNowHotel, "currentLocation is the hotel of the pick that is on now");
+  assert(chain.ended === null, `a pick that ended ${chain.endedAgo} minutes ago says nothing about where you are`);
+  assert(chain.empty === null, "and nothing picked is nowhere");
+  assert(chain.stream === null, chain.streamFound ? "a stream that is on says nothing either: you could be anywhere" : "(no stream on now in the fixture; the stream rule is untested here)");
+  const locSrc = window.eval("currentLocation.toString()");
+  assert(!/90|justEnded|_e <=|minutesBetween/.test(locSrc) && !/justEnded/.test(html), "nothing infers a location from a pick that ended, and no 90-minute window remains");
+
+  // ---- no guessing: the hero, the mini-bar and the map, with and without a pick on now ----
+  const ng = JSON.parse(window.eval(`(function(){
+    var saved = [...picks], n = getNow(), today = conDayKey(n);
+    var onMap = function(e){ return !!MAP_HOTELS[e.hotel] && !e.cancelled; };
+    var prev = events.find(function(e){ return e._e <= n && conDayKey(e._s) === today && onMap(e); });
+    var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === today && onMap(e) && e.hotel !== prev.hotel; });
+    var nextSame = events.find(function(e){ return e._s > n && conDayKey(e._s) === today && onMap(e) && e.hotel === prev.hotel; });
+    var on = events.find(function(e){ return e._s <= n && n < e._e && onMap(e) && e.hotel !== next.hotel; });
+    var out = {prev: prev.hotel, next: next.hotel, nextStart: fmtShort(next._s), walk: walkMin(prev.hotel, next.hotel), on: on.hotel,
+      minsToStart: Math.round((next._s - n) / 60000), minsToEnd: Math.round((on._e - n) / 60000)};
+    var read = function(){
+      state.tab = "now"; render();
+      var h = document.querySelector("#view-now .hero");
+      var r = {leave: h ? ((h.querySelector(".hleave") || {}).textContent || "").trim() : null, walkLine: h ? ((h.querySelector(".hwalk") || {}).textContent || "").trim() : null,
+        ring: h ? h.querySelector(".ring .num").textContent.trim() : null, late: !!(h && h.classList.contains("late"))};
+      state.tab = "browse"; render();
+      r.bar = document.getElementById("minibar").hidden ? null : document.getElementById("minibar").querySelector(".mb-when").textContent.trim();
+      state.tab = "map"; state.map.day = null; render();
+      var c = document.querySelector("#view-map .map-caption");
+      r.caption = c ? c.textContent.trim() : null; r.line = !!document.querySelector("#view-map .map-leave");
+      r.nextRing = !!document.querySelector("#view-map .map-ring.next"); r.nowRing = !!document.querySelector("#view-map .map-ring.now");
+      return r;
+    };
+    picks = new Set([prev.id, next.id]); savePicks(); out.noLoc = read();
+    var i = leaveInfo(currentLocation(n), next, n);
+    out.noLocInfo = {leaveBy: i.leaveBy, est: i.estimate && i.estimate.label, estWalk: i.estimate && i.estimate.walk};
+    picks = new Set([prev.id, nextSame.id]); savePicks(); out.sameHotel = read();
+    picks = new Set([next.id]); savePicks(); out.noPrev = read();
+    picks = new Set([on.id, next.id]); savePicks(); out.onNow = read();
+    i = leaveInfo(currentLocation(n), next, n);
+    out.onNowInfo = {leaveBy: i.leaveBy ? fmtShort(i.leaveBy) : null, late: i.late};
+    picks = new Set(saved); savePicks(); state.tab = "now"; render();
+    return JSON.stringify(out); })()`));
+  const phraseOf = h => window.eval(`hotelPhrase(${JSON.stringify(h)})`), shortOf = h => window.eval(`hotelShort(${JSON.stringify(h)})`);
+  assert(ng.noLocInfo.leaveBy === null && ng.noLocInfo.estWalk === ng.walk && ng.noLocInfo.est === `~${ng.walk} min from ${phraseOf(ng.prev)}`,
+    `with nothing on, leaveInfo gives no leave-by, only a walk estimate from the previous pick (${ng.noLocInfo.est})`);
+  assert(ng.noLoc.leave === `starts ${ng.nextStart}` && !ng.noLoc.late, `the hero has no leave-by line (${ng.noLoc.leave})`);
+  const ringFor = m => m >= 60 ? `${Math.floor(m / 60)}h` : `${m}min`;
+  assert(ng.noLoc.ring === ringFor(ng.minsToStart), `its ring counts down to the start (${ng.noLoc.ring} for ${ng.minsToStart} min)`);
+  assert(ng.noLoc.walkLine === `~${ng.walk} min from ${phraseOf(ng.prev)}` && /\.hero \.hthen \{[^}]*var\(--muted\)/.test(html), `the walk estimate is a muted line (${ng.noLoc.walkLine})`);
+  assert(ng.noLoc.bar === `in ${window.eval(`fmtMins(${ng.minsToStart})`)}`, `the mini-bar counts down (${ng.noLoc.bar})`);
+  assert(ng.noLoc.caption === `Next: ${shortOf(ng.next)} · ${ng.nextStart}` && !ng.noLoc.line && ng.noLoc.nextRing && !ng.noLoc.nowRing,
+    `the map says what is next, draws no line, and keeps the next ring (${ng.noLoc.caption})`);
+  assert(ng.sameHotel.walkLine === "" && ng.sameHotel.leave.startsWith("starts "), "no walk estimate when the previous pick was in the same hotel");
+  assert(ng.noPrev.walkLine === "" && ng.noPrev.leave.startsWith("starts "), "and none without a previous pick today");
+  assert(ng.onNowInfo.leaveBy && ng.onNow.leave === (ng.onNowInfo.late ? `leave ${phraseOf(ng.on)} now` : `leave ${phraseOf(ng.on)} by ${ng.onNowInfo.leaveBy}`) && ng.onNow.ring === ringFor(ng.minsToEnd),
+    `with a pick on, the hero says leave the hotel you are in, and its ring runs to the end (${ng.onNow.leave}; ${ng.onNow.ring})`);
+  assert(ng.onNow.bar === (ng.onNowInfo.late ? "leave now" : `leave by ${ng.onNowInfo.leaveBy}`), `the mini-bar says leave by (${ng.onNow.bar})`);
+  assert(ng.onNow.caption === `${shortOf(ng.on)} → ${shortOf(ng.next)} · ${ng.onNowInfo.late ? "leave now" : "leave by " + ng.onNowInfo.leaveBy}` && ng.onNow.line && ng.onNow.nextRing && ng.onNow.nowRing,
+    `and the map draws the line and says so (${ng.onNow.caption})`);
   // no 6-pick cap: star 8 upcoming picks and count rendered rows + hero
   window.eval(`(function(){
     var n = getNow();
@@ -163,7 +221,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!bar.hidden, "mini-bar shows on Browse when a pick remains today");
   assert(bar.querySelector(".mb-title").textContent.trim() === hasLater, "mini-bar names the next pick");
   assert(/var\(--h-/.test(bar.querySelector(".mb-room").getAttribute("style") || ""), "mini-bar room uses the hotel hue");
-  assert(/leave (by|now)|in \d+ min/.test(bar.querySelector(".mb-when").textContent), "mini-bar shows a countdown or leave-by: " + bar.querySelector(".mb-when").textContent);
+  const barOn = window.eval(`!!events.find(function(e){ return picks.has(e.id) && e._s <= getNow() && getNow() < e._e && e.hotel !== "Streaming"; })`), barWhen = bar.querySelector(".mb-when").textContent.trim();
+  assert(barOn ? /^leave (by|now)/.test(barWhen) : /^in \d+ (min|h)/.test(barWhen), `mini-bar says leave-by only while a pick is on (${barOn ? "on now" : "nothing on"}: ${barWhen})`);
   assert(window.getComputedStyle(bar).height === "48px", "mini-bar is 48px tall");
   assert(document.body.classList.contains("has-minibar"), "body reserves room for the bar");
   // tapping it returns to Now
@@ -1308,7 +1367,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!mapView.hidden && document.getElementById("view-mine").hidden && document.getElementById("view-browse").hidden
     && document.querySelector('.nav button[data-tab="map"]').getAttribute("aria-current") === "page", "the Map tab shows its own view");
   const svg = mapView.querySelector("svg.map");
-  assert(svg && svg.getAttribute("viewBox") === "0 0 380 520" && mapView.querySelectorAll("svg").length === 1, "one portrait SVG, 380 by 520");
+  assert(svg && svg.getAttribute("viewBox") === "0 0 380 460" && mapView.querySelectorAll("svg").length === 1, "one portrait SVG, 380 by 460");
   const walkHotels = [...new Set(Object.keys(window.eval("WALK")).flatMap(k => k.split("|")))].sort();
   const mapHotels = [...svg.querySelectorAll("[data-hotel]")].map(g => g.dataset.hotel).sort();
   assert(mapHotels.join("|") === walkHotels.join("|"), `one block per walk-table hotel (${mapHotels.join(", ")})`);
@@ -1321,9 +1380,28 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(hilton.x > marriott.x && marriott.x > hyatt.x, "east of Peachtree: Hyatt, Marriott, Hilton, left to right");
   assert(Math.abs(hyatt.y - marriott.y) <= 10 && Math.abs(marriott.y - hilton.y) <= 10, "the three sit in one row");
   assert(mart.x < peachtree && peachtree < hyatt.x && Math.abs(peachtree - 95) <= 20, `Peachtree runs between the Mart and the Hyatt, a quarter of the way across (${peachtree})`);
-  assert(westin.y > mart.y && Math.abs(westin.x - mart.x) <= 10 && Math.abs(mart.y - hyatt.y) <= 10, "the Westin is below the Mart, which is level with the Hyatt");
+  assert(westin.y > mart.y && westin.x > mart.x && Math.abs(mart.y - hyatt.y) <= 10, "the Westin is south-east of the Mart, which is level with the Hyatt");
   assert(courtland.y > hilton.y && Math.abs(courtland.x - hilton.x) <= 10, "the Courtland is below the Hilton, in its column");
   assert(hardy.y < hyatt.y, "Hardy Ivy Park is above the Hyatt");
+  // real coordinates at one scale: what the distances say
+  const geo = h => { const r = svg.querySelector(`.map-hotel[data-hotel="${h}"] rect`); const x = +r.getAttribute("x"), y = +r.getAttribute("y"), w = +r.getAttribute("width"), hh = +r.getAttribute("height");
+    return {x, y, w, h: hh, right: x + w, bottom: y + hh, cx: x + w / 2, cy: y + hh / 2}; };
+  const gHyatt = geo("Hyatt"), gMarriott = geo("Marriott"), gHilton = geo("Hilton"), gMart = geo("AmericasMart"), gWestin = geo("Westin"), gCourtland = geo("Courtland Grand"), gHardy = geo("Hardy Ivy Park");
+  assert(gMarriott.x - gHyatt.right > 0 && gMarriott.x - gHyatt.right < 15, `the Hyatt and the Marriott nearly touch (${gMarriott.x - gHyatt.right} px apart)`);
+  assert(gHilton.x - gMarriott.right > 45, `the Hilton is a real walk from the Marriott (${gHilton.x - gMarriott.right} px)`);
+  assert(gWestin.cx > gMart.cx && gWestin.right <= peachtree, `the Westin is south-east of the Mart and still west of Peachtree (right edge ${gWestin.right}, street ${peachtree})`);
+  const downToWestin = gWestin.cy - gHyatt.cy, upToPark = gHyatt.cy - gHardy.cy;
+  assert(Math.abs(downToWestin - upToPark) <= 20, `the Westin is about as far below the Hyatt as the park is above it (${downToWestin} vs ${upToPark})`);
+  assert(Math.abs(gCourtland.cx - gHilton.cx) <= 10, `the Courtland sits under the Hilton (${gCourtland.cx} vs ${gHilton.cx})`);
+  const bridgeMH = svg.querySelector('[data-bridge="Marriott|Hilton"]'), courtlandX = +svg.querySelector('[data-street="Courtland"]').getAttribute("x1");
+  assert(bridgeMH && Math.min(+bridgeMH.getAttribute("x1"), +bridgeMH.getAttribute("x2")) < courtlandX && courtlandX < Math.max(+bridgeMH.getAttribute("x1"), +bridgeMH.getAttribute("x2")),
+    `the Marriott-Hilton bridge crosses Courtland St (${bridgeMH && bridgeMH.getAttribute("x1")} to ${bridgeMH && bridgeMH.getAttribute("x2")} over ${courtlandX})`);
+  const bridgeMW = svg.querySelector('[data-bridge="AmericasMart|Westin"]');
+  assert(bridgeMW && +bridgeMW.getAttribute("y1") === gMart.bottom && +bridgeMW.getAttribute("y2") === gWestin.y && +bridgeMW.getAttribute("x1") !== +bridgeMW.getAttribute("x2"),
+    "the Mart-Westin bridge is a short diagonal from the Mart's bottom edge to the Westin's top");
+  const bridgeHM = svg.querySelector('[data-bridge="Hyatt|Marriott"]');
+  assert(bridgeHM && +bridgeHM.getAttribute("x2") - +bridgeHM.getAttribute("x1") === gMarriott.x - gHyatt.right, "the Hyatt-Marriott bridge spans just the gap");
+  assert(Math.max(gCourtland.bottom, gWestin.bottom) + 40 <= 460 && [gHyatt, gMarriott, gHilton, gCourtland, gWestin].every(b => b.w === 60), "hotel blocks are 60 wide and about 40 px stays empty below them");
   const bridges = [...svg.querySelectorAll("[data-bridge]")].map(l => l.dataset.bridge).sort();
   assert(bridges.join(";") === "AmericasMart|Westin;Hyatt|Marriott;Marriott|Hilton", `three skybridges, none across Peachtree (${bridges.join("; ")})`);
   assert(/\.map-bridge \{[^}]*stroke-dasharray/.test(html), "skybridges are dashed");
@@ -1331,6 +1409,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(svg.querySelector('[data-street="Courtland"]').classList.contains("faint") && !svg.querySelector('[data-street="Peachtree"]').classList.contains("faint"), "Courtland St is the fainter one");
   const mapLabels = [...svg.querySelectorAll("[data-hotel] text")].map(t => t.textContent);
   assert(mapLabels.includes("MART") && mapLabels.includes("COURTLAND") && mapLabels.includes("HARDY IVY") && mapLabels.every(l => l === l.toUpperCase()), `labels are abbreviated and uppercase (${mapLabels.join(", ")})`);
+  assert(svg.querySelector('[data-hotel="Courtland Grand"] text').classList.contains("long") && !svg.querySelector('[data-hotel="Marriott"] text').classList.contains("long")
+    && /\.map-hotel text\.long \{[^}]*font-size: 9\.5px/.test(html), "a nine-letter label takes a smaller size to fit a 60 px block; eight letters do not");
   const park = svg.querySelector('[data-hotel="Hardy Ivy Park"]');
   assert(park.classList.contains("map-park") && /--park/.test(park.getAttribute("style")) && !/--h-/.test(park.getAttribute("style")), "the park wears green, not a hotel hue");
   assert(/--h-Hyatt/.test(svg.querySelector('[data-hotel="Hyatt"]').getAttribute("style")) && /--h-Courtland\b/.test(svg.querySelector('[data-hotel="Courtland Grand"]').getAttribute("style")), "each hotel wears its own hue");
