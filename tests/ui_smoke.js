@@ -1656,10 +1656,23 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!mapSticky.querySelector("svg") && mapView.querySelector(".map-wrap") === mapSticky.nextElementSibling, "and the map itself scrolls under it");
   assert(/\.map \{[^}]*max-height: max\(360px, calc\(100dvh - var\(--hdr-h, 63px\) - var\(--map-chrome\) - var\(--safe-bottom\)\)\)/.test(html) && /\.map \{[^}]*width: 100%/.test(html) && /\.map \{[^}]*height: auto/.test(html),
     "the SVG keeps its shape and takes the height the screen leaves it, down to a floor");
-  assert(/body\.has-minibar \.map \{ --map-chrome: 242px/.test(html) && /\.map \{[^}]*--map-chrome: 194px/.test(html), "the mini-bar counts as chrome while it shows");
+  assert(/\.map \{[^}]*--map-chrome: 194px/.test(html) && !/has-minibar \.map/.test(html), "the chrome is chips, padding, band and nav; the mini-bar never shows here");
   assert(mapView.querySelector(".map-under") && /\.map-under \{[^}]*min-height: 44px/.test(html) && mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under"),
     "a caption band of fixed height sits under the SVG, so the map's size does not jump with the caption");
   assert(mapView.querySelector("svg.map").getAttribute("viewBox") === "0 0 380 460", "with the viewBox untouched");
+
+  // ---- polish 3: no mini-bar on the Map tab ----
+  const barState = JSON.parse(window.eval(`(function(){
+    var saved = [...picks], n = getNow();
+    var later = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && MAP_HOTELS[e.hotel]; });
+    picks = new Set([later.id]); savePicks();
+    var read = function(tab){ state.tab = tab; render(); return {hidden: document.getElementById("minibar").hidden, cls: document.body.classList.contains("has-minibar")}; };
+    var out = {browse: read("browse"), map: read("map"), explore: read("explore"), mine: read("mine"), now: read("now"), back: read("map")};
+    picks = new Set(saved); savePicks(); state.tab = "map"; render();
+    return JSON.stringify(out); })()`));
+  assert(!barState.browse.hidden && barState.browse.cls && !barState.explore.hidden && !barState.mine.hidden, "with a pick later today the mini-bar shows on Search, Explore and Mine");
+  assert(barState.map.hidden && !barState.map.cls && barState.back.hidden && !barState.back.cls, "but not on the Map, whose caption already says what is next, and the body reserves no room for it there");
+  assert(barState.now.hidden, "nor on Now, as before");
 
   window.close();
   await realDataChecks();
