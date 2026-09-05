@@ -1530,7 +1530,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const caption = () => { const c = mapView.querySelector(".map-caption"); return c ? c.textContent.trim() : null; };
   const short = h => window.eval(`hotelShort(${JSON.stringify(h)})`);
   assert(caption() === `${short(nowSetup.on)} → ${short(nowSetup.next)} · ${nowSetup.label}`, `a caption under the map says where and when (${caption()})`);
-  assert(mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-caption"), "directly under the SVG");
+  assert(mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under") && mapView.querySelector(".map-under").firstElementChild === mapView.querySelector(".map-caption"), "directly under the SVG, first in the caption band");
   // other days: nothing
   mapView.querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click(); await sleep(20);
   assert(!mapView.querySelector(".map-ring") && !mapView.querySelector(".map-leave") && caption() === null, "no rings, line or caption on another day");
@@ -1648,6 +1648,18 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   for (const t of ["browse", "explore", "map", "mine"]) { window.eval(`state.tab = ${JSON.stringify(t)}; render();`); await sleep(10); assert(brand.hidden, `and not on ${t}`); }
   assert(/document\.getElementById\("brand"\)\.hidden = state\.tab !== "now";\s*syncHeaderHeight\(\);/.test(html), "the header is re-measured when the brand comes and goes");
   window.eval(`state.tab = "now"; render();`); await sleep(10);
+
+  // ---- polish 2: sticky map chips, and a map that fits the screen ----
+  window.eval(`state.tab = "map"; state.map.day = null; render();`); await sleep(20);
+  const mapSticky = mapView.querySelector(".controls-sticky");
+  assert(mapSticky && mapSticky === mapView.firstElementChild && mapSticky.querySelector('[data-chip="map-day"]'), "the day chips sit in the same sticky strip Search uses");
+  assert(!mapSticky.querySelector("svg") && mapView.querySelector(".map-wrap") === mapSticky.nextElementSibling, "and the map itself scrolls under it");
+  assert(/\.map \{[^}]*max-height: max\(360px, calc\(100dvh - var\(--hdr-h, 63px\) - var\(--map-chrome\) - var\(--safe-bottom\)\)\)/.test(html) && /\.map \{[^}]*width: 100%/.test(html) && /\.map \{[^}]*height: auto/.test(html),
+    "the SVG keeps its shape and takes the height the screen leaves it, down to a floor");
+  assert(/body\.has-minibar \.map \{ --map-chrome: 242px/.test(html) && /\.map \{[^}]*--map-chrome: 194px/.test(html), "the mini-bar counts as chrome while it shows");
+  assert(mapView.querySelector(".map-under") && /\.map-under \{[^}]*min-height: 44px/.test(html) && mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under"),
+    "a caption band of fixed height sits under the SVG, so the map's size does not jump with the caption");
+  assert(mapView.querySelector("svg.map").getAttribute("viewBox") === "0 0 380 460", "with the viewBox untouched");
 
   window.close();
   await realDataChecks();

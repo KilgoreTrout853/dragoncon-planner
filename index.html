@@ -149,7 +149,15 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
    opaque tint, so the route and the streets pass under them rather than
    through their labels; the park is the one green that is not a hotel. */
 .map-wrap { padding: 12px 14px 0; }
-.map { display: block; width: 100%; height: auto; }
+/* The map fits the screen: the header, the chip strip, the caption band
+   and the nav come off the viewport and the SVG takes what is left,
+   keeping its shape, down to a floor below which the tab scrolls instead
+   (the chips stay pinned). --map-chrome is chips + wrap padding + band +
+   nav spacer; the mini-bar adds its height while it shows. */
+.map { display: block; width: 100%; height: auto; margin: 0 auto; --map-chrome: 194px;
+  max-height: max(360px, calc(100dvh - var(--hdr-h, 63px) - var(--map-chrome) - var(--safe-bottom))); }
+body.has-minibar .map { --map-chrome: 242px; }
+.map-under { min-height: 44px; }
 .map-ground { fill: var(--surface); }
 .map-street { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
 .map-street.faint { stroke-width: 2; opacity: .55; }
@@ -1186,8 +1194,8 @@ function renderMap() {
   const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day);
   const chips = CON_DAYS.map(d => chipHTML(DAY_LABEL[d], day === d, "map-day", d)).join("");
   const offLine = off ? `<div class="map-offmap">${off} pick${off === 1 ? "" : "s"} streaming or offsite</div>` : "";
-  document.getElementById("view-map").innerHTML = `<div class="controls"><div class="chips" data-row="map-day">${chips}</div></div>
-    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts)}${st ? mapCaptionHTML(st) : ""}${offLine}</div>`;
+  document.getElementById("view-map").innerHTML = `<div class="controls controls-sticky"><div class="chips" data-row="map-day">${chips}</div></div>
+    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts)}<div class="map-under">${st ? mapCaptionHTML(st) : ""}${offLine}</div></div>`;
   lastMapSig = mapSignature(day, st, counts, off);
 }
 
