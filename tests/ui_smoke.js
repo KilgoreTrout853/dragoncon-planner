@@ -1702,6 +1702,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/\.tl-block\.tight \.tb-title \{[^}]*text-overflow: ellipsis/.test(html) && /\.tl-block\.tighter \.tb-room \{ display: none/.test(html)
     && /function fitTimelineBlocks\(\)[\s\S]{0,400}scrollHeight > b\.clientHeight/.test(html) && /innerHTML = html;\s*fitTimelineBlocks\(\);/.test(html),
     "timeline blocks that cannot hold their text give way by measurement: one-line title first, then no room");
+  assert(/\.tl-hour span \{[^}]*white-space: nowrap/.test(html) && /\.tl-grid \{[^}]*margin-left: 3rem/.test(html) && /\.tl-hour \{[^}]*left: -3rem/.test(html), "the hour gutter is in rem and its labels never wrap");
   assert(/saveJSON\("dc26\.bigtext", e\.target\.checked\);\s*syncHeaderHeight\(\);\s*render\(\);/.test(html), "toggling re-measures the header and re-renders, so the timeline refits");
   window.eval("closeSheet()"); await sleep(10);
 

@@ -499,9 +499,10 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
 }
 .view-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--text); border-color: var(--gold); }
 .tl-day { padding: 0 14px 22px; }
-.tl-grid { position: relative; margin-left: 46px; }
-.tl-hour { position: absolute; left: -46px; right: 0; height: 0; border-top: 1px solid var(--line); }
-.tl-hour span { position: absolute; left: 0; top: -8px; font-size: .75rem; color: var(--dim); width: 42px; }
+/* The hour gutter is in rem so Larger text widens it with its labels. */
+.tl-grid { position: relative; margin-left: 3rem; }
+.tl-hour { position: absolute; left: -3rem; right: 0; height: 0; border-top: 1px solid var(--line); }
+.tl-hour span { position: absolute; left: 0; top: -8px; font-size: .75rem; color: var(--dim); white-space: nowrap; }
 .tl-block {
   position: absolute; overflow: hidden; border-radius: 8px; cursor: pointer; text-align: left;
   background: var(--h); border: 0; padding: 5px 7px; color: var(--ink); font: inherit;
