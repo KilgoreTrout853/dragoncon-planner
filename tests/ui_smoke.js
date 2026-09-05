@@ -1661,6 +1661,27 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/RECHECK_MS = 15 \* 60000/.test(html) && /document\.addEventListener\("visibilitychange"/.test(html) && /addEventListener\("pageshow"/.test(html), "the interval is 15 minutes, on visibilitychange and pageshow");
   assert(/t === "schedule-updated"\) \{[\s\S]{0,200}meta\.generated_at = e\.data\.generated_at; updateFresh\(\);/.test(html), "with a worker, its schedule-updated message carries the new generated_at into the freshness text");
 
+  // ---- polish 6: Settings, the everyday two up top and the rest under Advanced ----
+  window.eval(`openSheet("settings")`); await sleep(20);
+  const setPanel = document.getElementById("panel-settings"), adv = document.getElementById("advanced");
+  const setKids = [...setPanel.children];
+  assert(setKids[0].id === "sheetTitle" && setKids[1].contains(document.getElementById("crowd")) && setKids[2].contains(document.getElementById("noiseDefault")), "Crowd factor and Hide photo sessions come first");
+  assert(adv && adv.tagName === "DETAILS" && setKids[3] === adv && !adv.open && adv.querySelector("summary").textContent.trim() === "Advanced", "then a collapsed Advanced section");
+  assert(["previewTime", "applyPreview", "clearPreview", "walkTable", "deviceLine"].every(id => adv.contains(document.getElementById(id))), "holding the preview clock, the walk-time defaults and the device readout with the build stamp");
+  assert(/ · build \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/.test(document.getElementById("deviceLine").textContent), "the build stamp is still filled in behind the fold");
+  const setBtns = [...setPanel.querySelectorAll("button")].filter(b => !adv.contains(b));
+  assert(setBtns.map(b => b.id).join(",") === "closeSheet,resetPicks", `outside Advanced only Done and Remove all picks remain, in that order (${setBtns.map(b => b.id).join(",")})`);
+  const reset = document.getElementById("resetPicks");
+  assert(reset === [...setPanel.querySelectorAll("button, input, select, summary")].pop() && reset.classList.contains("danger") && !adv.contains(reset) && reset.parentElement !== document.getElementById("closeSheet").parentElement,
+    "Remove all picks is last, still destructive, outside Advanced and on its own row");
+  assert(/\.advanced-body \{[^}]*overflow-y: auto/.test(html) && /\.advanced-body \{[^}]*touch-action: pan-y/.test(html), "Advanced scrolls inside the sheet when it is long");
+  adv.open = true; await sleep(10);
+  window.eval("closeSheet()"); await sleep(10);
+  window.eval(`openSheet("settings")`); await sleep(20);
+  assert(document.getElementById("advanced").open === true, "opening Settings again leaves Advanced as you left it; the sheet does not force it shut");
+  document.getElementById("advanced").open = false;
+  window.eval("closeSheet()"); await sleep(10);
+
   window.close();
   await realDataChecks();
   console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); process.exit(process.exitCode || 0);

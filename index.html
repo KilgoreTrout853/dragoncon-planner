@@ -406,6 +406,11 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .sheet input[type="range"] { width: 100%; accent-color: var(--gold); }
 .sheet input[type="datetime-local"] { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); }
 .sheet .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Settings: the two everyday controls up top; the rest folds under
+   Advanced, which scrolls on its own inside the sheet. Remove all picks
+   is last and on its own, away from Done. */
+.advanced > summary { color: var(--muted); cursor: pointer; font-size: 15px; font-weight: 600; padding: 4px 0; }
+.advanced-body { display: grid; gap: 16px; padding-top: 12px; max-height: 45vh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
 .walk-table { font-size: 14px; color: var(--muted); }
 .walk-table td { padding: 2px 6px 2px 0; }
 
@@ -582,21 +587,28 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
       <input type="range" id="crowd" min="1" max="2.5" step="0.1">
     </label>
     <label class="toggle"><input type="checkbox" id="noiseDefault"> Hide photo sessions and video-room screenings by default</label>
-    <label>Preview a different time (leave blank to use the real clock)
-      <input type="datetime-local" id="previewTime">
-    </label>
-    <div class="rowbtns">
-      <button class="btn quiet" id="applyPreview">Apply preview time</button>
-      <button class="btn quiet" id="clearPreview">Use real time</button>
-    </div>
-    <details>
-      <summary style="color:var(--muted);cursor:pointer">Walk-time defaults (minutes, before crowd factor)</summary>
-      <table class="walk-table" id="walkTable"></table>
+    <details class="advanced" id="advanced">
+      <summary>Advanced</summary>
+      <div class="advanced-body">
+        <label>Preview a different time (leave blank to use the real clock)
+          <input type="datetime-local" id="previewTime">
+        </label>
+        <div class="rowbtns">
+          <button class="btn quiet" id="applyPreview">Apply preview time</button>
+          <button class="btn quiet" id="clearPreview">Use real time</button>
+        </div>
+        <details>
+          <summary style="color:var(--muted);cursor:pointer">Walk-time defaults (minutes, before crowd factor)</summary>
+          <table class="walk-table" id="walkTable"></table>
+        </details>
+        <div class="device" id="deviceLine"></div>
+      </div>
     </details>
-    <div class="device" id="deviceLine"></div>
+    <div class="rowbtns">
+      <button class="btn" id="closeSheet">Done</button>
+    </div>
     <div class="rowbtns">
       <button class="btn danger" id="resetPicks">Remove all picks</button>
-      <button class="btn" id="closeSheet">Done</button>
     </div>
     </div>
     <div class="sheet-panel" id="panel-event" hidden></div>
