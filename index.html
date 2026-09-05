@@ -175,8 +175,6 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .map-ring.next { stroke-width: 2; animation: map-pulse 1.6s ease-in-out infinite; }
 @keyframes map-pulse { 0%, 100% { stroke-opacity: 1; stroke-width: 2; } 50% { stroke-opacity: .35; stroke-width: 4; } }
 @media (prefers-reduced-motion: reduce) { .map-ring.next { animation: none; } }
-.map-route { fill: none; stroke: var(--gold); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; opacity: .75; pointer-events: none; }
-.map-leave line { stroke: var(--gold); stroke-width: 2; stroke-dasharray: 5 4; stroke-linecap: round; pointer-events: none; }
 .map-caption { padding-top: 10px; font-size: 15px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
 .map-caption .late { color: var(--warn); }
 .map-offmap { padding-top: 4px; font-size: 14px; color: var(--muted); }
@@ -1095,7 +1093,6 @@ function hotelSheetHTML(hotel, day) {
     <div class="ev-actions"><button class="btn" id="closeSheetHotel">Done</button></div>`;
 }
 
-const mapCentre = b => ({x: b.x + b.w / 2, y: b.y + b.h / 2});
 /* What today's overlay is made of, computed once per render: the on-now and
    next picks, where the reader is, and the hero's leave-by. Null on any day
    but the one the clock is in. */
@@ -1116,15 +1113,6 @@ function mapRingsSVG(st) {
     return `<rect class="map-ring ${cls}" data-hotel="${esc(h)}" x="${b.x - pad}" y="${b.y - pad}" width="${b.w + 2 * pad}" height="${b.h + 2 * pad}" rx="${(b.park ? 6 : 10) + pad}"/>`;
   };
   return (st.onNow ? ring(st.onNow.hotel, "now") : "") + (st.next ? ring(st.next.hotel, "next") : "");
-}
-/* A dashed gold line from where the reader is to the next pick's hotel,
-   centre to centre, in the route's layer beneath the blocks so it never
-   crosses one. The caption under the map carries the words. */
-function mapLeaveSVG(from, to) {
-  const A = MAP_HOTELS[from], B = MAP_HOTELS[to];
-  if (!A || !B || from === to) return "";
-  const a = mapCentre(A), b = mapCentre(B);
-  return `<g class="map-leave" data-from="${esc(from)}" data-to="${esc(to)}"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/></g>`;
 }
 /* One line under the map for today: where you are and where you are going
    with the hero's leave-by, or just what is next when there is no walk to
@@ -1147,20 +1135,6 @@ function mapCaptionHTML(st) {
 /* Picks that day at venues the map does not draw: streams and offsite. */
 const mapOffMapCount = day => events.filter(e => picks.has(e.id) && e._cd === day && !MAP_HOTELS[e.hotel]).length;
 
-/* The day's picks as a path through their hotels in time order, so the
-   shape of the day shows at a glance. A pick in the same hotel as the one
-   before it adds nothing. Drawn beneath the blocks and the pills. */
-function mapRouteSVG(day) {
-  const stops = [];
-  events.forEach(e => {
-    if (!picks.has(e.id) || e._cd !== day || !MAP_HOTELS[e.hotel]) return;
-    if (stops[stops.length - 1] !== e.hotel) stops.push(e.hotel);
-  });
-  if (stops.length < 2) return "";
-  const pts = stops.map(h => { const c = mapCentre(MAP_HOTELS[h]); return `${c.x},${c.y}`; }).join(" ");
-  return `<polyline class="map-route" data-stops="${esc(stops.join("|"))}" points="${pts}"/>`;
-}
-
 function mapSVG(day, st = mapNowState(day), counts = mapCounts(day)) {
   const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="40" x2="${x}" y2="${MAP_H - 20}"/>
     <text class="map-street-label" transform="translate(${x - 7} 140) rotate(-90)">${name} St</text>`;
@@ -1173,12 +1147,11 @@ function mapSVG(day, st = mapNowState(day), counts = mapCounts(day)) {
     <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.park ? 6 : 10}"/>
     <text${label.length > 8 ? ' class="long"' : ""} x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(label)}</text></g>`; }).join("");
   const pills = Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h])).join("");
-  const route = mapRouteSVG(day), rings = mapRingsSVG(st);
-  const leave = st && st.next && st.from && st.info && st.info.leaveBy ? mapLeaveSVG(st.from, st.next.hotel) : "";
+  const rings = mapRingsSVG(st);
   return `<svg class="map" viewBox="0 0 ${MAP_W} ${MAP_H}" role="group" aria-label="Schematic map of the con hotels, not to scale">
     <rect class="map-ground" width="${MAP_W}" height="${MAP_H}" rx="14"/>
     ${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
-    ${bridges}${route}${leave}${blocks}${rings}${pills}</svg>`;
+    ${bridges}${blocks}${rings}${pills}</svg>`;
 }
 
 /* The day the map shows: the one tapped, else the con day the clock is in,
