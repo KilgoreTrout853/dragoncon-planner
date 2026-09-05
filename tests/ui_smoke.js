@@ -12,7 +12,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
 (async () => {
   await sleep(50);
   assert(text("clock").startsWith("Sat 1:05 PM"), "clock shows preview time: " + text("clock"));
-  assert(/\d+ events, refreshed/.test(text("fresh")), "freshness line: " + text("fresh"));
+  assert(/[\d,]+ events · refreshed/.test(text("fresh")), "freshness line: " + text("fresh"));
   const now = document.getElementById("view-now");
   assert(now.textContent.includes("Nothing picked"), "empty picks state on Now");
   const onNowRows = now.querySelectorAll(".row").length;
@@ -1357,7 +1357,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval("servedOffline = true; updateFresh();"); await sleep(10);
   assert(/offline copy/.test(document.getElementById("fresh").textContent),
     `a cached copy is labelled (${document.getElementById("fresh").textContent})`);
-  assert(/\d+ events, refreshed/.test(document.getElementById("fresh").textContent), "the existing freshness line survives");
+  assert(/[\d,]+ events · refreshed/.test(document.getElementById("fresh").textContent), "the existing freshness line survives");
   window.eval("servedOffline = false; updateFresh();"); await sleep(10);
   assert(!/offline copy/.test(document.getElementById("fresh").textContent), "the marker clears when back online");
 
@@ -1631,6 +1631,23 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const busy = JSON.parse(window.eval(`(function(){ var extra = events.find(function(e){ return e._cd === "2026-09-05" && e.hotel === "Hyatt" && !picks.has(e.id); }); picks.add(extra.id); savePicks(); return JSON.stringify([tickMap(), __mapRenders, tickMap(), __mapRenders]); })()`));
   assert(busy[0] === true && busy[1] === 1 && busy[2] === false && busy[3] === 1, "a change in the counts draws once, and the next quiet tick draws nothing");
   window.eval(`renderMap = __renderMapReal; picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
+
+  // ---- polish 1: a compact header ----
+  const hdrLine = document.querySelector(".hdr .hdr-line");
+  assert(hdrLine && hdrLine.contains(document.getElementById("clock")) && hdrLine.contains(document.getElementById("fresh")), "the clock and the freshness text share one line");
+  assert(/\.hdr \.hdr-line \{[^}]*white-space: nowrap/.test(html) && /\.hdr \.hdr-line \{[^}]*font-size: clamp\(13px, 4vw, 15px\)/.test(html) && /\.hdr \.hdr-line \{[^}]*font-weight: 700/.test(html) && !/\.hdr \.clock \{/.test(html),
+    "in the clock style at a smaller size that follows the phone's width, and it never wraps");
+  assert(document.querySelector("#fresh .word") && document.querySelector("#fresh .word").textContent === "refreshed " && /\.hdr \.hdr-line\.tight \.word \{ display: none/.test(html)
+    && /function fitHeaderLine\(\)[\s\S]{0,200}scrollWidth > line\.clientWidth/.test(html) && /fitHeaderLine\(\);\n\}/.test(html.replace(/\r\n/g, "\n")),
+    "when the line would clip, the word refreshed goes first, by measurement");
+  assert(/^ · [\d,]+ events · refreshed \d+ (min|h|d) ago/.test(document.getElementById("fresh").textContent), `the freshness text reads as the rest of the line (${document.getElementById("fresh").textContent})`);
+  const brand = document.getElementById("brand");
+  window.eval(`state.tab = "now"; render();`); await sleep(10);
+  assert(brand && !brand.hidden && brand.textContent === "Dragon Con 2026" && /\.hdr \.brand \{[^}]*font-size: 12px/.test(html), "the brand shows on Now as a small label");
+  assert(brand.compareDocumentPosition(hdrLine) & window.Node.DOCUMENT_POSITION_FOLLOWING, "above the line");
+  for (const t of ["browse", "explore", "map", "mine"]) { window.eval(`state.tab = ${JSON.stringify(t)}; render();`); await sleep(10); assert(brand.hidden, `and not on ${t}`); }
+  assert(/document\.getElementById\("brand"\)\.hidden = state\.tab !== "now";\s*syncHeaderHeight\(\);/.test(html), "the header is re-measured when the brand comes and goes");
+  window.eval(`state.tab = "now"; render();`); await sleep(10);
 
   window.close();
   await realDataChecks();

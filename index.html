@@ -96,11 +96,17 @@ button { cursor: pointer; }
 .hdr {
   position: fixed; top: 0; left: 0; right: 0; z-index: 5;
   background: var(--ink); border-bottom: 1px solid var(--line);
-  padding: calc(10px + var(--safe-top)) max(14px, calc(50% - 366px)) 8px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+  padding: calc(10px + var(--safe-top)) max(14px, calc(50% - 366px)) 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
-.hdr .brand { font-size: 13px; color: var(--muted); font-weight: 500; }
-.hdr .clock { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.05; }
-.hdr .fresh { font-size: 13px; color: var(--dim); margin-top: 2px; }
+/* One line: clock, count, freshness. The brand is a small label above it,
+   on the Now tab only; everywhere else the line is the whole header. */
+.hdr .hdr-text { flex: 1; min-width: 0; }
+.hdr .brand { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
+.hdr .hdr-line { font-size: clamp(13px, 4vw, 15px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdr .fresh { color: var(--muted); }
+/* When the line is still too long - a preview clock, a narrow phone - the
+   word "refreshed" goes before anything is clipped. Measured, not guessed. */
+.hdr .hdr-line.tight .word { display: none; }
 .icon-btn {
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
   width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted);
@@ -520,10 +526,9 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
 <body>
 
 <header class="hdr">
-  <div>
-    <div class="brand">Dragon Con 2026</div>
-    <div class="clock" id="clock">…</div>
-    <div class="fresh" id="fresh"></div>
+  <div class="hdr-text">
+    <div class="brand" id="brand">Dragon Con 2026</div>
+    <div class="hdr-line"><span class="clock" id="clock">…</span><span class="fresh" id="fresh"></span></div>
   </div>
   <button class="icon-btn" id="settingsBtn" aria-label="Settings">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -996,11 +1001,9 @@ function updateFresh() {
   const el = document.getElementById("fresh");
   if (!meta.generated_at) { el.textContent = ""; return; }
   const ago = minutesBetween(new Date(meta.generated_at), new Date());
-  const changed = meta.changed_at ? minutesBetween(new Date(meta.changed_at), new Date()) : null;
   const f = m => m < 60 ? `${m} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} d`;
-  el.textContent = `${events.length} events, refreshed ${f(ago)} ago`
-    + (changed !== null && changed !== ago ? `, last change ${f(changed)} ago` : "")
-    + (servedOffline ? " · offline copy" : "");
+  el.innerHTML = ` &middot; ${events.length.toLocaleString("en-US")} events &middot; <span class="word">refreshed </span>${f(ago)} ago`
+    + (servedOffline ? " &middot; offline copy" : "");
   syncHeaderHeight();          // this line is what changes the header's height
 }
 
@@ -1209,6 +1212,8 @@ function render() {
   cancelQueuedBrowseRender();
   updateClock();
   document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  document.getElementById("brand").hidden = state.tab !== "now";
+  syncHeaderHeight();          // the brand comes and goes with the tab, and the spacers follow the header
   ["now", "browse", "explore", "map", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
   const badge = document.getElementById("mineBadge");
   badge.hidden = picks.size === 0; badge.textContent = picks.size;
@@ -1250,6 +1255,16 @@ function updateClock() {
   const now = getNow();
   const preview = location.hash.includes("now=");
   document.getElementById("clock").textContent = `${DAY_LABEL[dayOf(now)] || now.toLocaleDateString(undefined, {weekday: "short"})} ${fmtShort(now)}` + (preview ? " (preview)" : "");
+  fitHeaderLine();
+}
+
+/* The header line must not clip: if it would, hide the word "refreshed"
+   and measure again. jsdom reports no widths, so this is a no-op there. */
+function fitHeaderLine() {
+  const line = document.querySelector(".hdr-line");
+  if (!line) return;
+  line.classList.remove("tight");
+  if (line.scrollWidth > line.clientWidth) line.classList.add("tight");
 }
 
 function rowHTML(ev, opts = {}) {
@@ -2908,6 +2923,7 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) rend
 function syncHeaderHeight() {
   const h = document.querySelector(".hdr");
   if (h) document.documentElement.style.setProperty("--hdr-h", `${Math.round(h.getBoundingClientRect().height)}px`);
+  fitHeaderLine();
 }
 /* Measure at the moments the header is known to change, not only through an
    observer: ResizeObserver is delivered on the rendering lifecycle, so a page
