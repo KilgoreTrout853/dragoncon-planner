@@ -110,6 +110,7 @@ button { cursor: pointer; }
 /* When the line is still too long - a preview clock, a narrow phone - the
    word "refreshed" goes before anything is clipped. Measured, not guessed. */
 .hdr .hdr-line.tight .word { display: none; }
+.hdr .hdr-line.tighter { font-size: .8125rem; }   /* and if that is not enough, a size down */
 .icon-btn {
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
   width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted);
@@ -151,15 +152,15 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
    A schematic of the con hotels. Blocks wear their room-chip hue as an
    opaque tint, so the route and the streets pass under them rather than
    through their labels; the park is the one green that is not a hotel. */
-.map-wrap { padding: 12px 14px 0; }
-/* The map fits the screen: the header, the chip strip, the caption band
-   and the nav come off the viewport and the SVG takes what is left,
-   keeping its shape, down to a floor below which the tab scrolls instead
-   (the chips stay pinned). --map-chrome is chips + wrap padding + band +
-   nav spacer + the view's bottom padding; the mini-bar never shows on this tab. */
-.map { display: block; width: 100%; height: auto; margin: 0 auto; --map-chrome: 207px;
-  max-height: max(360px, calc(100dvh - var(--hdr-h, 63px) - var(--map-chrome) - var(--safe-bottom))); }
-.map-under { min-height: 44px; }
+/* The Map tab fills the screen between header and nav as a column: the chip
+   strip, the map, the card. The SVG takes whatever height the card leaves
+   it, keeping its shape, down to a floor below which the tab scrolls
+   instead (the chips stay pinned). The mini-bar never shows on this tab. */
+#view-map { display: flex; flex-direction: column; min-height: calc(100dvh - var(--hdr-h, 63px) - 76px - var(--safe-bottom)); }
+#view-map .controls-sticky { flex: none; }
+.map-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding: 12px 14px 0; }
+.map { display: block; width: 100%; height: auto; flex: 1 1 0; min-height: 360px; max-height: calc((100vw - 28px) * 460 / 380); margin: 0 auto; }
+.map-under { flex: none; }
 .map-ground { fill: var(--surface); }
 .map-street { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
 .map-street.faint { stroke-width: 2; opacity: .55; }
@@ -178,9 +179,20 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 .map-ring.next { stroke-width: 2; animation: map-pulse 1.6s ease-in-out infinite; }
 @keyframes map-pulse { 0%, 100% { stroke-opacity: 1; stroke-width: 2; } 50% { stroke-opacity: .35; stroke-width: 4; } }
 @media (prefers-reduced-motion: reduce) { .map-ring.next { animation: none; } }
-.map-caption { padding-top: 10px; font-size: .9375rem; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
-.map-caption .late { color: var(--warn); }
-.map-offmap { padding-top: 4px; font-size: .875rem; color: var(--muted); }
+/* The card under the map: the next pick, as the hero sees it. Tappable like
+   the hero, and so is the On now line above it. */
+.next-on { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 10px 2px 0; font: inherit; font-size: .875rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.next-on b { color: var(--text); font-weight: 600; }
+.next-card { display: block; width: 100%; text-align: left; margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer; }
+.next-card .nc-label { font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.next-card .nc-title { font-size: 1.125rem; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.next-card .nc-where { margin-top: 4px; font-size: .875rem; font-weight: 700; color: var(--h); }
+.next-card .nc-when { margin-top: 4px; font-size: .9375rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.next-card .nc-when.leave { color: var(--gold); }
+.next-card .nc-when.late { color: var(--warn); }
+.next-card .nc-walk { margin-top: 2px; font-size: .8125rem; color: var(--muted); }
+.next-card.empty { color: var(--muted); font-size: .9375rem; cursor: default; }
+.map-offmap { padding-top: 6px; font-size: .875rem; color: var(--muted); }
 
 /* Controls ----------------------------------------------------------- */
 .controls { padding: 12px 14px 0; display: grid; gap: 10px; }
@@ -1137,24 +1149,47 @@ function mapRingsSVG(st) {
   };
   return (st.onNow ? ring(st.onNow.hotel, "now") : "") + (st.next ? ring(st.next.hotel, "next") : "");
 }
-/* One line under the map for today: where you are and where you are going
-   with the hero's leave-by, or just what is next when there is no walk to
-   draw - no location yet, the same hotel, or a next pick off the map. */
-function mapCaptionHTML(st) {
-  const {next, from, info} = st;
-  if (!next) return "";
-  const walk = !!(from && info && info.leaveBy && from !== next.hotel && MAP_HOTELS[from] && MAP_HOTELS[next.hotel]);
-  let text, kind;
-  if (walk) {
-    kind = info.late ? "late" : "leave";
-    text = `${esc(hotelShort(from))} &rarr; ${esc(hotelShort(next.hotel))} &middot; ${info.late ? `<span class="late">leave now</span>` : `leave by ${fmtShort(info.leaveBy)}`}`;
-  } else {
-    kind = "next";
-    const where = next.hotel === "Streaming" ? "streaming" : MAP_HOTELS[next.hotel] ? hotelShort(next.hotel) : (next.room || next.location || "offsite");
-    text = `Next: ${esc(where)} &middot; ${fmtShort(next._s)}`;
-  }
-  return `<div class="map-caption" data-kind="${kind}">${text}</div>`;
+/* The card under the map: the next pick, as the hero sees it - the same
+   nowModel, the same leaveInfo. It shows whichever day the map has selected,
+   because it is about now, not about the day being looked at. With nothing
+   left today it shows the first pick of the next con day; with no picks at
+   all, how to get one. */
+function mapCardState() {
+  const now = getNow(), model = nowModel(now), today = conDayKey(now);
+  const next = model.upcoming[0] || null;
+  const later = next ? null : (events.find(e => picks.has(e.id) && e._s > now && conDayKey(e._s) > today) || null);
+  const from = currentLocation(now);
+  return {now, onNow: model.onNowEv, next, later, from, info: next ? leaveInfo(from, next, now) : null};
 }
+/* Where an event is, briefly: a stream is "Streaming", an offsite venue is
+   itself, a hotel is its room and its short name. */
+function placeLine(ev) {
+  if (ev.hotel === "Streaming") return "Streaming";
+  const room = ev.room || ev.location || "Location TBA";
+  return MAP_HOTELS[ev.hotel] ? `${esc(room)} &middot; ${esc(hotelShort(ev.hotel))}` : esc(room);
+}
+function mapCardHTML(cs) {
+  const {now, onNow, next, later, info} = cs;
+  const onLine = onNow ? `<button class="next-on" data-hero="${esc(onNow.id)}">On now: <b>${esc(onNow.title)}</b> &middot; ends ${fmtShort(onNow._e)} &middot; ${esc(onNow.hotel === "Other" ? (onNow.room || "offsite") : hotelShort(onNow.hotel))}</button>` : "";
+  const ev = next || later;
+  if (!ev) return onLine + `<div class="next-card empty">Star things in Search and your next pick shows here.</div>`;
+  let label = "", when, cls = "";
+  if (!next) {
+    const dayKey = conDayKey(ev._s), tomorrow = conDayKey(new Date(now.getTime() + 24 * 3600000));
+    label = `<div class="nc-label">${dayKey === tomorrow ? "Tomorrow" : esc(DAY_LONG[dayKey] || dayKey)}</div>`;
+    when = fmtShort(ev._s);
+  } else if (info && info.leaveBy && info.walk > 0) {
+    /* A leave-by only for a walk that exists: a stream has nowhere to go. */
+    const here = onNow && onNow.hotel === "Other" ? esc(onNow.room || "here") : esc(hotelPhrase(info.from));
+    cls = info.late ? " leave late" : " leave";
+    when = info.late ? `leave ${here} now` : `leave ${here} by ${fmtShort(info.leaveBy)}`;
+  } else {
+    when = `${fmtShort(ev._s)} &middot; in ${fmtMins(minutesBetween(now, ev._s))}`;
+  }
+  const walk = next && info && info.estimate ? `<div class="nc-walk">${esc(info.estimate.label)}</div>` : "";
+  return onLine + `<button class="next-card" data-hero="${esc(ev.id)}" style="--h:var(${hotelVar(ev.hotel)})">${label}<div class="nc-title">${esc(ev.title)}</div><div class="nc-where">${placeLine(ev)}</div><div class="nc-when${cls}">${when}</div>${walk}</button>`;
+}
+const offLineHTML = off => off ? `<div class="map-offmap">${off} pick${off === 1 ? "" : "s"} streaming or offsite</div>` : "";
 /* Picks that day at venues the map does not draw: streams and offsite. */
 const mapOffMapCount = day => events.filter(e => picks.has(e.id) && e._cd === day && !MAP_HOTELS[e.hotel]).length;
 
@@ -1186,30 +1221,44 @@ function mapDay() {
 }
 
 function renderMap() {
-  const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day);
+  const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day), cs = mapCardState();
   const chips = CON_DAYS.map(d => chipHTML(DAY_LABEL[d], day === d, "map-day", d)).join("");
-  const offLine = off ? `<div class="map-offmap">${off} pick${off === 1 ? "" : "s"} streaming or offsite</div>` : "";
   document.getElementById("view-map").innerHTML = `<div class="controls controls-sticky"><div class="chips" data-row="map-day">${chips}</div></div>
-    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts)}<div class="map-under">${st ? mapCaptionHTML(st) : ""}${offLine}</div></div>`;
-  lastMapSig = mapSignature(day, st, counts, off);
+    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts)}<div class="map-under" id="mapUnder">${mapCardHTML(cs)}${offLineHTML(off)}</div></div>`;
+  lastMapSig = mapSignature(day, st, counts);
+  lastCardSig = mapCardSignature(cs, off);
 }
 
-/* The minute tick redraws the map only when what it shows has changed. A
-   redraw restarts the pulse on the next ring, so a quiet minute must leave
-   the SVG alone. */
-let lastMapSig = null;
-function mapSignature(day, st, counts, off) {
-  return JSON.stringify([day, st && st.onNow && st.onNow.id, st && st.next && st.next.id, st && st.from,
-    !!(st && st.info && st.info.late), counts, off]);
+/* The minute tick redraws only what changed. The SVG is redrawn when a ring
+   or a pill would move - a redraw restarts the pulse on the next ring, so a
+   quiet minute must leave it alone. The card is refreshed on its own when
+   its words change, which "in 47 min" does every minute. */
+let lastMapSig = null, lastCardSig = null;
+function mapSignature(day, st, counts) {
+  return JSON.stringify([day, st && st.onNow && st.onNow.id, st && st.next && st.next.id, counts]);
+}
+function mapCardSignature(cs, off) {
+  const ev = cs.next || cs.later;
+  return JSON.stringify([cs.onNow && cs.onNow.id, cs.next && cs.next.id, cs.later && cs.later.id, cs.from,
+    cs.info && cs.info.leaveBy ? [String(cs.info.leaveBy), cs.info.late] : ev ? minutesBetween(cs.now, ev._s) : null,
+    cs.info && cs.info.estimate ? cs.info.estimate.label : null, off]);
 }
 function tickMap() {
-  const day = mapDay();
-  if (mapSignature(day, mapNowState(day), mapCounts(day), mapOffMapCount(day)) === lastMapSig) return false;
-  const rows = chipRowsSnapshot();
-  renderMap();
-  chipRowsRestore(rows);
+  const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day), cs = mapCardState();
+  if (mapSignature(day, st, counts) !== lastMapSig) {
+    const rows = chipRowsSnapshot();
+    renderMap();
+    chipRowsRestore(rows);
+    return true;
+  }
+  const csig = mapCardSignature(cs, off);
+  if (csig === lastCardSig) return false;
+  const under = document.getElementById("mapUnder");
+  if (under) under.innerHTML = mapCardHTML(cs) + offLineHTML(off);
+  lastCardSig = csig;
   return true;
 }
+
 
 function render() {
   cancelQueuedBrowseRender();
@@ -1268,8 +1317,9 @@ function updateClock() {
 function fitHeaderLine() {
   const line = document.querySelector(".hdr-line");
   if (!line) return;
-  line.classList.remove("tight");
+  line.classList.remove("tight", "tighter");
   if (line.scrollWidth > line.clientWidth) line.classList.add("tight");
+  if (line.scrollWidth > line.clientWidth) line.classList.add("tighter");
 }
 
 function rowHTML(ev, opts = {}) {
