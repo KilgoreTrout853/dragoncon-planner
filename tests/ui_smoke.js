@@ -1601,6 +1601,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(document.querySelector("#fresh .word") && document.querySelector("#fresh .word").textContent === "refreshed " && /\.hdr \.hdr-line\.tight \.word \{ display: none/.test(html)
     && /function fitHeaderLine\(\)[\s\S]{0,200}scrollWidth > line\.clientWidth/.test(html) && /fitHeaderLine\(\);\n\}/.test(html.replace(/\r\n/g, "\n")),
     "when the line would clip, the word refreshed goes first, by measurement");
+  assert(/\.hdr \.hdr-line\.tighter \{ font-size: \.8125rem/.test(html) && /classList\.add\("tighter"\)/.test(html), "and if that is not enough, the line steps down a size");
   assert(/^ · [\d,]+ events · refreshed \d+ (min|h|d) ago/.test(document.getElementById("fresh").textContent), `the freshness text reads as the rest of the line (${document.getElementById("fresh").textContent})`);
   const brand = document.getElementById("brand");
   window.eval(`state.tab = "now"; render();`); await sleep(10);

@@ -110,6 +110,7 @@ button { cursor: pointer; }
 /* When the line is still too long - a preview clock, a narrow phone - the
    word "refreshed" goes before anything is clipped. Measured, not guessed. */
 .hdr .hdr-line.tight .word { display: none; }
+.hdr .hdr-line.tighter { font-size: .8125rem; }   /* and if that is not enough, a size down */
 .icon-btn {
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
   width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted);
@@ -1316,8 +1317,9 @@ function updateClock() {
 function fitHeaderLine() {
   const line = document.querySelector(".hdr-line");
   if (!line) return;
-  line.classList.remove("tight");
+  line.classList.remove("tight", "tighter");
   if (line.scrollWidth > line.clientWidth) line.classList.add("tight");
+  if (line.scrollWidth > line.clientWidth) line.classList.add("tighter");
 }
 
 function rowHTML(ev, opts = {}) {
