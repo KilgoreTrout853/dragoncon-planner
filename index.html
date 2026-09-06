@@ -152,17 +152,18 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
    A schematic of the con hotels. Blocks wear their room-chip hue as an
    opaque tint, so the route and the streets pass under them rather than
    through their labels; the park is the one green that is not a hotel. */
-/* The Map tab is a column between header and nav: the chip strip, the map,
-   the card. Width first: the SVG takes the content width and its height
-   follows from the frame. Only when header, chips, map, card and nav would
-   not fit the viewport does it shrink to fit, centred, down to a floor
-   below which the tab scrolls with the chips pinned. The mini-bar never
-   shows on this tab. */
-#view-map { display: flex; flex-direction: column; height: calc(100dvh - var(--hdr-h, 63px) - 76px - var(--safe-bottom)); }
-#view-map .controls-sticky { flex: none; }
-.map-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding: 12px 14px 0; }
-.map { display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px; }
-.map-under { flex: none; }
+/* The Map tab stacks: the chip strip, the map, the card, then the day's
+   picks grouped by hotel. Width first: the SVG takes the content width and
+   its height follows from the frame; the list makes the tab scroll, with
+   the chips pinned. The mini-bar never shows on this tab. */
+.map-wrap { padding: 12px 14px 0; }
+.map { display: block; width: 100%; height: auto; }
+.map-list { padding: 4px 0 8px; }
+.map-group-head { margin: 0; padding: 18px 14px 6px; font-size: .9375rem; font-weight: 700; color: var(--h); }
+.map-group-head.flash { animation: map-flash 1.2s ease-out; }
+@keyframes map-flash { 0% { background: color-mix(in srgb, var(--h) 35%, transparent); } 100% { background: transparent; } }
+.map-ended > summary { padding: 18px 14px 6px; font-size: .9375rem; font-weight: 600; color: var(--muted); cursor: pointer; }
+.map-empty { padding: 18px 14px; font-size: .9375rem; color: var(--muted); }
 .map-ground { fill: var(--surface); }
 .map-street { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
 .map-street.faint { stroke-width: 2; opacity: .55; }
@@ -1280,22 +1281,67 @@ function mapDay() {
   return CON_DAYS.includes(d) ? d : "2026-09-03";
 }
 
+/* The selected day's picks under the card, grouped by hotel in the map's
+   block order with the park, streams and offsite venues last; a hotel with
+   no picks has no group. On today, picks that have ended fold away at the
+   bottom. Rows are the ordinary row: star and detail sheet as everywhere. */
+const MAP_GROUP_ORDER = [...Object.keys(MAP_HOTELS), "Streaming", "Other", "Unknown"];
+function mapGroupsHTML(day) {
+  const now = getNow(), today = day === conDayKey(now);
+  const dayPicks = events.filter(e => picks.has(e.id) && e._cd === day);
+  if (!dayPicks.length) return `<div class="map-empty">Nothing picked for ${esc(DAY_LONG[day] || day)}.</div>`;
+  const live = today ? dayPicks.filter(e => e._e > now) : dayPicks, ended = today ? dayPicks.filter(e => e._e <= now) : [];
+  const label = h => h === "Other" ? "Offsite" : h === "Unknown" ? "Elsewhere" : hotelShort(h);
+  const hue = h => h === "Hardy Ivy Park" ? "--park" : hotelVar(h);
+  const rows = list => `<ul class="list compact">${list.map(ev => rowHTML(ev, {list: "map"})).join("")}</ul>`;
+  let html = MAP_GROUP_ORDER.map(h => [h, live.filter(e => e.hotel === h)]).filter(([, list]) => list.length)
+    .map(([h, list]) => `<section class="map-group" data-hotel="${esc(h)}" style="--h:var(${hue(h)})"><h3 class="map-group-head">${esc(label(h))} &middot; ${list.length}</h3>${rows(list)}</section>`).join("");
+  if (ended.length) html += `<details class="map-ended"><summary>Already happened (${ended.length})</summary>${rows(ended)}</details>`;
+  return `<div class="map-list">${html}</div>`;
+}
+/* A tap on a block or its pill goes to that hotel's group in the list and
+   flashes its header. The hotel sheet is still there for code to open; the
+   map no longer does. */
+let mapFlashTimer = null;
+function scrollToMapGroup(hotel) {
+  const view = document.getElementById("view-map");
+  const ended = view.querySelector(".map-ended");
+  const inFold = ended && [...ended.querySelectorAll(".row")].some(r => (byId.get(r.dataset.id) || {}).hotel === hotel);
+  const target = view.querySelector(`.map-group[data-hotel="${cssEsc(hotel)}"]`) || (inFold ? ended : null) || view.querySelector(".map-empty");
+  if (!target) return;
+  const head = target.querySelector(".map-group-head") || target.querySelector("summary") || target;
+  const sticky = view.querySelector(".controls-sticky");
+  const hdr = parseFloat(document.documentElement.style.getPropertyValue("--hdr-h")) || 0;
+  const top = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + pageScrollTop() - hdr - (sticky ? sticky.offsetHeight : 0);
+  pageScrollTo(Math.max(0, top), true);
+  head.classList.remove("flash"); void head.offsetWidth; head.classList.add("flash");
+  clearTimeout(mapFlashTimer);
+  mapFlashTimer = setTimeout(() => head.classList.remove("flash"), 1300);
+}
+
 function renderMap() {
   const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day), cs = mapCardState();
   const chips = CON_DAYS.map(d => chipHTML(DAY_LABEL[d], day === d, "map-day", d)).join("");
   document.getElementById("view-map").innerHTML = `<div class="controls controls-sticky"><div class="chips" data-row="map-day">${chips}</div></div>
-    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts)}<div class="map-under" id="mapUnder">${mapCardHTML(cs)}${offLineHTML(off)}</div></div>`;
+    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts)}<div class="map-under" id="mapUnder">${mapCardHTML(cs)}${offLineHTML(off)}</div></div>${mapGroupsHTML(day)}`;
   lastMapSig = mapSignature(day, st, counts);
   lastCardSig = mapCardSignature(cs, off);
+  lastListSig = mapListSignature(day);
 }
 
 /* The minute tick redraws only what changed. The SVG is redrawn when a ring
    or a pill would move - a redraw restarts the pulse on the next ring, so a
    quiet minute must leave it alone. The card is refreshed on its own when
    its words change, which "in 47 min" does every minute. */
-let lastMapSig = null, lastCardSig = null;
+let lastMapSig = null, lastCardSig = null, lastListSig = null;
 function mapSignature(day, st, counts) {
   return JSON.stringify([day, st && st.onNow && st.onNow.id, st && st.next && st.next.id, counts]);
+}
+/* The list under the card: the day's picks, with a mark on those that have
+   ended today, since ending moves a pick into the fold. */
+function mapListSignature(day) {
+  const now = getNow(), today = day === conDayKey(now);
+  return events.filter(e => picks.has(e.id) && e._cd === day).map(e => e.id + (today && e._e <= now ? "!" : "")).join(",");
 }
 function mapCardSignature(cs, off) {
   const ev = cs.next || cs.later;
@@ -1311,11 +1357,13 @@ function tickMap() {
     chipRowsRestore(rows);
     return true;
   }
-  const csig = mapCardSignature(cs, off);
-  if (csig === lastCardSig) return false;
+  const csig = mapCardSignature(cs, off), lsig = mapListSignature(day);
+  if (csig === lastCardSig && lsig === lastListSig) return false;
   const under = document.getElementById("mapUnder");
-  if (under) under.innerHTML = mapCardHTML(cs) + offLineHTML(off);
-  lastCardSig = csig;
+  if (under && csig !== lastCardSig) under.innerHTML = mapCardHTML(cs) + offLineHTML(off);
+  const list = document.querySelector("#view-map .map-list, #view-map .map-empty");
+  if (list && lsig !== lastListSig) list.outerHTML = mapGroupsHTML(day);
+  lastCardSig = csig; lastListSig = lsig;
   return true;
 }
 
@@ -2639,7 +2687,7 @@ document.querySelector("main").addEventListener("click", e => {
     return;
   }
   const mapHotel = e.target.closest(".map-hotel, .map-pill");
-  if (mapHotel) { openSheet("hotel", mapHotel.dataset.hotel); return; }
+  if (mapHotel) { scrollToMapGroup(mapHotel.dataset.hotel); return; }
   const act = e.target.closest("[data-act]");
   if (act) {
     const a = act.dataset.act;
@@ -2794,7 +2842,7 @@ document.querySelector("main").addEventListener("input", e => {
 document.querySelector("main").addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target && e.target.id === "q") { e.preventDefault(); e.target.blur(); }
   const block = (e.key === "Enter" || e.key === " ") && e.target && e.target.closest && e.target.closest(".map-hotel");
-  if (block) { e.preventDefault(); openSheet("hotel", block.dataset.hotel); }
+  if (block) { e.preventDefault(); scrollToMapGroup(block.dataset.hotel); }
 });
 document.querySelector("main").addEventListener("change", e => {
   if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }
