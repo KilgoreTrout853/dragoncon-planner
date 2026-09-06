@@ -1746,7 +1746,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
         walk: g(".nc-walk"), hue: card ? card.getAttribute("style") : null, blockHue: blockHue, on: onl ? onl.textContent.trim() : null, onHero: onl ? onl.dataset.hero : null}; };
     var out = {};
     picks = new Set([prev.id, next.id]); savePicks(); out.plain = read();
-    out.plainExpect = {title: next.title, where: (next.room || next.location) + " · " + hotelShort(next.hotel), when: fmtShort(next._s) + " · in " + fmtMins(Math.round((next._s - n) / 60000)), walk: leaveInfo(null, next, n).estimate.label, id: next.id};
+    out.plainExpect = {title: next.title, where: hotelShort(next.hotel) + " · " + (next.room || next.location), when: fmtShort(next._s) + " · in " + fmtMins(Math.round((next._s - n) / 60000)), walk: leaveInfo(null, next, n).estimate.label, id: next.id};
     picks = new Set([on.id, next.id]); savePicks(); out.onNow = read();
     var info = leaveInfo(on.hotel, next, n);
     out.onNowExpect = {when: info.late ? "leave " + hotelPhrase(on.hotel) + " now" : "leave " + hotelPhrase(on.hotel) + " by " + fmtShort(info.leaveBy), late: info.late,
@@ -1854,6 +1854,24 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const burstTotal = window.eval("__burstCount()"); window.eval("__burstRestore()");
   assert(burst.during === 0 && burstTotal === 1 && window.eval("SEARCH_DEBOUNCE_MS") === 70, `${burst.keystrokes} keystrokes draw once, ${window.eval("SEARCH_DEBOUNCE_MS")} ms after the last (${burstTotal} renders)`);
   window.eval(`(function(){ var box = document.getElementById("q"); box.value = ""; state.browse.q = ""; state.browse.prevDay = null; state.browse.day = null; state.browse.hideNoise = settings.hideNoise; state.tab = "now"; render(); })()`); await sleep(20);
+
+  // ---- the hero, the mini-bar and the map card use the Hotel · Room convention ----
+  const hr = JSON.parse(window.eval(`(function(){
+    var saved = [...picks], n = getNow();
+    var on = events.find(function(e){ return e._s <= n && n < e._e && MAP_HOTELS[e.hotel] && e.room; });
+    var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && MAP_HOTELS[e.hotel] && e.room && e.hotel !== on.hotel; });
+    picks = new Set([on.id, next.id]); savePicks(); state.tab = "now"; render();
+    var hero = document.querySelector("#view-now .hero .hroom").textContent.replace(/\\s+/g, " ").trim();
+    state.tab = "browse"; render();
+    var bar = document.querySelector("#minibar .mb-room").textContent.replace(/\\s+/g, " ").trim();
+    state.tab = "map"; state.map.day = null; render();
+    var card = document.querySelector("#view-map .next-card .nc-where").textContent.replace(/\\s+/g, " ").trim();
+    picks = new Set(saved); savePicks(); state.tab = "now"; render();
+    return JSON.stringify({hero: hero, heroWant: hotelShort(on.hotel) + " · " + on.room, bar: bar, barWant: hotelShort(next.hotel) + " · " + next.room, card: card}); })()`));
+  assert(hr.hero === hr.heroWant, `the hero's room line reads hotel, dot, room (${hr.hero})`);
+  assert(hr.bar === hr.barWant, `and so does the mini-bar (${hr.bar})`);
+  assert(hr.card === hr.barWant, `and the map's card, which used to put the room first (${hr.card})`);
+  assert(!/placeLine/.test(html) && (html.match(/placeHTML\(/g) || []).length >= 5, "one helper serves rows, sheet, hero, mini-bar and card");
 
   window.close();
   await realDataChecks();

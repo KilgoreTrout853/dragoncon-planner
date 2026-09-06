@@ -1221,13 +1221,6 @@ function mapCardState() {
   const from = currentLocation(now);
   return {now, onNow: model.onNowEv, next, later, from, info: next ? leaveInfo(from, next, now) : null};
 }
-/* Where an event is, briefly: a stream is "Streaming", an offsite venue is
-   itself, a hotel is its room and its short name. */
-function placeLine(ev) {
-  if (ev.hotel === "Streaming") return "Streaming";
-  const room = ev.room || ev.location || "Location TBA";
-  return MAP_HOTELS[ev.hotel] ? `${esc(room)} &middot; ${esc(hotelShort(ev.hotel))}` : esc(room);
-}
 function mapCardHTML(cs) {
   const {now, onNow, next, later, info} = cs;
   const onLine = onNow ? `<button class="next-on" data-hero="${esc(onNow.id)}">On now: <b>${esc(onNow.title)}</b> &middot; ends ${fmtShort(onNow._e)} &middot; ${esc(onNow.hotel === "Other" ? (onNow.room || "offsite") : hotelShort(onNow.hotel))}</button>` : "";
@@ -1247,7 +1240,7 @@ function mapCardHTML(cs) {
     when = `${fmtShort(ev._s)} &middot; in ${fmtMins(minutesBetween(now, ev._s))}`;
   }
   const walk = next && info && info.estimate ? `<div class="nc-walk">${esc(info.estimate.label)}</div>` : "";
-  return onLine + `<button class="next-card" data-hero="${esc(ev.id)}" style="--h:var(${hotelVar(ev.hotel)})">${label}<div class="nc-title">${esc(ev.title)}</div><div class="nc-where">${placeLine(ev)}</div><div class="nc-when${cls}">${when}</div>${walk}</button>`;
+  return onLine + `<button class="next-card" data-hero="${esc(ev.id)}" style="--h:var(${hotelVar(ev.hotel)})">${label}<div class="nc-title">${esc(ev.title)}</div><div class="nc-where">${placeHTML(ev)}</div><div class="nc-when${cls}">${when}</div>${walk}</button>`;
 }
 const offLineHTML = off => off ? `<div class="map-offmap">${off} pick${off === 1 ? "" : "s"} streaming or offsite</div>` : "";
 /* Picks that day at venues the map does not draw: streams and offsite. */
@@ -1358,7 +1351,7 @@ function renderMiniBar() {
   bar.classList.toggle("late", !!(info && info.late));
   bar.innerHTML = `<span class="mb-body">
       <span class="mb-title">${esc(next.title)}</span>
-      <span class="mb-room" style="--h:var(${hotelVar(next.hotel)})">${esc(next.room || next.location || "Location TBA")}</span>
+      <span class="mb-room" style="--h:var(${hotelVar(next.hotel)})">${placeHTML(next)}</span>
     </span><span class="mb-when">${esc(when)}</span>`;
   bar.setAttribute("aria-label", `Next: ${next.title}, ${when}. Go to Now.`);
   bar.hidden = false;
@@ -1503,7 +1496,6 @@ function ringHTML(fraction, minutes, late) {
 
 function heroHTML(ev, now, onNow, thenNext) {
   const from = currentLocation(now);
-  const room = ev.room || ev.location || "Location TBA";
   let kicker, leaveLine = "", thenLine = "", target, windowStart, late = false;
 
   if (onNow) {
@@ -1541,7 +1533,7 @@ function heroHTML(ev, now, onNow, thenNext) {
     <div class="hbody">
       <div class="hkicker">${kicker}</div>
       <div class="htitle">${esc(ev.title)}</div>
-      <div class="hroom" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</div>
+      <div class="hroom" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</div>
       ${leaveLine}${thenLine}
     </div>
   </button>`;
