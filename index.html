@@ -152,14 +152,16 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
    A schematic of the con hotels. Blocks wear their room-chip hue as an
    opaque tint, so the route and the streets pass under them rather than
    through their labels; the park is the one green that is not a hotel. */
-/* The Map tab fills the screen between header and nav as a column: the chip
-   strip, the map, the card. The SVG takes whatever height the card leaves
-   it, keeping its shape, down to a floor below which the tab scrolls
-   instead (the chips stay pinned). The mini-bar never shows on this tab. */
-#view-map { display: flex; flex-direction: column; min-height: calc(100dvh - var(--hdr-h, 63px) - 76px - var(--safe-bottom)); }
+/* The Map tab is a column between header and nav: the chip strip, the map,
+   the card. Width first: the SVG takes the content width and its height
+   follows from the frame. Only when header, chips, map, card and nav would
+   not fit the viewport does it shrink to fit, centred, down to a floor
+   below which the tab scrolls with the chips pinned. The mini-bar never
+   shows on this tab. */
+#view-map { display: flex; flex-direction: column; height: calc(100dvh - var(--hdr-h, 63px) - 76px - var(--safe-bottom)); }
 #view-map .controls-sticky { flex: none; }
 .map-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding: 12px 14px 0; }
-.map { display: block; width: 100%; height: auto; flex: 1 1 0; min-height: 360px; max-height: calc((100vw - 28px) * 460 / 380); margin: 0 auto; }
+.map { display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px; }
 .map-under { flex: none; }
 .map-ground { fill: var(--surface); }
 .map-street { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
@@ -1139,7 +1141,12 @@ function revealChip(chip) {
    Marriott-Hilton bridge crosses Courtland St, as it does in life. Keys
    are the walk table's names, so counts, rings and routes join up by
    hotel. Streams and offsite venues have no place here. */
-const MAP_W = 380, MAP_H = 460;
+const MAP_W = 380;
+/* The frame: the viewBox is cropped to the drawing, with the same inset
+   around it that the card below uses as padding (about 14 px at phone
+   width). Block coordinates stay as they are; only the frame, the streets
+   and their labels are placed against it. */
+const MAP_VIEW = {x: -3, y: 111, w: 385, h: 305};
 const MAP_STREETS = {Peachtree: 110, Courtland: 296};
 const MAP_HOTELS = {
   "AmericasMart":    {x: 12,  y: 216, w: 72, h: 64},
@@ -1247,8 +1254,8 @@ const offLineHTML = off => off ? `<div class="map-offmap">${off} pick${off === 1
 const mapOffMapCount = day => events.filter(e => picks.has(e.id) && e._cd === day && !MAP_HOTELS[e.hotel]).length;
 
 function mapSVG(day, st = mapNowState(day), counts = mapCounts(day)) {
-  const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="40" x2="${x}" y2="${MAP_H - 20}"/>
-    <text class="map-street-label" transform="translate(${x - 7} 140) rotate(-90)">${name} St</text>`;
+  const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="${MAP_VIEW.y}" x2="${x}" y2="${MAP_VIEW.y + MAP_VIEW.h}"/>
+    <text class="map-street-label" transform="translate(${x - 7} 212) rotate(-90)">${name} St</text>`;
   const bridges = MAP_BRIDGES.map(([a, b]) => {
     const A = MAP_HOTELS[a], B = MAP_HOTELS[b], beside = Math.abs(A.y - B.y) < A.h;
     const [x1, y1, x2, y2] = beside ? [A.x + A.w, A.y + A.h / 2, B.x, B.y + B.h / 2] : [A.x + A.w / 2, A.y + A.h, B.x + B.w / 2, B.y];
@@ -1259,8 +1266,8 @@ function mapSVG(day, st = mapNowState(day), counts = mapCounts(day)) {
     <text${label.length > 8 ? ' class="long"' : ""} x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(label)}</text></g>`; }).join("");
   const pills = Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h])).join("");
   const rings = mapRingsSVG(st);
-  return `<svg class="map" viewBox="0 0 ${MAP_W} ${MAP_H}" role="group" aria-label="Schematic map of the con hotels, not to scale">
-    <rect class="map-ground" width="${MAP_W}" height="${MAP_H}" rx="14"/>
+  return `<svg class="map" viewBox="${MAP_VIEW.x} ${MAP_VIEW.y} ${MAP_VIEW.w} ${MAP_VIEW.h}" role="group" aria-label="Schematic map of the con hotels, not to scale">
+    <rect class="map-ground" x="${MAP_VIEW.x}" y="${MAP_VIEW.y}" width="${MAP_VIEW.w}" height="${MAP_VIEW.h}" rx="14"/>
     ${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
     ${bridges}${blocks}${rings}${pills}</svg>`;
 }
