@@ -1773,6 +1773,37 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     streamOnly ? "a change that touches only the card refreshes the card and leaves the SVG untouched" : "(no later stream in the fixture; the card-only refresh is untested here)");
   window.eval(`renderMap = __renderMapReal; picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
 
+  // ---- hotel names next to rooms ----
+  const hl = JSON.parse(window.eval(`(function(){
+    var n = getNow(), today = conDayKey(n);
+    var ev = events.find(function(e){ return e.hotel === "Hilton" && e.room && e._s > n && conDayKey(e._s) === today; });
+    var st = events.find(function(e){ return e.hotel === "Streaming"; });
+    var probe = function(e){ var d = document.createElement("div"); d.innerHTML = placeHTML(e); return {text: d.textContent.replace(/\\s+/g, " ").trim(), rh: d.querySelector(".rh") ? d.querySelector(".rh").textContent : null, rr: d.querySelector(".rr") ? d.querySelector(".rr").textContent : null}; };
+    Object.assign(state.browse, {q: "", day: today, hotel: "Hilton", type: "All", track: "All", fandom: "All", kind: "All", showHidden: false, showPast: false, hideNoise: false, page: 1});
+    state.tab = "browse"; render();
+    var row = document.querySelector('#view-browse .row[data-id="' + ev.id + '"] .room');
+    openSheet("event", ev.id);
+    var sheet = document.querySelector("#panel-event .ev-room");
+    var out = {ev: {hotel: ev.hotel, room: ev.room},
+      row: row ? {text: row.textContent.replace(/\\s+/g, " ").trim(), rh: row.querySelector(".rh").textContent, rr: row.querySelector(".rr") ? row.querySelector(".rr").textContent : null, style: row.getAttribute("style")} : null,
+      sheet: {text: sheet.textContent.replace(/\\s+/g, " ").trim(), style: sheet.getAttribute("style")},
+      stream: st ? probe(st) : null,
+      other: probe({hotel: "Other", room: "Joystick Gamebar", location: "O Joystick Gamebar"}),
+      otherLoc: probe({hotel: "Other", room: "", location: "O Georgia Aquarium"}),
+      otherNone: probe({hotel: "Other", room: "Other", location: "Other"}),
+      blank: probe({hotel: "Hyatt", room: "", location: ""}), unknown: probe({hotel: "Unknown", room: "", location: ""})};
+    closeSheet(); state.browse.hotel = "All"; state.browse.day = null; state.browse.hideNoise = settings.hideNoise; render();
+    return JSON.stringify(out); })()`));
+  assert(hl.row && hl.row.text === `Hilton · ${hl.ev.room}` && hl.row.rh === "Hilton" && hl.row.rr === hl.ev.room && /--h-Hilton/.test(hl.row.style), `a row reads hotel, dot, room, in the hotel's hue (${hl.row && hl.row.text})`);
+  assert(hl.sheet.text === `Hilton · ${hl.ev.room}` && /--h-Hilton/.test(hl.sheet.style), `and so does the detail sheet (${hl.sheet.text})`);
+  assert(hl.stream && hl.stream.text === "Streaming" && hl.stream.rr === null, "a stream is just Streaming");
+  assert(hl.other.text === "Joystick Gamebar" && hl.other.rh === null, "an offsite venue is itself, with no hotel part");
+  assert(hl.otherLoc.text === "Georgia Aquarium", "from the location, without its O marker, when the room is blank");
+  assert(hl.otherNone.text === "Offsite", "and Offsite when nothing names the venue");
+  assert(hl.blank.text === "Hyatt" && hl.blank.rr === null, "a blank room shows the hotel alone");
+  assert(hl.unknown.text === "Location TBA", "no venue at all is Location TBA");
+  assert(/\.room \{[^}]*display: inline-flex/.test(html) && /\.room \.rr \{[^}]*text-overflow: ellipsis/.test(html) && /\.room \.rh \{ flex: none/.test(html), "in a row the room part may be shortened with an ellipsis, the hotel never");
+
   window.close();
   await realDataChecks();
   console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); process.exit(process.exitCode || 0);
