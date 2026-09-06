@@ -196,6 +196,7 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
 
 /* Controls ----------------------------------------------------------- */
 .controls { padding: 12px 14px 0; display: grid; gap: 10px; }
+.search.indexing::placeholder { color: var(--dim); font-style: italic; }
 .search {
   width: 100%; height: 48px; padding: 0 14px; border-radius: 12px;
   background: var(--surface); border: 1px solid var(--line); color: var(--text);
@@ -736,6 +737,12 @@ const STOPWORDS = new Set(["a","an","the","and","or","of","in","on","at","to","f
   "how","can","do","does","should","will","want","wanna","gonna"]);
 const KIND_LABELS = {qa: "Celebrity Q&A", panel: "Fan panel", screening: "Screening", workshop: "Workshop", signing: "Signing", photo: "Photo op", contest: "Contest", performance: "Performance", party: "Party", gaming: "Gaming", reading: "Reading", tour: "Tour", other: "Other"};
 let index = null;
+/* Set while a query is typed before the index exists; run when it does. */
+let pendingQuery = false;
+const SEARCH_PLACEHOLDER = "Search titles, guests, fandoms, words";
+/* Boot timings, ms since navigation, for the times "is it faster" needs a
+   number: data parsed, first screen drawn, index built, suggestions built. */
+const BOOT = {parsed: 0, rendered: 0, indexed: 0, suggested: 0, indexAtRender: null};
 const processTerm = (term) => {
   const t = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return t.length < 2 || STOPWORDS.has(t) ? null : t;
@@ -966,12 +973,40 @@ async function load() {
   hotels = HOTEL_ORDER.filter(h => events.some(e => e.hotel === h));
   hotelChips = [...new Set(hotels.map(hotelGroup))];
   servedOffline = fromNetwork === false;
-  buildIndex();
+  BOOT.parsed = performance.now();
   buildCatalogue();
   applyExploreHash();          // a pasted #explore= link lands on its page
   reconcilePicks();            // picks that vanished or moved since they were starred
   updateFresh();
-  render();
+  render();                    // the first screen, before any index exists
+  BOOT.rendered = performance.now();
+  BOOT.indexAtRender = !!index;
+  scheduleIndexBuild();
+}
+
+/* The search index is the slowest step of boot - about two seconds for
+   3,500 events on a laptop, longer on a phone - and the first screen does
+   not need it. So the tab on screen draws first and the index follows in
+   idle time; the suggestion index (people and fandoms, for the chips under
+   the search box) after that. A query typed before the index exists is
+   held, and runs the moment it can. */
+const idle = fn => (window.requestIdleCallback ? requestIdleCallback(fn, {timeout: 2000}) : setTimeout(fn, 0));
+function scheduleIndexBuild() {
+  idle(() => {
+    buildIndex();
+    BOOT.indexed = performance.now();
+    indexReady();
+    idle(() => {
+      buildSuggestIndex();
+      BOOT.suggested = performance.now();
+      if (state.tab === "browse" && state.browse.q.trim()) queueBrowseRender();   // the suggestion chips can show now
+    });
+  });
+}
+function indexReady() {
+  const box = document.getElementById("q");
+  if (box) { box.placeholder = SEARCH_PLACEHOLDER; box.classList.remove("indexing"); }
+  if (pendingQuery) { pendingQuery = false; if (state.tab === "browse") queueBrowseRender(); }
 }
 
 function buildIndex() {
@@ -984,7 +1019,6 @@ function buildIndex() {
     searchOptions: {processTerm, prefix: t => t.length >= 4, fuzzy: t => t.length > 4 ? 0.2 : false, combineWith: "OR",
       boost: {title: 5, fandoms: 4, speakers: 3, aliases: 2, tracks: 2, kind: 2, topics: 2, description: 1, location: 1}},
   });
-  buildSuggestIndex();
   index.addAll(events.map(e => {
     const tg = e.tags || {};
     const fandoms = (tg.fandoms || []).join(" "), topics = (tg.topics || []).join(" ");
@@ -1956,7 +1990,7 @@ function renderBrowse() {
 
   const dayChips = `${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}`;
   const sticky = `<div class="controls controls-sticky">
-    <input class="search" type="search" id="q" placeholder="Search titles, guests, fandoms, words" value="${esc(b.q)}" autocomplete="off" enterkeyhint="search">
+    <input class="search${index ? "" : " indexing"}" type="search" id="q" placeholder="${index ? SEARCH_PLACEHOLDER : "indexing…"}" value="${esc(b.q)}" autocomplete="off" enterkeyhint="search">
     <div class="chips" data-row="day" id="dayChips">${dayChips}</div>
     </div>`;
   let html = `<div class="controls controls-rest">
@@ -1973,6 +2007,7 @@ function renderBrowse() {
     </div>
     <label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label>
   </div>
+  ${!index && b.q.trim() ? `<div class="empty indexing-note">Indexing the schedule&hellip; your search will run in a moment.</div>` : ""}
   <div class="section-title">${searching ? "Best matches first" : "Results"} <span class="count">${results.length}</span></div>
   ${noExactMatchHTML(results)}<ul class="list">`;
 
@@ -2012,6 +2047,8 @@ function renderBrowse() {
   const q = document.getElementById("q"), rest = document.getElementById("browseRest");
   if (q && rest) {
     if (q.value !== b.q) q.value = b.q;
+    q.placeholder = index ? SEARCH_PLACEHOLDER : "indexing…";
+    q.classList.toggle("indexing", !index);
     document.getElementById("dayChips").innerHTML = dayChips;
     rest.innerHTML = html;
   } else {
@@ -2711,8 +2748,9 @@ function togglePick(id, anchor) {
 }
 const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
 
-/* Long enough to swallow a burst of typing, short enough not to feel laggy. */
-const SEARCH_DEBOUNCE_MS = 140;
+/* Long enough to swallow a burst of typing, short enough not to feel laggy.
+   Chip and suggestion taps do not go through this; they draw at once. */
+const SEARCH_DEBOUNCE_MS = 70;
 let browseRenderTimer = null;
 function queueBrowseRender() {
   clearTimeout(browseRenderTimer);
@@ -2740,8 +2778,9 @@ document.querySelector("main").addEventListener("input", e => {
     state.browse.page = 1;
     /* Rebuilding Browse costs ~120KB of HTML and 2,000 nodes. Doing that on
        every keystroke makes typing lag on a phone; the query itself is already
-       recorded, so only the drawing waits. */
-    queueBrowseRender();
+       recorded, so only the drawing waits. Before the index exists a query
+       cannot run at all: hold it, and indexReady() queues it. */
+    if (index || !now.trim()) queueBrowseRender(); else pendingQuery = true;
   }
 });
 /* The keyboard's return key reads Search and puts the keyboard away. */

@@ -11,6 +11,14 @@ const text = id => document.getElementById(id).textContent.replace(/\s+/g, " ").
 function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 1; } else console.log("ok  ", m); }
 (async () => {
   await sleep(50);
+  // ---- boot: the first screen draws before the search index exists ----
+  const indexAtFirstRender = window.eval("BOOT.indexAtRender");
+  for (let i = 0; i < 500 && !window.eval("!!index && !!suggestIndex"); i++) await sleep(20);
+  const boot = JSON.parse(window.eval("JSON.stringify(BOOT)"));
+  assert(indexAtFirstRender === false && boot.rendered >= boot.parsed && boot.indexed > boot.rendered && boot.suggested > boot.indexed,
+    `the first render happened with no index; the index came ${Math.round(boot.indexed - boot.rendered)} ms later and the suggestion index after it`);
+  assert(/render\(\);\s*\/\/ the first screen, before any index exists\s*BOOT\.rendered = performance\.now\(\);[\s\S]{0,120}scheduleIndexBuild\(\);/.test(html), "boot renders, then schedules the index");
+  assert(/requestIdleCallback\(fn, \{timeout: 2000\}\) : setTimeout\(fn, 0\)/.test(html) && /buildIndex\(\);[\s\S]{0,200}idle\(\(\) => \{\s*buildSuggestIndex\(\);/.test(html), "in idle time, with a plain timeout as the fallback, and the suggestion index in a later idle slot");
   assert(text("clock").startsWith("Sat 1:05 PM"), "clock shows preview time: " + text("clock"));
   assert(/[\d,]+ events · refreshed/.test(text("fresh")), "freshness line: " + text("fresh"));
   const now = document.getElementById("view-now");
@@ -528,7 +536,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(document.getElementById("sheetWrap").hidden, "settings closes");
   // ---- render cost: typing is debounced, the minute tick patches ----
   assert(window.eval("typeof queueBrowseRender") === "function", "browse renders are queued, not immediate");
-  assert(window.eval("SEARCH_DEBOUNCE_MS") >= 80 && window.eval("SEARCH_DEBOUNCE_MS") <= 300,
+  assert(window.eval("SEARCH_DEBOUNCE_MS") >= 60 && window.eval("SEARCH_DEBOUNCE_MS") <= 300,
     `the debounce is in a sensible range (${window.eval("SEARCH_DEBOUNCE_MS")}ms)`);
   /* Earlier steps leave chips set; start from a known filter state. */
   const perfSnapshot = window.eval("JSON.stringify(state.browse)");
@@ -842,7 +850,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     picks = new Set(); savePicks(); render();
     return JSON.stringify({text: t, mins: Math.round((far._s - n) / 60000)}); })()`));
   assert(/ in \d+ h/.test(barText.text), `the mini-bar says hours for a pick ${barText.mins} min out (${barText.text.slice(-24)})`);
-  const placeholder = (html.match(/id="q" placeholder="([^"]+)"/) || [])[1] || "";
+  const placeholder = window.eval("SEARCH_PLACEHOLDER");
   assert(placeholder.length > 0 && placeholder.length <= 40, `the search placeholder fits a phone (${placeholder.length} chars)`);
   assert(window.eval(`cleanRoom("Other", "O Joystick Gamebar")`) === "Joystick Gamebar" && window.eval(`cleanRoom("Other", "Walton Spring Park")`) === "Walton Spring Park"
     && window.eval(`cleanRoom("Hilton", "Salon")`) === "Salon", "an offsite venue loses its O marker and nothing else does");
@@ -1804,6 +1812,40 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(hl.unknown.text === "Location TBA", "no venue at all is Location TBA");
   assert(/\.room \{[^}]*display: inline-flex/.test(html) && /\.room \.rr \{[^}]*text-overflow: ellipsis/.test(html) && /\.room \.rh \{ flex: none/.test(html), "in a row the room part may be shortened with an ellipsis, the hotel never");
 
+  // ---- perf: a query typed before the index is ready waits for it; typing draws once ----
+  const waitTimer = async () => { for (let i = 0; i < 100 && window.eval("browseRenderTimer") !== null; i++) await sleep(20); };
+  const held = JSON.parse(window.eval(`(function(){
+    var savedIndex = index, savedSuggest = suggestIndex; index = null; suggestIndex = null;
+    state.tab = "browse"; Object.assign(state.browse, {q: "", day: "All", prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", showHidden: false, showPast: false, noToday: false, hideNoise: false, page: 1});
+    render();
+    var box = document.getElementById("q"), r = {placeholder: box.placeholder, cls: box.className};
+    box.value = "boroughs"; box.dispatchEvent(new Event("input", {bubbles: true}));
+    r.timer = browseRenderTimer !== null; r.pending = pendingQuery; r.q = state.browse.q;
+    render(); r.note = !!document.querySelector("#view-browse .indexing-note"); r.rowsMeanwhile = document.querySelectorAll("#view-browse .row").length;
+    index = savedIndex; suggestIndex = savedSuggest; indexReady();
+    r.timerAfter = browseRenderTimer !== null; r.pendingAfter = pendingQuery; r.placeholderAfter = box.placeholder; r.clsAfter = box.className;
+    return JSON.stringify(r); })()`));
+  assert(held.placeholder === "indexing…" && /indexing/.test(held.cls) && /\.search\.indexing::placeholder \{[^}]*var\(--dim\)/.test(html), "while the index builds the search box says so, quietly");
+  assert(held.q === "boroughs" && held.pending === true && held.timer === false, "a query typed then is recorded and held, not run");
+  assert(held.note && held.rowsMeanwhile > 0, "a render meanwhile shows the list with a note, not a false empty");
+  assert(held.timerAfter === true && held.pendingAfter === false && held.placeholderAfter === window.eval("SEARCH_PLACEHOLDER") && !/indexing/.test(held.clsAfter),
+    "when the index is ready the held query is queued and the placeholder returns");
+  await waitTimer();
+  const heldRows = window.eval("browseResults().length");
+  assert(heldRows > 0 && heldRows < 100 && window.eval(`browseResults().every(e => /boroughs/i.test(e.title + " " + e.description))`) && !document.querySelector("#view-browse .indexing-note"),
+    `and it runs once it can (${heldRows} matches)`);
+  // a burst of keystrokes draws once, after the last
+  const burst = JSON.parse(window.eval(`(function(){
+    var n = 0, real = renderBrowse; window.renderBrowse = function(){ n++; return real.apply(this, arguments); };
+    var box = document.getElementById("q"), q = "star trek";
+    for (var i = 1; i <= q.length; i++) { box.value = q.slice(0, i); box.dispatchEvent(new Event("input", {bubbles: true})); }
+    window.__burstCount = function(){ return n; }; window.__burstRestore = function(){ window.renderBrowse = real; };
+    return JSON.stringify({during: n, keystrokes: q.length}); })()`));
+  await waitTimer();
+  const burstTotal = window.eval("__burstCount()"); window.eval("__burstRestore()");
+  assert(burst.during === 0 && burstTotal === 1 && window.eval("SEARCH_DEBOUNCE_MS") === 70, `${burst.keystrokes} keystrokes draw once, ${window.eval("SEARCH_DEBOUNCE_MS")} ms after the last (${burstTotal} renders)`);
+  window.eval(`(function(){ var box = document.getElementById("q"); box.value = ""; state.browse.q = ""; state.browse.prevDay = null; state.browse.day = null; state.browse.hideNoise = settings.hideNoise; state.tab = "now"; render(); })()`); await sleep(20);
+
   window.close();
   await realDataChecks();
   console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); process.exit(process.exitCode || 0);
@@ -1824,6 +1866,7 @@ async function realDataChecks() {
     { runScripts: "dangerously", url: "https://example.test/#now=2026-09-05T13:05", pretendToBeVisual: true });
   const w = realDom.window;
   await sleep(2500);
+  for (let i = 0; i < 600 && !w.eval("!!index && !!suggestIndex"); i++) await sleep(20);
 
   const search = (q, over) => JSON.parse(w.eval(`(function(){
     Object.assign(state.browse, {q: ${JSON.stringify(q)}, day: "All", hotel: "All", type: "All", track: "All",
