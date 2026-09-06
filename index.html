@@ -341,11 +341,15 @@ select.track {
 .body { min-width: 0; }
 .title { font-size: 1.125rem; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: .875rem; color: var(--muted); }
+/* "Hilton · 313-314" as a chip. The hotel part never shortens; a long room
+   takes the ellipsis. */
 .room {
-  display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: .8125rem;
+  display: inline-flex; align-items: baseline; gap: 5px; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: .8125rem;
   background: color-mix(in srgb, var(--h) 18%, transparent); color: var(--h); border: 1px solid color-mix(in srgb, var(--h) 45%, transparent);
-  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 100%; min-width: 0; white-space: nowrap;
 }
+.room .rh { flex: none; }
+.room .rr { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .track { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .status { color: var(--gold); font-weight: 600; }
 mark { background: none; color: var(--gold); font-weight: 700; }
@@ -876,6 +880,21 @@ function minutesBetween(a, b) { return Math.round((b - a) / 60000); }
 function cleanRoom(hotel, room) {
   return hotel === "Other" ? String(room || "").replace(/^O\s+/, "") : room;
 }
+/* "Hilton · 313-314": the hotel first, so a line reads where before which
+   room. A stream is "Streaming"; an offsite venue is itself - the cleaned
+   room, else the location without its O marker, else "Offsite"; a blank
+   room leaves the hotel alone. The parts are spans so the row chip can
+   shorten the room and never the hotel. */
+function placeHTML(ev) {
+  if (ev.hotel === "Streaming") return `<span class="rh">Streaming</span>`;
+  if (ev.hotel === "Other") {
+    const venue = (ev.room && ev.room !== "Other" ? ev.room : cleanRoom("Other", ev.location)) || "Offsite";
+    return `<span class="rr">${esc(venue === "Other" ? "Offsite" : venue)}</span>`;
+  }
+  if (!ev.hotel || ev.hotel === "Unknown") return `<span class="rr">${esc(ev.room || ev.location || "Location TBA")}</span>`;
+  const room = String(ev.room || "").trim();
+  return `<span class="rh">${esc(hotelShort(ev.hotel))}</span>${room ? ` · <span class="rr">${esc(room)}</span>` : ""}`;
+}
 function fmtMins(m) {
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60), r = m % 60;
@@ -1325,7 +1344,6 @@ function fitHeaderLine() {
 function rowHTML(ev, opts = {}) {
   const s = fmt(ev._s), e = fmt(ev._e);
   const mine = picks.has(ev.id), open = state.sheetId === ev.id;
-  const room = ev.room || ev.location || "Location TBA";
   const status = opts.status ? `<span class="status">${esc(opts.status)}</span>` : "";
   const cls = ["row", mine ? "mine" : "", open ? "open" : "", ev.cancelled ? "cancelled" : ""].filter(Boolean).join(" ");
   const hl = opts.terms ? highlighter(opts.terms) : (x => esc(x));
@@ -1337,7 +1355,7 @@ function rowHTML(ev, opts = {}) {
         <div class="body">
           <div class="title">${hl(ev.title)}</div>
           <div class="meta">
-            <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${esc(room)}</span>
+            <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</span>
             ${ev.cancelled ? `<span class="cancelled-tag">Cancelled</span>` : ""}${status}${isCeleb(ev) ? CELEB_BADGE : ""}${(opts.labels || []).map(l => `<span class="flabel">${esc(l)}</span>`).join("")}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
           </div>
           ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
@@ -2788,7 +2806,7 @@ function eventSheetHTML(ev) {
   return `<div class="ev-head">
       <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
       <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}${ev._cd !== ev.day ? ` &middot; ${DAY_LONG[ev._cd] || ev._cd} night` : ""}</div>
-      <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${esc(ev.room || ev.location || "Location TBA")}</div>
+      <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</div>
       ${ev.cancelled ? `<div><span class="cancelled-tag">Cancelled</span></div>` : ""}
       ${isCeleb(ev) ? `<div>${CELEB_BADGE}</div>` : ""}
     </div>
