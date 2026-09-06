@@ -1479,8 +1479,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // tapping a hotel opens its sheet
   const tapMap = sel => mapView.querySelector(sel).dispatchEvent(new window.MouseEvent("click", {bubbles: true}));
   const hotelPanel = document.getElementById("panel-hotel");
-  window.eval('openSheet("hotel", "Hyatt")'); await sleep(20);
-  assert(!document.getElementById("sheetWrap").hidden && !hotelPanel.hidden && document.getElementById("panel-event").hidden && document.getElementById("panel-settings").hidden, "the hotel sheet still opens by code (a tap on the map now goes to the list instead)");
+  tapMap('.map-hotel[data-hotel="Hyatt"] rect'); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && !hotelPanel.hidden && document.getElementById("panel-event").hidden && document.getElementById("panel-settings").hidden, "tapping a hotel opens the hotel sheet");
   assert(document.getElementById("sheetTitleHotel").textContent === "Hyatt" && document.getElementById("sheet").getAttribute("aria-labelledby") === "sheetTitleHotel", "headed by the hotel's name");
   const sheetRows = [...hotelPanel.querySelectorAll(".row")];
   const wantRows = JSON.parse(window.eval(`JSON.stringify(events.filter(function(e){ return picks.has(e.id) && e.hotel === "Hyatt" && e._cd === "2026-09-05"; }).map(function(e){ return e.id; }))`));
@@ -1492,18 +1492,18 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!document.getElementById("panel-event").hidden && hotelPanel.hidden && document.getElementById("sheetTitleEvent").textContent === window.eval(`byId.get(${JSON.stringify(wantRows[0])}).title`), "a row opens the event sheet");
   window.eval("closeSheet()"); await sleep(20);
   // the star works from inside it, and the map behind keeps up
-  window.eval('openSheet("hotel", "Hyatt")'); await sleep(20);
+  tapMap('.map-hotel[data-hotel="Hyatt"] rect'); await sleep(20);
   hotelPanel.querySelector(".row .star").click(); await sleep(20);
   assert(window.eval("picks.size") === 3 && hotelPanel.querySelectorAll(".row").length === 1 && pillsOf().Hyatt === "1", `unstarring in the sheet drops the row and the pill behind (${pillsOf().Hyatt})`);
   hotelPanel.querySelector(".row .star").click(); await sleep(20);
   assert(window.eval("picks.size") === 2 && !hotelPanel.querySelector(".row") && /No picks here on Saturday/.test(hotelPanel.textContent) && !pillsOf().Hyatt, "unstarring the last one shows the empty state and the pill goes");
   window.eval(`picks = new Set(${JSON.stringify(mapPicks)}); savePicks(); closeSheet();`); await sleep(20);
-  // another hotel's sheet
-  window.eval('openSheet("hotel", "Marriott")'); await sleep(20);
-  assert(!document.getElementById("sheetWrap").hidden && document.getElementById("sheetTitleHotel").textContent === "Marriott" && hotelPanel.querySelectorAll(".row").length === 1, "the sheet for another hotel lists its own picks");
+  // a pill is the hotel
+  tapMap('.map-pill[data-hotel="Marriott"] text'); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && document.getElementById("sheetTitleHotel").textContent === "Marriott" && hotelPanel.querySelectorAll(".row").length === 1, "tapping a pill opens that hotel's sheet");
   window.eval("closeSheet()"); await sleep(20);
   // an empty hotel offers a search
-  window.eval('openSheet("hotel", "Westin")'); await sleep(20);
+  tapMap('.map-hotel[data-hotel="Westin"] rect'); await sleep(20);
   const searchBtn = hotelPanel.querySelector('[data-act="map-search"]');
   assert(/No picks here on Saturday/.test(hotelPanel.textContent) && searchBtn && searchBtn.textContent.trim() === "Search the Westin on Saturday", `an empty hotel says so and offers a search (${searchBtn && searchBtn.textContent.trim()})`);
   searchBtn.click(); await sleep(30);
@@ -1513,10 +1513,10 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(window.eval(`browseResults().length > 0 && browseResults().every(function(e){ return e.hotel === "Westin" && e._cd === "2026-09-05"; })`), "listing that hotel's Saturday");
   assert(window.eval(`hotelPhrase("Hardy Ivy Park")`) === "Hardy Ivy Park" && window.eval(`hotelPhrase("AmericasMart")`) === "the Mart", "the park takes no article; the Mart is the Mart");
   // keyboard: Enter on a focused block
-  window.eval(`(function(){ var n = getNow(); var ev = events.find(function(e){ return e._cd === conDayKey(n) && e.hotel === "Hyatt" && e._s > n; }); picks = new Set([ev.id]); savePicks(); state.tab = "map"; render(); })()`); await sleep(20);
-  mapView.querySelector('.map-hotel[data-hotel="Hyatt"]').dispatchEvent(new window.KeyboardEvent("keydown", {key: "Enter", bubbles: true})); await sleep(20);
-  assert(document.getElementById("sheetWrap").hidden && mapView.querySelector('.map-group[data-hotel="Hyatt"] .map-group-head.flash') && mapView.querySelector('.map-hotel[data-hotel="Hyatt"]').getAttribute("role") === "button",
-    "blocks are buttons: Enter goes to the hotel's group in the list, not to a sheet");
+  window.eval(`state.tab = "map"; render();`); await sleep(20);
+  mapView.querySelector('.map-hotel[data-hotel="Hilton"]').dispatchEvent(new window.KeyboardEvent("keydown", {key: "Enter", bubbles: true})); await sleep(20);
+  assert(!document.getElementById("sheetWrap").hidden && document.getElementById("sheetTitleHotel").textContent === "Hilton" && mapView.querySelector('.map-hotel[data-hotel="Hilton"]').getAttribute("role") === "button", "blocks are buttons: Enter opens the sheet");
+  window.eval("closeSheet()"); await sleep(20);
   // put things back
   window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.browse.hotel = "All"; state.browse.day = null; state.tab = "map"; state.map.day = null; render();`); await sleep(20);
 
@@ -1632,11 +1632,13 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const mapSticky = mapView.querySelector(".controls-sticky");
   assert(mapSticky && mapSticky === mapView.firstElementChild && mapSticky.querySelector('[data-chip="map-day"]'), "the day chips sit in the same sticky strip Search uses");
   assert(!mapSticky.querySelector("svg") && mapView.querySelector(".map-wrap") === mapSticky.nextElementSibling, "and the map itself scrolls under it");
-  assert(/\.map \{ display: block; width: 100%; height: auto; \}/.test(html) && !/#view-map \{ display: flex/.test(html) && !/\.map \{[^}]*max-height/.test(html),
-    "width first: the SVG takes the content width and its own height; the list below makes the tab scroll, chips pinned");
+  assert(/#view-map \{ display: flex; flex-direction: column; height: calc\(100dvh - var\(--hdr-h, 63px\) - 76px - var\(--safe-bottom\)\)/.test(html)
+    && /\.map \{[^}]*flex: 0 1 auto/.test(html) && /\.map \{[^}]*min-height: 200px/.test(html) && /\.map \{[^}]*width: 100%/.test(html) && /\.map \{[^}]*height: auto/.test(html) && !/\.map \{[^}]*max-height/.test(html),
+    "width first: the SVG takes the content width and its own height, and shrinks, centred, only when the tab would not fit, down to a floor");
   assert(/\.next-card \{[^}]*padding: 12px 14px/.test(html), "the card's padding matches the frame's inset around the drawing");
   assert(!/--map-chrome/.test(html) && !/has-minibar \.map/.test(html), "no chrome arithmetic remains; the mini-bar never shows here");
-  assert(mapView.querySelector(".map-under") && mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under"), "the card band sits under the SVG");
+  assert(mapView.querySelector(".map-under") && /\.map-under \{ flex: none/.test(html) && mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under"),
+    "the card band sits under the SVG and keeps its own height");
   assert(mapView.querySelector("svg.map").getAttribute("viewBox") === "-3 111 385 305", "with the frame's viewBox");
 
   // ---- polish 3: no mini-bar on the Map tab ----
@@ -1852,65 +1854,6 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const burstTotal = window.eval("__burstCount()"); window.eval("__burstRestore()");
   assert(burst.during === 0 && burstTotal === 1 && window.eval("SEARCH_DEBOUNCE_MS") === 70, `${burst.keystrokes} keystrokes draw once, ${window.eval("SEARCH_DEBOUNCE_MS")} ms after the last (${burstTotal} renders)`);
   window.eval(`(function(){ var box = document.getElementById("q"); box.value = ""; state.browse.q = ""; state.browse.prevDay = null; state.browse.day = null; state.browse.hideNoise = settings.hideNoise; state.tab = "now"; render(); })()`); await sleep(20);
-
-  // ---- map list: the day's picks under the card, grouped by hotel ----
-  const ml = JSON.parse(window.eval(`(function(){
-    var saved = [...picks], n = getNow(), today = conDayKey(n), pick = function(f, k){ return events.filter(f).slice(0, k || 1); };
-    var hyattLive = pick(function(e){ return e._cd === today && e.hotel === "Hyatt" && e._s > n; }, 2);
-    var hyattEnded = pick(function(e){ return e._cd === today && e.hotel === "Hyatt" && e._e <= n; });
-    var marriott = pick(function(e){ return e._cd === today && e.hotel === "Marriott" && e._s > n; });
-    var mart = pick(function(e){ return e._cd === today && e.hotel === "AmericasMart" && e._s > n; });
-    var stream = pick(function(e){ return e._cd === today && e.hotel === "Streaming" && e._s > n; });
-    var fri = pick(function(e){ return e._cd === "2026-09-04" && MAP_HOTELS[e.hotel]; }, 2);
-    var sun = pick(function(e){ return e._cd === "2026-09-06" && e.hotel === "Hilton"; });
-    var all = [].concat(hyattLive, hyattEnded, marriott, mart, stream, fri, sun);
-    picks = new Set(all.map(function(e){ return e.id; })); savePicks(); state.tab = "map"; state.map.day = null; render();
-    var read = function(){
-      var list = document.querySelector("#view-map .map-list");
-      var groups = [].map.call(document.querySelectorAll("#view-map .map-group"), function(g){ return {hotel: g.dataset.hotel, head: g.querySelector(".map-group-head").textContent.trim(), rows: g.querySelectorAll(".row").length, hue: g.getAttribute("style"), ids: [].map.call(g.querySelectorAll(".row"), function(r){ return r.dataset.id; })}; });
-      var ended = document.querySelector("#view-map .map-ended"), pills = {};
-      document.querySelectorAll("#view-map .map-pill").forEach(function(p){ pills[p.dataset.hotel] = +p.dataset.count; });
-      return {present: !!list, groups: groups, pills: pills, afterCard: !!(list && list.previousElementSibling && list.previousElementSibling.classList.contains("map-wrap")),
-        ended: ended ? {open: ended.open, summary: ended.querySelector("summary").textContent.trim(), ids: [].map.call(ended.querySelectorAll(".row"), function(r){ return r.dataset.id; }), hotels: [].map.call(ended.querySelectorAll(".row"), function(r){ return byId.get(r.dataset.id).hotel; })} : null,
-        empty: (document.querySelector("#view-map .map-empty") || {}).textContent || null}; };
-    var out = {counts: {hyattLive: hyattLive.length, hyattEnded: hyattEnded.length, marriott: marriott.length, mart: mart.length, stream: stream.length, fri: fri.length, sun: sun.length}, hyattEndedIds: hyattEnded.map(function(e){ return e.id; })};
-    out.sat = read();
-    state.map.day = "2026-09-04"; render(); out.fri = read();
-    state.map.day = "2026-09-06"; render(); out.sun = read();
-    state.map.day = "2026-09-07"; render(); out.mon = read();
-    state.map.day = null; render();
-    var spy = [], realScroll = pageScrollTo; window.pageScrollTo = function(t){ spy.push(t); };
-    document.querySelector('#view-map .map-hotel[data-hotel="Hyatt"] rect').dispatchEvent(new MouseEvent("click", {bubbles: true}));
-    out.tap = {scrolled: spy.length, sheetHidden: document.getElementById("sheetWrap").hidden, flash: !!document.querySelector('#view-map .map-group[data-hotel="Hyatt"] .map-group-head.flash')};
-    document.querySelector('#view-map .map-pill[data-hotel="Marriott"] text').dispatchEvent(new MouseEvent("click", {bubbles: true}));
-    out.pillTap = {scrolled: spy.length, flash: !!document.querySelector('#view-map .map-group[data-hotel="Marriott"] .map-group-head.flash')};
-    window.pageScrollTo = realScroll;
-    picks = new Set(saved); savePicks(); state.map.day = null; render();
-    return JSON.stringify(out); })()`));
-  const mc = ml.counts;
-  assert(mc.hyattLive === 2 && mc.hyattEnded === 1 && mc.marriott === 1 && mc.mart === 1 && mc.stream === 1 && mc.fri === 2 && mc.sun === 1, "fixture: picks across hotels, a stream, one that has ended, and Friday and Sunday ones");
-  assert(ml.sat.present && ml.sat.afterCard, "the list sits under the card");
-  assert(ml.sat.groups.map(g => g.hotel).join(",") === "AmericasMart,Hyatt,Marriott,Streaming", `groups follow the map's block order with streaming last, and hotels with no picks have no group (${ml.sat.groups.map(g => g.hotel).join(",")})`);
-  const hyGroup = ml.sat.groups.find(g => g.hotel === "Hyatt");
-  assert(hyGroup.head === "Hyatt · 2" && hyGroup.rows === 2 && /--h-Hyatt/.test(hyGroup.hue) && ml.sat.groups.find(g => g.hotel === "AmericasMart").head === "Mart · 1", `headers read hotel, dot, count in the hotel's hue (${hyGroup.head})`);
-  const rowsFor = h => (ml.sat.groups.find(g => g.hotel === h) || {rows: 0}).rows + (ml.sat.ended ? ml.sat.ended.hotels.filter(x => x === h).length : 0);
-  assert(Object.keys(ml.sat.pills).length === 3 && Object.entries(ml.sat.pills).every(([h, n]) => rowsFor(h) === n), `each hotel's rows, live plus ended, match its pill (${JSON.stringify(ml.sat.pills)})`);
-  assert(ml.sat.ended && ml.sat.ended.open === false && ml.sat.ended.summary === "Already happened (1)" && ml.sat.ended.ids.join() === ml.hyattEndedIds.join(), "on today, a pick that has ended folds away at the bottom, closed");
-  assert(ml.fri.groups.reduce((n, g) => n + g.rows, 0) === 2 && !ml.fri.ended, "on a past day nothing folds: every pick sits in its hotel group");
-  assert(ml.sun.groups.map(g => g.hotel).join() === "Hilton" && ml.sun.groups[0].rows === 1 && !ml.sun.ended, "on a future day likewise");
-  assert(ml.mon.groups.length === 0 && !ml.mon.ended && ml.mon.empty && ml.mon.empty.trim() === "Nothing picked for Monday.", `a day with no picks says so in one muted line (${ml.mon.empty})`);
-  assert(ml.tap.scrolled === 1 && ml.tap.sheetHidden && ml.tap.flash, "tapping a block scrolls to its group and flashes the header, and opens no sheet");
-  assert(ml.pillTap.scrolled === 2 && ml.pillTap.flash, "a pill does the same for its hotel");
-  const foldTap = JSON.parse(window.eval(`(function(){
-    var saved = [...picks], n = getNow(), ended = events.find(function(e){ return e._cd === conDayKey(n) && e.hotel === "Hilton" && e._e <= n; });
-    picks = new Set([ended.id]); savePicks(); state.tab = "map"; state.map.day = null; render();
-    var spy = 0, real = pageScrollTo; window.pageScrollTo = function(){ spy++; };
-    document.querySelector('#view-map .map-hotel[data-hotel="Hilton"] rect').dispatchEvent(new MouseEvent("click", {bubbles: true}));
-    var r = {scrolled: spy, groups: document.querySelectorAll("#view-map .map-group").length, foldFlash: !!document.querySelector("#view-map .map-ended > summary.flash")};
-    window.pageScrollTo = real; picks = new Set(saved); savePicks(); render(); return JSON.stringify(r); })()`));
-  assert(foldTap.groups === 0 && foldTap.scrolled === 1 && foldTap.foldFlash, "a hotel whose picks have all ended sends the tap to the Already happened fold");
-  assert(/\.map-group-head\.flash \{ animation: map-flash/.test(html) && /@keyframes map-flash/.test(html) && /function hotelSheetHTML\(/.test(html) && /kind === "hotel"/.test(html) && !/openSheet\("hotel"/.test(html),
-    "the flash is a short animation; the hotel sheet's code stays but the map no longer opens it");
 
   window.close();
   await realDataChecks();
