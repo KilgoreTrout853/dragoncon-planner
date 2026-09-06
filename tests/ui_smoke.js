@@ -1375,7 +1375,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!mapView.hidden && document.getElementById("view-mine").hidden && document.getElementById("view-browse").hidden
     && document.querySelector('.nav button[data-tab="map"]').getAttribute("aria-current") === "page", "the Map tab shows its own view");
   const svg = mapView.querySelector("svg.map");
-  assert(svg && svg.getAttribute("viewBox") === "0 0 380 460" && mapView.querySelectorAll("svg").length === 1, "one portrait SVG, 380 by 460");
+  assert(svg && svg.getAttribute("viewBox") === "-3 111 385 305" && mapView.querySelectorAll("svg").length === 1, "one SVG, framed to the drawing (385 by 305)");
   const walkHotels = [...new Set(Object.keys(window.eval("WALK")).flatMap(k => k.split("|")))].sort();
   const mapHotels = [...svg.querySelectorAll("[data-hotel]")].map(g => g.dataset.hotel).sort();
   assert(mapHotels.join("|") === walkHotels.join("|"), `one block per walk-table hotel (${mapHotels.join(", ")})`);
@@ -1409,7 +1409,15 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "the Mart-Westin bridge is a short diagonal from the Mart's bottom edge to the Westin's top");
   const bridgeHM = svg.querySelector('[data-bridge="Hyatt|Marriott"]');
   assert(bridgeHM && +bridgeHM.getAttribute("x2") - +bridgeHM.getAttribute("x1") === gMarriott.x - gHyatt.right, "the Hyatt-Marriott bridge spans just the gap");
-  assert(Math.max(gCourtland.bottom, gWestin.bottom) + 40 <= 460 && [gHyatt, gMarriott, gHilton, gCourtland, gWestin].every(b => b.w === 60), "hotel blocks are 60 wide and about 40 px stays empty below them");
+  assert([gHyatt, gMarriott, gHilton, gCourtland, gWestin].every(b => b.w === 60), "hotel blocks are 60 wide");
+  const vb = svg.getAttribute("viewBox").split(" ").map(Number), vbBottom = vb[1] + vb[3], vbRight = vb[0] + vb[2];
+  const inset = {top: gHardy.y - vb[1], bottom: vbBottom - Math.max(gCourtland.bottom, gWestin.bottom), left: gMart.x - vb[0], right: vbRight - gHilton.right};
+  assert(vb[3] < 320 && Object.values(inset).every(v => v >= 10 && v <= 18), `the frame is cropped to the drawing with a card's padding around it (${JSON.stringify(inset)})`);
+  assert([...svg.querySelectorAll("[data-street]")].every(l => +l.getAttribute("y1") === vb[1] && +l.getAttribute("y2") === vbBottom), "the streets span the cropped height");
+  const labelY = [...svg.querySelectorAll(".map-street-label")].map(t => +t.getAttribute("transform").match(/translate\([-\d.]+ ([-\d.]+)\)/)[1]);
+  assert(labelY.length === 2 && labelY.every(y => y > vb[1] + 60 && y < gHyatt.y), `the street labels sit inside the frame, above the row (${labelY.join(", ")})`);
+  const ground = svg.querySelector(".map-ground");
+  assert(+ground.getAttribute("x") === vb[0] && +ground.getAttribute("y") === vb[1] && +ground.getAttribute("width") === vb[2] && +ground.getAttribute("height") === vb[3], "the ground fills the frame");
   const bridges = [...svg.querySelectorAll("[data-bridge]")].map(l => l.dataset.bridge).sort();
   assert(bridges.join(";") === "AmericasMart|Westin;Hyatt|Marriott;Marriott|Hilton", `three skybridges, none across Peachtree (${bridges.join("; ")})`);
   assert(/\.map-bridge \{[^}]*stroke-dasharray/.test(html), "skybridges are dashed");
@@ -1624,13 +1632,14 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const mapSticky = mapView.querySelector(".controls-sticky");
   assert(mapSticky && mapSticky === mapView.firstElementChild && mapSticky.querySelector('[data-chip="map-day"]'), "the day chips sit in the same sticky strip Search uses");
   assert(!mapSticky.querySelector("svg") && mapView.querySelector(".map-wrap") === mapSticky.nextElementSibling, "and the map itself scrolls under it");
-  assert(/#view-map \{ display: flex; flex-direction: column; min-height: calc\(100dvh - var\(--hdr-h, 63px\) - 76px - var\(--safe-bottom\)\)/.test(html)
-    && /\.map \{[^}]*flex: 1 1 0/.test(html) && /\.map \{[^}]*min-height: 360px/.test(html) && /\.map \{[^}]*width: 100%/.test(html) && /\.map \{[^}]*height: auto/.test(html),
-    "the tab is a column that fills the screen; the SVG keeps its shape and takes the height the card leaves it, down to a floor");
+  assert(/#view-map \{ display: flex; flex-direction: column; height: calc\(100dvh - var\(--hdr-h, 63px\) - 76px - var\(--safe-bottom\)\)/.test(html)
+    && /\.map \{[^}]*flex: 0 1 auto/.test(html) && /\.map \{[^}]*min-height: 200px/.test(html) && /\.map \{[^}]*width: 100%/.test(html) && /\.map \{[^}]*height: auto/.test(html) && !/\.map \{[^}]*max-height/.test(html),
+    "width first: the SVG takes the content width and its own height, and shrinks, centred, only when the tab would not fit, down to a floor");
+  assert(/\.next-card \{[^}]*padding: 12px 14px/.test(html), "the card's padding matches the frame's inset around the drawing");
   assert(!/--map-chrome/.test(html) && !/has-minibar \.map/.test(html), "no chrome arithmetic remains; the mini-bar never shows here");
   assert(mapView.querySelector(".map-under") && /\.map-under \{ flex: none/.test(html) && mapView.querySelector("svg.map").nextElementSibling === mapView.querySelector(".map-under"),
     "the card band sits under the SVG and keeps its own height");
-  assert(mapView.querySelector("svg.map").getAttribute("viewBox") === "0 0 380 460", "with the viewBox untouched");
+  assert(mapView.querySelector("svg.map").getAttribute("viewBox") === "-3 111 385 305", "with the frame's viewBox");
 
   // ---- polish 3: no mini-bar on the Map tab ----
   const barState = JSON.parse(window.eval(`(function(){
