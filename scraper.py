@@ -2,7 +2,7 @@
 """Dragon Con 2026 schedule scraper.
 
 Pulls every event (panels + gaming) from the web version of the official
-Dragon Con app (app.core-apps.com/dragoncon26) and writes events.json for
+Dragon Con app (app.core-apps.com/dragoncon26) and writes data/2026/events.json for
 index.html to read.
 
 Usage:
@@ -35,7 +35,7 @@ DAYS = ["Sep  2", "Sep  3", "Sep  4", "Sep  5", "Sep  6", "Sep  7"]
 # "Events" module (panels etc.) has no type param; "Gaming Events" is type=Entertainment.
 TYPES = {"panel": None, "gaming": "Entertainment"}
 HEADERS = {"User-Agent": "dragoncon-planner/1.0 (personal schedule tool; polite, low volume)"}
-OUTPUT = "events.json"
+OUTPUT = "data/2026/events.json"
 
 # Location strings start with the venue name. Map the first token to a canonical hotel.
 HOTEL_PREFIXES = [

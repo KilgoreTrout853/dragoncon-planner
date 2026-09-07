@@ -3,7 +3,7 @@ const { JSDOM } = require("jsdom");
 const fs = require("fs");
 const html = fs.readFileSync(__dirname + "/../index.html", "utf8")
   .replace("<script>", "<script>window.DC_EVENTS=" + fs.readFileSync(__dirname + "/sample-events.json", "utf8") + ";");
-const dom = new JSDOM(html, { runScripts: "dangerously", url: "https://example.test/#now=2026-09-05T13:05", pretendToBeVisual: true });
+const dom = new JSDOM(html, { runScripts: "dangerously", url: "https://example.test/?now=2026-09-05T13:05", pretendToBeVisual: true });
 const { window } = dom; const { document } = window;
 window.confirm = () => true;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -111,7 +111,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(window.eval("LEAVE_BUFFER_MIN") === 10, "LEAVE_BUFFER_MIN is 10");
   // leave-by maths: from the hotel you are in to the next pick, somewhere else
   const lb = window.eval(`(function(){
-    var n = getNow();
+    var n = now();
     var nxt = events.find(function(e){ return e._s > n && e.hotel !== "Marriott" && e.hotel !== "Streaming"; });
     var info = leaveInfo("Marriott", nxt, n);
     var same = leaveInfo("Marriott", events.find(function(e){ return e._s > n && e.hotel === "Marriott"; }), n);
@@ -122,7 +122,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // location is a fact or nothing: the hotel of a pick that is on now, never a guess from one that ended
   const chain = window.eval(`(function(){
     var saved = [...picks];
-    var n = getNow(), today = conDayKey(n);
+    var n = now(), today = conDayKey(n);
     var onNow = events.find(e => e._s <= n && n < e._e && e.hotel !== "Streaming");
     picks = new Set([onNow.id]);
     var a = currentLocation(n);
@@ -146,7 +146,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
 
   // ---- no guessing: the hero, the mini-bar and the map, with and without a pick on now ----
   const ng = JSON.parse(window.eval(`(function(){
-    var saved = [...picks], n = getNow(), today = conDayKey(n);
+    var saved = [...picks], n = now(), today = conDayKey(n);
     var onMap = function(e){ return !!MAP_HOTELS[e.hotel] && !e.cancelled; };
     var prev = events.find(function(e){ return e._e <= n && conDayKey(e._s) === today && onMap(e); });
     var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === today && onMap(e) && e.hotel !== prev.hotel; });
@@ -196,11 +196,11 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     `and the map's card says so too, with both rings (${ng.onNow.when})`);
   // no 6-pick cap: star 8 upcoming picks and count rendered rows + hero
   window.eval(`(function(){
-    var n = getNow();
+    var n = now();
     events.filter(e => e._e > n).slice(0, 9).forEach(e => picks.add(e.id));
     savePicks(); render();
   })()`); await sleep(20);
-  const planned = window.eval("events.filter(e => picks.has(e.id) && e._e > getNow()).length");
+  const planned = window.eval("events.filter(e => picks.has(e.id) && e._e > now()).length");
   const shownRows = document.querySelectorAll("#view-now .list.compact .row[data-list='next']").length;
   assert(planned > 6, `more than six picks in play (${planned})`);
   assert(shownRows + 1 >= planned, `all picks render, no 6-cap (hero + ${shownRows} rows for ${planned} picks)`);
@@ -210,7 +210,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!document.getElementById("sheetWrap").hidden && !document.getElementById("panel-event").hidden, "tapping the hero opens the event sheet");
   document.getElementById("sheetBack").click(); await sleep(10);
   // reset to a single pick so later assertions keep their shape
-  window.eval(`(function(){ var keep = events.filter(e => e._e > getNow())[0].id; picks = new Set([keep]); savePicks(); render(); })()`); await sleep(20);
+  window.eval(`(function(){ var keep = events.filter(e => e._e > now())[0].id; picks = new Set([keep]); savePicks(); render(); })()`); await sleep(20);
   assert(JSON.parse(window.localStorage.getItem("dc26.picks")).length === 1, "reset to one pick for later steps");
 
   // ---- step 3: sticky next-up mini-bar ----
@@ -219,7 +219,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(bar.hidden, "mini-bar is hidden on the Now tab");
   // give ourselves a pick later in the same con day, then leave Now
   const hasLater = window.eval(`(function(){
-    var n = getNow(), key = conDayKey(n);
+    var n = now(), key = conDayKey(n);
     var later = events.find(e => e._s > n && conDayKey(e._s) === key && e.hotel !== "Streaming");
     if (later) { picks.add(later.id); savePicks(); render(); return later.title; }
     return null;
@@ -229,7 +229,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!bar.hidden, "mini-bar shows on Browse when a pick remains today");
   assert(bar.querySelector(".mb-title").textContent.trim() === hasLater, "mini-bar names the next pick");
   assert(/var\(--h-/.test(bar.querySelector(".mb-room").getAttribute("style") || ""), "mini-bar room uses the hotel hue");
-  const barOn = window.eval(`!!events.find(function(e){ return picks.has(e.id) && e._s <= getNow() && getNow() < e._e && e.hotel !== "Streaming"; })`), barWhen = bar.querySelector(".mb-when").textContent.trim();
+  const barOn = window.eval(`!!events.find(function(e){ return picks.has(e.id) && e._s <= now() && now() < e._e && e.hotel !== "Streaming"; })`), barWhen = bar.querySelector(".mb-when").textContent.trim();
   assert(barOn ? /^leave (by|now)/.test(barWhen) : /^in \d+ (min|h)/.test(barWhen), `mini-bar says leave-by only while a pick is on (${barOn ? "on now" : "nothing on"}: ${barWhen})`);
   assert(window.getComputedStyle(bar).height === "48px", "mini-bar is 48px tall");
   assert(document.body.classList.contains("has-minibar"), "body reserves room for the bar");
@@ -246,7 +246,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval(`(function(){ picks = new Set(); savePicks(); render(); })()`); await sleep(10);
   document.querySelector('.nav button[data-tab="browse"]').click(); await sleep(20);
   assert(bar.hidden, "mini-bar stays hidden with no picks left today");
-  window.eval(`(function(){ var keep = events.filter(e => e._e > getNow())[0].id; picks = new Set([keep]); savePicks(); render(); })()`); await sleep(20);
+  window.eval(`(function(){ var keep = events.filter(e => e._e > now())[0].id; picks = new Set([keep]); savePicks(); render(); })()`); await sleep(20);
   document.querySelector('.nav button[data-tab="now"]').click(); await sleep(10);
 
   // ---- the venue map is gone: hotel filtering is chips again ----
@@ -288,7 +288,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const a2 = P("signing sunday");
   assert(a2.residual === "" && a2.filters.kind === "signing" && a2.filters.day === "2026-09-06", "signing sunday is all filters");
   const a3 = P("tonight");
-  assert(a3.filters.day === window.eval("conDayKey(getNow())") && a3.filters.time === "evening", "tonight means today, evening");
+  assert(a3.filters.day === window.eval("conDayKey(now())") && a3.filters.time === "evening", "tonight means today, evening");
   const a4 = P("late night party");
   assert(a4.residual === "" && a4.filters.time === "late night" && a4.filters.kind === "party", "late night party is time + kind");
   // "gaming" is a filter alone or with a day/hotel, a search word otherwise
@@ -469,7 +469,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   document.getElementById("sheetBack").click(); await sleep(10);
   // overlapping picks become side-by-side columns
   const cols = window.eval(`(function(){
-    var n = getNow();
+    var n = now();
     var base = events.filter(e => picks.has(e.id))[0];
     var over = events.find(e => !picks.has(e.id) && e._s < base._e && e._e > base._s && e.id !== base.id);
     if (!over) return null;
@@ -571,7 +571,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(window.eval("typeof nowSignature") === "function" && window.eval("typeof nowModel") === "function",
     "built on a model and a signature rather than a rebuild");
   const tickProbe = JSON.parse(window.eval(`(function(){
-    picks = new Set(events.filter(function(e){ return e._e > getNow(); }).slice(0, 5).map(function(e){ return e.id; }));
+    picks = new Set(events.filter(function(e){ return e._e > now(); }).slice(0, 5).map(function(e){ return e.id; }));
     state.tab = "now"; renderNow();
     var view = document.getElementById("view-now");
     var hero = view.querySelector(".hero");
@@ -589,7 +589,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const changed = window.eval(`(function(){
     picks = new Set(); state.tab = "now"; renderNow();
     var sigBefore = lastNowSig;
-    picks = new Set(events.filter(function(e){ return e._e > getNow(); }).slice(0, 3).map(function(e){ return e.id; }));
+    picks = new Set(events.filter(function(e){ return e._e > now(); }).slice(0, 3).map(function(e){ return e.id; }));
     tickNow();
     var redrew = lastNowSig !== sigBefore;
     picks = new Set(); savePicks(); render();
@@ -599,7 +599,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // ---- Now is about today: a Saturday pick seen from Thursday is not "your next" ----
   // The clock is Saturday 1:05 PM. Sunday picks must not become the hero.
   const dayPlan = JSON.parse(window.eval(`(function(){
-    var n = getNow();
+    var n = now();
     var sun = events.filter(function(e){ return conDayKey(e._s) === "2026-09-06" && e._s > n && e.hotel !== "Streaming"; });
     var satLater = events.filter(function(e){ return conDayKey(e._s) === conDayKey(n) && e._s > n && e.hotel !== "Streaming"; });
     var satOn = events.find(function(e){ return e._s <= n && n < e._e && e.hotel !== "Streaming"; });
@@ -633,7 +633,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     `an on-now hero does not tell you to leave for a Sunday event (${dp.onNow.then.trim()})`);
 
   // ---- one definition of "day": the con day, which runs to 5am, everywhere ----
-  window.location.hash = "#now=2026-09-06T01:00"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  window.eval('setTimeOverride("2026-09-06T01:00")'); await sleep(40);
   const oneAm = JSON.parse(window.eval(`(function(){
     /* earlier blocks leave chips set; start from the default filters */
     Object.assign(state.browse, {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All",
@@ -667,9 +667,9 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/^Saturday/.test(oneAm.listDay) && /^Saturday/.test(oneAm.tlDay),
     `Mine's list and timeline file it under the same day (${oneAm.listDay} / ${oneAm.tlDay})`);
   assert(/^Sunday, /.test(oneAm.when) && /Saturday night/.test(oneAm.when), `the sheet keeps the date and names the night (${oneAm.when})`);
-  window.location.hash = "#now=2026-09-05T13:05"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  window.eval('setTimeOverride("2026-09-05T13:05")'); await sleep(40);
   window.eval(`(function(){ state.tab = "now"; state.browse.day = null; render(); })()`); await sleep(20);
-  assert(window.eval("state.browse.day") === null || window.eval("conDayKey(getNow())") === "2026-09-05", "the clock is back on Saturday afternoon");
+  assert(window.eval("state.browse.day") === null || window.eval("conDayKey(now())") === "2026-09-05", "the clock is back on Saturday afternoon");
 
   // ---- because you starred: suggestions drawn from the reader's own picks ----
   const sugStrip = JSON.parse(window.eval(`(function(){
@@ -702,7 +702,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
 
   // ---- a pick that vanishes or moves in a refresh is reported, not swallowed ----
   const newsProbe = JSON.parse(window.eval(`(function(){
-    var n = getNow();
+    var n = now();
     var live = events.filter(function(e){ return e._s > n && e.hotel !== "Streaming"; });
     var moved = live[0], keep = live[1];
     picks = new Set([moved.id, keep.id, "ghost-1"]); savePicks();
@@ -824,7 +824,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     isStandalone = real; render();
     document.querySelector('#view-now [data-act="nudge-later"]').click();
     out.afterLater = {shown: !!document.getElementById("nudge"), until: loadJSON("dc26.nudgeSnoozedUntil", 0)};
-    saveJSON("dc26.nudgeSnoozedUntil", Date.now() - 1000); render();
+    saveJSON("dc26.nudgeSnoozedUntil", now().getTime() - 1000); render();
     out.afterWeek = !!document.getElementById("nudge");
     localStorage.removeItem("dc26.nudgeSnoozedUntil");
     out.ios = nudgeCopy(true, false); out.android = nudgeCopy(false, true); out.other = nudgeCopy(false, false);
@@ -832,7 +832,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     return JSON.stringify(out); })()`));
   assert(nudge.shown && nudge.first, "outside a home-screen install, Now opens with the nudge");
   assert(nudge.installedHides, "and an installed app never shows it");
-  assert(!nudge.afterLater.shown && nudge.afterLater.until > Date.now() + 6 * 24 * 3600 * 1000, "Not now hides it for a week");
+  assert(!nudge.afterLater.shown && nudge.afterLater.until > window.eval("now().getTime()") + 6 * 24 * 3600 * 1000, "Not now hides it for a week");
   assert(nudge.afterWeek, "after which it comes back");
   assert(/Open in Safari/.test(nudge.ios.body) && /Add to Home Screen/.test(nudge.ios.body) && !nudge.ios.install, "the iOS copy covers the chat-app browser and never offers a button it cannot honour");
   assert(nudge.android.install && /Install this app/.test(nudge.android.lead), "with a browser install prompt in hand, Android gets a real Install button");
@@ -843,7 +843,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // ---- last sweep: durations read as plans, the placeholder fits, offsite venues lose their marker ----
   assert(window.eval(`[fmtMins(45), fmtMins(60), fmtMins(310), fmtMins(120)].join("|")`) === "45 min|1 h|5 h 10 min|2 h", "minutes over an hour read as hours");
   const barText = JSON.parse(window.eval(`(function(){
-    var n = getNow();
+    var n = now();
     var far = events.find(function(e){ return e._s > new Date(n.getTime() + 3 * 3600000) && conDayKey(e._s) === conDayKey(n) && e.hotel !== "Streaming"; });
     picks = new Set([far.id]); savePicks(); state.tab = "browse"; render();
     var t = document.getElementById("minibar").textContent.replace(/\\s+/g, " ");
@@ -856,7 +856,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     && window.eval(`cleanRoom("Hilton", "Salon")`) === "Salon", "an offsite venue loses its O marker and nothing else does");
   assert(window.eval(`samePlace("Hilton Salon", "Hilton-Salon") && !samePlace("Hilton Salon", "Hilton Galleria 5")`), "a respelled room is the same place; a different room is not");
   const respell = JSON.parse(window.eval(`(function(){
-    var ev = events.find(function(e){ return e._s > getNow() && e.hotel !== "Streaming"; });
+    var ev = events.find(function(e){ return e._s > now() && e.hotel !== "Streaming"; });
     picks = new Set([ev.id]); savePicks();
     pickInfo[ev.id] = {title: ev.title, start: ev.start, location: ev.location.replace(/ /g, "-").toUpperCase()};
     saveJSON("dc26.pickInfo", pickInfo); pickNews = []; savePickNews();
@@ -888,7 +888,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const cancelProbe = JSON.parse(window.eval(`(function(){
     /* An event in the "on now and in the next hour" list: a pick would become
        the hero card, which is not a row. */
-    var n = getNow();
+    var n = now();
     var ev = events.find(function(e){ return e._e > n && e._s <= new Date(n.getTime() + 3600000) && !isNoise(e) && e.hotel !== "Streaming"; });
     ev.cancelled = true;
     picks = new Set(); savePicks(); state.tab = "now"; state.now.hotel = "All"; render();
@@ -1216,14 +1216,14 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/^Following \(1\)/.test(folHead()), `and the header count drops (${folHead()})`);
   assert(window.eval("follows.length") === 1, "and the follow itself");
   // a page deep link still works with Following present, and back brings it back
-  window.location.hash = "#now=2026-09-05T13:05&explore=" + encodeURIComponent("track:" + wanted[1]);
+  window.location.hash = "#explore=" + encodeURIComponent("track:" + wanted[1]);
   window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
   const pageName = document.querySelector("#view-explore .eh-name");
   assert(pageName && pageName.textContent === wanted[1], `a deep link opens its page (${pageName && pageName.textContent})`);
   assert(!document.getElementById("following"), "the page stands alone, without the Following section");
   document.querySelector('[data-act="explore-back"]').click(); await sleep(40);
   assert(document.getElementById("following") && /^Following \(1\)/.test(folHead()), "back returns to the grid with Following on top");
-  assert(!/explore=/.test(window.location.hash) && /now=/.test(window.location.hash), "the hash keeps the preview clock and drops the page");
+  assert(!/explore=/.test(window.location.hash) && /now=/.test(window.location.search), "the URL keeps the simulated clock and drops the page");
   // unfollow the last one: the section goes, the hint returns
   document.querySelector('#following [data-act="unfollow"]').click(); await sleep(40);
   assert(!document.getElementById("following"), "unfollowing the last one removes the section");
@@ -1282,7 +1282,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "registration is guarded by a serviceWorker capability check");
   assert(/register\("\.\/sw\.js"\)\.catch\(err =>[\s\S]{0,120}console\.warn/.test(html),
     "a failed registration is reported, not swallowed");
-  assert(/const CACHE\s*=\s*["']dc26-v3["']/.test(swSrc), "the cache name is versioned (dc26-v3)");
+  assert(/const CACHE\s*=\s*["']dc26-v4["']/.test(swSrc), "the cache name is versioned (dc26-v4)");
   // installable from a chat link: PNG icons, an app title, and a preview card
   assert(/<link rel="apple-touch-icon" href="\.\/icon-180\.png">/.test(html), "the Apple touch icon is a PNG, not the SVG iOS ignores");
   assert(/<meta name="apple-mobile-web-app-title" content="DC26">/.test(html), "the home-screen title is DC26");
@@ -1448,10 +1448,10 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "tapping Sun selects Sunday and the map below follows");
   // the 5 AM boundary, from the same helper as the timeline
   window.eval("state.map.day = null");
-  window.location.hash = "#now=2026-09-06T01:00"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  window.eval('setTimeOverride("2026-09-06T01:00")'); await sleep(40);
   assert(window.eval("state.tab") === "map" && pressedDay() === "2026-09-05", "1 AM Sunday is still Saturday on the map");
   window.eval("state.map.day = '2026-09-07'");
-  window.location.hash = "#now=2026-09-05T13:05"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  window.eval('setTimeOverride("2026-09-05T13:05")'); await sleep(40);
   assert(window.eval("state.map.day") === null && pressedDay() === "2026-09-05", "a new preview time lets the map follow the clock again");
   assert(/data-row="map-day"/.test(html), "the row is named, so it keeps its place across renders");
 
@@ -1522,7 +1522,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
 
   // ---- Map, step 4: now and next ----
   const nowSetup = JSON.parse(window.eval(`(function(){
-    var n = getNow(), onMap = function(e){ return !!MAP_HOTELS[e.hotel] && !e.cancelled; };
+    var n = now(), onMap = function(e){ return !!MAP_HOTELS[e.hotel] && !e.cancelled; };
     var on = events.find(function(e){ return e._s <= n && n < e._e && onMap(e); });
     var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && onMap(e) && e.hotel !== on.hotel; });
     picks = new Set([on.id, next.id]); savePicks(); state.map.day = null; render();
@@ -1571,13 +1571,13 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     }
     return null; })()`));
   assert(lateSetup, "found a pair to be late for");
-  window.location.hash = `#now=${lateSetup.at}`; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  window.eval(`setTimeOverride(${JSON.stringify(lateSetup.at)})`); await sleep(40);
   assert(window.eval("state.tab") === "map" && cardWhen() === `leave ${window.eval(`hotelPhrase(${JSON.stringify(lateSetup.on)})`)} now`, `late: the card says leave now (${cardWhen()})`);
   assert(mapView.querySelector(".nc-when.late") && /\.next-card \.nc-when\.late \{ color: var\(--warn\)/.test(html), "in the warn colour");
-  window.location.hash = "#now=2026-09-05T13:05"; window.dispatchEvent(new window.Event("hashchange")); await sleep(40);
+  window.eval('setTimeOverride("2026-09-05T13:05")'); await sleep(40);
   // a streaming next: a caption that says so, no line, no next ring, and the off-map count
   const streamSetup = JSON.parse(window.eval(`(function(){
-    var n = getNow();
+    var n = now();
     var on = events.find(function(e){ return e._s <= n && n < e._e && MAP_HOTELS[e.hotel] && !e.cancelled; });
     var st = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && e.hotel === "Streaming"; });
     if (!on || !st) return null;
@@ -1589,8 +1589,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const offLine = mapView.querySelector(".map-offmap");
   assert(offLine && offLine.textContent.trim() === "1 pick streaming or offsite" && mapView.querySelector(".next-card").nextElementSibling === offLine,
     `and the pick off the map is counted right under the card (${offLine && offLine.textContent.trim()})`);
-  const offsiteCard = JSON.parse(window.eval(`(function(){ var d = document.createElement("div"); d.innerHTML = mapCardHTML({now: getNow(), onNow: null, later: null, from: null, info: {leaveBy: null, late: false, estimate: null},
-    next: {id: "x", title: "Arcade night", hotel: "Other", room: "Joystick Gamebar", _s: new Date(getNow().getTime() + 30 * 60000)}}); return JSON.stringify({where: d.querySelector(".nc-where").textContent, when: d.querySelector(".nc-when").textContent}); })()`));
+  const offsiteCard = JSON.parse(window.eval(`(function(){ var d = document.createElement("div"); d.innerHTML = mapCardHTML({now: now(), onNow: null, later: null, from: null, info: {leaveBy: null, late: false, estimate: null},
+    next: {id: "x", title: "Arcade night", hotel: "Other", room: "Joystick Gamebar", _s: new Date(now().getTime() + 30 * 60000)}}); return JSON.stringify({where: d.querySelector(".nc-where").textContent, when: d.querySelector(".nc-when").textContent}); })()`));
   assert(offsiteCard.where === "Joystick Gamebar" && / · in 30 min$/.test(offsiteCard.when), `an offsite next shows its venue as the room (${offsiteCard.where}; ${offsiteCard.when})`);
   // 2. a two-digit pill on the Courtland stays inside the canvas
   const tenSetup = JSON.parse(window.eval(`(function(){
@@ -1643,7 +1643,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
 
   // ---- polish 3: no mini-bar on the Map tab ----
   const barState = JSON.parse(window.eval(`(function(){
-    var saved = [...picks], n = getNow();
+    var saved = [...picks], n = now();
     var later = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && MAP_HOTELS[e.hotel]; });
     picks = new Set([later.id]); savePicks();
     var read = function(tab){ state.tab = tab; render(); return {hidden: document.getElementById("minibar").hidden, cls: document.body.classList.contains("has-minibar")}; };
@@ -1662,20 +1662,20 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     hideUpdatePill();
     var wait = function(){ return new Promise(function(r){ setTimeout(r, 20); }); };
     var fire = function(){ document.dispatchEvent(new Event("visibilitychange")); };
-    lastScheduleCheck = Date.now();
+    lastScheduleCheck = now().getTime();
     fire(); await wait();
     var withinInterval = calls.length;
-    lastScheduleCheck = Date.now() - 16 * 60000;
+    lastScheduleCheck = now().getTime() - 16 * 60000;
     fire(); fire(); await wait();
     var afterInterval = calls.length, pillSame = document.getElementById("updatePill").hidden, genSame = meta.generated_at;
-    reply = newer; lastScheduleCheck = Date.now() - 16 * 60000;
+    reply = newer; lastScheduleCheck = now().getTime() - 16 * 60000;
     window.dispatchEvent(new Event("pageshow")); await wait();
     var afterPageshow = calls.length, pillShown = !document.getElementById("updatePill").hidden, freshText = document.getElementById("fresh").textContent, metaGen = meta.generated_at;
     window.fetch = realFetch; meta.generated_at = gen; hideUpdatePill(); updateFresh();
     return JSON.stringify({visible: document.visibilityState, withinInterval: withinInterval, afterInterval: afterInterval, afterPageshow: afterPageshow, calls: calls,
       pillSame: pillSame, genSame: genSame === gen, pillShown: pillShown, freshText: freshText, metaGen: metaGen, newer: newer}); })()`));
   assert(fg.visible === "visible" && fg.withinInterval === 0, `a return within 15 minutes of the last check asks for nothing (${fg.withinInterval} fetches)`);
-  assert(fg.afterInterval === 1 && fg.calls[0][0] === "events.json" && fg.calls[0][1] === "no-cache", `after the interval, two visibility events in a row make one check, of events.json with cache: no-cache (${fg.afterInterval})`);
+  assert(fg.afterInterval === 1 && fg.calls[0][0] === "data/2026/events.json" && fg.calls[0][1] === "no-cache", `after the interval, two visibility events in a row make one check, of data/2026/events.json with cache: no-cache (${fg.afterInterval})`);
   assert(fg.pillSame && fg.genSame, "an unchanged schedule shows no pill and leaves the freshness alone");
   assert(fg.afterPageshow === 2 && fg.pillShown && fg.metaGen === fg.newer && /refreshed/.test(fg.freshText),
     `pageshow checks too, and a newer generated_at shows the pill and updates the freshness text (${fg.freshText.trim()})`);
@@ -1730,7 +1730,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
 
   // ---- map card: the next pick under the map ----
   const cardState = JSON.parse(window.eval(`(function(){
-    var saved = [...picks], n = getNow(), today = conDayKey(n), onMap = function(e){ return !!MAP_HOTELS[e.hotel] && !e.cancelled; };
+    var saved = [...picks], n = now(), today = conDayKey(n), onMap = function(e){ return !!MAP_HOTELS[e.hotel] && !e.cancelled; };
     var on = events.find(function(e){ return e._s <= n && n < e._e && onMap(e); });
     var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === today && onMap(e) && e.hotel !== on.hotel; });
     var prev = events.find(function(e){ return e._e <= n && conDayKey(e._s) === today && onMap(e) && e.hotel !== next.hotel; });
@@ -1773,7 +1773,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(cardState.empty.empty && cardState.empty.tag === "DIV" && /Star things in Search and your next pick shows here\./.test(cardState.empty.text) && !cardState.empty.hero, "no picks at all: how to get one, and nothing to tap");
   assert(/\.next-card \.nc-title \{[^}]*-webkit-line-clamp: 2/.test(html) && /\.next-card \.nc-title \{[^}]*font-size: 1\.125rem/.test(html), "the title is row style, up to two lines");
   // a tap opens the detail sheet
-  window.eval(`(function(){ var n = getNow(); var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && MAP_HOTELS[e.hotel]; }); picks = new Set([next.id]); savePicks(); state.tab = "map"; render(); })()`); await sleep(20);
+  window.eval(`(function(){ var n = now(); var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && MAP_HOTELS[e.hotel]; }); picks = new Set([next.id]); savePicks(); state.tab = "map"; render(); })()`); await sleep(20);
   const cardEl = mapView.querySelector(".next-card");
   cardEl.click(); await sleep(20);
   assert(!document.getElementById("sheetWrap").hidden && !document.getElementById("panel-event").hidden && document.getElementById("sheetTitleEvent").textContent === cardEl.querySelector(".nc-title").textContent, "tapping the card opens the event's detail sheet");
@@ -1782,7 +1782,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval(`window.__mapRenders = 0; window.__renderMapReal = renderMap; renderMap = function(){ __mapRenders++; return __renderMapReal(); };`);
   const quietCard = JSON.parse(window.eval("JSON.stringify([tickMap(), tickMap(), __mapRenders])"));
   assert(quietCard[0] === false && quietCard[1] === false && quietCard[2] === 0, "two quiet ticks draw nothing, so the pulse is not restarted");
-  const streamOnly = JSON.parse(window.eval(`(function(){ var n = getNow(), nx = nowModel(n).upcoming[0];
+  const streamOnly = JSON.parse(window.eval(`(function(){ var n = now(), nx = nowModel(n).upcoming[0];
     var st = events.find(function(e){ return e._s > nx._s && conDayKey(e._s) === conDayKey(n) && e.hotel === "Streaming"; }); if (!st) return null;
     var svg = document.querySelector("#view-map svg"); picks.add(st.id); savePicks(); var r = tickMap();
     return JSON.stringify({ticked: r, renders: __mapRenders, sameSvg: document.querySelector("#view-map svg") === svg, off: (document.querySelector("#view-map .map-offmap") || {}).textContent || null}); })()`));
@@ -1792,7 +1792,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
 
   // ---- hotel names next to rooms ----
   const hl = JSON.parse(window.eval(`(function(){
-    var n = getNow(), today = conDayKey(n);
+    var n = now(), today = conDayKey(n);
     var ev = events.find(function(e){ return e.hotel === "Hilton" && e.room && e._s > n && conDayKey(e._s) === today; });
     var st = events.find(function(e){ return e.hotel === "Streaming"; });
     var probe = function(e){ var d = document.createElement("div"); d.innerHTML = placeHTML(e); return {text: d.textContent.replace(/\\s+/g, " ").trim(), rh: d.querySelector(".rh") ? d.querySelector(".rh").textContent : null, rr: d.querySelector(".rr") ? d.querySelector(".rr").textContent : null}; };
@@ -1857,7 +1857,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
 
   // ---- the hero, the mini-bar and the map card use the Hotel · Room convention ----
   const hr = JSON.parse(window.eval(`(function(){
-    var saved = [...picks], n = getNow();
+    var saved = [...picks], n = now();
     var on = events.find(function(e){ return e._s <= n && n < e._e && MAP_HOTELS[e.hotel] && e.room; });
     var next = events.find(function(e){ return e._s > n && conDayKey(e._s) === conDayKey(n) && MAP_HOTELS[e.hotel] && e.room && e.hotel !== on.hotel; });
     picks = new Set([on.id, next.id]); savePicks(); state.tab = "now"; render();
@@ -1873,7 +1873,114 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(hr.card === hr.barWant, `and the map's card, which used to put the room first (${hr.card})`);
   assert(!/placeLine/.test(html) && (html.match(/placeHTML\(/g) || []).length >= 5, "one helper serves rows, sheet, hero, mini-bar and card");
 
+  // ==== one clock: now(), the ?now= override, and the phase of the con ====
+  assert(window.eval("typeof now === 'function' && typeof getNow === 'undefined'"), "now() is the one clock; getNow is gone");
+  assert(window.eval("isSimulated()") && !document.getElementById("simChip").hidden, "booted from ?now=, the clock is simulated and the chip shows");
+  assert(window.sessionStorage.getItem("dc26.timeOverride") === "2026-09-05T13:05", "the override is kept for the session");
+  assert(text("clock").startsWith("Sat 1:05 PM") && !/preview/.test(text("clock")), `the clock reads the simulated time, with no suffix (${text("clock")})`);
+  {
+    // the source: every wall-clock read goes through now(); stopwatch reads use performance.now()
+    const start = html.lastIndexOf("<script>", html.indexOf("Data & constants"));
+    const script = html.slice(start);
+    const t0 = script.indexOf("   Time. Every read"), t1 = script.indexOf("   Loading", t0);
+    assert(t0 > 0 && t1 > t0, "index.html has a Time section");
+    const outside = script.slice(0, t0) + script.slice(t1);
+    assert(!/new Date\(\s*\)/.test(outside) && !/Date\.now\(/.test(outside), "no bare new Date() or Date.now() outside the Time section");
+    assert(!/location\.hash[^\n]*now=/.test(script) && !/#now=/.test(script), "the hash no longer carries the clock");
+    assert(/dragT = performance\.now\(\)/.test(script) && /spyHoldUntil = performance\.now\(\)/.test(script), "the drag and the scroll-spy hold are stopwatch reads");
+  }
+  window.eval('setTimeOverride("2026-09-05T14:15:00-04:00")'); await sleep(20);
+  assert(window.eval("now().getTime()") === new Date("2026-09-05T14:15:00-04:00").getTime(), "an offset in the override is honoured");
+  assert(window.location.search === "?now=2026-09-05T14:15:00-04:00", `the URL is kept in step and stays readable (${window.location.search})`);
+  assert(window.sessionStorage.getItem("dc26.timeOverride") === "2026-09-05T14:15:00-04:00", "and so is the session");
+  window.eval('history.replaceState(null, "", location.pathname); initTimeOverride();');
+  assert(window.eval("isSimulated() && now().getTime()") === new Date("2026-09-05T14:15:00-04:00").getTime(), "with the URL stripped, the session's override carries on");
+  window.eval("setTimeOverride(null)"); await sleep(20);
+  assert(!window.eval("isSimulated()") && document.getElementById("simChip").hidden && window.location.search === "" && window.sessionStorage.getItem("dc26.timeOverride") === null,
+    "clearing goes back to the wall clock, hides the chip, and cleans the URL and the session");
+  assert(Math.abs(window.eval("now().getTime()") - Date.now()) < 5000, "now() is the wall clock again");
+  window.eval('setTimeOverride("2026-09-05T13:05")'); await sleep(20);
+  assert(text("clock").startsWith("Sat 1:05 PM") && !document.getElementById("simChip").hidden, "and back to Saturday, chip and all");
+  document.getElementById("simChip").click(); await sleep(20);
+  assert(!window.eval("isSimulated()"), "tapping the chip clears the override");
+  window.eval('setTimeOverride("2026-09-05T13:05")'); await sleep(20);
+  window.eval('openSheet("settings")');
+  assert(document.getElementById("previewTime").value === "2026-09-05T13:05", `the Settings field shows the override (${document.getElementById("previewTime").value})`);
+  document.getElementById("previewTime").value = "2026-09-06T09:30";
+  document.getElementById("applyPreview").click(); await sleep(20);
+  assert(text("clock").startsWith("Sun 9:30 AM") && window.location.search === "?now=2026-09-06T09:30", `Apply preview time sets the override (${text("clock")}, ${window.location.search})`);
+  window.eval('openSheet("settings")');
+  document.getElementById("clearPreview").click(); await sleep(20);
+  assert(!window.eval("isSimulated()"), "Use real time clears it");
+  window.eval('setTimeOverride("2026-09-05T13:05")'); await sleep(20);
+
+  const phase = at => window.eval(`conPhase(new Date(${JSON.stringify(at)}))`);
+  assert(window.eval("CON.year") === 2026 && window.eval("CON.start instanceof Date && CON.end instanceof Date && CON.start < CON.end"), "CON names the year and its bounds");
+  assert(phase("2026-09-02T17:59") === "before" && phase("2026-08-01T12:00") === "before", "before the first event: before");
+  assert(phase("2026-09-02T18:00") === "live" && phase("2026-09-05T14:15") === "live" && phase("2026-09-07T19:00") === "live", "from the first start to the last end, inclusive: live");
+  assert(phase("2026-09-07T19:01") === "ended" && phase("2026-12-25T12:00") === "ended", "after the last event ends: ended");
+  assert(window.eval("conPhase()") === "live" && !window.eval("conEnded()"), "with no argument it reads now()");
+  window.eval('setTimeOverride("2026-08-01T12:00"); state.tab = "now"; render();'); await sleep(20);
+  assert(!document.getElementById("notice").hidden && /Con starts Thursday/.test(text("notice")), "before the con, the Thursday preview banner as before");
+  assert(/next hour/.test(document.getElementById("view-now").textContent), "and the Now tab previews Thursday morning");
+
+  // ==== archive mode: after the con ====
+  window.localStorage.removeItem("dc26.archiveNoticeDismissed");
+  const setPicks = ids => window.eval(`picks = new Set(${JSON.stringify(ids)}); savePicks(); render();`);
+  const archIds = JSON.parse(window.eval(`JSON.stringify(events.filter(function(e){ return e._cd === "2026-09-04" || e._cd === "2026-09-05"; }).filter(function(e, i){ return i % 40 === 0; }).slice(0, 6).map(function(e){ return e.id; }))`));
+  setPicks(archIds);
+  window.eval('state.tab = "now"; setTimeOverride("2026-09-08T09:00")'); await sleep(20);
+  assert(window.eval("conPhase()") === "ended" && window.eval("conEnded()"), "the morning after the last event: ended");
+  const nowView = document.getElementById("view-now");
+  assert(!document.getElementById("notice").hidden && /Dragon Con 2026 has ended/.test(text("notice")) && /Now tab/.test(text("notice")), `the banner says the con has ended and points at the schedule (${text("notice")})`);
+  assert(document.querySelector('#notice [data-act="dismiss-archive"]'), "with a dismiss button");
+  assert(!nowView.querySelector(".hero") && !/On now|Your next|\bleave\b.*\bby\b|leave now|In \d+ min/.test(nowView.textContent), "the Now tab has no hero, no on-now, no leave-by");
+  assert(/Your 2026 schedule/.test(nowView.textContent), "it is headed Your 2026 schedule");
+  const archRows = [...nowView.querySelectorAll('.row[data-list="archive"]')].map(r => r.dataset.id);
+  const wantOrder = JSON.parse(window.eval(`JSON.stringify(events.filter(function(e){ return picks.has(e.id); }).map(function(e){ return e.id; }))`));
+  assert(archRows.length === 6 && archRows.join() === wantOrder.join(), `every pick is listed, in time order (${archRows.length})`);
+  const heads = [...nowView.querySelectorAll(".day-head")].map(h => h.textContent.trim());
+  const wantHeads = JSON.parse(window.eval(`JSON.stringify([...new Set(events.filter(function(e){ return picks.has(e.id); }).map(function(e){ return DAY_LONG[e._cd]; }))])`));
+  assert(heads.length > 1 && heads.join() === wantHeads.join(), `grouped by day (${heads.join()})`);
+  assert(!nowView.querySelector(".time-head") && !/next hour/.test(nowView.textContent) && !document.getElementById("nudge"), "no on-now list and no install nudge under it");
+  nowView.querySelector('.row[data-list="archive"] .star').click(); await sleep(20);
+  assert(window.eval("picks.size") === 5 && document.querySelectorAll('#view-now .row[data-list="archive"]').length === 5, "unstarring from the archive list removes the row");
+  setPicks(archIds); await sleep(10);
+  assert(document.querySelectorAll('#view-now .row[data-list="archive"]').length === 6, "and starring brings it back");
+  setPicks([]); await sleep(10);
+  assert(/Nothing starred/.test(document.getElementById("view-now").textContent), "with no picks, an empty state that points at Search");
+  setPicks(archIds); await sleep(10);
+  assert(/final/.test(text("fresh")) && !/refreshed/.test(text("fresh")), `the header calls the copy final (${text("fresh")})`);
+  window.eval('state.tab = "browse"; render();'); await sleep(20);
+  assert(document.getElementById("minibar").hidden, "no mini-bar on Search after the con");
+  assert(!document.getElementById("notice").hidden, "the banner is on every tab");
+  window.eval('Object.assign(state.browse, {q: "panel", day: "All", page: 1}); render();'); await sleep(200);
+  assert(!document.querySelector('#view-browse [data-act="toggle-past"]') && document.querySelectorAll("#view-browse .row").length > 0, "search results have no Already happened fold: nothing is past when everything is");
+  assert(!document.querySelector('#view-browse [data-act="unparse-today"]'), "and no Today scope");
+  window.eval('Object.assign(state.browse, {q: "", day: null, page: 1}); state.tab = "map"; render();'); await sleep(20);
+  assert(!document.querySelector("#view-map .next-card") && !document.querySelector("#view-map .next-on") && !document.querySelector("#view-map .map-ring"), "the map has no next-pick card and no rings");
+  assert(document.querySelectorAll("#view-map .map-pill").length > 0 || window.eval('mapDay()') === "2026-09-03", "the map still counts picks by hotel on its day chips");
+  window.eval('state.tab = "explore"; state.explore.page = {kind: "track", key: events[0].tracks[0]}; render();'); await sleep(20);
+  assert(!document.querySelector('#view-explore [data-act="explore-past"]') && !/still to come|already happened/i.test(document.getElementById("view-explore").textContent), "an Explore page lists everything plainly");
+  window.eval('state.explore.page = null; state.tab = "mine"; render();'); await sleep(20);
+  assert(!document.querySelector("#view-mine .tl-now") && document.querySelector('#view-mine [data-act="ics"]') && !document.querySelector('#view-mine [data-act="ics"]').disabled, "Mine has no now-line, and export is still offered");
+  window.eval('state.tab = "now"; render();'); await sleep(10);
+  document.querySelector('#notice [data-act="dismiss-archive"]').click(); await sleep(20);
+  assert(document.getElementById("notice").hidden && window.eval('loadJSON("dc26.archiveNoticeDismissed", null)') === 2026, "dismissing hides the banner and remembers it for the year");
+  window.eval('state.tab = "browse"; render(); state.tab = "now"; render();'); await sleep(10);
+  assert(document.getElementById("notice").hidden, "and it stays dismissed");
+  window.localStorage.removeItem("dc26.archiveNoticeDismissed");
+  window.eval("tickNow()"); await sleep(10);
+  assert(document.querySelectorAll('#view-now .row[data-list="archive"]').length === 6, "the minute tick leaves the archive list alone");
+  window.eval('setTimeOverride("2026-09-07T18:59")'); await sleep(20);
+  assert(/next hour/.test(document.getElementById("view-now").textContent) && document.getElementById("notice").hidden, "a minute before the end it is still live");
+  window.eval('timeOverride = new Date("2026-09-07T19:01"); updateClock(); renderNotice(); tickNow();'); await sleep(20);
+  assert(/Your 2026 schedule/.test(document.getElementById("view-now").textContent) && !document.getElementById("notice").hidden, "a minute after, the tick flips it to the archive with the banner");
+  window.eval('setTimeOverride("2026-09-05T13:05"); state.tab = "now"; render();'); await sleep(20);
+  assert(document.getElementById("notice").hidden && /next hour/.test(document.getElementById("view-now").textContent), "and Saturday afternoon is live again");
+
   window.close();
+
   await realDataChecks();
   console.log(process.exitCode ? "SOME FAILURES" : "ALL PASSED"); process.exit(process.exitCode || 0);
 })();
@@ -1885,14 +1992,18 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
  * AND actually narrow this" only mean something against the 3,462 real ones.
  * ------------------------------------------------------------------ */
 async function realDataChecks() {
-  const path = __dirname + "/../events.json";
-  if (!fs.existsSync(path)) { console.log("skip  real-data search checks (no events.json)"); return; }
+  const path = __dirname + "/../data/2026/events.json";
+  if (!fs.existsSync(path)) { console.log("skip  real-data search checks (no data/2026/events.json)"); return; }
   const realDom = new JSDOM(
     fs.readFileSync(__dirname + "/../index.html", "utf8")
       .replace("<script>", "<script>window.DC_EVENTS=" + fs.readFileSync(path, "utf8") + ";"),
-    { runScripts: "dangerously", url: "https://example.test/#now=2026-09-05T13:05", pretendToBeVisual: true });
+    { runScripts: "dangerously", url: "https://example.test/?now=2026-09-05T13:05", pretendToBeVisual: true });
   const w = realDom.window;
   await sleep(2500);
+  // the con's bounds are the data's own: the first start and the last end
+  const bounds = JSON.parse(w.eval(`JSON.stringify({first: events[0]._s.getTime(), last: Math.max.apply(null, events.map(function(e){ return e._e.getTime(); })), start: CON.start.getTime(), end: CON.end.getTime()})`));
+  assert(bounds.start === bounds.first, `CON.start is the first listed event's start (${new Date(bounds.start)} vs ${new Date(bounds.first)})`);
+  assert(bounds.end === bounds.last, `CON.end is the last listed event's end (${new Date(bounds.end)} vs ${new Date(bounds.last)})`);
   for (let i = 0; i < 600 && !w.eval("!!index && !!suggestIndex"); i++) await sleep(20);
 
   const search = (q, over) => JSON.parse(w.eval(`(function(){
@@ -1904,7 +2015,7 @@ async function realDataChecks() {
       total: r.length, main: pick("main").length, loose: pick("loose").length, past: pick("past").length,
       topTitles: pick("main").slice(0, 5).map(function(e){ return e.title; }),
       mainDays: pick("main").map(function(e){ return e.day; }),
-      mainAllUpcoming: pick("main").every(function(e){ return e._e > getNow(); }),
+      mainAllUpcoming: pick("main").every(function(e){ return e._e > now(); }),
       chips: (state.browse.parsed.chips || []).map(function(c){ return c.label; }),
       residual: state.browse.parsed.residual,
       allNoise: pick("main").length > 0 && pick("main").every(function(e){ return isNoise(e); }),
@@ -2096,7 +2207,7 @@ async function realDataChecks() {
   const lateNight = search("late night");
   assert(lateNight.chips.includes("Late night"), "late night is still read as a time band");
   assert(w.eval(`state.browse.todayScoped`) === true, "and with nothing left to rank, it scopes to today");
-  const conToday = w.eval(`conDayKey(getNow())`);
+  const conToday = w.eval(`conDayKey(now())`);
   assert(w.eval(`browseResults().filter(function(e){ return e._section === "main"; }).every(function(e){ return conDayKey(e._s) === ${JSON.stringify(conToday)}; })`),
     "every result belongs to today's con day");
   assert(!lateNight.mainDays.includes("2026-09-02"), "nothing from Wednesday");
@@ -2106,7 +2217,7 @@ async function realDataChecks() {
   const party = search("party");
   assert(party.main > 0, `"party" returns today's parties (${party.main})`);
   assert(party.past > 0, `with earlier ones behind the fold (${party.past})`);
-  assert(w.eval(`browseResults().filter(function(e){ return e._section === "main"; }).every(function(e){ return e._e > getNow(); })`),
+  assert(w.eval(`browseResults().filter(function(e){ return e._section === "main"; }).every(function(e){ return e._e > now(); })`),
     "and everything above the fold is still to come");
   // a day in the query wins
   const partyFri = search("party friday");

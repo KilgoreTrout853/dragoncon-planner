@@ -8,14 +8,15 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 
 | File | What it does |
 |---|---|
-| `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app, merges duplicates, and writes `events.json`. Takes ~20 minutes. |
+| `data/2026/events.json` | The final 2026 schedule, frozen after the con: 3,461 events. |
+| `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app, merges duplicates, and writes `data/2026/events.json`. Takes ~20 minutes. |
 | `tag_events.py` | Has Claude tag each event with fandoms, kind (celebrity Q&A, fan panel, screening…), topics, guests, and 18+. Powers the fandom picker, kind chips, the Celebrity badge and Guests section, and search. |
-| `index.html` | The whole planner, one file. Reads `events.json` from the same folder. |
+| `index.html` | The whole planner, one file. Reads `data/2026/events.json`. |
 | `sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `icon.svg`. Needs Pillow; fetches the font once. |
-| `.github/workflows/scrape.yml` | Re-runs the scraper every 3 hours during con week and commits fresh data. |
-| `tests/` | 25 parser tests and 784 UI assertions. Not optional — run them before you push. |
+| `.github/workflows/scrape.yml` | Runs the scraper and commits fresh data. By hand only now that the con is over. |
+| `tests/` | 25 parser tests and 838 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -26,17 +27,17 @@ python scraper.py                # full scrape, ~3,460 events after merging dupl
 python -m http.server 8000       # then open http://localhost:8000
 ```
 
-`index.html` must be served over http — opened as a file, the browser blocks it from reading `events.json`.
+`index.html` must be served over http — opened as a file, the browser blocks it from reading the schedule.
 
 **Tests need Node** (for jsdom) as well as Python:
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 784 assertions
+node tests/ui_smoke.js           # 838 assertions
 python tests/test_parse.py       # 25 parser tests
 ```
 
-The UI suite runs twice: once against `tests/sample-events.json` (558 synthetic events, deterministic) and once against the real `events.json`, because ranking questions are meaningless against synthetic rows.
+The UI suite runs twice: once against `tests/sample-events.json` (558 synthetic events, deterministic) and once against the real `data/2026/events.json`, because ranking questions are meaningless against synthetic rows.
 
 ## Using it
 
@@ -52,7 +53,13 @@ A con day runs to 5 AM, everywhere in the app: a 1 AM panel sits under the day b
 
 Rows and the detail sheet name the hotel before the room ("Hilton · 313-314"); a stream is just "Streaming" and an offsite venue is itself. Tap any row for the detail sheet: description, panelists with a "See all" link to each person, hotel and room, star, and a single-event calendar export. Swipe it down to dismiss.
 
-**Settings** (gear): crowd factor for walk estimates, the default noise filter and a Larger text switch up top. Under **Advanced**: preview any time (`#now=2026-09-05T14:00` in the URL does the same), the walk-time table, and a device readout that ends with the build time. Remove all picks is last, on its own.
+**Settings** (gear): crowd factor for walk estimates, the default noise filter and a Larger text switch up top. Under **Advanced**: preview any time (`?now=2026-09-05T14:00` in the URL does the same), the walk-time table, and a device readout that ends with the build time. Remove all picks is last, on its own.
+
+## After the con
+
+The app knows the con's bounds (`CON` in `index.html`: the first listed event's start to the last one's end) and derives a phase from the clock: before, live, or ended. Once it has ended, a dismissible banner says so, the Now tab becomes **Your 2026 schedule** - every starred event by day, still starrable - and nothing anywhere says "on now", "leave by" or "in 40 min". Search, Explore, the map, Mine and the calendar export work as before, except that the "Already happened" folds are gone, since everything has.
+
+Every read of the clock goes through one `now()` function. `?now=2026-09-05T14:15` in the URL (an offset works too: `?now=2026-09-05T14:15:00-04:00`) simulates that moment for the whole app and shows a small **simulated time** chip in the header; the override is kept for the tab's session, so reloads keep it, and the chip or Settings clears it. That is how the live behaviour is checked in the off-season.
 
 Picks and follows live in the browser's storage, per device. They aren't shared between phones and there's no URL format for them yet.
 
@@ -61,7 +68,7 @@ Picks and follows live in the browser's storage, per device. They aren't shared 
 The service worker caches the app and the schedule, so it opens and renders in a building with no signal — which is the normal state of the Marriott lobby.
 
 - `index.html` is network-first with a 3-second timeout, so fixes land when there's signal and a saturated tower can't stop the app opening. A copy that arrives after the limit is stored for the next launch, so a slow tower delays a fix by one open rather than for ever.
-- `events.json` is served from cache immediately and refreshed behind you. When it changes you get a "Schedule updated · tap to refresh" pill rather than the list moving under your thumb. Coming back to the app after 15 minutes or more away checks again, the same quiet way.
+- The schedule is served from cache immediately and refreshed behind you. When it changes you get a "Schedule updated · tap to refresh" pill rather than the list moving under your thumb. Coming back to the app after 15 minutes or more away checks again, the same quiet way.
 - When the cached copy is what you're seeing, the line under the clock says `· offline copy`.
 
 To install: iPhone must use **Safari** (Share → Add to Home Screen); Android uses Chrome (⋮ → Install app). Until it is installed, the Now tab opens with a nudge saying so, which can be put off for a week at a time. You get a **DC26** icon that opens without browser chrome. The content area scrolls inside its own container rather than the page, so the header and the nav stay put on an iPhone instead of riding the system's bottom inset. The status bar is opaque on purpose: on iOS 26 a translucent one leaves the web view short by its own height, with a dead strip at the bottom of the screen. iOS reads these web-app settings once, when the icon is added, so a change to them only reaches a phone after the icon is deleted and added again from Safari. The device line under Advanced in Settings ends with the build time, so you can tell which version a phone is running.
@@ -100,6 +107,6 @@ Hosted by Core-apps at `https://app.core-apps.com/dragoncon26`. Day pages are `e
 
 ## The refresh workflow
 
-Runs every 3 hours through Sep 8, then stops itself via a date guard. Before committing it refuses a scrape that returned nothing or fell more than 20% — a throttled run can't overwrite good data. If `main` moved while it was scraping it rebases and retries rather than dropping the refresh. Two refreshes never run at once: a run started by hand that overlaps the cron waits for it, because both would rewrite `events.json` and the rebase can't resolve that.
+Runs by hand only (Actions → Refresh schedule → Run workflow); the 3-hourly cron that ran it through con week was removed once the schedule was final, and a run now would overwrite `data/2026/events.json` with whatever the host serves. Before committing it refuses a scrape that returned nothing or fell more than 20% — a throttled run can't overwrite good data. If `main` moved while it was scraping it rebases and retries rather than dropping the refresh. Two refreshes never run at once: a second run waits for the first, because both would rewrite the schedule and the rebase can't resolve that.
 
-After the con, disable it (Actions → Refresh schedule → ⋯ → Disable) or leave it; it stops on its own.
+For next year: put the `schedule:` trigger and its con-week date guard back, point the scraper, the tagger, the worker and `CON` at `data/2027/`, and the 2026 file stays where it is.

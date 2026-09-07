@@ -7,7 +7,7 @@
      index.html    network-first with a short timeout. A UI fix should land
                    when there is signal, but a slow tower must not block the
                    app from opening.
-     events.json   cache-first, revalidated behind you. The schedule is 3MB;
+     the schedule  cache-first, revalidated behind you. The schedule is 3MB;
                    waiting for it on con wifi is the thing that makes the app
                    feel broken. Serve what we have, check quietly, and only
                    speak up if the copy actually changed.
@@ -17,10 +17,10 @@
    Bump CACHE when index.html or sw.js changes; older dc26-* caches are
    removed on activate. */
 
-const CACHE = "dc26-v3";
+const CACHE = "dc26-v4";
 const HTML_TIMEOUT_MS = 3000;
-const DATA = "events.json";
-const SHELL = ["./", "./index.html", "./events.json", "./manifest.json", "./icon.svg",
+const DATA = "data/2026/events.json";
+const SHELL = ["./", "./index.html", "./data/2026/events.json", "./manifest.json", "./icon.svg",
                "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 const isFont = url =>
