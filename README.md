@@ -8,7 +8,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 
 | File | What it does |
 |---|---|
-| `data/2026/events.json` | The final 2026 schedule, frozen after the con: 3,461 events. |
+| `data/2026/events.json` | The final 2026 schedule, frozen after the con: 3,459 events, scraped Sep 7 12:50 UTC. |
 | `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app, merges duplicates, and writes `data/2026/events.json`. Takes ~20 minutes. |
 | `tag_events.py` | Has Claude tag each event with fandoms, kind (celebrity Q&A, fan panel, screening…), topics, guests, and 18+. Powers the fandom picker, kind chips, the Celebrity badge and Guests section, and search. |
 | `index.html` | The whole planner, one file. Reads `data/2026/events.json`. |
