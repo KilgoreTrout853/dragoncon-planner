@@ -111,6 +111,9 @@ button { cursor: pointer; }
    word "refreshed" goes before anything is clipped. Measured, not guessed. */
 .hdr .hdr-line.tight .word { display: none; }
 .hdr .hdr-line.tighter { font-size: .8125rem; }   /* and if that is not enough, a size down */
+/* Only there while a ?now= override is on; a tap goes back to the real clock. */
+.sim-chip { display: inline-block; vertical-align: 1px; margin-left: 8px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--gold); background: transparent; color: var(--gold); font: inherit; font-size: .6875rem; font-weight: 600; line-height: 1.6; cursor: pointer; }
+.sim-chip span { opacity: .7; }
 .icon-btn {
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
   width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted);
@@ -127,8 +130,8 @@ button { cursor: pointer; }
 .notice.warn { border-color: var(--warn); color: var(--text); }
 .pick-news ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
 .pick-news .btn { margin-top: 12px; height: 38px; }
-.nudge .btns { display: flex; gap: 8px; margin-top: 12px; }
-.nudge .btn { height: 38px; }
+.nudge .btns, .notice.archive .btns { display: flex; gap: 8px; margin-top: 12px; }
+.nudge .btn, .notice.archive .btn { height: 38px; }
 
 /* Views -------------------------------------------------------------- */
 main {
@@ -566,7 +569,7 @@ body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
 <header class="hdr">
   <div class="hdr-text">
     <div class="brand" id="brand">Dragon Con 2026</div>
-    <div class="hdr-line"><span class="clock" id="clock">…</span><span class="fresh" id="fresh"></span></div>
+    <div class="hdr-line"><span class="clock" id="clock">…</span><span class="fresh" id="fresh"></span><button class="sim-chip" id="simChip" hidden aria-label="Simulated time. Tap to use the real clock">simulated time <span aria-hidden="true">&times;</span></button></div>
   </div>
   <button class="icon-btn" id="settingsBtn" aria-label="Settings">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -925,13 +928,76 @@ const hotelGroup = h => HOTEL_GROUP[h] || h;
 /* A chip value is a venue or a group of them; "All" is everything. */
 const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hotel) === v;
 
-/* Real clock, or a preview time via #now=2026-09-05T14:00 */
-function getNow() {
-  const m = location.hash.match(/now=([0-9T:-]+)/);
-  if (m) { const d = new Date(m[1]); if (!isNaN(d)) return d; }
-  return new Date();
-}
 function dayOf(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+
+/* ==================================================================
+   Time. Every read of the current moment goes through now() - the header
+   clock, the Now tab, leave-by, the search folds, the nudge snooze, the
+   ICS stamp - so one override moves all of them together. Elapsed-time
+   measurements (a drag's speed, the scroll-spy hold, boot timings) are
+   stopwatch reads and use performance.now() instead.
+
+   ?now=2026-09-05T14:15 in the URL simulates that moment; an offset is
+   honoured (2026-09-05T14:15:00-04:00). The override is kept for the tab's
+   session, so a reload or the update pill lands on the same moment, and
+   is cleared from Settings or the chip in the header. A simulated clock
+   stands still: the tick redraws, but the minute never changes.
+
+   The con's bounds live here too, because the phase of the con - before,
+   live, ended - is a question about the clock.
+   ================================================================== */
+const CON = {
+  year: 2026,
+  /* The first listed event's start and the last one's end, as the data
+     has them: local time, like every time in the app. */
+  start: toDate("2026-09-02T18:00"),
+  end: toDate("2026-09-07T19:00"),
+};
+const DATA_URL = `data/${CON.year}/events.json`;
+const TIME_OVERRIDE_KEY = "dc26.timeOverride";
+let timeOverride = null;                     // a Date, or null for the wall clock
+const readSession = key => { try { return sessionStorage.getItem(key); } catch (e) { return null; } };
+const writeSession = (key, value) => { try { if (value === null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, value); } catch (e) {} };
+const parseMoment = raw => { const d = raw ? new Date(raw) : null; return d && !isNaN(d) ? d : null; };
+
+function now() { return timeOverride ? new Date(timeOverride.getTime()) : new Date(); }
+const isSimulated = () => timeOverride !== null;
+
+/* The URL wins over the session, so a pasted link means what it says; with
+   no ?now= the session's override, if any, carries on. */
+function initTimeOverride() {
+  const fromUrl = new URLSearchParams(location.search).get("now");
+  const raw = fromUrl !== null ? fromUrl : readSession(TIME_OVERRIDE_KEY);
+  timeOverride = parseMoment(raw);
+  writeSession(TIME_OVERRIDE_KEY, timeOverride ? raw : null);
+}
+/* value: an ISO date-time, or null for the real clock. The URL is kept in
+   step so a reload lands on the same moment - only "+" is encoded, so the
+   address stays readable - and the hash (an explore deep link) is left
+   alone. The day chips follow the clock again until tapped. */
+function setTimeOverride(value) {
+  timeOverride = parseMoment(value);
+  writeSession(TIME_OVERRIDE_KEY, timeOverride ? value : null);
+  const rest = location.search.replace(/^\?/, "").split("&").filter(p => p && !p.startsWith("now="));
+  const parts = timeOverride ? rest.concat("now=" + value.replace(/\+/g, "%2B")) : rest;
+  history.replaceState(null, "", location.pathname + (parts.length ? "?" + parts.join("&") : "") + location.hash);
+  state.browse.day = null;
+  state.map.day = null;
+  render();
+  updateFresh();                             // "refreshed 2 h ago" is relative to the clock too
+}
+/* What the datetime-local input in Settings shows for the override. */
+const localInputValue = d => `${dayOf(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+/* before | live | ended. The bounds are the con's own: a moment at the very
+   end is still live. */
+function conPhase(at = now()) { return at < CON.start ? "before" : at > CON.end ? "ended" : "live"; }
+const conEnded = () => conPhase() === "ended";
+/* Once the con is over nothing is "already happened" in a useful sense - the
+   whole schedule is - and folding all of it away would hide every result. */
+const isPast = (e, at) => e._e <= at && conPhase(at) !== "ended";
+
+initTimeOverride();
 
 /* ==================================================================
    Loading
@@ -940,7 +1006,7 @@ async function load() {
   let data = window.DC_EVENTS;
   if (!data) {
     try {
-      const r = await fetch("events.json", {cache: "no-cache"});
+      const r = await fetch(DATA_URL, {cache: "no-cache"});
       if (!r.ok) throw new Error(r.status);
       data = await r.json();
       fromNetwork = true;
@@ -949,12 +1015,12 @@ async function load() {
          response resolves normally and the worker reports offline by message
          instead. This is the plain-browser, no-signal path. */
       try {
-        const cached = await caches.match("events.json", {ignoreSearch: true});
+        const cached = await caches.match(DATA_URL, {ignoreSearch: true});
         if (cached) { data = await cached.json(); fromNetwork = false; }
       } catch (e2) { /* no Cache API: fall through to the empty state */ }
       if (!data) {
       document.getElementById("view-now").innerHTML =
-        `<div class="empty"><b>No schedule data yet.</b><br>events.json is missing or unreadable. Run <code>python scraper.py</code> in this folder, then reload.</div>`;
+        `<div class="empty"><b>No schedule data yet.</b><br>${DATA_URL} is missing or unreadable. Run <code>python scraper.py</code> in this folder, then reload.</div>`;
       return;
       }
     }
@@ -1095,9 +1161,19 @@ function fandomCounts() {
 function updateFresh() {
   const el = document.getElementById("fresh");
   if (!meta.generated_at) { el.textContent = ""; return; }
-  const ago = minutesBetween(new Date(meta.generated_at), new Date());
-  const f = m => m < 60 ? `${m} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} d`;
-  el.innerHTML = ` &middot; ${events.length.toLocaleString("en-US")} events &middot; <span class="word">refreshed </span>${f(ago)} ago`
+  /* After the con the copy is final; how long ago it was refreshed stops
+     being the question. Under a simulated clock the copy can postdate the
+     moment shown - "-1020 min ago" - so then it is named by when, not how
+     long. */
+  let fresh;
+  if (conEnded()) fresh = `final<span class="word"> schedule</span>`;
+  else {
+    const at = toDate(meta.generated_at), ago = minutesBetween(at, now());
+    const f = m => m < 60 ? `${m} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} d`;
+    fresh = ago < 0 ? `<span class="word">refreshed </span>${DAY_LABEL[dayOf(at)] || ""} ${fmtShort(at)}`
+                    : `<span class="word">refreshed </span>${f(ago)} ago`;
+  }
+  el.innerHTML = ` &middot; ${events.length.toLocaleString("en-US")} events &middot; ${fresh}`
     + (servedOffline ? " &middot; offline copy" : "");
   syncHeaderHeight();          // this line is what changes the header's height
 }
@@ -1192,10 +1268,10 @@ function hotelSheetHTML(hotel, day) {
    next picks, where the reader is, and the hero's leave-by. Null on any day
    but the one the clock is in. */
 function mapNowState(day) {
-  const now = getNow();
-  if (day !== conDayKey(now)) return null;
-  const model = nowModel(now), next = model.upcoming[0] || null, from = currentLocation(now);
-  return {now, onNow: model.onNowEv, next, from, info: leaveInfo(from, next, now)};
+  const at = now();
+  if (day !== conDayKey(at)) return null;
+  const model = nowModel(at), next = model.upcoming[0] || null, from = currentLocation(at);
+  return {now: at, onNow: model.onNowEv, next, from, info: leaveInfo(from, next, at)};
 }
 /* A solid gold ring on the hotel of the pick that is on now, a pulsing one on
    the hotel of the next pick. A next pick off the map gets no ring. */
@@ -1215,13 +1291,14 @@ function mapRingsSVG(st) {
    left today it shows the first pick of the next con day; with no picks at
    all, how to get one. */
 function mapCardState() {
-  const now = getNow(), model = nowModel(now), today = conDayKey(now);
+  const at = now(), model = nowModel(at), today = conDayKey(at);
   const next = model.upcoming[0] || null;
-  const later = next ? null : (events.find(e => picks.has(e.id) && e._s > now && conDayKey(e._s) > today) || null);
-  const from = currentLocation(now);
-  return {now, onNow: model.onNowEv, next, later, from, info: next ? leaveInfo(from, next, now) : null};
+  const later = next ? null : (events.find(e => picks.has(e.id) && e._s > at && conDayKey(e._s) > today) || null);
+  const from = currentLocation(at);
+  return {now: at, onNow: model.onNowEv, next, later, from, info: next ? leaveInfo(from, next, at) : null};
 }
 function mapCardHTML(cs) {
+  if (conEnded()) return "";                 // nothing is next any more
   const {now, onNow, next, later, info} = cs;
   const onLine = onNow ? `<button class="next-on" data-hero="${esc(onNow.id)}">On now: <b>${esc(onNow.title)}</b> &middot; ends ${fmtShort(onNow._e)} &middot; ${esc(onNow.hotel === "Other" ? (onNow.room || "offsite") : hotelShort(onNow.hotel))}</button>` : "";
   const ev = next || later;
@@ -1269,7 +1346,7 @@ function mapSVG(day, st = mapNowState(day), counts = mapCounts(day)) {
    with the timeline's 5 AM boundary. Outside con week, Thursday. */
 function mapDay() {
   if (state.map.day) return state.map.day;
-  const d = conDayKey(getNow());
+  const d = conDayKey(now());
   return CON_DAYS.includes(d) ? d : "2026-09-03";
 }
 
@@ -1316,6 +1393,7 @@ function tickMap() {
 function render() {
   cancelQueuedBrowseRender();
   updateClock();
+  renderNotice();
   document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
   document.getElementById("brand").hidden = state.tab !== "now";
   syncHeaderHeight();          // the brand comes and goes with the tab, and the spacers follow the header
@@ -1335,19 +1413,19 @@ function render() {
 
 function renderMiniBar() {
   const bar = document.getElementById("minibar");
-  /* Not on Now, which is about the next pick already, and not on the Map,
-     whose caption says the same thing. */
-  const next = state.tab === "now" || state.tab === "map" || !events.length ? null : nextPickInConDay(getNow());
+  /* Not on Now, which is about the next pick already; not on the Map, whose
+     caption says the same thing; and not once the con is over. */
+  const at = now();
+  const next = state.tab === "now" || state.tab === "map" || !events.length || conEnded() ? null : nextPickInConDay(at);
   if (!next) {
     bar.hidden = true;
     document.body.classList.remove("has-minibar");
     return;
   }
-  const now = getNow();
-  const info = leaveInfo(currentLocation(now), next, now);
+  const info = leaveInfo(currentLocation(at), next, at);
   const when = info && info.leaveBy
     ? (info.late ? "leave now" : `leave by ${fmtShort(info.leaveBy)}`)
-    : `in ${fmtMins(minutesBetween(now, next._s))}`;
+    : `in ${fmtMins(minutesBetween(at, next._s))}`;
   bar.classList.toggle("late", !!(info && info.late));
   bar.innerHTML = `<span class="mb-body">
       <span class="mb-title">${esc(next.title)}</span>
@@ -1359,9 +1437,9 @@ function renderMiniBar() {
 }
 
 function updateClock() {
-  const now = getNow();
-  const preview = location.hash.includes("now=");
-  document.getElementById("clock").textContent = `${DAY_LABEL[dayOf(now)] || now.toLocaleDateString(undefined, {weekday: "short"})} ${fmtShort(now)}` + (preview ? " (preview)" : "");
+  const at = now();
+  document.getElementById("clock").textContent = `${DAY_LABEL[dayOf(at)] || at.toLocaleDateString(undefined, {weekday: "short"})} ${fmtShort(at)}`;
+  document.getElementById("simChip").hidden = !isSimulated();
   fitHeaderLine();
 }
 
@@ -1540,18 +1618,57 @@ function heroHTML(ev, now, onNow, thenNext) {
 }
 
 /* ---- Now ---------------------------------------------------------- */
-/* Outside con week the Now tab previews a sensible moment instead of an
-   empty one. Shared so the minute tick sees the same clock as the render. */
+/* Before the con the Now tab previews a sensible moment instead of an empty
+   one. Shared so the minute tick sees the same clock as the render. After
+   the con the tab is the archive, and this is not consulted. */
 function effectiveNow() {
-  const real = getNow();
-  if (real < new Date("2026-09-02T00:00")) {
-    return {now: new Date("2026-09-03T10:00"),
+  const real = now();
+  if (conPhase(real) === "before") {
+    return {now: toDate("2026-09-03T10:00"),
       banner: `<b>Con starts Thursday.</b> Showing Thursday 10:00 AM as a preview. Use Settings to preview any other time.`};
   }
-  if (real > new Date("2026-09-08T06:00")) {
-    return {now: new Date("2026-09-07T13:00"), banner: `<b>That's a wrap.</b> Showing Monday afternoon.`};
-  }
   return {now: real, banner: ""};
+}
+
+/* ---- The notice above the views ------------------------------------ */
+/* After the con: that it is over, on every tab, until dismissed - once,
+   and remembered for that year. Before it: the preview banner. Live:
+   nothing. */
+const ARCHIVE_NOTICE_KEY = "dc26.archiveNoticeDismissed";
+const archiveNoticeDismissed = () => loadJSON(ARCHIVE_NOTICE_KEY, null) === CON.year;
+function noticeHTML() {
+  if (conEnded()) {
+    return archiveNoticeDismissed() ? "" : `<b>Dragon Con ${CON.year} has ended.</b> Your starred events are on the Now tab as your ${CON.year} schedule.
+    <div class="btns"><button class="btn quiet" data-act="dismiss-archive">OK</button></div>`;
+  }
+  return effectiveNow().banner;
+}
+let lastNoticeHTML = null;
+function renderNotice() {
+  const html = noticeHTML();
+  if (html === lastNoticeHTML) return;       // the tick calls this every minute
+  lastNoticeHTML = html;
+  const el = document.getElementById("notice");
+  el.hidden = !html;
+  el.className = conEnded() ? "notice archive" : "notice";
+  el.innerHTML = html;
+}
+
+/* ---- The Now tab after the con ------------------------------------- */
+/* The record: every starred event, by con day, in time order. Rows work
+   as they do anywhere, so the list can still be tidied. */
+const ARCHIVE_SIG = "archive";
+function archiveHTML() {
+  const mine = events.filter(e => picks.has(e.id));
+  let html = pickNewsHTML() + `<div class="section-title">Your ${CON.year} schedule <span class="count">${mine.length}</span></div>`;
+  if (!mine.length) return html + `<div class="empty"><b>Nothing starred.</b> Star things in Search and they'll be listed here by day.</div>`;
+  html += `<ul class="list">`;
+  let lastDay = "";
+  mine.forEach(ev => {
+    if (ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd}</li>`; lastDay = ev._cd; }
+    html += rowHTML(ev, {list: "archive"});
+  });
+  return html + `</ul>`;
 }
 
 /* What the Now tab would show, without building any of it.
@@ -1597,10 +1714,8 @@ function nowSignature(m, now, banner) {
 let lastNowSig = null;
 
 function renderNow() {
+  if (conEnded()) { lastNowSig = ARCHIVE_SIG; document.getElementById("view-now").innerHTML = archiveHTML(); return; }
   const {now, banner} = effectiveNow();
-  const noticeEl = document.getElementById("notice");
-  noticeEl.hidden = !banner; noticeEl.className = "notice"; noticeEl.innerHTML = banner;
-
   const model = nowModel(now);
   lastNowSig = nowSignature(model, now, banner);
   const minePlan = model.minePlan;
@@ -1827,7 +1942,7 @@ function finishParse(residual, found) {
   const chips = [];
   for (const f of found) {
     if (f.dim === "rel") {
-      const base = conDayKey(getNow());
+      const base = conDayKey(now());
       let day = base;
       if (f.value === "tomorrow") {
         const d = new Date(`${base}T12:00`); d.setDate(d.getDate() + 1); day = dayOf(d);
@@ -1931,19 +2046,19 @@ function browseResults() {
     /* "late night" and "party" are questions about tonight, not about the
        whole weekend - so a query that resolved entirely to filters is scoped
        to today unless it named a day itself, or a day chip is set, or the
-       reader took the Today chip off. */
+       reader took the Today chip off. After the con there is no today. */
     const b = state.browse;
     const parsedDay = b.parsed.filters.day;
-    const scope = !!b.q.trim() && !parsedDay && b.day === "All" && !b.noToday;
+    const scope = !!b.q.trim() && !parsedDay && b.day === "All" && !b.noToday && !conEnded();
     b.todayScoped = scope;
     let list = events.filter(passesFilters);
     if (scope) {
-      const today = conDayKey(getNow());
+      const today = conDayKey(now());
       list = list.filter(e => conDayKey(e._s) === today);
     }
     list.sort((a, b2) => a._s - b2._s);
-    const nowT = getNow(), up = [], gone = [];
-    list.forEach(e => { e._hit = null; (e._e > nowT ? up : gone).push(e); });
+    const at = now(), up = [], gone = [];
+    list.forEach(e => { e._hit = null; (isPast(e, at) ? gone : up).push(e); });
     up.forEach(e => e._section = "main");
     gone.forEach(e => e._section = "past");
     return up.concat(gone);
@@ -1963,11 +2078,11 @@ function browseResults() {
 
   /* A search is a question about the whole con, so it crosses days - which
      means it turns up things that already finished. They stay, behind a fold. */
-  const now = getNow();
+  const at = now();
   const upcoming = [], past = [];
-  for (const e of main) (e._e > now ? upcoming : past).push(e);
+  for (const e of main) (isPast(e, at) ? past : upcoming).push(e);
   const looseUpcoming = [], loosePast = [];
-  for (const e of loose) (e._e > now ? looseUpcoming : loosePast).push(e);
+  for (const e of loose) (isPast(e, at) ? loosePast : looseUpcoming).push(e);
 
   upcoming.forEach(e => e._section = "main");
   looseUpcoming.forEach(e => e._section = "loose");
@@ -1978,7 +2093,7 @@ function browseResults() {
 
 function renderBrowse() {
   const b = state.browse;
-  if (b.day === null) { const d = conDayKey(getNow()); b.day = CON_DAYS.includes(d) ? d : "2026-09-03"; }
+  if (b.day === null) { const d = conDayKey(now()); b.day = CON_DAYS.includes(d) ? d : "2026-09-03"; }
   const searching = !!b.q.trim();
   const results = browseResults();
   const shown = results.slice(0, PAGE * b.page);
@@ -2115,8 +2230,8 @@ const EXPLORE_SECTIONS = [
    a Show all; the filter box is the way to reach the tail by name. */
 const EXPLORE_HEAD = 12;
 
-/* The hash carries the preview clock too, so only the explore part is
-   rewritten and everything else is left exactly as it was. */
+/* Only the explore part of the hash is ours to rewrite; anything else in
+   it is left exactly as it was. */
 function setExploreHash(value) {
   const rest = location.hash.replace(/^#/, "").split("&").filter(x => x && !x.startsWith("explore="));
   const parts = value ? rest.concat("explore=" + encodeURIComponent(value)) : rest;
@@ -2275,14 +2390,15 @@ function syncActiveSection() {
   markActiveSection(activeExploreSection());
 }
 /* A tap marks its chip at once and holds it while the smooth scroll runs,
-   so the chips passed on the way do not flicker through. */
+   so the chips passed on the way do not flicker through. The hold is a
+   stopwatch, not a clock: a simulated time must not freeze it. */
 let spyQueued = false, spyHoldUntil = 0;
 scroller.addEventListener("scroll", () => {
   if (spyQueued) return;
   spyQueued = true;
   requestAnimationFrame(() => {
     spyQueued = false;
-    if (Date.now() < spyHoldUntil) return;
+    if (performance.now() < spyHoldUntil) return;
     syncActiveSection();
   });
 }, {passive: true});
@@ -2316,8 +2432,8 @@ function scrollToExploreSection(id) {
 function renderExplorePage() {
   const {kind, key} = state.explore.page;
   const all = eventsFor({kind, key});
-  const now = getNow();
-  const upcoming = all.filter(e => e._e > now), past = all.filter(e => e._e <= now);
+  const at = now();
+  const upcoming = all.filter(e => !isPast(e, at)), past = all.filter(e => isPast(e, at));
   const on = isFollowing(kind, key);
 
   let html = `<div class="explore-head">
@@ -2372,10 +2488,10 @@ function followingByInterest(now) {
   follows.forEach(f => {
     const id = followId(f);
     const all = eventsFor(f);
-    const upcoming = all.filter(e => e._e > now), past = all.filter(e => e._e <= now);
+    const upcoming = all.filter(e => !isPast(e, now)), past = all.filter(e => isPast(e, now));
     const expanded = !!state.following.expanded[id];
     const shown = expanded ? upcoming : upcoming.slice(0, FOLLOWING_PAGE);
-    html += `<div class="section-title">${esc(f.key)} <span class="count">${KIND_NOUN[f.kind] || f.kind} &middot; ${upcoming.length} to come</span></div>`;
+    html += `<div class="section-title">${esc(f.key)} <span class="count">${KIND_NOUN[f.kind] || f.kind} &middot; ${upcoming.length} ${conEnded() ? "events" : "to come"}</span></div>`;
     if (!upcoming.length) {
       html += `<div class="empty">Nothing left today or later.</div>`;
     } else {
@@ -2403,7 +2519,7 @@ function followingByTime(now) {
     if (!rec.labels.includes(f.key)) rec.labels.push(f.key);
   }));
   const rows = [...seen.values()].sort((a, b) => a.ev._s - b.ev._s);
-  const upcoming = rows.filter(r => r.ev._e > now), past = rows.filter(r => r.ev._e <= now);
+  const upcoming = rows.filter(r => !isPast(r.ev, now)), past = rows.filter(r => isPast(r.ev, now));
 
   const group = list => {
     let out = "", lastDay = "", lastTime = "";
@@ -2439,7 +2555,7 @@ function followingHTML() {
     body = followChipsHTML() + `<div class="view-toggle" role="group" aria-label="Layout">
       <button data-act="fol-interest" aria-pressed="${l === "interest"}">By interest</button>
       <button data-act="fol-time" aria-pressed="${l === "time"}">By time</button>
-    </div>` + (l === "time" ? followingByTime(getNow()) : followingByInterest(getNow()));
+    </div>` + (l === "time" ? followingByTime(now()) : followingByInterest(now()));
   }
   return `<section class="following" id="following">
     <button class="fol-head" data-act="fol-toggle" aria-expanded="${open}" aria-controls="folBody">
@@ -2552,7 +2668,7 @@ function renderMine() {
   if (!mine.length) {
     html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Search. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
   } else if (state.mineView === "timeline") {
-    html += renderMineTimeline(mine, getNow());
+    html += renderMineTimeline(mine, now());
   } else {
     html += `<ul class="list">`;
     let lastDay = "", prev = null;
@@ -2588,7 +2704,7 @@ function exportEventICS(ev) {
   downloadICS([ev], `dragoncon-2026-${(ev.title || "event").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "event"}.ics`);
 }
 function downloadICS(mine, filename) {
-  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  const stamp = now().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//dragoncon-planner//EN", "CALSCALE:GREGORIAN", "X-WR-CALNAME:Dragon Con 2026",
     "BEGIN:VTIMEZONE", "TZID:America/New_York",
     "BEGIN:DAYLIGHT", "TZOFFSETFROM:-0500", "TZOFFSETTO:-0400", "TZNAME:EDT", "DTSTART:19700308T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU", "END:DAYLIGHT",
@@ -2655,7 +2771,8 @@ document.querySelector("main").addEventListener("click", e => {
     }
     if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
     if (a === "dismiss-news") { pickNews = []; savePickNews(); render(); return; }
-    if (a === "nudge-later") { saveJSON("dc26.nudgeSnoozedUntil", Date.now() + NUDGE_SNOOZE_MS); render(); return; }
+    if (a === "dismiss-archive") { saveJSON(ARCHIVE_NOTICE_KEY, CON.year); render(); return; }
+    if (a === "nudge-later") { saveJSON("dc26.nudgeSnoozedUntil", now().getTime() + NUDGE_SNOOZE_MS); render(); return; }
     if (a === "nudge-install") {
       if (installPrompt) { const p = installPrompt; installPrompt = null; p.prompt(); }
       return;
@@ -2664,7 +2781,7 @@ document.querySelector("main").addEventListener("click", e => {
     if (a === "fol-add") { scrollToGrid(); return; }
     if (a === "explore-jump") {
       markActiveSection(act.dataset.section);
-      spyHoldUntil = Date.now() + 700;
+      spyHoldUntil = performance.now() + 700;
       scrollToExploreSection(act.dataset.section);
       return;
     }
@@ -2807,8 +2924,7 @@ function fillSettings() {
   document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`;
   document.getElementById("noiseDefault").checked = settings.hideNoise;
   document.getElementById("bigText").checked = document.documentElement.classList.contains("bigtext");
-  const m = location.hash.match(/now=([0-9T:-]+)/);
-  document.getElementById("previewTime").value = m ? m[1].slice(0, 16) : "";
+  document.getElementById("previewTime").value = timeOverride ? localInputValue(timeOverride) : "";
   document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
   document.getElementById("deviceLine").textContent = deviceLine();
 }
@@ -2921,7 +3037,7 @@ function settle(toClosed) {
 sheetEl.addEventListener("touchstart", e => {
   if (e.target.closest(".ev-body")) return;   // let the description scroll
   dragY = e.touches[0].clientY;
-  dragT = Date.now();
+  dragT = performance.now();
   dragDy = 0;
   sheetEl.classList.remove("settling");
   sheetBackEl.classList.add("dragging");
@@ -2935,7 +3051,7 @@ sheetEl.addEventListener("touchmove", e => {
 
 sheetEl.addEventListener("touchend", () => {
   if (dragY === null) return;
-  const dy = dragDy, ms = Date.now() - dragT;
+  const dy = dragDy, ms = performance.now() - dragT;
   dragY = null;
   /* Below about one frame we have no reliable velocity, so don't invent one -
      fall back to distance alone rather than treating a 30px nudge as a flick. */
@@ -3003,21 +3119,23 @@ document.getElementById("bigText").addEventListener("change", e => {
   syncHeaderHeight();
   render();                    // the timeline re-measures its blocks at the new size
 });
-document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; if (v) location.hash = `now=${v}`; state.browse.day = null; closeSheet(); });
-document.getElementById("clearPreview").addEventListener("click", () => { history.replaceState(null, "", location.pathname); state.browse.day = null; closeSheet(); });
+document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; closeSheet(); if (v) setTimeOverride(v); });
+document.getElementById("clearPreview").addEventListener("click", () => { closeSheet(); setTimeOverride(null); });
+document.getElementById("simChip").addEventListener("click", () => setTimeOverride(null));
 document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
 function applyExploreHash() {
   const target = readExploreHash();
   if (target) { state.tab = "explore"; state.explore.page = target; state.explore.showPast = false; }
   else if (state.explore.page) state.explore.page = null;
 }
-window.addEventListener("hashchange", () => { state.browse.day = null; state.map.day = null; applyExploreHash(); render(); });
+window.addEventListener("hashchange", () => { applyExploreHash(); render(); });
 
 /* A minute changes the countdowns, not usually the list. Rebuilding the whole
    Now tab every 60s threw away and recreated every node under the reader's
    thumb; this redraws the hero and the "in N min" labels and leaves the rest
    alone, falling back to a full render the moment the structure really moves. */
 function tickNow() {
+  if (conEnded()) { if (lastNowSig !== ARCHIVE_SIG) renderNow(); return; }
   const {now, banner} = effectiveNow();
   const model = nowModel(now);
   const sig = nowSignature(model, now, banner);
@@ -3042,6 +3160,7 @@ function tickNow() {
 
 setInterval(() => {
   updateClock();
+  renderNotice();              // the con can end on a tick
   if (state.tab === "now" && sheetWrap.hidden) tickNow();
   else if (state.tab === "map" && sheetWrap.hidden) { tickMap(); renderMiniBar(); }
   else renderMiniBar();
@@ -3098,7 +3217,7 @@ function isStandalone() {
 function nudgeVisible() {
   if (isStandalone()) return false;
   const until = loadJSON("dc26.nudgeSnoozedUntil", 0);
-  return !(until && Date.now() < until);
+  return !(until && now().getTime() < until);
 }
 function nudgeCopy(ios, canPrompt) {
   if (ios) return {
@@ -3210,19 +3329,19 @@ if ("serviceWorker" in navigator) {
 
 /* Coming back to the app after a while: check the schedule once, quietly.
    The service worker does the checking when there is one - a fetch of
-   events.json is served from cache and revalidated behind it, and the
+   the schedule is served from cache and revalidated behind it, and the
    worker says if generated_at moved, which shows the pill above. Without
    a worker the fetch is real and we compare ourselves. Nothing re-renders
    under the reader either way; the pill offers the reload. Timers stop in
    the background too, so the freshness text is brought up to date first. */
 const RECHECK_MS = 15 * 60000;
-let lastScheduleCheck = Date.now();          // loading was a check
+let lastScheduleCheck = now().getTime();     // loading was a check
 async function recheckSchedule() {
   updateFresh();
-  if (Date.now() - lastScheduleCheck < RECHECK_MS) return false;
-  lastScheduleCheck = Date.now();
+  if (now().getTime() - lastScheduleCheck < RECHECK_MS) return false;
+  lastScheduleCheck = now().getTime();
   try {
-    const r = await fetch("events.json", {cache: "no-cache"});
+    const r = await fetch(DATA_URL, {cache: "no-cache"});
     const viaWorker = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
     if (!viaWorker && r && r.ok) {
       const data = await r.json();

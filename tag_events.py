@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tag every event in events.json with fandoms, kind, topics, and 18+ using Claude.
+"""Tag every event in data/2026/events.json with fandoms, kind, topics, and 18+ using Claude.
 
 The tags power the Fandom picker, the kind chips, the 18+ filter, and search in index.html.
 
@@ -28,7 +28,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-EVENTS = "events.json"
+EVENTS = "data/2026/events.json"
 KINDS = ["qa", "panel", "screening", "workshop", "signing", "photo", "contest", "performance",
          "party", "gaming", "reading", "tour", "other"]
 TOPICS = ["Space", "Science", "Writing", "Costuming", "Props & Making", "Comics", "Animation", "Anime",
