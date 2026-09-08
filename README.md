@@ -16,7 +16,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Runs the scraper and commits fresh data. By hand only now that the con is over. |
-| `build.py`, `.github/workflows/deploy-next.yml` | The `next` branch's site: a copy of the app stamped as a dev build, published to its own repository. `main` never builds. |
+| `build.py` | A copy of the app stamped as a dev build, for the `next` branch's site. `main` never builds. |
 | `tests/` | 25 parser tests, 4 build tests and 846 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
@@ -67,13 +67,17 @@ Picks and follows live in the browser's storage, per device. They aren't shared 
 
 ## The next site
 
-`main` is the live site and publishes straight from the branch, as it always has. Off-season work happens on `next`, which publishes to a site of its own at https://kilgoretrout853.github.io/dragoncon-planner-next/ through `.github/workflows/deploy-next.yml`: a push to `next` runs `build.py` with `DC_CHANNEL=next` and pushes the result to the `gh-pages` branch of the `dragoncon-planner-next` repository. A repository has one Pages site with one source, so a `/next/` path under the live site would have had to be part of `main`'s own publish; a sibling site leaves `main` alone.
+`main` is the live site and publishes straight from the branch, as it always has. Off-season work happens on `next`, which publishes to a site of its own at https://kilgoretrout853.github.io/dragoncon-planner-next/. A repository has one Pages site with one source, so a `/next/` path under the live site would have had to be part of `main`'s own publish; a sibling site leaves `main` alone.
+
+The publishing lives in the [`dragoncon-planner-next`](https://github.com/KilgoreTrout853/dragoncon-planner-next) repository, not here. Its workflow looks at this repository's `next` branch every ten minutes and on demand; when the branch has moved it checks it out, runs `build.py` with `DC_CHANNEL=next`, pushes the result to its own `gh-pages` branch, and records the commit it deployed in `deployed.txt`. This repository is public, so none of that needs a credential. To deploy now rather than within ten minutes:
+
+```bash
+gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next
+```
 
 `build.py` copies the files the site needs into `site/` and, given a channel, stamps them: `index.html` gets the channel and build id in two `<meta>` tags, which the page reads to show the **dev build** mark and to name the build in the device readout; `sw.js` gets a cache name of its own (`dc26-next-v4`), because the two sites share one origin and would otherwise delete each other's caches. The source carries empty stamps and `main` never runs a build, so the live site wears no mark; the mark is decided by the stamp, never by the address. `python build.py --out site` with no channel gives a copy identical to the source, and `site/` is ignored by git.
 
 One origin also means one localStorage: in an ordinary browser tab the next site reads the same picks and settings as the live one. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected.
-
-Set-up, once, by hand: create the `dragoncon-planner-next` repository; add a deploy key with write access to it and keep the private half in this repository's secrets as `NEXT_DEPLOY_KEY`; push `next` once so the workflow creates `gh-pages`; then in the new repository's Pages settings choose the `gh-pages` branch.
 
 ## Offline
 
