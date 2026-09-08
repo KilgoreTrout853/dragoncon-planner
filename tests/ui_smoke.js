@@ -1993,6 +1993,9 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     assert(/body\.has-minibar \.devmark \{/.test(html), "and it moves up above the mini-bar");
     assert(/next build abc1234/.test(stamped.window.eval("deviceLine()")), "the device readout names the channel and build");
     assert(sd.getElementById("clock").textContent.startsWith("Sat 1:05 PM") && sd.querySelectorAll("#view-now .row").length > 0, "and the page otherwise works as it does unstamped");
+    assert(stamped.window.eval("TIME_OVERRIDE_KEY") === "dc26.timeOverride.next" && stamped.window.sessionStorage.getItem("dc26.timeOverride.next") === "2026-09-05T13:05" && stamped.window.sessionStorage.getItem("dc26.timeOverride") === null,
+      "a stamped page keeps its simulated clock under a key of its own, so it never follows the reader to the live site on the same origin");
+    assert(window.eval("TIME_OVERRIDE_KEY") === "dc26.timeOverride", "and the unstamped page keeps the plain key");
     stamped.window.close();
   }
 

@@ -939,6 +939,21 @@ const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hote
 function dayOf(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 
 /* ==================================================================
+   Build. main publishes straight from the branch: the source carries empty
+   stamps and the live site wears no mark. build.py stamps a deploy with a
+   channel (the next site) and a build id, and a stamped page shows a small
+   dev-build mark, so a screenshot says which site it came from. It is the
+   stamp that decides, never the address the page was loaded from.
+   ================================================================== */
+const metaContent = name => { const m = document.querySelector(`meta[name="${name}"]`); return m && m.content ? m.content.trim() : ""; };
+const BUILD = {channel: metaContent("dc-channel"), id: metaContent("dc-build")};
+function devMarkHTML() {
+  if (!BUILD.channel) return "";
+  return `<div class="devmark" aria-hidden="true">dev build &middot; ${esc(BUILD.channel)}${BUILD.id ? ` &middot; ${esc(BUILD.id)}` : ""}</div>`;
+}
+document.body.insertAdjacentHTML("beforeend", devMarkHTML());
+
+/* ==================================================================
    Time. Every read of the current moment goes through now() - the header
    clock, the Now tab, leave-by, the search folds, the nudge snooze, the
    ICS stamp - so one override moves all of them together. Elapsed-time
@@ -962,7 +977,10 @@ const CON = {
   end: toDate("2026-09-07T19:00"),
 };
 const DATA_URL = `data/${CON.year}/events.json`;
-const TIME_OVERRIDE_KEY = "dc26.timeOverride";
+/* Per channel: the next site shares this origin, and sessionStorage with it,
+   so a clock simulated there must not follow the reader to the live site in
+   the same tab. */
+const TIME_OVERRIDE_KEY = `dc26.timeOverride${BUILD.channel ? "." + BUILD.channel : ""}`;
 let timeOverride = null;                     // a Date, or null for the wall clock
 const readSession = key => { try { return sessionStorage.getItem(key); } catch (e) { return null; } };
 const writeSession = (key, value) => { try { if (value === null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, value); } catch (e) {} };
@@ -1185,21 +1203,6 @@ function updateFresh() {
     + (servedOffline ? " &middot; offline copy" : "");
   syncHeaderHeight();          // this line is what changes the header's height
 }
-
-/* ==================================================================
-   Build. main publishes straight from the branch: the source carries empty
-   stamps and the live site wears no mark. build.py stamps a deploy with a
-   channel (the next site) and a build id, and a stamped page shows a small
-   dev-build mark, so a screenshot says which site it came from. It is the
-   stamp that decides, never the address the page was loaded from.
-   ================================================================== */
-const metaContent = name => { const m = document.querySelector(`meta[name="${name}"]`); return m && m.content ? m.content.trim() : ""; };
-const BUILD = {channel: metaContent("dc-channel"), id: metaContent("dc-build")};
-function devMarkHTML() {
-  if (!BUILD.channel) return "";
-  return `<div class="devmark" aria-hidden="true">dev build &middot; ${esc(BUILD.channel)}${BUILD.id ? ` &middot; ${esc(BUILD.id)}` : ""}</div>`;
-}
-document.body.insertAdjacentHTML("beforeend", devMarkHTML());
 
 /* ==================================================================
    Rendering

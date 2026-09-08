@@ -17,7 +17,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Runs the scraper and commits fresh data. By hand only now that the con is over. |
 | `build.py` | A copy of the app stamped as a dev build, for the `next` branch's site. `main` never builds. |
-| `tests/` | 25 parser tests, 4 build tests and 846 UI assertions. Not optional — run them before you push. |
+| `tests/` | 25 parser tests, 4 build tests and 848 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -34,7 +34,7 @@ python -m http.server 8000       # then open http://localhost:8000
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 846 assertions
+node tests/ui_smoke.js           # 848 assertions
 python tests/test_parse.py       # 25 parser tests
 python tests/test_build.py       # 4 build tests
 ```
@@ -77,7 +77,7 @@ gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next
 
 `build.py` copies the files the site needs into `site/` and, given a channel, stamps them: `index.html` gets the channel and build id in two `<meta>` tags, which the page reads to show the **dev build** mark and to name the build in the device readout; `sw.js` gets a cache name of its own (`dc26-next-v4`), because the two sites share one origin and would otherwise delete each other's caches. The source carries empty stamps and `main` never runs a build, so the live site wears no mark; the mark is decided by the stamp, never by the address. `python build.py --out site` with no channel gives a copy identical to the source, and `site/` is ignored by git.
 
-One origin also means one localStorage: in an ordinary browser tab the next site reads the same picks and settings as the live one. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected.
+One origin also means one localStorage: in an ordinary browser tab the next site reads the same picks and settings as the live one. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected. The simulated clock is the exception: its session key carries the channel, so a `?now=` opened on the next site does not follow you to the live site in the same tab.
 
 ## Offline
 
