@@ -12,3 +12,6 @@ node_modules/
 # Python
 __pycache__/
 *.pyc
+
+# Build output (build.py); the next deploy publishes it, main never builds
+site/

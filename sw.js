@@ -14,10 +14,14 @@
      fonts         cache-first forever. They never change and a missing font
                    is a visibly broken page.
 
-   Bump CACHE when index.html or sw.js changes; older dc26-* caches are
-   removed on activate. */
+   Bump the version in CACHE when index.html or sw.js changes; older caches
+   under the same prefix are removed on activate. */
 
-const CACHE = "dc26-v4";
+/* The next site shares this origin, and so its CacheStorage. build.py stamps
+   CHANNEL there, so each site's worker names, and clears, only its own. */
+const CHANNEL = "";                        /* stamped by build.py: "next" on the next site */
+const CACHE_PREFIX = `dc26${CHANNEL ? "-" + CHANNEL : ""}-`;
+const CACHE = `${CACHE_PREFIX}v4`;
 const HTML_TIMEOUT_MS = 3000;
 const DATA = "data/2026/events.json";
 const SHELL = ["./", "./index.html", "./data/2026/events.json", "./manifest.json", "./icon.svg",
@@ -50,7 +54,7 @@ self.addEventListener("activate", event => {
   event.waitUntil((async () => {
     const names = await caches.keys();
     await Promise.all(names
-      .filter(n => n.startsWith("dc26-") && n !== CACHE)
+      .filter(n => n.startsWith(CACHE_PREFIX) && n !== CACHE)
       .map(n => caches.delete(n)));
     await self.clients.claim();
   })());

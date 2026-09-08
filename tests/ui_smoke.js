@@ -1282,7 +1282,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "registration is guarded by a serviceWorker capability check");
   assert(/register\("\.\/sw\.js"\)\.catch\(err =>[\s\S]{0,120}console\.warn/.test(html),
     "a failed registration is reported, not swallowed");
-  assert(/const CACHE\s*=\s*["']dc26-v4["']/.test(swSrc), "the cache name is versioned (dc26-v4)");
+  assert(/const CHANNEL = "";/.test(swSrc) && /const CACHE = `\$\{CACHE_PREFIX\}v4`;/.test(swSrc) && /n\.startsWith\(CACHE_PREFIX\) && n !== CACHE/.test(swSrc), "the cache name is versioned (v4) under a prefix the build can stamp, and only that prefix is cleared");
   // installable from a chat link: PNG icons, an app title, and a preview card
   assert(/<link rel="apple-touch-icon" href="\.\/icon-180\.png">/.test(html), "the Apple touch icon is a PNG, not the SVG iOS ignores");
   assert(/<meta name="apple-mobile-web-app-title" content="DC26">/.test(html), "the home-screen title is DC26");
@@ -1305,7 +1305,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "the html fetch stores its response whenever it lands");
   assert(/const net = fetchAndCache\(request\);[\s\S]{0,120}event\.waitUntil\(net/.test(swSrc), "and is kept alive past the response with waitUntil");
   assert(/networkFirst\(request, net\)/.test(swSrc), "while the race uses that same fetch rather than a second one");
-  assert(/startsWith\(["']dc26-["']\)[\s\S]{0,80}caches\.delete/.test(swSrc), "older dc26-* caches are deleted on activate");
+  assert(/startsWith\(CACHE_PREFIX\) && n !== CACHE[\s\S]{0,80}caches\.delete/.test(swSrc), "older caches under this site's prefix are deleted on activate");
   assert(/HTML_TIMEOUT_MS\s*=\s*3000/.test(swSrc), "the html network race times out at 3s");
   assert(/schedule-updated/.test(swSrc) && /generated_at !== /.test(swSrc),
     "the worker only announces an update when generated_at actually changed");
@@ -1978,6 +1978,23 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/Your 2026 schedule/.test(document.getElementById("view-now").textContent) && !document.getElementById("notice").hidden, "a minute after, the tick flips it to the archive with the banner");
   window.eval('setTimeOverride("2026-09-05T13:05"); state.tab = "now"; render();'); await sleep(20);
   assert(document.getElementById("notice").hidden && /next hour/.test(document.getElementById("view-now").textContent), "and Saturday afternoon is live again");
+
+  // ==== the dev-build mark: only on a build stamped with a channel ====
+  assert(/<meta name="dc-channel" content="">/.test(html) && /<meta name="dc-build" content="">/.test(html), "the source carries empty channel and build stamps");
+  assert(!document.querySelector(".devmark") && window.eval("BUILD.channel === '' && BUILD.id === ''"), "unstamped, there is no mark and no channel");
+  assert(!/location\.(host|hostname|origin)\b/.test(html.slice(html.lastIndexOf("<script>", html.indexOf("Data & constants")))), "nothing in the page decides by hostname");
+  {
+    const stampedHtml = html.replace('<meta name="dc-channel" content="">', '<meta name="dc-channel" content="next">').replace('<meta name="dc-build" content="">', '<meta name="dc-build" content="abc1234">');
+    const stamped = new JSDOM(stampedHtml, { runScripts: "dangerously", url: "https://example.test/?now=2026-09-05T13:05", pretendToBeVisual: true });
+    await sleep(100);
+    const sd = stamped.window.document, mark = sd.querySelector(".devmark");
+    assert(mark && mark.textContent === "dev build · next · abc1234", `stamped with a channel, the mark reads dev build · next · build (${mark && mark.textContent})`);
+    assert(mark && mark.getAttribute("aria-hidden") === "true" && /\.devmark \{[^}]*pointer-events: none/.test(html) && /\.devmark \{[^}]*position: fixed/.test(html), "it is fixed, decorative, and takes no taps");
+    assert(/body\.has-minibar \.devmark \{/.test(html), "and it moves up above the mini-bar");
+    assert(/next build abc1234/.test(stamped.window.eval("deviceLine()")), "the device readout names the channel and build");
+    assert(sd.getElementById("clock").textContent.startsWith("Sat 1:05 PM") && sd.querySelectorAll("#view-now .row").length > 0, "and the page otherwise works as it does unstamped");
+    stamped.window.close();
+  }
 
   window.close();
 

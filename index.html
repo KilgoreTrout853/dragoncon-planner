@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Build stamps, empty in the source. build.py fills them in for a channel
+     (the next site); main publishes the source as it is and stays unmarked. -->
+<meta name="dc-channel" content="">
+<meta name="dc-build" content="">
 <!-- Link previews in chats, first in the head so every previewer finds them
      before it stops reading: a card with the mark beats a bare URL. -->
 <meta property="og:type" content="website">
@@ -510,6 +514,10 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 }
 body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
 .update-pill.settling { transition: transform .2s ease-out, opacity .2s ease-out; }
+/* The dev-build mark: only on a build stamped with a channel (the next site).
+   Above the nav, clear of the mini-bar, and it takes no taps. */
+.devmark { position: fixed; right: 10px; bottom: calc(76px + var(--safe-bottom)); z-index: 7; pointer-events: none; padding: 3px 9px; border-radius: 999px; background: var(--warn); color: var(--ink); font-size: .6875rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; opacity: .85; }
+body.has-minibar .devmark { bottom: calc(124px + var(--safe-bottom)); }
 .minibar.late .mb-when { color: var(--warn); }
 
 
@@ -1177,6 +1185,21 @@ function updateFresh() {
     + (servedOffline ? " &middot; offline copy" : "");
   syncHeaderHeight();          // this line is what changes the header's height
 }
+
+/* ==================================================================
+   Build. main publishes straight from the branch: the source carries empty
+   stamps and the live site wears no mark. build.py stamps a deploy with a
+   channel (the next site) and a build id, and a stamped page shows a small
+   dev-build mark, so a screenshot says which site it came from. It is the
+   stamp that decides, never the address the page was loaded from.
+   ================================================================== */
+const metaContent = name => { const m = document.querySelector(`meta[name="${name}"]`); return m && m.content ? m.content.trim() : ""; };
+const BUILD = {channel: metaContent("dc-channel"), id: metaContent("dc-build")};
+function devMarkHTML() {
+  if (!BUILD.channel) return "";
+  return `<div class="devmark" aria-hidden="true">dev build &middot; ${esc(BUILD.channel)}${BUILD.id ? ` &middot; ${esc(BUILD.id)}` : ""}</div>`;
+}
+document.body.insertAdjacentHTML("beforeend", devMarkHTML());
 
 /* ==================================================================
    Rendering
@@ -2946,7 +2969,7 @@ function deviceLine() {
      can read it, so "which build is this" is a glance rather than a guess. */
   const built = new Date(document.lastModified);
   const stamp = isNaN(built) ? "" : ` · build ${built.toISOString().slice(0, 16).replace("T", " ")} UTC`;
-  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets}${IS_IOS ? " · iOS" : ""}${stamp}`;
+  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets}${IS_IOS ? " · iOS" : ""}${BUILD.channel ? ` · ${BUILD.channel} build${BUILD.id ? " " + BUILD.id : ""}` : ""}${stamp}`;
 }
 
 function eventSheetHTML(ev) {

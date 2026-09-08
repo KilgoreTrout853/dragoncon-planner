@@ -16,7 +16,8 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Runs the scraper and commits fresh data. By hand only now that the con is over. |
-| `tests/` | 25 parser tests and 838 UI assertions. Not optional — run them before you push. |
+| `build.py`, `.github/workflows/deploy-next.yml` | The `next` branch's site: a copy of the app stamped as a dev build, published to its own repository. `main` never builds. |
+| `tests/` | 25 parser tests, 4 build tests and 846 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -33,8 +34,9 @@ python -m http.server 8000       # then open http://localhost:8000
 
 ```bash
 npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 838 assertions
+node tests/ui_smoke.js           # 846 assertions
 python tests/test_parse.py       # 25 parser tests
+python tests/test_build.py       # 4 build tests
 ```
 
 The UI suite runs twice: once against `tests/sample-events.json` (558 synthetic events, deterministic) and once against the real `data/2026/events.json`, because ranking questions are meaningless against synthetic rows.
@@ -62,6 +64,16 @@ The app knows the con's bounds (`CON` in `index.html`: the first listed event's 
 Every read of the clock goes through one `now()` function. `?now=2026-09-05T14:15` in the URL (an offset works too: `?now=2026-09-05T14:15:00-04:00`) simulates that moment for the whole app and shows a small **simulated time** chip in the header; the override is kept for the tab's session, so reloads keep it, and the chip or Settings clears it. That is how the live behaviour is checked in the off-season.
 
 Picks and follows live in the browser's storage, per device. They aren't shared between phones and there's no URL format for them yet.
+
+## The next site
+
+`main` is the live site and publishes straight from the branch, as it always has. Off-season work happens on `next`, which publishes to a site of its own at https://kilgoretrout853.github.io/dragoncon-planner-next/ through `.github/workflows/deploy-next.yml`: a push to `next` runs `build.py` with `DC_CHANNEL=next` and pushes the result to the `gh-pages` branch of the `dragoncon-planner-next` repository. A repository has one Pages site with one source, so a `/next/` path under the live site would have had to be part of `main`'s own publish; a sibling site leaves `main` alone.
+
+`build.py` copies the files the site needs into `site/` and, given a channel, stamps them: `index.html` gets the channel and build id in two `<meta>` tags, which the page reads to show the **dev build** mark and to name the build in the device readout; `sw.js` gets a cache name of its own (`dc26-next-v4`), because the two sites share one origin and would otherwise delete each other's caches. The source carries empty stamps and `main` never runs a build, so the live site wears no mark; the mark is decided by the stamp, never by the address. `python build.py --out site` with no channel gives a copy identical to the source, and `site/` is ignored by git.
+
+One origin also means one localStorage: in an ordinary browser tab the next site reads the same picks and settings as the live one. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected.
+
+Set-up, once, by hand: create the `dragoncon-planner-next` repository; add a deploy key with write access to it and keep the private half in this repository's secrets as `NEXT_DEPLOY_KEY`; push `next` once so the workflow creates `gh-pages`; then in the new repository's Pages settings choose the `gh-pages` branch.
 
 ## Offline
 
