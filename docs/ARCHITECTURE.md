@@ -75,9 +75,11 @@ together. `--all` retags everything.
 
 One file. Everything below is in `index.html`.
 
-**Tabs:** `now`, `browse`, `explore`, `map`, `mine` (internal ids; the
-Browse tab's visible label is different `[verify]`). Rendering is a single
-`render()` that redraws the active view from `state`.
+**Tabs:** `now`, `browse`, `explore`, `map`, `mine` are the `data-tab` ids
+the code and `state.tab` use. The labels the user sees are Now, Search,
+Explore, Map and Mine, in that order; only `browse` differs from its label.
+Mine also carries the pick-count badge, hidden at zero. Rendering is a
+single `render()` that redraws the active view from `state`.
 
 **Time.** One `now()` function. A `?now=<ISO>` query parameter sets a
 simulated clock, mirrored to `sessionStorage` (`dc26.timeOverride`, or
@@ -142,9 +144,19 @@ worker's `CHANNEL`, with `DC_BUILD` (default: short commit sha) into
 `<meta name="dc-build">`. With no channel the output is byte-identical to
 the source. A bad channel string is refused.
 
-How the stamped output reaches the `dragoncon-planner-next` deploy repo and
-its Pages site: `[verify — not in the sync; describe the workflow or manual
-step here]`.
+The stamped output reaches the `dragoncon-planner-next` deploy repo through
+that repo's own workflow (`.github/workflows/deploy.yml`), not through
+anything here: this repo has no workflow, script, or npm task that runs
+`build.py`. Every ten minutes, and on `workflow_dispatch`, the workflow
+compares the head of `next` (`git ls-remote`) with the sha in its
+`deployed.txt`. When they differ, or the run was manual, it checks `next`
+out, runs `python build.py --out ../site` with `DC_CHANNEL=next` (no
+`DC_BUILD`, so the build id is the checkout's short sha), publishes `site/`
+to its `gh-pages` branch as an orphan commit (`peaceiris/actions-gh-pages`),
+and commits the deployed sha to `deployed.txt` on its `main`. That commit is
+also what keeps GitHub from disabling the schedule for inactivity. The source
+repo is public, so no secret is involved. To deploy now rather than within
+ten minutes: `gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next`.
 
 The live and dev sites share an origin; the channel stamp is what keeps
 their caches and session keys apart (DECISIONS #15).

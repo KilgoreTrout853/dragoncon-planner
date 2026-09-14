@@ -152,7 +152,7 @@ Claude Code never commits to `main`.
 underneath it.
 **Cost:** Every change to the live site, including a one-line fix, is a PR.
 
-### 15. A separate dev site, stamped by a build step — Standing (2026-09, post-con) `[verify date: git log -- build.py]`
+### 15. A separate dev site, stamped by a build step — Standing (2026-09-08)
 **Decided:** `build.py` copies the site into an output folder, dropping
 source-only files (tests, scripts, README), and stamps a channel and build
 id into `index.html` (`<meta name="dc-channel">`, `<meta name="dc-build">`)
