@@ -245,7 +245,7 @@ feature may be tried behind a flag as an experiment, never as a dependency.
 Pipeline-time AI is free at runtime and works offline.
 **Cost:** The app cannot answer a question it was not pre-computed for.
 
-### 23. The client is built from `src/` by Vite; single-file output for step 4 — Decided, not built (2026-09-17)
+### 23. The client is built from `src/` by Vite; single-file output for step 4 — Built (2026-09-17)
 **Decided:** The client becomes ES modules under `src/`, built by Vite.
 `public/` holds what is served verbatim: `sw.js`, `manifest.json`, icons,
 `data/`. `base` is `./` because the same build is deployed at two

@@ -1,0 +1,525 @@
+/* ------------------------------------------------------------------
+   Tokens. Color is information here: each hotel has one hue, used on
+   room chips and walk warnings. Gold is reserved for "mine".
+   ------------------------------------------------------------------ */
+:root {
+  --ink: #171A33;
+  --surface: #22264A;
+  --raised: #2B3060;
+  --line: #3A3F70;
+  --text: #F3EFE4;
+  --muted: #A5A9C9;
+  --dim: #6F739A;
+  --gold: #F3C64B;
+  --gold-ink: #2A2200;
+  --warn: #FF8A7A;
+  --font: "Barlow Semi Condensed", "Avenir Next Condensed", "Roboto Condensed", system-ui, sans-serif;
+  --h-Marriott: #F0705D;
+  --h-Hyatt: #55B7DD;
+  --h-Hilton: #79D19B;
+  --h-Courtland: #C797F5;
+  --h-Westin: #F5A63F;
+  --h-Mart: #C6DC6B;   /* yellow-green: kept clear of --gold, which means "mine" */
+  --h-Hardy: #9ED5C0;
+  --h-Streaming: #8F97AE;
+  --h-Other: #8F97AE;
+  --park: #3FA34D;     /* Hardy Ivy Park on the map: a green that is not the Hilton's */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);        /* the status bar, on phones that draw under it */
+}
+* { box-sizing: border-box; }
+/* No overscroll stretch. Android 12+ stretches the whole page layer when you
+   scroll past the end, fixed nav included, so the bar bounced on every long
+   list. This also drops pull-to-refresh, which the update pill covers. */
+html { background: var(--ink); color-scheme: dark; overscroll-behavior-y: none; }
+/* Larger text (Settings): text sizes are in rem so this one number scales
+   them all; boxes stay in px and were checked at 375px wide with it on. */
+html.bigtext { font-size: 115%; }
+/* The page itself never scrolls; main does, below. When the page is the
+   scroller, iOS moves the bottom safe-area inset as it scrolls and
+   rubber-bands the whole layer, and a fixed nav padded by that inset goes
+   along for the ride. A scroller of our own keeps the header and nav where
+   they are on every tab. */
+html, body { height: 100%; overflow: hidden; }
+body {
+  margin: 0; font-family: var(--font); font-size: 1.0625rem; line-height: 1.3;
+  color: var(--text); background: var(--ink);
+  -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Header ------------------------------------------------------------ */
+.hdr {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+  background: var(--ink); border-bottom: 1px solid var(--line);
+  padding: calc(10px + var(--safe-top)) max(14px, calc(50% - 366px)) 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+/* One line: clock, count, freshness. The brand is a small label above it,
+   on the Now tab only; everywhere else the line is the whole header. */
+.hdr .hdr-text { flex: 1; min-width: 0; }
+.hdr .brand { font-size: .75rem; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
+.hdr .hdr-line { font-size: clamp(.8125rem, 4vw, .9375rem); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdr .fresh { color: var(--muted); }
+/* When the line is still too long - a preview clock, a narrow phone - the
+   word "refreshed" goes before anything is clipped. Measured, not guessed. */
+.hdr .hdr-line.tight .word { display: none; }
+.hdr .hdr-line.tighter { font-size: .8125rem; }   /* and if that is not enough, a size down */
+/* Only there while a ?now= override is on; a tap goes back to the real clock. */
+.sim-chip { display: inline-block; vertical-align: 1px; margin-left: 8px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--gold); background: transparent; color: var(--gold); font: inherit; font-size: .6875rem; font-weight: 600; line-height: 1.6; cursor: pointer; }
+.sim-chip span { opacity: .7; }
+.icon-btn {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted);
+}
+.icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Notices ------------------------------------------------------------ */
+.notice {
+  margin: 12px 14px 0; padding: 10px 12px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: .9375rem;
+}
+.notice b { color: var(--text); font-weight: 600; }
+.device { font-size: .75rem; color: var(--dim); line-height: 1.4; }
+.notice.warn { border-color: var(--warn); color: var(--text); }
+.pick-news ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+.pick-news .btn { margin-top: 12px; height: 38px; }
+.nudge .btns, .notice.archive .btns { display: flex; gap: 8px; margin-top: 12px; }
+.nudge .btn, .notice.archive .btn { height: 38px; }
+
+/* Views -------------------------------------------------------------- */
+main {
+  position: fixed; top: 0; bottom: 0; left: 0; right: 0; max-width: 760px; margin: 0 auto;
+  overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch;
+}
+/* Room for the header above and the nav below, as content rather than
+   padding: a scroll container's top padding shifts where sticky children
+   measure from, and Safari has not always scrolled its end padding. */
+main::before { content: ""; display: block; height: var(--hdr-h, 82px); }
+main::after { content: ""; display: block; height: calc(76px + var(--safe-bottom)); }
+body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
+.view { padding: 0 0 12px; }
+.section-title {
+  padding: 18px 14px 6px; font-size: .9375rem; color: var(--muted); font-weight: 600;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+}
+.section-title .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* Map ------------------------------------------------------------------
+   A schematic of the con hotels. Blocks wear their room-chip hue as an
+   opaque tint, so the route and the streets pass under them rather than
+   through their labels; the park is the one green that is not a hotel. */
+/* The Map tab is a column between header and nav: the chip strip, the map,
+   the card. Width first: the SVG takes the content width and its height
+   follows from the frame. Only when header, chips, map, card and nav would
+   not fit the viewport does it shrink to fit, centred, down to a floor
+   below which the tab scrolls with the chips pinned. The mini-bar never
+   shows on this tab. */
+#view-map { display: flex; flex-direction: column; height: calc(100dvh - var(--hdr-h, 63px) - 76px - var(--safe-bottom)); }
+#view-map .controls-sticky { flex: none; }
+.map-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding: 12px 14px 0; }
+.map { display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px; }
+.map-under { flex: none; }
+.map-ground { fill: var(--surface); }
+.map-street { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
+.map-street.faint { stroke-width: 2; opacity: .55; }
+.map-street-label { font-family: var(--font); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; fill: var(--dim); }
+.map-bridge { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 4; stroke-linecap: round; }
+.map-hotel rect { fill: color-mix(in srgb, var(--h) 18%, var(--surface)); stroke: var(--h); stroke-width: 1.5; }
+.map-hotel text { font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: .06em; fill: var(--h); text-anchor: middle; dominant-baseline: central; }
+.map-park rect { fill: color-mix(in srgb, var(--h) 12%, var(--surface)); }
+.map-park text { font-size: 9px; }
+.map-hotel text.long { font-size: 9.5px; letter-spacing: .04em; }   /* COURTLAND measures 60 px at 11px; the block is 60 */
+.map-hotel, .map-pill { cursor: pointer; }
+.map-hotel:focus-visible rect { stroke-width: 3; }
+.map-pill rect { fill: var(--gold); }
+.map-pill text { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--gold-ink); text-anchor: middle; dominant-baseline: central; }
+.map-ring { fill: none; stroke: var(--gold); stroke-width: 2.5; pointer-events: none; }
+.map-ring.next { stroke-width: 2; animation: map-pulse 1.6s ease-in-out infinite; }
+@keyframes map-pulse { 0%, 100% { stroke-opacity: 1; stroke-width: 2; } 50% { stroke-opacity: .35; stroke-width: 4; } }
+@media (prefers-reduced-motion: reduce) { .map-ring.next { animation: none; } }
+/* The card under the map: the next pick, as the hero sees it. Tappable like
+   the hero, and so is the On now line above it. */
+.next-on { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 10px 2px 0; font: inherit; font-size: .875rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.next-on b { color: var(--text); font-weight: 600; }
+.next-card { display: block; width: 100%; text-align: left; margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer; }
+.next-card .nc-label { font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.next-card .nc-title { font-size: 1.125rem; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.next-card .nc-where { margin-top: 4px; font-size: .875rem; font-weight: 700; color: var(--h); }
+.next-card .nc-when { margin-top: 4px; font-size: .9375rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.next-card .nc-when.leave { color: var(--gold); }
+.next-card .nc-when.late { color: var(--warn); }
+.next-card .nc-walk { margin-top: 2px; font-size: .8125rem; color: var(--muted); }
+.next-card.empty { color: var(--muted); font-size: .9375rem; cursor: default; }
+.map-offmap { padding-top: 6px; font-size: .875rem; color: var(--muted); }
+
+/* Controls ----------------------------------------------------------- */
+.controls { padding: 12px 14px 0; display: grid; gap: 10px; }
+.search.indexing::placeholder { color: var(--dim); font-style: italic; }
+.search {
+  width: 100%; height: 48px; padding: 0 14px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text);
+}
+.search::placeholder { color: var(--dim); }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
+/* The search box and the day row follow you down a long list - those are the
+   two you reach for mid-scroll. The rest scroll away; sticking everything
+   would leave no room for results on a phone. */
+.controls-sticky {
+  position: sticky; top: var(--hdr-h, 74px); z-index: 4;
+  background: var(--ink); border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+.controls-rest { padding-top: 10px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: 0 0 auto; height: 38px; padding: 0 13px; border-radius: 19px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-weight: 500; white-space: nowrap;
+}
+.chip[aria-pressed="true"] { background: var(--text); color: var(--ink); border-color: var(--text); font-weight: 600; }
+.chip.hotel[aria-pressed="true"] { background: var(--h); border-color: var(--h); color: var(--ink); }
+.suggest-row { align-items: center; padding-top: 2px; }
+.suggest-label { flex: none; font-size: .75rem; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; padding-right: 2px; }
+.chip.suggest { font-weight: 600; }
+.chip.suggest .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: .75rem; }
+/* Not gold - gold means "mine". A quiet outline that reads as a label. */
+.celeb {
+  display: inline-block; font-size: .6875rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--h-Hyatt); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; line-height: 17px;
+}
+.chip.suggest.on { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
+.chip.suggest.on span { opacity: .65; }
+.divider {
+  padding: 10px 14px 8px; font-size: .8125rem; font-weight: 700; color: var(--muted);
+  background: var(--ink); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  letter-spacing: .03em;
+}
+.divider.fold { padding: 0; }
+.divider.fold button {
+  width: 100%; text-align: left; padding: 10px 14px 8px; background: none; border: 0;
+  font: inherit; font-weight: 700; color: var(--muted); cursor: pointer;
+}
+/* Explore ------------------------------------------------------------ */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; padding: 0 14px 6px; }
+.tile {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 52px;
+  padding: 9px 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.tile.on { border-color: var(--gold); }
+.tile-name { font-size: .875rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.tile-meta { flex: none; display: flex; align-items: center; gap: 5px; font-size: .8125rem; font-weight: 700; color: var(--dim); }
+.tile-mark { color: var(--gold); font-size: .6875rem; }
+.follow-chips { align-items: center; }
+.follow-chip {
+  flex: none; display: inline-flex; align-items: stretch; border: 1px solid var(--gold);
+  border-radius: 999px; overflow: hidden; background: transparent;
+}
+.follow-chip .fc-name {
+  background: none; border: 0; padding: 7px 4px 7px 12px; font: inherit; font-size: .875rem; font-weight: 700;
+  color: var(--gold); cursor: pointer; white-space: nowrap;
+}
+.follow-chip .fc-x {
+  background: none; border: 0; padding: 7px 10px 7px 4px; font: inherit; font-size: 1rem; line-height: 1;
+  color: var(--gold); opacity: .7; cursor: pointer;
+}
+.chip.fc-add { flex: none; }
+.explore-jump .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: .75rem; }
+.explore-jump .chip[aria-pressed="true"] .n { color: inherit; opacity: .7; }
+/* Following sits above the tiles, behind a fold: a long feed would push the
+   grid off screen for someone who came to wander. */
+.following { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.suggested { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.fol-head {
+  width: 100%; display: flex; align-items: baseline; gap: 6px; padding: 14px 14px 4px;
+  background: none; border: 0; color: var(--text); font: inherit; font-size: 1.0625rem; font-weight: 700;
+  text-align: left; cursor: pointer;
+}
+.fol-head .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+.fol-head .caret { margin-left: auto; color: var(--dim); font-size: .9375rem; }
+.hint { padding: 0 14px 8px; font-size: .875rem; color: var(--muted); }
+.flabel {
+  font-size: .6875rem; font-weight: 700; color: var(--gold); border: 1px solid var(--gold);
+  border-radius: 999px; padding: 0 6px; line-height: 17px; opacity: .85;
+}
+.explore-head { padding: 10px 14px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 5px; justify-items: start; }
+.explore-head .back { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
+.explore-head .eh-kind { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-top: 4px; }
+.explore-head .eh-name { margin: 0; font-size: 1.375rem; line-height: 1.2; }
+.explore-head .eh-count { font-size: .875rem; color: var(--muted); }
+.follow-btn { margin-top: 6px; }
+.follow-btn.on { background: transparent; color: var(--gold); border: 1px solid var(--gold); }
+.ev-people .who { white-space: nowrap; }
+.see-all {
+  background: none; border: 0; padding: 0 0 0 2px; font: inherit; font-size: .8125rem; font-weight: 700;
+  color: var(--gold); text-decoration: underline; cursor: pointer;
+}
+.no-exact {
+  padding: 9px 14px; font-size: .8125rem; color: var(--muted);
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.no-exact b { color: var(--text); }
+.hidden-note { padding: 10px 14px; font-size: .875rem; color: var(--muted); }
+.hidden-note button { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--gold); text-decoration: underline; cursor: pointer; }
+.parsed-chips { padding-top: 2px; }
+.chip.parsed { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
+.chip.parsed span { opacity: .65; margin-left: 2px; }
+.row-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { height: 40px; padding: 0 12px; background: var(--surface); color: var(--muted); border: 0; font-weight: 500; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--ink); font-weight: 600; }
+select.track {
+  flex: 1 1 160px; min-width: 0; height: 40px; padding: 0 10px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text);
+}
+.toggle { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .9375rem; min-height: 40px; }
+.toggle input { width: 22px; height: 22px; accent-color: var(--gold); margin: 0; }
+
+/* Rows: a departures board. Time is loudest; the room chip carries the hotel color. */
+.list { list-style: none; margin: 0; padding: 0; }
+.day-head { padding: 22px 14px 4px; font-size: 1.25rem; font-weight: 700; }
+.time-head { padding: 12px 14px 2px; font-size: .8125rem; color: var(--dim); font-variant-numeric: tabular-nums; border-top: 1px solid var(--line); }
+.row { border-top: 1px solid var(--line); }
+.row.open { background: var(--surface); }
+.row.mine .title::before { content: "★ "; color: var(--gold); }
+.row.cancelled .title { text-decoration: line-through; color: var(--muted); }
+/* A strike-through alone reads as a rendering glitch; say the word. */
+.cancelled-tag {
+  display: inline-block; font-size: .6875rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--warn); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; line-height: 17px;
+}
+.row-main {
+  width: 100%; display: grid; grid-template-columns: 66px 1fr; gap: 10px; text-align: left;
+  background: none; border: 0; padding: 11px 0 11px 14px; align-items: start;
+}
+.row-line { display: grid; grid-template-columns: 1fr 56px; align-items: stretch; }
+.t { font-variant-numeric: tabular-nums; line-height: 1.05; padding-top: 1px; }
+.t .start { font-size: 1.25rem; font-weight: 700; display: block; }
+.t .ampm { font-size: .6875rem; font-weight: 600; color: var(--muted); margin-left: 2px; }
+.t .end { display: block; font-size: .8125rem; color: var(--dim); margin-top: 3px; }
+.body { min-width: 0; }
+.title { font-size: 1.125rem; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: .875rem; color: var(--muted); }
+/* "Hilton · 313-314" as a chip. The hotel part never shortens; a long room
+   takes the ellipsis. */
+.room {
+  display: inline-flex; align-items: baseline; gap: 5px; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: .8125rem;
+  background: color-mix(in srgb, var(--h) 18%, transparent); color: var(--h); border: 1px solid color-mix(in srgb, var(--h) 45%, transparent);
+  max-width: 100%; min-width: 0; white-space: nowrap;
+}
+.room .rh { flex: none; }
+.room .rr { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.track { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.status { color: var(--gold); font-weight: 600; }
+mark { background: none; color: var(--gold); font-weight: 700; }
+.t .day { display: block; font-size: .6875rem; font-weight: 600; color: var(--muted); margin-bottom: 1px; letter-spacing: .02em; }
+.snippet { margin-top: 5px; font-size: .875rem; color: var(--muted); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tagline { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: .8125rem; padding: 2px 8px; border-radius: 6px; background: var(--raised); border: 1px solid var(--line); color: var(--text); }
+.tag.adult { color: var(--warn); }
+.star {
+  background: none; border: 0; color: var(--dim); font-size: 1.625rem; line-height: 1; display: grid; place-items: center; padding: 0 8px 0 0;
+}
+.star[aria-pressed="true"] { color: var(--gold); }
+.btn {
+  height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; font-size: 1rem;
+  background: var(--gold); color: var(--gold-ink); border: 0;
+}
+.btn.quiet { background: var(--raised); color: var(--text); border: 1px solid var(--line); }
+.btn.danger { background: transparent; color: var(--warn); border: 1px solid var(--line); }
+.gap {
+  margin: 0 14px 0 80px; padding: 6px 10px; font-size: .875rem; border-left: 3px solid var(--line); color: var(--muted);
+}
+.gap.tight { border-color: var(--warn); color: var(--text); }
+.gap.overlap { border-color: var(--warn); color: var(--warn); font-weight: 600; }
+.empty { padding: 28px 14px; color: var(--muted); font-size: 1rem; }
+.empty b { color: var(--text); }
+.more { margin: 14px; }
+/* Two rows of two on one grid: the actions take the view toggle's footprint,
+   so the top of Mine reads as one control strip rather than a stack of odd
+   shapes. Export keeps its gold fill; it is the one you came here for. */
+.mine-actions { padding: 12px 14px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mine-actions .btn { height: 40px; padding: 0 12px; border-radius: 10px; font-size: .9375rem; font-weight: 700; }
+.btn[disabled] { opacity: .45; }
+
+/* Bottom nav -------------------------------------------------------- */
+.nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  background: var(--ink); border-top: 1px solid var(--line);
+  padding: 6px max(8px, calc(50% - 372px)) calc(6px + var(--safe-bottom));
+}
+.nav button {
+  height: 58px; border: 0; background: none; color: var(--dim); border-radius: 12px;
+  display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: .875rem;
+  white-space: nowrap; padding: 0 2px; min-width: 0;
+}
+.nav button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav button[aria-current="page"] { color: var(--text); background: var(--surface); }
+.nav .badge { position: absolute; margin-left: 40px; margin-top: -34px; background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: .75rem; padding: 1px 6px; font-weight: 700; }
+
+/* Settings sheet ---------------------------------------------------- */
+.sheet-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9; }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; max-width: 760px; margin: 0 auto;
+  background: var(--surface); border-radius: 18px 18px 0 0; border: 1px solid var(--line); border-bottom: 0;
+  padding: 16px 16px calc(20px + var(--safe-bottom)); display: grid; gap: 16px;
+  /* Claim the vertical gesture. Without this the browser scrolls the page
+     behind the sheet while you're dragging it, and both move at once. */
+  touch-action: none;
+  will-change: transform;
+}
+/* The description is the one part that should still scroll under a finger. */
+.ev-body { touch-action: pan-y; }
+/* Only while settling - during a drag the sheet must track the finger exactly. */
+.sheet.settling { transition: transform .22s cubic-bezier(.2, .7, .3, 1); }
+.sheet-back { transition: opacity .22s linear; }
+.sheet-back.dragging { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sheet.settling { transition: none; }
+  .sheet-back { transition: none; }
+}
+.sheet h2 { margin: 0; font-size: 1.25rem; }
+.sheet label { display: grid; gap: 6px; color: var(--muted); font-size: .9375rem; }
+.sheet input[type="range"] { width: 100%; accent-color: var(--gold); }
+.sheet input[type="datetime-local"] { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); }
+.sheet .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Settings: the two everyday controls up top; the rest folds under
+   Advanced, which scrolls on its own inside the sheet. Remove all picks
+   is last and on its own, away from Done. */
+.advanced > summary { color: var(--muted); cursor: pointer; font-size: .9375rem; font-weight: 600; padding: 4px 0; }
+.advanced-body { display: grid; gap: 16px; padding-top: 12px; max-height: 45vh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+.walk-table { font-size: .875rem; color: var(--muted); }
+.walk-table td { padding: 2px 6px 2px 0; }
+
+/* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
+.sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: -4px auto 0; flex: none; }
+.sheet-panel { display: grid; gap: 16px; }
+.sheet-panel[hidden] { display: none; }
+.ev-head { display: grid; gap: 6px; }
+.ev-head h2 { margin: 0; font-size: 1.3125rem; line-height: 1.25; }
+.ev-when { color: var(--muted); font-size: .9375rem; }
+.ev-room { font-size: 1.1875rem; font-weight: 700; color: var(--h); line-height: 1.2; }
+.ev-body { display: grid; gap: 12px; max-height: 48vh; overflow-y: auto; overscroll-behavior: contain; }
+.ev-body p { margin: 0; white-space: pre-line; font-size: 1rem; }
+.ev-people { color: var(--muted); font-size: .9375rem; }
+.ev-people span { color: var(--text); }
+.ev-actions { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.ev-actions .btn { flex: 1 1 auto; }
+.ev-star {
+  font-size: 1.5rem; line-height: 1; width: 56px; flex: none; cursor: pointer;
+  background: transparent; border: 1px solid var(--line); border-radius: 12px; color: var(--muted);
+}
+.ev-star[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+
+/* Hero card: the next thing you have to act on */
+.hero {
+  display: flex; gap: 14px; align-items: flex-start; width: 100%; text-align: left;
+  padding: 14px; background: var(--surface); border: 0; border-bottom: 1px solid var(--line);
+  color: var(--text); font: inherit; cursor: pointer;
+}
+.hero .ring { flex: none; position: relative; width: 62px; height: 62px; }
+.hero .ring svg { transform: rotate(-90deg); display: block; }
+.hero .ring .track-c { stroke: var(--line); }
+.hero .ring .prog { stroke: var(--gold); transition: stroke-dashoffset .6s linear; }
+.hero.late .ring .prog { stroke: var(--warn); }
+.hero .ring .num {
+  position: absolute; inset: 0; display: grid; place-items: center; line-height: 1;
+  font-size: 1.0625rem; font-weight: 700; color: var(--gold);
+}
+.hero.late .ring .num { color: var(--warn); }
+.hero .ring .num small { display: block; font-size: .625rem; font-weight: 600; color: var(--muted); }
+.hero .hbody { display: grid; gap: 5px; min-width: 0; flex: 1; }
+.hero .hkicker { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.hero .htitle { font-size: 1.1875rem; font-weight: 700; line-height: 1.2; }
+.hero .hroom { font-size: .9375rem; font-weight: 700; color: var(--h); }
+.hero .hleave { font-size: .9375rem; font-weight: 700; color: var(--gold); }
+.hero.late .hleave { color: var(--warn); }
+.hero .hthen { font-size: .8125rem; color: var(--muted); }
+.hero .hthen b { color: var(--text); font-weight: 700; }
+.list.compact .row-main { padding-top: 8px; padding-bottom: 8px; }
+.list.compact .snippet { display: none; }
+@media (prefers-reduced-motion: reduce) { .hero .ring .prog { transition: none; } }
+
+/* Sticky next-up bar: what's next while you're browsing something else */
+.minibar {
+  position: fixed; left: 0; right: 0; bottom: calc(70px + var(--safe-bottom)); z-index: 6;
+  height: 48px; box-sizing: border-box; width: 100%; border: 0;
+  padding: 0 max(14px, calc(50% - 366px)); font: inherit; color: var(--text); text-align: left;
+  background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+}
+.minibar .mb-body { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.minibar .mb-title { font-size: .875rem; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.minibar .mb-room { font-size: .75rem; font-weight: 700; color: var(--h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.minibar .mb-when { flex: none; font-size: .875rem; font-weight: 700; color: var(--gold); }
+/* Sits above the nav and the next-up bar, never over the list you're reading. */
+.update-pill {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 8;
+  bottom: calc(80px + var(--safe-bottom));
+  border: 0; border-radius: 999px; padding: 9px 16px; font: inherit; font-size: .875rem; font-weight: 700;
+  background: var(--gold); color: var(--gold-ink); box-shadow: 0 4px 16px rgba(0,0,0,.45); cursor: pointer;
+  touch-action: none;
+}
+body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
+.update-pill.settling { transition: transform .2s ease-out, opacity .2s ease-out; }
+/* The dev-build mark: only on a build stamped with a channel (the next site).
+   Above the nav, clear of the mini-bar, and it takes no taps. */
+.devmark { position: fixed; right: 10px; bottom: calc(76px + var(--safe-bottom)); z-index: 7; pointer-events: none; padding: 3px 9px; border-radius: 999px; background: var(--warn); color: var(--ink); font-size: .6875rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; opacity: .85; }
+body.has-minibar .devmark { bottom: calc(124px + var(--safe-bottom)); }
+.minibar.late .mb-when { color: var(--warn); }
+
+
+/* Timeline: the day as a column, so gaps and clashes have a shape */
+.view-toggle { display: flex; gap: 8px; padding: 0 14px 10px; }
+.view-toggle button {
+  flex: 1; height: 40px; border-radius: 10px; border: 1px solid var(--line);
+  background: transparent; color: var(--muted); font: inherit; font-size: .9375rem; font-weight: 700; cursor: pointer;
+}
+.view-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--text); border-color: var(--gold); }
+.tl-day { padding: 0 14px 22px; }
+/* The hour gutter is in rem so Larger text widens it with its labels. */
+.tl-grid { position: relative; margin-left: 3rem; }
+.tl-hour { position: absolute; left: -3rem; right: 0; height: 0; border-top: 1px solid var(--line); }
+.tl-hour span { position: absolute; left: 0; top: -8px; font-size: .75rem; color: var(--dim); white-space: nowrap; }
+.tl-block {
+  position: absolute; overflow: hidden; border-radius: 8px; cursor: pointer; text-align: left;
+  background: var(--h); border: 0; padding: 5px 7px; color: var(--ink); font: inherit;
+  display: grid; align-content: start; gap: 1px;
+}
+.tl-block .tb-title { font-size: .8125rem; font-weight: 700; line-height: 1.15; }
+.tl-block .tb-room { font-size: .6875rem; font-weight: 600; opacity: .8; }
+.tl-block .tb-runs { font-size: .6875rem; font-weight: 700; opacity: .7; }
+/* A block is as tall as its event is long, so text that will not fit gives
+   way in order, by measurement: the title drops to one line, then the room
+   goes. Larger text made this matter for hour-long picks. */
+.tl-block.tight .tb-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tl-block.tighter .tb-room { display: none; }
+/* A six-hour block is 360px of flat colour. Keep its true position and
+   height - the geometry is the point - but let the body fade toward the
+   page so shorter picks still read as the foreground. */
+.tl-block.long { border: 1px solid var(--h); }
+.tl-block.long::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 54px; bottom: 0;
+  background: linear-gradient(to bottom, transparent, var(--ink) 88%);
+  opacity: .85; pointer-events: none;
+}
+.tl-now { position: absolute; left: -46px; right: 0; height: 0; border-top: 2px solid var(--warn); z-index: 3; }
+.tl-now::after {
+  content: "now"; position: absolute; left: 0; top: -8px; font-size: .6875rem; font-weight: 700;
+  color: var(--warn); background: var(--ink); padding-right: 4px;
+}
+.tl-link { position: absolute; z-index: 2; pointer-events: none; border-left: 2px dashed var(--muted); }
+.tl-link span {
+  /* right-aligned: block titles run from the left, so a badge pinned right
+     clears them even when two picks are back to back with no gap to sit in */
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%); white-space: nowrap;
+  font-size: .6875rem; font-weight: 700; color: var(--muted);
+  background: var(--ink); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
+}
+.tl-link.tight { border-left-color: var(--warn); }
+.tl-link.tight span { color: var(--warn); }

@@ -1,7 +1,12 @@
-// Headless smoke test for index.html using jsdom. Run: node tests/ui_smoke.js
+// Headless smoke test of the built page, dist/index.html, using jsdom.
+// Run: npm run smoke   (it builds first, so dist/ is never stale)
 const { JSDOM } = require("jsdom");
 const fs = require("fs");
-const html = fs.readFileSync(__dirname + "/../index.html", "utf8")
+/* html is the page as built: markup, CSS and the bundled script. The bundler
+   re-prints the script (comments go, formatting changes), so an assertion
+   about how the code is written reads src, the app's source, instead. */
+const src = fs.readFileSync(__dirname + "/../src/app.js", "utf8");
+const html = fs.readFileSync(__dirname + "/../dist/index.html", "utf8")
   .replace("<script>", "<script>window.DC_EVENTS=" + fs.readFileSync(__dirname + "/sample-events.json", "utf8") + ";");
 const dom = new JSDOM(html, { runScripts: "dangerously", url: "https://example.test/?now=2026-09-05T13:05", pretendToBeVisual: true });
 const { window } = dom; const { document } = window;
@@ -17,8 +22,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const boot = JSON.parse(window.eval("JSON.stringify(BOOT)"));
   assert(indexAtFirstRender === false && boot.rendered >= boot.parsed && boot.indexed > boot.rendered && boot.suggested > boot.indexed,
     `the first render happened with no index; the index came ${Math.round(boot.indexed - boot.rendered)} ms later and the suggestion index after it`);
-  assert(/render\(\);\s*\/\/ the first screen, before any index exists\s*BOOT\.rendered = performance\.now\(\);[\s\S]{0,120}scheduleIndexBuild\(\);/.test(html), "boot renders, then schedules the index");
-  assert(/requestIdleCallback\(fn, \{timeout: 2000\}\) : setTimeout\(fn, 0\)/.test(html) && /buildIndex\(\);[\s\S]{0,200}idle\(\(\) => \{\s*buildSuggestIndex\(\);/.test(html), "in idle time, with a plain timeout as the fallback, and the suggestion index in a later idle slot");
+  assert(/render\(\);\s*\/\/ the first screen, before any index exists\s*BOOT\.rendered = performance\.now\(\);[\s\S]{0,120}scheduleIndexBuild\(\);/.test(src), "boot renders, then schedules the index");
+  assert(/requestIdleCallback\(fn, \{timeout: 2000\}\) : setTimeout\(fn, 0\)/.test(src) && /buildIndex\(\);[\s\S]{0,200}idle\(\(\) => \{\s*buildSuggestIndex\(\);/.test(src), "in idle time, with a plain timeout as the fallback, and the suggestion index in a later idle slot");
   assert(text("clock").startsWith("Sat 1:05 PM"), "clock shows preview time: " + text("clock"));
   assert(/[\d,]+ events · refreshed/.test(text("fresh")), "freshness line: " + text("fresh"));
   const now = document.getElementById("view-now");
@@ -142,7 +147,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(chain.empty === null, "and nothing picked is nowhere");
   assert(chain.stream === null, chain.streamFound ? "a stream that is on says nothing either: you could be anywhere" : "(no stream on now in the fixture; the stream rule is untested here)");
   const locSrc = window.eval("currentLocation.toString()");
-  assert(!/90|justEnded|_e <=|minutesBetween/.test(locSrc) && !/justEnded/.test(html), "nothing infers a location from a pick that ended, and no 90-minute window remains");
+  assert(!/90|justEnded|_e <=|minutesBetween/.test(locSrc) && !/justEnded/.test(src), "nothing infers a location from a pick that ended, and no 90-minute window remains");
 
   // ---- no guessing: the hero, the mini-bar and the map, with and without a pick on now ----
   const ng = JSON.parse(window.eval(`(function(){
@@ -367,7 +372,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   const celebTotal = window.eval("events.filter(isCeleb).length");
   assert(celebTotal > 0, `the fixture has celebrity events (${celebTotal})`);
   assert(!document.querySelector('#view-browse [data-chip="celebrity"]'), "there is no Celebrity chip in the kind row");
-  assert(!/celeb-chip|browse\.celebrity|f\.celebrity/.test(html), "and nothing in the source still filters on it");
+  assert(!/celeb-chip|browse\.celebrity|f\.celebrity/.test(src + html), "and nothing in the source still filters on it");
   assert(document.querySelectorAll('#view-browse .chips[data-row="kind"] [aria-pressed="true"]').length === 1, "the kind row lights exactly one chip");
   // the marker shows on rows, and only on the right rows
   window.eval(`(function(){ state.browse.q = "NASA"; state.browse.day = "All"; state.browse.page = 1; renderBrowse(); })()`); await sleep(30);
@@ -772,12 +777,12 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/position: fixed/.test(mainCss) && /overflow-y: auto/.test(mainCss), "main is the scroll container");
   assert(/html, body \{[^}]*overflow: hidden/.test(html), "and the page around it cannot scroll");
   assert(/\.hdr \{[^}]*position: fixed/.test(html), "the header is fixed above it");
-  assert(!/window\.scroll(To|By)\(|window\.scrollY|pageYOffset/.test(html.slice(html.indexOf("const PAGE = 150;"))), "no code scrolls the window directly");
+  assert(!/window\.scroll(To|By)\(|window\.scrollY|pageYOffset/.test(src.slice(src.indexOf("const PAGE = 150;"))), "no code scrolls the window directly");
   const sc = JSON.parse(window.eval(`(function(){ pageScrollTo(120); var a = pageScrollTop(); pageScrollBy(30); var b = pageScrollTop(); pageScrollTo(0); return JSON.stringify({a: a, b: b, c: pageScrollTop()}); })()`));
   assert((sc.a === 120 && sc.b === 150 && sc.c === 0) || (sc.a === 0 && sc.b === 0), `the scroll helpers address main (${JSON.stringify(sc)})`);
   assert(!edge.twoFingers, "nor a two-finger gesture");
   assert(window.eval("IS_IOS") === false, "and none of it is wired up outside iOS");
-  assert(/setProperty\("--safe-bottom", "min\(env\(safe-area-inset-bottom, 0px\), 34px\)"\)/.test(html), "on iOS the bottom inset is capped at the home indicator");
+  assert(/setProperty\("--safe-bottom", "min\(env\(safe-area-inset-bottom, 0px\), 34px\)"\)/.test(src), "on iOS the bottom inset is capped at the home indicator");
   assert(document.documentElement.style.getPropertyValue("--safe-bottom") === "", "and not anywhere else");
   // the settings sheet reports what the device says
   window.eval("openSheet('settings')");
@@ -785,7 +790,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/^(Home-screen app|Web page) · viewport \d+×\d+, visual .+, screen .+ · insets top .+, bottom .+/.test(dev), `settings carries a device readout (${dev})`);
   assert(/ · build \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/.test(dev), "ending in the build stamp from the page's last-modified time");
   window.eval("closeSheet()");
-  assert(/document\.addEventListener\("touchmove", edgeTouchMove, \{passive: false\}\)/.test(html), "on iOS the move listener is the kind that may cancel");
+  assert(/document\.addEventListener\("touchmove", edgeTouchMove, \{passive: false\}\)/.test(src), "on iOS the move listener is the kind that may cancel");
 
   // ---- chip rows keep their place across renders, and a tapped chip is brought into view ----
   window.eval(`(function(){ state.tab = "browse"; state.browse.q = ""; state.browse.hotel = "All"; state.browse.page = 1; render(); })()`); await sleep(20);
@@ -800,7 +805,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(rowKept.rows.join(",") === "day,hotel,kind", `the Search chip rows are named (${rowKept.rows.join(",")})`);
   assert(!rowKept.sameNode, "a render rebuilds the row");
   assert(rowKept.before === 120 && rowKept.after === 120, `and puts it back where it was (${rowKept.before} -> ${rowKept.after})`);
-  assert(document.querySelector('#view-now, #view-browse') && /data-row="now-hotel"/.test(html) && /data-row="explore-jump"/.test(html) && /data-row="follows"/.test(html),
+  assert(document.querySelector('#view-now, #view-browse') && /data-row="now-hotel"/.test(src) && /data-row="explore-jump"/.test(src) && /data-row="follows"/.test(src),
     "the Now, Explore and Following rows are named too");
   window.eval(`window.__revealed = []; window.__realReveal = revealChip; revealChip = function(c){ __revealed.push(c ? (c.dataset.value || c.dataset.section || "?") : null); };`);
   document.querySelector('#view-browse [data-chip="hotel"][data-value="Hilton"]').click(); await sleep(20);
@@ -812,7 +817,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(revealedEx.filter(x => x === "topic").length === 1 && revealedEx.includes("track"),
     `on Explore a chip is revealed when it becomes current, and only then (${revealedEx.join(",")})`);
   window.eval(`revealChip = __realReveal; state.browse.hotel = "All"; state.tab = "browse"; render();`); await sleep(20);
-  assert(/only ever moves the row sideways/i.test(html), "revealChip only moves the row sideways, never the page");
+  assert(/only ever moves the row sideways/i.test(src), "revealChip only moves the row sideways, never the page");
 
   // ---- an install nudge on Now until the app is on the home screen ----
   const nudge = JSON.parse(window.eval(`(function(){
@@ -838,7 +843,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(nudge.android.install && /Install this app/.test(nudge.android.lead), "with a browser install prompt in hand, Android gets a real Install button");
   assert(!nudge.other.install && /home screen/i.test(nudge.other.lead), "anything else gets the generic wording");
   assert(!nudge.installBtnHere, "here, with no prompt captured, there is no Install button");
-  assert(/beforeinstallprompt/.test(html) && /e\.preventDefault\(\); installPrompt = e/.test(html), "the browser install prompt is captured for the button to fire");
+  assert(/beforeinstallprompt/.test(src) && /e\.preventDefault\(\); installPrompt = e/.test(src), "the browser install prompt is captured for the button to fire");
 
   // ---- last sweep: durations read as plans, the placeholder fits, offsite venues lose their marker ----
   assert(window.eval(`[fmtMins(45), fmtMins(60), fmtMins(310), fmtMins(120)].join("|")`) === "45 min|1 h|5 h 10 min|2 h", "minutes over an hour read as hours");
@@ -930,7 +935,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "the internal identifiers are unchanged");
   assert(!document.querySelector('.nav button[data-tab="foryou"]'), "the For you tab is gone");
   assert(!document.getElementById("view-foryou"), "and so is its view");
-  assert(!/foryou/i.test(html), "and nothing in the source still refers to it");
+  assert(!/foryou/i.test(src + html), "and nothing in the source still refers to it");
   assert(/repeat\(5, 1fr\)/.test(html), "the nav lays out five columns");
   assert(/\.nav button \{[^}]*font-size: \.875rem/.test(html), "with labels back at 14px (.875rem, so Larger text can scale them)");
   assert(/\.nav button svg \{[^}]*width: 24px/.test(html), "and icons back at 24px");
@@ -1232,11 +1237,11 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
 
   // ---- step 4: picks are untouched by any of this ----
   assert(window.eval(`typeof togglePick`) === "function", "togglePick still exists");
-  assert(/function togglePick\(id, anchor\)/.test(html), "with the anchoring signature the star fix gave it");
-  assert(window.eval(`typeof renderMiniBar`) === "function" && /nextPickInConDay/.test(html), "the mini-bar still reads picks, not follows");
-  assert(!/follows/.test(html.slice(html.indexOf("function renderMiniBar"), html.indexOf("function renderMiniBar") + 900)),
+  assert(/function togglePick\(id, anchor\)/.test(src), "with the anchoring signature the star fix gave it");
+  assert(window.eval(`typeof renderMiniBar`) === "function" && /nextPickInConDay/.test(src), "the mini-bar still reads picks, not follows");
+  assert(!/follows/.test(src.slice(src.indexOf("function renderMiniBar"), src.indexOf("function renderMiniBar") + 900)),
     "and knows nothing about follows");
-  assert(!/follows/.test(html.slice(html.indexOf("function heroHTML"), html.indexOf("function heroHTML") + 2200)),
+  assert(!/follows/.test(src.slice(src.indexOf("function heroHTML"), src.indexOf("function heroHTML") + 2200)),
     "nor does the hero card");
   assert(JSON.parse(window.localStorage.getItem("dc26.picks") || "[]").length >= 0, "picks storage is its own key");
 
@@ -1257,30 +1262,30 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(!sticky.querySelector('[data-chip="kind"]'), "nor the kind row");
   assert(/\.controls-sticky\s*\{[^}]*position:\s*sticky/.test(html), "it is declared sticky");
   assert(/\.controls-sticky\s*\{[^}]*top:\s*var\(--hdr-h/.test(html), "it parks under the header, by measured height");
-  assert(/function syncHeaderHeight\(\)[\s\S]{0,300}setProperty\("--hdr-h"/.test(html), "the header height is measured, not assumed");
-  assert(/ResizeObserver\(syncHeaderHeight\)/.test(html), "and re-measured when the header changes size");
+  assert(/function syncHeaderHeight\(\)[\s\S]{0,300}setProperty\("--hdr-h"/.test(src), "the header height is measured, not assumed");
+  assert(/ResizeObserver\(syncHeaderHeight\)/.test(src), "and re-measured when the header changes size");
   /* ResizeObserver is delivered on the rendering lifecycle, so a page that
      isn't painting never hears about it. The offset must not depend on it. */
   /* Anchored on the comment rather than a character window: the file is
      checked out with CRLF on Windows, and a byte-distance assertion silently
      changes meaning between platforms. */
-  assert(/syncHeaderHeight\(\);\s*\/\/ this line is what changes the header's height/.test(html),
+  assert(/syncHeaderHeight\(\);\s*\/\/ this line is what changes the header's height/.test(src),
     "the header is re-measured when the freshness line changes it");
-  assert(/document\.fonts\.ready\.then\(syncHeaderHeight\)/.test(html),
+  assert(/document\.fonts\.ready\.then\(syncHeaderHeight\)/.test(src),
     "and once the font has loaded and changed the text metrics");
-  assert(/window\.addEventListener\("load", syncHeaderHeight\)/.test(html),
+  assert(/window\.addEventListener\("load", syncHeaderHeight\)/.test(src),
     "and on load, so it never rests on the observer alone");
 
   // ---- offline: what jsdom can actually reach ----
   // (a) the worker parses, and registration is guarded
-  const swSrc = fs.readFileSync(__dirname + "/../sw.js", "utf8");
+  const swSrc = fs.readFileSync(__dirname + "/../dist/sw.js", "utf8");
   try { new Function(swSrc); assert(true, "sw.js parses"); }
   catch (e) { assert(false, "sw.js parses: " + e.message); }
   assert(/navigator\.serviceWorker\.register\(\s*["']\.\/sw\.js["']\s*\)/.test(html),
     "index.html registers ./sw.js by relative path (scope stays under /dragoncon-planner/)");
   assert(/if\s*\(\s*["']serviceWorker["']\s+in\s+navigator\s*\)/.test(html),
     "registration is guarded by a serviceWorker capability check");
-  assert(/register\("\.\/sw\.js"\)\.catch\(err =>[\s\S]{0,120}console\.warn/.test(html),
+  assert(/register\("\.\/sw\.js"\)\.catch\(err =>[\s\S]{0,120}console\.warn/.test(src),
     "a failed registration is reported, not swallowed");
   assert(/const CHANNEL = "";/.test(swSrc) && /const CACHE = `\$\{CACHE_PREFIX\}v4`;/.test(swSrc) && /n\.startsWith\(CACHE_PREFIX\) && n !== CACHE/.test(swSrc), "the cache name is versioned (v4) under a prefix the build can stamp, and only that prefix is cleared");
   // installable from a chat link: PNG icons, an app title, and a preview card
@@ -1291,12 +1296,12 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   }
   assert(/<meta property="og:image" content="https:\/\/kilgoretrout853\.github\.io\/dragoncon-planner\/og-image\.png">/.test(html), "og:image is an absolute URL on the Pages site");
   assert(/<meta name="twitter:card" content="summary_large_image">/.test(html), "and the card is the large-image kind");
-  const manifest = JSON.parse(fs.readFileSync(__dirname + "/../manifest.json", "utf8"));
+  const manifest = JSON.parse(fs.readFileSync(__dirname + "/../dist/manifest.json", "utf8"));
   const pngIcons = manifest.icons.filter(i => i.type === "image/png");
   assert(pngIcons.some(i => i.sizes === "192x192" && i.purpose === "any") && pngIcons.some(i => i.sizes === "512x512" && i.purpose === "maskable"),
     "the manifest offers 192 and 512 PNGs, any and maskable");
   for (const f of ["icon-180.png", "icon-192.png", "icon-512.png", "og-image.png"]) {
-    const b = fs.readFileSync(__dirname + "/../" + f);
+    const b = fs.readFileSync(__dirname + "/../dist/" + f);
     assert(b.length > 1000 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47, `${f} exists and is a PNG (${b.length} bytes)`);
   }
   assert(/SHELL = \[[^\]]*"\.\/icon-180\.png"[^\]]*"\.\/icon-512\.png"/.test(swSrc), "the worker precaches the icons");
@@ -1318,14 +1323,14 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
     "and waitUntil is called synchronously in the fetch handler, before respondWith");
   assert(!/staleWhileRevalidate/.test(swSrc), "the version that could be killed mid-check is gone");
   // manifest and icon
-  const mf = JSON.parse(fs.readFileSync(__dirname + "/../manifest.json", "utf8"));
+  const mf = JSON.parse(fs.readFileSync(__dirname + "/../dist/manifest.json", "utf8"));
   assert(mf.name === "Dragon Con 2026" && mf.short_name === "DC26", "manifest names the app");
   assert(mf.display === "standalone" && mf.start_url === "./", "manifest is standalone from ./");
   assert(mf.background_color === "#171A33" && mf.theme_color === "#171A33", "manifest colours match the app");
   assert(mf.icons.some(i => i.src === "./icon.svg"), "manifest points at the icon");
   assert(/<link rel="manifest" href="\.\/manifest\.json">/.test(html), "index.html links the manifest");
   assert(/<link rel="apple-touch-icon" href="\.\/icon-180\.png">/.test(html), "index.html sets a PNG apple-touch-icon");
-  assert(fs.existsSync(__dirname + "/../icon.svg"), "the icon file exists");
+  assert(fs.existsSync(__dirname + "/../dist/icon.svg"), "the icon file exists");
 
   // (b) the pill: shown by the worker's message, dismissed, and reloads on tap
   const pill = document.getElementById("updatePill");
@@ -1358,9 +1363,9 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/catch \(e\) \{[\s\S]{0,500}?tellClients\(\{type: "schedule-offline"\}\)/.test(swSrc),
     "the worker reports offline when revalidation fails");
   assert(/schedule-online/.test(swSrc), "the worker reports back online when it succeeds");
-  assert(/t === "schedule-offline"[\s\S]{0,80}servedOffline = true/.test(html),
+  assert(/t === "schedule-offline"[\s\S]{0,80}servedOffline = true/.test(src),
     "the page marks itself offline on that message");
-  assert(/t === "schedule-online"[\s\S]{0,80}servedOffline = false/.test(html),
+  assert(/t === "schedule-online"[\s\S]{0,80}servedOffline = false/.test(src),
     "and clears the marker when the worker gets through");
   window.eval("servedOffline = true; updateFresh();"); await sleep(10);
   assert(/offline copy/.test(document.getElementById("fresh").textContent),
@@ -1453,7 +1458,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   window.eval("state.map.day = '2026-09-07'");
   window.eval('setTimeOverride("2026-09-05T13:05")'); await sleep(40);
   assert(window.eval("state.map.day") === null && pressedDay() === "2026-09-05", "a new preview time lets the map follow the clock again");
-  assert(/data-row="map-day"/.test(html), "the row is named, so it keeps its place across renders");
+  assert(/data-row="map-day"/.test(src), "the row is named, so it keeps its place across renders");
 
   // ---- Map, step 3: pick pills and the hotel sheet ----
   const picksBefore = JSON.parse(window.eval("JSON.stringify([...picks])"));
@@ -1533,7 +1538,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(rings() === [`next:${nowSetup.next}`, `now:${nowSetup.on}`].sort().join(" "), `today: a ring on the on-now hotel and one on the next (${rings()})`);
   assert(/\.map-ring \{[^}]*var\(--gold\)/.test(html) && /\.map-ring\.next \{[^}]*animation: map-pulse/.test(html) && /@keyframes map-pulse/.test(html), "rings are gold and the next one pulses");
   assert(/prefers-reduced-motion: reduce\) \{ \.map-ring\.next \{ animation: none/.test(html), "and holds still under reduced motion");
-  assert(!mapView.querySelector(".map-leave") && !mapView.querySelector(".map-route") && !/map-leave|map-route|mapLeaveSVG|mapRouteSVG|mapCentre/.test(html),
+  assert(!mapView.querySelector(".map-leave") && !mapView.querySelector(".map-route") && !/map-leave|map-route|mapLeaveSVG|mapRouteSVG|mapCentre/.test(src + html),
     "no dashed line and no route, in the SVG or the source: the rings, the pills and the caption carry it");
   const mapOrder = mapView.querySelector("svg.map").innerHTML;
   assert(mapOrder.indexOf("map-hotel") < mapOrder.indexOf("map-ring") && mapOrder.indexOf("map-ring") < mapOrder.lastIndexOf("map-pill"), "rings over the blocks, pills over everything");
@@ -1554,7 +1559,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // no next pick: only the now ring, and nothing to say
   window.eval(`picks = new Set([${JSON.stringify(nowSetup.onId)}]); savePicks(); render();`); await sleep(20);
   assert(rings() === `now:${nowSetup.on}` && mapView.querySelector(".next-on") && mapView.querySelector(".next-card.empty"), "with no next pick, only the now ring; the On now line stays and the card says how to get a next pick");
-  assert(/state\.tab === "map" && sheetWrap\.hidden\) \{ tickMap\(\)/.test(html), "the minute tick goes through tickMap");
+  assert(/state\.tab === "map" && sheetWrap\.hidden\) \{ tickMap\(\)/.test(src), "the minute tick goes through tickMap");
   window.eval(`picks = new Set(${JSON.stringify(picksBefore)}); savePicks(); state.map.day = null; render();`); await sleep(20);
 
   // ---- Map fixes ----
@@ -1615,16 +1620,16 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/\.hdr \.hdr-line \{[^}]*white-space: nowrap/.test(html) && /\.hdr \.hdr-line \{[^}]*font-size: clamp\(\.8125rem, 4vw, \.9375rem\)/.test(html) && /\.hdr \.hdr-line \{[^}]*font-weight: 700/.test(html) && !/\.hdr \.clock \{/.test(html),
     "in the clock style at a smaller size that follows the phone's width, and it never wraps");
   assert(document.querySelector("#fresh .word") && document.querySelector("#fresh .word").textContent === "refreshed " && /\.hdr \.hdr-line\.tight \.word \{ display: none/.test(html)
-    && /function fitHeaderLine\(\)[\s\S]{0,200}scrollWidth > line\.clientWidth/.test(html) && /fitHeaderLine\(\);\n\}/.test(html.replace(/\r\n/g, "\n")),
+    && /function fitHeaderLine\(\)[\s\S]{0,200}scrollWidth > line\.clientWidth/.test(src) && /fitHeaderLine\(\);\n\}/.test(src.replace(/\r\n/g, "\n")),
     "when the line would clip, the word refreshed goes first, by measurement");
-  assert(/\.hdr \.hdr-line\.tighter \{ font-size: \.8125rem/.test(html) && /classList\.add\("tighter"\)/.test(html), "and if that is not enough, the line steps down a size");
+  assert(/\.hdr \.hdr-line\.tighter \{ font-size: \.8125rem/.test(html) && /classList\.add\("tighter"\)/.test(src), "and if that is not enough, the line steps down a size");
   assert(/^ · [\d,]+ events · refreshed \d+ (min|h|d) ago/.test(document.getElementById("fresh").textContent), `the freshness text reads as the rest of the line (${document.getElementById("fresh").textContent})`);
   const brand = document.getElementById("brand");
   window.eval(`state.tab = "now"; render();`); await sleep(10);
   assert(brand && !brand.hidden && brand.textContent === "Dragon Con 2026" && /\.hdr \.brand \{[^}]*font-size: \.75rem/.test(html), "the brand shows on Now as a small label");
   assert(brand.compareDocumentPosition(hdrLine) & window.Node.DOCUMENT_POSITION_FOLLOWING, "above the line");
   for (const t of ["browse", "explore", "map", "mine"]) { window.eval(`state.tab = ${JSON.stringify(t)}; render();`); await sleep(10); assert(brand.hidden, `and not on ${t}`); }
-  assert(/document\.getElementById\("brand"\)\.hidden = state\.tab !== "now";\s*syncHeaderHeight\(\);/.test(html), "the header is re-measured when the brand comes and goes");
+  assert(/document\.getElementById\("brand"\)\.hidden = state\.tab !== "now";\s*syncHeaderHeight\(\);/.test(src), "the header is re-measured when the brand comes and goes");
   window.eval(`state.tab = "now"; render();`); await sleep(10);
 
   // ---- polish 2: sticky map chips, and a map that fits the screen ----
@@ -1680,8 +1685,8 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(fg.afterPageshow === 2 && fg.pillShown && fg.metaGen === fg.newer && /refreshed/.test(fg.freshText),
     `pageshow checks too, and a newer generated_at shows the pill and updates the freshness text (${fg.freshText.trim()})`);
   assert(!/render\(\)/.test(window.eval("recheckSchedule.toString()")), "the check never re-renders under the reader; the pill offers the reload");
-  assert(/RECHECK_MS = 15 \* 60000/.test(html) && /document\.addEventListener\("visibilitychange"/.test(html) && /addEventListener\("pageshow"/.test(html), "the interval is 15 minutes, on visibilitychange and pageshow");
-  assert(/t === "schedule-updated"\) \{[\s\S]{0,200}meta\.generated_at = e\.data\.generated_at; updateFresh\(\);/.test(html), "with a worker, its schedule-updated message carries the new generated_at into the freshness text");
+  assert(/RECHECK_MS = 15 \* 60000/.test(src) && /document\.addEventListener\("visibilitychange"/.test(src) && /addEventListener\("pageshow"/.test(src), "the interval is 15 minutes, on visibilitychange and pageshow");
+  assert(/t === "schedule-updated"\) \{[\s\S]{0,200}meta\.generated_at = e\.data\.generated_at; updateFresh\(\);/.test(src), "with a worker, its schedule-updated message carries the new generated_at into the freshness text");
 
   // ---- polish 6: Settings, the everyday two up top and the rest under Advanced ----
   window.eval(`openSheet("settings")`); await sleep(20);
@@ -1715,17 +1720,17 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(/html\.bigtext \{ font-size: 115%; \}/.test(html), "which sets the root size to 115%");
   big.click(); await sleep(10);
   assert(!document.documentElement.classList.contains("bigtext") && window.localStorage.getItem("dc26.bigtext") === "false", "off again, and saved");
-  assert(/classList\.toggle\("bigtext", !!loadJSON\("dc26\.bigtext", false\)\)/.test(html), "the saved choice is applied at startup, before the first paint");
+  assert(/classList\.toggle\("bigtext", !!loadJSON\("dc26\.bigtext", false\)\)/.test(src), "the saved choice is applied at startup, before the first paint");
   const styleBlock = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
   const scaled = styleBlock.split("\n").filter(l => !/^\.map-(street-label|hotel text|park text|pill text)/.test(l)).join("\n");
   assert(!/font-size: [\d.]+px/.test(scaled) && /font-size: [\d.]+rem/.test(scaled) && /body \{[^}]*font-size: 1\.0625rem/.test(html), "every text size outside the map's SVG is in rem, so it follows the root");
   assert(/\.map-hotel text \{[^}]*font-size: 11px/.test(html) && /\.map-pill text \{[^}]*font-size: 11px/.test(html), "the map's labels stay in the SVG's own units, scaled with the drawing rather than the toggle");
-  assert(!/style="font-size:\d+px/.test(html), "and no inline pixel size hides in a template");
+  assert(!/style="font-size:\d+px/.test(src + html), "and no inline pixel size hides in a template");
   assert(/\.tl-block\.tight \.tb-title \{[^}]*text-overflow: ellipsis/.test(html) && /\.tl-block\.tighter \.tb-room \{ display: none/.test(html)
-    && /function fitTimelineBlocks\(\)[\s\S]{0,400}scrollHeight > b\.clientHeight/.test(html) && /innerHTML = html;\s*fitTimelineBlocks\(\);/.test(html),
+    && /function fitTimelineBlocks\(\)[\s\S]{0,400}scrollHeight > b\.clientHeight/.test(src) && /innerHTML = html;\s*fitTimelineBlocks\(\);/.test(src),
     "timeline blocks that cannot hold their text give way by measurement: one-line title first, then no room");
   assert(/\.tl-hour span \{[^}]*white-space: nowrap/.test(html) && /\.tl-grid \{[^}]*margin-left: 3rem/.test(html) && /\.tl-hour \{[^}]*left: -3rem/.test(html), "the hour gutter is in rem and its labels never wrap");
-  assert(/saveJSON\("dc26\.bigtext", e\.target\.checked\);\s*syncHeaderHeight\(\);\s*render\(\);/.test(html), "toggling re-measures the header and re-renders, so the timeline refits");
+  assert(/saveJSON\("dc26\.bigtext", e\.target\.checked\);\s*syncHeaderHeight\(\);\s*render\(\);/.test(src), "toggling re-measures the header and re-renders, so the timeline refits");
   window.eval("closeSheet()"); await sleep(10);
 
   // ---- map card: the next pick under the map ----
@@ -1871,7 +1876,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(hr.hero === hr.heroWant, `the hero's room line reads hotel, dot, room (${hr.hero})`);
   assert(hr.bar === hr.barWant, `and so does the mini-bar (${hr.bar})`);
   assert(hr.card === hr.barWant, `and the map's card, which used to put the room first (${hr.card})`);
-  assert(!/placeLine/.test(html) && (html.match(/placeHTML\(/g) || []).length >= 5, "one helper serves rows, sheet, hero, mini-bar and card");
+  assert(!/placeLine/.test(src) && (src.match(/placeHTML\(/g) || []).length >= 5, "one helper serves rows, sheet, hero, mini-bar and card");
 
   // ==== one clock: now(), the ?now= override, and the phase of the con ====
   assert(window.eval("typeof now === 'function' && typeof getNow === 'undefined'"), "now() is the one clock; getNow is gone");
@@ -1880,8 +1885,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   assert(text("clock").startsWith("Sat 1:05 PM") && !/preview/.test(text("clock")), `the clock reads the simulated time, with no suffix (${text("clock")})`);
   {
     // the source: every wall-clock read goes through now(); stopwatch reads use performance.now()
-    const start = html.lastIndexOf("<script>", html.indexOf("Data & constants"));
-    const script = html.slice(start);
+    const script = src;
     const t0 = script.indexOf("   Time. Every read"), t1 = script.indexOf("   Loading", t0);
     assert(t0 > 0 && t1 > t0, "index.html has a Time section");
     const outside = script.slice(0, t0) + script.slice(t1);
@@ -1982,7 +1986,7 @@ function assert(c, m) { if (!c) { console.error("FAIL:", m); process.exitCode = 
   // ==== the dev-build mark: only on a build stamped with a channel ====
   assert(/<meta name="dc-channel" content="">/.test(html) && /<meta name="dc-build" content="">/.test(html), "the source carries empty channel and build stamps");
   assert(!document.querySelector(".devmark") && window.eval("BUILD.channel === '' && BUILD.id === ''"), "unstamped, there is no mark and no channel");
-  assert(!/location\.(host|hostname|origin)\b/.test(html.slice(html.lastIndexOf("<script>", html.indexOf("Data & constants")))), "nothing in the page decides by hostname");
+  assert(!/location\.(host|hostname|origin)\b/.test(src), "nothing in the page decides by hostname");
   {
     const stampedHtml = html.replace('<meta name="dc-channel" content="">', '<meta name="dc-channel" content="next">').replace('<meta name="dc-build" content="">', '<meta name="dc-build" content="abc1234">');
     const stamped = new JSDOM(stampedHtml, { runScripts: "dangerously", url: "https://example.test/?now=2026-09-05T13:05", pretendToBeVisual: true });
@@ -2015,7 +2019,7 @@ async function realDataChecks() {
   const path = __dirname + "/../data/2026/events.json";
   if (!fs.existsSync(path)) { console.log("skip  real-data search checks (no data/2026/events.json)"); return; }
   const realDom = new JSDOM(
-    fs.readFileSync(__dirname + "/../index.html", "utf8")
+    fs.readFileSync(__dirname + "/../dist/index.html", "utf8")
       .replace("<script>", "<script>window.DC_EVENTS=" + fs.readFileSync(path, "utf8") + ";"),
     { runScripts: "dangerously", url: "https://example.test/?now=2026-09-05T13:05", pretendToBeVisual: true });
   const w = realDom.window;
@@ -2080,7 +2084,7 @@ async function realDataChecks() {
     `every result for "${who}" actually features them`);
 
   // 4. exactness bonus is computed from h.match
-  assert(/function termQuality\(t, matched, match\)/.test(fs.readFileSync(__dirname + "/../index.html", "utf8")),
+  assert(/function termQuality\(t, matched, match\)/.test(src),
     "match quality is computed per term, from MiniSearch's match map");
   assert(w.eval(`termQuality("trek", ["trek"], {trek:1})`) === 1, "an exact match scores 1");
   assert(Math.abs(w.eval(`termQuality("drag", ["dragons"], {dragons:1})`) - 4/7) < 0.01,

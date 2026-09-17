@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Render the app icons and the link-preview image from the design in icon.svg.
+"""Render the app icons and the link-preview image from the design in public/icon.svg.
 
-Outputs, next to this script:
+Outputs, in public/ (what Vite serves and copies verbatim):
     icon-180.png    apple-touch-icon (iOS does not accept SVG there)
     icon-192.png    manifest, purpose any and maskable
     icon-512.png    manifest, purpose any and maskable
@@ -22,7 +22,7 @@ import urllib.request
 
 from PIL import Image, ImageDraw, ImageFont
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
 NAVY = (0x17, 0x1A, 0x33)
 GOLD = (0xF3, 0xC6, 0x4B)
 CREAM = (0xF5, 0xF1, 0xE8)
@@ -98,10 +98,10 @@ def main():
     bold = font_path(*FONT_700)
     medium = font_path(*FONT_500)
     for px in (180, 192, 512):
-        out = os.path.join(HERE, f"icon-{px}.png")
+        out = os.path.join(OUT, f"icon-{px}.png")
         icon(px, bold).save(out, optimize=True)
         print(f"wrote icon-{px}.png ({os.path.getsize(out) // 1024} KB)", file=sys.stderr)
-    out = os.path.join(HERE, "og-image.png")
+    out = os.path.join(OUT, "og-image.png")
     og_image(bold, medium).save(out, optimize=True)
     print(f"wrote og-image.png ({os.path.getsize(out) // 1024} KB)", file=sys.stderr)
 

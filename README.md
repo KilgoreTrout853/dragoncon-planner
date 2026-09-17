@@ -11,13 +11,13 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `data/2026/events.json` | The final 2026 schedule, frozen after the con: 3,459 events, scraped Sep 7 12:50 UTC. |
 | `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app, merges duplicates, and writes `data/2026/events.json`. Takes ~20 minutes. |
 | `tag_events.py` | Has Claude tag each event with fandoms, kind (celebrity Q&A, fan panel, screening…), topics, guests, and 18+. Powers the fandom picker, kind chips, the Celebrity badge and Guests section, and search. |
-| `index.html` | The whole planner, one file. Reads `data/2026/events.json`. |
-| `sw.js` | Service worker: keeps the app opening and rendering with no signal. |
-| `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
-| `make_icons.py` | Renders the PNG icons and the preview image from the design in `icon.svg`. Needs Pillow; fetches the font once. |
+| `index.html`, `src/` | The planner: the page's markup, `src/app.js` (the whole script) and `src/styles.css`. Vite builds them into one inlined `dist/index.html`, which reads `data/2026/events.json`. |
+| `public/sw.js` | Service worker: keeps the app opening and rendering with no signal. |
+| `public/manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
+| `make_icons.py` | Renders the PNG icons and the preview image from the design in `public/icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Runs the scraper and commits fresh data. By hand only now that the con is over. |
-| `build.py` | A copy of the app stamped as a dev build, for the `next` branch's site. `main` never builds. |
-| `tests/` | 25 parser tests, 4 build tests and 848 UI assertions. Not optional — run them before you push. |
+| `vite.config.js`, `build/vite-dc.js` | The build. With `DC_CHANNEL=next` it stamps the output as a dev build, for the `next` branch's site. |
+| `tests/` | 27 parser tests, 7 build tests and 848 UI assertions. Not optional — run them before you push. |
 
 ## Running it locally
 
@@ -25,20 +25,23 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 pip install -r requirements.txt  # requests, beautifulsoup4, urllib3, pytest - pinned
 python scraper.py --limit 30     # smoke test against the live site, ~30 seconds
 python scraper.py                # full scrape, ~3,460 events after merging duplicates
-python -m http.server 8000       # then open http://localhost:8000
+
+npm ci                           # Node version in .nvmrc
+npm run dev                      # the app, unbuilt, at http://localhost:5173
+npm run build && npm run preview # the app as it ships, from dist/
 ```
 
-`index.html` must be served over http — opened as a file, the browser blocks it from reading the schedule.
+The root `index.html` is a build template: opening it as a file, or serving the repo root with a static server, no longer runs the app.
 
 **Tests need Node** (for jsdom) as well as Python:
 
 ```bash
-npm ci                           # dev dependencies only; no build step yet (Node version in .nvmrc)
+npm ci
 npm run lint                     # eslint: two rules
-npm test                         # vitest: no test files yet
-npm run smoke                    # node tests/ui_smoke.cjs, 848 assertions
+npm test                         # vitest: 7 build tests
+npm run smoke                    # builds, then node tests/ui_smoke.cjs against dist/: 848 assertions
 pip install -r requirements.txt
-python -m pytest tests/          # 25 parser tests, 4 build tests
+python -m pytest tests/          # 27 parser tests
 ```
 
 CI runs the same commands on every pull request (`.github/workflows/ci.yml`).
@@ -73,13 +76,13 @@ Picks and follows live in the browser's storage, per device. They aren't shared 
 
 `main` is the live site and publishes straight from the branch, as it always has. Off-season work happens on `next`, which publishes to a site of its own at https://kilgoretrout853.github.io/dragoncon-planner-next/. A repository has one Pages site with one source, so a `/next/` path under the live site would have had to be part of `main`'s own publish; a sibling site leaves `main` alone.
 
-The publishing lives in the [`dragoncon-planner-next`](https://github.com/KilgoreTrout853/dragoncon-planner-next) repository, not here. Its workflow looks at this repository's `next` branch every ten minutes and on demand; when the branch has moved it checks it out, runs `build.py` with `DC_CHANNEL=next`, pushes the result to its own `gh-pages` branch, and records the commit it deployed in `deployed.txt`. This repository is public, so none of that needs a credential. To deploy now rather than within ten minutes:
+The publishing lives in the [`dragoncon-planner-next`](https://github.com/KilgoreTrout853/dragoncon-planner-next) repository, not here. Its workflow looks at this repository's `next` branch every ten minutes and on demand; when the branch has moved it checks it out, builds it (`npm ci && npm run build`) with `DC_CHANNEL=next`, pushes the result to its own `gh-pages` branch, and records the commit it deployed in `deployed.txt`. This repository is public, so none of that needs a credential. To deploy now rather than within ten minutes:
 
 ```bash
 gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next
 ```
 
-`build.py` copies the files the site needs into `site/` and, given a channel, stamps them: `index.html` gets the channel and build id in two `<meta>` tags, which the page reads to show the **dev build** mark and to name the build in the device readout; `sw.js` gets a cache name of its own (`dc26-next-v4`), because the two sites share one origin and would otherwise delete each other's caches. The source carries empty stamps and `main` never runs a build, so the live site wears no mark; the mark is decided by the stamp, never by the address. `python build.py --out site` with no channel gives a copy identical to the source, and `site/` is ignored by git.
+`npm run build` writes the site into `dist/` - one `index.html` with the CSS and script inlined, the files from `public/`, and a copy of `data/` - and, given a channel, stamps it: `index.html` gets the channel and build id in two `<meta>` tags, which the page reads to show the **dev build** mark and to name the build in the device readout; `sw.js` gets a cache name of its own (`dc26-next-v4`), because the two sites share one origin and would otherwise delete each other's caches. The source carries empty stamps, so a build with no channel wears no mark and its `sw.js` is `public/sw.js` byte for byte; the mark is decided by the stamp, never by the address. `main` is still the 2026 one-file app and never runs a build. `dist/` is ignored by git.
 
 One origin also means one localStorage: in an ordinary browser tab the next site reads the same picks and settings as the live one. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected. The simulated clock is the exception: its session key carries the channel, so a `?now=` opened on the next site does not follow you to the live site in the same tab.
 
