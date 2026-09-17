@@ -22,7 +22,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 ## Running it locally
 
 ```bash
-pip install requests beautifulsoup4
+pip install -r requirements.txt  # requests, beautifulsoup4, urllib3, pytest - pinned
 python scraper.py --limit 30     # smoke test against the live site, ~30 seconds
 python scraper.py                # full scrape, ~3,460 events after merging duplicates
 python -m http.server 8000       # then open http://localhost:8000
@@ -33,11 +33,15 @@ python -m http.server 8000       # then open http://localhost:8000
 **Tests need Node** (for jsdom) as well as Python:
 
 ```bash
-npm install                      # jsdom, a dev dependency; no build step
-node tests/ui_smoke.js           # 848 assertions
-python tests/test_parse.py       # 25 parser tests
-python tests/test_build.py       # 4 build tests
+npm ci                           # dev dependencies only; no build step yet (Node version in .nvmrc)
+npm run lint                     # eslint: two rules
+npm test                         # vitest: no test files yet
+npm run smoke                    # node tests/ui_smoke.cjs, 848 assertions
+pip install -r requirements.txt
+python -m pytest tests/          # 25 parser tests, 4 build tests
 ```
+
+CI runs the same commands on every pull request (`.github/workflows/ci.yml`).
 
 The UI suite runs twice: once against `tests/sample-events.json` (558 synthetic events, deterministic) and once against the real `data/2026/events.json`, because ranking questions are meaningless against synthetic rows.
 

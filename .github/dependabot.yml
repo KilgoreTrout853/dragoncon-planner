@@ -1,0 +1,8 @@
+# DECISIONS #26: the Actions this repo runs, checked monthly. Nothing for npm
+# or pip - those move on purpose, in a PR that says why.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

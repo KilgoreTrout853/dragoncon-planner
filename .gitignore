@@ -15,3 +15,5 @@ __pycache__/
 
 # Build output (build.py); the next deploy publishes it, main never builds
 site/
+# Build output (Vite, from step 4 on)
+dist/

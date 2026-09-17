@@ -34,11 +34,17 @@ index.html  (the whole client)  ──►  localStorage (picks, settings)
 | `scraper.py` | Scrape → normalise → dedupe → write `events.json`. |
 | `tag_events.py` | Add `tags` to untagged events via Claude. |
 | `build.py` | Copy the site to an output folder and stamp a channel/build id. |
-| `tests/ui_smoke.js` | jsdom smoke test of `index.html` + `sw.js`, plus search checks against real data. |
+| `tests/ui_smoke.cjs` | jsdom smoke test of `index.html` + `sw.js`, plus search checks against real data. CommonJS, hence `.cjs`: the package is `"type": "module"`. |
 | `tests/test_parse.py` | Scraper parsing and dedupe unit tests. |
 | `tests/test_build.py` | `build.py` stamping tests. |
 | `tests/sample-events.json` | 558 synthetic events used by the smoke test. |
 | `.github/workflows/scrape.yml` | Manual-trigger scrape (workflow_dispatch). Refuses a scrape with 0 events or a >20% drop; commits and pushes events.json to the branch it was run from. |
+| `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client` and `pipeline`. |
+| `.github/dependabot.yml` | Monthly update PRs for GitHub Actions only. |
+| `package.json`, `.nvmrc`, `eslint.config.js`, `vitest.config.js` | Client tooling: scripts `lint`, `test`, `smoke`; Node major; two ESLint rules; Vitest (no test files yet). |
+| `requirements.txt` | Pinned pipeline dependencies, plus pytest. |
+| `.gitattributes` | Text files are LF in the index and on checkout. |
+| `CLAUDE.md` | Standing rules for Claude Code sessions. |
 | `docs/` | This file, DECISIONS.md and VISION.md. |
 
 ## The data pipeline
@@ -164,18 +170,34 @@ their caches and session keys apart (DECISIONS #15).
 ## Tests
 
 ```
-node tests/ui_smoke.js        # needs: npm install (jsdom)
-python tests/test_parse.py
-python tests/test_build.py
+npm ci                        # once; Node major from .nvmrc
+npm run lint                  # eslint .
+npm test                      # vitest run (no test files yet; passes empty)
+npm run smoke                 # node tests/ui_smoke.cjs
+pip install -r requirements.txt
+python -m pytest tests/       # test_parse.py and test_build.py
 ```
 
-`ui_smoke.js` loads `index.html` in jsdom with `?now=2026-09-05T13:05`,
+`ui_smoke.cjs` loads `index.html` in jsdom with `?now=2026-09-05T13:05`,
 drives the tabs, and asserts on both DOM state and the page source (CSS
 rules, the Time-section rule, the SW registration). It ends with search
-quality checks against the real `events.json`. `npm test` is still the
-placeholder from `npm init` and does nothing `[fix]`.
+quality checks against the real `events.json`. It is still where every
+client assertion lives; Vitest is installed and empty until they are
+ported (DECISIONS #24).
 
-There is no CI; tests run by hand.
+ESLint carries two rules and inherits nothing: `no-undef` everywhere, and
+under `src/` (which does not exist yet) a ban on `new Date()` and
+`Date.now()` outside `src/time.js`. Today it lints `sw.js` and the two
+config files; `index.html`'s inline script is not linted.
+
+The Python test files are plain pytest modules; running one directly with
+`python tests/test_parse.py` executes nothing.
+
+CI (`.github/workflows/ci.yml`) runs all of the above on a clean Ubuntu
+runner for every pull request into `next` or `main`, every push to `next`,
+and on demand: job `client` (npm ci, lint, test, smoke) and job `pipeline`
+(pip install, pytest). Nothing requires those checks yet - the ruleset on
+`next` is a repository setting (DECISIONS #26).
 
 ## Branches
 
