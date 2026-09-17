@@ -7,9 +7,12 @@
     "test": "tests"
   },
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
-    "smoke": "node tests/ui_smoke.cjs"
+    "smoke": "npm run build && node tests/ui_smoke.cjs"
   },
   "repository": {
     "type": "git",
@@ -27,6 +30,11 @@
     "eslint": "^10.10.0",
     "globals": "^17.12.0",
     "jsdom": "^30.0.1",
+    "vite": "^8.3.0",
+    "vite-plugin-singlefile": "^2.3.3",
     "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "minisearch": "7.2.0"
   }
 }

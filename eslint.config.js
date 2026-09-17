@@ -1,24 +1,28 @@
 /* Two rules, nothing inherited (DECISIONS #24). This is a guard for the
    module split, not a style guide: no-undef catches a function that moved
    to another module without its import; the second rule is the #12 clock
-   guard, taking over from the smoke test's regex once src/ exists. */
+   guard, taking over from the smoke test's regex module by module. */
 import globals from "globals";
 
 export default [
-  { ignores: ["node_modules/", "dist/", "site/", "data/", "tests/ui_smoke.cjs"] },
+  { ignores: ["node_modules/", "dist/", "data/", "tests/ui_smoke.cjs"] },
 
   {
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
     rules: { "no-undef": "error" },
   },
 
-  /* Inert until src/ exists (PR 3). Every read of the current moment goes
-     through now() in src/time.js. A Date built from a value - new Date(iso),
-     new Date(ms) - is arithmetic, not a clock read, and is allowed, exactly
-     as the smoke test's regex allows it today. */
+  /* Every read of the current moment goes through now() in src/time.js. A
+     Date built from a value - new Date(iso), new Date(ms) - is arithmetic,
+     not a clock read, and is allowed, exactly as the smoke test's regex
+     allows it today. */
   {
     files: ["src/**/*.js"],
-    ignores: ["src/time.js"],
+    ignores: [
+      "src/time.js",
+      /* temporary until src/time.js exists (PR 5); the harness regex guards #12 until then. */
+      "src/app.js",
+    ],
     rules: {
       "no-restricted-syntax": ["error",
         { selector: "NewExpression[callee.name='Date'][arguments.length=0]",

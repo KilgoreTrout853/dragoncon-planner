@@ -7,9 +7,10 @@ file in the same PR as any change that alters the shape described here.
 ## In one paragraph
 
 A Python scraper turns the official Dragon Con app's web view into one JSON
-file. A single-file web app reads that JSON, lets you search, star, and
-plan, and stores your picks in the browser. A service worker keeps the app
-usable with no signal. GitHub Pages serves it; there is no backend.
+file. A web app, built by Vite into a single HTML file, reads that JSON,
+lets you search, star, and plan, and stores your picks in the browser. A
+service worker keeps the app usable with no signal. GitHub Pages serves
+it; there is no backend.
 
 ```
 app.core-apps.com/dragoncon26          (official schedule, HTML)
@@ -18,30 +19,35 @@ app.core-apps.com/dragoncon26          (official schedule, HTML)
 data/2026/events.json  ◄── tag_events.py (Claude adds tags to untagged events)
         │  fetched by the page; cached by sw.js
         ▼
-index.html  (the whole client)  ──►  localStorage (picks, settings)
-        │
-   GitHub Pages  (main → live site;  next → dev site via build.py)
+index.html + src/  ──vite build──►  dist/index.html  (the whole client, inlined)
+        │                                   └──►  localStorage (picks, settings)
+   GitHub Pages  (main → live site: the 2026 one-file app, served as-is;
+                  next → dev site: the built dist/)
 ```
 
 ## Repo map
 
 | Path | What it is |
 |---|---|
-| `index.html` | The entire client: markup, CSS, and JS in one file. |
-| `sw.js` | Service worker. Offline caching, schedule revalidation. |
-| `manifest.json`, `icon*.png`, `icon.svg`, `og-image.png` | PWA install and link-preview assets. |
+| `index.html` | The Vite entry template: the page's head and body markup, a link to `src/styles.css` and the module entry. Not runnable as a static file. |
+| `src/main.js` | The entry: imports `styles.css`, then `app.js`. |
+| `src/app.js` | The whole app script, one file, run on import. Its only import is MiniSearch (npm, pinned to 7.2.0). |
+| `src/styles.css` | All the CSS. |
+| `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
+| `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own plugin (`dcBuild`) for the HTML fix-ups, the channel stamp and the `data/` copy. |
+| `dist/` | Build output, not in git: `index.html` with the CSS and script inlined, the files from `public/`, and a copy of `data/`. |
 | `data/2026/events.json` | The frozen 2026 schedule, ~3,460 events, ~3 MB. |
 | `scraper.py` | Scrape → normalise → dedupe → write `events.json`. |
 | `tag_events.py` | Add `tags` to untagged events via Claude. |
-| `build.py` | Copy the site to an output folder and stamp a channel/build id. |
-| `tests/ui_smoke.cjs` | jsdom smoke test of `index.html` + `sw.js`, plus search checks against real data. CommonJS, hence `.cjs`: the package is `"type": "module"`. |
+| `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
+| `tests/ui_smoke.cjs` | jsdom smoke test of the built page, `dist/index.html`, and `dist/sw.js`, plus search checks against real data. CommonJS, hence `.cjs`: the package is `"type": "module"`. |
+| `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped. |
 | `tests/test_parse.py` | Scraper parsing and dedupe unit tests. |
-| `tests/test_build.py` | `build.py` stamping tests. |
 | `tests/sample-events.json` | 558 synthetic events used by the smoke test. |
 | `.github/workflows/scrape.yml` | Manual-trigger scrape (workflow_dispatch). Refuses a scrape with 0 events or a >20% drop; commits and pushes events.json to the branch it was run from. |
 | `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client` and `pipeline`. |
 | `.github/dependabot.yml` | Monthly update PRs for GitHub Actions only. |
-| `package.json`, `.nvmrc`, `eslint.config.js`, `vitest.config.js` | Client tooling: scripts `lint`, `test`, `smoke`; Node major; two ESLint rules; Vitest (no test files yet). |
+| `package.json`, `.nvmrc`, `eslint.config.js`, `vitest.config.js` | Client tooling: scripts `dev`, `build`, `preview`, `lint`, `test`, `smoke`; Node major; two ESLint rules; Vitest. |
 | `requirements.txt` | Pinned pipeline dependencies, plus pytest. |
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
@@ -79,7 +85,9 @@ together. `--all` retags everything.
 
 ## The client
 
-One file. Everything below is in `index.html`.
+One script. Everything below is in `src/app.js`, which is still a single
+file that runs top to bottom when imported; the markup it drives is in
+`index.html` and the CSS in `src/styles.css`.
 
 **Tabs:** `now`, `browse`, `explore`, `map`, `mine` are the `data-tab` ids
 the code and `state.tab` use. The labels the user sees are Now, Search,
@@ -125,7 +133,7 @@ index (idle). Timings are recorded in `BUILD`/`BOOT` for the device readout.
 
 ## Offline
 
-`sw.js`, three strategies:
+`public/sw.js`, three strategies:
 
 | Request | Strategy | Why |
 |---|---|---|
@@ -134,35 +142,64 @@ index (idle). Timings are recorded in `BUILD`/`BOOT` for the device readout.
 | Fonts | Cache-first forever (opaque responses allowed) | Never change; a missing font is a visibly broken page |
 
 Cache name is `dc26-v4` (or `dc26-<channel>-v4` on a stamped build). Bump
-the version when `index.html` or `sw.js` changes; older caches under the
+the version when the built page or `sw.js` changes; older caches under the
 same prefix are deleted on activate. Install precaches the shell
 individually so one failed fetch doesn't fail the install.
 
 ## Build and deploy
 
-There is no build step for the live site: `main` is served as-is by GitHub
-Pages at `kilgoretrout853.github.io/dragoncon-planner/`.
+There is no build step for the live site: `main` is the 2026 one-file app,
+served as-is by GitHub Pages at `kilgoretrout853.github.io/dragoncon-planner/`.
 
-For the dev site, `build.py --out <dir>` copies the deployable files (no
-tests, scripts, README, or `node_modules`), adds `.nojekyll`, and, when
-`DC_CHANNEL` is set, stamps it into `<meta name="dc-channel">` and the
-worker's `CHANNEL`, with `DC_BUILD` (default: short commit sha) into
-`<meta name="dc-build">`. With no channel the output is byte-identical to
-the source. A bad channel string is refused.
+On `next` the client is built (DECISIONS #23). `npm run build` runs Vite
+8, which bundles with Rolldown, and writes `dist/`:
+
+- `index.html`, with `src/styles.css` and the bundled script inlined by
+  `vite-plugin-singlefile`, so there are no hashed assets and the worker's
+  `SHELL` list is what it was. `base` is `./`: every URL is relative,
+  because the same build is deployed at two subpaths. `build.target` is
+  `safari16.4`. Nothing is minified.
+- everything in `public/`, verbatim, and a copy of `data/`.
+
+`build/vite-dc.js` (`dcBuild`) runs last, in `closeBundle`. Vite emits the
+entry as `<script type="module" crossorigin>` in `<head>`; `dcBuild` moves
+it to the end of `<body>` as a bare, classic `<script>`, because the app
+reads the DOM as it parses, its top-level names are what the smoke harness
+reaches through `window.eval`, and jsdom does not run module scripts. It
+makes the inlined style a bare `<style>` holding `src/styles.css` byte for
+byte. When `DC_CHANNEL` is set it stamps the channel into
+`<meta name="dc-channel">` and the worker's `CHANNEL`, and `DC_BUILD`
+(default: short commit sha) into `<meta name="dc-build">`; a bad channel
+string fails the build before it starts. With no channel both stamps stay
+empty and `dist/sw.js` is byte-identical to `public/sw.js`. Then it copies
+`data/` into `dist/data/`.
+
+Rolldown rewrites code even with minification off - it folds constants,
+inlines locals and turns top-level `const`/`let` into `var` - so
+`vite.config.js` switches off `treeshake`, `output.minify` and
+`output.topLevelVar`. With those off the bundled app is the same program
+as `src/app.js`: re-printed, without its comments, and otherwise unchanged.
+`tests/build.test.js` compares the two syntax trees on every run.
+
+`npm run dev` serves the unbuilt modules for development. It runs the app
+as a real ES module - deferred, strict, no globals - which is not what
+ships, so only the built output counts as tested.
 
 The stamped output reaches the `dragoncon-planner-next` deploy repo through
 that repo's own workflow (`.github/workflows/deploy.yml`), not through
-anything here: this repo has no workflow, script, or npm task that runs
-`build.py`. Every ten minutes, and on `workflow_dispatch`, the workflow
+anything here. Every ten minutes, and on `workflow_dispatch`, the workflow
 compares the head of `next` (`git ls-remote`) with the sha in its
 `deployed.txt`. When they differ, or the run was manual, it checks `next`
-out, runs `python build.py --out ../site` with `DC_CHANNEL=next` (no
-`DC_BUILD`, so the build id is the checkout's short sha), publishes `site/`
-to its `gh-pages` branch as an orphan commit (`peaceiris/actions-gh-pages`),
+out, builds it with `DC_CHANNEL=next` (no `DC_BUILD`, so the build id is
+the checkout's short sha), publishes the output folder to its `gh-pages`
+branch as an orphan commit (`peaceiris/actions-gh-pages`),
 and commits the deployed sha to `deployed.txt` on its `main`. That commit is
 also what keeps GitHub from disabling the schedule for inactivity. The source
 repo is public, so no secret is involved. To deploy now rather than within
 ten minutes: `gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next`.
+The build command in that workflow is Node setup plus
+`npm ci && npm run build`; it used to be `python build.py --out ../site`,
+and `build.py` no longer exists.
 
 The live and dev sites share an origin; the channel stamp is what keeps
 their caches and session keys apart (DECISIONS #15).
@@ -172,30 +209,42 @@ their caches and session keys apart (DECISIONS #15).
 ```
 npm ci                        # once; Node major from .nvmrc
 npm run lint                  # eslint .
-npm test                      # vitest run (no test files yet; passes empty)
-npm run smoke                 # node tests/ui_smoke.cjs
+npm test                      # vitest run: tests/build.test.js
+npm run smoke                 # vite build, then node tests/ui_smoke.cjs
 pip install -r requirements.txt
-python -m pytest tests/       # test_parse.py and test_build.py
+python -m pytest tests/       # test_parse.py
 ```
 
-`ui_smoke.cjs` loads `index.html` in jsdom with `?now=2026-09-05T13:05`,
-drives the tabs, and asserts on both DOM state and the page source (CSS
-rules, the Time-section rule, the SW registration). It ends with search
-quality checks against the real `events.json`. It is still where every
-client assertion lives; Vitest is installed and empty until they are
-ported (DECISIONS #24).
+`ui_smoke.cjs` is the oracle for the client. The `smoke` script builds
+first, so it never runs against a stale `dist/`. It loads
+`dist/index.html` in jsdom with `?now=2026-09-05T13:05`, drives the tabs,
+and asserts on DOM state and on source text. It reads text from two
+places: `html`, the built page, for markup, CSS and the SW registration;
+and `src`, `src/app.js`, for anything about how the script is written
+(the Time-section rule, function signatures, call order), because the
+bundler re-prints the script and drops its comments. It reads `sw.js`,
+the manifest and the icons from `dist/`. It ends with search quality
+checks against the real `events.json`. It is still where every client
+behaviour assertion lives (DECISIONS #24).
+
+`tests/build.test.js` runs the real `vite build` into temp folders: a
+stamped build, an unstamped one, the default build id, a refused channel,
+the shape of the output (one classic `<script>` at the end of the body,
+one `<style>`, no separate assets, relative links in the head), and the
+same-program check described under Build and deploy.
 
 ESLint carries two rules and inherits nothing: `no-undef` everywhere, and
-under `src/` (which does not exist yet) a ban on `new Date()` and
-`Date.now()` outside `src/time.js`. Today it lints `sw.js` and the two
-config files; `index.html`'s inline script is not linted.
+under `src/` a ban on `new Date()` and `Date.now()` outside `src/time.js`.
+`no-undef` runs on `src/app.js` for real. The clock rule does not yet:
+`src/app.js` is exempt until `src/time.js` exists, and the harness's
+Time-section regex is still the #12 guard.
 
 The Python test files are plain pytest modules; running one directly with
 `python tests/test_parse.py` executes nothing.
 
 CI (`.github/workflows/ci.yml`) runs all of the above on a clean Ubuntu
 runner for every pull request into `next` or `main`, every push to `next`,
-and on demand: job `client` (npm ci, lint, test, smoke) and job `pipeline`
+and on demand: job `client` (npm ci, lint, test, build + smoke) and job `pipeline`
 (pip install, pytest). Nothing requires those checks yet - the ruleset on
 `next` is a repository setting (DECISIONS #26).
 
@@ -213,7 +262,14 @@ and on demand: job `client` (npm ci, lint, test, smoke) and job `pipeline`
   against `main` now fails at push. The 2027 pipeline needs a path onto
   `main` before the cron returns.
 - Event ids belong to the source site (see pipeline).
-- The client is one file; tests assert on its text. Any restructuring
-  (the 2027 foundation work) will need those assertions rewritten.
+- The client script is still one file, `src/app.js`, and about forty
+  harness assertions read its text. Splitting it further will need those
+  re-pointed or rewritten (DECISIONS #24).
+- The root `index.html` is a template now. Serving the repo root with a
+  static server no longer runs the app; use `npm run dev`, or build and
+  serve `dist/` (`npm run preview`).
+- The deploy repo's build command has to be changed by hand, in that
+  repo. Until it is, its workflow fails at `python build.py` and the dev
+  site stays on the last deploy that had it.
 - `sw.js` cache version is bumped by hand.
 - No backend, no accounts, no sync: picks live on one device.
