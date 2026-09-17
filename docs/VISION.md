@@ -63,9 +63,10 @@ event, a crew Now board, status pings tied to a pick, one-tap share-a-day.
 Build order picks → presence → pings. No chat.
 
 ### 3. Keep
-DECISIONS #8 and #9: a device key with no prompt, an optional magic-link
-upgrade to link devices, local-first with an outbox to sync. With the
-backend down, the app is the 2026 app.
+DECISIONS #8 and #9: a device key with no prompt, an optional email
+upgrade to link devices (a six-digit code typed into the app, not a
+magic link — #25), local-first with an outbox to sync. With the backend
+down, the app is the 2026 app.
 
 ### 4. Live
 Stable ids (#7) so nothing breaks when the schedule changes; scrapes every
