@@ -110,7 +110,9 @@ the last thing built.
 - The author's crew runs the whole weekend from it.
 - Strangers arrive by link and star something.
 - Nobody loses a plan: a device that upgraded is recoverable; one that
-  did not still keeps what it had.
+  did not keeps what it had for as long as its browser keeps it — Safari
+  deletes an uninstalled site's storage after seven days without a visit
+  (#25), which is why the install nudge earns its place twice.
 - It works in a hotel basement with no signal.
 - The pipeline runs unattended through con weekend.
 - A leave-by notification fires at the right minute for someone who is
