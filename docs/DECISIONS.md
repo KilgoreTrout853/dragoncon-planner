@@ -183,3 +183,64 @@ push; see ARCHITECTURE.md → Sharp edges.
 as context. `docs/` begins with `DECISIONS.md` and `ARCHITECTURE.md` only.
 **Why:** A retro written from nothing is worse than none.
 **Cost:** Some 2026 lessons are lost. Accepted.
+
+### 18. The 2027 vision is planning and coordination; VISION.md holds it — Decided (2026-09-17)
+**Decided:** `docs/VISION.md` states what the app is for and what its
+author is building it to learn. One line: "the planning and coordination
+layer for Dragon Con." A feature is in only if it helps someone plan or
+coordinate. Five pillars — Plan, Coordinate, Keep, Live, Tell me — and one
+stretch, the building view. The learning list is ranked; the spring scope
+cut takes from the bottom.
+**Why:** The roadmap needs something to be written against, and
+"ambitious" needs a definition or it means everything.
+**Cost:** Good ideas that fail the test do not get built. VISION.md is one
+more document that has to stay true.
+
+### 19. Dragon Con is a door kept open, not a design target — Decided (2026-09-17)
+**Decided:** The app is not designed for an official partnership. It stays
+official-ready in five ways: the schedule source behind one interface, no
+personal data by default, offline, accessible, scale by configuration.
+Outreach happens once the 2027 work shows momentum — roughly a week or two
+out — and before the pipeline work. If a data feed is offered, it replaces
+the scraper behind that interface and the match-by-content step in #7
+becomes unnecessary.
+**Why:** Guessing at their requirements would mean building for tens of
+thousands of users the app will never have. The official-ready properties
+are good engineering regardless.
+**Cost:** If the partnership happens, some rework is certain. It is the
+rework worth doing then, not before.
+
+### 20. Notifications in 2027 are minimal: leave-by and pick-changed — Decided, not built (2026-09-17)
+**Decided:** Web Push for two events only: leave by (computed server-side
+from synced picks and the walk table) and your pick changed (from the
+pipeline's diff). Crew pings by push are deferred to the spring checkpoint.
+Push needs the backend from #9 and, on iPhone, an installed PWA.
+**Why:** The fixed cost — subscription storage, a scheduled job, the iOS
+install requirement — is paid once. Two types is the smallest slice that
+makes the top rung of the ladder real.
+**Cost:** Leave-by is now computed in two places. The walk table and the
+buffer (#6) have to live somewhere both the client and the job can read,
+which is a step-3a question. Uninstalled iPhone users get nothing.
+
+### 21. Venues are pipeline-owned data; the building view is a stretch goal — Decided, not built (2026-09-17)
+**Decided:** A venues dataset (hotel → level → rooms, with aliases for the
+room strings the scraper produces and a one-line "how to get there") is
+owned by the pipeline, which resolves every event's room against it and
+flags unknowns. The data ships first and improves rows and the detail
+sheet on its own. The per-hotel building view — tap a hotel, see its
+levels with your picks lit — is schematic, never traced floor plans, and
+is gated on the foundation and Coordinate landing by the spring
+checkpoint. The author curates the rooms. The animated top-down-to-side
+transition is built last, if at all.
+**Why:** The value is knowing which level a room is on; the drawing is
+presentation. Schematic keeps it honest (#5) and maintainable.
+**Cost:** Roughly 120–150 rooms to curate by hand, and a new failure mode
+when 2027 renames rooms. The pipeline warning is the guard.
+
+### 22. AI runs in the pipeline, not at runtime — Decided (2026-09-17)
+**Decided:** No runtime AI in the core app. Tags, aliases and similarity
+are computed in the pipeline and shipped as data. A pre-con "help me plan"
+feature may be tried behind a flag as an experiment, never as a dependency.
+**Why:** Per-request cost, a relay to build, and no signal at the con.
+Pipeline-time AI is free at runtime and works offline.
+**Cost:** The app cannot answer a question it was not pre-computed for.
