@@ -1,5 +1,5 @@
 """build.py stamps a copy for a channel, and an unstamped copy is the source.
-Run: python tests/test_build.py"""
+Run: python -m pytest tests/"""
 import filecmp
 import os
 import subprocess
@@ -61,17 +61,3 @@ def test_a_bad_channel_is_refused():
     with tempfile.TemporaryDirectory() as d:
         r = build({"DC_CHANNEL": "Next Site"}, os.path.join(d, "site"))
         assert r.returncode != 0 and "channel" in r.stderr
-
-
-if __name__ == "__main__":
-    failed = 0
-    for name, fn in list(globals().items()):
-        if name.startswith("test_") and callable(fn):
-            try:
-                fn()
-                print("ok", name)
-            except AssertionError as e:
-                failed += 1
-                print("FAIL", name, e)
-    print("ALL PASSED" if not failed else f"{failed} FAILED")
-    sys.exit(1 if failed else 0)

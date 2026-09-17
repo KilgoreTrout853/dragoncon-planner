@@ -1,6 +1,6 @@
 """Parser tests. Fixtures mirror the markup observed on app.core-apps.com/dragoncon26.
 
-Run:  python -m pytest tests/ -q     (or)   python tests/test_parse.py
+Run:  python -m pytest tests/
 """
 import os
 import sys
@@ -348,10 +348,3 @@ def test_build_event_uses_the_narrow_cancelled_rule():
     assert scraper.build_event(items[0], detail, "panel")["cancelled"] is False
     detail["title"] = "CANCELLED: " + detail["title"]
     assert scraper.build_event(items[0], detail, "panel")["cancelled"] is True
-
-
-if __name__ == "__main__":
-    for name, fn in list(globals().items()):
-        if name.startswith("test_") and callable(fn):
-            fn()
-            print("ok", name)
