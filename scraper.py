@@ -182,7 +182,10 @@ def parse_start(date_text):
     txt = clean(date_text)
     for fmt in ("%A, %b %d %I:%M %p", "%a, %b %d %I:%M %p", "%b %d %I:%M %p"):
         try:
-            return dt.datetime.strptime(txt, fmt).replace(year=YEAR)
+            # The page gives no year. Parse with YEAR in front rather than
+            # patching it in afterwards: a day of month with no year is
+            # deprecated in strptime and changes behaviour in Python 3.15.
+            return dt.datetime.strptime(f"{YEAR} {txt}", "%Y " + fmt)
         except ValueError:
             pass
     return None

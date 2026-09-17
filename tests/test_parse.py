@@ -2,6 +2,7 @@
 
 Run:  python -m pytest tests/
 """
+import datetime as dt
 import os
 import sys
 
@@ -348,3 +349,25 @@ def test_build_event_uses_the_narrow_cancelled_rule():
     assert scraper.build_event(items[0], detail, "panel")["cancelled"] is False
     detail["title"] = "CANCELLED: " + detail["title"]
     assert scraper.build_event(items[0], detail, "panel")["cancelled"] is True
+
+
+# ---------------------------------------------------------------------------
+# Start time: the page gives no year, so the parse supplies scraper.YEAR
+# ---------------------------------------------------------------------------
+
+def test_parse_start_reads_all_three_date_shapes():
+    want = dt.datetime(2026, 9, 5, 11, 30)
+    assert scraper.parse_start("Saturday, Sep  5 11:30 AM") == want   # as the page has it
+    assert scraper.parse_start("Sat, Sep 5 11:30 AM") == want
+    assert scraper.parse_start("Sep 5 11:30 AM") == want
+    assert scraper.parse_start("Monday, Sep  7 12:00 AM") == dt.datetime(2026, 9, 7, 0, 0)
+    assert scraper.parse_start("Sunday, Sep  6 12:15 PM") == dt.datetime(2026, 9, 6, 12, 15)
+    # The weekday name is read but never checked against the date.
+    assert scraper.parse_start("Friday, Sep  5 11:30 AM") == want
+
+
+def test_parse_start_returns_none_for_what_it_cannot_read():
+    for txt in ("", None, "TBA", "Saturday", "Sep 5", "11:30 AM", "Sep 31 1:00 PM",
+                "Saturday, Sep 5 11:30", "Saturday, Sep 5 2026 11:30 AM",
+                "Saturday, Sep 5 11:30 AM 2026", "2026 Sep 5 11:30 AM"):
+        assert scraper.parse_start(txt) is None, txt
