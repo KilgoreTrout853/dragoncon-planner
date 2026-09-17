@@ -63,9 +63,10 @@ event, a crew Now board, status pings tied to a pick, one-tap share-a-day.
 Build order picks → presence → pings. No chat.
 
 ### 3. Keep
-DECISIONS #8 and #9: a device key with no prompt, an optional magic-link
-upgrade to link devices, local-first with an outbox to sync. With the
-backend down, the app is the 2026 app.
+DECISIONS #8 and #9: a device key with no prompt, an optional email
+upgrade to link devices (a six-digit code typed into the app, not a
+magic link — #25), local-first with an outbox to sync. With the backend
+down, the app is the 2026 app.
 
 ### 4. Live
 Stable ids (#7) so nothing breaks when the schedule changes; scrapes every
@@ -110,7 +111,9 @@ the last thing built.
 - The author's crew runs the whole weekend from it.
 - Strangers arrive by link and star something.
 - Nobody loses a plan: a device that upgraded is recoverable; one that
-  did not still keeps what it had.
+  did not keeps what it had for as long as its browser keeps it — Safari
+  deletes an uninstalled site's storage after seven days without a visit
+  (#25), which is why the install nudge earns its place twice.
 - It works in a hotel basement with no signal.
 - The pipeline runs unattended through con weekend.
 - A leave-by notification fires at the right minute for someone who is

@@ -244,3 +244,148 @@ feature may be tried behind a flag as an experiment, never as a dependency.
 **Why:** Per-request cost, a relay to build, and no signal at the con.
 Pipeline-time AI is free at runtime and works offline.
 **Cost:** The app cannot answer a question it was not pre-computed for.
+
+### 23. The client is built from `src/` by Vite; single-file output for step 4 — Decided, not built (2026-09-17)
+**Decided:** The client becomes ES modules under `src/`, built by Vite.
+`public/` holds what is served verbatim: `sw.js`, `manifest.json`, icons,
+`data/`. `base` is `./` because the same build is deployed at two
+subpaths. `build.target` is pinned to the iOS 16.4 floor that #20 already
+implies (`safari16.4`); Android is never the floor because Chrome updates
+independently of the phone. MiniSearch becomes an npm dependency instead
+of pasted source. The channel and build-id stamp moves into the Vite build
+(`DC_CHANNEL`, `DC_BUILD` env vars, a small plugin writing
+`dist/index.html` and `dist/sw.js`); `build.py` and `tests/test_build.py`
+retire, their assertions becoming a Vitest test against `dist/`.
+`package.json` switches to `"type": "module"`. For step 4 the build emits
+one inlined `index.html` (an inlining plugin, or a thirty-line post-build
+script if the plugin rots), so `sw.js`, its `SHELL` list and the deploy
+contract are unchanged; hashed assets are a later decision, taken with the
+service-worker work. No framework in 2027; revisit only if hand-rolled
+re-rendering becomes where the bugs live. No TypeScript in step 4; decide
+at the Supabase step, where generated database types are the concrete
+payoff.
+**Why:** Testable functions, a real dependency graph, and a tool the rest
+of the ecosystem uses. Single-file output makes "zero behaviour change"
+literal and verifiable.
+**Cost:** Vite's dev server and production build use different engines, so
+only the built output counts as tested. The root `index.html` becomes
+Vite's entry template; when the 2027 app merges to `main`, Pages must
+serve a built artifact rather than the branch (#26). jsdom does not
+execute `<script type="module">`, so the inlined script is emitted as a
+classic script (or the test loader strips the attribute). Two toolchains:
+Python owns the pipeline, Node owns the client.
+
+### 24. Vitest and pytest; ESLint with two rules; Playwright deferred — Decided, not built (2026-09-17)
+**Decided:** Vitest (jsdom environment) for the client, run by `npm test`;
+pytest for the pipeline, run by `python -m pytest tests/` (the existing
+test files are already pytest-shaped; only the manual `__main__` runners
+go). ESLint with exactly two rules: `no-undef`, and a restriction on
+`new Date` / `Date.now` everywhere under `src/` except `src/time.js`,
+which replaces the smoke test's regex as the #12 guard. Every assertion in
+`tests/ui_smoke.js` is reclassified: DOM behaviour → Vitest + jsdom; rules
+over source text → ESLint; build-output checks (stamps, SW registration,
+cache name) → a test against `dist/`; implementation-detail regexes (e.g.
+a function signature) → a behaviour test or deleted; real-data search
+checks → their own file. The behavioural assertions are ported first and
+made green against the one-file app, then the split happens, then they run
+again against `dist/`. The modular app exposes an explicit
+`boot({events, now})` so tests inject data and clock directly instead of
+string-replacing `<script>`. Playwright is deferred; the trigger is the
+first change to `sw.js`, when jsdom can no longer see what is changing.
+**Why:** Vitest reads the Vite config, so tests import `src/` the way the
+app does. `no-undef` catches the number-one error of splitting a
+global-scope file — a function used in one module that now lives in
+another without an import — statically, in every file. Tests ported before
+the refactor are the refactor's proof; tests written after it only prove
+its own assumptions.
+**Cost:** One more tool. Porting before splitting is work that ships no
+feature. Until Playwright, offline and install are verified by hand on the
+dev site.
+
+### 25. Supabase is the backend — Decided, not built (2026-09-17)
+**Decided:** #9's working assumption is confirmed. Two hosted projects,
+dev and production; the schema lives as migration files in
+`supabase/migrations/`, applied by the CLI and changed only through PRs;
+`seed.sql` for a dev dataset. One Edge Function — the push sender —
+triggered by pg_cron on the minute; nothing else runs in Deno. Anonymous
+sign-in is the device key (#8), enabled with a bot check, with a periodic
+cleanup of stale anonymous users. The email upgrade uses a six-digit code
+typed into the app, not a magic link, because on an installed iPhone app
+the link opens in Safari, whose storage is separate. Realtime is an
+accelerator over refresh-on-open and polling, never a dependency. The
+pipeline writes to Postgres with a service-role key held as a repository
+secret: an events mirror, the schedule diff (#20), and venues (#27).
+Production runs on Pro for August and September (backups, no pausing) and
+free otherwise, with a weekly keep-alive request so the dev project does
+not pause. The client ships the public anon key; row-level security is the
+whole defence.
+**Why:** Every requirement in #8–#11 and #20 maps to a first-class
+feature: anonymous-to-email identity, RLS for crews by link, a per-minute
+scheduler that GitHub's five-minute, often-late cron cannot provide.
+Learning item 3 names it. Alternatives (Firebase, Cloudflare Workers + D1,
+Convex, self-hosted PocketBase) each trade away Postgres, RLS, or the
+scheduler.
+**Cost:** RLS mistakes are silent — wrong rows come back, nothing errors —
+so policies need tests. A third runtime (Deno), kept to one function.
+About $50 a year. Free projects pause after roughly a week idle. Safari
+deletes an uninstalled site's local storage after seven Safari-use days
+without a visit, taking picks and the anonymous session with it; the next
+open mints a new anonymous user and the old synced rows are orphaned. Only
+an email-upgraded user recovers. VISION.md's "one that did not still keeps
+what it had" is qualified in this PR, and the install nudge is now a
+data-safety measure, not only a push enabler.
+
+### 26. CI on every PR; `next` becomes PR-only with required checks — Decided, not built (2026-09-17)
+**Decided:** `.github/workflows/ci.yml` with two jobs matching the
+toolchain boundary: `client` (Node from `.nvmrc`, `npm ci` with cache,
+lint, test, build) and `pipeline` (Python, `requirements.txt`, pytest).
+Triggers: pull requests into `next` and `main`, pushes to `next`, and
+manual dispatch. A ruleset on `next`: pull request required, both checks
+required, bypass allowed for the repository admin only (the `main` ruleset
+stays no-bypass). Merge strategy: squash for feature branches into `next`;
+merge commit for `next` into `main`. The polling deploy repo
+(`dragoncon-planner-next`) is kept; its only change is the build command,
+from `python build.py --out ../site` to Node setup plus
+`npm ci && npm run build` — a manual edit in that repo. `.gitattributes`
+with `* text=auto eol=lf`, added in its own PR because the renormalisation
+touches every text file. Dependabot for GitHub Actions only, monthly.
+Recorded, not built: when the 2027 app merges to `main`, a workflow
+deploys the built site to Pages from Actions.
+**Why:** Tests that run only when typed are advice; a required check on a
+PR-only branch is a gate. With `next` advancing only through green PRs,
+the polling deploy publishes only tested commits without touching it. The
+PR is already where the diff gets read.
+**Cost:** Every change is a branch and a PR, small ones included. A
+workflow file with a syntax error blocks every PR until an admin bypasses.
+The scrape workflow's direct push is blocked by the `next` ruleset exactly
+as `main`'s already blocks it; before the 2027 cron returns it must open a
+PR with auto-merge on green, or run as a bypass actor — pipeline work,
+forced by this decision. The line-ending change is a one-time noisy
+commit.
+
+### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17)
+**Decided:** #21's venues file (`data/2027/venues.json`, per-year as #13
+set for events) also holds hotel identity (keys as used in `events.json`,
+short names, groups), the walk matrix, the seating buffer from #6, and the
+same-hotel and unknown-pair defaults. It is hand-curated; the pipeline
+validates it on every run — an event whose hotel is not in venues fails
+the run — and mirrors it into Postgres alongside events in the same run.
+Git is the truth for static data; Postgres holds a mirror; the pipeline is
+the only writer of both. The client imports the JSON at build time, so it
+is inlined into the bundle: no fetch, no new precache entry, offline by
+construction. The leave-by formula is one pure module,
+`leaveBy(prevHotel, nextHotel, crowd, venues)`, in
+`supabase/functions/_shared/`, imported by the client and the Edge
+Function; if that import proves awkward, the fallback is a shared test
+fixture of inputs and expected minutes that both sides assert against. The
+crowd factor syncs with the user's settings and the job applies it,
+default 1.0. The job evaluates #5's rule at send time — leave-by only when
+a pick is on now and the next is in a different hotel — and never infers
+location. In step 4 the only change is isolating today's constants in
+`src/venues.js`.
+**Why:** #20 put leave-by in two places; this puts the data in one and the
+arithmetic in one. Walk times change with the buildings, not the schedule,
+so a build-time import is the right cadence.
+**Cost:** A drift window of one deploy after a data commit. Copying the
+file forward each year. One Vite config line to import from outside
+`src/`. Supersedes #6's "one constant" — the buffer becomes data.
