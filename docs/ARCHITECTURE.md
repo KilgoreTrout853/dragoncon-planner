@@ -1,8 +1,8 @@
 # Architecture
 
 What the system **is** as of the `next` branch, September 2026. Not what is
-planned — that lives in DECISIONS.md and the roadmap. Update this file in
-the same PR as any change that alters the shape described here.
+planned — that lives in DECISIONS.md, VISION.md and the roadmap. Update this
+file in the same PR as any change that alters the shape described here.
 
 ## In one paragraph
 
@@ -39,7 +39,7 @@ index.html  (the whole client)  ──►  localStorage (picks, settings)
 | `tests/test_build.py` | `build.py` stamping tests. |
 | `tests/sample-events.json` | 558 synthetic events used by the smoke test. |
 | `.github/workflows/scrape.yml` | Manual-trigger scrape (workflow_dispatch). Refuses a scrape with 0 events or a >20% drop; commits and pushes events.json to the branch it was run from. |
-| `docs/` | This file and DECISIONS.md. |
+| `docs/` | This file, DECISIONS.md and VISION.md. |
 
 ## The data pipeline
 
