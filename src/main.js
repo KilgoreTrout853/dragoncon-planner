@@ -1,2 +1,3 @@
 import "./styles.css";
-import "./app.js";
+import { boot } from "./app.js";
+boot({ events: window.DC_EVENTS });

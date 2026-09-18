@@ -30,8 +30,8 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | Path | What it is |
 |---|---|
 | `index.html` | The Vite entry template: the page's head and body markup, a link to `src/styles.css` and the module entry. Not runnable as a static file. |
-| `src/main.js` | The entry: imports `styles.css`, then `app.js`. |
-| `src/app.js` | The whole app script, one file, run on import. Its only import is MiniSearch (npm, pinned to 7.2.0). |
+| `src/main.js` | The entry: imports `styles.css`, then calls `boot()` from `app.js` with `window.DC_EVENTS`. |
+| `src/app.js` | The whole app script, one file. Importing it declares the app and fills the consts that read storage and the DOM; `boot()` starts it. Its only import is MiniSearch (npm, pinned to 7.2.0). |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own plugin (`dcBuild`) for the HTML fix-ups, the channel stamp and the `data/` copy. |
@@ -86,8 +86,9 @@ together. `--all` retags everything.
 ## The client
 
 One script. Everything below is in `src/app.js`, which is still a single
-file that runs top to bottom when imported; the markup it drives is in
-`index.html` and the CSS in `src/styles.css`.
+file: importing it declares the app, and `boot()` starts it (see Boot
+order). The markup it drives is in `index.html` and the CSS in
+`src/styles.css`.
 
 **Tabs:** `now`, `browse`, `explore`, `map`, `mine` are the `data-tab` ids
 the code and `state.tab` use. The labels the user sees are Now, Search,
@@ -128,8 +129,30 @@ fandoms). Query intent parsing turns day/hotel/kind/time words into filters.
 **Other stored keys:** `dc26.bigtext` (larger-text toggle; all sizes outside
 the map SVG are in `rem`), `dc26.archiveNoticeDismissed` (per year).
 
-**Boot order:** parse JSON → first render → index build (idle) → suggestion
-index (idle). Timings are recorded in `BUILD`/`BOOT` for the device readout.
+**Boot order.** `src/app.js` exports `boot({events, reload})`. Importing the
+module runs nothing but its declarations and the consts that read
+`localStorage` and the DOM (`settings`, `picks`, `state`, `scroller`, the
+sheet elements, `updatePill`, `BUILD`, `IS_IOS`), which is why `src/main.js`
+imports it after the markup exists. `main.js` then calls
+`boot({events: window.DC_EVENTS})`, once. `boot()` applies the saved text
+size, inserts the dev-build mark, reads the time override, registers every
+listener, timer and observer in the order the one-file script did - listeners
+on one element fire in the order they were added - and calls `load()`. Given
+`events`, `load()` uses it instead of fetching and reaches the first render
+with no `await` on the way; `reload` replaces what `reloadNow()` calls, for a
+caller that cannot replace `location.reload`. From there: parse JSON → first
+render → index build (idle) → suggestion index (idle). The timings are
+recorded in `BOOT`; `BUILD` is the channel and build-id stamp, which the
+device readout shows.
+
+`boot()` returns a handle, synchronously - state and operations, never
+internals: `state`, `render`, `now`, `setTimeOverride`, `picks` and `follows`
+(each `get`/`set`), `news` (`set`/`clear`), live `meta` and `events` getters,
+`BOOT`, `reconcilePicks`, `recheckSchedule`, `openSheet`, `closeSheet`, and
+`ready`, which is `load()`'s promise. One `export` list at the end of the
+file names every function and const the smoke harness reaches by name (97
+today): the inventory of test coupling, pruned as functions move to modules
+of their own.
 
 ## Offline
 
@@ -175,11 +198,15 @@ empty and `dist/sw.js` is byte-identical to `public/sw.js`. Then it copies
 `data/` into `dist/data/`.
 
 Rolldown rewrites code even with minification off - it folds constants,
-inlines locals and turns top-level `const`/`let` into `var` - so
-`vite.config.js` switches off `treeshake`, `output.minify` and
+inlines locals, prints an exported constant's value where it is used, and
+turns top-level `const`/`let` into `var` - so `vite.config.js` switches off
+`treeshake`, `optimization.inlineConst`, `output.minify` and
 `output.topLevelVar`. With those off the bundled app is the same program
 as `src/app.js`: re-printed, without its comments, and otherwise unchanged.
-`tests/build.test.js` compares the two syntax trees on every run.
+`tests/build.test.js` compares the two syntax trees on every run. Its one
+allowance is the source's `export` syntax: the bundle has a single entry and
+nothing importing from it, so it prints the same declarations without the
+keyword and no export list.
 
 `npm run dev` serves the unbuilt modules for development. It runs the app
 as a real ES module - deferred, strict, no globals - which is not what
@@ -223,7 +250,10 @@ places: `html`, the built page, for markup, CSS and the SW registration;
 and `src`, `src/app.js`, for anything about how the script is written
 (the Time-section rule, function signatures, call order), because the
 bundler re-prints the script and drops its comments. It reads `sw.js`,
-the manifest and the icons from `dist/`. It ends with search quality
+the manifest and the icons from `dist/`. It still runs against `dist/`
+and reaches the page's top-level names through `window.eval`; the
+`window.DC_EVENTS` it injects now enters the app through `src/main.js`,
+the only place that reads it. It ends with search quality
 checks against the real `events.json`. It is still where every client
 behaviour assertion lives (DECISIONS #24).
 

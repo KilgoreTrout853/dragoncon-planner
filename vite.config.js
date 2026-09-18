@@ -20,10 +20,14 @@ export default defineConfig({
        minify is off: constants are folded away (MAP_W vanished), locals are
        inlined, undefined becomes void 0, and top-level const/let become var.
        The page's top-level names are its test surface, so all of it is off -
-       it takes all three settings - and dist/ holds the same program as
-       src/, which tests/build.test.js checks tree against tree. */
+       it takes all four settings - and dist/ holds the same program as
+       src/, which tests/build.test.js checks tree against tree.
+       inlineConst is the fourth: it acts only on exported constants, so it
+       did nothing until src/app.js exported its test surface, and then it
+       printed LEAVE_BUFFER_MIN as 10 wherever it was used. */
     rolldownOptions: {
       treeshake: false,
+      optimization: { inlineConst: false },
       output: { minify: false, topLevelVar: false },
     },
   },

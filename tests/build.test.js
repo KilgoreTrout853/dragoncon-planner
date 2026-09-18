@@ -123,12 +123,19 @@ describe("vite build", () => {
       if (node.type === "TemplateElement") out.value = { cooked: node.value.cooked };
       return out;
     };
-    const statements = code => parseAst(code, { lang: "js", sourceType: "module" }).body
+    /* src/app.js exports boot() and its test surface. The bundle has one
+       entry and nothing importing from it, so it prints the same
+       declarations without the keyword and no export list. Unwrap and drop
+       on the source side only: an export left in the bundle still fails. */
+    const unexport = body => body
+      .filter((st, i) => !(i === body.length - 1 && st.type === "ExportNamedDeclaration" && !st.declaration))
+      .map(st => st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st);
+    const statements = (code, normalise = body => body) => normalise(parseAst(code, { lang: "js", sourceType: "module" }).body)
       .filter(st => st.type !== "ImportDeclaration")
       .flatMap(st => st.type === "VariableDeclaration" ? st.declarations.map(d => ({ ...st, declarations: [d] })) : [st])
       .map(st => JSON.stringify(strip(st)));
 
-    const a = statements(read(ROOT, "src", "app.js")), b = statements(built);
+    const a = statements(read(ROOT, "src", "app.js"), unexport), b = statements(built);
     const firstDiff = a.findIndex((st, i) => st !== b[i]);
     expect(firstDiff === -1 ? "" : `statement ${firstDiff}: ${a[firstDiff].slice(0, 200)}`).toBe("");
     expect(b.length).toBe(a.length);
