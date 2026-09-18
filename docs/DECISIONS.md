@@ -397,23 +397,24 @@ layer: tap a level in a hotel's stack and it drops to a top-down view of that
 level, rooms as blocks in their real relative positions and rough
 proportions, landmarks marked (escalators, elevators, skybridge doors), no
 walls, no scale. The hotels' published floor plans and Dragon Con's own maps
-are reference for adjacency and placement only; nothing is traced or
-embedded, the drawings are ours. Each level's drawing is data in the venues
-file (an outline, room shapes keyed by room id, landmarks, which connector
-lands where); the client builds it once and only lights it. The pipeline
-normalises the schedule's combined-room strings ("Regency VI-VII",
-"Centennial II-IV", "A601-A602") to room ids; an unmatched string falls back
-to level-only, then hotel-only. Curation covers the Marriott, Hyatt and
-Hilton first, in the order a room census of events.json sets; a hotel
-without level data keeps today's hotel sheet. Still schematic, still no
-location (#5): the level view answers where a room is, not where you are.
-The animation is being designed now in a throwaway sketch outside the repo;
-the build order and the spring gate from #21 are unchanged.
+are reference for adjacency and placement only; nothing of theirs is copied
+or embedded; our shapes are drawn with their plan as an underlay. Each level's
+drawing is data in the venues file (an outline, room shapes keyed by room id,
+landmarks, which connector lands where); the client builds it once and only
+lights it. The pipeline normalises the schedule's combined-room strings
+("Regency VI-VII", "Centennial II-IV", "A601-A602") to room ids; an unmatched
+string falls back to level-only, then hotel-only. Curation covers the
+Marriott, Hyatt and Hilton first, in the order a room census of `events.json`
+sets; a hotel without level data keeps today's hotel sheet. Still schematic,
+still no location (#5): the level view answers where a room is, not where you
+are. The animation is being designed now in a throwaway sketch outside the
+repo; the build order and the spring gate from #21 are unchanged.
 **Why:** Which level is necessary but not sufficient. The hotels are mazes
 and the question people actually ask is which end of the level and from
 which escalator. Room placement is where the value is; the stack is how you
 get there.
 **Cost:** Roughly 150–250 room shapes across three hotels, curated with a
-tracing tool; #21's renamed-room failure mode now also covers moved
-partitions. The map needs one persistent SVG mutated in place rather than
-the innerHTML rebuild in src/app.js — a constraint on step 4's module split.
+drawing tool that shows the plan as an underlay; #21's renamed-room failure
+mode now also covers moved partitions. The map needs one persistent SVG
+mutated in place rather than the innerHTML rebuild in `src/app.js` — a
+constraint on step 4's module split.
