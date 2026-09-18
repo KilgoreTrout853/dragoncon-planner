@@ -275,7 +275,7 @@ execute `<script type="module">`, so the inlined script is emitted as a
 classic script (or the test loader strips the attribute). Two toolchains:
 Python owns the pipeline, Node owns the client.
 
-### 24. Vitest and pytest; ESLint with two rules; Playwright deferred — Decided, not built (2026-09-17)
+### 24. Vitest and pytest; ESLint with two rules; Playwright deferred — Built (2026-09-18)
 **Decided:** Vitest (jsdom environment) for the client, run by `npm test`;
 pytest for the pipeline, run by `python -m pytest tests/` (the existing
 test files are already pytest-shaped; only the manual `__main__` runners

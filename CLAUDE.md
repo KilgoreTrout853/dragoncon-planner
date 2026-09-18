@@ -7,7 +7,7 @@
    `next`. Every change is a feature branch off `next` and a PR into
    `next`, squash-merged.
 3. Before writing code, summarize what you found and your plan.
-4. Before pushing: `npm run lint`, `npm test`, `npm run smoke` and
+4. Before pushing: `npm run lint`, `npm test` and
    `python -m pytest tests/` all green.
 5. Every read of the current time goes through `now()` (DECISIONS #12). No
    bare `new Date()` or `Date.now()` outside the Time module.
