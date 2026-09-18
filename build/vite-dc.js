@@ -5,11 +5,11 @@
    1. Fix up and stamp dist/index.html and dist/sw.js.
       Vite emits the inlined entry as <script type="module" crossorigin> in
       <head>. The page is written as a classic script at the end of <body> -
-      it reads the DOM as it parses, its top-level names are what the smoke
-      harness reaches through window.eval, and jsdom does not run module
-      scripts at all - so the element moves back there as a bare <script>.
-      The inlined <style> loses the attributes and the marker comment Vite
-      leaves on it, which makes it src/styles.css byte for byte.
+      it reads the DOM as it parses, and jsdom, which the build smoke runs
+      the page in, does not run module scripts at all - so the element moves
+      back there as a bare <script>.
+      The inlined <style> loses the attributes and any marker comment Vite
+      leaves on it: a bare <style> holding src/styles.css, minified.
       With DC_CHANNEL set, the channel and build id go into the two stamp
       metas and the channel into the worker's CHANNEL, exactly as build.py
       did. With no channel both stay empty and dist/sw.js is public/sw.js.

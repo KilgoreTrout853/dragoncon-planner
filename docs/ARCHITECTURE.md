@@ -187,7 +187,8 @@ On `next` the client is built (DECISIONS #23). `npm run build` runs Vite
   `vite-plugin-singlefile`, so there are no hashed assets and the worker's
   `SHELL` list is what it was. `base` is `./`: every URL is relative,
   because the same build is deployed at two subpaths. `build.target` is
-  `safari16.4`. Nothing is minified.
+  `safari16.4`. The script and the CSS are minified, by Vite's defaults,
+  and there is no source map.
 - everything in `public/`, verbatim, and a copy of `data/`.
 
 `build/vite-dc.js` (`dcBuild`) runs last, in `closeBundle`. Vite emits the
@@ -195,30 +196,18 @@ entry as `<script type="module" crossorigin>` in `<head>`; `dcBuild` moves
 it to the end of `<body>` as a bare, classic `<script>`, because the app
 reads the DOM as it is imported, and because the build smoke runs the page
 in a JSDOM, which does not run module scripts. It
-makes the inlined style a bare `<style>` holding `src/styles.css` byte for
-byte. When `DC_CHANNEL` is set it stamps the channel into
+makes the inlined style a bare `<style>` holding `src/styles.css`,
+minified. When `DC_CHANNEL` is set it stamps the channel into
 `<meta name="dc-channel">` and the worker's `CHANNEL`, and `DC_BUILD`
 (default: short commit sha) into `<meta name="dc-build">`; a bad channel
 string fails the build before it starts. With no channel both stamps stay
 empty and `dist/sw.js` is byte-identical to `public/sw.js`. Then it copies
 `data/` into `dist/data/`.
 
-Rolldown rewrites code even with minification off - it folds constants,
-inlines locals, prints an exported constant's value where it is used, and
-turns top-level `const`/`let` into `var` - so `vite.config.js` switches off
-`treeshake`, `optimization.inlineConst`, `output.minify` and
-`output.topLevelVar`. With those off the bundled app is the same program
-as `src/app.js`: re-printed, without its comments, and otherwise unchanged.
-`tests/build.test.js` compares the two syntax trees on every run. Its one
-allowance is the source's `export` syntax: the bundle has a single entry and
-nothing importing from it, so it prints the same declarations without the
-keyword and no export list.
-
 `npm run dev` serves the unbuilt modules for development. It runs the app
 as a real ES module - deferred, strict, no globals - which is not what
 ships. The page tests run the source the same way; what ties them to what
-ships is `tests/build.test.js`: the bundle is the same program, tree for
-tree, and the built page boots.
+ships is the dist smoke in `tests/build.test.js`: the built page boots.
 
 The stamped output reaches the `dragoncon-planner-next` deploy repo through
 that repo's own workflow (`.github/workflows/deploy.yml`), not through
@@ -283,12 +272,11 @@ Playwright).
 **`tests/build.test.js`** runs the real `vite build` into temp folders: a
 stamped build, an unstamped one, the default build id, a refused channel,
 the shape of the output (one classic `<script>` at the end of the body,
-one `<style>`, no separate assets, relative links in the head), the
-same-program check described under Build and deploy, and checks of `sw.js`,
-the manifest, the icons and the head. It ends with the one test that
-executes `dist/`: the built page in a JSDOM of its own, `fetch` stubbed to
-serve the sample fixture, asserting that the first screen renders, a search
-returns rows and no uncaught error fired.
+one `<style>`, no separate assets, relative links in the head), and checks
+of `sw.js`, the manifest, the icons and the head. It ends with the one test
+that executes `dist/`: the built page in a JSDOM of its own, `fetch` stubbed
+to serve the sample fixture, asserting that the first screen renders, a
+search returns rows and no uncaught error fired.
 
 jsdom is Vitest's default environment; the files that only read text or run
 the build opt out with a `// @vitest-environment node` docblock.
