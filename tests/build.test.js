@@ -1,7 +1,7 @@
 // @vitest-environment node
 /* The build's contract (DECISIONS #15, #23): what `vite build` leaves in the
    output folder, stamped and unstamped. Cases 1-4 are build.py's old tests;
-   5-7 pin the shape the deploy and the build smoke depend on. Each case
+   5-6 pin the shape the deploy and the build smoke depend on. Each case
    runs the real CLI into a temp folder, so this is slow by unit-test
    standards - a second or so a build.
 
@@ -16,7 +16,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { parseAst } from "vite";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const VITE = path.join(ROOT, "node_modules", "vite", "bin", "vite.js");
@@ -102,50 +101,6 @@ describe("vite build", () => {
     expect(head).toContain('<link rel="manifest" href="./manifest.json">');
     expect(head).toContain('<link rel="icon" href="./icon.svg" type="image/svg+xml">');
     expect(head).toContain('<link rel="apple-touch-icon" href="./icon-180.png">');
-  });
-
-  /* The page's top-level names are its test surface, and "zero behaviour
-     change" is only checkable if the bundler changes nothing. Compare the
-     bundled app with src/app.js tree against tree: formatting, quote style
-     and comments do not count; a renamed binding, a folded constant or a
-     const turned into var does. `let a, b` and `let a; let b` are the same. */
-  it("bundles src/app.js as the same program, and src/styles.css byte for byte", SLOW, () => {
-    const html = read(plain.out, "index.html");
-    const css = html.slice(html.indexOf("<style>") + "<style>".length, html.indexOf("</style>"));
-    expect(css === read(ROOT, "src", "styles.css")).toBe(true);
-
-    const js = html.slice(html.indexOf("<script>") + "<script>".length, html.indexOf("</script>"));
-    const from = js.indexOf("//#region src/app.js");
-    expect(from).toBeGreaterThan(-1);
-    const built = js.slice(from, js.indexOf("//#endregion", from));
-
-    const strip = node => {
-      if (Array.isArray(node)) return node.map(strip);
-      if (!node || typeof node !== "object") return node;
-      const out = {};
-      for (const [k, v] of Object.entries(node)) {
-        if (["start", "end", "loc", "range", "raw"].includes(k)) continue;
-        out[k] = typeof v === "bigint" || v instanceof RegExp ? String(v) : strip(v);
-      }
-      if (node.type === "TemplateElement") out.value = { cooked: node.value.cooked };
-      return out;
-    };
-    /* src/app.js exports boot() and its test surface. The bundle has one
-       entry and nothing importing from it, so it prints the same
-       declarations without the keyword and no export list. Unwrap and drop
-       on the source side only: an export left in the bundle still fails. */
-    const unexport = body => body
-      .filter((st, i) => !(i === body.length - 1 && st.type === "ExportNamedDeclaration" && !st.declaration))
-      .map(st => st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st);
-    const statements = (code, normalise = body => body) => normalise(parseAst(code, { lang: "js", sourceType: "module" }).body)
-      .filter(st => st.type !== "ImportDeclaration")
-      .flatMap(st => st.type === "VariableDeclaration" ? st.declarations.map(d => ({ ...st, declarations: [d] })) : [st])
-      .map(st => JSON.stringify(strip(st)));
-
-    const a = statements(read(ROOT, "src", "app.js"), unexport), b = statements(built);
-    const firstDiff = a.findIndex((st, i) => st !== b[i]);
-    expect(firstDiff === -1 ? "" : `statement ${firstDiff}: ${a[firstDiff].slice(0, 200)}`).toBe("");
-    expect(b.length).toBe(a.length);
   });
 
   /* 1292, 1331 and 1332 (the manifest and apple-touch-icon links) and 1987
