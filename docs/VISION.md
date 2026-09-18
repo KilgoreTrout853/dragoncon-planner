@@ -81,14 +81,15 @@ reaches an installed app — which is why the top rung of the ladder is
 "installed."
 
 ### Stretch: the building view
-A per-hotel view (#21): tap a hotel on the map and it opens into its
-levels, your picks lit on the level they are on, tap a room for what is
-on there. Data first: a pipeline-owned venues file mapping every room
-string to a hotel, a level, and a one-line "how to get there," which
-improves every row and the detail sheet before any drawing exists.
-Schematic only, never floor plans. Gated on the foundation and Coordinate
-landing by the spring checkpoint. The top-down-to-side-view animation is
-the last thing built.
+A per-hotel view: tap a hotel on the map and it opens into its levels,
+your picks lit; tap a level and it drops to a top-down view of it (#28),
+rooms as blocks in their real relative positions, escalators, elevators
+and skybridge doors marked; tap a room for what is on there. Data first
+(#21): a pipeline-owned venues file mapping every room string to a hotel,
+a level, and a one-line "how to get there," which improves every row and
+the detail sheet before any drawing exists. Schematic: blocks and landmarks,
+our own drawings, hotel plans as reference. Gated on the foundation and
+Coordinate landing by the spring checkpoint. The animation is built last.
 
 ## Not doing
 
