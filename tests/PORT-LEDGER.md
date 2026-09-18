@@ -137,9 +137,9 @@ Internals that were only *read* go the same way: `suggestDocs` (331-333 merge in
 
 ### Three assumptions, and what 4b-i found
 
-1. **A per-file `// @vitest-environment` docblock in this Vitest.** To verify in 4b-i. Fallback: two `projects` in `vitest.config.js`.
-2. **`pretendToBeVisual` in Vitest's jsdom environment** (`requestAnimationFrame`, and `document.visibilityState === "visible"`, which 1682-1685 depend on). To verify in 4b-i. Fallback: set it in `environmentOptions.jsdom`.
-3. **jsdom honours `{passive: false}` and ignores `preventDefault()` in a passive listener**, which 793's rewrite needs. To verify in 4b-i. Fallback: 793 becomes a rule over the source.
+1. **A per-file `// @vitest-environment` docblock in this Vitest (5.0.1).** Holds. With jsdom as the config's default, a file that opens with `// @vitest-environment node` runs with `typeof document` and `typeof window` both `"undefined"`. `tests/build.test.js` and the two rules files use it; no `projects` are needed.
+2. **`pretendToBeVisual` in Vitest's jsdom environment.** Holds, and it is Vitest's default: with no `environmentOptions` at all, `document.visibilityState` is `"visible"`, `document.hidden` is `false` and `requestAnimationFrame` is a function. `vitest.config.js` sets it anyway, so the dependency is written down. Vitest also exposes its JSDOM instance as `globalThis.jsdom`, which the helper's `reconfigure({url})` relies on.
+3. **jsdom honours `{passive: false}`, and ignores `preventDefault()` in a passive listener.** Holds. A cancelable `touchmove` comes back `defaultPrevented: false` from a `{passive: true}` listener that called `preventDefault()`, and `true` from a `{passive: false}` one. 793's rewrite stands; no fallback to a source rule.
 
 ## Helper design: tests/helpers/page.js
 
@@ -166,7 +166,7 @@ In order, because `src/app.js` reads the page as it is imported:
 7. **Storage is not cleared here.** A test that seeds `dc26.*` does it before `bootPage`; `cleanup()` clears it after.
 8. **Bookkeeping.** `addEventListener` on `window`, `document` and the service-worker stub, and `setInterval`, are wrapped for the duration of `boot()` so `cleanup()` can undo exactly what it registered. The window outlives the module instance; without this a second boot in one file leaves the first boot's `visibilitychange`, `pageshow`, `hashchange` and minute tick firing against a dead module.
 9. **Boot.** `vi.resetModules()`, `app = await import("../../src/app.js")`, `handle = app.boot({events, reload})`, `await handle.ready`. `events` is the parsed fixture; `load()` copies each event, so the fixture object is never mutated.
-10. **Return.** `window`, `document`; `app`, the module namespace (the 97 exports); `handle`, what `boot()` returned; `sw`; `text(id)`, an element's text with whitespace collapsed (the harness's helper); `until(fn, ms)`, which polls until `fn()` is truthy or fails with a timeout; `cleanup()`.
+10. **Return.** `window`, `document`; `app`, the module namespace (the 97 exports); `handle`, what `boot()` returned; `sw`; `text(id)`, an element's text with whitespace collapsed (the harness's helper); `until(fn, ms)`, which polls until `fn()` is truthy or fails with a timeout; `cleanup()`, which first lets the idle index build and any debounced draw finish, so a stale timer cannot draw into the next page, then undoes the bookkeeping, clears both storages, restores the stubs and the URL, and throws if the window saw an error. `bootPage` refuses to run while a page is still live.
 
 `handle.ready` resolves after the first render and before any index exists, which is what 23 and 1842-1845 need. A test that wants search results awaits `until(() => app.BOOT.suggested > 0)`.
 
