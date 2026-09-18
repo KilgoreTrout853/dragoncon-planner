@@ -1,12 +1,13 @@
 // @vitest-environment node
 /* The build's contract (DECISIONS #15, #23): what `vite build` leaves in the
    output folder, stamped and unstamped. Cases 1-4 are build.py's old tests;
-   5-7 pin the shape the smoke harness and the deploy depend on. Each case
+   5-7 pin the shape the deploy and the build smoke depend on. Each case
    runs the real CLI into a temp folder, so this is slow by unit-test
    standards - a second or so a build.
 
-   Below them, the smoke harness's checks of the build output, one for one
-   (the number in brackets is the harness line; tests/PORT-LEDGER.md), and
+   Below them, the checks of the build output that came from the old smoke
+   harness, one for one (the number in brackets is its line;
+   tests/PORT-LEDGER.md), and
    the "dist boots" smoke: the built page, run for real in a JSDOM of its own. */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";

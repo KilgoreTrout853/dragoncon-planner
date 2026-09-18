@@ -38,8 +38,7 @@ The root `index.html` is a build template: opening it as a file, or serving the 
 ```bash
 npm ci
 npm run lint                     # eslint: two rules
-npm test                         # vitest: 7 build tests
-npm run smoke                    # builds, then node tests/ui_smoke.cjs against dist/: 848 assertions
+npm test                         # vitest: 838 tests - units, rules, the page in jsdom, the real schedule, the build
 pip install -r requirements.txt
 python -m pytest tests/          # 27 parser tests
 ```

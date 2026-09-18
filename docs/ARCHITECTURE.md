@@ -30,7 +30,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | Path | What it is |
 |---|---|
 | `index.html` | The Vite entry template: the page's head and body markup, a link to `src/styles.css` and the module entry. Not runnable as a static file. |
-| `src/main.js` | The entry: imports `styles.css`, then calls `boot()` from `app.js` with `window.DC_EVENTS`. |
+| `src/main.js` | The entry: imports `styles.css`, then calls `boot()` from `app.js`. |
 | `src/app.js` | The whole app script, one file. Importing it declares the app and fills the consts that read storage and the DOM; `boot()` starts it. Its only import is MiniSearch (npm, pinned to 7.2.0). |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
@@ -40,14 +40,19 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `scraper.py` | Scrape → normalise → dedupe → write `events.json`. |
 | `tag_events.py` | Add `tags` to untagged events via Claude. |
 | `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
-| `tests/ui_smoke.cjs` | jsdom smoke test of the built page, `dist/index.html`, and `dist/sw.js`, plus search checks against real data. CommonJS, hence `.cjs`: the package is `"type": "module"`. |
-| `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped. |
+| `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
+| `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
+| `tests/unit/` | Vitest: the pure exports of `src/app.js`, imported with no page. |
+| `tests/rules/` | Vitest: rules over the text of `src/styles.css` and `src/app.js`. |
+| `tests/real-data.test.js` | Vitest: search quality and Explore against the real `data/2026/events.json`. |
+| `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, and a smoke that boots the built page. The only test that executes `dist/`. |
+| `tests/PORT-LEDGER.md` | Where each of the old smoke harness's 817 assertions went, and how. |
 | `tests/test_parse.py` | Scraper parsing and dedupe unit tests. |
-| `tests/sample-events.json` | 558 synthetic events used by the smoke test. |
+| `tests/sample-events.json` | 558 synthetic events: the fixture for the page tests and the build smoke. |
 | `.github/workflows/scrape.yml` | Manual-trigger scrape (workflow_dispatch). Refuses a scrape with 0 events or a >20% drop; commits and pushes events.json to the branch it was run from. |
 | `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client` and `pipeline`. |
 | `.github/dependabot.yml` | Monthly update PRs for GitHub Actions only. |
-| `package.json`, `.nvmrc`, `eslint.config.js`, `vitest.config.js` | Client tooling: scripts `dev`, `build`, `preview`, `lint`, `test`, `smoke`; Node major; two ESLint rules; Vitest. |
+| `package.json`, `.nvmrc`, `eslint.config.js`, `vitest.config.js` | Client tooling: scripts `dev`, `build`, `preview`, `lint`, `test`; Node major; two ESLint rules; Vitest, with jsdom as its default environment. |
 | `requirements.txt` | Pinned pipeline dependencies, plus pytest. |
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
@@ -101,8 +106,8 @@ simulated clock, mirrored to `sessionStorage` (`dc26.timeOverride`, or
 `dc26.timeOverride.<channel>` on a stamped build) so it survives navigation
 but not a new tab. `isSimulated()` shows a chip. `conPhase()` returns
 `preview | live | ended` from `now()` and drives the pre-con banner, the
-live Now tab, and archive mode. The smoke test fails on any `new Date()` or
-`Date.now()` outside the Time section.
+live Now tab, and archive mode. `tests/rules/source.test.js` fails on any
+`new Date()` or `Date.now()` outside the Time section.
 
 **Picks.** A `Set` of event ids, persisted as `dc26.picks`. On load,
 `reconcilePicks()` compares each pick against a stored snapshot: a pick
@@ -133,14 +138,15 @@ the map SVG are in `rem`), `dc26.archiveNoticeDismissed` (per year).
 module runs nothing but its declarations and the consts that read
 `localStorage` and the DOM (`settings`, `picks`, `state`, `scroller`, the
 sheet elements, `updatePill`, `BUILD`, `IS_IOS`), which is why `src/main.js`
-imports it after the markup exists. `main.js` then calls
-`boot({events: window.DC_EVENTS})`, once. `boot()` applies the saved text
+imports it after the markup exists. `main.js` then calls `boot()`, once,
+with no options: the page fetches its own schedule. `boot()` applies the saved text
 size, inserts the dev-build mark, reads the time override, registers every
 listener, timer and observer in the order the one-file script did - listeners
-on one element fire in the order they were added - and calls `load()`. Given
-`events`, `load()` uses it instead of fetching and reaches the first render
-with no `await` on the way; `reload` replaces what `reloadNow()` calls, for a
-caller that cannot replace `location.reload`. From there: parse JSON → first
+on one element fire in the order they were added - and calls `load()`. The
+two options are for tests: given `events`, `load()` uses it instead of
+fetching and reaches the first render with no `await` on the way; `reload`
+replaces what `reloadNow()` calls, because jsdom will not let
+`location.reload` be replaced. From there: parse JSON → first
 render → index build (idle) → suggestion index (idle). The timings are
 recorded in `BOOT`; `BUILD` is the channel and build-id stamp, which the
 device readout shows.
@@ -150,9 +156,9 @@ internals: `state`, `render`, `now`, `setTimeOverride`, `picks` and `follows`
 (each `get`/`set`), `news` (`set`/`clear`), live `meta` and `events` getters,
 `BOOT`, `reconcilePicks`, `recheckSchedule`, `openSheet`, `closeSheet`, and
 `ready`, which is `load()`'s promise. One `export` list at the end of the
-file names every function and const the smoke harness reaches by name (97
-today): the inventory of test coupling, pruned as functions move to modules
-of their own.
+file names the functions and consts the tests import by name (97 today, the
+set the old smoke harness reached through `window.eval`): the inventory of
+test coupling, pruned as functions move to modules of their own.
 
 ## Offline
 
@@ -187,8 +193,8 @@ On `next` the client is built (DECISIONS #23). `npm run build` runs Vite
 `build/vite-dc.js` (`dcBuild`) runs last, in `closeBundle`. Vite emits the
 entry as `<script type="module" crossorigin>` in `<head>`; `dcBuild` moves
 it to the end of `<body>` as a bare, classic `<script>`, because the app
-reads the DOM as it parses, its top-level names are what the smoke harness
-reaches through `window.eval`, and jsdom does not run module scripts. It
+reads the DOM as it is imported, and because the build smoke runs the page
+in a JSDOM, which does not run module scripts. It
 makes the inlined style a bare `<style>` holding `src/styles.css` byte for
 byte. When `DC_CHANNEL` is set it stamps the channel into
 `<meta name="dc-channel">` and the worker's `CHANNEL`, and `DC_BUILD`
@@ -210,7 +216,9 @@ keyword and no export list.
 
 `npm run dev` serves the unbuilt modules for development. It runs the app
 as a real ES module - deferred, strict, no globals - which is not what
-ships, so only the built output counts as tested.
+ships. The page tests run the source the same way; what ties them to what
+ships is `tests/build.test.js`: the bundle is the same program, tree for
+tree, and the built page boots.
 
 The stamped output reaches the `dragoncon-planner-next` deploy repo through
 that repo's own workflow (`.github/workflows/deploy.yml`), not through
@@ -236,62 +244,72 @@ their caches and session keys apart (DECISIONS #15).
 ```
 npm ci                        # once; Node major from .nvmrc
 npm run lint                  # eslint .
-npm test                      # vitest run: tests/*.test.js, tests/unit, tests/rules, tests/page
-npm run smoke                 # vite build, then node tests/ui_smoke.cjs
+npm test                      # vitest run: everything under tests/ that ends .test.js
 pip install -r requirements.txt
 python -m pytest tests/       # test_parse.py
 ```
 
-Two client suites coexist while the harness is ported (step 4b, DECISIONS
-#24), and both run. `tests/PORT-LEDGER.md` accounts for every one of the
-harness's 817 assertions: where it goes, how, and in which PR. So far
-Vitest holds the rows that need no page (`tests/unit/`), the rules over
-`src/styles.css` and `src/app.js` (`tests/rules/`), the checks of the build
-output and a smoke that boots the built page in a JSDOM of its own (both in
-`tests/build.test.js`), and one page file, `tests/page/time.test.js`.
-Page tests boot the app through `tests/helpers/page.js`: markup from
-`index.html`, the stylesheet, the stamps and `?now=`, then a fresh import of
-`src/app.js` and `boot({events})`. jsdom is Vitest's default environment;
-the files that only read text or run the build opt out with a
-`// @vitest-environment node` docblock. The harness is untouched and stays
-the oracle until the rest of the page files land; it and `npm run smoke`
-go then.
+The client is tested by Vitest (DECISIONS #24), in five kinds of file.
 
-`ui_smoke.cjs` is the oracle for the client. The `smoke` script builds
-first, so it never runs against a stale `dist/`. It loads
-`dist/index.html` in jsdom with `?now=2026-09-05T13:05`, drives the tabs,
-and asserts on DOM state and on source text. It reads text from two
-places: `html`, the built page, for markup, CSS and the SW registration;
-and `src`, `src/app.js`, for anything about how the script is written
-(the Time-section rule, function signatures, call order), because the
-bundler re-prints the script and drops its comments. It reads `sw.js`,
-the manifest and the icons from `dist/`. It still runs against `dist/`
-and reaches the page's top-level names through `window.eval`; the
-`window.DC_EVENTS` it injects now enters the app through `src/main.js`,
-the only place that reads it. It ends with search quality
-checks against the real `events.json`. It is still where every client
-behaviour assertion lives (DECISIONS #24).
+**Page tests** (`tests/page/`, one file per part of the app, and
+`tests/real-data.test.js`) run the source, in the test's own realm. There
+is no built page and no `window.eval`: `tests/helpers/page.js` puts
+`index.html`'s markup and `src/styles.css` into Vitest's jsdom, sets the two
+meta stamps and the URL (`?now=2026-09-05T13:05` unless the test says
+otherwise), stubs `matchMedia` and a `navigator.serviceWorker` that is an
+`EventTarget` with `register()`, then imports `src/app.js` fresh
+(`vi.resetModules()`) and calls `boot({events, reload})` with a fixture:
+`tests/sample-events.json`, or the real schedule for `real-data`. A test
+drives the page through the DOM, through the handle `boot()` returned, and
+through the module's exports. The window outlives the module, so the helper
+records every listener and interval `boot()` registers and `cleanup()`
+removes them; it also fails the file if the window saw an uncaught error.
+One boot per file, tests in file order; a test that needs a different start
+(seeded storage, a stamp, an iPhone, no `?now=`) cleans up and boots again.
+Internals are never assigned: a situation is produced the way it arises on a
+phone - a `message` from the worker stub, storage seeded before the boot, the
+simulated clock moved, fake timers around the app's own interval, a
+MutationObserver where the claim is that nothing was redrawn.
 
-`tests/build.test.js` runs the real `vite build` into temp folders: a
+**Unit tests** (`tests/unit/`) import the pure exports of `src/app.js` with
+no page. They still run in jsdom, because the import itself reads the
+document.
+
+**Rules** (`tests/rules/`) are regexes over the text of `src/styles.css` and
+`src/app.js`: declarations a page in jsdom cannot show, since jsdom computes
+no layout. Each source rule names what is to replace it (ESLint in PR 5, or
+Playwright).
+
+**`tests/build.test.js`** runs the real `vite build` into temp folders: a
 stamped build, an unstamped one, the default build id, a refused channel,
 the shape of the output (one classic `<script>` at the end of the body,
-one `<style>`, no separate assets, relative links in the head), and the
-same-program check described under Build and deploy. It also holds the
-harness's checks of `sw.js`, the manifest, the icons and the head, and the
-"dist boots" smoke.
+one `<style>`, no separate assets, relative links in the head), the
+same-program check described under Build and deploy, and checks of `sw.js`,
+the manifest, the icons and the head. It ends with the one test that
+executes `dist/`: the built page in a JSDOM of its own, `fetch` stubbed to
+serve the sample fixture, asserting that the first screen renders, a search
+returns rows and no uncaught error fired.
+
+jsdom is Vitest's default environment; the files that only read text or run
+the build opt out with a `// @vitest-environment node` docblock.
+
+`tests/PORT-LEDGER.md` is the record of how this suite was made: one row for
+each of the 817 assertions in the smoke harness it replaced
+(`tests/ui_smoke.cjs`, removed 2026-09-18), saying where it went and how.
+Every test title ends with the harness line it came from, in brackets.
 
 ESLint carries two rules and inherits nothing: `no-undef` everywhere, and
 under `src/` a ban on `new Date()` and `Date.now()` outside `src/time.js`.
-`no-undef` runs on `src/app.js` for real. The clock rule does not yet:
-`src/app.js` is exempt until `src/time.js` exists, and the harness's
-Time-section regex is still the #12 guard.
+`no-undef` runs on `src/app.js` and on the tests for real. The clock rule
+does not yet: `src/app.js` is exempt until `src/time.js` exists, and the
+Time-section rule in `tests/rules/source.test.js` is still the #12 guard.
 
 The Python test files are plain pytest modules; running one directly with
 `python tests/test_parse.py` executes nothing.
 
 CI (`.github/workflows/ci.yml`) runs all of the above on a clean Ubuntu
 runner for every pull request into `next` or `main`, every push to `next`,
-and on demand: job `client` (npm ci, lint, test, build + smoke) and job `pipeline`
+and on demand: job `client` (npm ci, lint, test) and job `pipeline`
 (pip install, pytest). Nothing requires those checks yet - the ruleset on
 `next` is a repository setting (DECISIONS #26).
 
@@ -309,9 +327,10 @@ and on demand: job `client` (npm ci, lint, test, build + smoke) and job `pipelin
   against `main` now fails at push. The 2027 pipeline needs a path onto
   `main` before the cron returns.
 - Event ids belong to the source site (see pipeline).
-- The client script is still one file, `src/app.js`, and about forty
-  harness assertions read its text. Splitting it further will need those
-  re-pointed or rewritten (DECISIONS #24).
+- The client script is still one file, `src/app.js`. Five rules in
+  `tests/rules/source.test.js` read its text and every page and unit test
+  imports from it by name; splitting it means re-pointing those imports and
+  pruning its export list (DECISIONS #24).
 - The root `index.html` is a template now. Serving the repo root with a
   static server no longer runs the app; use `npm run dev`, or build and
   serve `dist/` (`npm run preview`).

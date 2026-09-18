@@ -32,7 +32,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
-      - run: npm run smoke
 
   pipeline:
     runs-on: ubuntu-latest

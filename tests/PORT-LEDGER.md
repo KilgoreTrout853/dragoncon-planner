@@ -1,9 +1,10 @@
 # Port ledger: tests/ui_smoke.cjs → Vitest
 
-PR 4b (DECISIONS #24). Every `assert(` call site in `tests/ui_smoke.cjs`, where it goes and how, so that nothing is lost silently
-when the harness is replaced. Written against `next` at 79fb1dd; line numbers are the harness's. Amended after review, before any
-test was written: 1240 is a rule rather than a delete, 375, 938 and 1893 are deleted, the four rows that never run are `it.skip`,
-and every row names the PR it lands in.
+PR 4b (DECISIONS #24). Every `assert(` call site in `tests/ui_smoke.cjs`, where it went and how, so that nothing was lost silently
+when the harness was replaced. Written against `next` at 79fb1dd; line numbers are the harness's, which was removed in 4b-ii and is in
+git at that commit. Amended after review, before any test was written: 1240 is a rule rather than a delete, 375, 938 and 1893 are
+deleted, the four rows that never run are `it.skip`, and every row names the PR it landed in. Amended again in 4b-ii: 148 tests its
+rule for the first time, 2002 is a test of its own, and the leave-by rows check the rendered time against the formula.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
 own variables to what it reads (the page, a `window.eval`, the source text, the built files), and an instrumented copy of the harness
@@ -23,7 +24,7 @@ change. `provoke`: the situation is produced through the app's own mechanism rat
 
 **PR.** 4b-i: the helper, `tests/unit/`, `tests/rules/`, the build rows and the dist smoke in `tests/build.test.js`, and
 `tests/page/time.test.js` as the helper's proof. 4b-ii: every other page file, the real-data file, and the harness's removal; a
-delete takes effect there, because that is when the file goes.
+delete took effect there, because that is when the file went. Both have landed.
 
 ## Totals
 
@@ -31,15 +32,15 @@ delete takes effect there, because that is when the file goes.
 
 | class | call sites | executed | port | merge | rewrite | skip | delete | live after |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| (a) DOM behaviour | 613 | 628 | 556 | 11 | 43 | 3 | 0 | 599 |
+| (a) DOM behaviour | 613 | 628 | 557 | 10 | 43 | 3 | 0 | 600 |
 | (b) CSS rule | 43 | 43 | 43 | 0 | 0 | 0 | 0 | 43 |
 | (b) lint-like rule | 6 | 6 | 5 | 1 | 0 | 0 | 0 | 5 |
 | (c) build output | 35 | 41 | 30 | 4 | 0 | 1 | 0 | 30 |
 | (d) implementation detail | 46 | 46 | 0 | 4 | 25 | 0 | 17 | 25 |
 | (e) real-data | 74 | 84 | 74 | 0 | 0 | 0 | 0 | 74 |
-| **all** | **817** | **848** | **708** | **20** | **68** | **4** | **17** | **776** |
+| **all** | **817** | **848** | **709** | **19** | **68** | **4** | **17** | **777** |
 
-The arithmetic: 708 ported + 20 merged + 68 rewritten + 4 skipped + 17 deleted = 817 call sites. 776 are live assertions afterwards. Splitting the 12 compound rows adds 12, so the Vitest files hold **788 assertion sites** and 4 skips against the harness's 817: 20 merged away, 17 deleted, 12 created by splitting.
+The arithmetic: 709 ported + 19 merged + 68 rewritten + 4 skipped + 17 deleted = 817 call sites. 777 are live assertions afterwards. Splitting the 12 compound rows adds 12, so the Vitest files hold **789 assertion sites** and 4 skips against the harness's 817: 19 merged away, 17 deleted, 12 created by splitting.
 
 Deletes are 17, not 18: the amendment that deleted 375, 938 and 1893 also took 1240 off the list, where it had been the fifteenth.
 
@@ -48,7 +49,7 @@ Deletes are 17, not 18: the amendment that deleted 375, 938 and 1893 also took 1
 | PR | port | merge | rewrite | skip | delete | live | + split halves | assertion sites |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | 4b-i | 132 | 6 | 2 | 1 | 0 | 134 | 9 | 143 |
-| 4b-ii | 576 | 14 | 66 | 3 | 17 | 642 | 3 | 645 |
+| 4b-ii | 577 | 13 | 66 | 3 | 17 | 643 | 3 | 646 |
 
 A split half lands with its file, not with its row: the eight CSS halves and 1860's `SEARCH_DEBOUNCE_MS === 70` land in 4b-i although their rows are page rows.
 
@@ -179,7 +180,7 @@ Sites are call sites that survive (port + rewrite) plus what splitting adds; mer
 | `tests/build.test.js` | 4b-i | 30 + 3 new (the dist smoke) | 37 | 1 | sample, for the dist smoke only | node | yes, as now: 120 s a case |
 | `tests/page/archive.test.js` | 4b-ii | 26 | 26 |  | sample | jsdom |  |
 | `tests/page/boot.test.js` | 4b-ii | 4 | 4 |  | sample | jsdom | no, but it waits for the sample index: watch it |
-| `tests/page/devmark.test.js` | 4b-ii | 6 | 6 |  | sample | jsdom |  |
+| `tests/page/devmark.test.js` | 4b-ii | 7 | 7 |  | sample | jsdom |  |
 | `tests/page/explore.test.js` | 4b-ii | 53 | 53 |  | sample | jsdom |  |
 | `tests/page/follows.test.js` | 4b-ii | 70 | 70 |  | sample | jsdom |  |
 | `tests/page/ics.test.js` | 4b-ii | 4 | 4 |  | sample | jsdom |  |
@@ -203,11 +204,13 @@ Sites are call sites that survive (port + rewrite) plus what splitting adds; mer
 | `tests/unit/query.test.js` | 4b-i | 10 | 18 |  | none | jsdom |  |
 | `tests/unit/time.test.js` | 4b-i | 8 | 8 |  | none | jsdom |  |
 | `tests/unit/venues.test.js` | 4b-i | 4 | 4 |  | none | jsdom |  |
-| **total** | | **788** + 3 new | | **4** | | | |
+| **total** | | **789** + 3 new | | **4** | | | |
 
 `tests/unit/*` import `src/app.js` with no page: the module's DOM consts come back `null`, which is harmless because nothing pure touches them. They still need jsdom, because the import itself calls `document.querySelector`. Anything that reads the clock, the schedule or the picks is `handle`, not `import`: outside `boot()` there is no `?now=`, and by the real clock the con has ended.
 
-`tests/build.test.js` keeps its seven cases and gains the (c) rows; 1292, 1331 and 1987 merge into cases 6, 6 and 2, which already assert them. For one PR the two suites coexist: `npm test` runs Vitest and `npm run smoke` still runs the harness, untouched. `npm run smoke`, its line in `ci.yml` and `tests/ui_smoke.cjs` go at the end of 4b-ii, once every row here is green in its new home.
+`tests/build.test.js` keeps its seven cases and gains the (c) rows; 1292, 1331 and 1987 merge into cases 6, 6 and 2, which already assert them. For one PR (4b-i) the two suites coexisted. 4b-ii removed `tests/ui_smoke.cjs`, the `smoke` script and its line in `ci.yml` once every row here was green in its new home; `src/main.js` stopped reading `window.DC_EVENTS` in the same PR, and `npm test` carries everything.
+
+A test count is not a site count. Where one row became several tests the title says so: 1894 is four, 1729's page half is two, and a looped row is one test per turn (`it.each`). `tests/helpers/act.js` holds the gestures the page files share: type into a box, tap an SVG node, a touch event, and the mutations seen while something runs.
 
 ## The "dist boots" smoke, in tests/build.test.js
 
@@ -281,7 +284,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 145 | a | currentLocation is the hotel of the pick that is on now | `page/leave.test.js` | 4b-ii | handle | port |
 | 146 | a | a pick that ended … minutes ago says nothing about where you are | `page/leave.test.js` | 4b-ii | handle | port |
 | 147 | a | and nothing picked is nowhere | `page/leave.test.js` | 4b-ii | handle | port |
-| 148 | a | chain.streamFound ? "a stream that is on says nothing either: you could be an… | `page/leave.test.js` | 4b-ii | handle | port |
+| 148 | a | chain.streamFound ? "a stream that is on says nothing either: you could be an… | `page/leave.test.js` | 4b-ii | handle | port. the sample fixture has no stream on at 1:05 PM, so the harness ran this with nothing picked and said so in its message. currentLocation takes the moment as an argument: the test asks about a minute when a stream is on, so the rule is tested for the first time |
 | 150 | d | nothing infers a location from a pick that ended, and no 90-minute window rem… | `page/leave.test.js` | 4b-ii |  | **delete** greps currentLocation's body for a 90-minute window that was removed; the behaviour is 146-148 (an ended pick, no picks and a stream all give null) |
 
 ### no guessing: the hero, the mini-bar and the map, with and without a pick on now
@@ -296,9 +299,9 @@ One row per call site, in harness order, under the harness's own section comment
 | 193 | a | the map's card counts down to the start and the map keeps the next ring (…) | `page/leave.test.js` | 4b-ii | handle | port |
 | 195 | a | no walk estimate when the previous pick was in the same hotel | `page/leave.test.js` | 4b-ii | handle | port |
 | 196 | a | and none without a previous pick today | `page/leave.test.js` | 4b-ii | handle | port |
-| 197 | a | with a pick on, the hero says leave the hotel you are in, and its ring runs t… | `page/leave.test.js` | 4b-ii | handle | port |
-| 199 | a | the mini-bar says leave by (…) | `page/leave.test.js` | 4b-ii | handle | port |
-| 200 | a | and the map's card says so too, with both rings (…) | `page/leave.test.js` | 4b-ii | handle | port |
+| 197 | a | with a pick on, the hero says leave the hotel you are in, and its ring runs t… | `page/leave.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page |
+| 199 | a | the mini-bar says leave by (…) | `page/leave.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page |
+| 200 | a | and the map's card says so too, with both rings (…) | `page/leave.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page |
 | 210 | a | more than six picks in play (…) | `page/now.test.js` | 4b-ii | handle | port |
 | 211 | a | all picks render, no 6-cap (hero + … rows for … picks) | `page/now.test.js` | 4b-ii | handle | port |
 | 212 | a | remaining picks render as a compact list | `page/now.test.js` | 4b-ii | dom | port |
@@ -1061,7 +1064,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 1767 | a | the timing line is the start and how long until it (…) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
 | 1768 | a | the walk estimate is a muted line when leaveInfo has one (…) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
 | 1769 | a | nothing is on, so no On now line and no day label | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
-| 1771 | a | with a pick on in another hotel, the timing line says when to leave it (…) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
+| 1771 | a | with a pick on in another hotel, the timing line says when to leave it (…) | `page/map.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page |
 | 1772 | a | and a slim line above names what is on now (…) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
 | 1773 | b css | truncated to one line | `rules/style.test.js` | 4b-i | rule | port |
 | 1774 | b css | leave-by in gold, warn colour when late | `rules/style.test.js` | 4b-i | rule | port |
@@ -1182,7 +1185,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 1998 | a | the device readout names the channel and build | `page/devmark.test.js` | 4b-ii | handle | port |
 | 1999 | a | and the page otherwise works as it does unstamped | `page/devmark.test.js` | 4b-ii | dom | port |
 | 2000 | a | a stamped page keeps its simulated clock under a key of its own, so it never … | `page/devmark.test.js` | 4b-ii | handle | port |
-| 2002 | a | and the unstamped page keeps the plain key | `page/devmark.test.js` | 4b-ii |  | **merge** with 2000: the unstamped half of the same key rule; one test boots both ways |
+| 2002 | a | and the unstamped page keeps the plain key | `page/devmark.test.js` | 4b-ii | handle | port. was a merge into 2000; the unstamped page is a boot of its own in the file, so it is a test of its own there |
 
 ### realDataChecks: search quality and Explore against the real schedule
 
