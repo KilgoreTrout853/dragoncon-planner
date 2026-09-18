@@ -236,11 +236,26 @@ their caches and session keys apart (DECISIONS #15).
 ```
 npm ci                        # once; Node major from .nvmrc
 npm run lint                  # eslint .
-npm test                      # vitest run: tests/build.test.js
+npm test                      # vitest run: tests/*.test.js, tests/unit, tests/rules, tests/page
 npm run smoke                 # vite build, then node tests/ui_smoke.cjs
 pip install -r requirements.txt
 python -m pytest tests/       # test_parse.py
 ```
+
+Two client suites coexist while the harness is ported (step 4b, DECISIONS
+#24), and both run. `tests/PORT-LEDGER.md` accounts for every one of the
+harness's 817 assertions: where it goes, how, and in which PR. So far
+Vitest holds the rows that need no page (`tests/unit/`), the rules over
+`src/styles.css` and `src/app.js` (`tests/rules/`), the checks of the build
+output and a smoke that boots the built page in a JSDOM of its own (both in
+`tests/build.test.js`), and one page file, `tests/page/time.test.js`.
+Page tests boot the app through `tests/helpers/page.js`: markup from
+`index.html`, the stylesheet, the stamps and `?now=`, then a fresh import of
+`src/app.js` and `boot({events})`. jsdom is Vitest's default environment;
+the files that only read text or run the build opt out with a
+`// @vitest-environment node` docblock. The harness is untouched and stays
+the oracle until the rest of the page files land; it and `npm run smoke`
+go then.
 
 `ui_smoke.cjs` is the oracle for the client. The `smoke` script builds
 first, so it never runs against a stale `dist/`. It loads
@@ -261,7 +276,9 @@ behaviour assertion lives (DECISIONS #24).
 stamped build, an unstamped one, the default build id, a refused channel,
 the shape of the output (one classic `<script>` at the end of the body,
 one `<style>`, no separate assets, relative links in the head), and the
-same-program check described under Build and deploy.
+same-program check described under Build and deploy. It also holds the
+harness's checks of `sw.js`, the manifest, the icons and the head, and the
+"dist boots" smoke.
 
 ESLint carries two rules and inherits nothing: `no-undef` everywhere, and
 under `src/` a ban on `new Date()` and `Date.now()` outside `src/time.js`.
