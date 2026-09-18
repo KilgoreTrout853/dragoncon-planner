@@ -138,7 +138,6 @@ function pageScrollBy(dy) { scroller.scrollTop = pageScrollTop() + dy; }
    ================================================================== */
 function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
 function saveJSON(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
-document.documentElement.classList.toggle("bigtext", !!loadJSON("dc26.bigtext", false));
 /* What each pick looked like when it was starred, so a later refresh can say
    what changed. The rows alone would show the new time, or nothing at all,
    and the reader would find out at the door. */
@@ -290,7 +289,6 @@ function devMarkHTML() {
   if (!BUILD.channel) return "";
   return `<div class="devmark" aria-hidden="true">dev build &middot; ${esc(BUILD.channel)}${BUILD.id ? ` &middot; ${esc(BUILD.id)}` : ""}</div>`;
 }
-document.body.insertAdjacentHTML("beforeend", devMarkHTML());
 
 /* ==================================================================
    Time. Every read of the current moment goes through now() - the header
@@ -362,13 +360,10 @@ const conEnded = () => conPhase() === "ended";
    whole schedule is - and folding all of it away would hide every result. */
 const isPast = (e, at) => e._e <= at && conPhase(at) !== "ended";
 
-initTimeOverride();
-
 /* ==================================================================
    Loading
    ================================================================== */
-async function load() {
-  let data = window.DC_EVENTS;
+async function load(data) {
   if (!data) {
     try {
       const r = await fetch(DATA_URL, {cache: "no-cache"});
@@ -1758,15 +1753,6 @@ function syncActiveSection() {
    so the chips passed on the way do not flicker through. The hold is a
    stopwatch, not a clock: a simulated time must not freeze it. */
 let spyQueued = false, spyHoldUntil = 0;
-scroller.addEventListener("scroll", () => {
-  if (spyQueued) return;
-  spyQueued = true;
-  requestAnimationFrame(() => {
-    spyQueued = false;
-    if (performance.now() < spyHoldUntil) return;
-    syncActiveSection();
-  });
-}, {passive: true});
 
 /* Typing in the filter box redraws the tiles and nothing else. Rebuilding the
    whole view would replace the input mid-word, and take the keyboard with it. */
@@ -2092,123 +2078,6 @@ function downloadICS(mine, filename) {
 /* ==================================================================
    Events (the DOM kind)
    ================================================================== */
-document.querySelector(".nav").addEventListener("click", e => {
-  const b = e.target.closest("button[data-tab]"); if (!b) return;
-  state.tab = b.dataset.tab; render(); pageScrollTo(0);
-});
-
-document.querySelector("main").addEventListener("click", e => {
-  const chip = e.target.closest("[data-chip]");
-  if (chip) {
-    const {chip: kind, value} = chip.dataset;
-    if (kind === "now-hotel") { state.now.hotel = value; state.now.limit = 80; }
-    else if (kind === "day") state.browse.day = value;
-    else if (kind === "hotel") state.browse.hotel = state.browse.hotel === value ? "All" : value;
-    else if (kind === "type") state.browse.type = value;
-    else if (kind === "kind") state.browse.kind = value;
-    else if (kind === "map-day") state.map.day = value;
-    state.browse.page = 1; render();
-    revealChip(document.querySelector(`.chips [data-chip="${kind}"][data-value="${cssEsc(value)}"]`));
-    return;
-  }
-  const mapHotel = e.target.closest(".map-hotel, .map-pill");
-  if (mapHotel) { openSheet("hotel", mapHotel.dataset.hotel); return; }
-  const act = e.target.closest("[data-act]");
-  if (act) {
-    const a = act.dataset.act;
-    if (a === "more-now") { state.now.limit += 100; render(); }
-    if (a === "more-browse") { state.browse.page++; render(); }
-    if (a === "ics") exportICS();
-    if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
-    if (a === "suggest") {
-      state.browse.q = `"${act.dataset.name}"`;
-      state.browse.page = 1;
-      if (state.browse.day !== "All") { state.browse.prevDay = state.browse.day; state.browse.day = "All"; }
-      render();
-      return;
-    }
-    if (a === "unsuggest") {
-      state.browse.q = "";
-      if (state.browse.prevDay) { state.browse.day = state.browse.prevDay; state.browse.prevDay = null; }
-      state.browse.page = 1;
-      render();
-      return;
-    }
-    if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
-    if (a === "dismiss-news") { pickNews = []; savePickNews(); render(); return; }
-    if (a === "dismiss-archive") { saveJSON(ARCHIVE_NOTICE_KEY, CON.year); render(); return; }
-    if (a === "nudge-later") { saveJSON("dc26.nudgeSnoozedUntil", now().getTime() + NUDGE_SNOOZE_MS); render(); return; }
-    if (a === "nudge-install") {
-      if (installPrompt) { const p = installPrompt; installPrompt = null; p.prompt(); }
-      return;
-    }
-    if (a === "explore-back") { closeExplorePage(); return; }
-    if (a === "fol-add") { scrollToGrid(); return; }
-    if (a === "explore-jump") {
-      markActiveSection(act.dataset.section);
-      spyHoldUntil = performance.now() + 700;
-      scrollToExploreSection(act.dataset.section);
-      return;
-    }
-    if (a === "explore-all") { state.explore.expanded[act.dataset.section] = true; renderExploreSections(); return; }
-    if (a === "fol-toggle") {
-      state.following.open = state.following.open === false;
-      saveJSON("dc26.followingOpen", state.following.open);
-      render();
-      return;
-    }
-    if (a === "unfollow") {
-      const raw = act.dataset.follow || "", i = raw.indexOf(":");
-      if (i > 0) { toggleFollow(raw.slice(0, i), raw.slice(i + 1)); render(); }
-      return;
-    }
-    if (a === "fol-interest" || a === "fol-time") {
-      state.following.layout = a === "fol-time" ? "time" : "interest";
-      saveJSON("dc26.followingLayout", state.following.layout);
-      render();
-      return;
-    }
-    if (a === "fol-more") { state.following.expanded[act.dataset.follow] = true; render(); return; }
-    if (a === "fol-past") {
-      const k = act.dataset.follow;
-      state.following.showPast[k] = !state.following.showPast[k];
-      render();
-      return;
-    }
-    if (a === "explore-past") { state.explore.showPast = !state.explore.showPast; render(); return; }
-    if (a === "toggle-follow") {
-      const pg = state.explore.page;
-      if (pg) { toggleFollow(pg.kind, pg.key); render(); }
-      return;
-    }
-    if (a === "show-hidden") { state.browse.showHidden = true; state.browse.page = 1; render(); return; }
-    if (a === "unparse-today") { state.browse.noToday = true; state.browse.page = 1; render(); return; }
-    if (a === "unparse") {
-      const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
-      state.browse.q = (stripped || tokenise(state.browse.q)).join(" ");
-      state.browse.page = 1;
-      render();
-      return;
-    }
-    if (a === "view-timeline" || a === "view-list") {
-      state.mineView = a === "view-timeline" ? "timeline" : "list";
-      saveJSON("dc26.mineView", state.mineView); render();
-    }
-    return;
-  }
-  const star = e.target.closest(".star");
-  if (star) { const li = star.closest(".row"); togglePick(li.dataset.id, li); return; }
-  const tile = e.target.closest("[data-explore]");
-  if (tile) {
-    const raw = tile.dataset.explore, i = raw.indexOf(":");
-    if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
-    return;
-  }
-  const hero = e.target.closest("[data-hero]");
-  if (hero) { openSheet("event", hero.dataset.hero); return; }
-  const main = e.target.closest(".row-main");
-  if (main) openSheet("event", main.closest(".row").dataset.id);
-});
 
 /* Starring changes what renders above the row you just tapped - the first
    pick inserts the whole hero card - which used to shove the list down by
@@ -2244,37 +2113,6 @@ function queueBrowseRender() {
 }
 /* Anything that redraws for another reason should not then redraw again. */
 function cancelQueuedBrowseRender() { clearTimeout(browseRenderTimer); browseRenderTimer = null; }
-
-document.querySelector("main").addEventListener("input", e => {
-  if (e.target.id === "exploreQ") { state.explore.q = e.target.value; renderExploreSections(); return; }
-  if (e.target.id === "q") {
-    const was = state.browse.q.trim(), now = e.target.value;
-    state.browse.q = now;
-    /* Both are answers to the last question, not standing preferences. */
-    state.browse.showHidden = false;
-    state.browse.showPast = false;
-    state.browse.noToday = false;
-    if (!was && now.trim()) { state.browse.prevDay = state.browse.day; state.browse.day = "All"; }
-    else if (was && !now.trim() && state.browse.prevDay) { state.browse.day = state.browse.prevDay; state.browse.prevDay = null; }
-    state.browse.page = 1;
-    /* Rebuilding Browse costs ~120KB of HTML and 2,000 nodes. Doing that on
-       every keystroke makes typing lag on a phone; the query itself is already
-       recorded, so only the drawing waits. Before the index exists a query
-       cannot run at all: hold it, and indexReady() queues it. */
-    if (index || !now.trim()) queueBrowseRender(); else pendingQuery = true;
-  }
-});
-/* The keyboard's return key reads Search and puts the keyboard away. */
-document.querySelector("main").addEventListener("keydown", e => {
-  if (e.key === "Enter" && e.target && e.target.id === "q") { e.preventDefault(); e.target.blur(); }
-  const block = (e.key === "Enter" || e.key === " ") && e.target && e.target.closest && e.target.closest(".map-hotel");
-  if (block) { e.preventDefault(); openSheet("hotel", block.dataset.hotel); }
-});
-document.querySelector("main").addEventListener("change", e => {
-  if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }
-  if (e.target.id === "fandom") { state.browse.fandom = e.target.value; state.browse.page = 1; render(); }
-  if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
-});
 
 /* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
 const sheetWrap = document.getElementById("sheetWrap");
@@ -2399,101 +2237,11 @@ function settle(toClosed) {
   }
 }
 
-sheetEl.addEventListener("touchstart", e => {
-  if (e.target.closest(".ev-body")) return;   // let the description scroll
-  dragY = e.touches[0].clientY;
-  dragT = performance.now();
-  dragDy = 0;
-  sheetEl.classList.remove("settling");
-  sheetBackEl.classList.add("dragging");
-}, {passive: true});
-
-sheetEl.addEventListener("touchmove", e => {
-  if (dragY === null) return;
-  const dy = e.touches[0].clientY - dragY;
-  setDrag(dy > 0 ? dy : dy / 4);              // slight resistance upward
-}, {passive: true});
-
-sheetEl.addEventListener("touchend", () => {
-  if (dragY === null) return;
-  const dy = dragDy, ms = performance.now() - dragT;
-  dragY = null;
-  /* Below about one frame we have no reliable velocity, so don't invent one -
-     fall back to distance alone rather than treating a 30px nudge as a flick. */
-  const v = ms >= 16 ? dy / ms : 0;
-  const flicked = dy > 40 && v > 0.6;
-  settle(dy > 70 || flicked);
-});
-
-sheetEl.addEventListener("touchcancel", () => { if (dragY !== null) { dragY = null; settle(false); } });
-
-panelEvent.addEventListener("click", e => {
-  const seeAll = e.target.closest("[data-explore]");
-  if (seeAll) {
-    const raw = seeAll.dataset.explore, i = raw.indexOf(":");
-    closeSheet();
-    if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
-    return;
-  }
-  if (e.target.closest("#closeSheetEvent")) { closeSheet(); return; }
-  const ev = byId.get(state.sheetId);
-  if (!ev) return;
-  if (e.target.closest("#sheetICS")) { exportEventICS(ev); return; }
-  if (e.target.closest("#sheetStar")) {
-    if (picks.has(ev.id)) picks.delete(ev.id); else picks.add(ev.id);
-    savePicks();
-    panelEvent.innerHTML = eventSheetHTML(ev);
-  }
-});
-
-/* The hotel sheet: its rows work like rows anywhere, and an empty hotel
-   offers the search that would fill it. */
-panelHotel.addEventListener("click", e => {
-  const search = e.target.closest('[data-act="map-search"]');
-  if (search) {
-    const {hotel, day} = search.dataset;
-    Object.assign(state.browse, {q: "", day, prevDay: null, hotel, page: 1, showHidden: false, showPast: false, noToday: false});
-    state.tab = "browse";
-    closeSheet();
-    pageScrollTo(0);
-    return;
-  }
-  if (e.target.closest("#closeSheetHotel")) { closeSheet(); return; }
-  if (!state.sheetHotel) return;
-  const star = e.target.closest(".star");
-  if (star) {
-    togglePick(star.closest(".row").dataset.id);
-    panelHotel.innerHTML = hotelSheetHTML(state.sheetHotel, mapDay());
-    return;
-  }
-  const main = e.target.closest(".row-main");
-  if (main) openSheet("event", main.closest(".row").dataset.id);
-});
-
-document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); pageScrollTo(0); });
-document.getElementById("settingsBtn").addEventListener("click", () => openSheet("settings"));
-document.getElementById("closeSheet").addEventListener("click", closeSheet);
-document.getElementById("sheetBack").addEventListener("click", closeSheet);
-document.getElementById("crowd").addEventListener("input", e => { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON("dc26.settings", settings); });
-document.getElementById("noiseDefault").addEventListener("change", e => { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON("dc26.settings", settings); });
-/* Its own key, so nothing that resets settings ever shrinks someone's text.
-   The header is re-measured because its line just changed height. */
-document.getElementById("bigText").addEventListener("change", e => {
-  document.documentElement.classList.toggle("bigtext", e.target.checked);
-  saveJSON("dc26.bigtext", e.target.checked);
-  syncHeaderHeight();
-  render();                    // the timeline re-measures its blocks at the new size
-});
-document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; closeSheet(); if (v) setTimeOverride(v); });
-document.getElementById("clearPreview").addEventListener("click", () => { closeSheet(); setTimeOverride(null); });
-document.getElementById("simChip").addEventListener("click", () => setTimeOverride(null));
-document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
 function applyExploreHash() {
   const target = readExploreHash();
   if (target) { state.tab = "explore"; state.explore.page = target; state.explore.showPast = false; }
   else if (state.explore.page) state.explore.page = null;
 }
-window.addEventListener("hashchange", () => { applyExploreHash(); render(); });
 
 /* A minute changes the countdowns, not usually the list. Rebuilding the whole
    Now tab every 60s threw away and recreated every node under the reader's
@@ -2523,36 +2271,12 @@ function tickNow() {
   });
 }
 
-setInterval(() => {
-  updateClock();
-  renderNotice();              // the con can end on a tick
-  if (state.tab === "now" && sheetWrap.hidden) tickNow();
-  else if (state.tab === "map" && sheetWrap.hidden) { tickMap(); renderMiniBar(); }
-  else renderMiniBar();
-  updateFresh();
-}, 60000);
-document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
-
 /* The sticky filters park directly under the header, whose height changes
    with the clock and the freshness line - measure it rather than guess. */
 function syncHeaderHeight() {
   const h = document.querySelector(".hdr");
   if (h) document.documentElement.style.setProperty("--hdr-h", `${Math.round(h.getBoundingClientRect().height)}px`);
   fitHeaderLine();
-}
-/* Measure at the moments the header is known to change, not only through an
-   observer: ResizeObserver is delivered on the rendering lifecycle, so a page
-   that isn't painting - a background tab, a hidden view - never hears about
-   it. The first measurement also lands before the freshness line has any
-   text, which is 17px short. */
-requestAnimationFrame(syncHeaderHeight);
-window.addEventListener("resize", syncHeaderHeight);
-window.addEventListener("orientationchange", syncHeaderHeight);
-window.addEventListener("load", syncHeaderHeight);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncHeaderHeight).catch(() => {});
-if (window.ResizeObserver) {
-  const hdr = document.querySelector(".hdr");
-  if (hdr) new ResizeObserver(syncHeaderHeight).observe(hdr);
 }
 
 /* ==================================================================
@@ -2574,8 +2298,6 @@ const IS_IOS = /iP(hone|ad|od)/.test(navigator.platform)
    the browser offers one. */
 const NUDGE_SNOOZE_MS = 7 * 24 * 3600 * 1000;
 let installPrompt = null;
-window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; if (state.tab === "now") render(); });
-window.addEventListener("appinstalled", () => { installPrompt = null; render(); });
 function isStandalone() {
   return !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
 }
@@ -2616,14 +2338,6 @@ function edgeTouchMove(e) {
   const atBottom = el.scrollTop + window.innerHeight >= el.scrollHeight - 1;
   if ((dy > 0 && atTop) || (dy < 0 && atBottom)) e.preventDefault();
 }
-if (IS_IOS) {
-  document.addEventListener("touchstart", edgeTouchStart, {passive: true});
-  document.addEventListener("touchmove", edgeTouchMove, {passive: false});
-  /* iOS 26 hands a home-screen web app a bottom inset of about 90px, nearly
-     three times the home indicator, and draws nothing in the difference. Take
-     the indicator's height and no more; Android's insets are real and stay. */
-  document.documentElement.style.setProperty("--safe-bottom", "min(env(safe-area-inset-bottom, 0px), 34px)");
-}
 
 const updatePill = document.getElementById("updatePill");
 
@@ -2643,54 +2357,13 @@ function hideUpdatePill() {
   updatePill.style.opacity = "";
 }
 /* Named so the smoke test can observe the intent; jsdom won't let
-   location.reload be replaced. */
-function reloadNow() { location.reload(); }
-updatePill.addEventListener("click", () => { if (!pillDragged) reloadNow(); });
+   location.reload be replaced. boot() takes a reload option for the same
+   reason, and this is the one place it is called. */
+let reload = () => location.reload();
+function reloadNow() { reload(); }
 
 /* Swipe it away if you'd rather keep reading. */
 let pillY = null, pillDx = 0, pillDragged = false;
-updatePill.addEventListener("touchstart", e => {
-  pillY = e.touches[0].clientX; pillDx = 0; pillDragged = false;
-  updatePill.classList.remove("settling");
-}, {passive: true});
-updatePill.addEventListener("touchmove", e => {
-  if (pillY === null) return;
-  pillDx = e.touches[0].clientX - pillY;
-  if (Math.abs(pillDx) > 6) pillDragged = true;
-  updatePill.style.transform = `translateX(calc(-50% + ${pillDx}px))`;
-  updatePill.style.opacity = String(Math.max(0, 1 - Math.abs(pillDx) / 160));
-}, {passive: true});
-updatePill.addEventListener("touchend", () => {
-  if (pillY === null) return;
-  const dx = pillDx; pillY = null;
-  updatePill.classList.add("settling");
-  if (Math.abs(dx) > 60) { updatePill.style.opacity = "0"; setTimeout(hideUpdatePill, 200); }
-  else { updatePill.style.transform = "translateX(-50%)"; updatePill.style.opacity = "1"; }
-});
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.addEventListener("message", e => {
-    const t = e.data && e.data.type;
-    if (t === "schedule-updated") {
-      /* The worker hands over the new generated_at; the header can say how
-         fresh the waiting copy is while the pill offers it. */
-      if (e.data.generated_at) { meta.generated_at = e.data.generated_at; updateFresh(); }
-      showUpdatePill();
-    }
-    /* The worker serves the cached schedule and then checks the network. Its
-       verdict arrives after the page has already rendered, so the freshness
-       line is corrected in place rather than guessed at load. */
-    if (t === "schedule-offline") { servedOffline = true; updateFresh(); }
-    if (t === "schedule-online") { servedOffline = false; updateFresh(); }
-  });
-  window.addEventListener("load", () => {
-    /* Don't swallow this. A worker that silently fails to register looks
-       exactly like one that works until you turn the signal off. */
-    navigator.serviceWorker.register("./sw.js").catch(err => {
-      console.warn("Offline support unavailable:", err && err.message || err);
-    });
-  });
-}
 
 /* Coming back to the app after a while: check the schedule once, quietly.
    The service worker does the checking when there is one - a fetch of
@@ -2700,7 +2373,7 @@ if ("serviceWorker" in navigator) {
    under the reader either way; the pill offers the reload. Timers stop in
    the background too, so the freshness text is brought up to date first. */
 const RECHECK_MS = 15 * 60000;
-let lastScheduleCheck = now().getTime();     // loading was a check
+let lastScheduleCheck = 0;                   // boot() sets it: loading was a check
 async function recheckSchedule() {
   updateFresh();
   if (now().getTime() - lastScheduleCheck < RECHECK_MS) return false;
@@ -2719,7 +2392,401 @@ async function recheckSchedule() {
   } catch (e) { /* no signal: nothing to say, the copy on screen stands */ }
   return true;
 }
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") recheckSchedule(); });
-window.addEventListener("pageshow", () => { recheckSchedule(); });
 
-load();
+/* ==================================================================
+   Boot. Everything above is declarations, and the consts that read storage
+   and the DOM as the module is imported. Nothing else happens until boot()
+   is called - once, by src/main.js - and then it happens in the order it
+   always did: listeners on one element fire in the order they were added,
+   so the statements below keep the file order they had when they ran as
+   the script parsed.
+
+   events: the schedule, already parsed. load() uses it instead of fetching,
+   and still reaches the first render() with no await on the way.
+   reload: what reloadNow() calls, for a caller that cannot replace
+   location.reload. The option names are the contract; the locals are
+   renamed because events and reload are the module's own names too.
+
+   The handle is state and operations, never internals. ready is load()'s
+   promise.
+   ================================================================== */
+export function boot({events: data, reload: reloadWith} = {}) {
+  if (reloadWith) reload = reloadWith;
+
+  document.documentElement.classList.toggle("bigtext", !!loadJSON("dc26.bigtext", false));
+  document.body.insertAdjacentHTML("beforeend", devMarkHTML());
+  initTimeOverride();
+
+  scroller.addEventListener("scroll", () => {
+    if (spyQueued) return;
+    spyQueued = true;
+    requestAnimationFrame(() => {
+      spyQueued = false;
+      if (performance.now() < spyHoldUntil) return;
+      syncActiveSection();
+    });
+  }, {passive: true});
+
+  document.querySelector(".nav").addEventListener("click", e => {
+    const b = e.target.closest("button[data-tab]"); if (!b) return;
+    state.tab = b.dataset.tab; render(); pageScrollTo(0);
+  });
+
+  document.querySelector("main").addEventListener("click", e => {
+    const chip = e.target.closest("[data-chip]");
+    if (chip) {
+      const {chip: kind, value} = chip.dataset;
+      if (kind === "now-hotel") { state.now.hotel = value; state.now.limit = 80; }
+      else if (kind === "day") state.browse.day = value;
+      else if (kind === "hotel") state.browse.hotel = state.browse.hotel === value ? "All" : value;
+      else if (kind === "type") state.browse.type = value;
+      else if (kind === "kind") state.browse.kind = value;
+      else if (kind === "map-day") state.map.day = value;
+      state.browse.page = 1; render();
+      revealChip(document.querySelector(`.chips [data-chip="${kind}"][data-value="${cssEsc(value)}"]`));
+      return;
+    }
+    const mapHotel = e.target.closest(".map-hotel, .map-pill");
+    if (mapHotel) { openSheet("hotel", mapHotel.dataset.hotel); return; }
+    const act = e.target.closest("[data-act]");
+    if (act) {
+      const a = act.dataset.act;
+      if (a === "more-now") { state.now.limit += 100; render(); }
+      if (a === "more-browse") { state.browse.page++; render(); }
+      if (a === "ics") exportICS();
+      if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
+      if (a === "suggest") {
+        state.browse.q = `"${act.dataset.name}"`;
+        state.browse.page = 1;
+        if (state.browse.day !== "All") { state.browse.prevDay = state.browse.day; state.browse.day = "All"; }
+        render();
+        return;
+      }
+      if (a === "unsuggest") {
+        state.browse.q = "";
+        if (state.browse.prevDay) { state.browse.day = state.browse.prevDay; state.browse.prevDay = null; }
+        state.browse.page = 1;
+        render();
+        return;
+      }
+      if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
+      if (a === "dismiss-news") { pickNews = []; savePickNews(); render(); return; }
+      if (a === "dismiss-archive") { saveJSON(ARCHIVE_NOTICE_KEY, CON.year); render(); return; }
+      if (a === "nudge-later") { saveJSON("dc26.nudgeSnoozedUntil", now().getTime() + NUDGE_SNOOZE_MS); render(); return; }
+      if (a === "nudge-install") {
+        if (installPrompt) { const p = installPrompt; installPrompt = null; p.prompt(); }
+        return;
+      }
+      if (a === "explore-back") { closeExplorePage(); return; }
+      if (a === "fol-add") { scrollToGrid(); return; }
+      if (a === "explore-jump") {
+        markActiveSection(act.dataset.section);
+        spyHoldUntil = performance.now() + 700;
+        scrollToExploreSection(act.dataset.section);
+        return;
+      }
+      if (a === "explore-all") { state.explore.expanded[act.dataset.section] = true; renderExploreSections(); return; }
+      if (a === "fol-toggle") {
+        state.following.open = state.following.open === false;
+        saveJSON("dc26.followingOpen", state.following.open);
+        render();
+        return;
+      }
+      if (a === "unfollow") {
+        const raw = act.dataset.follow || "", i = raw.indexOf(":");
+        if (i > 0) { toggleFollow(raw.slice(0, i), raw.slice(i + 1)); render(); }
+        return;
+      }
+      if (a === "fol-interest" || a === "fol-time") {
+        state.following.layout = a === "fol-time" ? "time" : "interest";
+        saveJSON("dc26.followingLayout", state.following.layout);
+        render();
+        return;
+      }
+      if (a === "fol-more") { state.following.expanded[act.dataset.follow] = true; render(); return; }
+      if (a === "fol-past") {
+        const k = act.dataset.follow;
+        state.following.showPast[k] = !state.following.showPast[k];
+        render();
+        return;
+      }
+      if (a === "explore-past") { state.explore.showPast = !state.explore.showPast; render(); return; }
+      if (a === "toggle-follow") {
+        const pg = state.explore.page;
+        if (pg) { toggleFollow(pg.kind, pg.key); render(); }
+        return;
+      }
+      if (a === "show-hidden") { state.browse.showHidden = true; state.browse.page = 1; render(); return; }
+      if (a === "unparse-today") { state.browse.noToday = true; state.browse.page = 1; render(); return; }
+      if (a === "unparse") {
+        const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
+        state.browse.q = (stripped || tokenise(state.browse.q)).join(" ");
+        state.browse.page = 1;
+        render();
+        return;
+      }
+      if (a === "view-timeline" || a === "view-list") {
+        state.mineView = a === "view-timeline" ? "timeline" : "list";
+        saveJSON("dc26.mineView", state.mineView); render();
+      }
+      return;
+    }
+    const star = e.target.closest(".star");
+    if (star) { const li = star.closest(".row"); togglePick(li.dataset.id, li); return; }
+    const tile = e.target.closest("[data-explore]");
+    if (tile) {
+      const raw = tile.dataset.explore, i = raw.indexOf(":");
+      if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
+      return;
+    }
+    const hero = e.target.closest("[data-hero]");
+    if (hero) { openSheet("event", hero.dataset.hero); return; }
+    const main = e.target.closest(".row-main");
+    if (main) openSheet("event", main.closest(".row").dataset.id);
+  });
+
+  document.querySelector("main").addEventListener("input", e => {
+    if (e.target.id === "exploreQ") { state.explore.q = e.target.value; renderExploreSections(); return; }
+    if (e.target.id === "q") {
+      const was = state.browse.q.trim(), now = e.target.value;
+      state.browse.q = now;
+      /* Both are answers to the last question, not standing preferences. */
+      state.browse.showHidden = false;
+      state.browse.showPast = false;
+      state.browse.noToday = false;
+      if (!was && now.trim()) { state.browse.prevDay = state.browse.day; state.browse.day = "All"; }
+      else if (was && !now.trim() && state.browse.prevDay) { state.browse.day = state.browse.prevDay; state.browse.prevDay = null; }
+      state.browse.page = 1;
+      /* Rebuilding Browse costs ~120KB of HTML and 2,000 nodes. Doing that on
+         every keystroke makes typing lag on a phone; the query itself is already
+         recorded, so only the drawing waits. Before the index exists a query
+         cannot run at all: hold it, and indexReady() queues it. */
+      if (index || !now.trim()) queueBrowseRender(); else pendingQuery = true;
+    }
+  });
+  /* The keyboard's return key reads Search and puts the keyboard away. */
+  document.querySelector("main").addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.target && e.target.id === "q") { e.preventDefault(); e.target.blur(); }
+    const block = (e.key === "Enter" || e.key === " ") && e.target && e.target.closest && e.target.closest(".map-hotel");
+    if (block) { e.preventDefault(); openSheet("hotel", block.dataset.hotel); }
+  });
+  document.querySelector("main").addEventListener("change", e => {
+    if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }
+    if (e.target.id === "fandom") { state.browse.fandom = e.target.value; state.browse.page = 1; render(); }
+    if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
+  });
+
+  sheetEl.addEventListener("touchstart", e => {
+    if (e.target.closest(".ev-body")) return;   // let the description scroll
+    dragY = e.touches[0].clientY;
+    dragT = performance.now();
+    dragDy = 0;
+    sheetEl.classList.remove("settling");
+    sheetBackEl.classList.add("dragging");
+  }, {passive: true});
+
+  sheetEl.addEventListener("touchmove", e => {
+    if (dragY === null) return;
+    const dy = e.touches[0].clientY - dragY;
+    setDrag(dy > 0 ? dy : dy / 4);              // slight resistance upward
+  }, {passive: true});
+
+  sheetEl.addEventListener("touchend", () => {
+    if (dragY === null) return;
+    const dy = dragDy, ms = performance.now() - dragT;
+    dragY = null;
+    /* Below about one frame we have no reliable velocity, so don't invent one -
+       fall back to distance alone rather than treating a 30px nudge as a flick. */
+    const v = ms >= 16 ? dy / ms : 0;
+    const flicked = dy > 40 && v > 0.6;
+    settle(dy > 70 || flicked);
+  });
+
+  sheetEl.addEventListener("touchcancel", () => { if (dragY !== null) { dragY = null; settle(false); } });
+
+  panelEvent.addEventListener("click", e => {
+    const seeAll = e.target.closest("[data-explore]");
+    if (seeAll) {
+      const raw = seeAll.dataset.explore, i = raw.indexOf(":");
+      closeSheet();
+      if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
+      return;
+    }
+    if (e.target.closest("#closeSheetEvent")) { closeSheet(); return; }
+    const ev = byId.get(state.sheetId);
+    if (!ev) return;
+    if (e.target.closest("#sheetICS")) { exportEventICS(ev); return; }
+    if (e.target.closest("#sheetStar")) {
+      if (picks.has(ev.id)) picks.delete(ev.id); else picks.add(ev.id);
+      savePicks();
+      panelEvent.innerHTML = eventSheetHTML(ev);
+    }
+  });
+
+  /* The hotel sheet: its rows work like rows anywhere, and an empty hotel
+     offers the search that would fill it. */
+  panelHotel.addEventListener("click", e => {
+    const search = e.target.closest('[data-act="map-search"]');
+    if (search) {
+      const {hotel, day} = search.dataset;
+      Object.assign(state.browse, {q: "", day, prevDay: null, hotel, page: 1, showHidden: false, showPast: false, noToday: false});
+      state.tab = "browse";
+      closeSheet();
+      pageScrollTo(0);
+      return;
+    }
+    if (e.target.closest("#closeSheetHotel")) { closeSheet(); return; }
+    if (!state.sheetHotel) return;
+    const star = e.target.closest(".star");
+    if (star) {
+      togglePick(star.closest(".row").dataset.id);
+      panelHotel.innerHTML = hotelSheetHTML(state.sheetHotel, mapDay());
+      return;
+    }
+    const main = e.target.closest(".row-main");
+    if (main) openSheet("event", main.closest(".row").dataset.id);
+  });
+
+  document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); pageScrollTo(0); });
+  document.getElementById("settingsBtn").addEventListener("click", () => openSheet("settings"));
+  document.getElementById("closeSheet").addEventListener("click", closeSheet);
+  document.getElementById("sheetBack").addEventListener("click", closeSheet);
+  document.getElementById("crowd").addEventListener("input", e => { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON("dc26.settings", settings); });
+  document.getElementById("noiseDefault").addEventListener("change", e => { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON("dc26.settings", settings); });
+  /* Its own key, so nothing that resets settings ever shrinks someone's text.
+     The header is re-measured because its line just changed height. */
+  document.getElementById("bigText").addEventListener("change", e => {
+    document.documentElement.classList.toggle("bigtext", e.target.checked);
+    saveJSON("dc26.bigtext", e.target.checked);
+    syncHeaderHeight();
+    render();                    // the timeline re-measures its blocks at the new size
+  });
+  document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; closeSheet(); if (v) setTimeOverride(v); });
+  document.getElementById("clearPreview").addEventListener("click", () => { closeSheet(); setTimeOverride(null); });
+  document.getElementById("simChip").addEventListener("click", () => setTimeOverride(null));
+  document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
+
+  window.addEventListener("hashchange", () => { applyExploreHash(); render(); });
+
+  setInterval(() => {
+    updateClock();
+    renderNotice();              // the con can end on a tick
+    if (state.tab === "now" && sheetWrap.hidden) tickNow();
+    else if (state.tab === "map" && sheetWrap.hidden) { tickMap(); renderMiniBar(); }
+    else renderMiniBar();
+    updateFresh();
+  }, 60000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+
+  /* Measure at the moments the header is known to change, not only through an
+     observer: ResizeObserver is delivered on the rendering lifecycle, so a page
+     that isn't painting - a background tab, a hidden view - never hears about
+     it. The first measurement also lands before the freshness line has any
+     text, which is 17px short. */
+  requestAnimationFrame(syncHeaderHeight);
+  window.addEventListener("resize", syncHeaderHeight);
+  window.addEventListener("orientationchange", syncHeaderHeight);
+  window.addEventListener("load", syncHeaderHeight);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncHeaderHeight).catch(() => {});
+  if (window.ResizeObserver) {
+    const hdr = document.querySelector(".hdr");
+    if (hdr) new ResizeObserver(syncHeaderHeight).observe(hdr);
+  }
+
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; if (state.tab === "now") render(); });
+  window.addEventListener("appinstalled", () => { installPrompt = null; render(); });
+
+  if (IS_IOS) {
+    document.addEventListener("touchstart", edgeTouchStart, {passive: true});
+    document.addEventListener("touchmove", edgeTouchMove, {passive: false});
+    /* iOS 26 hands a home-screen web app a bottom inset of about 90px, nearly
+       three times the home indicator, and draws nothing in the difference. Take
+       the indicator's height and no more; Android's insets are real and stay. */
+    document.documentElement.style.setProperty("--safe-bottom", "min(env(safe-area-inset-bottom, 0px), 34px)");
+  }
+
+  updatePill.addEventListener("click", () => { if (!pillDragged) reloadNow(); });
+
+  updatePill.addEventListener("touchstart", e => {
+    pillY = e.touches[0].clientX; pillDx = 0; pillDragged = false;
+    updatePill.classList.remove("settling");
+  }, {passive: true});
+  updatePill.addEventListener("touchmove", e => {
+    if (pillY === null) return;
+    pillDx = e.touches[0].clientX - pillY;
+    if (Math.abs(pillDx) > 6) pillDragged = true;
+    updatePill.style.transform = `translateX(calc(-50% + ${pillDx}px))`;
+    updatePill.style.opacity = String(Math.max(0, 1 - Math.abs(pillDx) / 160));
+  }, {passive: true});
+  updatePill.addEventListener("touchend", () => {
+    if (pillY === null) return;
+    const dx = pillDx; pillY = null;
+    updatePill.classList.add("settling");
+    if (Math.abs(dx) > 60) { updatePill.style.opacity = "0"; setTimeout(hideUpdatePill, 200); }
+    else { updatePill.style.transform = "translateX(-50%)"; updatePill.style.opacity = "1"; }
+  });
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("message", e => {
+      const t = e.data && e.data.type;
+      if (t === "schedule-updated") {
+        /* The worker hands over the new generated_at; the header can say how
+           fresh the waiting copy is while the pill offers it. */
+        if (e.data.generated_at) { meta.generated_at = e.data.generated_at; updateFresh(); }
+        showUpdatePill();
+      }
+      /* The worker serves the cached schedule and then checks the network. Its
+         verdict arrives after the page has already rendered, so the freshness
+         line is corrected in place rather than guessed at load. */
+      if (t === "schedule-offline") { servedOffline = true; updateFresh(); }
+      if (t === "schedule-online") { servedOffline = false; updateFresh(); }
+    });
+    window.addEventListener("load", () => {
+      /* Don't swallow this. A worker that silently fails to register looks
+         exactly like one that works until you turn the signal off. */
+      navigator.serviceWorker.register("./sw.js").catch(err => {
+        console.warn("Offline support unavailable:", err && err.message || err);
+      });
+    });
+  }
+
+  lastScheduleCheck = now().getTime();     // loading was a check
+
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") recheckSchedule(); });
+  window.addEventListener("pageshow", () => { recheckSchedule(); });
+
+  const ready = load(data);
+  return {
+    state, render, now, setTimeOverride,
+    picks: {get: () => picks, set: ids => { picks = new Set(ids); savePicks(); }},
+    follows: {get: () => follows, set: list => { follows = [...list]; saveFollows(); }},
+    news: {set: list => { pickNews = list; savePickNews(); }, clear: () => { pickNews = []; savePickNews(); }},
+    get meta() { return meta; },
+    get events() { return events; },
+    BOOT, reconcilePicks, recheckSchedule, openSheet, closeSheet, ready,
+  };
+}
+
+/* The test surface: every function and const the smoke harness reaches by
+   name. It reaches them through window.eval on the built page, where they
+   are the script's top-level names; this list is that coupling written
+   down. The lets are not here - a test reaches those through boot()'s
+   handle - and nor is reloadNow, which the reload option replaces. It is
+   pruned as functions move to modules of their own. */
+export {
+  activeFilters, browseResults, cleanRoom, closeSheet, conDayKey, conPhase, currentLocation,
+  deviceLine, edgeTouchMove, edgeTouchStart, eventsFor, expandQuery, fmtMins, fmtShort,
+  hiddenForQueryHTML, hideUpdatePill, indexReady, initTimeOverride, isFollowing, isStandalone,
+  layoutColumns, leaveInfo, loadJSON, mapCardHTML, mapDay, markActiveSection, now, nowModel,
+  nowSignature, nudgeCopy, openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery,
+  pickActiveSection, placeHTML, queueBrowseRender, readExploreHash, recheckSchedule,
+  reconcilePicks, render, renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice,
+  renderNow, revealChip, saveFollows, saveJSON, savePickNews, savePicks, setDrag,
+  setExploreHash, setTimeOverride, showUpdatePill, suggestionsFor, termQuality, tickMap,
+  tickNow, toggleFollow, togglePick, updateClock, updateFresh, walkMin,
+
+  BOOT, BUILD, CON, CON_DAYS, conEnded, DAY_LONG, EXPLORE_HEAD, FOLLOW_KINDS, followId,
+  getCatalogue, hotelGroup, hotelMatches, hotelPhrase, hotelShort, HOUR_PX, IS_IOS, isCeleb,
+  isNoise, isSimulated, LEAVE_BUFFER_MIN, MAP_HOTELS, NOISE_TRACKS, pageScrollTop, samePlace,
+  SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER, settings, state, STOPWORDS, TIME_OVERRIDE_KEY, WALK,
+};
