@@ -263,7 +263,9 @@ contract are unchanged; hashed assets are a later decision, taken with the
 service-worker work. No framework in 2027; revisit only if hand-rolled
 re-rendering becomes where the bugs live. No TypeScript in step 4; decide
 at the Supabase step, where generated database types are the concrete
-payoff.
+payoff. 2026-09-18: the bundle is minified with no source map; the Rolldown
+settings that held `dist/` to `src/`'s syntax tree were step-4 scaffolding
+for the smoke harness and left with it.
 **Why:** Testable functions, a real dependency graph, and a tool the rest
 of the ecosystem uses. Single-file output makes "zero behaviour change"
 literal and verifiable.

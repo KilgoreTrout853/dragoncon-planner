@@ -128,14 +128,17 @@ describe("vite build", () => {
     });
   });
 
+  /* The built script is minified: no whitespace to rely on, an `if` may be
+     printed as `&&`, and a string literal as a template, so a quote is any
+     of the three. */
   describe("the service worker registration, in the built script", () => {
     const html = () => read(plain.out, "index.html");
 
     it("the page registers ./sw.js by relative path, so its scope stays under /dragoncon-planner/ [1284]", () => {
-      expect(html()).toMatch(/navigator\.serviceWorker\.register\(\s*["']\.\/sw\.js["']\s*\)/);
+      expect(html()).toMatch(/navigator\.serviceWorker\.register\(\s*["'`]\.\/sw\.js["'`]\s*\)/);
     });
     it("registration is guarded by a serviceWorker capability check [1286]", () => {
-      expect(html()).toMatch(/if\s*\(\s*["']serviceWorker["']\s+in\s+navigator\s*\)/);
+      expect(html()).toMatch(/["'`]serviceWorker["'`]\s*in\s*navigator/);
     });
   });
 
