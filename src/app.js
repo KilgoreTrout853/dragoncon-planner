@@ -8,25 +8,13 @@ import {
   CON, CON_DAYS, conDayKey, conEnded, conPhase, DAY_LABEL, DAY_LONG, initTimeOverride, isPast,
   isSimulated, localInputValue, now, setOverride, timeOverride,
 } from "./time.js";
+import {
+  cleanRoom, HOTEL_ORDER, hotelGroup, hotelMatches, hotelPhrase, hotelShort, hotelVar,
+  LEAVE_BUFFER_MIN, placeHTML, WALK, walkMin,
+} from "./venues.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
-const HOTEL_ORDER = ["Marriott","Hyatt","Hilton","Courtland Grand","Westin","AmericasMart","Hardy Ivy Park","Streaming","Other","Unknown"];
-const HOTEL_VAR = {"Marriott":"Marriott","Hyatt":"Hyatt","Hilton":"Hilton","Courtland Grand":"Courtland","Westin":"Westin","AmericasMart":"Mart","Hardy Ivy Park":"Hardy","Streaming":"Streaming","Other":"Other","Unknown":"Other"};
-const HOTEL_SHORT = {"Courtland Grand":"Courtland","AmericasMart":"Mart","Hardy Ivy Park":"Hardy Ivy"};
-/* Streaming and the offsite venues share one chip. Neither is a con hotel,
-   both wear the same grey, and together they are under 3% of the schedule.
-   The data keeps them apart: a stream has no walk, an offsite venue does. */
-const HOTEL_GROUP = {"Streaming":"Other","Other":"Other","Unknown":"Other"};
-// Rough walking minutes between venues at con pace. Edit freely. Same venue = 5 (room changes, elevators).
-const WALK = {
-  "Marriott|Hyatt":8, "Marriott|Hilton":7, "Hyatt|Hilton":12,
-  "Marriott|Courtland Grand":10, "Hilton|Courtland Grand":8, "Hyatt|Courtland Grand":15,
-  "Westin|Hyatt":8, "Westin|Marriott":12, "Westin|Hilton":15, "Westin|Courtland Grand":18,
-  "AmericasMart|Hyatt":7, "AmericasMart|Marriott":12, "AmericasMart|Westin":8, "AmericasMart|Hilton":15, "AmericasMart|Courtland Grand":18,
-  "Hardy Ivy Park|Marriott":5, "Hardy Ivy Park|Hilton":4, "Hardy Ivy Park|Hyatt":10, "Hardy Ivy Park|Courtland Grand":8, "Hardy Ivy Park|Westin":12, "Hardy Ivy Park|AmericasMart":12,
-};
-const LEAVE_BUFFER_MIN = 10;   /* slack on every leave-by: lifts, crowds, one wrong turn */
 const NOISE_TRACKS = new Set(["Epic Photos","Video Room"]);
 const isNoise = ev => NOISE_TRACKS.has(ev.track) || /^photo session/i.test(ev.title);
 
@@ -221,41 +209,10 @@ function eventsFor(follow) {
     default: return [];
   }
 }
-/* The source marks offsite venues with a leading "O ": "O Joystick Gamebar".
-   The scraper now drops it; this covers data scraped before it did. */
-function cleanRoom(hotel, room) {
-  return hotel === "Other" ? String(room || "").replace(/^O\s+/, "") : room;
-}
-/* "Hilton · 313-314": the hotel first, so a line reads where before which
-   room. A stream is "Streaming"; an offsite venue is itself - the cleaned
-   room, else the location without its O marker, else "Offsite"; a blank
-   room leaves the hotel alone. The parts are spans so the row chip can
-   shorten the room and never the hotel. */
-function placeHTML(ev) {
-  if (ev.hotel === "Streaming") return `<span class="rh">Streaming</span>`;
-  if (ev.hotel === "Other") {
-    const venue = (ev.room && ev.room !== "Other" ? ev.room : cleanRoom("Other", ev.location)) || "Offsite";
-    return `<span class="rr">${esc(venue === "Other" ? "Offsite" : venue)}</span>`;
-  }
-  if (!ev.hotel || ev.hotel === "Unknown") return `<span class="rr">${esc(ev.room || ev.location || "Location TBA")}</span>`;
-  const room = String(ev.room || "").trim();
-  return `<span class="rh">${esc(hotelShort(ev.hotel))}</span>${room ? ` · <span class="rr">${esc(room)}</span>` : ""}`;
-}
-function walkMin(a, b) {
-  if (!a || !b || a === "Streaming" || b === "Streaming") return 0;
-  if (a === b) return Math.round(5 * settings.crowd);
-  const base = WALK[`${a}|${b}`] ?? WALK[`${b}|${a}`] ?? 12;
-  return Math.round(base * settings.crowd);
-}
 /* "unknown" and untagged are not celebrities - absence of evidence isn't
    evidence, so they drop out when the toggle is on. */
 const isCeleb = e => !!(e.tags && e.tags.guests === "celebrity");
 const CELEB_BADGE = `<span class="celeb" title="Celebrity guest">Celebrity</span>`;
-const hotelShort = h => HOTEL_SHORT[h] || h;
-const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
-const hotelGroup = h => HOTEL_GROUP[h] || h;
-/* A chip value is a venue or a group of them; "All" is everything. */
-const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hotel) === v;
 
 const DATA_URL = `data/${CON.year}/events.json`;
 
@@ -507,8 +464,6 @@ const MAP_HOTELS = {
 /* Each pair is left-to-right or top-to-bottom. None crosses Peachtree. */
 const MAP_BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
 
-/* "Search the Hyatt on Saturday": hotels take "the", the park does not. */
-const hotelPhrase = h => h === "Hardy Ivy Park" ? h : `the ${hotelShort(h)}`;
 /* The user's picks in one hotel on one con day, in time order (events is). */
 const mapPicksAt = (hotel, day) => events.filter(e => picks.has(e.id) && e.hotel === hotel && e._cd === day);
 function mapCounts(day) {
@@ -2658,17 +2613,17 @@ export function boot({events: data, reload: reloadWith} = {}) {
    through boot()'s handle - and nor is reloadNow, which the reload option
    replaces. */
 export {
-  activeFilters, browseResults, cleanRoom, closeSheet, currentLocation, edgeTouchMove,
-  edgeTouchStart, eventsFor, expandQuery, hiddenForQueryHTML, hideUpdatePill, indexReady,
-  isFollowing, layoutColumns, leaveInfo, mapCardHTML, mapDay, markActiveSection, nowModel,
-  nowSignature, nudgeCopy, openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery,
-  pickActiveSection, placeHTML, queueBrowseRender, readExploreHash, recheckSchedule,
-  reconcilePicks, render, renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice,
-  renderNow, revealChip, saveFollows, savePickNews, savePicks, setDrag, setExploreHash,
-  setTimeOverride, showUpdatePill, suggestionsFor, termQuality, tickMap, tickNow, toggleFollow,
-  togglePick, updateClock, updateFresh, walkMin,
+  activeFilters, browseResults, closeSheet, currentLocation, edgeTouchMove, edgeTouchStart,
+  eventsFor, expandQuery, hiddenForQueryHTML, hideUpdatePill, indexReady, isFollowing,
+  layoutColumns, leaveInfo, mapCardHTML, mapDay, markActiveSection, nowModel, nowSignature,
+  nudgeCopy, openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery,
+  pickActiveSection, queueBrowseRender, readExploreHash, recheckSchedule, reconcilePicks, render,
+  renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice, renderNow, revealChip,
+  saveFollows, savePickNews, savePicks, setDrag, setExploreHash, setTimeOverride, showUpdatePill,
+  suggestionsFor, termQuality, tickMap, tickNow, toggleFollow, togglePick, updateClock,
+  updateFresh,
 
-  BOOT, EXPLORE_HEAD, FOLLOW_KINDS, followId, getCatalogue, hotelGroup, hotelMatches,
-  hotelPhrase, hotelShort, HOUR_PX, isCeleb, isNoise, LEAVE_BUFFER_MIN, MAP_HOTELS, NOISE_TRACKS,
-  pageScrollTop, samePlace, SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER, STOPWORDS, WALK,
+  BOOT, EXPLORE_HEAD, FOLLOW_KINDS, followId, getCatalogue, HOUR_PX, isCeleb, isNoise,
+  MAP_HOTELS, NOISE_TRACKS, pageScrollTop, samePlace, SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER,
+  STOPWORDS,
 };
