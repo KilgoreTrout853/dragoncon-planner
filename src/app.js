@@ -3,6 +3,7 @@ import { dayOf, esc, fmt, fmtMins, fmtShort, minutesBetween, pad, toDate } from 
 import { loadJSON, readSession, saveJSON, writeSession } from "./storage.js";
 import { IS_IOS, isStandalone } from "./platform.js";
 import { BUILD, deviceLine, devMarkHTML } from "./build.js";
+import { settings, state } from "./state.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
@@ -109,19 +110,10 @@ function aliasesFor(ev, text) {
   return out.join(" ");
 }
 
-const settings = loadJSON("dc26.settings", {crowd: 1.3, hideNoise: true});
 let picks = new Set(loadJSON("dc26.picks", []));
 let events = [], byId = new Map(), tracks = [], hotels = [], hotelChips = [];
 let fromNetwork = null, servedOffline = false;
 let meta = {};
-const state = {
-  tab: "now", sheetId: null, sheetHotel: null, mineView: loadJSON("dc26.mineView", "timeline"),
-  now: {hotel: "All", limit: 80},
-  map: {day: null},                       /* null: follow the clock */
-  explore: {q: "", page: null, scroll: 0, showPast: false, expanded: {}, active: null},
-  following: {layout: loadJSON("dc26.followingLayout", "interest"), expanded: {}, showPast: {}, open: loadJSON("dc26.followingOpen", true)},
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
-};
 const PAGE = 150;
 
 /* Everything that scrolls the page goes through here, because the page is
@@ -2735,5 +2727,5 @@ export {
   BOOT, CON, CON_DAYS, conEnded, DAY_LONG, EXPLORE_HEAD, FOLLOW_KINDS, followId, getCatalogue,
   hotelGroup, hotelMatches, hotelPhrase, hotelShort, HOUR_PX, isCeleb, isNoise, isSimulated,
   LEAVE_BUFFER_MIN, MAP_HOTELS, NOISE_TRACKS, pageScrollTop, samePlace, SEARCH_DEBOUNCE_MS,
-  SEARCH_PLACEHOLDER, settings, state, STOPWORDS, TIME_OVERRIDE_KEY, WALK,
+  SEARCH_PLACEHOLDER, STOPWORDS, TIME_OVERRIDE_KEY, WALK,
 };
