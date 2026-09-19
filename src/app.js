@@ -1,123 +1,43 @@
-import MiniSearch from "minisearch";
+import { dayOf, esc, fmtMins, fmtShort, minutesBetween, toDate } from "./util.js";
+import { loadJSON, saveJSON } from "./storage.js";
+import { IS_IOS, isStandalone } from "./platform.js";
+import { deviceLine, devMarkHTML } from "./build.js";
+import { settings, state } from "./state.js";
+import {
+  CON, CON_DAYS, conDayKey, conEnded, conPhase, DAY_LABEL, DAY_LONG, initTimeOverride, isPast,
+  isSimulated, localInputValue, now, setOverride, timeOverride,
+} from "./time.js";
+import { hotelMatches, hotelPhrase, hotelShort, hotelVar, placeHTML, WALK, walkMin } from "./venues.js";
+import {
+  byId, DATA_URL, events, fandomCounts, hotelChips, isCeleb, isNoise, meta, NOISE_TRACKS,
+  replaceSchedule, tracks,
+} from "./data.js";
+import {
+  clearNews, pickNews, pickNewsHTML, picks, reconcilePicks, replaceNews, replacePicks,
+  savePickNews, savePicks,
+} from "./picks.js";
+import {
+  eventsFor, FOLLOW_KINDS, followId, follows, isFollowing, replaceFollows, saveFollows,
+  toggleFollow,
+} from "./follows.js";
+import { exportEventICS, exportICS } from "./ics.js";
+import { currentLocation, gapHTML, leaveInfo, nextPickInConDay } from "./leave.js";
+import {
+  browseResults, buildIndex, buildSuggestIndex, index, KIND_LABELS, processTerm,
+  SEARCH_PLACEHOLDER, stripPhrase, suggestDocs, suggestionsFor, tokenise,
+} from "./search.js";
+import { CELEB_BADGE, chipHTML, rowHTML } from "./ui.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
-const CON_DAYS = ["2026-09-02","2026-09-03","2026-09-04","2026-09-05","2026-09-06","2026-09-07"];
-const DAY_LABEL = {"2026-09-02":"Wed","2026-09-03":"Thu","2026-09-04":"Fri","2026-09-05":"Sat","2026-09-06":"Sun","2026-09-07":"Mon"};
-const DAY_LONG = {"2026-09-02":"Wednesday","2026-09-03":"Thursday","2026-09-04":"Friday","2026-09-05":"Saturday","2026-09-06":"Sunday","2026-09-07":"Monday"};
-const HOTEL_ORDER = ["Marriott","Hyatt","Hilton","Courtland Grand","Westin","AmericasMart","Hardy Ivy Park","Streaming","Other","Unknown"];
-const HOTEL_VAR = {"Marriott":"Marriott","Hyatt":"Hyatt","Hilton":"Hilton","Courtland Grand":"Courtland","Westin":"Westin","AmericasMart":"Mart","Hardy Ivy Park":"Hardy","Streaming":"Streaming","Other":"Other","Unknown":"Other"};
-const HOTEL_SHORT = {"Courtland Grand":"Courtland","AmericasMart":"Mart","Hardy Ivy Park":"Hardy Ivy"};
-/* Streaming and the offsite venues share one chip. Neither is a con hotel,
-   both wear the same grey, and together they are under 3% of the schedule.
-   The data keeps them apart: a stream has no walk, an offsite venue does. */
-const HOTEL_GROUP = {"Streaming":"Other","Other":"Other","Unknown":"Other"};
-// Rough walking minutes between venues at con pace. Edit freely. Same venue = 5 (room changes, elevators).
-const WALK = {
-  "Marriott|Hyatt":8, "Marriott|Hilton":7, "Hyatt|Hilton":12,
-  "Marriott|Courtland Grand":10, "Hilton|Courtland Grand":8, "Hyatt|Courtland Grand":15,
-  "Westin|Hyatt":8, "Westin|Marriott":12, "Westin|Hilton":15, "Westin|Courtland Grand":18,
-  "AmericasMart|Hyatt":7, "AmericasMart|Marriott":12, "AmericasMart|Westin":8, "AmericasMart|Hilton":15, "AmericasMart|Courtland Grand":18,
-  "Hardy Ivy Park|Marriott":5, "Hardy Ivy Park|Hilton":4, "Hardy Ivy Park|Hyatt":10, "Hardy Ivy Park|Courtland Grand":8, "Hardy Ivy Park|Westin":12, "Hardy Ivy Park|AmericasMart":12,
-};
-const LEAVE_BUFFER_MIN = 10;   /* slack on every leave-by: lifts, crowds, one wrong turn */
-const NOISE_TRACKS = new Set(["Epic Photos","Video Room"]);
-const isNoise = ev => NOISE_TRACKS.has(ev.track) || /^photo session/i.test(ev.title);
 
-/* Con vocabulary. If an event mentions any phrase in a group, every phrase in the group becomes searchable for it.
-   Add your own lines freely; lowercase, no punctuation needed. */
-const SYNONYMS = [
-  ["symphony", "orchestra", "philharmonic", "concert", "classical music"],
-  ["marvel", "mcu", "avengers", "x-men", "xmen", "spider-man", "spiderman", "daredevil", "deadpool", "wolverine"],
-  ["batman", "superman", "justice league", "gotham", "dc comics", "wonder woman"],
-  ["star trek", "trek", "starfleet", "tng", "ds9", "voyager", "strange new worlds", "klingon", "trekkie"],
-  ["star wars", "mandalorian", "jedi", "sith", "andor", "skywalker", "lightsaber"],
-  ["d&d", "dnd", "dungeons & dragons", "dungeons and dragons", "ttrpg", "tabletop rpg", "role-playing", "roleplaying", "pathfinder", "dungeon master", "5e", "ddal", "adventurers league"],
-  ["skeptrack", "skeptics", "skeptic"],
-  ["whedon", "firefly", "buffy", "angel", "serenity"],
-  ["brit", "british", "brittrack", "doctor who"],
-  ["filk", "filk music", "filking"],
-  ["larp", "live-action roleplaying", "live action roleplaying"],
-  ["warhammer", "40k", "40,000", "miniatures", "minis", "wargame", "wargaming"],
-  ["lord of the rings", "lotr", "tolkien", "hobbit", "middle-earth", "rings of power"],
-  ["game of thrones", "westeros", "house of the dragon", "targaryen"],
-  ["doctor who", "dr who", "tardis", "whovian", "dalek"],
-  ["anime", "manga", "shonen", "otaku"],
-  ["cosplay", "costume", "costuming", "costumer", "masquerade"],
-  ["space", "nasa", "astronomy", "astronaut", "rocket", "planetary", "spaceflight", "jpl", "telescope", "exoplanet", "orbit", "mars", "moon landing"],
-  ["science", "physics", "biology", "chemistry", "stem", "scientist"],
-  ["video game", "video games", "video gaming", "videogame", "esports", "arcade", "console", "gamer", "playstation", "xbox", "nintendo", "steam"],
-  ["board game", "board games", "boardgame", "tabletop", "card game", "deck-building"],
-  ["horror", "scary", "slasher", "zombie", "zombies", "haunted"],
-  ["rick and morty", "rick & morty"],
-  ["writing", "writers", "writer", "author", "authors", "novel", "publishing", "manuscript", "worldbuilding"],
-  ["comics", "comic book", "comic books", "graphic novel"],
-  ["puppet", "puppets", "puppetry", "puppet slam"],
-  ["burlesque", "18+", "adults only", "after dark", "late night", "adult"],
-  ["kids", "children", "family", "all ages", "young"],
-  ["wrestling", "wrestlers", "wrestle"],
-  ["karaoke", "sing-along", "singalong", "sing along"],
-  ["signing", "autograph", "autographs"],
-  ["photo op", "photo session", "photos with"],
-  ["music", "band", "dj", "dance party", "rave", "live music", "musicians"],
-  ["filk", "folk music"],
-  ["buffy", "firefly", "whedon", "angel"],
-  ["stargate", "sg-1"],
-  ["battlestar", "bsg", "galactica"],
-  ["pokemon", "pokémon"],
-  ["zelda", "mario", "nintendo"],
-  ["ghostbusters", "ghostbuster"],
-  ["lego", "brick", "bricks"],
-  ["harry potter", "potter", "hogwarts", "wizarding world"],
-  ["alien", "aliens", "predator", "xenomorph"],
-  ["godzilla", "kaiju"],
-  ["stranger things", "hawkins"],
-  ["expanse", "rocinante", "belter"],
-  ["fantasy", "high fantasy", "epic fantasy", "urban fantasy"],
-  ["romance", "romantasy", "paranormal romance"],
-  ["young adult", "ya"],
-  ["podcast", "podcasting", "podcasters"],
-  ["contest", "competition", "tournament", "championship"],
-  ["dance", "dancing", "ball"],
-];
-const STOPWORDS = new Set(["a","an","the","and","or","of","in","on","at","to","for","with","from","by","is","are","be","stuff","things","thing","something","anything","some","any","my","me","i","about","into","all",
-  /* Question words. "what is at the westin" is a hotel filter with noise
-     around it, not five search terms. */
-  "what","whats","where","when","who","which","there","happening","going","find","show",
-  /* Sentence scaffolding. "how" is the costly one: as a prefix it reaches
-     Howl's Moving Castle, which is nobody's idea of a match for "how to". */
-  "how","can","do","does","should","will","want","wanna","gonna"]);
-const KIND_LABELS = {qa: "Celebrity Q&A", panel: "Fan panel", screening: "Screening", workshop: "Workshop", signing: "Signing", photo: "Photo op", contest: "Contest", performance: "Performance", party: "Party", gaming: "Gaming", reading: "Reading", tour: "Tour", other: "Other"};
-let index = null;
 /* Set while a query is typed before the index exists; run when it does. */
 let pendingQuery = false;
-const SEARCH_PLACEHOLDER = "Search titles, guests, fandoms, words";
 /* Boot timings, ms since navigation, for the times "is it faster" needs a
    number: data parsed, first screen drawn, index built, suggestions built. */
 const BOOT = {parsed: 0, rendered: 0, indexed: 0, suggested: 0, indexAtRender: null};
-const processTerm = (term) => {
-  const t = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return t.length < 2 || STOPWORDS.has(t) ? null : t;
-};
-function aliasesFor(ev, text) {
-  const out = [];
-  for (const g of SYNONYMS) if (g.some(m => text.includes(m))) out.push(...g);
-  return out.join(" ");
-}
 
-const settings = loadJSON("dc26.settings", {crowd: 1.3, hideNoise: true});
-let picks = new Set(loadJSON("dc26.picks", []));
-let events = [], byId = new Map(), tracks = [], hotels = [], hotelChips = [];
 let fromNetwork = null, servedOffline = false;
-let meta = {};
-const state = {
-  tab: "now", sheetId: null, sheetHotel: null, mineView: loadJSON("dc26.mineView", "timeline"),
-  now: {hotel: "All", limit: 80},
-  map: {day: null},                       /* null: follow the clock */
-  explore: {q: "", page: null, scroll: 0, showPast: false, expanded: {}, active: null},
-  following: {layout: loadJSON("dc26.followingLayout", "interest"), expanded: {}, showPast: {}, open: loadJSON("dc26.followingOpen", true)},
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
-};
 const PAGE = 150;
 
 /* Everything that scrolls the page goes through here, because the page is
@@ -133,232 +53,17 @@ function pageScrollTo(top, smooth) {
 }
 function pageScrollBy(dy) { scroller.scrollTop = pageScrollTop() + dy; }
 
-/* ==================================================================
-   Helpers
-   ================================================================== */
-function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
-function saveJSON(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
-/* What each pick looked like when it was starred, so a later refresh can say
-   what changed. The rows alone would show the new time, or nothing at all,
-   and the reader would find out at the door. */
-let pickInfo = loadJSON("dc26.pickInfo", {}) || {};
-let pickNews = loadJSON("dc26.pickNews", []) || [];
-const snapshotOf = e => ({title: e.title, start: e.start, location: e.location || ""});
-function savePicks() {
-  saveJSON("dc26.picks", [...picks]);
-  const info = {};
-  picks.forEach(id => { const e = byId.get(id); if (e) info[id] = snapshotOf(e); else if (pickInfo[id]) info[id] = pickInfo[id]; });
-  pickInfo = info;
-  saveJSON("dc26.pickInfo", pickInfo);
-}
-function savePickNews() { saveJSON("dc26.pickNews", pickNews); }
-/* "Hilton Salon" and "Hilton-Salon" are one room; a refresh that respells
-   it is not a move. */
-const samePlace = (a, b) => String(a || "").toLowerCase().replace(/[^a-z0-9]+/g, "") === String(b || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-function whenWhere(x) {
-  const d = toDate(x.start);
-  return `${DAY_LABEL[dayOf(d)] || ""} ${fmtShort(d)}, ${x.location || "location TBA"}`.trim();
-}
-/* Compare each pick with its snapshot. A vanished event leaves the plan but
-   stays in the news; a moved one stays in the plan and its snapshot moves
-   with it, so it is reported once. The news keeps until it is dismissed. */
-function reconcilePicks() {
-  let changed = false;
-  [...picks].forEach(id => {
-    const was = pickInfo[id], e = byId.get(id);
-    if (!e) {
-      pickNews.push({kind: "gone", title: was ? was.title : "One of your picks", was: was ? whenWhere(was) : ""});
-      picks.delete(id);
-      changed = true;
-      return;
-    }
-    if (was && (was.start !== e.start || !samePlace(was.location, e.location))) {
-      pickNews.push({kind: "moved", title: e.title, was: whenWhere(was), now: whenWhere(e)});
-      changed = true;
-    }
-  });
-  if (changed) { savePicks(); savePickNews(); }
-  else if ([...picks].some(id => !pickInfo[id])) savePicks();   // picks from before snapshots existed
-}
-function pickNewsHTML() {
-  if (!pickNews.length) return "";
-  const items = pickNews.map(n => n.kind === "gone"
-    ? `<li><b>${esc(n.title)}</b> was removed from the schedule${n.was ? `. It was ${esc(n.was)}` : ""}.</li>`
-    : `<li><b>${esc(n.title)}</b> moved to ${esc(n.now)}. It was ${esc(n.was)}.</li>`).join("");
-  return `<div class="notice warn pick-news"><b>Your picks changed in the last schedule refresh.</b><ul>${items}</ul>
-    <button class="btn quiet" data-act="dismiss-news">OK</button></div>`;
-}
-
-/* ==================================================================
-   Follows. A pick is one event; a follow is a standing interest - a
-   track, a fandom, a topic, or a person - that keeps producing events
-   as the schedule changes. Stored in the order they were added,
-   because the Following feed presents them that way.
-   ================================================================== */
-const FOLLOW_KINDS = ["track", "fandom", "topic", "person"];
-let follows = (loadJSON("dc26.follows", []) || [])
-  .filter(f => f && FOLLOW_KINDS.includes(f.kind) && typeof f.key === "string" && f.key);
-const followId = f => `${f.kind}:${f.key}`;
-function saveFollows() { saveJSON("dc26.follows", follows.map(f => ({kind: f.kind, key: f.key}))); }
-function isFollowing(kind, key) { return follows.some(f => f.kind === kind && f.key === key); }
-function toggleFollow(kind, key) {
-  const i = follows.findIndex(f => f.kind === kind && f.key === key);
-  if (i >= 0) follows.splice(i, 1); else follows.push({kind, key});
-  saveFollows();
-  return i < 0;                       // true when it is now followed
-}
-
-/* events is already in start order and filter preserves it, so these come
-   back chronological without re-sorting. */
-function eventsFor(follow) {
-  if (!follow || !follow.key) return [];
-  const key = follow.key;
-  switch (follow.kind) {
-    case "track":  return events.filter(e => (e.tracks || []).includes(key));
-    case "fandom": return events.filter(e => ((e.tags || {}).fandoms || []).includes(key));
-    case "topic":  return events.filter(e => ((e.tags || {}).topics || []).includes(key));
-    case "person": {
-      /* Someone's photo sessions are half the reason to follow them, so the
-         hide-photo-sessions setting deliberately does not apply here. */
-      const lower = key.toLowerCase();
-      return events.filter(e => (e.speakers || []).some(p => (p.name || "").toLowerCase() === lower));
-    }
-    default: return [];
-  }
-}
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const pad = n => String(n).padStart(2, "0");
-const toDate = iso => new Date(iso);              // "2026-09-05T11:30" parses as local time
-function fmt(d) { let h = d.getHours(), m = d.getMinutes(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return {t: `${h}:${pad(m)}`, ap}; }
-function fmtShort(d) { const f = fmt(d); return `${f.t} ${f.ap}`; }
-function minutesBetween(a, b) { return Math.round((b - a) / 60000); }
-/* "310 min" is a number, "5 h 10 min" is a plan. */
-/* The source marks offsite venues with a leading "O ": "O Joystick Gamebar".
-   The scraper now drops it; this covers data scraped before it did. */
-function cleanRoom(hotel, room) {
-  return hotel === "Other" ? String(room || "").replace(/^O\s+/, "") : room;
-}
-/* "Hilton · 313-314": the hotel first, so a line reads where before which
-   room. A stream is "Streaming"; an offsite venue is itself - the cleaned
-   room, else the location without its O marker, else "Offsite"; a blank
-   room leaves the hotel alone. The parts are spans so the row chip can
-   shorten the room and never the hotel. */
-function placeHTML(ev) {
-  if (ev.hotel === "Streaming") return `<span class="rh">Streaming</span>`;
-  if (ev.hotel === "Other") {
-    const venue = (ev.room && ev.room !== "Other" ? ev.room : cleanRoom("Other", ev.location)) || "Offsite";
-    return `<span class="rr">${esc(venue === "Other" ? "Offsite" : venue)}</span>`;
-  }
-  if (!ev.hotel || ev.hotel === "Unknown") return `<span class="rr">${esc(ev.room || ev.location || "Location TBA")}</span>`;
-  const room = String(ev.room || "").trim();
-  return `<span class="rh">${esc(hotelShort(ev.hotel))}</span>${room ? ` · <span class="rr">${esc(room)}</span>` : ""}`;
-}
-function fmtMins(m) {
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60), r = m % 60;
-  return r ? `${h} h ${r} min` : `${h} h`;
-}
-function walkMin(a, b) {
-  if (!a || !b || a === "Streaming" || b === "Streaming") return 0;
-  if (a === b) return Math.round(5 * settings.crowd);
-  const base = WALK[`${a}|${b}`] ?? WALK[`${b}|${a}`] ?? 12;
-  return Math.round(base * settings.crowd);
-}
-/* "unknown" and untagged are not celebrities - absence of evidence isn't
-   evidence, so they drop out when the toggle is on. */
-const isCeleb = e => !!(e.tags && e.tags.guests === "celebrity");
-const CELEB_BADGE = `<span class="celeb" title="Celebrity guest">Celebrity</span>`;
-const hotelShort = h => HOTEL_SHORT[h] || h;
-const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
-const hotelGroup = h => HOTEL_GROUP[h] || h;
-/* A chip value is a venue or a group of them; "All" is everything. */
-const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hotel) === v;
-
-function dayOf(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
-
-/* ==================================================================
-   Build. main publishes straight from the branch: the source carries empty
-   stamps and the live site wears no mark. build.py stamps a deploy with a
-   channel (the next site) and a build id, and a stamped page shows a small
-   dev-build mark, so a screenshot says which site it came from. It is the
-   stamp that decides, never the address the page was loaded from.
-   ================================================================== */
-const metaContent = name => { const m = document.querySelector(`meta[name="${name}"]`); return m && m.content ? m.content.trim() : ""; };
-const BUILD = {channel: metaContent("dc-channel"), id: metaContent("dc-build")};
-function devMarkHTML() {
-  if (!BUILD.channel) return "";
-  return `<div class="devmark" aria-hidden="true">dev build &middot; ${esc(BUILD.channel)}${BUILD.id ? ` &middot; ${esc(BUILD.id)}` : ""}</div>`;
-}
-
-/* ==================================================================
-   Time. Every read of the current moment goes through now() - the header
-   clock, the Now tab, leave-by, the search folds, the nudge snooze, the
-   ICS stamp - so one override moves all of them together. Elapsed-time
-   measurements (a drag's speed, the scroll-spy hold, boot timings) are
-   stopwatch reads and use performance.now() instead.
-
-   ?now=2026-09-05T14:15 in the URL simulates that moment; an offset is
-   honoured (2026-09-05T14:15:00-04:00). The override is kept for the tab's
-   session, so a reload or the update pill lands on the same moment, and
-   is cleared from Settings or the chip in the header. A simulated clock
-   stands still: the tick redraws, but the minute never changes.
-
-   The con's bounds live here too, because the phase of the con - before,
-   live, ended - is a question about the clock.
-   ================================================================== */
-const CON = {
-  year: 2026,
-  /* The first listed event's start and the last one's end, as the data
-     has them: local time, like every time in the app. */
-  start: toDate("2026-09-02T18:00"),
-  end: toDate("2026-09-07T19:00"),
-};
-const DATA_URL = `data/${CON.year}/events.json`;
-/* Per channel: the next site shares this origin, and sessionStorage with it,
-   so a clock simulated there must not follow the reader to the live site in
-   the same tab. */
-const TIME_OVERRIDE_KEY = `dc26.timeOverride${BUILD.channel ? "." + BUILD.channel : ""}`;
-let timeOverride = null;                     // a Date, or null for the wall clock
-const readSession = key => { try { return sessionStorage.getItem(key); } catch (e) { return null; } };
-const writeSession = (key, value) => { try { if (value === null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, value); } catch (e) {} };
-const parseMoment = raw => { const d = raw ? new Date(raw) : null; return d && !isNaN(d) ? d : null; };
-
-function now() { return timeOverride ? new Date(timeOverride.getTime()) : new Date(); }
-const isSimulated = () => timeOverride !== null;
-
-/* The URL wins over the session, so a pasted link means what it says; with
-   no ?now= the session's override, if any, carries on. */
-function initTimeOverride() {
-  const fromUrl = new URLSearchParams(location.search).get("now");
-  const raw = fromUrl !== null ? fromUrl : readSession(TIME_OVERRIDE_KEY);
-  timeOverride = parseMoment(raw);
-  writeSession(TIME_OVERRIDE_KEY, timeOverride ? raw : null);
-}
-/* value: an ISO date-time, or null for the real clock. The URL is kept in
-   step so a reload lands on the same moment - only "+" is encoded, so the
-   address stays readable - and the hash (an explore deep link) is left
-   alone. The day chips follow the clock again until tapped. */
+/* value: an ISO date-time, or null for the real clock. setOverride() in
+   time.js sets it, keeps it for the session and keeps the URL in step; this
+   is what the page does about a new moment. The day chips follow the clock
+   again until tapped. */
 function setTimeOverride(value) {
-  timeOverride = parseMoment(value);
-  writeSession(TIME_OVERRIDE_KEY, timeOverride ? value : null);
-  const rest = location.search.replace(/^\?/, "").split("&").filter(p => p && !p.startsWith("now="));
-  const parts = timeOverride ? rest.concat("now=" + value.replace(/\+/g, "%2B")) : rest;
-  history.replaceState(null, "", location.pathname + (parts.length ? "?" + parts.join("&") : "") + location.hash);
+  setOverride(value);
   state.browse.day = null;
   state.map.day = null;
   render();
   updateFresh();                             // "refreshed 2 h ago" is relative to the clock too
 }
-/* What the datetime-local input in Settings shows for the override. */
-const localInputValue = d => `${dayOf(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-
-/* before | live | ended. The bounds are the con's own: a moment at the very
-   end is still live. */
-function conPhase(at = now()) { return at < CON.start ? "before" : at > CON.end ? "ended" : "live"; }
-const conEnded = () => conPhase() === "ended";
-/* Once the con is over nothing is "already happened" in a useful sense - the
-   whole schedule is - and folding all of it away would hide every result. */
-const isPast = (e, at) => e._e <= at && conPhase(at) !== "ended";
 
 /* ==================================================================
    Loading
@@ -385,21 +90,7 @@ async function load(data) {
       }
     }
   }
-  meta = data;
-  events = (data.events || []).filter(e => e.start).map(e => {
-    const s = toDate(e.start), en = e.end ? toDate(e.end) : new Date(s.getTime() + 60 * 60000);
-    const people = (e.speakers || []).map(p => p.name).join(" ");
-    const room = cleanRoom(e.hotel, e.room);
-    /* _cd is the con day: it runs to 5am, so a 1am panel belongs to the night
-       before. Every list, chip and header uses it; only the sheet and the
-       calendar export state the calendar date. */
-    return {...e, room, _s: s, _e: en, _cd: conDayKey(s), _people: people};
-  });
-  events.sort((a, b) => a._s - b._s || a.title.localeCompare(b.title));
-  byId = new Map(events.map(e => [e.id, e]));
-  tracks = [...new Set(events.map(e => e.track).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  hotels = HOTEL_ORDER.filter(h => events.some(e => e.hotel === h));
-  hotelChips = [...new Set(hotels.map(hotelGroup))];
+  replaceSchedule(data);       // data.js: meta, events in start order, byId, tracks, hotelChips
   servedOffline = fromNetwork === false;
   BOOT.parsed = performance.now();
   buildCatalogue();
@@ -437,87 +128,6 @@ function indexReady() {
   if (pendingQuery) { pendingQuery = false; if (state.tab === "browse") queueBrowseRender(); }
 }
 
-function buildIndex() {
-  index = new MiniSearch({
-    fields: ["title", "fandoms", "speakers", "aliases", "tracks", "kind", "topics", "description", "location"],
-    storeFields: [], processTerm,
-    /* Prefix matching on a two- or three-letter term is mostly noise - "ai"
-       would reach every word starting "ai". Short terms must match exactly;
-       the suggestion index keeps its own prefix rule and is unaffected. */
-    searchOptions: {processTerm, prefix: t => t.length >= 4, fuzzy: t => t.length > 4 ? 0.2 : false, combineWith: "OR",
-      boost: {title: 5, fandoms: 4, speakers: 3, aliases: 2, tracks: 2, kind: 2, topics: 2, description: 1, location: 1}},
-  });
-  index.addAll(events.map(e => {
-    const tg = e.tags || {};
-    const fandoms = (tg.fandoms || []).join(" "), topics = (tg.topics || []).join(" ");
-    const kind = tg.kind ? `${tg.kind} ${KIND_LABELS[tg.kind] || ""}` : "";
-    const text = [e.title, e.description, (e.tracks || []).join(" "), fandoms, topics, kind, e.location].join(" ").toLowerCase();
-    return {id: e.id, title: e.title, description: e.description || "", speakers: e._people, tracks: (e.tracks || []).join(" "),
-      fandoms, kind, topics, aliases: aliasesFor(e, text), location: e.location || ""};
-  }));
-}
-/* A second, tiny index: one document per name, so we can suggest whole
-   names rather than fragments of event text. */
-let suggestIndex = null, suggestDocs = [];
-function buildSuggestIndex() {
-  /* Two counts per name. A celebrity's dozen entries are mostly photo
-     sessions, which are hidden by default - a chip promising 12 that yields
-     2 is worse than no number at all. */
-  const people = new Map(), topics = new Map();
-  const bump = (m, n, quiet) => {
-    if (n.length <= 2) return;
-    const c = m.get(n) || {all: 0, visible: 0};
-    c.all++; if (!quiet) c.visible++;
-    m.set(n, c);
-  };
-  events.forEach(e => {
-    const quiet = isNoise(e);
-    (e.speakers || []).forEach(p => bump(people, (p && p.name || "").trim(), quiet));
-    const tg = e.tags || {};
-    [...(tg.fandoms || []), ...(tg.topics || [])].forEach(t => bump(topics, String(t || "").trim(), quiet));
-  });
-  const doc = (group, prefix) => ([name, c]) => ({id: `${prefix}:${name}`, name, all: c.all, visible: c.visible, group});
-  suggestDocs = [
-    ...[...people].map(doc("people", "p")),
-    ...[...topics].map(doc("topics", "t")),
-  ];
-  suggestIndex = new MiniSearch({
-    fields: ["name"], storeFields: ["name", "all", "visible", "group"], processTerm,
-    searchOptions: {processTerm, prefix: true, fuzzy: false, combineWith: "AND"},
-  });
-  suggestIndex.addAll(suggestDocs);
-}
-
-/* autoSuggest completes the words typed; each completion is then resolved
-   back to whole names, because a chip saying "fillion" is no use. */
-function suggestionsFor(raw) {
-  const q = String(raw || "").trim();
-  if (!suggestIndex || q.length < 2) return {people: [], topics: []};
-  const seen = new Set(), hits = [];
-  const take = res => res.forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); hits.push(r); } });
-  take(suggestIndex.search(q, {prefix: true, fuzzy: false, combineWith: "AND"}));
-  for (const s of suggestIndex.autoSuggest(q, {fuzzy: false}).slice(0, 6)) {
-    if (s.suggestion.toLowerCase() === q.toLowerCase()) continue;
-    take(suggestIndex.search(s.suggestion, {prefix: true, fuzzy: false, combineWith: "AND"}));
-  }
-  const useVisible = state.browse.hideNoise;
-  const n = h => useVisible ? h.visible : h.all;
-  const pick = group => hits.filter(h => h.group === group && n(h) > 0)
-    .sort((a, b) => n(b) - n(a) || a.name.localeCompare(b.name))
-    .slice(0, 5)
-    .map(h => ({name: h.name, count: n(h)}));
-  const out = {people: pick("people"), topics: pick("topics")};
-  /* Once the box already holds exactly one of these, the row is just noise. */
-  const exact = n => n.toLowerCase() === q.replace(/^"|"$/g, "").toLowerCase();
-  if (out.people.some(x => exact(x.name)) || out.topics.some(x => exact(x.name))) return {people: [], topics: []};
-  return out;
-}
-
-function fandomCounts() {
-  const m = new Map();
-  events.forEach(e => (e.tags && e.tags.fandoms || []).forEach(f => m.set(f, (m.get(f) || 0) + 1)));
-  return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-}
 function updateFresh() {
   const el = document.getElementById("fresh");
   if (!meta.generated_at) { el.textContent = ""; return; }
@@ -596,8 +206,6 @@ const MAP_HOTELS = {
 /* Each pair is left-to-right or top-to-bottom. None crosses Peachtree. */
 const MAP_BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
 
-/* "Search the Hyatt on Saturday": hotels take "the", the park does not. */
-const hotelPhrase = h => h === "Hardy Ivy Park" ? h : `the ${hotelShort(h)}`;
 /* The user's picks in one hotel on one con day, in time order (events is). */
 const mapPicksAt = (hotel, day) => events.filter(e => picks.has(e.id) && e.hotel === hotel && e._cd === day);
 function mapCounts(day) {
@@ -811,114 +419,6 @@ function fitHeaderLine() {
   line.classList.remove("tight", "tighter");
   if (line.scrollWidth > line.clientWidth) line.classList.add("tight");
   if (line.scrollWidth > line.clientWidth) line.classList.add("tighter");
-}
-
-function rowHTML(ev, opts = {}) {
-  const s = fmt(ev._s), e = fmt(ev._e);
-  const mine = picks.has(ev.id), open = state.sheetId === ev.id;
-  const status = opts.status ? `<span class="status">${esc(opts.status)}</span>` : "";
-  const cls = ["row", mine ? "mine" : "", open ? "open" : "", ev.cancelled ? "cancelled" : ""].filter(Boolean).join(" ");
-  const hl = opts.terms ? highlighter(opts.terms) : (x => esc(x));
-  const snippet = opts.terms ? snippetFor(ev, opts.terms) : "";
-  return `<li class="${cls}" data-id="${esc(ev.id)}" data-list="${esc(opts.list || "")}">
-    <div class="row-line">
-      <button class="row-main" aria-haspopup="dialog">
-        <div class="t">${opts.showDay ? `<span class="day">${DAY_LABEL[ev._cd] || ""}</span>` : ""}<span class="start">${s.t}<span class="ampm">${s.ap}</span></span><span class="end">to ${e.t} ${e.ap}</span></div>
-        <div class="body">
-          <div class="title">${hl(ev.title)}</div>
-          <div class="meta">
-            <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</span>
-            ${ev.cancelled ? `<span class="cancelled-tag">Cancelled</span>` : ""}${status}${isCeleb(ev) ? CELEB_BADGE : ""}${(opts.labels || []).map(l => `<span class="flabel">${esc(l)}</span>`).join("")}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
-          </div>
-          ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
-        </div>
-      </button>
-      <button class="star" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>
-    </div>
-  </li>`;
-}
-
-function highlighter(terms) {
-  const words = [...new Set(terms)].filter(t => t.length > 1).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  if (!words.length) return x => esc(x);
-  const re = new RegExp(`(${words.join("|")})`, "gi");
-  return x => esc(x).replace(re, "<mark>$1</mark>");
-}
-function snippetFor(ev, terms) {
-  const d = ev.description || "";
-  const words = [...new Set(terms)].filter(t => t.length > 1);
-  let pos = -1;
-  for (const w of words) { const i = d.toLowerCase().indexOf(w); if (i >= 0 && (pos < 0 || i < pos)) pos = i; }
-  if (pos < 0) {
-    const who = (ev.speakers || []).map(p => p.name).join(", ");
-    if (who && words.some(w => who.toLowerCase().includes(w))) return `With ${highlighter(terms)(who)}`;
-    return d ? esc(d.slice(0, 110)) + (d.length > 110 ? "…" : "") : "";
-  }
-  const start = Math.max(0, pos - 40), end = Math.min(d.length, pos + 100);
-  return (start > 0 ? "…" : "") + highlighter(terms)(d.slice(start, end)) + (end < d.length ? "…" : "");
-}
-
-function gapHTML(prev, next) {
-  if (!prev || !next || prev._cd !== next._cd && minutesBetween(prev._e, next._s) > 240) return "";
-  const gap = minutesBetween(prev._e, next._s);
-  const walk = walkMin(prev.hotel, next.hotel);
-  const move = prev.hotel !== next.hotel ? `${hotelShort(prev.hotel)} to ${hotelShort(next.hotel)}` : `same building`;
-  if (next._s < prev._e) {
-    const ov = minutesBetween(next._s, prev._e);
-    return `<div class="gap overlap">Overlaps the one above by ${ov} min</div>`;
-  }
-  if (gap < walk) return `<div class="gap tight">${gap} min to get there, ${move} is about ${walk} min at con pace</div>`;
-  if (gap < walk + 10) return `<div class="gap">${gap} min gap, ${move} about ${walk} min. Tight but doable</div>`;
-  return "";
-}
-
-/* A con day runs to 5am, so a 1am Sunday panel still belongs to Saturday. */
-function conDayKey(d) { return dayOf(new Date(d.getTime() - 5 * 3600000)); }
-
-function nextPickInConDay(now) {
-  const key = conDayKey(now);
-  return events.find(e => picks.has(e.id) && e._s > now && conDayKey(e._s) === key) || null;
-}
-
-/* ---- Where you are, and when to leave ------------------------------ */
-
-/* The only place the app will claim you are: the hotel of a pick that is
-   on right now. Nothing is inferred from where you were - a pick that has
-   ended says nothing about where you went next, and a stream that is on
-   could be watched from anywhere. Null otherwise; we can still show a
-   start time, just not a leave-by. */
-function currentLocation(now) {
-  const on = events.find(e => picks.has(e.id) && e._s <= now && now < e._e);
-  return on && on.hotel !== "Streaming" ? on.hotel : null;
-}
-
-/* The pick before this one in the same con day, if any. */
-function previousPick(next) {
-  let prev = null;
-  for (const e of events) {
-    if (e._s >= next._s) break;
-    if (picks.has(e.id) && e._cd === next._cd) prev = e;
-  }
-  return prev;
-}
-
-/* A leave-by only when we know where you are - a pick is on now - and the
-   next pick is somewhere else. Otherwise the start time, plus a walk
-   estimate from wherever the previous pick today was, when that was a
-   different building: the walk at the crowd factor with no buffer, so it
-   reads as an estimate ("~12 min from the Westin"), not an instruction. */
-function leaveInfo(from, next, now) {
-  if (!next) return null;
-  if (from && from !== next.hotel) {
-    const walk = walkMin(from, next.hotel);
-    const leaveBy = new Date(next._s.getTime() - (walk + LEAVE_BUFFER_MIN) * 60000);
-    return {from, walk, leaveBy, late: now >= leaveBy, next, estimate: null};
-  }
-  const prev = previousPick(next);
-  const walk = prev && prev.hotel !== next.hotel ? walkMin(prev.hotel, next.hotel) : 0;
-  const where = prev && (prev.hotel === "Other" ? (prev.room || "offsite") : hotelPhrase(prev.hotel));
-  const estimate = walk > 0 ? {walk, from: prev.hotel, label: `~${walk} min from ${where}`} : null;
-  return {from, walk: null, leaveBy: null, late: false, next, estimate};
 }
 
 const RING_R = 26, RING_C = 2 * Math.PI * RING_R;
@@ -1184,272 +684,7 @@ function parsedChipsHTML() {
     `<button class="chip parsed" data-act="unparse" data-src="${esc(c.src)}" aria-label="Remove ${esc(c.label)} filter">${esc(c.label)} <span aria-hidden="true">&times;</span></button>`).join("")}</div>`;
 }
 
-function chipHTML(label, on, kind, value, style) {
-  const v = value ?? label;
-  const cls = kind.endsWith("hotel") && v !== "All" ? `chip hotel` : `chip`;
-  const st = kind.endsWith("hotel") && v !== "All" ? ` style="--h:var(${hotelVar(v)})"` : "";
-  return `<button class="${cls}" data-chip="${kind}" data-value="${esc(v)}" aria-pressed="${on}"${st}>${esc(label)}</button>`;
-}
-
 /* ---- Browse ------------------------------------------------------- */
-function passesFilters(e) {
-  const f = activeFilters(), tg = e.tags || {};
-  return (f.day === "All" || e._cd === f.day) &&
-    hotelMatches(e, f.hotel) &&
-    (f.type === "All" || e.type === f.type) &&
-    (f.track === "All" || (e.tracks || []).includes(f.track)) &&
-    (f.fandom === "All" || (tg.fandoms || []).includes(f.fandom)) &&
-    (f.kind === "All" || tg.kind === f.kind) &&
-    (!f.adultOnly || !!tg.adult) &&
-    (!f.hideAdult || !tg.adult) &&
-    (!f.time || inTimeBand(e, f.time)) &&
-    (!f.hideNoise || !isNoise(e));
-}
-/* ==================================================================
-   Query intent: "star trek saturday hilton" is three different asks.
-   Pull the filter words out, search on what's left, and show what we
-   took so the reader can put it back.
-   ================================================================== */
-const DAY_WORDS = {wed: 2, wednesday: 2, thu: 3, thur: 3, thurs: 3, thursday: 3, fri: 4, friday: 4,
-  sat: 5, saturday: 5, sun: 6, sunday: 6, mon: 7, monday: 7};
-const HOTEL_WORDS = {marriott: "Marriott", hyatt: "Hyatt", hilton: "Hilton", westin: "Westin",
-  courtland: "Courtland Grand", sheraton: "Courtland Grand", mart: "AmericasMart", americasmart: "AmericasMart"};
-const TIME_BANDS = {morning: [0, 12], afternoon: [12, 17], evening: [17, 21], "late night": [21, 29], late: [21, 29]};
-
-/* Longest phrases first so "photo op" wins over "photo" and "late night"
-   over "late". Each entry knows how to label itself and what text to strip. */
-function queryRules() {
-  const r = [];
-  const add = (word, dim, value, label) => r.push({word, dim, value, label});
-  Object.entries(DAY_WORDS).forEach(([w, dayNum]) => add(w, "day", `2026-09-0${dayNum}`, DAY_LONG[`2026-09-0${dayNum}`]));
-  Object.entries(HOTEL_WORDS).forEach(([w, h]) => add(w, "hotel", h, hotelShort(h)));
-  add("q&a", "kind", "qa", "Celebrity Q&A"); add("qa", "kind", "qa", "Celebrity Q&A");
-  add("signing", "kind", "signing", "Signing");
-  add("photo op", "kind", "photo", "Photo op"); add("photo", "kind", "photo", "Photo op");
-  add("screening", "kind", "screening", "Screening");
-  add("workshop", "kind", "workshop", "Workshop");
-  add("party", "kind", "party", "Party");
-  add("contest", "kind", "contest", "Contest");
-  add("concert", "kind", "performance", "Performance"); add("performance", "kind", "performance", "Performance");
-  add("gaming", "kind", "gaming", "Gaming"); add("game", "kind", "gaming", "Gaming");
-  add("18+", "adult", true, "18+"); add("adult", "adult", true, "18+");
-  /* Someone searching "kids" wants the Kids Track, not merely the absence of
-     adult content - hiding 18+ is the lesser half of what they mean. */
-  ["kids", "kid", "family", "children"].forEach(w => add(w, "kidstrack", true, "Kids Track"));
-  Object.keys(TIME_BANDS).forEach(w => add(w, "time", w, w[0].toUpperCase() + w.slice(1)));
-  add("today", "rel", "today", "Today");
-  add("tonight", "rel", "tonight", "Tonight");
-  add("tomorrow", "rel", "tomorrow", "Tomorrow");
-  return r.sort((a, b) => b.word.length - a.word.length);
-}
-let QUERY_RULES = null;
-
-/* Token matching, not regular expressions: the vocabulary contains "q&a"
-   and "18+", and building patterns out of those invites escaping bugs. */
-/* "d&d" survives tokenising as one token and matches nothing; the index
-   holds "dungeons" and "dragons" as separate terms. Expand before searching
-   so the shorthand people actually type reaches the words that were indexed. */
-const QUERY_EXPANSIONS = [
-  [/\bd\s*&\s*d\b/gi, "dungeons dragons"],
-  [/\bdnd\b/gi, "dungeons dragons"],
-  [/\bdungeons\b(?!\s+(?:and|&)?\s*dragons\b)/gi, "dungeons dragons"],
-];
-function expandQuery(text) {
-  let out = String(text || "");
-  for (const [re, to] of QUERY_EXPANSIONS) out = out.replace(re, to);
-  return out.replace(/\s+/g, " ").trim();
-}
-
-function tokenise(text) { return String(text || "").toLowerCase().split(/[\s,]+/).filter(Boolean); }
-function stripPhrase(tokens, phrase) {
-  const want = phrase.split(" ");
-  for (let i = 0; i + want.length <= tokens.length; i++) {
-    if (want.every((w, j) => tokens[i + j] === w)) return tokens.slice(0, i).concat(tokens.slice(i + want.length));
-  }
-  return null;
-}
-
-function parseQuery(raw) {
-  if (!QUERY_RULES) QUERY_RULES = queryRules();
-  let tokens = tokenise(raw);
-  const found = [], taken = new Set();
-  for (const rule of QUERY_RULES) {
-    if (taken.has(rule.dim) && rule.dim !== "rel") continue;
-    const after = stripPhrase(tokens, rule.word);
-    if (!after) continue;
-    tokens = after;
-    taken.add(rule.dim);
-    found.push({...rule, src: rule.word});
-  }
-  const residual = tokens.join(" ");
-
-  /* "gaming" alone is a filter; "gaming" inside a real query is a search
-     word, unless a day or hotel is pinning it down. */
-  const gi = found.findIndex(f => f.dim === "kind" && f.value === "gaming");
-  if (gi >= 0 && residual && !found.some(f => f.dim === "day" || f.dim === "hotel" || f.dim === "rel")) {
-    found.splice(gi, 1);
-    /* Re-strip from the original so the word goes back where it was written,
-       rather than being tacked on the end. */
-    let keep = tokenise(raw);
-    for (const f of found) { const a = stripPhrase(keep, f.word); if (a) keep = a; }
-    return finishParse(keep.join(" "), found);
-  }
-  return finishParse(residual, found);
-}
-
-function finishParse(residual, found) {
-  const filters = {};
-  const chips = [];
-  for (const f of found) {
-    if (f.dim === "rel") {
-      const base = conDayKey(now());
-      let day = base;
-      if (f.value === "tomorrow") {
-        const d = new Date(`${base}T12:00`); d.setDate(d.getDate() + 1); day = dayOf(d);
-      }
-      filters.day = day;
-      if (f.value === "tonight") filters.time = "evening";
-      chips.push({dim: "day", label: f.label, src: f.src});
-    } else if (f.dim === "kidstrack") {
-      filters.track = "Kids Track";
-      filters.adult = false;
-      chips.push({dim: "track", label: f.label, src: f.src});
-    } else {
-      filters[f.dim] = f.value;
-      chips.push({dim: f.dim, label: f.label, src: f.src});
-    }
-  }
-  return {residual, filters, chips};
-}
-
-function inTimeBand(e, band) {
-  const [lo, hi] = TIME_BANDS[band] || [];
-  if (lo === undefined) return true;
-  let h = e._s.getHours();
-  if (h < 5) h += 24;                    // a 1am panel belongs to the night before
-  return h >= lo && h < hi;
-}
-
-/* Chip filters still apply; a parsed word overrides the chip on its own
-   dimension for as long as the word is in the box. */
-function activeFilters() {
-  const b = state.browse, f = (state.browse.parsed && state.browse.parsed.filters) || {};
-  return {
-    day: f.day !== undefined ? f.day : b.day,
-    hotel: f.hotel !== undefined ? f.hotel : b.hotel,
-    kind: f.kind !== undefined ? f.kind : b.kind,
-    type: b.type,
-    track: f.track !== undefined ? f.track : b.track,
-    fandom: b.fandom,
-    adultOnly: f.adult === true,
-    /* Only a query word hides 18+ now ("kids"); the checkbox is gone. */
-    hideAdult: f.adult === false,
-    time: f.time,
-    /* Asking for photo sessions or screenings outranks the setting that hides
-       them; so does tapping their chip, and so does the reveal link. */
-    hideNoise: b.hideNoise && !state.browse.showHidden
-      && !["photo", "screening"].includes(f.kind !== undefined ? f.kind : b.kind),
-  };
-}
-
-const LOOSE_THRESHOLD = 8;
-
-/* How well one typed word matched: 1 if it matched an index term literally,
-   otherwise how much of that term it actually covered. "drag" is 67% of
-   "dragon" but only 44% of "dragoncon", and the shorter the fragment the
-   weaker the evidence - which is what stops a four-letter prefix from
-   ranking on the strength of somebody else's long title. */
-function termQuality(t, matched, match) {
-  if (match && match[t]) return 1;
-  let best = 0;
-  for (const m of matched) {
-    if (!m.startsWith(t) && !t.startsWith(m)) continue;
-    const r = Math.min(t.length, m.length) / Math.max(t.length, m.length);
-    if (r > best) best = r;
-  }
-  return best;
-}
-
-/* Rank one pass of MiniSearch. coverage rewards matching more of what was
-   typed; quality rewards matching it squarely rather than by a fragment. */
-function collectHits(text, opts, queryTerms, seen) {
-  const out = [];
-  const n = queryTerms.length || 1;
-  for (const h of index.search(text, opts)) {
-    if (seen.has(h.id)) continue;
-    const e = byId.get(h.id);
-    if (!e || !passesFilters(e)) continue;
-    seen.add(h.id);
-    const coverage = new Set(h.queryTerms).size / n;
-    const matched = h.match ? Object.keys(h.match) : [];
-    const quality = queryTerms.reduce((acc, t) => acc + termQuality(t, matched, h.match), 0) / n;
-    const exact = queryTerms.some(t => h.match && h.match[t]);
-    e._hit = {score: h.score * (0.5 + coverage) * (1 + 0.5 * quality), terms: h.terms, exact};
-    out.push(e);
-  }
-  out.sort((a, b) => b._hit.score - a._hit.score || a._s - b._s);
-  return out;
-}
-
-function browseResults() {
-  state.browse.parsed = parseQuery(state.browse.q);
-  const raw = state.browse.parsed.residual;
-  /* A tapped suggestion arrives quoted: match that name exactly rather than
-     letting prefix and fuzzy drag in everyone with a similar surname. */
-  const phrase = /^".+"$/.test(raw) ? raw.slice(1, -1) : null;
-  const q = phrase === null ? expandQuery(raw) : raw;
-  const queryTerms = [...new Set((phrase || q).split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean))];
-
-  /* Nothing left to rank by - either every word was a filter, or what remains
-     is all stopwords ("what is at the westin"). Hand back the filtered set. */
-  if (!q || !index || !queryTerms.length) {
-    /* "late night" and "party" are questions about tonight, not about the
-       whole weekend - so a query that resolved entirely to filters is scoped
-       to today unless it named a day itself, or a day chip is set, or the
-       reader took the Today chip off. After the con there is no today. */
-    const b = state.browse;
-    const parsedDay = b.parsed.filters.day;
-    const scope = !!b.q.trim() && !parsedDay && b.day === "All" && !b.noToday && !conEnded();
-    b.todayScoped = scope;
-    let list = events.filter(passesFilters);
-    if (scope) {
-      const today = conDayKey(now());
-      list = list.filter(e => conDayKey(e._s) === today);
-    }
-    list.sort((a, b2) => a._s - b2._s);
-    const at = now(), up = [], gone = [];
-    list.forEach(e => { e._hit = null; (isPast(e, at) ? gone : up).push(e); });
-    up.forEach(e => e._section = "main");
-    gone.forEach(e => e._section = "past");
-    return up.concat(gone);
-  }
-  state.browse.todayScoped = false;
-
-  const seen = new Set();
-  let main, loose = [];
-  if (phrase) {
-    main = collectHits(phrase, {prefix: false, fuzzy: false, combineWith: "AND"}, queryTerms, seen);
-  } else {
-    /* Everything typed, then - only if that was too thin - anything typed.
-       "board games" should not return all 1,300 events containing "games". */
-    main = collectHits(q, {combineWith: "AND"}, queryTerms, seen);
-    if (main.length < LOOSE_THRESHOLD) loose = collectHits(q, {combineWith: "OR"}, queryTerms, seen);
-  }
-
-  /* A search is a question about the whole con, so it crosses days - which
-     means it turns up things that already finished. They stay, behind a fold. */
-  const at = now();
-  const upcoming = [], past = [];
-  for (const e of main) (isPast(e, at) ? past : upcoming).push(e);
-  const looseUpcoming = [], loosePast = [];
-  for (const e of loose) (isPast(e, at) ? loosePast : looseUpcoming).push(e);
-
-  upcoming.forEach(e => e._section = "main");
-  looseUpcoming.forEach(e => e._section = "loose");
-  const pastAll = past.concat(loosePast);
-  pastAll.forEach(e => e._section = "past");
-  return upcoming.concat(looseUpcoming, pastAll);
-}
 
 function renderBrowse() {
   const b = state.browse;
@@ -2045,37 +1280,6 @@ function fitTimelineBlocks() {
 }
 
 /* ==================================================================
-   Calendar export (.ics)
-   ================================================================== */
-function icsEscape(s) { return String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
-function fold(line) { const out = []; while (line.length > 74) { out.push(line.slice(0, 74)); line = " " + line.slice(74); } out.push(line); return out.join("\r\n"); }
-function icsDate(d) { return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`; }
-function exportICS() { downloadICS(events.filter(e => picks.has(e.id)), "dragoncon-2026-my-schedule.ics"); }
-function exportEventICS(ev) {
-  downloadICS([ev], `dragoncon-2026-${(ev.title || "event").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "event"}.ics`);
-}
-function downloadICS(mine, filename) {
-  const stamp = now().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
-  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//dragoncon-planner//EN", "CALSCALE:GREGORIAN", "X-WR-CALNAME:Dragon Con 2026",
-    "BEGIN:VTIMEZONE", "TZID:America/New_York",
-    "BEGIN:DAYLIGHT", "TZOFFSETFROM:-0500", "TZOFFSETTO:-0400", "TZNAME:EDT", "DTSTART:19700308T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU", "END:DAYLIGHT",
-    "BEGIN:STANDARD", "TZOFFSETFROM:-0400", "TZOFFSETTO:-0500", "TZNAME:EST", "DTSTART:19701101T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU", "END:STANDARD",
-    "END:VTIMEZONE"];
-  mine.forEach(ev => {
-    const who = (ev.speakers || []).map(p => p.name).join(", ");
-    const desc = [ev.description, who ? `With: ${who}` : "", ev.track ? `Track: ${ev.track}` : ""].filter(Boolean).join("\n");
-    lines.push("BEGIN:VEVENT", `UID:dc26-${ev.id}@dragoncon-planner`, `DTSTAMP:${stamp}`,
-      `DTSTART;TZID=America/New_York:${icsDate(ev._s)}`, `DTEND;TZID=America/New_York:${icsDate(ev._e)}`,
-      fold(`SUMMARY:${icsEscape(ev.title)}`), fold(`LOCATION:${icsEscape(ev.location)}`), fold(`DESCRIPTION:${icsEscape(desc)}`), "END:VEVENT");
-  });
-  lines.push("END:VCALENDAR");
-  const blob = new Blob([lines.join("\r\n") + "\r\n"], {type: "text/calendar;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
-  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
-}
-
-/* ==================================================================
    Events (the DOM kind)
    ================================================================== */
 
@@ -2130,26 +1334,6 @@ function fillSettings() {
   document.getElementById("previewTime").value = timeOverride ? localInputValue(timeOverride) : "";
   document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
   document.getElementById("deviceLine").textContent = deviceLine();
-}
-
-/* What the phone is telling us, for the times a screenshot is not enough:
-   how the app was opened, the viewport against the screen, and the insets
-   the system reports before any cap of ours. */
-function deviceLine() {
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)";
-  document.body.appendChild(probe);
-  const cs = getComputedStyle(probe);
-  const insets = `top ${cs.paddingTop || "?"}, bottom ${cs.paddingBottom || "?"}`;
-  probe.remove();
-  const standalone = !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
-  const vv = window.visualViewport ? Math.round(window.visualViewport.height) : "-";
-  const scr = window.screen ? `${screen.width}×${screen.height}` : "-";
-  /* GitHub Pages stamps every deploy with a Last-Modified header; the page
-     can read it, so "which build is this" is a glance rather than a guess. */
-  const built = new Date(document.lastModified);
-  const stamp = isNaN(built) ? "" : ` · build ${built.toISOString().slice(0, 16).replace("T", " ")} UTC`;
-  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets}${IS_IOS ? " · iOS" : ""}${BUILD.channel ? ` · ${BUILD.channel} build${BUILD.id ? " " + BUILD.id : ""}` : ""}${stamp}`;
 }
 
 function eventSheetHTML(ev) {
@@ -2283,13 +1467,6 @@ function syncHeaderHeight() {
    Offline. The service worker keeps the app openable with no signal;
    this end only has to handle being told the schedule moved on.
    ================================================================== */
-/* main scrolls and bounces on its own; the page around it never scrolls,
-   yet iOS will still rubber-band it when a drag lands on the header or the
-   nav. Safari ignores overscroll-behavior for the page itself, so refuse
-   those drags by hand. Touches that begin inside main, in the sheet, or on
-   a control are left alone, and so is anything more sideways than vertical. */
-const IS_IOS = /iP(hone|ad|od)/.test(navigator.platform)
-  || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints > 1);
 /* Installing is the point for someone who arrived from a chat link: the
    app works with no signal only once it is on the home screen. So the Now
    tab opens with a nudge until the app is installed, dismissible for a week
@@ -2298,9 +1475,6 @@ const IS_IOS = /iP(hone|ad|od)/.test(navigator.platform)
    the browser offers one. */
 const NUDGE_SNOOZE_MS = 7 * 24 * 3600 * 1000;
 let installPrompt = null;
-function isStandalone() {
-  return !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
-}
 function nudgeVisible() {
   if (isStandalone()) return false;
   const until = loadJSON("dc26.nudgeSnoozedUntil", 0);
@@ -2322,6 +1496,11 @@ function nudgeHTML() {
     <div class="btns">${c.install ? `<button class="btn" data-act="nudge-install">Install app</button>` : ""}<button class="btn quiet" data-act="nudge-later">Not now</button></div></div>`;
 }
 
+/* main scrolls and bounces on its own; the page around it never scrolls,
+   yet iOS will still rubber-band it when a drag lands on the header or the
+   nav. Safari ignores overscroll-behavior for the page itself, so refuse
+   those drags by hand. Touches that begin inside main, in the sheet, or on
+   a control are left alone, and so is anything more sideways than vertical. */
 const edgeTouch = {x: 0, y: 0, ignore: false};
 function edgeTouchStart(e) {
   const t = e.touches && e.touches[0];
@@ -2454,7 +1633,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
       if (a === "more-now") { state.now.limit += 100; render(); }
       if (a === "more-browse") { state.browse.page++; render(); }
       if (a === "ics") exportICS();
-      if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
+      if (a === "clear" && confirm("Remove everything from my schedule?")) { replacePicks([]); savePicks(); render(); }
       if (a === "suggest") {
         state.browse.q = `"${act.dataset.name}"`;
         state.browse.page = 1;
@@ -2470,7 +1649,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
         return;
       }
       if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
-      if (a === "dismiss-news") { pickNews = []; savePickNews(); render(); return; }
+      if (a === "dismiss-news") { clearNews(); savePickNews(); render(); return; }
       if (a === "dismiss-archive") { saveJSON(ARCHIVE_NOTICE_KEY, CON.year); render(); return; }
       if (a === "nudge-later") { saveJSON("dc26.nudgeSnoozedUntil", now().getTime() + NUDGE_SNOOZE_MS); render(); return; }
       if (a === "nudge-install") {
@@ -2664,7 +1843,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; closeSheet(); if (v) setTimeOverride(v); });
   document.getElementById("clearPreview").addEventListener("click", () => { closeSheet(); setTimeOverride(null); });
   document.getElementById("simChip").addEventListener("click", () => setTimeOverride(null));
-  document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
+  document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { replacePicks([]); savePicks(); closeSheet(); } });
 
   window.addEventListener("hashchange", () => { applyExploreHash(); render(); });
 
@@ -2758,35 +1937,29 @@ export function boot({events: data, reload: reloadWith} = {}) {
   const ready = load(data);
   return {
     state, render, now, setTimeOverride,
-    picks: {get: () => picks, set: ids => { picks = new Set(ids); savePicks(); }},
-    follows: {get: () => follows, set: list => { follows = [...list]; saveFollows(); }},
-    news: {set: list => { pickNews = list; savePickNews(); }, clear: () => { pickNews = []; savePickNews(); }},
+    picks: {get: () => picks, set: ids => { replacePicks(ids); savePicks(); }},
+    follows: {get: () => follows, set: list => { replaceFollows(list); saveFollows(); }},
+    news: {set: list => { replaceNews(list); savePickNews(); }, clear: () => { clearNews(); savePickNews(); }},
     get meta() { return meta; },
     get events() { return events; },
     BOOT, reconcilePicks, recheckSchedule, openSheet, closeSheet, ready,
   };
 }
 
-/* The test surface: every function and const the smoke harness reaches by
-   name. It reaches them through window.eval on the built page, where they
-   are the script's top-level names; this list is that coupling written
-   down. The lets are not here - a test reaches those through boot()'s
-   handle - and nor is reloadNow, which the reload option replaces. It is
-   pruned as functions move to modules of their own. */
+/* What is left of the test surface: the functions and consts still in this
+   file that a test reaches by name - through the merged namespace the page
+   helper builds (tests/helpers/page.js), or a unit test's import. A name
+   leaves this list in the commit that moves it to a module of its own, which
+   exports it from there. The lets are not here - a test reaches those
+   through boot()'s handle - and nor is reloadNow, which the reload option
+   replaces. */
 export {
-  activeFilters, browseResults, cleanRoom, closeSheet, conDayKey, conPhase, currentLocation,
-  deviceLine, edgeTouchMove, edgeTouchStart, eventsFor, expandQuery, fmtMins, fmtShort,
-  hiddenForQueryHTML, hideUpdatePill, indexReady, initTimeOverride, isFollowing, isStandalone,
-  layoutColumns, leaveInfo, loadJSON, mapCardHTML, mapDay, markActiveSection, now, nowModel,
-  nowSignature, nudgeCopy, openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery,
-  pickActiveSection, placeHTML, queueBrowseRender, readExploreHash, recheckSchedule,
-  reconcilePicks, render, renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice,
-  renderNow, revealChip, saveFollows, saveJSON, savePickNews, savePicks, setDrag,
-  setExploreHash, setTimeOverride, showUpdatePill, suggestionsFor, termQuality, tickMap,
-  tickNow, toggleFollow, togglePick, updateClock, updateFresh, walkMin,
+  closeSheet, edgeTouchMove, edgeTouchStart, hiddenForQueryHTML, hideUpdatePill, indexReady,
+  layoutColumns, mapCardHTML, mapDay, markActiveSection, nowModel, nowSignature, nudgeCopy,
+  openExplorePage, openSheet, pageScrollBy, pageScrollTo, pickActiveSection, queueBrowseRender,
+  readExploreHash, recheckSchedule, render, renderBrowse, renderExplore, renderMap,
+  renderMiniBar, renderNotice, renderNow, revealChip, setDrag, setExploreHash, setTimeOverride,
+  showUpdatePill, tickMap, tickNow, togglePick, updateClock, updateFresh,
 
-  BOOT, BUILD, CON, CON_DAYS, conEnded, DAY_LONG, EXPLORE_HEAD, FOLLOW_KINDS, followId,
-  getCatalogue, hotelGroup, hotelMatches, hotelPhrase, hotelShort, HOUR_PX, IS_IOS, isCeleb,
-  isNoise, isSimulated, LEAVE_BUFFER_MIN, MAP_HOTELS, NOISE_TRACKS, pageScrollTop, samePlace,
-  SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER, settings, state, STOPWORDS, TIME_OVERRIDE_KEY, WALK,
+  BOOT, EXPLORE_HEAD, getCatalogue, HOUR_PX, MAP_HOTELS, pageScrollTop, SEARCH_DEBOUNCE_MS,
 };
