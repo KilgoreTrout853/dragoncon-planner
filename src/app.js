@@ -1,5 +1,6 @@
 import MiniSearch from "minisearch";
 import { dayOf, esc, fmt, fmtMins, fmtShort, minutesBetween, pad, toDate } from "./util.js";
+import { loadJSON, readSession, saveJSON, writeSession } from "./storage.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
@@ -137,8 +138,6 @@ function pageScrollBy(dy) { scroller.scrollTop = pageScrollTop() + dy; }
 /* ==================================================================
    Helpers
    ================================================================== */
-function loadJSON(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
-function saveJSON(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
 /* What each pick looked like when it was starred, so a later refresh can say
    what changed. The rows alone would show the new time, or nothing at all,
    and the reader would find out at the door. */
@@ -306,8 +305,6 @@ const DATA_URL = `data/${CON.year}/events.json`;
    the same tab. */
 const TIME_OVERRIDE_KEY = `dc26.timeOverride${BUILD.channel ? "." + BUILD.channel : ""}`;
 let timeOverride = null;                     // a Date, or null for the wall clock
-const readSession = key => { try { return sessionStorage.getItem(key); } catch (e) { return null; } };
-const writeSession = (key, value) => { try { if (value === null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, value); } catch (e) {} };
 const parseMoment = raw => { const d = raw ? new Date(raw) : null; return d && !isNaN(d) ? d : null; };
 
 function now() { return timeOverride ? new Date(timeOverride.getTime()) : new Date(); }
@@ -2765,13 +2762,13 @@ export {
   activeFilters, browseResults, cleanRoom, closeSheet, conDayKey, conPhase, currentLocation,
   deviceLine, edgeTouchMove, edgeTouchStart, eventsFor, expandQuery, hiddenForQueryHTML,
   hideUpdatePill, indexReady, initTimeOverride, isFollowing, isStandalone, layoutColumns,
-  leaveInfo, loadJSON, mapCardHTML, mapDay, markActiveSection, now, nowModel, nowSignature,
-  nudgeCopy, openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery,
-  pickActiveSection, placeHTML, queueBrowseRender, readExploreHash, recheckSchedule,
-  reconcilePicks, render, renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice,
-  renderNow, revealChip, saveFollows, saveJSON, savePickNews, savePicks, setDrag, setExploreHash,
-  setTimeOverride, showUpdatePill, suggestionsFor, termQuality, tickMap, tickNow, toggleFollow,
-  togglePick, updateClock, updateFresh, walkMin,
+  leaveInfo, mapCardHTML, mapDay, markActiveSection, now, nowModel, nowSignature, nudgeCopy,
+  openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery, pickActiveSection,
+  placeHTML, queueBrowseRender, readExploreHash, recheckSchedule, reconcilePicks, render,
+  renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice, renderNow, revealChip,
+  saveFollows, savePickNews, savePicks, setDrag, setExploreHash, setTimeOverride, showUpdatePill,
+  suggestionsFor, termQuality, tickMap, tickNow, toggleFollow, togglePick, updateClock,
+  updateFresh, walkMin,
 
   BOOT, BUILD, CON, CON_DAYS, conEnded, DAY_LONG, EXPLORE_HEAD, FOLLOW_KINDS, followId,
   getCatalogue, hotelGroup, hotelMatches, hotelPhrase, hotelShort, HOUR_PX, IS_IOS, isCeleb,
