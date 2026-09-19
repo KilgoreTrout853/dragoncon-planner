@@ -10,10 +10,12 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 export const SRC = path.join(ROOT, "src");
 export const byName = (a, b) => a.localeCompare(b, "en", { sensitivity: "base" });
 
-/* the file being emptied: src/app.js until rest-2 renames it */
+/* the file being emptied, and the root of the graph: src/app.js until rest-2
+   renames it, src/boot.js after. --root names it outright. */
 export function rootFile(argv = process.argv) {
   const at = argv.indexOf("--root");
-  return path.join(SRC, at >= 0 ? argv[at + 1] : "app.js");
+  if (at >= 0) return path.join(SRC, argv[at + 1]);
+  return path.join(SRC, fs.existsSync(path.join(SRC, "boot.js")) ? "boot.js" : "app.js");
 }
 
 export function moduleOrder() {

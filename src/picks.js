@@ -1,7 +1,7 @@
 /* Picks: the events the reader has starred, what each looked like when it was
    starred, and the news of any that changed since. Read from storage as the
    module is imported; saved by whoever changes them. togglePick() is not
-   here: it redraws and scrolls, so it stays in app.js. */
+   here: it redraws and scrolls, so it is the shell's. */
 import { dayOf, esc, fmtShort, toDate } from "./util.js";
 import { loadJSON, saveJSON } from "./storage.js";
 import { DAY_LABEL } from "./time.js";
@@ -61,11 +61,11 @@ function pickNewsHTML() {
 }
 
 /* A module that imports picks and pickNews may read them, and add to or
-   delete from them; it may not assign them. These are the assignments app.js
-   used to make: the two "remove everything" paths and the handle's picks.set;
-   the dismissed notice and the handle's news.clear; the handle's news.set,
-   which keeps the list it is given and not a copy, as it always did. Saving
-   and redrawing stay with the caller. */
+   delete from them; it may not assign them. These are the assignments the
+   rest of the app makes: the two "remove everything" paths and the handle's
+   picks.set; the dismissed notice and the handle's news.clear; the handle's
+   news.set, which keeps the list it is given and not a copy, as it always
+   did. Saving and redrawing stay with the caller. */
 function replacePicks(ids) { picks = new Set(ids); }
 function replaceNews(list) { pickNews = list; }
 function clearNews() { pickNews = []; }

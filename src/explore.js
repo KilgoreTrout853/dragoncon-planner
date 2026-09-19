@@ -231,6 +231,18 @@ function syncActiveSection() {
    so the chips passed on the way do not flicker through. The hold is a
    stopwatch, not a clock: a simulated time must not freeze it. */
 let spyQueued = false, spyHoldUntil = 0;
+/* What boot() registers on the scroller. A burst of scroll events gets one
+   animation frame between them, and the frame marks the section on screen
+   unless a tapped chip is holding the mark. */
+function onScrollSpy() {
+  if (spyQueued) return;
+  spyQueued = true;
+  requestAnimationFrame(() => {
+    spyQueued = false;
+    if (performance.now() < spyHoldUntil) return;
+    syncActiveSection();
+  });
+}
 
 /* Typing in the filter box redraws the tiles and nothing else. Rebuilding the
    whole view would replace the input mid-word, and take the keyboard with it. */
@@ -400,18 +412,13 @@ function applyExploreHash() {
   else if (state.explore.page) state.explore.page = null;
 }
 
-/* boot() owns the scroll listener and the click handler that drive the
-   scroll spy, and a module that imports a let may not assign it. These are the
-   three assignments boot() used to make. queueSpy() is the read and the set in
-   one: it says whether this scroll event is the one that gets to queue a
-   frame. */
-function queueSpy() { if (spyQueued) return false; spyQueued = true; return true; }
-function spyDone() { spyQueued = false; }
+/* A tapped jump chip is heard by the delegated click handler, in dispatch,
+   which starts the hold; and a module that imports a let may not assign it.
+   This is that assignment. */
 function holdSpyUntil(t) { spyHoldUntil = t; }
 
 export {
   buildCatalogue, getCatalogue, EXPLORE_HEAD, setExploreHash, readExploreHash, openExplorePage,
-  closeExplorePage, pickActiveSection, markActiveSection, syncActiveSection, spyHoldUntil,
-  renderExploreSections, scrollToGrid, scrollToExploreSection, renderExplore, applyExploreHash,
-  queueSpy, spyDone, holdSpyUntil,
+  closeExplorePage, pickActiveSection, markActiveSection, onScrollSpy, renderExploreSections,
+  scrollToGrid, scrollToExploreSection, renderExplore, applyExploreHash, holdSpyUntil,
 };

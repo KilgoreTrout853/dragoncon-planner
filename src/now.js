@@ -2,33 +2,22 @@
    coming up, the record of the weekend once the con is over, and the minute
    tick that keeps the countdowns honest without rebuilding the list - and the
    install nudge, which is the tab's first card until the app is on the home
-   screen. render() and the minute interval, in app.js, call renderNow() and
-   tickNow(); nothing here draws anything else. */
-import { esc, fmtShort, minutesBetween, toDate } from "./util.js";
+   screen. render(), in shell.js, and the minute tick, in dispatch.js, call
+   renderNow() and tickNow(); nothing here draws anything else. */
+import { esc, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON } from "./storage.js";
 import { IS_IOS, isStandalone } from "./platform.js";
 import { state } from "./state.js";
-import { CON, conDayKey, conEnded, conPhase, DAY_LONG, now } from "./time.js";
+import { CON, conDayKey, conEnded, DAY_LONG, effectiveNow, now } from "./time.js";
 import { hotelMatches, hotelPhrase, hotelShort, hotelVar, placeHTML } from "./venues.js";
 import { events, hotelChips, isNoise } from "./data.js";
 import { pickNews, pickNewsHTML, picks } from "./picks.js";
 import { currentLocation, gapHTML, leaveInfo } from "./leave.js";
 import { chipHTML, rowHTML } from "./ui.js";
 import { cssEsc } from "./scroll.js";
+import { requestRender } from "./bus.js";
 
 /* ---- Now ---------------------------------------------------------- */
-/* Before the con the Now tab previews a sensible moment instead of an empty
-   one. Shared so the minute tick sees the same clock as the render. After
-   the con the tab is the archive, and this is not consulted. */
-function effectiveNow() {
-  const real = now();
-  if (conPhase(real) === "before") {
-    return {now: toDate("2026-09-03T10:00"),
-      banner: `<b>Con starts Thursday.</b> Showing Thursday 10:00 AM as a preview. Use Settings to preview any other time.`};
-  }
-  return {now: real, banner: ""};
-}
-
 const RING_R = 26, RING_C = 2 * Math.PI * RING_R;
 function ringHTML(fraction, minutes, late) {
   const f = Math.max(0, Math.min(1, fraction));
@@ -244,16 +233,18 @@ function nudgeHTML() {
     <div class="btns">${c.install ? `<button class="btn" data-act="nudge-install">Install app</button>` : ""}<button class="btn quiet" data-act="nudge-later">Not now</button></div></div>`;
 }
 
-/* boot() owns the listeners that hear about an install prompt - the browser
-   offering one, the app being installed, the reader tapping Install - and a
-   module that imports a let may not assign it. These are the three assignments
-   boot() used to make. takeInstallPrompt() is the read and the clear in one:
-   a prompt can be shown once. */
-function setInstallPrompt(e) { installPrompt = e; }
-function clearInstallPrompt() { installPrompt = null; }
+/* What boot() registers for the install prompt: the browser offering one,
+   and the app being installed. Both change what the nudge says, so both ask
+   for a redraw - over the bus, because render() is the shell's. */
+function onBeforeInstallPrompt(e) { e.preventDefault(); installPrompt = e; if (state.tab === "now") requestRender(); }
+function onAppInstalled() { installPrompt = null; requestRender(); }
+/* The reader tapping Install is heard by the delegated click handler, in
+   dispatch, and a module that imports a let may not assign it.
+   takeInstallPrompt() is the read and the clear in one: a prompt can be
+   shown once. */
 function takeInstallPrompt() { const p = installPrompt; installPrompt = null; return p; }
 
 export {
-  effectiveNow, nowModel, renderNow, tickNow, NUDGE_SNOOZE_MS, nudgeCopy, setInstallPrompt,
-  clearInstallPrompt, takeInstallPrompt,
+  nowModel, renderNow, tickNow, NUDGE_SNOOZE_MS, nudgeCopy, onBeforeInstallPrompt, onAppInstalled,
+  takeInstallPrompt,
 };

@@ -1,6 +1,6 @@
 /* The schedule: where it lives, the events once they are loaded, and the
    small questions asked of one event or of all of them. Nothing here fetches
-   or draws - load() in app.js does - and nothing is read at import but the
+   or draws - load() in loading.js does - and nothing is read at import but the
    con's year, for the URL. */
 import { toDate } from "./util.js";
 import { CON, conDayKey } from "./time.js";
@@ -20,7 +20,7 @@ const DATA_URL = `data/${CON.year}/events.json`;
 
 /* The schedule as the app holds it, made from the file as it was fetched:
    the events in start order, each with its Dates, its con day and its cleaned
-   room, and the lookups the views read. load() in app.js fetches and then
+   room, and the lookups the views read. load() in loading.js fetches and then
    calls this; what it assigns is read everywhere else through the live
    binding. */
 function replaceSchedule(data) {
