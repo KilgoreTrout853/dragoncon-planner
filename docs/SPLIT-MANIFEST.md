@@ -1,8 +1,16 @@
-# Split manifest: leaves
+# Split manifest
 
 A working document for the module split (DECISIONS #23, #24; plan step 4c):
-the plan for the "leaves" slice, and then its as-built record. The docs slice
-decides whether it stays in the repo.
+for each slice, the plan, and then its as-built record. The docs slice
+decides whether it stays in the repo. Two parts so far:
+
+- **[Leaves](#leaves)** - as built. Fourteen modules that need nothing from
+  `src/app.js`; merged in #14.
+- **[Rest-1: the views](#rest-1-the-views)** - the plan, step one. Seven
+  modules: scroll, bus, and the five views. It ends with
+  [app.js after rest-1](#appjs-after-rest-1), what rest-2 starts from.
+
+# Leaves
 
 **Amended 2026-09-19, after the review of draft PR #14**, before any code
 moved. The review's decisions are in [Decisions of the
@@ -1302,36 +1310,817 @@ The export list, name by name, is under [The export list](#the-export-list):
 97 names, each once, 52 to the leaves and 45 staying; `boot` is exported
 inline and stays.
 
-## app.js after leaves
+# Rest-1: the views
 
-What "rest" starts from. Declaration lines only - the comments and blank lines
-between them are not counted, and the file is 2,793 lines in all today.
+The plan for the first of the two "rest" slices, and then its as-built
+record. Step one: this part of the manifest and `tools/split/`, committed
+together, and a draft PR. Step two follows it commit by commit.
+
+- **Base.** `next` at `9b27a2624a2d294d650103dc52fe18fa0bd0b1d9`, branch
+  `refactor/rest-1`. No code under `src/` in this step.
+- **The file.** `src/app.js` is 1,965 lines: 14 imports, all of them leaves,
+  and 152 top-level declarations - 93 functions, 38 consts, 21 lets - which is
+  exactly what leaves left. A 45-name export list, and `boot` inline.
+- **How it was made.** As leaves was, and now with tools that are in the repo:
+  `tools/split/parse.js` (the scope-aware parse; it agrees, declaration by
+  declaration, with the scratch parser that made the leaves part), a module
+  assignment checked mechanically against it, and the tables below generated
+  from its output. Line numbers are app.js lines at the base commit.
+
+Decided already: rest moves what is left in two PRs. Rest-1 is the views,
+mechanical and leaves-shaped. Rest-2 is the sheet, the shell, loading and
+offline, dispatch and the rename to boot.js, with a manifest of its own. The
+bus is a synchronous call-through; `togglePick` and `setTimeOverride` stay in
+app.js; the install nudge folds into now; `no-unused-vars` joins ESLint.
+
+Seven modules, flat files under `src/`, in this commit order:
+
+`scroll`, `bus`, `now`, `browse`, `explore`, `map`, `mine`.
+
+## Rest-1 in one screen
+
+- **100** of the 152 declarations move (scroll 8, now 18, browse 10, explore
+  35, map 23, mine 6) and **52** stay; bus is new code, three names. **28** of
+  the 45 export-list names are pruned; 17 stay, plus `boot`.
+- **The views reach exactly one thing in what stays: `render()`**, at two
+  sites, both in explore. They become `requestRender()`. Checked
+  mechanically: no name in a rest-1 module reads or assigns anything else
+  that stays in app.js.
+- **One back-edge, resolved by placement.** `effectiveNow` was listed with
+  the shell in the after-leaves table because the notice uses it; `renderNow`
+  and `tickNow` use it too, and it sits in the file's own "Now" section. It
+  goes to now, and the notice imports it (R1-P1).
+- **Six assignments cross a module boundary, all from inside `boot()`**:
+  `installPrompt` at three sites, `spyQueued` at two, `spyHoldUntil` at one.
+  Six functions replace them; two of the three lets become private.
+- **No module imports a later one.** The one view-to-view edge is map
+  importing `nowModel` from now, which is why map follows now.
+- **One import-time read moves:** `document.querySelector("main")`, from
+  app.js to scroll. Nothing else in the seven reads anything at import.
+- **`no-unused-vars` flags nothing** on `next` today - 51 files, and 58 with
+  `tools/split/` - so it can land in commit 0 as it is. Checked that the run
+  was live: a planted unused import, function and local were flagged, and an
+  unused argument and caught error were not.
+
+## Rest-1, step two commit by commit
+
+**Commit 0 - the rules get ready; nothing under `src/` changes.**
+
+1. `tests/rules/imports.test.js`: the ordered list gains `scroll`, `bus`,
+   `now`, `browse`, `explore`, `map`, `mine` after `ui`. app.js stays the
+   root: imported by `main.js` alone. The list is no longer all leaves, so the
+   constant becomes `ORDER` and the second test's title says "module"
+   (R1-P5); `tools/split/repo.js` reads either name.
+2. `eslint.config.js`: `no-unused-vars` with `{args: "none", caughtErrors:
+   "none"}`, everywhere, and its header comment says three rules. It lands
+   here because the list below is clean.
+3. `docs/DECISIONS.md` #24: the title's "ESLint with two rules" becomes three,
+   dated, in the same commit.
+
+**Commits 1-7 - one module each**, in the order above, with the tools:
+`where.js` for the ranges, a spec, `move.js` (dry run, then `--write`), the
+hand edits the mover lists, `imports.js --write`, `npm run lint` and
+`npm test` green, commit. The mover refuses a module whose names or imports
+are not this manifest's. Two commits carry something extra: **bus** is new
+code, and `boot()` gains `setRenderer(render)` as its first statement;
+**explore** turns two `render()` calls into `requestRender()`.
+
+**Commit 8 - docs.** `docs/ARCHITECTURE.md`: the repo-map rows for the seven
+modules and for `tools/split/` (added in step one, where only this file and
+the tools could be touched), what `src/app.js` is now, and the ESLint
+paragraph's "two rules". This part's "Amended during execution".
+
+Expected test counts: 839 passed and 4 skipped throughout. No rule is added
+or removed; the unit tests change import lines only. If the bus gets its
+test (R1-P4), 841.
+
+---
+
+## R1.1 scroll
+
+The group leaves left behind because no leaf needed it; every view and the
+shell do.
+
+- **imports:** nothing from `src/`.
+- **takes:**
+
+| name | kind | app.js line(s) | in the export list |
+|---|---|---:|---|
+| `scroller` | const | 46 |  |
+| `pageScrollTop` | const | 47 | yes |
+| `pageScrollTo` | function | 48-53 | yes |
+| `pageScrollBy` | function | 54 | yes |
+| `chipRowsSnapshot` | function | 157-161 |  |
+| `chipRowsRestore` | function | 162-164 |  |
+| `revealChip` | function | 168-179 | yes |
+| `cssEsc` | const | 1303 |  |
+
+8 names, 30 declaration lines.
+
+- **reads at import:** `document.querySelector("main")` (`scroller`). It
+  stays the first declaration of the file: the three `pageScroll*` functions
+  close over it.
+- **reassigned lets:** none.
+- **stays behind:** the "Rendering" banner, which `where.js` attaches to
+  `chipRowsSnapshot` because it sits directly above its comment: the cut
+  starts at line 154, and the banner stays with `render()`. `fitHeaderLine`
+  and `syncHeaderHeight` are the header's, which is the shell.
+- **exports:** all eight. **Pruned from app.js's list:** `pageScrollTop`,
+  `pageScrollTo`, `pageScrollBy`, `revealChip`.
+- **tests:** none by import (`page.app.pageScrollTo` and friends, in shell:
+  the merged `app` covers them).
+
+## R1.2 bus
+
+New code; it takes nothing from app.js.
+
+```js
+let renderer = null;
+function setRenderer(fn) { renderer = fn; }
+function requestRender() {
+  if (!renderer) throw new Error("requestRender() before setRenderer(): boot() has not run");
+  renderer();
+}
+export { requestRender, setRenderer };
+```
+
+- **imports:** nothing.
+- **reads at import:** nothing.
+- **reassigned lets:** `renderer` is assigned by `setRenderer()` alone, inside
+  the module; it is not exported.
+- **in app.js:** `boot()` calls `setRenderer(render)` as its first statement,
+  before it registers anything. Only `render()` goes over the bus. The
+  partial renders - `renderMiniBar`, `tickNow`, `tickMap`,
+  `renderExploreSections`, `queueBrowseRender` - stay direct imports from
+  above: the shell imports the views, never the reverse.
+- **synchronous:** `requestRender()` calls the renderer and returns when it
+  has drawn, so `openExplorePage()`'s `pageScrollTo(0)` still runs after the
+  draw, as it does today.
+- **in tests:** every `bootPage()` calls `boot()`, which registers; and
+  `vi.resetModules()` gives each boot a bus of its own. A unit test that
+  called `openExplorePage()` with no page would throw - none does.
+- **exports:** `requestRender`, `setRenderer`.
+- **tests:** none re-pointed. Proposed: two new unit tests (R1-P4).
+
+## R1.3 now
+
+The Now tab with its hero, its archive after the con, its minute tick - and
+the install nudge, which is Now-tab markup (decided).
+
+- **imports:** util `{ esc, fmtShort, minutesBetween, toDate }`; storage
+  `{ loadJSON }`; platform `{ IS_IOS, isStandalone }`; state `{ state }`; time
+  `{ CON, DAY_LONG, conDayKey, conEnded, conPhase, now }`; venues
+  `{ hotelMatches, hotelPhrase, hotelShort, hotelVar, placeHTML }`; data
+  `{ events, hotelChips, isNoise }`; picks `{ pickNews, pickNewsHTML, picks }`;
+  leave `{ currentLocation, gapHTML, leaveInfo }`; ui `{ chipHTML, rowHTML }`;
+  scroll `{ cssEsc }`. It does import `now()`, for `effectiveNow()` and
+  `nudgeVisible()`; `heroHTML`, `nowModel`, `statusShown` and `nowSignature`
+  take a parameter of that name, which the parser does not confuse with it.
+- **takes:**
+
+| name | kind | app.js line(s) | in the export list |
+|---|---|---:|---|
+| `RING_R` | const | 424 |  |
+| `RING_C` | const | 424 |  |
+| `ringHTML` | function | 425-433 |  |
+| `heroHTML` | function | 435-478 |  |
+| `effectiveNow` | function | 484-491 |  |
+| `ARCHIVE_SIG` | const | 520 |  |
+| `archiveHTML` | function | 521-532 |  |
+| `nowModel` | function | 541-555 | yes |
+| `statusShown` | const | 557 |  |
+| `nowSignature` | function | 561-573 | yes |
+| `lastNowSig` | let | 574 |  |
+| `renderNow` | function | 576-617 | yes |
+| `tickNow` | function | 1434-1456 | yes |
+| `NUDGE_SNOOZE_MS` | const | 1476 |  |
+| `installPrompt` | let | 1477 |  |
+| `nudgeVisible` | function | 1478-1482 |  |
+| `nudgeCopy` | function | 1483-1491 | yes |
+| `nudgeHTML` | function | 1492-1497 |  |
+
+18 names, 193 declaration lines.
+
+  They come from four places: the hero (424-478) and `effectiveNow` (484-491),
+  the archive and the tab itself (520-617), `tickNow` (1434-1456, under
+  "Events (the DOM kind)"), and the nudge (1476-1497, under "Offline").
+- **reads at import:** nothing. `RING_C` is computed from `RING_R` in the same
+  statement.
+- **reassigned lets:** `installPrompt`, assigned at three sites in `boot()` -
+  see [Assignments from inside boot()](#assignments-from-inside-boot). Three
+  functions: `setInstallPrompt(e)`, `clearInstallPrompt()`, and
+  `takeInstallPrompt()`, a read-then-clear. After them nothing outside the
+  module reads `installPrompt`, so it is private. `lastNowSig` is assigned by
+  `renderNow()` and read by `tickNow()`, both inside.
+- **stays behind:** the notice above the views (`ARCHIVE_NOTICE_KEY`,
+  `archiveNoticeDismissed`, `noticeHTML`, `lastNoticeHTML`, `renderNotice`):
+  it shows on every tab, so it is the shell's; it imports `effectiveNow` from
+  here. `renderMiniBar` (shell). The nudge's three handlers in `boot()`
+  (dispatch): "nudge-later" reads `NUDGE_SNOOZE_MS`, "nudge-install" and the
+  two window listeners call the three functions.
+- **exports:** `effectiveNow`, `nowModel`, `renderNow`, `tickNow`,
+  `NUDGE_SNOOZE_MS`, `nudgeCopy`, `setInstallPrompt`, `clearInstallPrompt`,
+  `takeInstallPrompt` (three new). Private: `RING_R`, `RING_C`, `ringHTML`,
+  `heroHTML`, `ARCHIVE_SIG`, `archiveHTML`, `statusShown`, `nowSignature`,
+  `lastNowSig`, `installPrompt`, `nudgeVisible`, `nudgeHTML`. **Pruned:**
+  `nowModel`, `nowSignature`, `renderNow`, `tickNow`, `nudgeCopy`.
+  `nowSignature` is in the list today and reached by no test and by nothing
+  outside the module, so it becomes private (R1-P6).
+- **tests:** `tests/unit/misc.test.js` - `nudgeCopy` from `../../src/now.js`.
+
+## R1.4 browse
+
+- **imports:** util `{ esc, fmtShort }`; state `{ state }`; time `{ CON_DAYS,
+  DAY_LABEL, DAY_LONG, conDayKey, now }`; venues `{ hotelShort }`; data
+  `{ events, fandomCounts, hotelChips, isNoise, tracks }`; search
+  `{ KIND_LABELS, SEARCH_PLACEHOLDER, browseResults, index, processTerm,
+  suggestDocs, suggestionsFor }`; ui `{ chipHTML, rowHTML }`; scroll
+  `{ chipRowsRestore, chipRowsSnapshot }`.
+- **takes:**
+
+| name | kind | app.js line(s) | in the export list |
+|---|---|---:|---|
+| `PAGE` | const | 41 |  |
+| `suggestHTML` | function | 620-634 |  |
+| `noExactMatchHTML` | function | 639-652 |  |
+| `hiddenForQueryHTML` | function | 657-674 | yes |
+| `parsedChipsHTML` | function | 677-685 |  |
+| `renderBrowse` | function | 689-766 | yes |
+| `SEARCH_DEBOUNCE_MS` | const | 1307 | yes |
+| `browseRenderTimer` | let | 1308 |  |
+| `queueBrowseRender` | function | 1309-1317 | yes |
+| `cancelQueuedBrowseRender` | function | 1319 |  |
+
+10 names, 147 declaration lines.
+
+  From three places: `PAGE` (41, under "Data & constants"), the markup
+  helpers and `renderBrowse` (620-766; the "Browse" banner at 687 travels),
+  and the debounce (1307-1319, under "Events (the DOM kind)").
+- **reads at import:** nothing.
+- **reassigned lets:** none from outside. `browseRenderTimer` is assigned by
+  `queueBrowseRender()` and `cancelQueuedBrowseRender()`, both inside.
+- **stays behind:** `pendingQuery`, `idle`, `scheduleIndexBuild`,
+  `indexReady` - loading: they write `BOOT`, touch `#q`, and call
+  `queueBrowseRender()`, which they import. `boot()`'s input handler
+  (dispatch), which assigns `pendingQuery`, app.js's own let.
+- **exports:** `hiddenForQueryHTML`, `renderBrowse`, `SEARCH_DEBOUNCE_MS`,
+  `queueBrowseRender`, `cancelQueuedBrowseRender`. Private: `PAGE`,
+  `suggestHTML`, `noExactMatchHTML`, `parsedChipsHTML`, `browseRenderTimer`.
+  **Pruned:** `hiddenForQueryHTML`, `renderBrowse`, `SEARCH_DEBOUNCE_MS`,
+  `queueBrowseRender`.
+- **tests:** `tests/unit/query.test.js` - `SEARCH_DEBOUNCE_MS` from
+  `../../src/browse.js`; that file then no longer imports app.js. The page
+  helper's own `cleanup()` reads `app.SEARCH_DEBOUNCE_MS`: covered.
+
+## R1.5 explore
+
+Explore and the Following feed at its top.
+
+- **imports:** util `{ esc, fmtShort }`; state `{ state }`; time `{ DAY_LONG,
+  conDayKey, conEnded, isPast, now }`; data `{ NOISE_TRACKS, byId, events,
+  isCeleb }`; picks `{ picks }`; follows `{ FOLLOW_KINDS, eventsFor, followId,
+  follows, isFollowing }`; ui `{ rowHTML }`; scroll `{ pageScrollTo,
+  pageScrollTop, revealChip, scroller }`; bus `{ requestRender }`.
+  `followingByInterest(now)` and `followingByTime(now)` take the moment as a
+  parameter; `renderExplorePage()` and `followingHTML()` call `now()`.
+- **takes:**
+
+| name | kind | app.js line(s) | in the export list |
+|---|---|---:|---|
+| `KIND_NOUN` | const | 770 |  |
+| `catalogue` | let | 775 |  |
+| `buildCatalogue` | function | 776-813 |  |
+| `getCatalogue` | const | 814 | yes |
+| `EXPLORE_SECTIONS` | const | 817-823 |  |
+| `EXPLORE_HEAD` | const | 826 | yes |
+| `setExploreHash` | function | 830-835 | yes |
+| `readExploreHash` | function | 836-844 | yes |
+| `openExplorePage` | function | 845-853 | yes |
+| `closeExplorePage` | function | 854-859 |  |
+| `tileHTML` | function | 861-867 |  |
+| `exploreSectionsHTML` | function | 869-891 |  |
+| `exploreJumpHTML` | function | 893-899 |  |
+| `SUGGEST_MAX` | const | 905 |  |
+| `suggestedFollows` | function | 906-930 |  |
+| `suggestedHTML` | function | 931-940 |  |
+| `renderExploreGrid` | function | 942-951 |  |
+| `pickActiveSection` | function | 956-963 | yes |
+| `activeExploreSection` | function | 964-975 |  |
+| `markActiveSection` | function | 976-982 | yes |
+| `syncActiveSection` | function | 983-986 |  |
+| `spyQueued` | let | 990 |  |
+| `spyHoldUntil` | let | 990 |  |
+| `renderExploreSections` | function | 994-997 |  |
+| `smoothScrollTo` | function | 999 |  |
+| `scrollToGrid` | function | 1002-1007 |  |
+| `scrollToExploreSection` | function | 1009-1016 |  |
+| `renderExplorePage` | function | 1018-1053 |  |
+| `renderExplore` | function | 1055-1057 | yes |
+| `FOLLOWING_PAGE` | const | 1060 |  |
+| `followChipsHTML` | function | 1062-1070 |  |
+| `followingByInterest` | function | 1072-1096 |  |
+| `followingByTime` | function | 1098-1131 |  |
+| `followingHTML` | function | 1135-1152 |  |
+| `applyExploreHash` | function | 1424-1428 |  |
+
+35 names, 345 declaration lines.
+
+  The Explore section (770-1057) and the Following section (1060-1152), both
+  with their banners, and `applyExploreHash` (1424-1428, under "Events (the
+  DOM kind)").
+- **reads at import:** nothing.
+- **reassigned lets:** `spyQueued` (two sites) and `spyHoldUntil` (one), all
+  in `boot()` - see [Assignments from inside boot()](#assignments-from-inside-boot).
+  Three functions: `queueSpy()`, a read-then-set; `spyDone()`;
+  `holdSpyUntil(t)`. `spyQueued` is then private; `spyHoldUntil` is still
+  read by the listener, through the live binding. `catalogue` is assigned by
+  `buildCatalogue()`, inside.
+- **render():** `openExplorePage()` line 851 and `closeExplorePage()` line 857
+  call `render()`; both become `requestRender()`. The `pageScrollTo()` that
+  follows each is unchanged, and still follows the draw.
+- **stays behind:** `boot()`'s scroll listener and the explore actions of its
+  click handler (dispatch); `load()`, which calls `buildCatalogue()` and
+  `applyExploreHash()`, and the `hashchange` listener, which calls the
+  latter.
+- **exports:** `buildCatalogue`, `getCatalogue`, `EXPLORE_HEAD`,
+  `setExploreHash`, `readExploreHash`, `openExplorePage`, `closeExplorePage`,
+  `pickActiveSection`, `markActiveSection`, `syncActiveSection`,
+  `spyHoldUntil`, `renderExploreSections`, `scrollToGrid`,
+  `scrollToExploreSection`, `renderExplore`, `applyExploreHash`, `queueSpy`,
+  `spyDone`, `holdSpyUntil` (three new). Nineteen names are private,
+  `spyQueued` among them.
+  **Pruned:** `getCatalogue`, `EXPLORE_HEAD`, `setExploreHash`,
+  `readExploreHash`, `openExplorePage`, `pickActiveSection`,
+  `markActiveSection`, `renderExplore`.
+- **tests:** `tests/unit/misc.test.js` - `pickActiveSection` from
+  `../../src/explore.js`.
+
+## R1.6 map
+
+After now: `mapNowState()` and `mapCardState()` call `nowModel()`.
+
+- **imports:** util `{ esc, fmtMins, fmtShort, minutesBetween }`; state
+  `{ state }`; time `{ CON_DAYS, DAY_LABEL, DAY_LONG, conDayKey, conEnded,
+  now }`; venues `{ hotelPhrase, hotelShort, hotelVar, placeHTML }`; data
+  `{ events }`; picks `{ picks }`; leave `{ currentLocation, leaveInfo }`; ui
+  `{ chipHTML, rowHTML }`; scroll `{ chipRowsRestore, chipRowsSnapshot }`; now
+  `{ nowModel }`.
+- **takes:**
+
+| name | kind | app.js line(s) | in the export list |
+|---|---|---:|---|
+| `MAP_W` | const | 190 |  |
+| `MAP_VIEW` | const | 195 |  |
+| `MAP_STREETS` | const | 196 |  |
+| `MAP_HOTELS` | const | 197-205 | yes |
+| `MAP_BRIDGES` | const | 207 |  |
+| `mapPicksAt` | const | 210 |  |
+| `mapCounts` | function | 211-215 |  |
+| `mapPillSVG` | function | 218-222 |  |
+| `hotelSheetHTML` | function | 223-233 |  |
+| `mapNowState` | function | 238-243 |  |
+| `mapRingsSVG` | function | 246-255 |  |
+| `mapCardState` | function | 261-267 |  |
+| `mapCardHTML` | function | 268-289 | yes |
+| `offLineHTML` | const | 290 |  |
+| `mapOffMapCount` | const | 292 |  |
+| `mapSVG` | function | 294-311 |  |
+| `mapDay` | function | 315-319 | yes |
+| `renderMap` | function | 321-328 | yes |
+| `lastMapSig` | let | 334 |  |
+| `lastCardSig` | let | 334 |  |
+| `mapSignature` | function | 335-337 |  |
+| `mapCardSignature` | function | 338-343 |  |
+| `tickMap` | function | 344-358 | yes |
+
+23 names, 139 declaration lines.
+
+  The Map section whole (182-358), with its banner.
+- **reads at import:** nothing; the geometry is literals.
+- **reassigned lets:** none from outside. `lastMapSig` and `lastCardSig` are
+  assigned by `renderMap()` and `tickMap()`, inside.
+- **stays behind:** `openSheet()`'s hotel panel (the sheet), which imports
+  `hotelSheetHTML`, `MAP_HOTELS` and `mapDay`; `boot()`'s map taps
+  (dispatch).
+- **exports:** `MAP_HOTELS`, `hotelSheetHTML`, `mapCardHTML`, `mapDay`,
+  `renderMap`, `tickMap`. Seventeen names are private. **Pruned:**
+  `MAP_HOTELS`, `mapCardHTML`, `mapDay`, `renderMap`, `tickMap`.
+- **tests:** none by import.
+
+## R1.7 mine
+
+- **imports:** util `{ esc, fmtShort, minutesBetween }`; state `{ state }`;
+  time `{ DAY_LONG, conDayKey, now }`; venues `{ hotelVar, walkMin }`; data
+  `{ events }`; picks `{ pickNewsHTML, picks }`; leave `{ gapHTML }`; ui
+  `{ rowHTML }`.
+- **takes:**
+
+| name | kind | app.js line(s) | in the export list |
+|---|---|---:|---|
+| `HOUR_PX` | const | 1158 | yes |
+| `layoutColumns` | function | 1159-1183 | yes |
+| `timelineDayHTML` | function | 1185-1232 |  |
+| `renderMineTimeline` | function | 1234-1242 |  |
+| `renderMine` | function | 1244-1270 |  |
+| `fitTimelineBlocks` | function | 1274-1280 |  |
+
+6 names, 117 declaration lines.
+
+  The Mine section whole (1158-1280), with its banner.
+- **reads at import:** nothing.
+- **reassigned lets:** none.
+- **stays behind:** the export and "remove all" actions of `boot()`'s click
+  handler (dispatch).
+- **exports:** `HOUR_PX`, `layoutColumns`, `renderMine`. Private:
+  `timelineDayHTML`, `renderMineTimeline`, `fitTimelineBlocks`. **Pruned:**
+  `HOUR_PX`, `layoutColumns`.
+- **tests:** `tests/unit/misc.test.js` - `HOUR_PX` from `../../src/mine.js`.
+  With `nudgeCopy` and `pickActiveSection` re-pointed too, that file no longer
+  imports app.js.
+
+---
+
+## Assignments from inside boot()
+
+Rule 1. Every assignment that crosses a module boundary after rest-1. All six
+are in `boot()` - its listeners and its delegated click handler - and none is
+in top-level code. (`closeSheet()` assigns `dragY`, and `load()` assigns
+`fromNetwork` and `servedOffline`, but those lets and those functions all
+stay.)
+
+| line | where in boot() | today | becomes | in |
+|---:|---|---|---|---|
+| 1600-1601 | the scroll listener | `if (spyQueued) return; spyQueued = true;` | `if (!queueSpy()) return;` | explore |
+| 1603 | its `requestAnimationFrame` callback | `spyQueued = false;` | `spyDone();` | explore |
+| 1656 | click handler, "nudge-install" | `if (installPrompt) { const p = installPrompt; installPrompt = null; p.prompt(); }` | `const p = takeInstallPrompt(); if (p) p.prompt();` | now |
+| 1663 | click handler, "explore-jump" | `spyHoldUntil = performance.now() + 700;` | `holdSpyUntil(performance.now() + 700);` | explore |
+| 1875 | the `beforeinstallprompt` listener | `installPrompt = e;` | `setInstallPrompt(e);` | now |
+| 1876 | the `appinstalled` listener | `installPrompt = null;` | `clearInstallPrompt();` | now |
+
+The functions, each one assignment:
+
+```js
+/* now.js */
+function setInstallPrompt(e) { installPrompt = e; }
+function clearInstallPrompt() { installPrompt = null; }
+function takeInstallPrompt() { const p = installPrompt; installPrompt = null; return p; }
+
+/* explore.js */
+function queueSpy() { if (spyQueued) return false; spyQueued = true; return true; }
+function spyDone() { spyQueued = false; }
+function holdSpyUntil(t) { spyHoldUntil = t; }
+```
+
+Line 1604, `if (performance.now() < spyHoldUntil) return;`, is a read and is
+unchanged. `takeInstallPrompt()` clears when there is a prompt and when there
+is none; today's code clears only when there is one, and clearing a null is
+no change.
+
+## render() in a view
+
+Rule 2. Two sites, both in explore, and no others: the parse finds `render`
+read by no other name that moves.
+
+| line | function | today | becomes |
+|---:|---|---|---|
+| 851 | `openExplorePage` | `render();` | `requestRender();` |
+| 857 | `closeExplorePage` | `render();` | `requestRender();` |
+
+Nothing in a view imports app.js; `tests/rules/imports.test.js` holds them
+to it.
+
+## What the views reach in the shell
+
+Rule 3. **`render()`, and nothing else.** No function that moves calls the
+sheet, the notice, `updateFresh()`, the pill, the mini-bar or the header, so
+nothing stays behind for that reason. `effectiveNow` would have been a
+second - `renderNow()` and `tickNow()` call it - had it stayed with the
+notice; it moves instead (R1-P1).
+
+| shell function | reached from | after rest-1 | after rest-2 |
+|---|---|---|---|
+| `render` | `openExplorePage`, `closeExplorePage` | `requestRender()`, from bus | the same; rest-2 moves `render()` and `boot()` keeps calling `setRenderer()` |
+
+The traffic runs the other way, and rest-2 inherits this list: what each
+declaration that stays reaches into a rest-1 module for.
+
+| in app.js | reaches into | names |
+|---|---|---|
+| `load` | explore | `applyExploreHash` `buildCatalogue` |
+| `scheduleIndexBuild` | browse | `queueBrowseRender` |
+| `indexReady` | browse | `queueBrowseRender` |
+| `render` | scroll | `chipRowsRestore` `chipRowsSnapshot` |
+| `render` | now | `renderNow` |
+| `render` | browse | `cancelQueuedBrowseRender` `renderBrowse` |
+| `render` | explore | `renderExplore` |
+| `render` | map | `renderMap` |
+| `render` | mine | `renderMine` |
+| `noticeHTML` | now | `effectiveNow` |
+| `togglePick` | scroll | `cssEsc` `pageScrollBy` |
+| `openSheet` | scroll | `pageScrollTop` |
+| `openSheet` | map | `MAP_HOTELS` `hotelSheetHTML` `mapDay` |
+| `closeSheet` | scroll | `pageScrollTo` |
+| `boot` | scroll | `cssEsc` `pageScrollTo` `revealChip` `scroller` |
+| `boot` | now | `NUDGE_SNOOZE_MS` `installPrompt` `tickNow` |
+| `boot` | browse | `queueBrowseRender` |
+| `boot` | explore | `applyExploreHash` `closeExplorePage` `markActiveSection` `openExplorePage` `renderExploreSections` `scrollToExploreSection` `scrollToGrid` `spyHoldUntil` `spyQueued` `syncActiveSection` |
+| `boot` | map | `hotelSheetHTML` `mapDay` `tickMap` |
+
+That is the code as it is today. In step two, `boot`'s `installPrompt` and
+`spyQueued`, and its assignment of `spyHoldUntil`, become the six calls
+above, and `boot` also reaches bus, for `setRenderer`. Nothing that stays
+reaches mine except `render`.
+
+## The imports rule, extended
+
+Rule 4. The ordered list in `tests/rules/imports.test.js` becomes the
+fourteen leaves and then `scroll`, `bus`, `now`, `browse`, `explore`, `map`,
+`mine`. app.js stays the root, imported by `main.js` alone. Under this
+manifest every edge points backwards: scroll and bus import nothing; mine
+imports leaves alone; now and browse import leaves and scroll; explore adds
+bus; map adds now.
+
+## no-unused-vars
+
+Rule 5. `no-unused-vars` with `{args: "none", caughtErrors: "none"}`, added to
+the repo's own config through ESLint's API and run over everything
+`eslint .` lints, on `next` at the base commit:
+
+**51 files, 0 findings.** With `tools/split/` added, 58 files, 0 findings.
+
+So there is no list to give dispositions to: no stale import, nothing for
+review. The run was live: the same configuration over the text of
+`src/app.js` with an unused import, an unused function and an unused local
+added flagged all three, and did not flag an unused argument or an unused
+caught error, which the options exempt. It is clean because leaves
+recomputed app.js's import lines after every move; from commit 0 the rule
+does that watching itself.
+
+It lands in commit 0 of step two, with the word in DECISIONS #24's title and
+the header comment of `eslint.config.js`. `docs/ARCHITECTURE.md`'s ESLint
+paragraph ("two rules") follows in the docs commit.
+
+## The split tools
+
+Rule 6. Committed with this part, under `tools/split/`, lint-clean under
+today's rules and under `no-unused-vars`:
+
+| file | what it is |
+|---|---|
+| `scope.js` | the parser: the scope-aware walk everything else stands on |
+| `parse.js` | its command line; `--json` is what these tables were generated from |
+| `where.js` | the line ranges a list of names occupies now, with the lines at each edge |
+| `move.js` | the mover: cuts by line range, refuses a module whose names or imports are not the manifest's |
+| `imports.js` | rewrites the root file's import lines from what it references now |
+| `partition.js` | the partition check against a base commit |
+| `repo.js` | paths, and the module order - read from `tests/rules/imports.test.js`, so there is one list |
+
+They were the scratch scripts of leaves, which survived; consolidated (one
+walker, not two), made repo-relative, and checked against results already
+known: `partition.js fed41ca` gives leaves' figures again (259 of 262
+statements identical, 3 changed, none missing); `imports.js` says app.js's
+import lines are already exactly what it would write; `parse.js` agrees with
+the scratch parser on all 152 declarations; and in a sandbox copy outside the
+repo, with the order extended, `move.js` refused a spec with a wrong import
+list, then moved scroll, and `imports.js` rewrote app.js's imports for it.
+One bug found and fixed on the way: with no `--root` given, the first name
+passed to `where.js` was dropped. The docs slice decides whether they stay.
+
+## Evaluation order in rest-1
+
+Of the 100 declarations that move, two evaluate anything at import:
+`scroller` looks up `main`, and `RING_C` is computed from `RING_R` in the same
+statement. Everything else is a function, a literal, or a let initialised to
+one. So the only change is where `main` is looked up: in scroll.js, which
+evaluates before every view and before app.js, because they all import it.
+The page helper has the markup in place before anything is imported, and
+`vi.resetModules()` re-evaluates scroll with the rest. In a unit test with no
+page `scroller` is null, as it is today, and nothing a unit test calls
+touches it.
+
+app.js after rest-1 looks up seven elements at import: `#sheetWrap`, `#sheet`,
+`#panel-settings`, `#panel-event`, `#panel-hotel`, `#sheetBack`,
+`#updatePill`. bus holds one let, null until `boot()` runs.
+
+## Proposals for the review of rest-1
+
+| # | proposal | alternative |
+|---|---|---|
+| R1-P1 | `effectiveNow` goes to now, and the notice imports it | it stays with the notice, and now reaches into app.js for it - which rule 2 forbids, so it would have to go over the bus or be passed in |
+| R1-P2 | the scroll spy keeps its listener in `boot()` and gets three one-line functions: `queueSpy()`, `spyDone()`, `holdSpyUntil(t)` | the listener's body moves into explore as one function, `boot()` registers it, and both lets become private - tidier, but it is dispatch, which is rest-2's |
+| R1-P3 | `installPrompt` gets `setInstallPrompt(e)`, `clearInstallPrompt()`, `takeInstallPrompt()` and becomes private | one `setInstallPrompt(value)` for both assignments, with the read at 1656 left to the live binding |
+| R1-P4 | bus gets two unit tests, `tests/unit/bus.test.js`: `requestRender()` throws before `setRenderer()`, and calls through after. New tests, not ledger rows: 841 | none; the throw is then checked by nothing |
+| R1-P5 | in `tests/rules/imports.test.js` the constant `LEAVES` becomes `ORDER` and the second test's title says "module", since seven of the twenty-one are not leaves | keep the names; the tools read either |
+| R1-P6 | `nowSignature` leaves the export list and is not exported by now: no test and nothing outside the module reaches it | export it anyway |
+
+## Completeness of rest-1
+
+`src/app.js` at the base commit, parsed with `tools/split/parse.js`; every
+top-level declaration, in file order, with where it goes. Each name appears
+once.
+
+Parsed: **152** top-level declarations (93 functions, 38 consts, 21 lets), 14 imports, a 45-name export list and `boot` exported inline. Assigned to rest-1's modules: **100** (scroll 8, now 18, browse 10, explore 35, map 23, mine 6; bus takes nothing, it is new). Staying in app.js: **52**. 100 + 52 = 152.
+
+```
+       35  let       pendingQuery              ->  app.js  
+       38  const     BOOT                      ->  app.js    [export list]
+       40  let       fromNetwork               ->  app.js  
+       40  let       servedOffline             ->  app.js  
+       41  const     PAGE                      ->  browse  
+       46  const     scroller                  ->  scroll  
+       47  const     pageScrollTop             ->  scroll    [export list]
+    48-53  function  pageScrollTo              ->  scroll    [export list]
+       54  function  pageScrollBy              ->  scroll    [export list]
+    60-66  function  setTimeOverride           ->  app.js    [export list]
+   71-104  function  load                      ->  app.js  
+      112  const     idle                      ->  app.js  
+  113-124  function  scheduleIndexBuild        ->  app.js  
+  125-129  function  indexReady                ->  app.js    [export list]
+  131-149  function  updateFresh               ->  app.js    [export list]
+  157-161  function  chipRowsSnapshot          ->  scroll  
+  162-164  function  chipRowsRestore           ->  scroll  
+  168-179  function  revealChip                ->  scroll    [export list]
+      190  const     MAP_W                     ->  map     
+      195  const     MAP_VIEW                  ->  map     
+      196  const     MAP_STREETS               ->  map     
+  197-205  const     MAP_HOTELS                ->  map       [export list]
+      207  const     MAP_BRIDGES               ->  map     
+      210  const     mapPicksAt                ->  map     
+  211-215  function  mapCounts                 ->  map     
+  218-222  function  mapPillSVG                ->  map     
+  223-233  function  hotelSheetHTML            ->  map     
+  238-243  function  mapNowState               ->  map     
+  246-255  function  mapRingsSVG               ->  map     
+  261-267  function  mapCardState              ->  map     
+  268-289  function  mapCardHTML               ->  map       [export list]
+      290  const     offLineHTML               ->  map     
+      292  const     mapOffMapCount            ->  map     
+  294-311  function  mapSVG                    ->  map     
+  315-319  function  mapDay                    ->  map       [export list]
+  321-328  function  renderMap                 ->  map       [export list]
+      334  let       lastMapSig                ->  map     
+      334  let       lastCardSig               ->  map     
+  335-337  function  mapSignature              ->  map     
+  338-343  function  mapCardSignature          ->  map     
+  344-358  function  tickMap                   ->  map       [export list]
+  361-380  function  render                    ->  app.js    [export list]
+  382-405  function  renderMiniBar             ->  app.js    [export list]
+  407-412  function  updateClock               ->  app.js    [export list]
+  416-422  function  fitHeaderLine             ->  app.js  
+      424  const     RING_R                    ->  now     
+      424  const     RING_C                    ->  now     
+  425-433  function  ringHTML                  ->  now     
+  435-478  function  heroHTML                  ->  now     
+  484-491  function  effectiveNow              ->  now     
+      497  const     ARCHIVE_NOTICE_KEY        ->  app.js  
+      498  const     archiveNoticeDismissed    ->  app.js  
+  499-505  function  noticeHTML                ->  app.js  
+      506  let       lastNoticeHTML            ->  app.js  
+  507-515  function  renderNotice              ->  app.js    [export list]
+      520  const     ARCHIVE_SIG               ->  now     
+  521-532  function  archiveHTML               ->  now     
+  541-555  function  nowModel                  ->  now       [export list]
+      557  const     statusShown               ->  now     
+  561-573  function  nowSignature              ->  now       [export list]
+      574  let       lastNowSig                ->  now     
+  576-617  function  renderNow                 ->  now       [export list]
+  620-634  function  suggestHTML               ->  browse  
+  639-652  function  noExactMatchHTML          ->  browse  
+  657-674  function  hiddenForQueryHTML        ->  browse    [export list]
+  677-685  function  parsedChipsHTML           ->  browse  
+  689-766  function  renderBrowse              ->  browse    [export list]
+      770  const     KIND_NOUN                 ->  explore 
+      775  let       catalogue                 ->  explore 
+  776-813  function  buildCatalogue            ->  explore 
+      814  const     getCatalogue              ->  explore   [export list]
+  817-823  const     EXPLORE_SECTIONS          ->  explore 
+      826  const     EXPLORE_HEAD              ->  explore   [export list]
+  830-835  function  setExploreHash            ->  explore   [export list]
+  836-844  function  readExploreHash           ->  explore   [export list]
+  845-853  function  openExplorePage           ->  explore   [export list]
+  854-859  function  closeExplorePage          ->  explore 
+  861-867  function  tileHTML                  ->  explore 
+  869-891  function  exploreSectionsHTML       ->  explore 
+  893-899  function  exploreJumpHTML           ->  explore 
+      905  const     SUGGEST_MAX               ->  explore 
+  906-930  function  suggestedFollows          ->  explore 
+  931-940  function  suggestedHTML             ->  explore 
+  942-951  function  renderExploreGrid         ->  explore 
+  956-963  function  pickActiveSection         ->  explore   [export list]
+  964-975  function  activeExploreSection      ->  explore 
+  976-982  function  markActiveSection         ->  explore   [export list]
+  983-986  function  syncActiveSection         ->  explore 
+      990  let       spyQueued                 ->  explore 
+      990  let       spyHoldUntil              ->  explore 
+  994-997  function  renderExploreSections     ->  explore 
+      999  function  smoothScrollTo            ->  explore 
+1002-1007  function  scrollToGrid              ->  explore 
+1009-1016  function  scrollToExploreSection    ->  explore 
+1018-1053  function  renderExplorePage         ->  explore 
+1055-1057  function  renderExplore             ->  explore   [export list]
+     1060  const     FOLLOWING_PAGE            ->  explore 
+1062-1070  function  followChipsHTML           ->  explore 
+1072-1096  function  followingByInterest       ->  explore 
+1098-1131  function  followingByTime           ->  explore 
+1135-1152  function  followingHTML             ->  explore 
+     1158  const     HOUR_PX                   ->  mine      [export list]
+1159-1183  function  layoutColumns             ->  mine      [export list]
+1185-1232  function  timelineDayHTML           ->  mine    
+1234-1242  function  renderMineTimeline        ->  mine    
+1244-1270  function  renderMine                ->  mine    
+1274-1280  function  fitTimelineBlocks         ->  mine    
+1290-1302  function  togglePick                ->  app.js    [export list]
+     1303  const     cssEsc                    ->  scroll  
+     1307  const     SEARCH_DEBOUNCE_MS        ->  browse    [export list]
+     1308  let       browseRenderTimer         ->  browse  
+1309-1317  function  queueBrowseRender         ->  browse    [export list]
+     1319  function  cancelQueuedBrowseRender  ->  browse  
+     1322  const     sheetWrap                 ->  app.js  
+     1323  const     sheetEl                   ->  app.js  
+     1324  const     panelSettings             ->  app.js  
+     1325  const     panelEvent                ->  app.js  
+     1326  const     panelHotel                ->  app.js  
+     1327  let       sheetScrollY              ->  app.js  
+1329-1337  function  fillSettings              ->  app.js  
+1339-1365  function  eventSheetHTML            ->  app.js  
+1367-1382  function  openSheet                 ->  app.js    [export list]
+1384-1395  function  closeSheet                ->  app.js    [export list]
+     1400  const     sheetBackEl               ->  app.js  
+     1401  let       dragY                     ->  app.js  
+     1401  let       dragT                     ->  app.js  
+     1401  let       dragDy                    ->  app.js  
+1403-1408  function  setDrag                   ->  app.js    [export list]
+1409-1422  function  settle                    ->  app.js  
+1424-1428  function  applyExploreHash          ->  explore 
+1434-1456  function  tickNow                   ->  now       [export list]
+1460-1464  function  syncHeaderHeight          ->  app.js  
+     1476  const     NUDGE_SNOOZE_MS           ->  now     
+     1477  let       installPrompt             ->  now     
+1478-1482  function  nudgeVisible              ->  now     
+1483-1491  function  nudgeCopy                 ->  now       [export list]
+1492-1497  function  nudgeHTML                 ->  now     
+     1504  const     edgeTouch                 ->  app.js  
+1505-1510  function  edgeTouchStart            ->  app.js    [export list]
+1511-1519  function  edgeTouchMove             ->  app.js    [export list]
+     1521  const     updatePill                ->  app.js  
+1523-1531  function  showUpdatePill            ->  app.js    [export list]
+1532-1537  function  hideUpdatePill            ->  app.js    [export list]
+     1541  let       reload                    ->  app.js  
+     1542  function  reloadNow                 ->  app.js  
+     1545  let       pillY                     ->  app.js  
+     1545  let       pillDx                    ->  app.js  
+     1545  let       pillDragged               ->  app.js  
+     1554  const     RECHECK_MS                ->  app.js  
+     1555  let       lastScheduleCheck         ->  app.js  
+1556-1573  function  recheckSchedule           ->  app.js    [export list]
+1592-1947  function  boot                      ->  app.js    [exported inline]
+```
+
+The export list, by destination:
+
+| goes to | count | names |
+|---|---:|---|
+| scroll | 4 | `pageScrollBy` `pageScrollTo` `pageScrollTop` `revealChip` |
+| now | 5 | `nowModel` `nowSignature` `nudgeCopy` `renderNow` `tickNow` |
+| browse | 4 | `hiddenForQueryHTML` `queueBrowseRender` `renderBrowse` `SEARCH_DEBOUNCE_MS` |
+| explore | 8 | `EXPLORE_HEAD` `getCatalogue` `markActiveSection` `openExplorePage` `pickActiveSection` `readExploreHash` `renderExplore` `setExploreHash` |
+| map | 5 | `MAP_HOTELS` `mapCardHTML` `mapDay` `renderMap` `tickMap` |
+| mine | 2 | `HOUR_PX` `layoutColumns` |
+| app.js | 17 | `BOOT` `closeSheet` `edgeTouchMove` `edgeTouchStart` `hideUpdatePill` `indexReady` `openSheet` `recheckSchedule` `render` `renderMiniBar` `renderNotice` `setDrag` `setTimeOverride` `showUpdatePill` `togglePick` `updateClock` `updateFresh` |
+
+45 names in the list; 28 pruned by rest-1; 17 stay. `boot` is exported inline and stays.
+
+## app.js after rest-1
+
+What rest-2 starts from. It replaces the "app.js after leaves" table that
+ended this document: of that table's eleven areas, the five "view:" areas
+became now, browse, explore, map and mine, and the scroller and chip rows
+became scroll. Declaration lines only - the comments and blank lines between
+them are not counted; the file is 1,965 lines in all today.
 
 | area | names | declaration lines | names (* = in the export list) |
 |---|---:|---:|---|
-| loading and freshness | 12 | 109 | `pendingQuery` `BOOT`* `fromNetwork` `servedOffline` `load` `idle` `scheduleIndexBuild` `indexReady`* `updateFresh`* `RECHECK_MS` `lastScheduleCheck` `recheckSchedule`* |
-| shell: render, header, clock, notice | 13 | 113 | `setTimeOverride`* `render`* `renderMiniBar`* `updateClock`* `fitHeaderLine` `effectiveNow` `ARCHIVE_NOTICE_KEY` `archiveNoticeDismissed` `noticeHTML` `lastNoticeHTML` `renderNotice`* `togglePick`* `syncHeaderHeight` |
-| shell: the scroller and the chip rows | 8 | 30 | `scroller` `pageScrollTop`* `pageScrollTo`* `pageScrollBy`* `chipRowsSnapshot` `chipRowsRestore` `revealChip`* `cssEsc` |
+| loading and freshness | 12 | 95 | `pendingQuery` `BOOT`* `fromNetwork` `servedOffline` `load` `idle` `scheduleIndexBuild` `indexReady`* `updateFresh`* `RECHECK_MS` `lastScheduleCheck` `recheckSchedule`* |
+| shell: render, header, clock, notice | 12 | 101 | `setTimeOverride`* `render`* `renderMiniBar`* `updateClock`* `fitHeaderLine` `ARCHIVE_NOTICE_KEY` `archiveNoticeDismissed` `noticeHTML` `lastNoticeHTML` `renderNotice`* `togglePick`* `syncHeaderHeight` |
 | shell: the sheet | 16 | 94 | `sheetWrap` `sheetEl` `panelSettings` `panelEvent` `panelHotel` `sheetScrollY` `fillSettings` `eventSheetHTML` `openSheet`* `closeSheet`* `sheetBackEl` `dragY` `dragT` `dragDy` `setDrag`* `settle` |
 | shell: pill, edge guard, reload | 11 | 37 | `edgeTouch` `edgeTouchStart`* `edgeTouchMove`* `updatePill` `showUpdatePill`* `hideUpdatePill`* `reload` `reloadNow` `pillY` `pillDx` `pillDragged` |
-| view: map | 23 | 139 | `MAP_W` `MAP_VIEW` `MAP_STREETS` `MAP_HOTELS`* `MAP_BRIDGES` `mapPicksAt` `mapCounts` `mapPillSVG` `hotelSheetHTML` `mapNowState` `mapRingsSVG` `mapCardState` `mapCardHTML`* `offLineHTML` `mapOffMapCount` `mapSVG` `mapDay`* `renderMap`* `lastMapSig` `lastCardSig` `mapSignature` `mapCardSignature` `tickMap`* |
-| view: now (hero, archive, nudge, tick) | 17 | 185 | `RING_R` `RING_C` `ringHTML` `heroHTML` `ARCHIVE_SIG` `archiveHTML` `nowModel`* `statusShown` `nowSignature`* `lastNowSig` `renderNow`* `tickNow`* `NUDGE_SNOOZE_MS` `installPrompt` `nudgeVisible` `nudgeCopy`* `nudgeHTML` |
-| view: browse | 10 | 147 | `PAGE` `suggestHTML` `noExactMatchHTML` `hiddenForQueryHTML`* `parsedChipsHTML` `renderBrowse`* `SEARCH_DEBOUNCE_MS`* `browseRenderTimer` `queueBrowseRender`* `cancelQueuedBrowseRender` |
-| view: explore and following | 35 | 345 | `KIND_NOUN` `catalogue` `buildCatalogue` `getCatalogue`* `EXPLORE_SECTIONS` `EXPLORE_HEAD`* `setExploreHash`* `readExploreHash`* `openExplorePage`* `closeExplorePage` `tileHTML` `exploreSectionsHTML` `exploreJumpHTML` `SUGGEST_MAX` `suggestedFollows` `suggestedHTML` `renderExploreGrid` `pickActiveSection`* `activeExploreSection` `markActiveSection`* `syncActiveSection` `spyQueued` `spyHoldUntil` `renderExploreSections` `smoothScrollTo` `scrollToGrid` `scrollToExploreSection` `renderExplorePage` `renderExplore`* `FOLLOWING_PAGE` `followChipsHTML` `followingByInterest` `followingByTime` `followingHTML` `applyExploreHash` |
-| view: mine | 6 | 117 | `HOUR_PX`* `layoutColumns`* `timelineDayHTML` `renderMineTimeline` `renderMine` `fitTimelineBlocks` |
 | boot | 1 | 356 | `boot` |
 
-152 names (93 functions, 38 consts, 21 lets), 1672 declaration lines of the file's 2361.
+52 names (26 functions, 13 consts, 13 lets), 683 declaration lines of the file's 1654.
 
-Its imports: all fourteen leaves, and no npm package (the `minisearch` import
-leaves with search). Its reads at import: `main`, `#sheetWrap`, `#sheet`,
-`#panel-settings`, `#panel-event`, `#panel-hotel`, `#sheetBack`,
-`#updatePill`. Its lets: 21, none of them read outside the file. `boot()` is
-356 lines on its own and is where dispatch lives: the click and input
-handlers, the sheet's drag, the pill's drag, the worker's messages, the
-timers, and the handle.
+Its imports after rest-1: the leaves it still uses, and all seven new
+modules; no npm package. Its reads at import: the seven elements above. Its
+lets: 13, none read outside the file. `boot()` is 356 lines on its own and is
+where dispatch lives: the click and input handlers, the sheet's drag, the
+pill's drag, the worker's messages, the timers, and the handle.
 
-What "rest" inherits from this slice, beyond the code: the five new setter
-functions and `replaceSchedule`, which are the first piece of the bus; search
-writing into `state.browse` and onto the event objects; and thirteen
-export-list names no test reaches by name.
+What rest-2 inherits from the two slices before it, beyond the code: eleven
+functions that exist because an importer cannot assign a binding - leaves'
+`setOverride`, `replaceSchedule`, `replacePicks`, `replaceNews`, `clearNews`
+and `replaceFollows`, and rest-1's six - and the bus, which is the first of
+them to carry a call upwards; search writing into `state.browse` and onto the
+event objects; the table above of what the shell reaches into each view for;
+and, of the 17 names left in the export list, the ones no test reaches by
+name (`closeSheet`, `indexReady`, `openSheet`, `recheckSchedule`, `render`,
+`renderMiniBar`, `renderNotice`, `setTimeOverride`, `showUpdatePill`), which
+are rest-2's to prune or keep.
