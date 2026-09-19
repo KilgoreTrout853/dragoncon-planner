@@ -974,10 +974,40 @@ in "Boot order" that importing `src/app.js` fills (`settings`, `picks`,
 
 ## Amended during execution
 
-Placements and details that changed while step two was carried out, each in
-the commit that changed it.
+**No placement changed.** Step two landed all fourteen modules as this
+manifest has them. Checked at the end against `src/app.js` at the base commit,
+statement by statement: of its 262 top-level statements (275 names), 259 are
+byte for byte identical in exactly one module, none is missing, and the three
+that differ are the three changed on purpose - `setTimeOverride` (calls
+`setOverride`), `load` (calls `replaceSchedule`) and `boot` (six assignments
+became calls). Six names are new: `setOverride`, `replaceSchedule`,
+`replacePicks`, `replaceNews`, `clearNews`, `replaceFollows`. Per module: util
+8, storage 4, platform 2, build 4, state 2, time 15, venues 14, data 11, picks
+10, follows 7, ics 6, leave 5, search 30, ui 5; app.js keeps 152.
 
-- *(none yet)*
+Details that were not placements, and how they landed:
+
+- **Comments that were not where their code was.** `fmtMins`' comment sat 21
+  lines above it, on `cleanRoom`; it went to util with `fmtMins` (commit 1).
+  The comment above `IS_IOS` describes the edge guard; it stayed in app.js and
+  moved down onto `edgeTouch` (commit 3).
+- **Banners.** Build, Time, Follows, Calendar export, Query intent and "Where
+  you are, and when to leave" travelled with their code; where a banner is the
+  top of the new file it stands in for a header. "Data & constants" and
+  "Browse" stayed in app.js with what is left under them. The bare "Helpers"
+  banner was dropped when its section emptied (commit 9).
+- **Order inside two files.** time.js opens with the Time banner and `CON`,
+  so the day tables follow `CON` rather than precede it; leave.js opens with
+  its banner's section, so `gapHTML` and `nextPickInConDay` follow it. Neither
+  file reads any of those at import.
+- **app.js's import lines** are recomputed from what it references after each
+  move, so a name it stopped using leaves its import: `readSession`,
+  `writeSession` and `BUILD` at commit 6, `pad` and `minisearch` at commit 13.
+- **File sizes**, in lines: util 21, storage 13, platform 12, build 38, state
+  17, time 81, venues 65, data 53, picks 76, follows 49, ics 37, leave 71,
+  search 431, ui 67, app.js 1,965 (was 2,793). The per-module figures above are
+  declaration lines; a file is those plus its comments, banner, imports and
+  export list.
 
 ## Completeness
 

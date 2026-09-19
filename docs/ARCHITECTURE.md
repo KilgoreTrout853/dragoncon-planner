@@ -31,7 +31,8 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 |---|---|
 | `index.html` | The Vite entry template: the page's head and body markup, a link to `src/styles.css` and the module entry. Not runnable as a static file. |
 | `src/main.js` | The entry: imports `styles.css`, then calls `boot()` from `app.js`. |
-| `src/app.js` | The whole app script, one file. Importing it declares the app and fills the consts that read storage and the DOM; `boot()` starts it. Its only import is MiniSearch (npm, pinned to 7.2.0). |
+| `src/app.js` | What is left of the one-file script, about 1,960 lines: every view, the shell, dispatch and `boot()`. Importing it declares them and looks up the elements the shell holds; `boot()` starts the app. It imports all fourteen leaf modules and no npm package. |
+| `src/util.js`, `storage.js`, `platform.js`, `build.js`, `state.js`, `time.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The leaves: fourteen modules that need nothing from `app.js`. In that order, each imports only npm packages (`search.js` imports MiniSearch, pinned to 7.2.0) and the leaves before it, so there is no cycle; `tests/rules/imports.test.js` holds them to it. Five read storage, the document or `navigator` as they are imported: `platform`, `build`, `state`, `picks`, `follows`. `docs/SPLIT-MANIFEST.md` records what moved where, and why. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own plugin (`dcBuild`) for the HTML fix-ups, the channel stamp and the `data/` copy. |
@@ -246,13 +247,17 @@ is no built page and no `window.eval`: `tests/helpers/page.js` puts
 `index.html`'s markup and `src/styles.css` into Vitest's jsdom, sets the two
 meta stamps and the URL (`?now=2026-09-05T13:05` unless the test says
 otherwise), stubs `matchMedia` and a `navigator.serviceWorker` that is an
-`EventTarget` with `register()`, then imports `src/app.js` fresh
-(`vi.resetModules()`) and calls `boot({events, reload})` with a fixture:
+`EventTarget` with `register()`, then imports every module under `src/`
+but the entry, fresh (`vi.resetModules()`, `import.meta.glob`; importing
+`main.js` would boot the page), merges their exports into one `app` - a
+getter per export, so an exported `let` stays live, and a throw if two
+modules export one name - and calls `boot({events, reload})` with a fixture:
 `tests/sample-events.json`, or the real schedule for `real-data`. A test
 drives the page through the DOM, through the handle `boot()` returned, and
-through the module's exports. The window outlives the module, so the helper
-records every listener and interval `boot()` registers and `cleanup()`
-removes them; it also fails the file if the window saw an uncaught error.
+through `app`, wherever a name lives. The window outlives the modules, so
+the helper records every listener and interval `boot()` registers and
+`cleanup()` removes them; it also fails the file if the window saw an
+uncaught error.
 One boot per file, tests in file order; a test that needs a different start
 (seeded storage, a stamp, an iPhone, no `?now=`) cleans up and boots again.
 Internals are never assigned: a situation is produced the way it arises on a
@@ -260,9 +265,10 @@ phone - a `message` from the worker stub, storage seeded before the boot, the
 simulated clock moved, fake timers around the app's own interval, a
 MutationObserver where the claim is that nothing was redrawn.
 
-**Unit tests** (`tests/unit/`) import the pure exports of `src/app.js` with
-no page. They still run in jsdom, because the import itself reads the
-document.
+**Unit tests** (`tests/unit/`) import pure exports by name, from the module
+that holds them, with no page. They still run in jsdom, because a module
+they reach may read the document as it is imported: `time.js` imports
+`build.js`, which looks for the stamps.
 
 **Rules** (`tests/rules/`) are regexes over the text of `src/styles.css` and
 `src/app.js`: declarations a page in jsdom cannot show, since jsdom computes
@@ -288,9 +294,10 @@ Every test title ends with the harness line it came from, in brackets.
 
 ESLint carries two rules and inherits nothing: `no-undef` everywhere, and
 under `src/` a ban on `new Date()` and `Date.now()` outside `src/time.js`.
-`no-undef` runs on `src/app.js` and on the tests for real. The clock rule
-does not yet: `src/app.js` is exempt until `src/time.js` exists, and the
-Time-section rule in `tests/rules/source.test.js` is still the #12 guard.
+`no-undef` is what catches a name that moved to another module without its
+import. The clock rule runs on every file under `src/` but `time.js`, where
+`now()` lives, and is the #12 guard; the Time-section rule in
+`tests/rules/source.test.js` that stood in for it is gone.
 
 The Python test files are plain pytest modules; running one directly with
 `python tests/test_parse.py` executes nothing.
@@ -315,10 +322,12 @@ and on demand: job `client` (npm ci, lint, test) and job `pipeline`
   against `main` now fails at push. The 2027 pipeline needs a path onto
   `main` before the cron returns.
 - Event ids belong to the source site (see pipeline).
-- The client script is still one file, `src/app.js`. Five rules in
-  `tests/rules/source.test.js` read its text and every page and unit test
-  imports from it by name; splitting it means re-pointing those imports and
-  pruning its export list (DECISIONS #24).
+- The client script is half split. Fourteen leaf modules are out; every
+  view, the shell and `boot()` are still one file, `src/app.js`, with a
+  45-name export list that exists for the tests. A leaf must never import
+  `app.js` or a later leaf. An importer can read a leaf's `let` and mutate
+  what it holds but cannot assign it, which is why `replacePicks()`,
+  `replaceSchedule()`, `setOverride()` and their like exist (DECISIONS #24).
 - The root `index.html` is a template now. Serving the repo root with a
   static server no longer runs the app; use `npm run dev`, or build and
   serve `dist/` (`npm run preview`).
