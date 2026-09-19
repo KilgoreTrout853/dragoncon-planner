@@ -1,8 +1,9 @@
-/* Two rules, nothing inherited (DECISIONS #24). This is a guard for the
+/* Three rules, nothing inherited (DECISIONS #24). This is a guard for the
    module split, not a style guide: no-undef catches a function that moved
-   to another module without its import; the second rule is the #12 clock
-   guard, which took over from the regex the smoke harness had when
-   src/time.js became a module. */
+   to another module without its import, and no-unused-vars the import that
+   stayed behind when the function it was for moved on; the third rule is
+   the #12 clock guard, which took over from the regex the smoke harness had
+   when src/time.js became a module. */
 import globals from "globals";
 
 export default [
@@ -10,7 +11,12 @@ export default [
 
   {
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
-    rules: { "no-undef": "error" },
+    rules: {
+      "no-undef": "error",
+      /* an argument or a caught error that goes unused is how a signature or
+         a catch is written, not a leftover */
+      "no-unused-vars": ["error", { args: "none", caughtErrors: "none" }],
+    },
   },
 
   /* Every read of the current moment goes through now() in src/time.js. A

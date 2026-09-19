@@ -1,10 +1,12 @@
 // @vitest-environment node
 /* The shape of the module graph under src/ (DECISIONS #23, #24;
-   docs/SPLIT-MANIFEST.md). A leaf is a module that needs nothing from
-   src/app.js. LEAVES is the order they may depend on one another in: each
-   only on npm packages and on the leaves before it, so there is no cycle to
-   find. These are new tests, not rows of tests/PORT-LEDGER.md, so their
-   titles carry no harness line. */
+   docs/SPLIT-MANIFEST.md). src/app.js is the root: it imports the others,
+   and only main.js imports it. ORDER is the order the others may depend on
+   one another in - the fourteen leaves, then scroll, the bus and the five
+   views - each only on npm packages and on the modules before it, so there
+   is no cycle to find. tools/split/ reads the order from here. These are
+   new tests, not rows of tests/PORT-LEDGER.md, so their titles carry no
+   harness line. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +14,8 @@ import { describe, expect, it } from "vitest";
 import { parseAst } from "vite";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const LEAVES = ["util", "storage", "platform", "build", "state", "time", "venues", "data", "picks", "follows", "ics", "leave", "search", "ui"];
+const ORDER = ["util", "storage", "platform", "build", "state", "time", "venues", "data", "picks", "follows", "ics", "leave", "search", "ui",
+  "scroll", "bus", "now", "browse", "explore", "map", "mine"];
 const PACKAGES = Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).dependencies || {});
 const files = fs.readdirSync(path.join(ROOT, "src")).filter(f => f.endsWith(".js")).sort();
 
@@ -41,21 +44,21 @@ describe("the module graph under src/", () => {
     expect(others).toEqual([]);
   });
 
-  it("a leaf imports only npm dependencies and the leaves before it", () => {
+  it("a module imports only npm dependencies and the modules before it", () => {
     const offences = [];
-    LEAVES.forEach((leaf, at) => {
-      if (!files.includes(`${leaf}.js`)) return;               // not moved out of app.js yet
-      for (const s of specifiers(`${leaf}.js`)) {
+    ORDER.forEach((name, at) => {
+      if (!files.includes(`${name}.js`)) return;               // not moved out of app.js yet
+      for (const s of specifiers(`${name}.js`)) {
         const local = /^\.\/([\w-]+)\.js$/.exec(s);
-        const earlier = local && LEAVES.indexOf(local[1]) >= 0 && LEAVES.indexOf(local[1]) < at;
-        if (!earlier && !PACKAGES.includes(s)) offences.push(`${leaf}.js imports ${s}`);
+        const earlier = local && ORDER.indexOf(local[1]) >= 0 && ORDER.indexOf(local[1]) < at;
+        if (!earlier && !PACKAGES.includes(s)) offences.push(`${name}.js imports ${s}`);
       }
     });
     expect(offences).toEqual([]);
   });
 
-  it("every module under src/ is app.js, main.js or a leaf in the list", () => {
-    const known = ["app.js", "main.js", ...LEAVES.map(leaf => `${leaf}.js`)];
+  it("every module under src/ is app.js, main.js or a module in the list", () => {
+    const known = ["app.js", "main.js", ...ORDER.map(name => `${name}.js`)];
     expect(files.filter(f => !known.includes(f))).toEqual([]);
   });
 });
