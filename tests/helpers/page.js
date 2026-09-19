@@ -1,11 +1,13 @@
 /* Boots the app in Vitest's jsdom for a page test. The design, and why each
    step is where it is, is in tests/PORT-LEDGER.md ("Helper design").
 
-   src/app.js reads the page as it is imported - the meta stamps, <main>, the
-   sheet, navigator.platform, matchMedia - so everything it reads is in place
-   before the import, and the import is fresh every time (vi.resetModules).
-   The window outlives the module, so whatever boot() registers on it is
-   recorded and cleanup() takes it off again.
+   The modules under src/ read the page as they are imported - the meta
+   stamps, <main>, the sheet, navigator.platform, matchMedia - so everything
+   they read is in place before the import, and the import is fresh every
+   time (vi.resetModules). Every module but the entry is imported and their
+   exports are merged into one `app`, so a test reaches a name the same way
+   wherever it lives. The window outlives the modules, so whatever boot()
+   registers on it is recorded and cleanup() takes it off again.
 
    One boot per file, in beforeAll; tests run in file order and share the
    page, as the harness's sections did. A test that needs a different start -
@@ -71,10 +73,22 @@ export async function bootPage({ fixture = "sample", now = DEFAULT_NOW, channel 
   const realSetInterval = globalThis.setInterval;
   globalThis.setInterval = (...args) => { const id = realSetInterval(...args); intervals.push(id); return id; };
 
-  let app, handle;
+  /* Every module under src/ except main.js, which is the entry: importing it
+     calls boot() with no options. One getter per export, because a module may
+     export a let and a copy of its value would go stale; a name exported
+     twice is refused, since a test could not say which one it meant. */
+  const app = {};
+  let handle;
   try {
     vi.resetModules();
-    app = await import("../../src/app.js");
+    const modules = import.meta.glob(["../../src/*.js", "!../../src/main.js"]);
+    for (const [file, load] of Object.entries(modules)) {
+      const loaded = await load();
+      for (const name of Object.keys(loaded)) {
+        if (name in app) throw new Error(`bootPage: two modules under src/ export ${name} (the second is ${file})`);
+        Object.defineProperty(app, name, { enumerable: true, get: () => loaded[name] });
+      }
+    }
     handle = app.boot({ events: JSON.parse(read(...FIXTURES[fixture])), reload });
     await handle.ready;
   } finally {
