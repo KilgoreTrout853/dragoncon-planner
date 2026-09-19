@@ -1,187 +1,40 @@
-import { dayOf, esc, fmtMins, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON, saveJSON } from "./storage.js";
 import { IS_IOS } from "./platform.js";
 import { devMarkHTML } from "./build.js";
 import { state } from "./state.js";
-import {
-  CON, conEnded, DAY_LABEL, effectiveNow, initTimeOverride, isSimulated, now, setOverride,
-} from "./time.js";
-import { hotelVar, placeHTML } from "./venues.js";
+import { CON, initTimeOverride, now } from "./time.js";
 import { byId, events, meta } from "./data.js";
 import {
   clearNews, picks, reconcilePicks, replaceNews, replacePicks, savePickNews, savePicks,
 } from "./picks.js";
 import { follows, replaceFollows, saveFollows, toggleFollow } from "./follows.js";
 import { exportEventICS, exportICS } from "./ics.js";
-import { currentLocation, leaveInfo, nextPickInConDay } from "./leave.js";
 import { index, stripPhrase, tokenise } from "./search.js";
-import {
-  chipRowsRestore, chipRowsSnapshot, cssEsc, pageScrollBy, pageScrollTo, revealChip, scroller,
-} from "./scroll.js";
+import { cssEsc, pageScrollTo, revealChip, scroller } from "./scroll.js";
 import { setRenderer } from "./bus.js";
-import {
-  clearInstallPrompt, NUDGE_SNOOZE_MS, renderNow, setInstallPrompt, takeInstallPrompt, tickNow,
-} from "./now.js";
-import { cancelQueuedBrowseRender, queueBrowseRender, renderBrowse } from "./browse.js";
+import { clearInstallPrompt, NUDGE_SNOOZE_MS, setInstallPrompt, takeInstallPrompt, tickNow } from "./now.js";
+import { queueBrowseRender } from "./browse.js";
 import {
   applyExploreHash, closeExplorePage, holdSpyUntil, markActiveSection, openExplorePage, queueSpy,
-  renderExplore, renderExploreSections, scrollToExploreSection, scrollToGrid, spyDone,
-  spyHoldUntil, syncActiveSection,
+  renderExploreSections, scrollToExploreSection, scrollToGrid, spyDone, spyHoldUntil,
+  syncActiveSection,
 } from "./explore.js";
-import { mapDay, renderMap, tickMap } from "./map.js";
-import { renderMine } from "./mine.js";
+import { mapDay, tickMap } from "./map.js";
 import {
   closeSheet, eventSheetHTML, hotelSheetHTML, onCrowdInput, onNoiseDefaultChange, onResetPicks,
   onSettingsClick, onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart,
   openSheet, panelEvent, panelHotel, sheetEl, sheetWrap,
 } from "./sheet.js";
 import {
-  BOOT, fitHeaderLine, holdQuery, load, markScheduleChecked, onLoadRegisterWorker, onPageShow,
-  onPillClick, onPillTouchEnd, onPillTouchMove, onPillTouchStart, onVisibleRecheck,
-  onWorkerMessage, recheckSchedule, setReload, syncHeaderHeight, updateFresh, updatePill,
+  BOOT, holdQuery, load, markScheduleChecked, onLoadRegisterWorker, onPageShow, onPillClick,
+  onPillTouchEnd, onPillTouchMove, onPillTouchStart, onVisibleRecheck, onWorkerMessage,
+  recheckSchedule, setReload, syncHeaderHeight, updateFresh, updatePill,
 } from "./loading.js";
-/* ==================================================================
-   Data & constants
-   ================================================================== */
-
-/* value: an ISO date-time, or null for the real clock. setOverride() in
-   time.js sets it, keeps it for the session and keeps the URL in step; this
-   is what the page does about a new moment. The day chips follow the clock
-   again until tapped. */
-function setTimeOverride(value) {
-  setOverride(value);
-  state.browse.day = null;
-  state.map.day = null;
-  render();
-  updateFresh();                             // "refreshed 2 h ago" is relative to the clock too
-}
-
-/* ==================================================================
-   Rendering
-   ================================================================== */
-
-
-
-function render() {
-  cancelQueuedBrowseRender();
-  updateClock();
-  renderNotice();
-  document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
-  document.getElementById("brand").hidden = state.tab !== "now";
-  syncHeaderHeight();          // the brand comes and goes with the tab, and the spacers follow the header
-  ["now", "browse", "explore", "map", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
-  const badge = document.getElementById("mineBadge");
-  badge.hidden = picks.size === 0; badge.textContent = picks.size;
-  if (!events.length) return;
-  const rows = chipRowsSnapshot();
-  if (state.tab === "now") renderNow();
-  if (state.tab === "browse") renderBrowse();
-  if (state.tab === "explore") renderExplore();
-  if (state.tab === "map") renderMap();
-  if (state.tab === "mine") renderMine();
-  chipRowsRestore(rows);
-  renderMiniBar();
-}
-
-function renderMiniBar() {
-  const bar = document.getElementById("minibar");
-  /* Not on Now, which is about the next pick already; not on the Map, whose
-     caption says the same thing; and not once the con is over. */
-  const at = now();
-  const next = state.tab === "now" || state.tab === "map" || !events.length || conEnded() ? null : nextPickInConDay(at);
-  if (!next) {
-    bar.hidden = true;
-    document.body.classList.remove("has-minibar");
-    return;
-  }
-  const info = leaveInfo(currentLocation(at), next, at);
-  const when = info && info.leaveBy
-    ? (info.late ? "leave now" : `leave by ${fmtShort(info.leaveBy)}`)
-    : `in ${fmtMins(minutesBetween(at, next._s))}`;
-  bar.classList.toggle("late", !!(info && info.late));
-  bar.innerHTML = `<span class="mb-body">
-      <span class="mb-title">${esc(next.title)}</span>
-      <span class="mb-room" style="--h:var(${hotelVar(next.hotel)})">${placeHTML(next)}</span>
-    </span><span class="mb-when">${esc(when)}</span>`;
-  bar.setAttribute("aria-label", `Next: ${next.title}, ${when}. Go to Now.`);
-  bar.hidden = false;
-  document.body.classList.add("has-minibar");
-}
-
-function updateClock() {
-  const at = now();
-  document.getElementById("clock").textContent = `${DAY_LABEL[dayOf(at)] || at.toLocaleDateString(undefined, {weekday: "short"})} ${fmtShort(at)}`;
-  document.getElementById("simChip").hidden = !isSimulated();
-  fitHeaderLine();
-}
-
-/* ---- The notice above the views ------------------------------------ */
-/* After the con: that it is over, on every tab, until dismissed - once,
-   and remembered for that year. Before it: the preview banner. Live:
-   nothing. */
-const ARCHIVE_NOTICE_KEY = "dc26.archiveNoticeDismissed";
-const archiveNoticeDismissed = () => loadJSON(ARCHIVE_NOTICE_KEY, null) === CON.year;
-function noticeHTML() {
-  if (conEnded()) {
-    return archiveNoticeDismissed() ? "" : `<b>Dragon Con ${CON.year} has ended.</b> Your starred events are on the Now tab as your ${CON.year} schedule.
-    <div class="btns"><button class="btn quiet" data-act="dismiss-archive">OK</button></div>`;
-  }
-  return effectiveNow().banner;
-}
-let lastNoticeHTML = null;
-function renderNotice() {
-  const html = noticeHTML();
-  if (html === lastNoticeHTML) return;       // the tick calls this every minute
-  lastNoticeHTML = html;
-  const el = document.getElementById("notice");
-  el.hidden = !html;
-  el.className = conEnded() ? "notice archive" : "notice";
-  el.innerHTML = html;
-}
-
-/* ==================================================================
-   Events (the DOM kind)
-   ================================================================== */
-
-/* Starring changes what renders above the row you just tapped - the first
-   pick inserts the whole hero card - which used to shove the list down by
-   200px or more, so the next tap landed on whatever had slid into place.
-   Keep the tapped row under the finger: measure it, re-render, put it back. */
-function togglePick(id, anchor) {
-  const wasTop = anchor ? anchor.getBoundingClientRect().top : null;
-  const list = anchor ? anchor.dataset.list || "" : "";
-  if (picks.has(id)) picks.delete(id); else picks.add(id);
-  savePicks();
-  render();
-  if (wasTop === null) return;
-  const sel = `.row[data-id="${cssEsc(id)}"]${list ? `[data-list="${cssEsc(list)}"]` : ""}`;
-  const el = document.querySelector(sel);
-  if (!el) return;
-  const delta = el.getBoundingClientRect().top - wasTop;
-  if (Math.abs(delta) > 1) pageScrollBy(delta);
-}
-
-/* main scrolls and bounces on its own; the page around it never scrolls,
-   yet iOS will still rubber-band it when a drag lands on the header or the
-   nav. Safari ignores overscroll-behavior for the page itself, so refuse
-   those drags by hand. Touches that begin inside main, in the sheet, or on
-   a control are left alone, and so is anything more sideways than vertical. */
-const edgeTouch = {x: 0, y: 0, ignore: false};
-function edgeTouchStart(e) {
-  const t = e.touches && e.touches[0];
-  if (!t) return;
-  edgeTouch.x = t.clientX; edgeTouch.y = t.clientY;
-  edgeTouch.ignore = !!(e.target && e.target.closest && e.target.closest("main, #sheetWrap, input, select, textarea"));
-}
-function edgeTouchMove(e) {
-  if (edgeTouch.ignore || !e.touches || e.touches.length !== 1) return;
-  const t = e.touches[0], dy = t.clientY - edgeTouch.y, dx = t.clientX - edgeTouch.x;
-  if (Math.abs(dx) > Math.abs(dy)) return;
-  const el = document.scrollingElement || document.documentElement;
-  const atTop = el.scrollTop <= 0;
-  const atBottom = el.scrollTop + window.innerHeight >= el.scrollHeight - 1;
-  if ((dy > 0 && atTop) || (dy < 0 && atBottom)) e.preventDefault();
-}
+import {
+  ARCHIVE_NOTICE_KEY, edgeTouchMove, edgeTouchStart, onBigTextChange, onMiniBarClick, onNavClick,
+  onSimChipClick, onVisibleRender, render, renderMiniBar, renderNotice, setTimeOverride,
+  togglePick, updateClock,
+} from "./shell.js";
 
 /* ==================================================================
    Boot. Everything above is declarations, and the consts that read storage
@@ -217,10 +70,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
     });
   }, {passive: true});
 
-  document.querySelector(".nav").addEventListener("click", e => {
-    const b = e.target.closest("button[data-tab]"); if (!b) return;
-    state.tab = b.dataset.tab; render(); pageScrollTo(0);
-  });
+  document.querySelector(".nav").addEventListener("click", onNavClick);
 
   document.querySelector("main").addEventListener("click", e => {
     const chip = e.target.closest("[data-chip]");
@@ -417,23 +267,16 @@ export function boot({events: data, reload: reloadWith} = {}) {
     if (main) openSheet("event", main.closest(".row").dataset.id);
   });
 
-  document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); pageScrollTo(0); });
+  document.getElementById("minibar").addEventListener("click", onMiniBarClick);
   document.getElementById("settingsBtn").addEventListener("click", onSettingsClick);
   document.getElementById("closeSheet").addEventListener("click", closeSheet);
   document.getElementById("sheetBack").addEventListener("click", closeSheet);
   document.getElementById("crowd").addEventListener("input", onCrowdInput);
   document.getElementById("noiseDefault").addEventListener("change", onNoiseDefaultChange);
-  /* Its own key, so nothing that resets settings ever shrinks someone's text.
-     The header is re-measured because its line just changed height. */
-  document.getElementById("bigText").addEventListener("change", e => {
-    document.documentElement.classList.toggle("bigtext", e.target.checked);
-    saveJSON("dc26.bigtext", e.target.checked);
-    syncHeaderHeight();
-    render();                    // the timeline re-measures its blocks at the new size
-  });
+  document.getElementById("bigText").addEventListener("change", onBigTextChange);
   document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; closeSheet(); if (v) setTimeOverride(v); });
   document.getElementById("clearPreview").addEventListener("click", () => { closeSheet(); setTimeOverride(null); });
-  document.getElementById("simChip").addEventListener("click", () => setTimeOverride(null));
+  document.getElementById("simChip").addEventListener("click", onSimChipClick);
   document.getElementById("resetPicks").addEventListener("click", onResetPicks);
 
   window.addEventListener("hashchange", () => { applyExploreHash(); render(); });
@@ -446,7 +289,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
     else renderMiniBar();
     updateFresh();
   }, 60000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+  document.addEventListener("visibilitychange", onVisibleRender);
 
   /* Measure at the moments the header is known to change, not only through an
      observer: ResizeObserver is delivered on the rendering lifecycle, so a page
@@ -511,6 +354,5 @@ export function boot({events: data, reload: reloadWith} = {}) {
    through boot()'s handle - and nor is reloadNow, which the reload option
    replaces. */
 export {
-  edgeTouchMove, edgeTouchStart, render, renderMiniBar, renderNotice, setTimeOverride,
-  togglePick, updateClock,
+
 };
