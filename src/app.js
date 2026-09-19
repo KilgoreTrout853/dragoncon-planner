@@ -2,6 +2,7 @@ import MiniSearch from "minisearch";
 import { dayOf, esc, fmt, fmtMins, fmtShort, minutesBetween, pad, toDate } from "./util.js";
 import { loadJSON, readSession, saveJSON, writeSession } from "./storage.js";
 import { IS_IOS, isStandalone } from "./platform.js";
+import { BUILD, deviceLine, devMarkHTML } from "./build.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
@@ -262,20 +263,6 @@ const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
 const hotelGroup = h => HOTEL_GROUP[h] || h;
 /* A chip value is a venue or a group of them; "All" is everything. */
 const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hotel) === v;
-
-/* ==================================================================
-   Build. main publishes straight from the branch: the source carries empty
-   stamps and the live site wears no mark. build.py stamps a deploy with a
-   channel (the next site) and a build id, and a stamped page shows a small
-   dev-build mark, so a screenshot says which site it came from. It is the
-   stamp that decides, never the address the page was loaded from.
-   ================================================================== */
-const metaContent = name => { const m = document.querySelector(`meta[name="${name}"]`); return m && m.content ? m.content.trim() : ""; };
-const BUILD = {channel: metaContent("dc-channel"), id: metaContent("dc-build")};
-function devMarkHTML() {
-  if (!BUILD.channel) return "";
-  return `<div class="devmark" aria-hidden="true">dev build &middot; ${esc(BUILD.channel)}${BUILD.id ? ` &middot; ${esc(BUILD.id)}` : ""}</div>`;
-}
 
 /* ==================================================================
    Time. Every read of the current moment goes through now() - the header
@@ -2117,26 +2104,6 @@ function fillSettings() {
   document.getElementById("deviceLine").textContent = deviceLine();
 }
 
-/* What the phone is telling us, for the times a screenshot is not enough:
-   how the app was opened, the viewport against the screen, and the insets
-   the system reports before any cap of ours. */
-function deviceLine() {
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)";
-  document.body.appendChild(probe);
-  const cs = getComputedStyle(probe);
-  const insets = `top ${cs.paddingTop || "?"}, bottom ${cs.paddingBottom || "?"}`;
-  probe.remove();
-  const standalone = !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
-  const vv = window.visualViewport ? Math.round(window.visualViewport.height) : "-";
-  const scr = window.screen ? `${screen.width}×${screen.height}` : "-";
-  /* GitHub Pages stamps every deploy with a Last-Modified header; the page
-     can read it, so "which build is this" is a glance rather than a guess. */
-  const built = new Date(document.lastModified);
-  const stamp = isNaN(built) ? "" : ` · build ${built.toISOString().slice(0, 16).replace("T", " ")} UTC`;
-  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets}${IS_IOS ? " · iOS" : ""}${BUILD.channel ? ` · ${BUILD.channel} build${BUILD.id ? " " + BUILD.id : ""}` : ""}${stamp}`;
-}
-
 function eventSheetHTML(ev) {
   const mine = picks.has(ev.id);
   const peopleRows = (ev.speakers || []).filter(p => p && p.name).map(p => ({
@@ -2756,18 +2723,17 @@ export function boot({events: data, reload: reloadWith} = {}) {
    replaces. */
 export {
   activeFilters, browseResults, cleanRoom, closeSheet, conDayKey, conPhase, currentLocation,
-  deviceLine, edgeTouchMove, edgeTouchStart, eventsFor, expandQuery, hiddenForQueryHTML,
-  hideUpdatePill, indexReady, initTimeOverride, isFollowing, layoutColumns, leaveInfo,
-  mapCardHTML, mapDay, markActiveSection, now, nowModel, nowSignature, nudgeCopy,
-  openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery, pickActiveSection,
-  placeHTML, queueBrowseRender, readExploreHash, recheckSchedule, reconcilePicks, render,
-  renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice, renderNow, revealChip,
-  saveFollows, savePickNews, savePicks, setDrag, setExploreHash, setTimeOverride, showUpdatePill,
-  suggestionsFor, termQuality, tickMap, tickNow, toggleFollow, togglePick, updateClock,
-  updateFresh, walkMin,
+  edgeTouchMove, edgeTouchStart, eventsFor, expandQuery, hiddenForQueryHTML, hideUpdatePill,
+  indexReady, initTimeOverride, isFollowing, layoutColumns, leaveInfo, mapCardHTML, mapDay,
+  markActiveSection, now, nowModel, nowSignature, nudgeCopy, openExplorePage, openSheet,
+  pageScrollBy, pageScrollTo, parseQuery, pickActiveSection, placeHTML, queueBrowseRender,
+  readExploreHash, recheckSchedule, reconcilePicks, render, renderBrowse, renderExplore,
+  renderMap, renderMiniBar, renderNotice, renderNow, revealChip, saveFollows, savePickNews,
+  savePicks, setDrag, setExploreHash, setTimeOverride, showUpdatePill, suggestionsFor,
+  termQuality, tickMap, tickNow, toggleFollow, togglePick, updateClock, updateFresh, walkMin,
 
-  BOOT, BUILD, CON, CON_DAYS, conEnded, DAY_LONG, EXPLORE_HEAD, FOLLOW_KINDS, followId,
-  getCatalogue, hotelGroup, hotelMatches, hotelPhrase, hotelShort, HOUR_PX, isCeleb, isNoise,
-  isSimulated, LEAVE_BUFFER_MIN, MAP_HOTELS, NOISE_TRACKS, pageScrollTop, samePlace,
-  SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER, settings, state, STOPWORDS, TIME_OVERRIDE_KEY, WALK,
+  BOOT, CON, CON_DAYS, conEnded, DAY_LONG, EXPLORE_HEAD, FOLLOW_KINDS, followId, getCatalogue,
+  hotelGroup, hotelMatches, hotelPhrase, hotelShort, HOUR_PX, isCeleb, isNoise, isSimulated,
+  LEAVE_BUFFER_MIN, MAP_HOTELS, NOISE_TRACKS, pageScrollTop, samePlace, SEARCH_DEBOUNCE_MS,
+  SEARCH_PLACEHOLDER, settings, state, STOPWORDS, TIME_OVERRIDE_KEY, WALK,
 };
