@@ -5,6 +5,11 @@ when the harness was replaced. Written against `next` at 79fb1dd; line numbers a
 git at that commit. Amended after review, before any test was written: 1240 is a rule rather than a delete, 375, 938 and 1893 are
 deleted, the four rows that never run are `it.skip`, and every row names the PR it landed in. Amended again in 4b-ii: 148 tests its
 rule for the first time, 2002 is a test of its own, and the leave-by rows check the rendered time against the formula.
+Amended in the docs slice (2026-09-19), for what has moved since: four lint-like rows no longer live in
+`tests/rules/source.test.js`, because ESLint took them over as selectors under `no-restricted-syntax` - 1890 and 1892 in #14, when
+`src/time.js` became a module and the Time-section rule was deleted, 780 and 1989 in the docs slice - and `tests/build.test.js`
+lost its same-program case in #13. Those four rows and that sentence are corrected below. The tables' counts are as of 4b-ii, and
+where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
 own variables to what it reads (the page, a `window.eval`, the source text, the built files), and an instrumented copy of the harness
@@ -208,7 +213,7 @@ Sites are call sites that survive (port + rewrite) plus what splitting adds; mer
 
 `tests/unit/*` import `src/app.js` with no page: the module's DOM consts come back `null`, which is harmless because nothing pure touches them. They still need jsdom, because the import itself calls `document.querySelector`. Anything that reads the clock, the schedule or the picks is `handle`, not `import`: outside `boot()` there is no `?now=`, and by the real clock the con has ended.
 
-`tests/build.test.js` keeps its seven cases and gains the (c) rows; 1292, 1331 and 1987 merge into cases 6, 6 and 2, which already assert them. For one PR (4b-i) the two suites coexisted. 4b-ii removed `tests/ui_smoke.cjs`, the `smoke` script and its line in `ci.yml` once every row here was green in its new home; `src/main.js` stopped reading `window.DC_EVENTS` in the same PR, and `npm test` carries everything.
+`tests/build.test.js` kept its seven cases and gained the (c) rows (six cases since #13, which removed the seventh, the same-program case, with the scaffolding it checked); 1292, 1331 and 1987 merge into cases 6, 6 and 2, which already assert them. For one PR (4b-i) the two suites coexisted. 4b-ii removed `tests/ui_smoke.cjs`, the `smoke` script and its line in `ci.yml` once every row here was green in its new home; `src/main.js` stopped reading `window.DC_EVENTS` in the same PR, and `npm test` carries everything.
 
 A test count is not a site count. Where one row became several tests the title says so: 1894 is four, 1729's page half is two, and a looped row is one test per turn (`it.each`). `tests/helpers/act.js` holds the gestures the page files share: type into a box, tap an SVG node, a touch event, and the mutations seen while something runs.
 
@@ -559,7 +564,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 777 | b css | main is the scroll container | `rules/style.test.js` | 4b-i | rule | port |
 | 778 | b css | and the page around it cannot scroll | `rules/style.test.js` | 4b-i | rule | port |
 | 779 | b css | the header is fixed above it | `rules/style.test.js` | 4b-i | rule | port |
-| 780 | b lint | no code scrolls the window directly | `rules/source.test.js` | 4b-i | rule | port. PR 5: ESLint no-restricted-properties on window.scrollTo / scrollBy / scrollY / pageYOffset |
+| 780 | b lint | no code scrolls the window directly | `eslint.config.js` | 4b-i | rule | port, then **retired in the docs slice**: three `no-restricted-syntax` selectors - a call of `scrollTo` or `scrollBy` on `window`, a read of `window.scrollY`, and `pageYOffset` wherever it is named. The rule test was deleted |
 | 782 | a | the scroll helpers address main (…) | `page/shell.test.js` | 4b-ii | handle | port |
 | 783 | a | nor a two-finger gesture | `page/shell.test.js` | 4b-ii | handle | port |
 | 784 | a | and none of it is wired up outside iOS | `unit/misc.test.js` | 4b-i | import | port |
@@ -1118,8 +1123,8 @@ One row per call site, in harness order, under the harness's own section comment
 | 1883 | a | booted from ?now=, the clock is simulated and the chip shows | `page/time.test.js` | 4b-i | handle | port |
 | 1884 | a | the override is kept for the session | `page/time.test.js` | 4b-i | dom | port |
 | 1885 | a | the clock reads the simulated time, with no suffix (…) | `page/time.test.js` | 4b-i | dom | port |
-| 1890 | b lint | index.html has a Time section | `rules/source.test.js` | 4b-i |  | **merge** with 1892: it only locates the Time section that 1892's rule exempts |
-| 1892 | b lint | no bare new Date() or Date.now() outside the Time section | `rules/source.test.js` | 4b-i | rule | port. PR 5: the no-restricted-syntax pair already in eslint.config.js, once src/time.js exists and src/app.js leaves its ignores |
+| 1890 | b lint | index.html has a Time section | `eslint.config.js` | 4b-i |  | **merge** with 1892: it only locates the Time section that 1892's rule exempts. **Since #14:** gone with 1892's rule; the exemption is `src/time.js`, in the config's `ignores` |
+| 1892 | b lint | no bare new Date() or Date.now() outside the Time section | `eslint.config.js` | 4b-i | rule | port, then **retired in #14**: `src/time.js` became a module, `src/app.js` left the rule's ignores, and the `no-restricted-syntax` pair in `eslint.config.js` is the #12 guard. The rule test was deleted |
 | 1893 | d | the hash no longer carries the clock | `page/time.test.js` | 4b-ii |  | **delete** a grep for the removed #now= hash; the behaviour is 1898 (the override lives in location.search) and 1231 (the hash carries only the explore page) |
 | 1894 | d | the drag and the scroll-spy hold are stopwatch reads | `page/time.test.js` | 4b-i | provoke | **rewrite** under a frozen ?now= clock with performance.now() faked: a fast flick still closes the sheet, and scroll events inside 700 ms of a jump-chip tap do not move the pressed chip |
 | 1897 | a | an offset in the override is honoured | `page/time.test.js` | 4b-i | handle | port |
@@ -1178,7 +1183,7 @@ One row per call site, in harness order, under the harness's own section comment
 |---:|---|---|---|---|---|---|
 | 1987 | c | the source carries empty channel and build stamps | `build.test.js` | 4b-i |  | **merge** with build.test.js case 2, which already asserts both empty stamps in dist/index.html |
 | 1988 | a | unstamped, there is no mark and no channel | `page/devmark.test.js` | 4b-ii | handle | port |
-| 1989 | b lint | nothing in the page decides by hostname | `rules/source.test.js` | 4b-i | rule | port. PR 5: ESLint no-restricted-properties on location.host / hostname / origin |
+| 1989 | b lint | nothing in the page decides by hostname | `eslint.config.js` | 4b-i | rule | port, then **retired in the docs slice**: a `no-restricted-syntax` selector - `host`, `hostname` or `origin` read on `location`, or on anything`.location`. The rule test was deleted |
 | 1995 | a | stamped with a channel, the mark reads dev build · next · build (…) | `page/devmark.test.js` | 4b-ii | dom | port |
 | 1996 | a | it is fixed, decorative, and takes no taps | `page/devmark.test.js` | 4b-ii | dom | port. split: dom half (aria-hidden on the mark) stays; two `.devmark` rules → style rule. The split half in `rules/style.test.js` lands in 4b-i |
 | 1997 | b css | and it moves up above the mini-bar | `rules/style.test.js` | 4b-i | rule | port |
