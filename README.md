@@ -11,7 +11,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `data/2026/events.json` | The final 2026 schedule, frozen after the con: 3,459 events, scraped Sep 7 12:50 UTC. |
 | `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app, merges duplicates, and writes `data/2026/events.json`. Takes ~20 minutes. |
 | `tag_events.py` | Has Claude tag each event with fandoms, kind (celebrity Q&A, fan panel, screening…), topics, guests, and 18+. Powers the fandom picker, kind chips, the Celebrity badge and Guests section, and search. |
-| `index.html`, `src/` | The planner: the page's markup, `src/app.js` (the whole script) and `src/styles.css`. Vite builds them into one inlined `dist/index.html`, which reads `data/2026/events.json`. |
+| `index.html`, `src/` | The planner: the page's markup, the script as ES modules under `src/` (`main.js` is the entry and `boot.js` starts the app) and `src/styles.css`. Vite builds them into one inlined `dist/index.html`, which reads `data/2026/events.json`. |
 | `public/sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `public/manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `public/icon.svg`. Needs Pillow; fetches the font once. |

@@ -2,7 +2,9 @@
    scroller, not the page; chip rows scroll sideways and every render rebuilds
    them; a selector needs its ids escaped. Every view and the shell use these,
    and nothing here imports from src/. The scroller is looked up once, as the
-   module is imported, so the markup has to be there first. */
+   module is imported, so the markup has to be there first. The header is
+   measured here too: what scrolls parks under it (--hdr-h), and loading, the
+   shell and boot() all need the measurement from a module below them. */
 
 /* Everything that scrolls the page goes through here, because the page is
    not the scroller - main is (see the CSS). jsdom has no scrollTo on
@@ -46,7 +48,25 @@ function revealChip(chip) {
 
 const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
 
+/* The header line must not clip: if it would, hide the word "refreshed"
+   and measure again. jsdom reports no widths, so this is a no-op there. */
+function fitHeaderLine() {
+  const line = document.querySelector(".hdr-line");
+  if (!line) return;
+  line.classList.remove("tight", "tighter");
+  if (line.scrollWidth > line.clientWidth) line.classList.add("tight");
+  if (line.scrollWidth > line.clientWidth) line.classList.add("tighter");
+}
+
+/* The sticky filters park directly under the header, whose height changes
+   with the clock and the freshness line - measure it rather than guess. */
+function syncHeaderHeight() {
+  const h = document.querySelector(".hdr");
+  if (h) document.documentElement.style.setProperty("--hdr-h", `${Math.round(h.getBoundingClientRect().height)}px`);
+  fitHeaderLine();
+}
+
 export {
   scroller, pageScrollTop, pageScrollTo, pageScrollBy, chipRowsSnapshot, chipRowsRestore,
-  revealChip, cssEsc,
+  revealChip, cssEsc, fitHeaderLine, syncHeaderHeight,
 };

@@ -1,3 +1,3 @@
 import "./styles.css";
-import { boot } from "./app.js";
+import { boot } from "./boot.js";
 boot();

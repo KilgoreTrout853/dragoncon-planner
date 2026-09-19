@@ -2,8 +2,8 @@
    indexes, and the reading of a query - which words are filters, what is left
    to rank by, and the ranking. It reads state.browse and writes to it (the
    parsed query, the today scope), and stamps _hit and _section on the events
-   it returns. Building the indexes in idle time, and drawing the results,
-   are app.js's. */
+   it returns. Building the indexes in idle time is loading.js's, and drawing
+   the results is browse.js's. */
 import MiniSearch from "minisearch";
 import { dayOf } from "./util.js";
 import { state } from "./state.js";

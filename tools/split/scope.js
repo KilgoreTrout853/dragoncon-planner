@@ -140,6 +140,36 @@ function walk(node, scopes, sink, depth) {
   }
 }
 
+/* The names one node reads and assigns that nothing inside it binds: for a
+   handler lifted out of boot(), everything it needs from outside itself. */
+export function freeOf(node) {
+  const reads = new Set(), writes = [];
+  walk(node, [], { read: name => reads.add(name), write: (name, deferred, pos) => writes.push({ name, pos }) }, 0);
+  return { reads, writes };
+}
+
+/* every name declared anywhere inside a function's body, outside any function nested in it */
+export function localsOf(fn) {
+  const out = new Set();
+  for (const p of fn.params) patternIds(p).forEach(n => out.add(n));
+  const visit = node => {
+    if (!node || typeof node.type !== "string") return;
+    if (/^(FunctionExpression|ArrowFunctionExpression)$/.test(node.type)) return;
+    if (node.type === "FunctionDeclaration") { out.add(node.id.name); return; }
+    if (node.type === "ClassDeclaration") { out.add(node.id.name); return; }
+    if (node.type === "VariableDeclaration") for (const d of node.declarations) patternIds(d.id).forEach(n => out.add(n));
+    if (node.type === "CatchClause") patternIds(node.param).forEach(n => out.add(n));
+    for (const v of Object.values(node)) {
+      if (Array.isArray(v)) v.forEach(visit);
+      else if (v && typeof v === "object") visit(v);
+    }
+  };
+  visit(fn.body);
+  return out;
+}
+
+export function parse(code) { return parseAst(code, { lang: "js", sourceType: "module" }); }
+
 export function study(code) {
   const ast = parseAst(code, { lang: "js", sourceType: "module" });
   const starts = [0];

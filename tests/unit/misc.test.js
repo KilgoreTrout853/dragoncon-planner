@@ -1,7 +1,8 @@
-/* Pure exports of src/app.js: no page, no schedule, no clock. The number in
-   brackets is the harness line the assertion came from (tests/PORT-LEDGER.md).
-   Importing the module still touches the document, so this runs in jsdom;
-   with no markup its DOM consts are null, and nothing here reaches them. */
+/* Pure exports of the modules under src/: no page, no schedule, no clock.
+   The number in brackets is the harness line the assertion came from
+   (tests/PORT-LEDGER.md). Importing a module can still touch the document, so
+   this runs in jsdom; with no markup its DOM consts are null, and nothing
+   here reaches them. */
 import { describe, expect, it } from "vitest";
 import { pickActiveSection } from "../../src/explore.js";
 import { FOLLOW_KINDS } from "../../src/follows.js";

@@ -52,7 +52,7 @@ function initTimeOverride() {
    and the URL is kept in step so a reload lands on the same moment - only "+"
    is encoded, so the address stays readable - and the hash (an explore deep
    link) is left alone. Returns the override it set: a Date, or null. What the
-   page does about a new moment is setTimeOverride()'s, in app.js. */
+   page does about a new moment is setTimeOverride()'s, in shell.js. */
 function setOverride(value) {
   timeOverride = parseMoment(value);
   writeSession(TIME_OVERRIDE_KEY, timeOverride ? value : null);
@@ -72,10 +72,23 @@ const conEnded = () => conPhase() === "ended";
    whole schedule is - and folding all of it away would hide every result. */
 const isPast = (e, at) => e._e <= at && conPhase(at) !== "ended";
 
+/* Before the con the Now tab previews a sensible moment instead of an empty
+   one. Shared so the minute tick sees the same clock as the render. After
+   the con the tab is the archive, and this is not consulted. */
+function effectiveNow() {
+  const real = now();
+  if (conPhase(real) === "before") {
+    return {now: toDate("2026-09-03T10:00"),
+      banner: `<b>Con starts Thursday.</b> Showing Thursday 10:00 AM as a preview. Use Settings to preview any other time.`};
+  }
+  return {now: real, banner: ""};
+}
+
 /* A con day runs to 5am, so a 1am Sunday panel still belongs to Saturday. */
 function conDayKey(d) { return dayOf(new Date(d.getTime() - 5 * 3600000)); }
 
 export {
   CON, CON_DAYS, DAY_LABEL, DAY_LONG, TIME_OVERRIDE_KEY, timeOverride, now, isSimulated,
-  initTimeOverride, setOverride, localInputValue, conPhase, conEnded, isPast, conDayKey,
+  initTimeOverride, setOverride, localInputValue, conPhase, conEnded, isPast, effectiveNow,
+  conDayKey,
 };
