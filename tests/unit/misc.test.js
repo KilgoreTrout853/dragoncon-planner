@@ -3,7 +3,8 @@
    Importing the module still touches the document, so this runs in jsdom;
    with no markup its DOM consts are null, and nothing here reaches them. */
 import { describe, expect, it } from "vitest";
-import { HOUR_PX, pickActiveSection } from "../../src/app.js";
+import { HOUR_PX } from "../../src/app.js";
+import { pickActiveSection } from "../../src/explore.js";
 import { FOLLOW_KINDS } from "../../src/follows.js";
 import { nudgeCopy } from "../../src/now.js";
 import { IS_IOS } from "../../src/platform.js";
