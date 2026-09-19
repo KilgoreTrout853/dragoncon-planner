@@ -12,12 +12,11 @@ import { exportEventICS, exportICS } from "./ics.js";
 import { index, stripPhrase, tokenise } from "./search.js";
 import { cssEsc, pageScrollTo, revealChip, scroller } from "./scroll.js";
 import { setRenderer } from "./bus.js";
-import { clearInstallPrompt, NUDGE_SNOOZE_MS, setInstallPrompt, takeInstallPrompt, tickNow } from "./now.js";
+import { NUDGE_SNOOZE_MS, onAppInstalled, onBeforeInstallPrompt, takeInstallPrompt, tickNow } from "./now.js";
 import { queueBrowseRender } from "./browse.js";
 import {
-  applyExploreHash, closeExplorePage, holdSpyUntil, markActiveSection, openExplorePage, queueSpy,
-  renderExploreSections, scrollToExploreSection, scrollToGrid, spyDone, spyHoldUntil,
-  syncActiveSection,
+  applyExploreHash, closeExplorePage, holdSpyUntil, markActiveSection, onScrollSpy,
+  openExplorePage, renderExploreSections, scrollToExploreSection, scrollToGrid,
 } from "./explore.js";
 import { mapDay, tickMap } from "./map.js";
 import {
@@ -61,14 +60,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.body.insertAdjacentHTML("beforeend", devMarkHTML());
   initTimeOverride();
 
-  scroller.addEventListener("scroll", () => {
-    if (!queueSpy()) return;
-    requestAnimationFrame(() => {
-      spyDone();
-      if (performance.now() < spyHoldUntil) return;
-      syncActiveSection();
-    });
-  }, {passive: true});
+  scroller.addEventListener("scroll", onScrollSpy, {passive: true});
 
   document.querySelector(".nav").addEventListener("click", onNavClick);
 
@@ -306,8 +298,8 @@ export function boot({events: data, reload: reloadWith} = {}) {
     if (hdr) new ResizeObserver(syncHeaderHeight).observe(hdr);
   }
 
-  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); setInstallPrompt(e); if (state.tab === "now") render(); });
-  window.addEventListener("appinstalled", () => { clearInstallPrompt(); render(); });
+  window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+  window.addEventListener("appinstalled", onAppInstalled);
 
   if (IS_IOS) {
     document.addEventListener("touchstart", edgeTouchStart, {passive: true});

@@ -15,6 +15,7 @@ import { pickNews, pickNewsHTML, picks } from "./picks.js";
 import { currentLocation, gapHTML, leaveInfo } from "./leave.js";
 import { chipHTML, rowHTML } from "./ui.js";
 import { cssEsc } from "./scroll.js";
+import { requestRender } from "./bus.js";
 
 /* ---- Now ---------------------------------------------------------- */
 const RING_R = 26, RING_C = 2 * Math.PI * RING_R;
@@ -232,16 +233,18 @@ function nudgeHTML() {
     <div class="btns">${c.install ? `<button class="btn" data-act="nudge-install">Install app</button>` : ""}<button class="btn quiet" data-act="nudge-later">Not now</button></div></div>`;
 }
 
-/* boot() owns the listeners that hear about an install prompt - the browser
-   offering one, the app being installed, the reader tapping Install - and a
-   module that imports a let may not assign it. These are the three assignments
-   boot() used to make. takeInstallPrompt() is the read and the clear in one:
-   a prompt can be shown once. */
-function setInstallPrompt(e) { installPrompt = e; }
-function clearInstallPrompt() { installPrompt = null; }
+/* What boot() registers for the install prompt: the browser offering one,
+   and the app being installed. Both change what the nudge says, so both ask
+   for a redraw - over the bus, because render() is the shell's. */
+function onBeforeInstallPrompt(e) { e.preventDefault(); installPrompt = e; if (state.tab === "now") requestRender(); }
+function onAppInstalled() { installPrompt = null; requestRender(); }
+/* The reader tapping Install is heard by the delegated click handler, in
+   dispatch, and a module that imports a let may not assign it.
+   takeInstallPrompt() is the read and the clear in one: a prompt can be
+   shown once. */
 function takeInstallPrompt() { const p = installPrompt; installPrompt = null; return p; }
 
 export {
-  nowModel, renderNow, tickNow, NUDGE_SNOOZE_MS, nudgeCopy, setInstallPrompt, clearInstallPrompt,
+  nowModel, renderNow, tickNow, NUDGE_SNOOZE_MS, nudgeCopy, onBeforeInstallPrompt, onAppInstalled,
   takeInstallPrompt,
 };
