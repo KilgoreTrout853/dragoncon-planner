@@ -1,8 +1,15 @@
 # Split manifest: leaves
 
-A working document for the module split (DECISIONS #23, #24; plan step 4c).
-It is step one of the "leaves" slice: the plan step two follows, commit by
-commit. The docs slice decides whether it stays in the repo.
+A working document for the module split (DECISIONS #23, #24; plan step 4c):
+the plan for the "leaves" slice, and then its as-built record. The docs slice
+decides whether it stays in the repo.
+
+**Amended 2026-09-19, after the review of draft PR #14**, before any code
+moved. The review's decisions are in [Decisions of the
+review](#decisions-of-the-review); every table and count below was
+regenerated from the parse with them applied. Where a placement had to change
+while step two was being carried out, it is recorded under [Amended during
+execution](#amended-during-execution), in the commit that changed it.
 
 - **Base.** `next` at `fed41caa70c108917e82b0a77a166f52f00f11c4`, branch
   `refactor/leaves`. No code changes in this step.
@@ -38,8 +45,8 @@ follows in its own slice.
 
 - The fourteen leaves hold with **no back-edge**: checked mechanically, no
   leaf reads or writes a name that lives in a later leaf or in app.js.
-- They take **132** of the 275 declarations and **57** of the 97 export-list
-  names. **143** declarations stay, 40 of them in the export list, plus `boot`.
+- They take **123** of the 275 declarations and **52** of the 97 export-list
+  names. **152** declarations stay, 45 of them in the export list, plus `boot`.
 - **Nine lets** are assigned from code that stays in app.js, at 14 sites. Six
   are replaced by one function (`replaceSchedule`), the other three by five
   (`setOverride`, `replacePicks`, `replaceNews`, `clearNews`,
@@ -53,8 +60,8 @@ follows in its own slice.
 - **The clock rule finds one call**, the bare `new Date()` inside `now()`
   (line 326), which moves to `src/time.js`. No `Date.now()` anywhere. Nothing
   outside time.js: not a stop.
-- Proposals that go beyond the brief are collected in
-  [Proposals for the review](#proposals-for-the-review).
+- The twelve placements the brief left open, and what the review decided for
+  each, are in [Decisions of the review](#decisions-of-the-review).
 
 ## Step two, commit by commit
 
@@ -69,7 +76,7 @@ unsplit app.js.
 2. `tests/helpers/page.js`: after `vi.resetModules()` it imports every module
    under `src/` except `main.js` and returns them merged as `app` (rule 7). See
    [The page helper](#the-page-helper).
-3. `tests/rules/imports.test.js`, new, if the review keeps it (rule 8). See
+3. `tests/rules/imports.test.js`, new (rule 8; the review keeps it). See
    [The imports rule](#the-imports-rule).
 
 **Commits 1-14 - one module each**, in the order above. Each commit:
@@ -78,10 +85,12 @@ unsplit app.js.
    have in app.js today, cut and pasted by block (CLAUDE.md 9) - never
    renamed, never found-and-replaced. `now`, `pad`, `index`, `events` and
    `reload` are shadowed names: `leave` takes three functions with a `now`
-   parameter and must not import `now`; `ui`'s `revealChip` has a local `pad`;
-   `boot()` has locals called `now`, `data` and `reloadWith`.
-2. adds `export` to the names listed under *exports*, and the module's
-   `import` lines, exactly the ones listed under *imports*;
+   parameter and must not import `now`; in app.js `revealChip()` has a local
+   `pad` and `boot()` has locals called `now`, `data` and `reloadWith`.
+2. gives the file the `import` lines listed under *imports*, and ends it
+   with one `export { ... }` list of the names under *exports* - as app.js
+   does today - so the moved code is byte for byte what it was and a private
+   name that shares a declaration with an exported one stays private;
 3. deletes those declarations from app.js and adds one `import` line there for
    the names app.js still uses;
 4. prunes the module's names from app.js's export list (the first prune, in
@@ -95,8 +104,14 @@ Time-section rule, rule 5) and **search** (app.js loses its `minisearch`
 import).
 
 Expected test counts: 837 passed and 4 skipped today; commit 0 adds the
-imports rule's tests; the time commit removes one (the Time-section rule);
-every other commit leaves the count alone.
+imports rule's three tests (840); the time commit removes one, the
+Time-section rule (839); every other commit leaves the count alone.
+
+**Commit 15 - docs.** `docs/ARCHITECTURE.md`, surgical, the scope the review
+set: the Repo map's row for `src/app.js` and one row for the leaf modules;
+the "still one file" sharp edge; the Tests paragraphs that say the helper or
+the unit tests import `src/app.js`; the ESLint paragraph. The rewrite is a
+later PR.
 
 ---
 
@@ -229,30 +244,26 @@ the same run (256), `dayOf` at its end (277).
 
 | name | kind | app.js line(s) | in the export list |
 |---|---|---:|---|
-| `BOOT` | const | 97 | yes |
 | `settings` | const | 108 | yes |
 | `state` | const | 113-120 | yes |
 
-3 names, 10 declaration lines.
+2 names, 9 declaration lines.
 
 - **reads at import:** localStorage `dc26.settings` (`settings`), then
   `dc26.mineView`, `dc26.followingLayout`, `dc26.followingOpen` and
   `settings.hideNoise` (`state`). `settings` stays above `state`.
-- **reassigned lets:** none. All three are consts whose properties are
-  written, which an importer may do.
-- **stays behind:** from the same run of lines (91-121): `pendingQuery` (93) -
-  assigned by `indexReady()` and by `boot()`'s input handler, read by nothing
-  else, so it is the shell's; `fromNetwork` and `servedOffline` (111) -
-  assigned by `load()` and `boot()`, read by `load()` and `updateFresh()`
-  only; `PAGE` (121) - the browse view's page size. None is read by a leaf, so
-  none needs a setter.
-- **exports:** `BOOT`, `settings`, `state`. **Pruned:** all three.
-- **tests:** none by import (`page.app.BOOT` everywhere, and in the helper's
-  own `cleanup()`: covered).
-- **Note (P4).** `BOOT` sits among the search constants (97). It is written by
-  `load()` and `scheduleIndexBuild()`, which stay, and read by tests. Nothing
-  in a leaf needs it; it comes here because it is state, and leaving it would
-  be as correct.
+- **reassigned lets:** none. Both are consts whose properties are written,
+  which an importer may do.
+- **stays behind:** from the same run of lines (91-121): `BOOT` (97) - the
+  review's decision (P4): it is written by `load()` and
+  `scheduleIndexBuild()`, which stay, and nothing in a leaf needs it;
+  `pendingQuery` (93) - assigned by `indexReady()` and by `boot()`'s input
+  handler, read by nothing else, so it is the shell's; `fromNetwork` and
+  `servedOffline` (111) - assigned by `load()` and `boot()`, read by `load()`
+  and `updateFresh()` only; `PAGE` (121) - the browse view's page size. None
+  is read by a leaf, so none needs a setter.
+- **exports:** `settings`, `state`. **Pruned:** both.
+- **tests:** none by import.
 
 ## 6. time
 
@@ -285,17 +296,21 @@ the same run (256), `dayOf` at its end (277).
   two import-time edges that fix util and build before time. `?now=` and
   sessionStorage are read by `initTimeOverride()`, which `boot()` calls.
 - **reassigned lets:** `timeOverride`, assigned at line 342 by
-  `setTimeOverride()`, which stays. Replaced by an exported
-  `setOverride(value)` holding lines 342-343 (the assignment and the session
-  write that `initTimeOverride()` pairs it with); `setTimeOverride()` calls it
-  and carries on. `parseMoment` then has no reader outside the module. The
-  narrow alternative: `setOverride` holds line 342 alone and line 343 stays in
-  app.js, which then also imports `writeSession` (P7). Reads of `timeOverride`
-  from app.js - `setTimeOverride()`'s URL sync, `fillSettings()` - go through
-  the live binding, unchanged.
-- **stays behind:** `setTimeOverride` (341-351): resets `state.browse.day`
-  and `state.map.day`, calls `render()` and `updateFresh()`. One of the known
-  two. `DATA_URL` (316) leaves the section for data.
+  `setTimeOverride()`, which stays. The review's decision (P7): time owns the
+  override's persistence - the let, the session key and the URL parameter,
+  read and write. So an exported `setOverride(value)` holds lines 342-346,
+  verbatim: it parses, assigns, writes the session key and rewrites `?now=` in
+  the address, and returns what it set. `setTimeOverride()` in app.js calls
+  it, then does what is the page's: lines 347-350. `parseMoment`,
+  `readSession` and `writeSession` then have no reader in app.js. The one read
+  of `timeOverride` left there, `fillSettings()`, goes through the live
+  binding, unchanged.
+- **stays behind:** `setTimeOverride` (341-351), less lines 342-346: it calls
+  `setOverride(value)`, resets `state.browse.day` and `state.map.day`, and
+  calls `render()` and `updateFresh()`. One of the known two. Its comment
+  (337-340) is split with it: what describes the address goes with
+  `setOverride`, the last sentence stays. `DATA_URL` (316) leaves the section
+  for data.
 - **exports:** `CON_DAYS`, `DAY_LABEL`, `DAY_LONG`, `CON`,
   `TIME_OVERRIDE_KEY`, `timeOverride`, `now`, `isSimulated`,
   `initTimeOverride`, `setOverride` (new), `localInputValue`, `conPhase`,
@@ -414,7 +429,7 @@ DECISIONS #27: "in step 4 the only change is isolating today's constants in
   `NOISE_TRACKS`/`isNoise` (24-25) and `isCeleb` (269) are predicates on an
   event that search and ui need. `fandomCounts` (516) is a count over
   `events` with one reader, `renderBrowse()`; it comes here because its
-  section (Loading) is being taken apart, and leaving it would be as correct.
+  section (Loading) is being taken apart, and the review confirmed it.
 
 ## 9. picks
 
@@ -636,48 +651,38 @@ The whole Calendar export section (2050-2076), as it stands.
 
 ## 14. ui
 
-Shared markup and DOM helpers the views call, none of which draws a view.
+The review's decision (P10): markup builders and their constants only - no
+DOM handle at import, nothing that scrolls or renders.
 
 - **imports:** util `{ esc, fmt }`; state `{ state }`; time `{ DAY_LABEL }`;
   venues `{ hotelVar, placeHTML }`; data `{ isCeleb }`; picks `{ picks }`.
-  **Not** `pad`: `revealChip()` has a local of that name.
 - **takes:**
 
 | name | kind | app.js line(s) | in the export list |
 |---|---|---:|---|
-| `scroller` | const | 126 |  |
-| `pageScrollTop` | const | 127 | yes |
-| `pageScrollTo` | function | 128-133 | yes |
-| `pageScrollBy` | function | 134 | yes |
 | `CELEB_BADGE` | const | 270 |  |
-| `chipRowsSnapshot` | function | 547-551 |  |
-| `chipRowsRestore` | function | 552-554 |  |
-| `revealChip` | function | 558-569 | yes |
 | `rowHTML` | function | 816-839 |  |
 | `highlighter` | function | 841-846 |  |
 | `snippetFor` | function | 847-859 |  |
 | `chipHTML` | function | 1187-1192 |  |
-| `cssEsc` | const | 2099 |  |
 
-13 names, 80 declaration lines.
+5 names, 50 declaration lines.
 
-- **reads at import:** `document.querySelector("main")` (`scroller`).
+- **reads at import:** nothing.
 - **reassigned lets:** none.
-- **stays behind:** everything that draws or touches the shell: `render`,
-  `renderMiniBar`, `updateClock`, `fitHeaderLine`, `syncHeaderHeight`, the
-  sheet (`sheetWrap` ... `settle`), the edge guard and the pill (see
-  platform).
-- **exports:** `scroller`, `pageScrollTop`, `pageScrollTo`, `pageScrollBy`,
-  `CELEB_BADGE`, `chipRowsSnapshot`, `chipRowsRestore`, `revealChip`,
-  `rowHTML`, `chipHTML`, `cssEsc`. Private: `highlighter`, `snippetFor`.
-  **Pruned:** `pageScrollTop`, `pageScrollTo`, `pageScrollBy`, `revealChip`.
-- **tests:** none by import (`page.app.pageScrollTo` and friends in shell:
-  covered).
-- **Note (P10).** The brief names `ui` without its contents. This is every
-  helper that more than one view calls and that needs nothing from app.js:
-  the scroller, the chip rows, `rowHTML` with its two helpers, `chipHTML`,
-  `CELEB_BADGE`, `cssEsc`. `rowHTML` reads `state.sheetId` and `picks`, both
-  earlier leaves; it reads no view.
+- **stays behind:** everything that holds a DOM handle, scrolls or draws: the
+  scroller (`scroller`, `pageScrollTop`, `pageScrollTo`, `pageScrollBy`), the
+  chip rows (`chipRowsSnapshot`, `chipRowsRestore`, `revealChip`), `cssEsc`
+  (a selector escaper, not markup), `render`, `renderMiniBar`, `updateClock`,
+  `fitHeaderLine`, `syncHeaderHeight`, the sheet (`sheetWrap` ... `settle`),
+  the edge guard and the pill (see platform).
+- **exports:** `CELEB_BADGE`, `rowHTML`, `chipHTML`. Private: `highlighter`,
+  `snippetFor`. **Pruned:** none - none of the five was in the list.
+- **tests:** none by import.
+- **Note.** `rowHTML` reads `state.sheetId` and `picks`, both earlier leaves;
+  it reads no view. The other markup builders that need nothing from app.js
+  went where their subject is, as proposed: `placeHTML` to venues,
+  `pickNewsHTML` to picks, `gapHTML` to leave, `devMarkHTML` to build.
 
 ---
 
@@ -701,9 +706,8 @@ lands:
 | 8 | lines 388-402 of `load()` | Loading | every leaf that reads `events` or `byId` | data, as `replaceSchedule(data)`; data imports util, time, venues |
 | 9 | `gapHTML`, `nextPickInConDay` | Rendering, 861, 878 | the Now and Mine views, the mini-bar | leave |
 | 10 | `buildIndex`, `suggestIndex`, `suggestDocs`, `buildSuggestIndex`, `suggestionsFor` | Loading, 440-514 | - | search, with the vocabulary run at 29-106 |
-| 11 | `rowHTML`, `highlighter`, `snippetFor`, `chipHTML`, `CELEB_BADGE`, `cssEsc` | Rendering, Now, helpers, DOM events | every view | ui |
-| 12 | `BOOT` | among the search constants, 97 | `load()`, `scheduleIndexBuild()`, tests | state |
-| 13 | `fandomCounts` | Loading, 516 | `renderBrowse()` | data |
+| 11 | `rowHTML`, `highlighter`, `snippetFor`, `chipHTML`, `CELEB_BADGE` | Rendering, Now, helpers | every view | ui |
+| 12 | `fandomCounts` | Loading, 516 | `renderBrowse()` | data |
 
 None of these is a back-edge once placed: the check finds no leaf reading a
 later leaf or app.js.
@@ -729,7 +733,7 @@ Today the module-level reads happen in file order:
 After the split the order is import order, depth-first. With app.js importing
 the leaves in list order that is: platform (navigator) -> build (the metas) ->
 state (four keys) -> time (`CON`, the key) -> data (`DATA_URL`) -> picks (three
-keys) -> follows (one key) -> ui (`main`) -> app.js (seven elements). So
+keys) -> follows (one key) -> app.js (`main` and seven more elements). So
 `IS_IOS` and `BUILD` are read before storage instead of after it, `dc26.picks`
 after `state` instead of before it, and `main` after every storage read
 instead of before most of them.
@@ -761,12 +765,12 @@ before it is initialised. Everything else read at import is the environment
 (localStorage, the document, navigator): plain reads with no side effect,
 which the page helper has put in place before it imports anything, and which
 `vi.resetModules()` makes every boot read again - platform, build, state,
-picks, follows, ui and app.js are the seven modules with such a read.
+picks, follows and app.js are the six modules with such a read.
 
 What surprised me:
 
 1. **app.js after leaves reads nothing from a leaf at import.** Its
-   module-level work is seven element lookups and constants (`RING_C` from
+   module-level work is eight element lookups and constants (`RING_C` from
    `RING_R`). The leaves' import order cannot matter to it.
 2. **Hoisting is doing quiet work today.** `settings`, `picks`, `state`,
    `pickInfo`, `pickNews` and `follows` all call `loadJSON` at import, and
@@ -785,7 +789,7 @@ What surprised me:
    has build before time. In a unit test, with no page, `BUILD.channel` is
    `""` and the key is the unstamped one, as it is today.
 5. **Unit tests stop evaluating app.js.** `tests/unit/time.test.js` will
-   import time and util and never reach app.js, so its seven element lookups
+   import time and util and never reach app.js, so its eight element lookups
    no longer run there. They still need jsdom: time imports build, which
    queries the document.
 
@@ -799,7 +803,7 @@ Pruned per module, as listed above. By destination:
 | storage | 2 | `loadJSON` `saveJSON` |
 | platform | 2 | `IS_IOS` `isStandalone` |
 | build | 2 | `BUILD` `deviceLine` |
-| state | 3 | `BOOT` `settings` `state` |
+| state | 2 | `settings` `state` |
 | time | 10 | `CON` `CON_DAYS` `conDayKey` `conEnded` `conPhase` `DAY_LONG` `initTimeOverride` `isSimulated` `now` `TIME_OVERRIDE_KEY` |
 | venues | 9 | `cleanRoom` `hotelGroup` `hotelMatches` `hotelPhrase` `hotelShort` `LEAVE_BUFFER_MIN` `placeHTML` `WALK` `walkMin` |
 | data | 3 | `isCeleb` `isNoise` `NOISE_TRACKS` |
@@ -807,10 +811,9 @@ Pruned per module, as listed above. By destination:
 | follows | 6 | `eventsFor` `FOLLOW_KINDS` `followId` `isFollowing` `saveFollows` `toggleFollow` |
 | leave | 2 | `currentLocation` `leaveInfo` |
 | search | 8 | `activeFilters` `browseResults` `expandQuery` `parseQuery` `SEARCH_PLACEHOLDER` `STOPWORDS` `suggestionsFor` `termQuality` |
-| ui | 4 | `pageScrollBy` `pageScrollTo` `pageScrollTop` `revealChip` |
-| app.js | 40 | `closeSheet` `edgeTouchMove` `edgeTouchStart` `EXPLORE_HEAD` `getCatalogue` `hiddenForQueryHTML` `hideUpdatePill` `HOUR_PX` `indexReady` `layoutColumns` `MAP_HOTELS` `mapCardHTML` `mapDay` `markActiveSection` `nowModel` `nowSignature` `nudgeCopy` `openExplorePage` `openSheet` `pickActiveSection` `queueBrowseRender` `readExploreHash` `recheckSchedule` `render` `renderBrowse` `renderExplore` `renderMap` `renderMiniBar` `renderNotice` `renderNow` `SEARCH_DEBOUNCE_MS` `setDrag` `setExploreHash` `setTimeOverride` `showUpdatePill` `tickMap` `tickNow` `togglePick` `updateClock` `updateFresh` |
+| app.js | 45 | `BOOT` `closeSheet` `edgeTouchMove` `edgeTouchStart` `EXPLORE_HEAD` `getCatalogue` `hiddenForQueryHTML` `hideUpdatePill` `HOUR_PX` `indexReady` `layoutColumns` `MAP_HOTELS` `mapCardHTML` `mapDay` `markActiveSection` `nowModel` `nowSignature` `nudgeCopy` `openExplorePage` `openSheet` `pageScrollBy` `pageScrollTo` `pageScrollTop` `pickActiveSection` `queueBrowseRender` `readExploreHash` `recheckSchedule` `render` `renderBrowse` `renderExplore` `renderMap` `renderMiniBar` `renderNotice` `renderNow` `revealChip` `SEARCH_DEBOUNCE_MS` `setDrag` `setExploreHash` `setTimeOverride` `showUpdatePill` `tickMap` `tickNow` `togglePick` `updateClock` `updateFresh` |
 
-97 names in the list; 57 pruned by the leaves; 40 stay. `boot` is exported inline and stays.
+97 names in the list; 52 pruned by the leaves; 45 stay. `boot` is exported inline and stays.
 
 The list's comment still describes the smoke harness and `window.eval`. At the
 first prune (commit 1) it becomes, in substance:
@@ -825,10 +828,11 @@ first prune (commit 1) it becomes, in substance:
    replaces. */
 ```
 
-Twelve of the forty names that stay are reached by no test through `app.` or
-an import today (`closeSheet`, `indexReady`, `nowSignature`, `openSheet`,
-`queueBrowseRender`, `recheckSchedule`, `render`, `renderMap`,
-`renderMiniBar`, `renderNotice`, `setTimeOverride`, `showUpdatePill`): the
+Thirteen of the forty-five names that stay are reached by no test through
+`app.` or an import today (`closeSheet`, `indexReady`, `nowSignature`,
+`openSheet`, `queueBrowseRender`, `recheckSchedule`, `render`, `renderMap`,
+`renderMiniBar`, `renderNotice`, `revealChip`, `setTimeOverride`,
+`showUpdatePill`): the
 harness reached them through `window.eval`, and the page tests now go through
 the handle. Pruning them is not this slice's business; "rest" can.
 
@@ -853,8 +857,9 @@ time), 914 (`leaveInfo`, leave), 1308 (`finishParse`, search), 2150
 stays in app.js.
 
 In the same commit the Time-section rule in `tests/rules/source.test.js` is
-deleted (one test fewer), and `tests/PORT-LEDGER.md` rows 1890 and 1892 -
-whose destination is that rule - are amended by hand to say ESLint.
+deleted (one test fewer). `tests/PORT-LEDGER.md` is not touched in this slice
+(the review's call): its rows 1890 and 1892 still name the deleted rule as
+their destination, which is the ledger's to say when its fate is decided.
 
 ## The source rules
 
@@ -921,7 +926,7 @@ untrue file by file. Left alone unless the review says otherwise.
 
 ## The imports rule
 
-Rule 8, proposed: `tests/rules/imports.test.js`, node environment, reading the
+Rule 8; the review keeps it. `tests/rules/imports.test.js`, node environment, reading the
 `import` declarations of every `src/*.js` (with `parseAst`, as
 `build.test.js` once did; plus a check that no file uses `import()`):
 
@@ -934,41 +939,52 @@ Rule 8, proposed: `tests/rules/imports.test.js`, node environment, reading the
 
 It is green from commit 0 (nothing to check yet but app.js and main.js) and
 bites from commit 1. It costs three tests and keeps the leaf property true
-through "rest", when views will be tempted to import each other. Struck if
-the review says so.
+through "rest", when views will be tempted to import each other. They are new
+tests, not rows of the port ledger, so their titles carry no harness line.
 
-## Proposals for the review
+## Decisions of the review
 
-Where this manifest decided something the brief left open, or differs from it:
+The twelve placements the brief left open, what step one proposed, and what
+the review of draft PR #14 decided (2026-09-19). "As proposed" includes the
+ones the review did not raise.
 
-| # | proposal | alternative |
+| # | proposed | decided |
 |---|---|---|
-| P1 | `loadJSON`/`saveJSON` go to storage, not util | util, as the brief's list has it; storage then holds only the two session helpers |
-| P2 | `readSession`/`writeSession` leave the Time section for storage | stay in time |
-| P3 | `CON_DAYS`, `DAY_LABEL`, `DAY_LONG` go to time | data - but picks, search and ui need them, and time is earlier than all three either way |
-| P4 | `BOOT` goes to state | stays in app.js; nothing in a leaf needs it |
-| P5 | `deviceLine` goes to build, so build imports platform | stays in app.js with `fillSettings()` until "rest" |
-| P6 | lines 388-402 of `load()` become `replaceSchedule(data)` in data | six setters, or one `setSchedule({...})`; `load()` keeps the block and data imports only time |
-| P7 | `setOverride(value)` takes lines 342-343 | line 342 alone; app.js keeps the session write and imports `writeSession` |
-| P8 | `placeHTML` and `hotelVar` go to venues | ui - but ui is last, and build, picks and leave are not the ones that need them; either works |
-| P9 | `gapHTML` and `nextPickInConDay` go to leave | ui, or stay |
-| P10 | ui is the scroller, the chip rows, `rowHTML` and its helpers, `chipHTML`, `CELEB_BADGE`, `cssEsc` | a narrower ui (DOM helpers only), with the shared markup staying in app.js until "rest" |
-| P11 | `KIND_LABELS` and `SEARCH_PLACEHOLDER` go to search with the vocabulary run; `fandomCounts` to data | any of the three stays in app.js; none is needed by a leaf except `KIND_LABELS` (by `buildIndex`) |
-| P12 | `samePlace` stays in picks | venues, which spares `tests/unit/venues.test.js` a second import line |
+| P1 | `loadJSON`/`saveJSON` go to storage, not util | as proposed |
+| P2 | `readSession`/`writeSession` leave the Time section for storage | as proposed |
+| P3 | `CON_DAYS`, `DAY_LABEL`, `DAY_LONG` go to time | as proposed |
+| P4 | `BOOT` goes to state | **no: `BOOT` stays in app.js.** state is `settings` and `state` |
+| P5 | `deviceLine` goes to build, so build imports platform | as proposed |
+| P6 | lines 388-402 of `load()` become `replaceSchedule(data)` in data | as proposed, the body moved verbatim |
+| P7 | `setOverride(value)` takes lines 342-343 | **amended: time owns the override's persistence** - the let, the session key and the URL parameter, read and write. `setOverride(value)` takes lines 342-346: it parses, assigns, persists and returns what it set; `setTimeOverride()` in app.js calls it, resets the day chips and renders |
+| P8 | `placeHTML` and `hotelVar` go to venues | as proposed |
+| P9 | `gapHTML` and `nextPickInConDay` go to leave | as proposed |
+| P10 | ui is the scroller, the chip rows, `rowHTML` and its helpers, `chipHTML`, `CELEB_BADGE`, `cssEsc` | **amended: ui is markup builders and their constants only** - no DOM handle at import, nothing that scrolls or renders. ui is `CELEB_BADGE`, `rowHTML`, `highlighter`, `snippetFor`, `chipHTML`; the scroller, the chip rows and `cssEsc` stay in app.js |
+| P11 | `KIND_LABELS` and `SEARCH_PLACEHOLDER` go to search; `fandomCounts` to data | as proposed; `fandomCounts` to data confirmed |
+| P12 | `samePlace` stays in picks | as proposed |
 
-CLAUDE.md rule 6 applies to step two's PR: `docs/ARCHITECTURE.md`'s Repo map,
-"The client" ("One script. Everything below is in `src/app.js`", "Its only
-import is MiniSearch", the Time paragraph's pointer to the rules test), the
-ESLint paragraph under Tests and the third Sharp edge all become untrue as
-the commits land. Whether they are fixed in that PR or in the docs slice is
-the review's call; rule 6 as written says that PR.
+Also decided: the imports rule test is in; `tests/PORT-LEDGER.md` is not
+touched; `docs/ARCHITECTURE.md` gets the surgical edits of commit 15 and no
+more. That leaves these sentences of ARCHITECTURE.md untrue until the rewrite:
+"The client"'s opening ("One script. Everything below is in `src/app.js`,
+which is still a single file"), the last sentence of its Time paragraph (the
+rules test that guarded #12 is gone; ESLint guards it), and the list of consts
+in "Boot order" that importing `src/app.js` fills (`settings`, `picks`,
+`state` and `BUILD`, `IS_IOS` now belong to leaves).
+
+## Amended during execution
+
+Placements and details that changed while step two was carried out, each in
+the commit that changed it.
+
+- *(none yet)*
 
 ## Completeness
 
 `src/app.js` parsed with Vite's `parseAst`; every top-level declaration, in
 file order, with where it goes. Each name appears once.
 
-Parsed: **275** top-level declarations (151 functions, 88 consts, 36 lets) across 262 declaration statements - a few declare several names. The file's other two top-level statements are the `minisearch` import and the export list. Assigned to modules: **132** (util 8, storage 4, platform 2, build 4, state 3, time 15, venues 14, data 11, picks 10, follows 7, ics 6, leave 5, search 30, ui 13). Staying in app.js: **143**. 132 + 143 = 275.
+Parsed: **275** top-level declarations (151 functions, 88 consts, 36 lets) across 262 declaration statements - a few declare several names. The file's other two top-level statements are the `minisearch` import and the export list. Assigned to modules: **123** (util 8, storage 4, platform 2, build 4, state 2, time 15, venues 14, data 11, picks 10, follows 7, ics 6, leave 5, search 30, ui 5). Staying in app.js: **152**. 123 + 152 = 275.
 
 ```
         5  const     CON_DAYS                  ->  time      [export list]
@@ -988,7 +1004,7 @@ Parsed: **275** top-level declarations (151 functions, 88 consts, 36 lets) acros
        91  let       index                     ->  search  
        93  let       pendingQuery              ->  app.js  
        94  const     SEARCH_PLACEHOLDER        ->  search    [export list]
-       97  const     BOOT                      ->  state     [export list]
+       97  const     BOOT                      ->  app.js    [export list]
    98-101  const     processTerm               ->  search  
   102-106  function  aliasesFor                ->  search  
       108  const     settings                  ->  state     [export list]
@@ -1003,10 +1019,10 @@ Parsed: **275** top-level declarations (151 functions, 88 consts, 36 lets) acros
       112  let       meta                      ->  data    
   113-120  const     state                     ->  state     [export list]
       121  const     PAGE                      ->  app.js  
-      126  const     scroller                  ->  ui      
-      127  const     pageScrollTop             ->  ui        [export list]
-  128-133  function  pageScrollTo              ->  ui        [export list]
-      134  function  pageScrollBy              ->  ui        [export list]
+      126  const     scroller                  ->  app.js  
+      127  const     pageScrollTop             ->  app.js    [export list]
+  128-133  function  pageScrollTo              ->  app.js    [export list]
+      134  function  pageScrollBy              ->  app.js    [export list]
       139  function  loadJSON                  ->  storage   [export list]
       140  function  saveJSON                  ->  storage   [export list]
       144  let       pickInfo                  ->  picks   
@@ -1071,9 +1087,9 @@ Parsed: **275** top-level declarations (151 functions, 88 consts, 36 lets) acros
   493-514  function  suggestionsFor            ->  search    [export list]
   516-520  function  fandomCounts              ->  data    
   521-539  function  updateFresh               ->  app.js    [export list]
-  547-551  function  chipRowsSnapshot          ->  ui      
-  552-554  function  chipRowsRestore           ->  ui      
-  558-569  function  revealChip                ->  ui        [export list]
+  547-551  function  chipRowsSnapshot          ->  app.js  
+  552-554  function  chipRowsRestore           ->  app.js  
+  558-569  function  revealChip                ->  app.js    [export list]
       580  const     MAP_W                     ->  app.js  
       585  const     MAP_VIEW                  ->  app.js  
       586  const     MAP_STREETS               ->  app.js  
@@ -1199,7 +1215,7 @@ Parsed: **275** top-level declarations (151 functions, 88 consts, 36 lets) acros
 2054-2056  function  exportEventICS            ->  ics     
 2057-2076  function  downloadICS               ->  ics     
 2086-2098  function  togglePick                ->  app.js    [export list]
-     2099  const     cssEsc                    ->  ui      
+     2099  const     cssEsc                    ->  app.js  
      2103  const     SEARCH_DEBOUNCE_MS        ->  app.js    [export list]
      2104  let       browseRenderTimer         ->  app.js  
 2105-2113  function  queueBrowseRender         ->  app.js    [export list]
@@ -1249,7 +1265,7 @@ Parsed: **275** top-level declarations (151 functions, 88 consts, 36 lets) acros
 ```
 
 The export list, name by name, is under [The export list](#the-export-list):
-97 names, each once, 57 to the leaves and 40 staying; `boot` is exported
+97 names, each once, 52 to the leaves and 45 staying; `boot` is exported
 inline and stays.
 
 ## app.js after leaves
@@ -1259,8 +1275,9 @@ between them are not counted, and the file is 2,793 lines in all today.
 
 | area | names | declaration lines | names (* = in the export list) |
 |---|---:|---:|---|
-| loading and freshness | 11 | 108 | `pendingQuery` `fromNetwork` `servedOffline` `load` `idle` `scheduleIndexBuild` `indexReady`* `updateFresh`* `RECHECK_MS` `lastScheduleCheck` `recheckSchedule`* |
+| loading and freshness | 12 | 109 | `pendingQuery` `BOOT`* `fromNetwork` `servedOffline` `load` `idle` `scheduleIndexBuild` `indexReady`* `updateFresh`* `RECHECK_MS` `lastScheduleCheck` `recheckSchedule`* |
 | shell: render, header, clock, notice | 13 | 113 | `setTimeOverride`* `render`* `renderMiniBar`* `updateClock`* `fitHeaderLine` `effectiveNow` `ARCHIVE_NOTICE_KEY` `archiveNoticeDismissed` `noticeHTML` `lastNoticeHTML` `renderNotice`* `togglePick`* `syncHeaderHeight` |
+| shell: the scroller and the chip rows | 8 | 30 | `scroller` `pageScrollTop`* `pageScrollTo`* `pageScrollBy`* `chipRowsSnapshot` `chipRowsRestore` `revealChip`* `cssEsc` |
 | shell: the sheet | 16 | 94 | `sheetWrap` `sheetEl` `panelSettings` `panelEvent` `panelHotel` `sheetScrollY` `fillSettings` `eventSheetHTML` `openSheet`* `closeSheet`* `sheetBackEl` `dragY` `dragT` `dragDy` `setDrag`* `settle` |
 | shell: pill, edge guard, reload | 11 | 37 | `edgeTouch` `edgeTouchStart`* `edgeTouchMove`* `updatePill` `showUpdatePill`* `hideUpdatePill`* `reload` `reloadNow` `pillY` `pillDx` `pillDragged` |
 | view: map | 23 | 139 | `MAP_W` `MAP_VIEW` `MAP_STREETS` `MAP_HOTELS`* `MAP_BRIDGES` `mapPicksAt` `mapCounts` `mapPillSVG` `hotelSheetHTML` `mapNowState` `mapRingsSVG` `mapCardState` `mapCardHTML`* `offLineHTML` `mapOffMapCount` `mapSVG` `mapDay`* `renderMap`* `lastMapSig` `lastCardSig` `mapSignature` `mapCardSignature` `tickMap`* |
@@ -1270,10 +1287,10 @@ between them are not counted, and the file is 2,793 lines in all today.
 | view: mine | 6 | 117 | `HOUR_PX`* `layoutColumns`* `timelineDayHTML` `renderMineTimeline` `renderMine` `fitTimelineBlocks` |
 | boot | 1 | 356 | `boot` |
 
-143 names (88 functions, 34 consts, 21 lets), 1641 declaration lines of the file's 2361.
+152 names (93 functions, 38 consts, 21 lets), 1672 declaration lines of the file's 2361.
 
 Its imports: all fourteen leaves, and no npm package (the `minisearch` import
-leaves with search). Its reads at import: `#sheetWrap`, `#sheet`,
+leaves with search). Its reads at import: `main`, `#sheetWrap`, `#sheet`,
 `#panel-settings`, `#panel-event`, `#panel-hotel`, `#sheetBack`,
 `#updatePill`. Its lets: 21, none of them read outside the file. `boot()` is
 356 lines on its own and is where dispatch lives: the click and input
@@ -1282,5 +1299,5 @@ timers, and the handle.
 
 What "rest" inherits from this slice, beyond the code: the five new setter
 functions and `replaceSchedule`, which are the first piece of the bus; search
-writing into `state.browse` and onto the event objects; and twelve
+writing into `state.browse` and onto the event objects; and thirteen
 export-list names no test reaches by name.
