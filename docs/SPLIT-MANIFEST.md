@@ -1942,10 +1942,55 @@ false.
 
 ## Rest-1: amended during execution
 
-Placements and details that changed while step two was carried out, each in
-the commit that changed it.
+**No placement changed.** Step two landed all seven modules as this part has
+them. `tools/split/partition.js 9b27a26`, at the end: of app.js's 144
+top-level statements (152 names) at the base commit, 141 are byte for byte
+identical in exactly one module, none is missing, and the three that differ
+are the three changed on purpose - `openExplorePage` and `closeExplorePage`
+(`requestRender()`) and `boot` (`setRenderer(render)` first, and six
+assignments that became calls). Nine names are new under `src/`: bus's
+`renderer`, `setRenderer`, `requestRender`, and the six reassignment
+functions. Per module: scroll 8, now 18, browse 10, explore 35, map 23, mine
+6; app.js keeps 52, and 17 names in its export list.
 
-- *(none yet)*
+Details that were not placements, and how they landed:
+
+- **Hand edits before the move, not after, in two commits.** The manifest had
+  the mover run first. But `installPrompt` and `spyQueued` go private, and
+  the mover refuses a module while app.js still uses a name it keeps private;
+  and explore's imports include bus only once its two `render()` calls are
+  `requestRender()`. So in now (commit 3) and explore (commit 5) the sites in
+  `boot()`, and the two calls, were switched in app.js first, and the mover
+  then saw exactly what this part describes. The moved text is what was in
+  app.js at that moment, verbatim.
+- **Banners.** "Now", "The Now tab after the con", "Browse", "Explore",
+  "Following", "Map" and "Mine" travelled with their code, and Explore, Map
+  and Mine stand in for a header at the top of their files. `where.js`
+  attached two banners to code they do not describe - "Rendering" to the chip
+  rows, "Offline" to the install nudge - and both cuts start below them:
+  "Rendering" stays over `render()`, "Offline" over what is left of it.
+- **Order inside now.js.** It opens with the "Now" banner's section
+  (`effectiveNow`), so the hero follows it rather than precedes it, as
+  leave.js was done. Nothing in it is read at import but `RING_C` from
+  `RING_R`, one statement.
+- **One commit that is not in the list:** `tools/split/partition.js` called
+  every leaf's name new when run against a base where the leaves already
+  existed, because it read one file at that commit; it now reads every module
+  under `src/` there. Found while using it for the figures above, which it
+  had right.
+- **`docs/ARCHITECTURE.md`, two sentences beyond commit 8's list,** because
+  this PR makes them false: the "half split" sharp edge (every view is out
+  now, and the export list is 17 names), and the Rules paragraph's "a leaf
+  imports only ... the leaves before it", which describes a test whose
+  wording this PR changed.
+- **File sizes**, in lines: scroll 52, bus 17, now 259, browse 184, explore
+  417, map 190, mine 138; app.js 838 (was 1,965). The per-module figures
+  above are declaration lines; a file is those plus its comments, banners,
+  imports and export list.
+
+**For a later tidy, not done here:** `effectiveNow` sits in now.js and the
+notice in app.js imports it back. It is a question about the clock; in
+time.js both would import it from a leaf.
 
 ## Completeness of rest-1
 

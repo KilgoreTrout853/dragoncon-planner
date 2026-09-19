@@ -31,7 +31,10 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 |---|---|
 | `index.html` | The Vite entry template: the page's head and body markup, a link to `src/styles.css` and the module entry. Not runnable as a static file. |
 | `src/main.js` | The entry: imports `styles.css`, then calls `boot()` from `app.js`. |
-| `src/app.js` | What is left of the one-file script, about 1,960 lines: every view, the shell, dispatch and `boot()`. Importing it declares them and looks up the elements the shell holds; `boot()` starts the app. It imports all fourteen leaf modules and no npm package. |
+| `src/app.js` | What is left of the one-file script, about 840 lines: the shell (`render()`, the header, the notice, the mini-bar), the sheet, loading and offline, dispatch and `boot()`. Importing it declares them and looks up the elements the shell holds; `boot()` starts the app. It is the root: it imports the views, `scroll`, the `bus` and the leaves it still uses, and no npm package; only `main.js` imports it. |
+| `src/now.js`, `browse.js`, `explore.js`, `map.js`, `mine.js` | The five views, one per tab (`browse` is the Search tab; `now` carries the install nudge). Each draws its own tab and nothing else; `render()` in `app.js` calls them, and none of them imports `app.js`. `map` imports `nowModel` from `now`, the one edge between two views. |
+| `src/scroll.js` | The scroller (`main`, not the page), the sideways chip rows a redraw has to put back, and `cssEsc`. It imports nothing; it looks up `main` as it is imported. |
+| `src/bus.js` | How a view asks for the whole page to be redrawn without importing the shell: `requestRender()` calls the function `boot()` registered with `setRenderer(render)`, synchronously, and throws if none is registered. Only `render()` goes over it. |
 | `src/util.js`, `storage.js`, `platform.js`, `build.js`, `state.js`, `time.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The leaves: fourteen modules that need nothing from `app.js`. In that order, each imports only npm packages (`search.js` imports MiniSearch, pinned to 7.2.0) and the leaves before it, so there is no cycle; `tests/rules/imports.test.js` holds them to it. Five read storage, the document or `navigator` as they are imported: `platform`, `build`, `state`, `picks`, `follows`. `docs/SPLIT-MANIFEST.md` records what moved where, and why. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
@@ -41,6 +44,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `scraper.py` | Scrape → normalise → dedupe → write `events.json`. |
 | `tag_events.py` | Add `tags` to untagged events via Claude. |
 | `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
+| `tools/split/` | The tools the module split is done with: a scope-aware parser, a mover that cuts `src/app.js` by line range and refuses a module whose names or imports are not the manifest's, and a partition check against a base commit. Working tools for a job that ends; its README has a line each. They read the module order from `tests/rules/imports.test.js`. Nothing here ships. |
 | `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
 | `tests/unit/` | Vitest: pure exports, imported by name from the module that holds them, with no page. |
@@ -91,12 +95,13 @@ together. `--all` retags everything.
 
 ## The client
 
-One program in fifteen modules. `src/app.js` holds the views, the shell and
-`boot()`; the fourteen leaves hold what those stand on - helpers, storage,
-the device, the stamp, state, the clock, venues, the schedule, picks,
-follows, the calendar export, leave-by, search and shared markup. Importing
-`app.js` imports them all and declares the app, and `boot()` starts it (see
-Boot order). The markup it drives is in `index.html` and the CSS in
+One program in twenty-two modules. `src/app.js` holds the shell, the sheet,
+loading and `boot()`; the five views are a module each, over `scroll` and
+the `bus`; the fourteen leaves hold what all of those stand on - helpers,
+storage, the device, the stamp, state, the clock, venues, the schedule,
+picks, follows, the calendar export, leave-by, search and shared markup.
+Importing `app.js` imports them all and declares the app, and `boot()` starts
+it (see Boot order). The markup it drives is in `index.html` and the CSS in
 `src/styles.css`.
 
 **Tabs:** `now`, `browse`, `explore`, `map`, `mine` are the `data-tab` ids
@@ -140,14 +145,15 @@ fandoms). Query intent parsing turns day/hotel/kind/time words into filters.
 the map SVG are in `rem`), `dc26.archiveNoticeDismissed` (per year).
 
 **Boot order.** `src/app.js` exports `boot({events, reload})`. Importing it
-imports the leaves first, and runs nothing but declarations and the consts
-that read `localStorage`, the DOM and `navigator`: in the leaves `IS_IOS`
-(`platform`), `BUILD` (`build`), `settings` and `state` (`state`), `picks`
-with its snapshots and news (`picks`) and `follows` (`follows`); in `app.js`
-itself `scroller`, the sheet elements and `updatePill`. That is why
-`src/main.js` imports it after the markup exists.
+imports every other module first, and runs nothing but declarations and the
+consts that read `localStorage`, the DOM and `navigator`: in the leaves
+`IS_IOS` (`platform`), `BUILD` (`build`), `settings` and `state` (`state`),
+`picks` with its snapshots and news (`picks`) and `follows` (`follows`); in
+`scroll.js`, `scroller`; in `app.js` itself the sheet elements and
+`updatePill`. That is why `src/main.js` imports it after the markup exists.
 `main.js` then calls `boot()`, once,
-with no options: the page fetches its own schedule. `boot()` applies the saved text
+with no options: the page fetches its own schedule. `boot()` first registers
+`render()` on the bus, so a view can ask for a redraw; then it applies the saved text
 size, inserts the dev-build mark, reads the time override, registers every
 listener, timer and observer in the order the one-file script did - listeners
 on one element fire in the order they were added - and calls `load()`. The
@@ -165,8 +171,8 @@ internals: `state`, `render`, `now`, `setTimeOverride`, `picks` and `follows`
 `BOOT`, `reconcilePicks`, `recheckSchedule`, `openSheet`, `closeSheet`, and
 `ready`, which is `load()`'s promise. One `export` list at the end of the
 file names the functions and consts still in it that the tests reach by name
-(45 today, of the 97 the old smoke harness reached through `window.eval`;
-the rest moved and are exported by their leaves): the inventory of test
+(17 today, of the 97 the old smoke harness reached through `window.eval`;
+the rest moved and are exported by their modules): the inventory of test
 coupling, pruned as functions move to modules of their own.
 
 ## Offline
@@ -282,8 +288,9 @@ they reach may read the document as it is imported: `time.js` imports
 of every module under `src/`, read one after another: declarations a page
 in jsdom cannot show, since jsdom computes no layout. Each source rule names
 what is to replace it (ESLint in PR 5, or Playwright). `imports.test.js`
-reads the module graph instead: only `main.js` imports `app.js`, and a leaf
-imports only npm packages and the leaves before it.
+reads the module graph instead: only `main.js` imports `app.js`, and a
+module imports only npm packages and the modules before it in the order -
+the leaves, then `scroll`, the `bus` and the views.
 
 **`tests/build.test.js`** runs the real `vite build` into temp folders: a
 stamped build, an unstamped one, the default build id, a refused channel,
@@ -302,10 +309,12 @@ each of the 817 assertions in the smoke harness it replaced
 (`tests/ui_smoke.cjs`, removed 2026-09-18), saying where it went and how.
 Every test title ends with the harness line it came from, in brackets.
 
-ESLint carries two rules and inherits nothing: `no-undef` everywhere, and
-under `src/` a ban on `new Date()` and `Date.now()` outside `src/time.js`.
-`no-undef` is what catches a name that moved to another module without its
-import. The clock rule runs on every file under `src/` but `time.js`, where
+ESLint carries three rules and inherits nothing: `no-undef` and
+`no-unused-vars` everywhere, and under `src/` a ban on `new Date()` and
+`Date.now()` outside `src/time.js`. `no-undef` is what catches a name that
+moved to another module without its import; `no-unused-vars` (arguments and
+caught errors exempt) catches the import left behind when what it was for
+moved on. The clock rule runs on every file under `src/` but `time.js`, where
 `now()` lives, and is the #12 guard; the Time-section rule in
 `tests/rules/source.test.js` that stood in for it is gone.
 
@@ -332,12 +341,15 @@ and on demand: job `client` (npm ci, lint, test) and job `pipeline`
   against `main` now fails at push. The 2027 pipeline needs a path onto
   `main` before the cron returns.
 - Event ids belong to the source site (see pipeline).
-- The client script is half split. Fourteen leaf modules are out; every
-  view, the shell and `boot()` are still one file, `src/app.js`, with a
-  45-name export list that exists for the tests. A leaf must never import
-  `app.js` or a later leaf. An importer can read a leaf's `let` and mutate
-  what it holds but cannot assign it, which is why `replacePicks()`,
-  `replaceSchedule()`, `setOverride()` and their like exist (DECISIONS #24).
+- The client script is mostly split. The fourteen leaves, `scroll`, the
+  `bus` and the five views are out; the shell, the sheet, loading and
+  `boot()` are still one file, `src/app.js`, with a 17-name export list that
+  exists for the tests. No module may import `app.js` or a module after it
+  in the order. An importer can read another module's `let` and mutate what
+  it holds but cannot assign it, which is why `replacePicks()`,
+  `replaceSchedule()`, `setOverride()`, `takeInstallPrompt()` and their like
+  exist; and a view that needs the whole page redrawn asks over the bus,
+  because `render()` is above it (DECISIONS #24).
 - The root `index.html` is a template now. Serving the repo root with a
   static server no longer runs the app; use `npm run dev`, or build and
   serve `dist/` (`npm run preview`).
