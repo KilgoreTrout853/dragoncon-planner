@@ -47,11 +47,16 @@ for (const s of was) {
   if (at.text === s.text) same++; else changed.push(`${s.names.join(",")} (${at.file}: ${s.text.split("\n").length} lines -> ${at.text.split("\n").length})`);
 }
 const oldNames = new Set(was.flatMap(s => s.names));
+/* a name is new if nothing under src/ declared it at that commit - not merely
+   absent from the one file being cut up: the modules of an earlier slice were
+   already there */
+const srcThen = execFileSync("git", ["ls-tree", "--name-only", `${commit}:src`], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(f => f.endsWith(".js"));
+const existed = new Set(srcThen.flatMap(f => [...study(execFileSync("git", ["show", `${commit}:src/${f}`], { cwd: ROOT, encoding: "utf8", maxBuffer: 1 << 26 })).declared.keys()]));
 console.log(`${was.length} statements (${oldNames.size} names) in ${oldPath} at ${commit}`);
 console.log(`  identical text in exactly one module now: ${same}`);
 console.log(`  changed (${changed.length}): ${changed.join("; ") || "none"}`);
 console.log(`  missing or split across modules (${missing.length}): ${missing.join("; ") || "none"}`);
-console.log(`  new names: ${now.flatMap(s => s.names.filter(n => !oldNames.has(n)).map(n => `${n} (${s.file})`)).join(", ") || "none"}`);
+console.log(`  new names: ${now.flatMap(s => s.names.filter(n => !existed.has(n)).map(n => `${n} (${s.file})`)).join(", ") || "none"}`);
 const per = {};
 for (const s of now) for (const n of s.names) if (oldNames.has(n)) per[s.file] = (per[s.file] || 0) + 1;
 console.log("  old names per module now: " + Object.entries(per).map(([f, n]) => `${f} ${n}`).join(", "));
