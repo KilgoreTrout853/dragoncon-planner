@@ -1,4 +1,4 @@
-import { dayOf, esc, fmtMins, fmtShort, minutesBetween, toDate } from "./util.js";
+import { dayOf, esc, fmtMins, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON, saveJSON } from "./storage.js";
 import { IS_IOS } from "./platform.js";
 import { devMarkHTML } from "./build.js";
@@ -7,14 +7,14 @@ import {
   CON, conEnded, DAY_LABEL, effectiveNow, initTimeOverride, isSimulated, now, setOverride,
 } from "./time.js";
 import { hotelVar, placeHTML } from "./venues.js";
-import { byId, DATA_URL, events, meta, replaceSchedule } from "./data.js";
+import { byId, events, meta } from "./data.js";
 import {
   clearNews, picks, reconcilePicks, replaceNews, replacePicks, savePickNews, savePicks,
 } from "./picks.js";
 import { follows, replaceFollows, saveFollows, toggleFollow } from "./follows.js";
 import { exportEventICS, exportICS } from "./ics.js";
 import { currentLocation, leaveInfo, nextPickInConDay } from "./leave.js";
-import { buildIndex, buildSuggestIndex, index, SEARCH_PLACEHOLDER, stripPhrase, tokenise } from "./search.js";
+import { index, stripPhrase, tokenise } from "./search.js";
 import {
   chipRowsRestore, chipRowsSnapshot, cssEsc, pageScrollBy, pageScrollTo, revealChip, scroller,
 } from "./scroll.js";
@@ -24,9 +24,9 @@ import {
 } from "./now.js";
 import { cancelQueuedBrowseRender, queueBrowseRender, renderBrowse } from "./browse.js";
 import {
-  applyExploreHash, buildCatalogue, closeExplorePage, holdSpyUntil, markActiveSection,
-  openExplorePage, queueSpy, renderExplore, renderExploreSections, scrollToExploreSection,
-  scrollToGrid, spyDone, spyHoldUntil, syncActiveSection,
+  applyExploreHash, closeExplorePage, holdSpyUntil, markActiveSection, openExplorePage, queueSpy,
+  renderExplore, renderExploreSections, scrollToExploreSection, scrollToGrid, spyDone,
+  spyHoldUntil, syncActiveSection,
 } from "./explore.js";
 import { mapDay, renderMap, tickMap } from "./map.js";
 import { renderMine } from "./mine.js";
@@ -35,17 +35,14 @@ import {
   onSettingsClick, onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart,
   openSheet, panelEvent, panelHotel, sheetEl, sheetWrap,
 } from "./sheet.js";
+import {
+  BOOT, fitHeaderLine, holdQuery, load, markScheduleChecked, onLoadRegisterWorker, onPageShow,
+  onPillClick, onPillTouchEnd, onPillTouchMove, onPillTouchStart, onVisibleRecheck,
+  onWorkerMessage, recheckSchedule, setReload, syncHeaderHeight, updateFresh, updatePill,
+} from "./loading.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
-
-/* Set while a query is typed before the index exists; run when it does. */
-let pendingQuery = false;
-/* Boot timings, ms since navigation, for the times "is it faster" needs a
-   number: data parsed, first screen drawn, index built, suggestions built. */
-const BOOT = {parsed: 0, rendered: 0, indexed: 0, suggested: 0, indexAtRender: null};
-
-let fromNetwork = null, servedOffline = false;
 
 /* value: an ISO date-time, or null for the real clock. setOverride() in
    time.js sets it, keeps it for the session and keeps the URL in step; this
@@ -57,89 +54,6 @@ function setTimeOverride(value) {
   state.map.day = null;
   render();
   updateFresh();                             // "refreshed 2 h ago" is relative to the clock too
-}
-
-/* ==================================================================
-   Loading
-   ================================================================== */
-async function load(data) {
-  if (!data) {
-    try {
-      const r = await fetch(DATA_URL, {cache: "no-cache"});
-      if (!r.ok) throw new Error(r.status);
-      data = await r.json();
-      fromNetwork = true;
-    } catch (e) {
-      /* Only reached with no worker at all: with one installed, a cached
-         response resolves normally and the worker reports offline by message
-         instead. This is the plain-browser, no-signal path. */
-      try {
-        const cached = await caches.match(DATA_URL, {ignoreSearch: true});
-        if (cached) { data = await cached.json(); fromNetwork = false; }
-      } catch (e2) { /* no Cache API: fall through to the empty state */ }
-      if (!data) {
-      document.getElementById("view-now").innerHTML =
-        `<div class="empty"><b>No schedule data yet.</b><br>${DATA_URL} is missing or unreadable. Run <code>python scraper.py</code> in this folder, then reload.</div>`;
-      return;
-      }
-    }
-  }
-  replaceSchedule(data);       // data.js: meta, events in start order, byId, tracks, hotelChips
-  servedOffline = fromNetwork === false;
-  BOOT.parsed = performance.now();
-  buildCatalogue();
-  applyExploreHash();          // a pasted #explore= link lands on its page
-  reconcilePicks();            // picks that vanished or moved since they were starred
-  updateFresh();
-  render();                    // the first screen, before any index exists
-  BOOT.rendered = performance.now();
-  BOOT.indexAtRender = !!index;
-  scheduleIndexBuild();
-}
-
-/* The search index is the slowest step of boot - about two seconds for
-   3,500 events on a laptop, longer on a phone - and the first screen does
-   not need it. So the tab on screen draws first and the index follows in
-   idle time; the suggestion index (people and fandoms, for the chips under
-   the search box) after that. A query typed before the index exists is
-   held, and runs the moment it can. */
-const idle = fn => (window.requestIdleCallback ? requestIdleCallback(fn, {timeout: 2000}) : setTimeout(fn, 0));
-function scheduleIndexBuild() {
-  idle(() => {
-    buildIndex();
-    BOOT.indexed = performance.now();
-    indexReady();
-    idle(() => {
-      buildSuggestIndex();
-      BOOT.suggested = performance.now();
-      if (state.tab === "browse" && state.browse.q.trim()) queueBrowseRender();   // the suggestion chips can show now
-    });
-  });
-}
-function indexReady() {
-  const box = document.getElementById("q");
-  if (box) { box.placeholder = SEARCH_PLACEHOLDER; box.classList.remove("indexing"); }
-  if (pendingQuery) { pendingQuery = false; if (state.tab === "browse") queueBrowseRender(); }
-}
-
-function updateFresh() {
-  const el = document.getElementById("fresh");
-  if (!meta.generated_at) { el.textContent = ""; return; }
-  /* After the con the copy is final; how long ago it was refreshed stops
-     being the question. Under a simulated clock the copy can postdate the
-     moment shown - "-1020 min ago" - so then it is named by when, not how
-     long. */
-  let fresh;
-  if (conEnded()) fresh = `final<span class="word"> schedule</span>`;
-  else {
-    const at = toDate(meta.generated_at), ago = minutesBetween(at, now());
-    const f = m => m < 60 ? `${m} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} d`;
-    fresh = ago < 0 ? `<span class="word">refreshed </span>${DAY_LABEL[dayOf(at)] || ""} ${fmtShort(at)}`
-                    : `<span class="word">refreshed </span>${f(ago)} ago`;
-  }
-  el.innerHTML = ` &middot; ${events.length.toLocaleString("en-US")} events &middot; ${fresh}`
-    + (servedOffline ? " &middot; offline copy" : "");
-  syncHeaderHeight();          // this line is what changes the header's height
 }
 
 /* ==================================================================
@@ -201,16 +115,6 @@ function updateClock() {
   fitHeaderLine();
 }
 
-/* The header line must not clip: if it would, hide the word "refreshed"
-   and measure again. jsdom reports no widths, so this is a no-op there. */
-function fitHeaderLine() {
-  const line = document.querySelector(".hdr-line");
-  if (!line) return;
-  line.classList.remove("tight", "tighter");
-  if (line.scrollWidth > line.clientWidth) line.classList.add("tight");
-  if (line.scrollWidth > line.clientWidth) line.classList.add("tighter");
-}
-
 /* ---- The notice above the views ------------------------------------ */
 /* After the con: that it is over, on every tab, until dismissed - once,
    and remembered for that year. Before it: the preview banner. Live:
@@ -257,19 +161,6 @@ function togglePick(id, anchor) {
   if (Math.abs(delta) > 1) pageScrollBy(delta);
 }
 
-/* The sticky filters park directly under the header, whose height changes
-   with the clock and the freshness line - measure it rather than guess. */
-function syncHeaderHeight() {
-  const h = document.querySelector(".hdr");
-  if (h) document.documentElement.style.setProperty("--hdr-h", `${Math.round(h.getBoundingClientRect().height)}px`);
-  fitHeaderLine();
-}
-
-/* ==================================================================
-   Offline. The service worker keeps the app openable with no signal;
-   this end only has to handle being told the schedule moved on.
-   ================================================================== */
-
 /* main scrolls and bounces on its own; the page around it never scrolls,
    yet iOS will still rubber-band it when a drag lands on the header or the
    nav. Safari ignores overscroll-behavior for the page itself, so refuse
@@ -292,60 +183,6 @@ function edgeTouchMove(e) {
   if ((dy > 0 && atTop) || (dy < 0 && atBottom)) e.preventDefault();
 }
 
-const updatePill = document.getElementById("updatePill");
-
-function showUpdatePill() {
-  /* Never re-render underneath someone mid-scroll: a schedule refresh that
-     reshuffles rows while a thumb is moving costs them their place. Offer
-     the reload, let them take it. */
-  updatePill.classList.remove("settling");
-  updatePill.style.transform = "";
-  updatePill.style.opacity = "";
-  updatePill.hidden = false;
-}
-function hideUpdatePill() {
-  updatePill.hidden = true;
-  updatePill.classList.remove("settling");
-  updatePill.style.transform = "";
-  updatePill.style.opacity = "";
-}
-/* Named so the smoke test can observe the intent; jsdom won't let
-   location.reload be replaced. boot() takes a reload option for the same
-   reason, and this is the one place it is called. */
-let reload = () => location.reload();
-function reloadNow() { reload(); }
-
-/* Swipe it away if you'd rather keep reading. */
-let pillY = null, pillDx = 0, pillDragged = false;
-
-/* Coming back to the app after a while: check the schedule once, quietly.
-   The service worker does the checking when there is one - a fetch of
-   the schedule is served from cache and revalidated behind it, and the
-   worker says if generated_at moved, which shows the pill above. Without
-   a worker the fetch is real and we compare ourselves. Nothing re-renders
-   under the reader either way; the pill offers the reload. Timers stop in
-   the background too, so the freshness text is brought up to date first. */
-const RECHECK_MS = 15 * 60000;
-let lastScheduleCheck = 0;                   // boot() sets it: loading was a check
-async function recheckSchedule() {
-  updateFresh();
-  if (now().getTime() - lastScheduleCheck < RECHECK_MS) return false;
-  lastScheduleCheck = now().getTime();
-  try {
-    const r = await fetch(DATA_URL, {cache: "no-cache"});
-    const viaWorker = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
-    if (!viaWorker && r && r.ok) {
-      const data = await r.json();
-      if (data.generated_at && data.generated_at !== meta.generated_at) {
-        meta.generated_at = data.generated_at;
-        updateFresh();
-        showUpdatePill();
-      }
-    }
-  } catch (e) { /* no signal: nothing to say, the copy on screen stands */ }
-  return true;
-}
-
 /* ==================================================================
    Boot. Everything above is declarations, and the consts that read storage
    and the DOM as the module is imported. Nothing else happens until boot()
@@ -365,7 +202,7 @@ async function recheckSchedule() {
    ================================================================== */
 export function boot({events: data, reload: reloadWith} = {}) {
   setRenderer(render);         // first: a view asks for a redraw over the bus, and it throws until this has run
-  if (reloadWith) reload = reloadWith;
+  if (reloadWith) setReload(reloadWith);
 
   document.documentElement.classList.toggle("bigtext", !!loadJSON("dc26.bigtext", false));
   document.body.insertAdjacentHTML("beforeend", devMarkHTML());
@@ -514,7 +351,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
          every keystroke makes typing lag on a phone; the query itself is already
          recorded, so only the drawing waits. Before the index exists a query
          cannot run at all: hold it, and indexReady() queues it. */
-      if (index || !now.trim()) queueBrowseRender(); else pendingQuery = true;
+      if (index || !now.trim()) queueBrowseRender(); else holdQuery();
     }
   });
   /* The keyboard's return key reads Search and puts the keyboard away. */
@@ -638,55 +475,21 @@ export function boot({events: data, reload: reloadWith} = {}) {
     document.documentElement.style.setProperty("--safe-bottom", "min(env(safe-area-inset-bottom, 0px), 34px)");
   }
 
-  updatePill.addEventListener("click", () => { if (!pillDragged) reloadNow(); });
+  updatePill.addEventListener("click", onPillClick);
 
-  updatePill.addEventListener("touchstart", e => {
-    pillY = e.touches[0].clientX; pillDx = 0; pillDragged = false;
-    updatePill.classList.remove("settling");
-  }, {passive: true});
-  updatePill.addEventListener("touchmove", e => {
-    if (pillY === null) return;
-    pillDx = e.touches[0].clientX - pillY;
-    if (Math.abs(pillDx) > 6) pillDragged = true;
-    updatePill.style.transform = `translateX(calc(-50% + ${pillDx}px))`;
-    updatePill.style.opacity = String(Math.max(0, 1 - Math.abs(pillDx) / 160));
-  }, {passive: true});
-  updatePill.addEventListener("touchend", () => {
-    if (pillY === null) return;
-    const dx = pillDx; pillY = null;
-    updatePill.classList.add("settling");
-    if (Math.abs(dx) > 60) { updatePill.style.opacity = "0"; setTimeout(hideUpdatePill, 200); }
-    else { updatePill.style.transform = "translateX(-50%)"; updatePill.style.opacity = "1"; }
-  });
+  updatePill.addEventListener("touchstart", onPillTouchStart, {passive: true});
+  updatePill.addEventListener("touchmove", onPillTouchMove, {passive: true});
+  updatePill.addEventListener("touchend", onPillTouchEnd);
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.addEventListener("message", e => {
-      const t = e.data && e.data.type;
-      if (t === "schedule-updated") {
-        /* The worker hands over the new generated_at; the header can say how
-           fresh the waiting copy is while the pill offers it. */
-        if (e.data.generated_at) { meta.generated_at = e.data.generated_at; updateFresh(); }
-        showUpdatePill();
-      }
-      /* The worker serves the cached schedule and then checks the network. Its
-         verdict arrives after the page has already rendered, so the freshness
-         line is corrected in place rather than guessed at load. */
-      if (t === "schedule-offline") { servedOffline = true; updateFresh(); }
-      if (t === "schedule-online") { servedOffline = false; updateFresh(); }
-    });
-    window.addEventListener("load", () => {
-      /* Don't swallow this. A worker that silently fails to register looks
-         exactly like one that works until you turn the signal off. */
-      navigator.serviceWorker.register("./sw.js").catch(err => {
-        console.warn("Offline support unavailable:", err && err.message || err);
-      });
-    });
+    navigator.serviceWorker.addEventListener("message", onWorkerMessage);
+    window.addEventListener("load", onLoadRegisterWorker);
   }
 
-  lastScheduleCheck = now().getTime();     // loading was a check
+  markScheduleChecked();                   // loading was a check
 
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") recheckSchedule(); });
-  window.addEventListener("pageshow", () => { recheckSchedule(); });
+  document.addEventListener("visibilitychange", onVisibleRecheck);
+  window.addEventListener("pageshow", onPageShow);
 
   const ready = load(data);
   return {
@@ -708,9 +511,6 @@ export function boot({events: data, reload: reloadWith} = {}) {
    through boot()'s handle - and nor is reloadNow, which the reload option
    replaces. */
 export {
-  edgeTouchMove, edgeTouchStart, hideUpdatePill, indexReady, recheckSchedule, render,
-  renderMiniBar, renderNotice, setTimeOverride, showUpdatePill, togglePick, updateClock,
-  updateFresh,
-
-  BOOT,
+  edgeTouchMove, edgeTouchStart, render, renderMiniBar, renderNotice, setTimeOverride,
+  togglePick, updateClock,
 };
