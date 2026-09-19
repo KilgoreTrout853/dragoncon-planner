@@ -131,9 +131,9 @@ function hideUpdatePill() {
   updatePill.style.transform = "";
   updatePill.style.opacity = "";
 }
-/* Named so the smoke test can observe the intent; jsdom won't let
-   location.reload be replaced. boot() takes a reload option for the same
-   reason, and this is the one place it is called. */
+/* Named so that a test can observe the intent: jsdom won't let
+   location.reload be replaced, so boot() takes a reload option, setReload()
+   puts it here, and this is the one place it is called. */
 let reload = () => location.reload();
 function reloadNow() { reload(); }
 

@@ -2,11 +2,12 @@ import { esc } from "./util.js";
 import { IS_IOS } from "./platform.js";
 
 /* ==================================================================
-   Build. main publishes straight from the branch: the source carries empty
-   stamps and the live site wears no mark. build.py stamps a deploy with a
-   channel (the next site) and a build id, and a stamped page shows a small
-   dev-build mark, so a screenshot says which site it came from. It is the
-   stamp that decides, never the address the page was loaded from.
+   Build. The source carries empty stamps, and a build with no channel wears
+   no mark. Given a channel (the next site), the build - dcBuild, in
+   build/vite-dc.js - stamps the page with it and with a build id, and a
+   stamped page shows a small dev-build mark, so a screenshot says which site
+   it came from. It is the stamp that decides, never the address the page was
+   loaded from.
    ================================================================== */
 const metaContent = name => { const m = document.querySelector(`meta[name="${name}"]`); return m && m.content ? m.content.trim() : ""; };
 const BUILD = {channel: metaContent("dc-channel"), id: metaContent("dc-build")};

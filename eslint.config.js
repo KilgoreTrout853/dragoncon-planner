@@ -1,14 +1,14 @@
-/* Three rules, nothing inherited (DECISIONS #24). This is a guard for the
-   module split, not a style guide: no-undef catches a function that moved
-   to another module without its import, and no-unused-vars the import that
-   stayed behind when the function it was for moved on; the third rule is
-   the #12 clock guard, which took over from the regex the smoke harness had
-   when src/time.js became a module. */
+/* Three rules, nothing inherited (DECISIONS #24). A guard, not a style
+   guide. no-undef catches a name used in a module that does not import it,
+   and no-unused-vars the import left behind when what it was for moved on.
+   The third, no-restricted-syntax, holds what were once regexes over the
+   source text: the #12 clock guard, and the two rules about the page. */
 import globals from "globals";
 
 /* Every read of the current moment goes through now() in src/time.js. A
    Date built from a value - new Date(iso), new Date(ms) - is arithmetic,
-   not a clock read, and is allowed, exactly as that regex allows it. */
+   not a clock read, and is allowed, exactly as the regex it replaced
+   allowed it. */
 const CLOCK = [
   { selector: "NewExpression[callee.name='Date'][arguments.length=0]",
     message: "Read the clock through now() from src/time.js (DECISIONS #12)." },
