@@ -2,7 +2,7 @@
 
 A working document for the module split (DECISIONS #23, #24; plan step 4c):
 for each slice, the plan, and then its as-built record. The docs slice
-decides whether it stays in the repo. Three parts so far:
+decides whether it stays in the repo. Three parts, and the split is done:
 
 - **[Leaves](#leaves)** - as built. Fourteen modules that need nothing from
   `src/app.js`; merged in #14.
@@ -10,11 +10,12 @@ decides whether it stays in the repo. Three parts so far:
   scroll, bus, and the five views; merged in #15. It ends with
   [app.js after rest-1](#appjs-after-rest-1), what rest-2 starts from.
 - **[Rest-2: the shell, the handlers and the
-  rename](#rest-2-the-shell-the-handlers-and-the-rename)** - the plan, step
-  one, amended by its review. Four modules - sheet, loading, shell, dispatch
-  - the 34 closures in `boot()` that become named functions, and
-  `src/app.js` becoming `src/boot.js`. It ends with
-  [What boot.js holds](#what-bootjs-holds).
+  rename](#rest-2-the-shell-the-handlers-and-the-rename)** - as built, in PR
+  #16: the plan, amended by its review, and its record under
+  [Rest-2: amended during execution](#rest-2-amended-during-execution). Four
+  modules - sheet, loading, shell, dispatch - the 34 closures in `boot()`
+  that became named functions, and `src/app.js` becoming `src/boot.js`. It
+  ends with [What boot.js holds](#what-bootjs-holds).
 
 # Leaves
 
@@ -3023,8 +3024,77 @@ PR has made false.
 
 ## Rest-2: amended during execution
 
-Nothing yet. A placement that changes while step two is carried out is
-recorded here, in the commit that changes it, with the reason.
+**No placement changed during execution.** The one that differs from the
+brief for step two - `syncHeaderHeight` and `fitHeaderLine` in loading, not
+shell (R2-P11) - was found while the manifest was being amended, before any
+code moved, and is recorded above; step two then landed all four modules as
+this part has them.
+
+`tools/split/partition.js 8bdd2ba`, at the end. Of app.js's 47 top-level
+statements (52 names) at the base commit, 44 are byte for byte identical in
+exactly one module, none is missing, and the three that differ are the three
+changed on purpose: `closeSheet` and `load` (`requestRender()`) and `boot`.
+Per module: sheet 16, loading 22, shell 13, boot.js 1. All 45 registrations
+are made in the same place, on the same target, for the same event, with the
+same options. Of the 35 closures, 30 are named functions whose parameters
+and bodies are identical to the closure's once its extra indentation is
+removed; four differ, the four changed on purpose - #1 `onScrollSpy`, #4
+`onMainInput`, #34 `onBeforeInstallPrompt`, #35 `onAppInstalled` - and
+`onScrollSpy`'s body is identical to the closure as it stood before rest-1
+(`partition.js 9b27a26`); one, the empty `catch`, is still inline. 37 names
+are new under `src/`: the 34 handlers (sheet 8, loading 8, shell 5, dispatch
+10, explore 1, now 2) and `setReload`, `holdQuery`, `markScheduleChecked`.
+Run against the three other files this slice took from: map.js, 22 of 22
+statements identical, two of them in sheet.js now; now.js, 18 of 20, with
+`effectiveNow` in time.js and the two setters retired; explore.js, 35 of 37,
+`queueSpy` and `spyDone` retired.
+
+Details that were not placements, and how they landed:
+
+- **One `render()` in loading, not three.** Commit 3 changed `load()` and
+  nothing else in loading; see
+  [What the new order found](#what-the-new-order-found).
+- **Hand edits before the move, as planned.** `closeSheet()`'s
+  `requestRender()` before sheet; `load()`'s, and the three writes that
+  became calls, before loading. `onMainInput` therefore changed in commit 3,
+  while it was still a closure in `boot()`, and moved to dispatch in commit
+  6 as it stood. shell needed none.
+- **The mover refused one spec of mine.** A range for shell ended in the
+  middle of `togglePick()`: the new file's top-level names were not the
+  manifest's, and nothing was written. The ranges were taken again from the
+  file's own declaration lines.
+- **Banners.** "Loading" and "Offline" travelled to loading, "Rendering" and
+  "Events (the DOM kind)" to shell. `where.js` attaches "Offline" to the edge
+  guard, which sits under it and is the shell's; the banner describes being
+  told the schedule moved on, so it went to loading, above `updatePill`.
+  "Data & constants" was dropped once nothing was left under it. "Boot"
+  stays, rewritten where it had gone false: its first paragraph, and the
+  clause of its second that called `reload` one of the module's own names.
+- **Where the handlers sit.** Beside the state they write: the pill's four
+  under the pill's lets, the worker's and the recheck's under
+  `recheckSchedule()`, `onSimChipClick` under `setTimeOverride()`,
+  `onScrollSpy` under `spyQueued`; the sheet's and the shell's at the end of
+  their sections. Each group has a line or two of comment above it saying
+  what `boot()` registers it on. Those comments, the four file headers, and
+  the comment over loading's three new functions are the only new text.
+- **Blank lines.** In `boot()` the blank lines that had separated multi-line
+  closures were closed up at the rename, so the registrations on `main`, on
+  the sheet, on its two panels and on the pill read as groups; and two of
+  the three blank lines the shell's move left under the imports were
+  removed. Nothing else in `boot()` changed at the rename.
+- **`docs/ARCHITECTURE.md`, one word beyond commit 8's list:** the repo map
+  said "two ESLint rules" where the Tests section says three, as it has
+  since rest-1. Found by the grep; not this PR's doing.
+- **File sizes**, in lines: sheet 178, loading 247, shell 185, dispatch 238;
+  boot.js 149 (app.js was 838), of which `boot()` is 95 (was 356); explore
+  424 (was 417), now 250 (259), map 177 (190), time 94 (81). 27 files under
+  `src/` with `main.js`. The build: `dist/index.html` 127,438 bytes, up 390
+  from 127,048 - 37 new function names and their frames - and `dist/sw.js`
+  byte-identical to `public/sw.js`.
+- **Tests:** 846 passed and 4 skipped from commit 0 to the end (841 before:
+  the four scroll-spy tests and the dispatch rule); pytest 27. Test files
+  touched after commit 0: `tests/rules/imports.test.js` (the root's name) and
+  the header comment of `tests/unit/misc.test.js`, both at the rename.
 
 ## Completeness of rest-2
 
