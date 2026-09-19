@@ -1,6 +1,7 @@
 import MiniSearch from "minisearch";
 import { dayOf, esc, fmt, fmtMins, fmtShort, minutesBetween, pad, toDate } from "./util.js";
 import { loadJSON, readSession, saveJSON, writeSession } from "./storage.js";
+import { IS_IOS, isStandalone } from "./platform.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
@@ -2267,13 +2268,6 @@ function syncHeaderHeight() {
    Offline. The service worker keeps the app openable with no signal;
    this end only has to handle being told the schedule moved on.
    ================================================================== */
-/* main scrolls and bounces on its own; the page around it never scrolls,
-   yet iOS will still rubber-band it when a drag lands on the header or the
-   nav. Safari ignores overscroll-behavior for the page itself, so refuse
-   those drags by hand. Touches that begin inside main, in the sheet, or on
-   a control are left alone, and so is anything more sideways than vertical. */
-const IS_IOS = /iP(hone|ad|od)/.test(navigator.platform)
-  || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints > 1);
 /* Installing is the point for someone who arrived from a chat link: the
    app works with no signal only once it is on the home screen. So the Now
    tab opens with a nudge until the app is installed, dismissible for a week
@@ -2282,9 +2276,6 @@ const IS_IOS = /iP(hone|ad|od)/.test(navigator.platform)
    the browser offers one. */
 const NUDGE_SNOOZE_MS = 7 * 24 * 3600 * 1000;
 let installPrompt = null;
-function isStandalone() {
-  return !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
-}
 function nudgeVisible() {
   if (isStandalone()) return false;
   const until = loadJSON("dc26.nudgeSnoozedUntil", 0);
@@ -2306,6 +2297,11 @@ function nudgeHTML() {
     <div class="btns">${c.install ? `<button class="btn" data-act="nudge-install">Install app</button>` : ""}<button class="btn quiet" data-act="nudge-later">Not now</button></div></div>`;
 }
 
+/* main scrolls and bounces on its own; the page around it never scrolls,
+   yet iOS will still rubber-band it when a drag lands on the header or the
+   nav. Safari ignores overscroll-behavior for the page itself, so refuse
+   those drags by hand. Touches that begin inside main, in the sheet, or on
+   a control are left alone, and so is anything more sideways than vertical. */
 const edgeTouch = {x: 0, y: 0, ignore: false};
 function edgeTouchStart(e) {
   const t = e.touches && e.touches[0];
@@ -2761,8 +2757,8 @@ export function boot({events: data, reload: reloadWith} = {}) {
 export {
   activeFilters, browseResults, cleanRoom, closeSheet, conDayKey, conPhase, currentLocation,
   deviceLine, edgeTouchMove, edgeTouchStart, eventsFor, expandQuery, hiddenForQueryHTML,
-  hideUpdatePill, indexReady, initTimeOverride, isFollowing, isStandalone, layoutColumns,
-  leaveInfo, mapCardHTML, mapDay, markActiveSection, now, nowModel, nowSignature, nudgeCopy,
+  hideUpdatePill, indexReady, initTimeOverride, isFollowing, layoutColumns, leaveInfo,
+  mapCardHTML, mapDay, markActiveSection, now, nowModel, nowSignature, nudgeCopy,
   openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery, pickActiveSection,
   placeHTML, queueBrowseRender, readExploreHash, recheckSchedule, reconcilePicks, render,
   renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice, renderNow, revealChip,
@@ -2771,7 +2767,7 @@ export {
   updateFresh, walkMin,
 
   BOOT, BUILD, CON, CON_DAYS, conEnded, DAY_LONG, EXPLORE_HEAD, FOLLOW_KINDS, followId,
-  getCatalogue, hotelGroup, hotelMatches, hotelPhrase, hotelShort, HOUR_PX, IS_IOS, isCeleb,
-  isNoise, isSimulated, LEAVE_BUFFER_MIN, MAP_HOTELS, NOISE_TRACKS, pageScrollTop, samePlace,
+  getCatalogue, hotelGroup, hotelMatches, hotelPhrase, hotelShort, HOUR_PX, isCeleb, isNoise,
+  isSimulated, LEAVE_BUFFER_MIN, MAP_HOTELS, NOISE_TRACKS, pageScrollTop, samePlace,
   SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER, settings, state, STOPWORDS, TIME_OVERRIDE_KEY, WALK,
 };

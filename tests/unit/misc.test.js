@@ -3,7 +3,8 @@
    Importing the module still touches the document, so this runs in jsdom;
    with no markup its DOM consts are null, and nothing here reaches them. */
 import { describe, expect, it } from "vitest";
-import { FOLLOW_KINDS, HOUR_PX, IS_IOS, LEAVE_BUFFER_MIN, nudgeCopy, pickActiveSection } from "../../src/app.js";
+import { FOLLOW_KINDS, HOUR_PX, LEAVE_BUFFER_MIN, nudgeCopy, pickActiveSection } from "../../src/app.js";
+import { IS_IOS } from "../../src/platform.js";
 
 describe("constants the layout and the leave-by depend on", () => {
   it("leave-by: LEAVE_BUFFER_MIN is 10, the slack on every leave-by [116]", () => {
