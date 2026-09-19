@@ -1,7 +1,7 @@
 /* Venue names and rooms: the pure helpers. The number in brackets is the
    harness line the assertion came from (tests/PORT-LEDGER.md). */
 import { describe, expect, it } from "vitest";
-import { samePlace } from "../../src/app.js";
+import { samePlace } from "../../src/picks.js";
 import { cleanRoom, hotelMatches, hotelPhrase } from "../../src/venues.js";
 
 describe("venues", () => {

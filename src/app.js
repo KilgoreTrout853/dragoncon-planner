@@ -15,6 +15,10 @@ import {
   byId, DATA_URL, events, fandomCounts, hotelChips, isCeleb, isNoise, meta, NOISE_TRACKS,
   replaceSchedule, tracks,
 } from "./data.js";
+import {
+  clearNews, pickNews, pickNewsHTML, picks, reconcilePicks, replaceNews, replacePicks,
+  savePickNews, savePicks,
+} from "./picks.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
@@ -100,7 +104,6 @@ function aliasesFor(ev, text) {
   return out.join(" ");
 }
 
-let picks = new Set(loadJSON("dc26.picks", []));
 let fromNetwork = null, servedOffline = false;
 const PAGE = 150;
 
@@ -116,60 +119,6 @@ function pageScrollTo(top, smooth) {
   else scroller.scrollTop = y;
 }
 function pageScrollBy(dy) { scroller.scrollTop = pageScrollTop() + dy; }
-
-/* ==================================================================
-   Helpers
-   ================================================================== */
-/* What each pick looked like when it was starred, so a later refresh can say
-   what changed. The rows alone would show the new time, or nothing at all,
-   and the reader would find out at the door. */
-let pickInfo = loadJSON("dc26.pickInfo", {}) || {};
-let pickNews = loadJSON("dc26.pickNews", []) || [];
-const snapshotOf = e => ({title: e.title, start: e.start, location: e.location || ""});
-function savePicks() {
-  saveJSON("dc26.picks", [...picks]);
-  const info = {};
-  picks.forEach(id => { const e = byId.get(id); if (e) info[id] = snapshotOf(e); else if (pickInfo[id]) info[id] = pickInfo[id]; });
-  pickInfo = info;
-  saveJSON("dc26.pickInfo", pickInfo);
-}
-function savePickNews() { saveJSON("dc26.pickNews", pickNews); }
-/* "Hilton Salon" and "Hilton-Salon" are one room; a refresh that respells
-   it is not a move. */
-const samePlace = (a, b) => String(a || "").toLowerCase().replace(/[^a-z0-9]+/g, "") === String(b || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-function whenWhere(x) {
-  const d = toDate(x.start);
-  return `${DAY_LABEL[dayOf(d)] || ""} ${fmtShort(d)}, ${x.location || "location TBA"}`.trim();
-}
-/* Compare each pick with its snapshot. A vanished event leaves the plan but
-   stays in the news; a moved one stays in the plan and its snapshot moves
-   with it, so it is reported once. The news keeps until it is dismissed. */
-function reconcilePicks() {
-  let changed = false;
-  [...picks].forEach(id => {
-    const was = pickInfo[id], e = byId.get(id);
-    if (!e) {
-      pickNews.push({kind: "gone", title: was ? was.title : "One of your picks", was: was ? whenWhere(was) : ""});
-      picks.delete(id);
-      changed = true;
-      return;
-    }
-    if (was && (was.start !== e.start || !samePlace(was.location, e.location))) {
-      pickNews.push({kind: "moved", title: e.title, was: whenWhere(was), now: whenWhere(e)});
-      changed = true;
-    }
-  });
-  if (changed) { savePicks(); savePickNews(); }
-  else if ([...picks].some(id => !pickInfo[id])) savePicks();   // picks from before snapshots existed
-}
-function pickNewsHTML() {
-  if (!pickNews.length) return "";
-  const items = pickNews.map(n => n.kind === "gone"
-    ? `<li><b>${esc(n.title)}</b> was removed from the schedule${n.was ? `. It was ${esc(n.was)}` : ""}.</li>`
-    : `<li><b>${esc(n.title)}</b> moved to ${esc(n.now)}. It was ${esc(n.was)}.</li>`).join("");
-  return `<div class="notice warn pick-news"><b>Your picks changed in the last schedule refresh.</b><ul>${items}</ul>
-    <button class="btn quiet" data-act="dismiss-news">OK</button></div>`;
-}
 
 /* ==================================================================
    Follows. A pick is one event; a follow is a standing interest - a
@@ -2267,7 +2216,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
       if (a === "more-now") { state.now.limit += 100; render(); }
       if (a === "more-browse") { state.browse.page++; render(); }
       if (a === "ics") exportICS();
-      if (a === "clear" && confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); render(); }
+      if (a === "clear" && confirm("Remove everything from my schedule?")) { replacePicks([]); savePicks(); render(); }
       if (a === "suggest") {
         state.browse.q = `"${act.dataset.name}"`;
         state.browse.page = 1;
@@ -2283,7 +2232,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
         return;
       }
       if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
-      if (a === "dismiss-news") { pickNews = []; savePickNews(); render(); return; }
+      if (a === "dismiss-news") { clearNews(); savePickNews(); render(); return; }
       if (a === "dismiss-archive") { saveJSON(ARCHIVE_NOTICE_KEY, CON.year); render(); return; }
       if (a === "nudge-later") { saveJSON("dc26.nudgeSnoozedUntil", now().getTime() + NUDGE_SNOOZE_MS); render(); return; }
       if (a === "nudge-install") {
@@ -2477,7 +2426,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; closeSheet(); if (v) setTimeOverride(v); });
   document.getElementById("clearPreview").addEventListener("click", () => { closeSheet(); setTimeOverride(null); });
   document.getElementById("simChip").addEventListener("click", () => setTimeOverride(null));
-  document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { picks = new Set(); savePicks(); closeSheet(); } });
+  document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { replacePicks([]); savePicks(); closeSheet(); } });
 
   window.addEventListener("hashchange", () => { applyExploreHash(); render(); });
 
@@ -2571,9 +2520,9 @@ export function boot({events: data, reload: reloadWith} = {}) {
   const ready = load(data);
   return {
     state, render, now, setTimeOverride,
-    picks: {get: () => picks, set: ids => { picks = new Set(ids); savePicks(); }},
+    picks: {get: () => picks, set: ids => { replacePicks(ids); savePicks(); }},
     follows: {get: () => follows, set: list => { follows = [...list]; saveFollows(); }},
-    news: {set: list => { pickNews = list; savePickNews(); }, clear: () => { pickNews = []; savePickNews(); }},
+    news: {set: list => { replaceNews(list); savePickNews(); }, clear: () => { clearNews(); savePickNews(); }},
     get meta() { return meta; },
     get events() { return events; },
     BOOT, reconcilePicks, recheckSchedule, openSheet, closeSheet, ready,
@@ -2592,12 +2541,11 @@ export {
   eventsFor, expandQuery, hiddenForQueryHTML, hideUpdatePill, indexReady, isFollowing,
   layoutColumns, leaveInfo, mapCardHTML, mapDay, markActiveSection, nowModel, nowSignature,
   nudgeCopy, openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery,
-  pickActiveSection, queueBrowseRender, readExploreHash, recheckSchedule, reconcilePicks, render,
-  renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice, renderNow, revealChip,
-  saveFollows, savePickNews, savePicks, setDrag, setExploreHash, setTimeOverride, showUpdatePill,
-  suggestionsFor, termQuality, tickMap, tickNow, toggleFollow, togglePick, updateClock,
-  updateFresh,
+  pickActiveSection, queueBrowseRender, readExploreHash, recheckSchedule, render, renderBrowse,
+  renderExplore, renderMap, renderMiniBar, renderNotice, renderNow, revealChip, saveFollows,
+  setDrag, setExploreHash, setTimeOverride, showUpdatePill, suggestionsFor, termQuality, tickMap,
+  tickNow, toggleFollow, togglePick, updateClock, updateFresh,
 
   BOOT, EXPLORE_HEAD, FOLLOW_KINDS, followId, getCatalogue, HOUR_PX, MAP_HOTELS, pageScrollTop,
-  samePlace, SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER, STOPWORDS,
+  SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER, STOPWORDS,
 };
