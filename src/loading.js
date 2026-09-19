@@ -3,16 +3,17 @@
    the header says about how fresh the copy is, and what offers a newer one -
    the update pill, the recheck on coming back, the worker's messages. It is
    below the shell, so it asks for the first draw over the bus, as a view
-   does; and it holds the two functions that measure the header, because the
-   freshness line is what changes the header's height, and the shell imports
-   them from here. #updatePill is looked up as the module is imported, so the
-   markup has to be there first. */
+   does. The freshness line is what changes the header's height, so
+   updateFresh() has it measured again, with scroll.js's syncHeaderHeight().
+   #updatePill is looked up as the module is imported, so the markup has to
+   be there first. */
 import { dayOf, fmtShort, minutesBetween, toDate } from "./util.js";
 import { state } from "./state.js";
 import { conEnded, DAY_LABEL, now } from "./time.js";
 import { DATA_URL, events, meta, replaceSchedule } from "./data.js";
 import { reconcilePicks } from "./picks.js";
 import { buildIndex, buildSuggestIndex, index, SEARCH_PLACEHOLDER } from "./search.js";
+import { syncHeaderHeight } from "./scroll.js";
 import { requestRender } from "./bus.js";
 import { queueBrowseRender } from "./browse.js";
 import { applyExploreHash, buildCatalogue } from "./explore.js";
@@ -106,24 +107,6 @@ function updateFresh() {
   el.innerHTML = ` &middot; ${events.length.toLocaleString("en-US")} events &middot; ${fresh}`
     + (servedOffline ? " &middot; offline copy" : "");
   syncHeaderHeight();          // this line is what changes the header's height
-}
-
-/* The header line must not clip: if it would, hide the word "refreshed"
-   and measure again. jsdom reports no widths, so this is a no-op there. */
-function fitHeaderLine() {
-  const line = document.querySelector(".hdr-line");
-  if (!line) return;
-  line.classList.remove("tight", "tighter");
-  if (line.scrollWidth > line.clientWidth) line.classList.add("tight");
-  if (line.scrollWidth > line.clientWidth) line.classList.add("tighter");
-}
-
-/* The sticky filters park directly under the header, whose height changes
-   with the clock and the freshness line - measure it rather than guess. */
-function syncHeaderHeight() {
-  const h = document.querySelector(".hdr");
-  if (h) document.documentElement.style.setProperty("--hdr-h", `${Math.round(h.getBoundingClientRect().height)}px`);
-  fitHeaderLine();
 }
 
 /* ==================================================================
@@ -240,8 +223,7 @@ function holdQuery() { pendingQuery = true; }
 function markScheduleChecked() { lastScheduleCheck = now().getTime(); }
 
 export {
-  BOOT, load, updateFresh, fitHeaderLine, syncHeaderHeight, updatePill, hideUpdatePill,
-  onPillClick, onPillTouchStart, onPillTouchMove, onPillTouchEnd, recheckSchedule,
-  onWorkerMessage, onLoadRegisterWorker, onVisibleRecheck, onPageShow, setReload, holdQuery,
-  markScheduleChecked,
+  BOOT, load, updateFresh, updatePill, hideUpdatePill, onPillClick, onPillTouchStart,
+  onPillTouchMove, onPillTouchEnd, recheckSchedule, onWorkerMessage, onLoadRegisterWorker,
+  onVisibleRecheck, onPageShow, setReload, holdQuery, markScheduleChecked,
 };

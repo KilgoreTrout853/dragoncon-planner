@@ -15,13 +15,16 @@ import { hotelVar, placeHTML } from "./venues.js";
 import { events } from "./data.js";
 import { picks, savePicks } from "./picks.js";
 import { currentLocation, leaveInfo, nextPickInConDay } from "./leave.js";
-import { chipRowsRestore, chipRowsSnapshot, cssEsc, pageScrollBy, pageScrollTo } from "./scroll.js";
+import {
+  chipRowsRestore, chipRowsSnapshot, cssEsc, fitHeaderLine, pageScrollBy, pageScrollTo,
+  syncHeaderHeight,
+} from "./scroll.js";
 import { renderNow } from "./now.js";
 import { cancelQueuedBrowseRender, renderBrowse } from "./browse.js";
 import { renderExplore } from "./explore.js";
 import { renderMap } from "./map.js";
 import { renderMine } from "./mine.js";
-import { fitHeaderLine, syncHeaderHeight, updateFresh } from "./loading.js";
+import { updateFresh } from "./loading.js";
 
 /* ==================================================================
    Rendering

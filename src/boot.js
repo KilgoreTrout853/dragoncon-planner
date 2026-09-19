@@ -8,7 +8,7 @@ import {
   clearNews, picks, reconcilePicks, replaceNews, replacePicks, savePickNews, savePicks,
 } from "./picks.js";
 import { follows, replaceFollows, saveFollows } from "./follows.js";
-import { scroller } from "./scroll.js";
+import { scroller, syncHeaderHeight } from "./scroll.js";
 import { setRenderer } from "./bus.js";
 import { onAppInstalled, onBeforeInstallPrompt } from "./now.js";
 import { onScrollSpy } from "./explore.js";
@@ -20,7 +20,7 @@ import {
 import {
   BOOT, load, markScheduleChecked, onLoadRegisterWorker, onPageShow, onPillClick, onPillTouchEnd,
   onPillTouchMove, onPillTouchStart, onVisibleRecheck, onWorkerMessage, recheckSchedule,
-  setReload, syncHeaderHeight, updatePill,
+  setReload, updatePill,
 } from "./loading.js";
 import {
   edgeTouchMove, edgeTouchStart, onBigTextChange, onMiniBarClick, onNavClick, onSimChipClick,

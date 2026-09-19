@@ -2228,6 +2228,11 @@ to change while step two is carried out, it is recorded under
 [Rest-2: amended during execution](#rest-2-amended-during-execution), in the
 commit that changes it.
 
+**Amended again the same day, by the review of step two**, which took
+R2-P11's alternative: the two functions that measure the header live in
+scroll.js, not in loading. The tables and counts below were regenerated once
+more from the parse, the placement checked again, and they are as built.
+
 - **Base.** `next` at `8bdd2bafe13626f67431dc9511f780ffbc56f618`, branch
   `refactor/rest-2`. No code under `src/` in step one.
 - **The file.** `src/app.js` is 838 lines: 21 imports, 52 top-level
@@ -2271,13 +2276,14 @@ Four new modules and the root, in this order: `sheet`, `loading`, `shell`,
   back-edge step one found is gone. Two calls then point *up* out of loading
   instead. `load()`'s `render()` becomes `requestRender()`. And
   `updateFresh()` calls `syncHeaderHeight()`, which the bus does not carry:
-  `syncHeaderHeight` and `fitHeaderLine` come to loading with it
-  ([What the new order found](#what-the-new-order-found)). With that, the
-  check finds no upward read or write anywhere.
-- **All 51 top-level names but `boot` move:** sheet 16, loading 22, shell 13.
-  dispatch takes no top-level name; it is ten handlers. Two more names come
-  in from modules that exist: `hotelSheetHTML` and its one helper from map to
-  sheet, `effectiveNow` from now to time.
+  `syncHeaderHeight` and `fitHeaderLine` go down to scroll.js, below them
+  both ([What the new order found](#what-the-new-order-found)). With that,
+  the check finds no upward read or write anywhere.
+- **All 51 top-level names but `boot` move:** sheet 16, loading 20, shell 13,
+  and two into scroll, a module that exists. dispatch takes no top-level
+  name; it is ten handlers. Three more names move between modules that
+  exist: `hotelSheetHTML` and its one helper from map to sheet,
+  `effectiveNow` from now to time.
 - **Three writes cross a module boundary once the handlers have moved**, down
   from rest-1's six: `pendingQuery` from dispatch, and `reload` and
   `lastScheduleCheck` from `boot()` itself. Three functions replace them.
@@ -2305,7 +2311,7 @@ three, all of them `render()`:
 | site | calls | becomes |
 |---|---|---|
 | `load()`, line 93 | `render()` | `requestRender()`: the bus, as a view uses it. `boot()` registers the renderer in its first statement and calls `load()` in its last, and the bus is synchronous, so `BOOT.rendered` is still stamped after the draw, and `load()`, handed the events, still reaches the first render with no `await` on the way |
-| `updateFresh()`, line 141 | `syncHeaderHeight()` | nothing: `syncHeaderHeight` (364-368) and `fitHeaderLine` (205-211), which it calls, come to loading too |
+| `updateFresh()`, line 141 | `syncHeaderHeight()` | nothing: `syncHeaderHeight` (364-368) and `fitHeaderLine` (205-211), which it calls, go below loading, to scroll.js |
 
 **One `render()`, not three.** The other `render()` step one had in loading
 was `setTimeOverride`'s, which stays in shell now, and none of loading's
@@ -2316,25 +2322,25 @@ the two install listeners; with `load()` they are four.)
 decision - and `updateFresh` cannot go up to shell, because the review has
 shell importing it from loading. What is left is to put the function where
 its lowest caller can reach it. The two functions measure the header and
-need nothing from `src/`: no import, no let. loading already writes the
-header - `updateFresh()` sets `#fresh`, and its call carries the comment
-"this line is what changes the header's height" - so they land there, the
-way `BOOT` does: held by the lowest module that needs it, imported by the
-ones above. shell imports both (`render()` and `onBigTextChange()` call the
-first, `updateClock()` the second) and boot.js the first, for registrations
+need nothing from `src/`: no import, no let.
+
+Step two first put them in loading, the lowest module that calls one, the
+way `BOOT` is held, and recorded scroll.js as the alternative (R2-P11). **The
+review of step two took the alternative.** scroll imports nothing, every
+module may import it, and `--hdr-h` is what the sticky filters and
+`scrollToGrid()` park under; the header's measurement then belongs to neither
+of the two modules that need it, and shell does not reach into loading for
+it. So both are in scroll.js, moved by hand under `cssEsc` with the comment
+above each. loading imports `syncHeaderHeight` for `updateFresh()`; shell
+imports both (`render()` and `onBigTextChange()` call the first,
+`updateClock()` the second); boot.js imports the first, for registrations
 #27-31 and #33. **No statement changes for it:** `updateFresh`,
 `syncHeaderHeight` and `fitHeaderLine` stay byte for byte what they were,
 each in one module.
 
-The alternative, for the review of this PR to take if it prefers (R2-P11):
-both functions into scroll.js, by hand. scroll imports nothing, every module
-may import it, and `--hdr-h` is what the sticky filters and `scrollToGrid()`
-park under. It would put something that is not scrolling into scroll, and
-change a module that is merged, which is why it is the alternative.
-
-The counts that follow: loading is step one's 21 less `setTimeOverride` plus
-these two, **22**; shell is its 14 plus `setTimeOverride` less these two,
-**13**; closures, shell 5 (it keeps #22) and loading 8.
+The counts that follow: loading is step one's 21 less `setTimeOverride`,
+**20**; shell is its 14 plus `setTimeOverride` less these two, **13**; scroll
+gains **2**; closures, shell 5 (it keeps #22) and loading 8.
 
 ## Rest-2, step two commit by commit
 
@@ -2389,6 +2395,13 @@ become `onBeforeInstallPrompt(e)` and `onAppInstalled()`, assigning
 
 **Commit 8 - docs.** `docs/ARCHITECTURE.md`, surgical, and this part's
 as-built record.
+
+**Commit 9 - R2-P11's alternative**, after the review of step two, by hand.
+Commit 3 had taken `fitHeaderLine` and `syncHeaderHeight` into loading with
+the rest; this moves them on to scroll.js, statements unchanged, and
+loading, shell and boot.js import them from there. This part's tables and
+its as-built record, and the sentences of `docs/ARCHITECTURE.md` that named
+their module, in the same commit.
 
 Expected test counts: 841 passed and 4 skipped today; 846 from commit 0 (the
 four spy tests and the dispatch rule); unchanged after that. No unit test
@@ -2464,16 +2477,16 @@ page tests reach everything through `page.app`.
 ## R2.2 loading
 
 Loading, freshness and offline: what fetches the schedule, what says how
-fresh it is, what offers a newer one - and, because the freshness line is
-what changes the header's height, the two functions that measure the header.
+fresh it is, what offers a newer one.
 
 - **imports:** util `{ dayOf, fmtShort, minutesBetween, toDate }`; state
   `{ state }`; time `{ DAY_LABEL, conEnded, now }`; data `{ DATA_URL,
   events, meta, replaceSchedule }`; picks `{ reconcilePicks }`; search
-  `{ SEARCH_PLACEHOLDER, buildIndex, buildSuggestIndex, index }`; bus
-  `{ requestRender }`; browse `{ queueBrowseRender }`; explore
-  `{ applyExploreHash, buildCatalogue }`. Not shell, which is above it now:
-  it asks for the first draw over the bus.
+  `{ SEARCH_PLACEHOLDER, buildIndex, buildSuggestIndex, index }`; scroll
+  `{ syncHeaderHeight }`; bus `{ requestRender }`; browse
+  `{ queueBrowseRender }`; explore `{ applyExploreHash, buildCatalogue }`.
+  Not shell, which is above it now: it asks for the first draw over the bus,
+  and has the header measured by scroll's `syncHeaderHeight()`.
 - **takes:**
 
 | name | kind | app.js line(s) | in the export list |
@@ -2487,8 +2500,6 @@ what changes the header's height, the two functions that measure the header.
 | `scheduleIndexBuild` | function | 106-117 |  |
 | `indexReady` | function | 118-122 | yes |
 | `updateFresh` | function | 124-142 | yes |
-| `fitHeaderLine` | function | 205-211 |  |
-| `syncHeaderHeight` | function | 364-368 |  |
 | `updatePill` | const | 397 |  |
 | `showUpdatePill` | function | 399-407 | yes |
 | `hideUpdatePill` | function | 408-413 | yes |
@@ -2501,18 +2512,15 @@ what changes the header's height, the two functions that measure the header.
 | `lastScheduleCheck` | let | 431 |  |
 | `recheckSchedule` | function | 432-449 | yes |
 
-22 names from app.js, 128 declaration lines.
+20 names from app.js, 116 declaration lines.
 
 - **`BOOT`** is here because `load()` and `scheduleIndexBuild()` write to it
   and loading cannot import boot.js; the handle still returns it, imported
-  from here. **`syncHeaderHeight` and `fitHeaderLine`** are here for the
-  same kind of reason: `updateFresh()` calls the first, and loading cannot
-  import shell ([What the new order found](#what-the-new-order-found)).
+  from here.
 - **its handlers:** #38-41 `onPillClick`, `onPillTouchStart`,
   `onPillTouchMove`, `onPillTouchEnd`; #42 `onWorkerMessage`; #43
   `onLoadRegisterWorker`; #44 `onVisibleRecheck`; #45 `onPageShow`. All eight
-  move as they are. Already named, and registered by import as it is today:
-  `syncHeaderHeight` (#27-31, #33).
+  move as they are.
 - **reads at import:** one element, `#updatePill`.
 - **reassigned lets:** three from outside, and three functions - see
   [Writes](#writes): `holdQuery()`, `setReload(fn)`, `markScheduleChecked()`.
@@ -2523,10 +2531,9 @@ what changes the header's height, the two functions that measure the header.
   it. It becomes `requestRender()`. One site.
 - **stays behind:** nothing.
 - **exports**, by the rule: `BOOT`, `load`, `recheckSchedule`, `updatePill`
-  (boot.js), `updateFresh` (shell, dispatch), `syncHeaderHeight` (shell,
-  boot.js), `fitHeaderLine` (shell), the eight handlers (boot.js), the three
-  new functions (dispatch one, boot.js two), and `hideUpdatePill` (a test);
-  tests reach `BOOT` and `updateFresh` too. Private: `pendingQuery`,
+  (boot.js), `updateFresh` (shell, dispatch), the eight handlers (boot.js),
+  the three new functions (dispatch one, boot.js two), and `hideUpdatePill`
+  (a test); tests reach `BOOT` and `updateFresh` too. Private: `pendingQuery`,
   `fromNetwork`, `servedOffline`, `idle`, `scheduleIndexBuild`, `indexReady`,
   `showUpdatePill`, `reload`, `reloadNow`, `pillY`, `pillDx`, `pillDragged`,
   `RECHECK_MS`, `lastScheduleCheck`. **Leave app.js's list:** `BOOT`,
@@ -2541,12 +2548,12 @@ what changes the header's height, the two functions that measure the header.
   DAY_LABEL, conEnded, effectiveNow, isSimulated, now, setOverride }`; venues
   `{ hotelVar, placeHTML }`; data `{ events }`; picks `{ picks,
   savePicks }`; leave `{ currentLocation, leaveInfo, nextPickInConDay }`;
-  scroll `{ chipRowsRestore, chipRowsSnapshot, cssEsc, pageScrollBy,
-  pageScrollTo }`; now `{ renderNow }`; browse
-  `{ cancelQueuedBrowseRender, renderBrowse }`; explore
+  scroll `{ chipRowsRestore, chipRowsSnapshot, cssEsc, fitHeaderLine,
+  pageScrollBy, pageScrollTo, syncHeaderHeight }`; now `{ renderNow }`;
+  browse `{ cancelQueuedBrowseRender, renderBrowse }`; explore
   `{ renderExplore }`; map `{ renderMap }`; mine `{ renderMine }`;
-  loading `{ fitHeaderLine, syncHeaderHeight, updateFresh }`. Not sheet, and
-  not the bus: shell owns `render()`.
+  loading `{ updateFresh }`. Not sheet, and not the bus: shell owns
+  `render()`.
 - **takes:**
 
 | name | kind | app.js line(s) | in the export list |
@@ -2621,7 +2628,32 @@ reach more than one module.
   the root imports it.
 - **tests:** none re-pointed.
 
-## R2.5 boot.js
+## R2.5 into scroll.js
+
+Not a new module: scroll exists, from rest-1, and the mover makes new files,
+so this is by hand (the review of step two, R2-P11).
+
+- **imports:** nothing. scroll still imports nothing from `src/`: the two
+  functions read the document and nothing else.
+- **takes:**
+
+| name | kind | app.js line(s) | in the export list |
+|---|---|---:|---|
+| `fitHeaderLine` | function | 205-211 |  |
+| `syncHeaderHeight` | function | 364-368 |  |
+
+2 names from app.js, 12 declaration lines.
+
+- **how:** the two blocks, each with the comment above it, cut from
+  loading.js, where commit 3 had put them, and pasted under `cssEsc`, in the
+  order they had in app.js. Statements unchanged.
+- **registered by import, as today:** `syncHeaderHeight` (#27-31, #33).
+- **reads at import:** nothing new; `scroller` is still scroll's one lookup.
+- **exports:** both. `syncHeaderHeight` for loading, shell and boot.js;
+  `fitHeaderLine` for shell. Neither was in app.js's export list, and no test
+  reaches either by name.
+
+## R2.6 boot.js
 
 `boot`, and what `boot()` cannot give away. See
 [What boot.js holds](#what-bootjs-holds).
@@ -2661,13 +2693,13 @@ changes it, and `partition.js` checks it against this commit at the end.
 | 24 | 724 | `window` "hashchange" | closure (), line 724 | dispatch | `onHashChange` |
 | 25 | 726 | `setInterval`, 60000 | closure (), lines 726-733 | dispatch | `onMinute` |
 | 26 | 734 | `document` "visibilitychange" | closure (), line 734 | shell | `onVisibleRender` |
-| 27 | 741 | `requestAnimationFrame` | `syncHeaderHeight` | loading | `syncHeaderHeight`, as now |
-| 28 | 742 | `window` "resize" | `syncHeaderHeight` | loading | `syncHeaderHeight`, as now |
-| 29 | 743 | `window` "orientationchange" | `syncHeaderHeight` | loading | `syncHeaderHeight`, as now |
-| 30 | 744 | `window` "load" | `syncHeaderHeight` | loading | `syncHeaderHeight`, as now |
-| 31 | 745 | `document.fonts.ready`.then() | `syncHeaderHeight` | loading | `syncHeaderHeight`, as now |
+| 27 | 741 | `requestAnimationFrame` | `syncHeaderHeight` | scroll | `syncHeaderHeight`, as now |
+| 28 | 742 | `window` "resize" | `syncHeaderHeight` | scroll | `syncHeaderHeight`, as now |
+| 29 | 743 | `window` "orientationchange" | `syncHeaderHeight` | scroll | `syncHeaderHeight`, as now |
+| 30 | 744 | `window` "load" | `syncHeaderHeight` | scroll | `syncHeaderHeight`, as now |
+| 31 | 745 | `document.fonts.ready`.then() | `syncHeaderHeight` | scroll | `syncHeaderHeight`, as now |
 | 32 | 745 | `document.fonts.ready.then(syncHeaderHeight)`.catch() | closure (), line 745 | boot.js | stays a closure |
-| 33 | 748 | `new ResizeObserver` | `syncHeaderHeight` | loading | `syncHeaderHeight`, as now |
+| 33 | 748 | `new ResizeObserver` | `syncHeaderHeight` | scroll | `syncHeaderHeight`, as now |
 | 34 | 751 | `window` "beforeinstallprompt" | closure (e), line 751 | now | `onBeforeInstallPrompt` |
 | 35 | 752 | `window` "appinstalled" | closure (), line 752 | now | `onAppInstalled` |
 | 36 | 755 | `document` "touchstart" `{passive: true}` | `edgeTouchStart` | shell | `edgeTouchStart`, as now |
@@ -2852,16 +2884,16 @@ order. The tools are lint-clean under the three rules.
 
 Rule 5. `ORDER` gains `sheet`, `loading`, `shell`, `dispatch`, in that order,
 after `mine`. Every edge under this part points backwards: sheet imports
-leaves, scroll, the bus and map; loading imports leaves, the bus, browse and
-explore; shell imports leaves, scroll, the five views and loading; dispatch
-imports all three and the views. **Nothing imports dispatch** but the root:
-it is last in the order, so the second test already forbids every module in
-`ORDER` from importing it, and a fourth test says it outright and covers
-`main.js` too (R2-P7). At the rename the root becomes `boot.js`: "only
-main.js imports boot.js", and "every module under `src/` is boot.js, main.js
-or a module in the list". The header comment's "the fourteen leaves, then
-scroll, the bus and the five views" gains the four, and "src/app.js is the
-root" is renamed with it.
+leaves, scroll, the bus and map; loading imports leaves, scroll, the bus,
+browse and explore; shell imports leaves, scroll, the five views and
+loading; dispatch imports all three and the views. **Nothing imports
+dispatch** but the root: it is last in the order, so the second test already
+forbids every module in `ORDER` from importing it, and a fourth test says it
+outright and covers `main.js` too (R2-P7). At the rename the root becomes
+`boot.js`: "only main.js imports boot.js", and "every module under `src/` is
+boot.js, main.js or a module in the list". The header comment's "the
+fourteen leaves, then scroll, the bus and the five views" gains the four,
+and "src/app.js is the root" is renamed with it.
 
 ## The scroll-spy test
 
@@ -3016,38 +3048,41 @@ shell, loading, dispatch and boot.js, every `src/app.js` mention, the
 Boot-order paragraph, and anything else a grep of the whole file finds this
 PR has made false.
 
-**Found while amending, and not yet before a review** (R2-P11):
+**Found while amending, and decided by the review of step two** (R2-P11):
 
-| # | finding | done here | alternative |
+| # | finding | step two did | decided |
 |---|---|---|---|
-| R2-P11 | under the review's order `updateFresh()` in loading calls `syncHeaderHeight()` in shell, above it, and only `render()` goes over the bus. And loading has one `render()` site, `load()`, where the brief counted three | `syncHeaderHeight` and `fitHeaderLine` go to loading with `updateFresh`; shell and boot.js import them. No statement changes. loading 22 names, shell 13 | both go to scroll.js by hand, and loading, shell and boot.js import them from there |
+| R2-P11 | under the review's order `updateFresh()` in loading calls `syncHeaderHeight()` in shell, above it, and only `render()` goes over the bus. And loading has one `render()` site, `load()`, where the brief counted three | `syncHeaderHeight` and `fitHeaderLine` to loading with `updateFresh`; shell and boot.js imported them from there; scroll.js recorded as the alternative | **the alternative.** Both go to scroll.js by hand, statements unchanged, and loading, shell and boot.js import them from scroll. loading 20 names, shell 13, scroll gains 2 (commit 9) |
 
 ## Rest-2: amended during execution
 
-**No placement changed during execution.** The one that differs from the
-brief for step two - `syncHeaderHeight` and `fitHeaderLine` in loading, not
-shell (R2-P11) - was found while the manifest was being amended, before any
-code moved, and is recorded above; step two then landed all four modules as
-this part has them.
+**One placement changed, after execution and by review, not during it.**
+Step two landed all four modules as the amended manifest had them, with
+`syncHeaderHeight` and `fitHeaderLine` in loading (R2-P11, found while the
+manifest was being amended, before any code moved). The review of step two
+took R2-P11's alternative, and commit 9 moved both to scroll.js. The figures
+below are after it.
 
 `tools/split/partition.js 8bdd2ba`, at the end. Of app.js's 47 top-level
 statements (52 names) at the base commit, 44 are byte for byte identical in
 exactly one module, none is missing, and the three that differ are the three
 changed on purpose: `closeSheet` and `load` (`requestRender()`) and `boot`.
-Per module: sheet 16, loading 22, shell 13, boot.js 1. All 45 registrations
-are made in the same place, on the same target, for the same event, with the
-same options. Of the 35 closures, 30 are named functions whose parameters
-and bodies are identical to the closure's once its extra indentation is
-removed; four differ, the four changed on purpose - #1 `onScrollSpy`, #4
-`onMainInput`, #34 `onBeforeInstallPrompt`, #35 `onAppInstalled` - and
-`onScrollSpy`'s body is identical to the closure as it stood before rest-1
-(`partition.js 9b27a26`); one, the empty `catch`, is still inline. 37 names
-are new under `src/`: the 34 handlers (sheet 8, loading 8, shell 5, dispatch
-10, explore 1, now 2) and `setReload`, `holdQuery`, `markScheduleChecked`.
-Run against the three other files this slice took from: map.js, 22 of 22
-statements identical, two of them in sheet.js now; now.js, 18 of 20, with
-`effectiveNow` in time.js and the two setters retired; explore.js, 35 of 37,
-`queueSpy` and `spyDone` retired.
+Per module: sheet 16, loading 20, shell 13, scroll 2, boot.js 1. All 45
+registrations are made in the same place, on the same target, for the same
+event, with the same options. Of the 35 closures, 30 are named functions
+whose parameters and bodies are identical to the closure's once its extra
+indentation is removed; four differ, the four changed on purpose - #1
+`onScrollSpy`, #4 `onMainInput`, #34 `onBeforeInstallPrompt`, #35
+`onAppInstalled` - and `onScrollSpy`'s body is identical to the closure as it
+stood before rest-1 (`partition.js 9b27a26`); one, the empty `catch`, is
+still inline. Commit 9 changed none of these figures but the per-module
+count. 37 names are new under `src/`: the 34 handlers (sheet 8, loading 8,
+shell 5, dispatch 10, explore 1, now 2) and `setReload`, `holdQuery`,
+`markScheduleChecked`. Run against the four other files this slice took
+from or added to: map.js, 22 of 22 statements identical, two of them in
+sheet.js now; now.js, 18 of 20, with `effectiveNow` in time.js and the two
+setters retired; explore.js, 35 of 37, `queueSpy` and `spyDone` retired;
+scroll.js, 8 of 8, untouched by its two arrivals.
 
 Details that were not placements, and how they landed:
 
@@ -3076,7 +3111,9 @@ Details that were not placements, and how they landed:
   `onScrollSpy` under `spyQueued`; the sheet's and the shell's at the end of
   their sections. Each group has a line or two of comment above it saying
   what `boot()` registers it on. Those comments, the four file headers, and
-  the comment over loading's three new functions are the only new text.
+  the comment over loading's three new functions are the only new text;
+  commit 9 added three lines to scroll.js's header and rewrote the clause of
+  loading.js's that said it held the two functions.
 - **Blank lines.** In `boot()` the blank lines that had separated multi-line
   closures were closed up at the rename, so the registrations on `main`, on
   the sheet, on its two panels and on the pill read as groups; and two of
@@ -3085,16 +3122,17 @@ Details that were not placements, and how they landed:
 - **`docs/ARCHITECTURE.md`, one word beyond commit 8's list:** the repo map
   said "two ESLint rules" where the Tests section says three, as it has
   since rest-1. Found by the grep; not this PR's doing.
-- **File sizes**, in lines: sheet 178, loading 247, shell 185, dispatch 238;
-  boot.js 149 (app.js was 838), of which `boot()` is 95 (was 356); explore
-  424 (was 417), now 250 (259), map 177 (190), time 94 (81). 27 files under
-  `src/` with `main.js`. The build: `dist/index.html` 127,438 bytes, up 390
-  from 127,048 - 37 new function names and their frames - and `dist/sw.js`
-  byte-identical to `public/sw.js`.
+- **File sizes**, in lines: sheet 178, loading 229, shell 188, dispatch 238;
+  boot.js 149 (app.js was 838), of which `boot()` is 95 (was 356); scroll 72
+  (was 52), explore 424 (was 417), now 250 (259), map 177 (190), time 94
+  (81). 27 files under `src/` with `main.js`. The build: `dist/index.html`
+  127,442 bytes, up 394 from 127,048 - 37 new function names and their
+  frames - and `dist/sw.js` byte-identical to `public/sw.js`.
 - **Tests:** 846 passed and 4 skipped from commit 0 to the end (841 before:
   the four scroll-spy tests and the dispatch rule); pytest 27. Test files
   touched after commit 0: `tests/rules/imports.test.js` (the root's name) and
   the header comment of `tests/unit/misc.test.js`, both at the rename.
+  Commit 9 touched none.
 
 ## Completeness of rest-2
 
@@ -3102,7 +3140,7 @@ Details that were not placements, and how they landed:
 `boot()` with `tools/split/handlers.js`. Every top-level declaration, in file
 order, with where it goes; each name appears once.
 
-Parsed: **52** top-level declarations (26 functions, 13 consts, 13 lets), 21 imports, a 17-name export list and `boot` exported inline. To rest-2's modules: **51** (sheet 16, loading 22, shell 13; dispatch takes no top-level name). Staying, in boot.js: **1**, `boot`. 51 + 1 = 52. Inside `boot()`: **45** registrations, **35** of them closures; **34** closures become named functions (explore 1, shell 5, dispatch 10, sheet 8, loading 8, now 2) and 1 stays.
+Parsed: **52** top-level declarations (26 functions, 13 consts, 13 lets), 21 imports, a 17-name export list and `boot` exported inline. To rest-2's new modules: **49** (sheet 16, loading 20, shell 13; dispatch takes no top-level name). To scroll.js, which exists: **2**. Staying, in boot.js: **1**, `boot`. 49 + 2 + 1 = 52. Inside `boot()`: **45** registrations, **35** of them closures; **34** closures become named functions (explore 1, shell 5, dispatch 10, sheet 8, loading 8, now 2) and 1 stays.
 
 ```
        42  let       pendingQuery            ->  loading
@@ -3118,7 +3156,7 @@ Parsed: **52** top-level declarations (26 functions, 13 consts, 13 lets), 21 imp
   150-169  function  render                  ->  shell     [export list]
   171-194  function  renderMiniBar           ->  shell     [export list]
   196-201  function  updateClock             ->  shell     [export list]
-  205-211  function  fitHeaderLine           ->  loading
+  205-211  function  fitHeaderLine           ->  scroll
       217  const     ARCHIVE_NOTICE_KEY      ->  shell
       218  const     archiveNoticeDismissed  ->  shell
   219-225  function  noticeHTML              ->  shell
@@ -3141,7 +3179,7 @@ Parsed: **52** top-level declarations (26 functions, 13 consts, 13 lets), 21 imp
       339  let       dragDy                  ->  sheet
   341-346  function  setDrag                 ->  sheet     [export list]
   347-360  function  settle                  ->  sheet
-  364-368  function  syncHeaderHeight        ->  loading
+  364-368  function  syncHeaderHeight        ->  scroll
       380  const     edgeTouch               ->  shell
   381-386  function  edgeTouchStart          ->  shell     [export list]
   387-395  function  edgeTouchMove           ->  shell     [export list]
@@ -3159,12 +3197,13 @@ Parsed: **52** top-level declarations (26 functions, 13 consts, 13 lets), 21 imp
   468-823  function  boot                    ->  boot.js   [exported inline]
 ```
 
-Moved between modules that exist, and so not in that list: `effectiveNow`
-(now to time), `hotelSheetHTML` and `mapPicksAt` (map to sheet). New: 34
-handler names and `setReload`, `holdQuery`, `markScheduleChecked`. Retired:
-`queueSpy`, `spyDone`, `setInstallPrompt`, `clearInstallPrompt`. The export
-list's 17 names are accounted for, each once, under
-[The rename](#the-rename).
+Two of app.js's names go to a module that exists, `fitHeaderLine` and
+`syncHeaderHeight`, to scroll. Moved between modules that exist, and so not
+in that list: `effectiveNow` (now to time), `hotelSheetHTML` and
+`mapPicksAt` (map to sheet). New: 34 handler names and `setReload`,
+`holdQuery`, `markScheduleChecked`. Retired: `queueSpy`, `spyDone`,
+`setInstallPrompt`, `clearInstallPrompt`. The export list's 17 names are
+accounted for, each once, under [The rename](#the-rename).
 
 ## What boot.js holds
 
@@ -3192,6 +3231,8 @@ about 150 lines, down from 838, of which `boot()` is about 100, down from
 It imports from platform, build, storage, state, time, data, picks, follows,
 scroll and bus for its own statements and the handle, and from now, explore,
 sheet, loading, shell and dispatch for the 34 handler names and the names
-already registered today - `closeSheet`, `syncHeaderHeight` (from loading
-now), `edgeTouchStart`, `edgeTouchMove`. It reads nothing at import, owns no
-let, and nothing imports it but `main.js`.
+already registered today - `closeSheet`, `syncHeaderHeight` (from scroll,
+with `scroller`), `edgeTouchStart`, `edgeTouchMove`. It reads nothing at
+import, owns no let, and nothing imports it but `main.js`.
+
+As built: 149 lines, `boot()` 95 of them.
