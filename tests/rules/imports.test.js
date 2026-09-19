@@ -3,10 +3,11 @@
    docs/SPLIT-MANIFEST.md). src/app.js is the root: it imports the others,
    and only main.js imports it. ORDER is the order the others may depend on
    one another in - the fourteen leaves, then scroll, the bus and the five
-   views - each only on npm packages and on the modules before it, so there
-   is no cycle to find. tools/split/ reads the order from here. These are
-   new tests, not rows of tests/PORT-LEDGER.md, so their titles carry no
-   harness line. */
+   views, then the sheet, loading, the shell and dispatch - each only on npm
+   packages and on the modules before it, so there is no cycle to find.
+   dispatch is last, and the root alone imports it. tools/split/ reads the
+   order from here. These are new tests, not rows of tests/PORT-LEDGER.md,
+   so their titles carry no harness line. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,7 +16,8 @@ import { parseAst } from "vite";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const ORDER = ["util", "storage", "platform", "build", "state", "time", "venues", "data", "picks", "follows", "ics", "leave", "search", "ui",
-  "scroll", "bus", "now", "browse", "explore", "map", "mine"];
+  "scroll", "bus", "now", "browse", "explore", "map", "mine",
+  "sheet", "loading", "shell", "dispatch"];
 const PACKAGES = Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).dependencies || {});
 const files = fs.readdirSync(path.join(ROOT, "src")).filter(f => f.endsWith(".js")).sort();
 
@@ -60,5 +62,10 @@ describe("the module graph under src/", () => {
   it("every module under src/ is app.js, main.js or a module in the list", () => {
     const known = ["app.js", "main.js", ...ORDER.map(name => `${name}.js`)];
     expect(files.filter(f => !known.includes(f))).toEqual([]);
+  });
+
+  it("only the root imports dispatch.js", () => {
+    const others = files.filter(f => f !== "app.js" && specifiers(f).some(s => /(^|\/)dispatch\.js$/.test(s)));
+    expect(others).toEqual([]);
   });
 });
