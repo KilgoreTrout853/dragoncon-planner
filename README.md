@@ -17,14 +17,14 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `public/icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Runs the scraper and commits fresh data. By hand only now that the con is over. |
 | `vite.config.js`, `build/vite-dc.js` | The build. With `DC_CHANNEL=next` it stamps the output as a dev build, for the `next` branch's site. |
-| `tests/` | 27 parser tests, 7 build tests and 848 UI assertions. Not optional — run them before you push. |
+| `tests/` | The pipeline's tests (pytest) and the client's (Vitest): units, rules over the source, the page in jsdom, the real schedule, the build. Not optional — run them before you push. |
 
 ## Running it locally
 
 ```bash
 pip install -r requirements.txt  # requests, beautifulsoup4, urllib3, pytest - pinned
 python scraper.py --limit 30     # smoke test against the live site, ~30 seconds
-python scraper.py                # full scrape, ~3,460 events after merging duplicates
+python scraper.py                # full scrape: 3,459 events in 2026, after merging duplicates
 
 npm ci                           # Node version in .nvmrc
 npm run dev                      # the app, unbuilt, at http://localhost:5173
@@ -37,15 +37,15 @@ The root `index.html` is a build template: opening it as a file, or serving the 
 
 ```bash
 npm ci
-npm run lint                     # eslint: two rules
-npm test                         # vitest: 838 tests - units, rules, the page in jsdom, the real schedule, the build
+npm run lint                     # eslint: three rules
+npm test                         # vitest: units, rules, the page in jsdom, the real schedule, the build
 pip install -r requirements.txt
-python -m pytest tests/          # 27 parser tests
+python -m pytest tests/          # the scraper's parsing and dedupe
 ```
 
-CI runs the same commands on every pull request (`.github/workflows/ci.yml`).
+CI runs the same commands on every pull request (`.github/workflows/ci.yml`), and `next` takes no pull request until both of its jobs pass.
 
-The UI suite runs twice: once against `tests/sample-events.json` (558 synthetic events, deterministic) and once against the real `data/2026/events.json`, because ranking questions are meaningless against synthetic rows.
+The page tests boot the source in jsdom against `tests/sample-events.json` (558 synthetic events, deterministic); `tests/real-data.test.js` boots it once more against the real `data/2026/events.json`, because ranking questions are meaningless against synthetic rows. `docs/ARCHITECTURE.md` says how the suite is put together.
 
 ## Using it
 
@@ -54,7 +54,7 @@ Five tabs.
 - **Now** opens with a hero card for the one thing you have to act on: a countdown ring and, while a pick is on, when to leave that building for the next one. It turns amber once you're late. The app never guesses where you are: the only location it will claim is the hotel of a pick that is on right now. With nothing on, the ring counts down to the start and the walk from your previous pick is offered as an estimate ("~12 min from the Westin"), not an instruction. Below it, the rest of your day and everything on now or starting within the hour.
 - **Search** understands what you type. `star trek saturday hilton` searches "star trek" across Saturday's Hilton events and shows you which words it took as filters, each removable. `late night`, `signing sunday`, `tonight` and `kids` all work; a query that's entirely filters scopes to today unless you say otherwise. Typing two letters suggests guests and fandoms by name. Events that already happened sit behind a fold. When nothing matched a word literally, it says so rather than pretending. The search index is built after the first screen is up, in idle time; until then the box says indexing… and a query typed early runs the moment it can.
 - **Explore** lists everything you could follow as tiles with counts, in five sections: Tracks A to Z, Fandoms with 3+ events, Topics, Guests, and Panelists with 5+ events. Each section opens with a dozen tiles and a Show all; the chips under the filter box jump between sections, and the chip for the section on screen shows as pressed. Tap a tile for its own page and a Follow button. Once you have starred something, a "Because you starred" strip above the filter offers the tracks, fandoms and guests behind your picks that you don't follow yet. Each page is linkable as `#explore=kind:key`. Once you follow something, a **Following** section sits above the grid with what you follow, grouped by interest or merged into one timeline; an event reached by two follows appears once, labelled with both. It folds away behind its header, and stays folded if you leave it that way.
-- **Map** is a schematic of the con hotels, transit-map style, drawn from the venues' real positions at one scale so the distances mean something: Peachtree St up the left, the Hyatt and the Marriott nearly touching east of it with the Hilton a real walk further on (that long skybridge crosses Courtland St, as it does in life), the Mart and the Westin west of Peachtree with their own skybridge, the Courtland under the Hilton, and Hardy Ivy Park above the Hyatt. Hotel level only; streams and offsite venues are not on it. A row of day chips above it picks the con day, starting on today with the same 5 AM boundary as the rest of the app. Each hotel wears a gold pill with the number of your picks there that day. Tap a hotel (or its pill) for those picks as ordinary rows, star and detail sheet included; a hotel with none offers a button that searches it on that day. When the chosen day is today, a solid gold ring marks the hotel of the pick that is on now, a pulsing one the hotel of the next pick,. Under the map, a card shows your next pick as the Now tab sees it: title, room and hotel in the hotel's colour, the start and how long until it, or, while a pick is on somewhere else, when to leave the building you are in, plus the walk estimate when there is one. Tap it for the event's detail sheet. While a pick is on, a line above the card names it. With nothing left today the card shows the first pick of the next con day, labelled; with no picks at all it says where to get one. Picks at venues the map does not draw are counted under the card.
+- **Map** is a schematic of the con hotels, transit-map style, drawn from the venues' real positions at one scale so the distances mean something: Peachtree St up the left, the Hyatt and the Marriott nearly touching east of it with the Hilton a real walk further on (that long skybridge crosses Courtland St, as it does in life), the Mart and the Westin west of Peachtree with their own skybridge, the Courtland under the Hilton, and Hardy Ivy Park above the Hyatt. Hotel level only; streams and offsite venues are not on it. A row of day chips above it picks the con day, starting on today with the same 5 AM boundary as the rest of the app. Each hotel wears a gold pill with the number of your picks there that day. Tap a hotel (or its pill) for those picks as ordinary rows, star and detail sheet included; a hotel with none offers a button that searches it on that day. When the chosen day is today, a solid gold ring marks the hotel of the pick that is on now, a pulsing one the hotel of the next pick. Under the map, a card shows your next pick as the Now tab sees it: title, room and hotel in the hotel's colour, the start and how long until it, or, while a pick is on somewhere else, when to leave the building you are in, plus the walk estimate when there is one. Tap it for the event's detail sheet. While a pick is on, a line above the card names it. With nothing left today the card shows the first pick of the next con day, labelled; with no picks at all it says where to get one. Picks at venues the map does not draw are counted under the card.
 - **Mine** shows your picks as a timeline by default — blocks sized by duration, clashes side by side, walk connectors between hotels, a now-line. Or as a list. "Export to calendar" downloads an `.ics` with the correct Eastern time zone.
 
 A con day runs to 5 AM, everywhere in the app: a 1 AM panel sits under the day before on the day chips, in day headers, in Mine and on the Now tab. The detail sheet and the calendar export keep the real date and say which night it belongs to.
@@ -65,7 +65,7 @@ Rows and the detail sheet name the hotel before the room ("Hilton · 313-314"); 
 
 ## After the con
 
-The app knows the con's bounds (`CON` in `index.html`: the first listed event's start to the last one's end) and derives a phase from the clock: before, live, or ended. Once it has ended, a dismissible banner says so, the Now tab becomes **Your 2026 schedule** - every starred event by day, still starrable - and nothing anywhere says "on now", "leave by" or "in 40 min". Search, Explore, the map, Mine and the calendar export work as before, except that the "Already happened" folds are gone, since everything has.
+The app knows the con's bounds (`CON` in `src/time.js`: the first listed event's start to the last one's end) and derives a phase from the clock: before, live, or ended. Once it has ended, a dismissible banner says so, the Now tab becomes **Your 2026 schedule** - every starred event by day, still starrable - and nothing anywhere says "on now", "leave by" or "in 40 min". Search, Explore, the map, Mine and the calendar export work as before, except that the "Already happened" folds are gone, since everything has.
 
 Every read of the clock goes through one `now()` function. `?now=2026-09-05T14:15` in the URL (an offset works too: `?now=2026-09-05T14:15:00-04:00`) simulates that moment for the whole app and shows a small **simulated time** chip in the header; the override is kept for the tab's session, so reloads keep it, and the chip or Settings clears it. That is how the live behaviour is checked in the off-season.
 
@@ -95,7 +95,7 @@ The service worker caches the app and the schedule, so it opens and renders in a
 
 To install: iPhone must use **Safari** (Share → Add to Home Screen); Android uses Chrome (⋮ → Install app). Until it is installed, the Now tab opens with a nudge saying so, which can be put off for a week at a time. You get a **DC26** icon that opens without browser chrome. The content area scrolls inside its own container rather than the page, so the header and the nav stay put on an iPhone instead of riding the system's bottom inset. The status bar is opaque on purpose: on iOS 26 a translucent one leaves the web view short by its own height, with a dead strip at the bottom of the screen. iOS reads these web-app settings once, when the icon is added, so a change to them only reaches a phone after the icon is deleted and added again from Safari. The device line under Advanced in Settings ends with the build time, so you can tell which version a phone is running.
 
-Bump `CACHE` in `sw.js` when you change `index.html` in a way that must reach people immediately; older `dc26-*` caches are dropped on activate.
+Bump `CACHE` in `public/sw.js` when the built page or the worker changes in a way that must reach people immediately; older `dc26-*` caches are dropped on activate.
 
 ## Tagging
 
@@ -119,7 +119,7 @@ The same event is often listed twice — once in the panel feed and once in gami
 
 ## Walk times
 
-Estimates in minutes, before the crowd factor, in the `WALK` table near the top of `index.html`. Edit them if you know better — especially Westin and Courtland Grand, the far ends.
+Estimates in minutes, before the crowd factor, in the `WALK` table in `src/venues.js`. Edit them if you know better — especially Westin and Courtland Grand, the far ends.
 
 ## If the scraper breaks
 
@@ -131,4 +131,4 @@ Hosted by Core-apps at `https://app.core-apps.com/dragoncon26`. Day pages are `e
 
 Runs by hand only (Actions → Refresh schedule → Run workflow); the 3-hourly cron that ran it through con week was removed once the schedule was final, and a run now would overwrite `data/2026/events.json` with whatever the host serves. Before committing it refuses a scrape that returned nothing or fell more than 20% — a throttled run can't overwrite good data. If `main` moved while it was scraping it rebases and retries rather than dropping the refresh. Two refreshes never run at once: a second run waits for the first, because both would rewrite the schedule and the rebase can't resolve that.
 
-For next year: put the `schedule:` trigger and its con-week date guard back, point the scraper, the tagger, the worker and `CON` at `data/2027/`, and the 2026 file stays where it is.
+For next year: put the `schedule:` trigger and its con-week date guard back, point the scraper, the tagger, the worker (`DATA` and `SHELL` in `public/sw.js`) and `CON` (`src/time.js`; `DATA_URL` in `src/data.js` follows its year) at `data/2027/`, and the 2026 file stays where it is.
