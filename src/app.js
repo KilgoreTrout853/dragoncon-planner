@@ -9,14 +9,15 @@ import {
   isSimulated, localInputValue, now, setOverride, timeOverride,
 } from "./time.js";
 import {
-  cleanRoom, HOTEL_ORDER, hotelGroup, hotelMatches, hotelPhrase, hotelShort, hotelVar,
-  LEAVE_BUFFER_MIN, placeHTML, WALK, walkMin,
+  hotelMatches, hotelPhrase, hotelShort, hotelVar, LEAVE_BUFFER_MIN, placeHTML, WALK, walkMin,
 } from "./venues.js";
+import {
+  byId, DATA_URL, events, fandomCounts, hotelChips, isCeleb, isNoise, meta, NOISE_TRACKS,
+  replaceSchedule, tracks,
+} from "./data.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
-const NOISE_TRACKS = new Set(["Epic Photos","Video Room"]);
-const isNoise = ev => NOISE_TRACKS.has(ev.track) || /^photo session/i.test(ev.title);
 
 /* Con vocabulary. If an event mentions any phrase in a group, every phrase in the group becomes searchable for it.
    Add your own lines freely; lowercase, no punctuation needed. */
@@ -100,9 +101,7 @@ function aliasesFor(ev, text) {
 }
 
 let picks = new Set(loadJSON("dc26.picks", []));
-let events = [], byId = new Map(), tracks = [], hotels = [], hotelChips = [];
 let fromNetwork = null, servedOffline = false;
-let meta = {};
 const PAGE = 150;
 
 /* Everything that scrolls the page goes through here, because the page is
@@ -209,12 +208,7 @@ function eventsFor(follow) {
     default: return [];
   }
 }
-/* "unknown" and untagged are not celebrities - absence of evidence isn't
-   evidence, so they drop out when the toggle is on. */
-const isCeleb = e => !!(e.tags && e.tags.guests === "celebrity");
 const CELEB_BADGE = `<span class="celeb" title="Celebrity guest">Celebrity</span>`;
-
-const DATA_URL = `data/${CON.year}/events.json`;
 
 /* value: an ISO date-time, or null for the real clock. setOverride() in
    time.js sets it, keeps it for the session and keeps the URL in step; this
@@ -253,21 +247,7 @@ async function load(data) {
       }
     }
   }
-  meta = data;
-  events = (data.events || []).filter(e => e.start).map(e => {
-    const s = toDate(e.start), en = e.end ? toDate(e.end) : new Date(s.getTime() + 60 * 60000);
-    const people = (e.speakers || []).map(p => p.name).join(" ");
-    const room = cleanRoom(e.hotel, e.room);
-    /* _cd is the con day: it runs to 5am, so a 1am panel belongs to the night
-       before. Every list, chip and header uses it; only the sheet and the
-       calendar export state the calendar date. */
-    return {...e, room, _s: s, _e: en, _cd: conDayKey(s), _people: people};
-  });
-  events.sort((a, b) => a._s - b._s || a.title.localeCompare(b.title));
-  byId = new Map(events.map(e => [e.id, e]));
-  tracks = [...new Set(events.map(e => e.track).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  hotels = HOTEL_ORDER.filter(h => events.some(e => e.hotel === h));
-  hotelChips = [...new Set(hotels.map(hotelGroup))];
+  replaceSchedule(data);       // data.js: meta, events in start order, byId, tracks, hotelChips
   servedOffline = fromNetwork === false;
   BOOT.parsed = performance.now();
   buildCatalogue();
@@ -381,11 +361,6 @@ function suggestionsFor(raw) {
   return out;
 }
 
-function fandomCounts() {
-  const m = new Map();
-  events.forEach(e => (e.tags && e.tags.fandoms || []).forEach(f => m.set(f, (m.get(f) || 0) + 1)));
-  return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-}
 function updateFresh() {
   const el = document.getElementById("fresh");
   if (!meta.generated_at) { el.textContent = ""; return; }
@@ -2623,7 +2598,6 @@ export {
   suggestionsFor, termQuality, tickMap, tickNow, toggleFollow, togglePick, updateClock,
   updateFresh,
 
-  BOOT, EXPLORE_HEAD, FOLLOW_KINDS, followId, getCatalogue, HOUR_PX, isCeleb, isNoise,
-  MAP_HOTELS, NOISE_TRACKS, pageScrollTop, samePlace, SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER,
-  STOPWORDS,
+  BOOT, EXPLORE_HEAD, FOLLOW_KINDS, followId, getCatalogue, HOUR_PX, MAP_HOTELS, pageScrollTop,
+  samePlace, SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER, STOPWORDS,
 };
