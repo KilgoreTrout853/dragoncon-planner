@@ -27,6 +27,10 @@ import {
   SEARCH_PLACEHOLDER, stripPhrase, suggestDocs, suggestionsFor, tokenise,
 } from "./search.js";
 import { CELEB_BADGE, chipHTML, rowHTML } from "./ui.js";
+import {
+  chipRowsRestore, chipRowsSnapshot, cssEsc, pageScrollBy, pageScrollTo, pageScrollTop,
+  revealChip, scroller,
+} from "./scroll.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
@@ -39,19 +43,6 @@ const BOOT = {parsed: 0, rendered: 0, indexed: 0, suggested: 0, indexAtRender: n
 
 let fromNetwork = null, servedOffline = false;
 const PAGE = 150;
-
-/* Everything that scrolls the page goes through here, because the page is
-   not the scroller - main is (see the CSS). jsdom has no scrollTo on
-   elements, so fall back to scrollTop. */
-const scroller = document.querySelector("main");
-const pageScrollTop = () => scroller.scrollTop || 0;
-function pageScrollTo(top, smooth) {
-  const y = Math.max(0, top || 0);
-  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  if (typeof scroller.scrollTo === "function") scroller.scrollTo({top: y, left: 0, behavior: smooth && !reduce ? "smooth" : "auto"});
-  else scroller.scrollTop = y;
-}
-function pageScrollBy(dy) { scroller.scrollTop = pageScrollTop() + dy; }
 
 /* value: an ISO date-time, or null for the real clock. setOverride() in
    time.js sets it, keeps it for the session and keeps the URL in step; this
@@ -151,32 +142,6 @@ function updateFresh() {
 /* ==================================================================
    Rendering
    ================================================================== */
-/* Chip rows scroll sideways, and a render rebuilds them from scratch - which
-   used to snap every row back to its left edge, so the chip just tapped at
-   the far end vanished. Remember where each named row was and put it back. */
-function chipRowsSnapshot() {
-  const m = {};
-  document.querySelectorAll(".chips[data-row]").forEach(el => { if (el.scrollLeft) m[el.dataset.row] = el.scrollLeft; });
-  return m;
-}
-function chipRowsRestore(m) {
-  document.querySelectorAll(".chips[data-row]").forEach(el => { if (m[el.dataset.row]) el.scrollLeft = m[el.dataset.row]; });
-}
-/* Bring one chip fully into its row: the one just tapped, or on Explore the
-   one that just became current. Only ever moves the row sideways, and only
-   as far as it has to; the row is otherwise the reader's to scroll. */
-function revealChip(chip) {
-  const row = chip && chip.closest(".chips");
-  if (!row) return;
-  const pad = 14, r = chip.getBoundingClientRect(), R = row.getBoundingClientRect();
-  let dx = 0;
-  if (r.left < R.left + pad) dx = r.left - R.left - pad;
-  else if (r.right > R.right - pad) dx = r.right - R.right + pad;
-  if (!dx) return;
-  const left = Math.max(0, row.scrollLeft + dx);
-  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  if (typeof row.scrollTo === "function") row.scrollTo({left, behavior: reduce ? "auto" : "smooth"}); else row.scrollLeft = left;
-}
 
 
 /* ---- Map ---------------------------------------------------------- */
@@ -1300,7 +1265,6 @@ function togglePick(id, anchor) {
   const delta = el.getBoundingClientRect().top - wasTop;
   if (Math.abs(delta) > 1) pageScrollBy(delta);
 }
-const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
 
 /* Long enough to swallow a burst of typing, short enough not to feel laggy.
    Chip and suggestion taps do not go through this; they draw at once. */
@@ -1956,10 +1920,10 @@ export function boot({events: data, reload: reloadWith} = {}) {
 export {
   closeSheet, edgeTouchMove, edgeTouchStart, hiddenForQueryHTML, hideUpdatePill, indexReady,
   layoutColumns, mapCardHTML, mapDay, markActiveSection, nowModel, nowSignature, nudgeCopy,
-  openExplorePage, openSheet, pageScrollBy, pageScrollTo, pickActiveSection, queueBrowseRender,
-  readExploreHash, recheckSchedule, render, renderBrowse, renderExplore, renderMap,
-  renderMiniBar, renderNotice, renderNow, revealChip, setDrag, setExploreHash, setTimeOverride,
-  showUpdatePill, tickMap, tickNow, togglePick, updateClock, updateFresh,
+  openExplorePage, openSheet, pickActiveSection, queueBrowseRender, readExploreHash,
+  recheckSchedule, render, renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice,
+  renderNow, setDrag, setExploreHash, setTimeOverride, showUpdatePill, tickMap, tickNow,
+  togglePick, updateClock, updateFresh,
 
-  BOOT, EXPLORE_HEAD, getCatalogue, HOUR_PX, MAP_HOTELS, pageScrollTop, SEARCH_DEBOUNCE_MS,
+  BOOT, EXPLORE_HEAD, getCatalogue, HOUR_PX, MAP_HOTELS, SEARCH_DEBOUNCE_MS,
 };
