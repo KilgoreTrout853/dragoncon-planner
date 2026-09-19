@@ -1,13 +1,13 @@
 // @vitest-environment node
-/* The shape of the module graph under src/ (DECISIONS #23, #24;
-   docs/SPLIT-MANIFEST.md). src/boot.js is the root: it imports the others,
-   and only main.js imports it. ORDER is the order the others may depend on
-   one another in - the fourteen leaves, then scroll, the bus and the five
-   views, then the sheet, loading, the shell and dispatch - each only on npm
-   packages and on the modules before it, so there is no cycle to find.
-   dispatch is last, and the root alone imports it. tools/split/ reads the
-   order from here. These are new tests, not rows of tests/PORT-LEDGER.md,
-   so their titles carry no harness line. */
+/* The shape of the module graph under src/ (DECISIONS #29; how it came
+   about is docs/SPLIT-MANIFEST.md). src/boot.js is the root: it imports the
+   others, and only main.js imports it. ORDER is the order the others may
+   depend on one another in - the fourteen leaves, then scroll, the bus and
+   the five views, then the sheet, loading, the shell and dispatch - each only
+   on npm packages and on the modules before it, so there is no cycle to
+   find. dispatch is last, and the root alone imports it. A new module goes
+   into ORDER at the lowest place its imports allow. These are new tests, not
+   rows of tests/PORT-LEDGER.md, so their titles carry no harness line. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
