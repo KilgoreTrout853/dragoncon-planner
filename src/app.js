@@ -4,8 +4,8 @@ import { IS_IOS } from "./platform.js";
 import { deviceLine, devMarkHTML } from "./build.js";
 import { settings, state } from "./state.js";
 import {
-  CON, conEnded, DAY_LABEL, DAY_LONG, initTimeOverride, isSimulated, localInputValue, now,
-  setOverride, timeOverride,
+  CON, conEnded, DAY_LABEL, DAY_LONG, effectiveNow, initTimeOverride, isSimulated,
+  localInputValue, now, setOverride, timeOverride,
 } from "./time.js";
 import { hotelVar, placeHTML, WALK } from "./venues.js";
 import { byId, DATA_URL, events, isCeleb, meta, replaceSchedule } from "./data.js";
@@ -23,8 +23,7 @@ import {
 } from "./scroll.js";
 import { setRenderer } from "./bus.js";
 import {
-  clearInstallPrompt, effectiveNow, NUDGE_SNOOZE_MS, renderNow, setInstallPrompt,
-  takeInstallPrompt, tickNow,
+  clearInstallPrompt, NUDGE_SNOOZE_MS, renderNow, setInstallPrompt, takeInstallPrompt, tickNow,
 } from "./now.js";
 import { cancelQueuedBrowseRender, queueBrowseRender, renderBrowse } from "./browse.js";
 import {

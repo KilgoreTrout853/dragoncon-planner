@@ -4,11 +4,11 @@
    install nudge, which is the tab's first card until the app is on the home
    screen. render() and the minute interval, in app.js, call renderNow() and
    tickNow(); nothing here draws anything else. */
-import { esc, fmtShort, minutesBetween, toDate } from "./util.js";
+import { esc, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON } from "./storage.js";
 import { IS_IOS, isStandalone } from "./platform.js";
 import { state } from "./state.js";
-import { CON, conDayKey, conEnded, conPhase, DAY_LONG, now } from "./time.js";
+import { CON, conDayKey, conEnded, DAY_LONG, effectiveNow, now } from "./time.js";
 import { hotelMatches, hotelPhrase, hotelShort, hotelVar, placeHTML } from "./venues.js";
 import { events, hotelChips, isNoise } from "./data.js";
 import { pickNews, pickNewsHTML, picks } from "./picks.js";
@@ -17,18 +17,6 @@ import { chipHTML, rowHTML } from "./ui.js";
 import { cssEsc } from "./scroll.js";
 
 /* ---- Now ---------------------------------------------------------- */
-/* Before the con the Now tab previews a sensible moment instead of an empty
-   one. Shared so the minute tick sees the same clock as the render. After
-   the con the tab is the archive, and this is not consulted. */
-function effectiveNow() {
-  const real = now();
-  if (conPhase(real) === "before") {
-    return {now: toDate("2026-09-03T10:00"),
-      banner: `<b>Con starts Thursday.</b> Showing Thursday 10:00 AM as a preview. Use Settings to preview any other time.`};
-  }
-  return {now: real, banner: ""};
-}
-
 const RING_R = 26, RING_C = 2 * Math.PI * RING_R;
 function ringHTML(fraction, minutes, late) {
   const f = Math.max(0, Math.min(1, fraction));
@@ -254,6 +242,6 @@ function clearInstallPrompt() { installPrompt = null; }
 function takeInstallPrompt() { const p = installPrompt; installPrompt = null; return p; }
 
 export {
-  effectiveNow, nowModel, renderNow, tickNow, NUDGE_SNOOZE_MS, nudgeCopy, setInstallPrompt,
-  clearInstallPrompt, takeInstallPrompt,
+  nowModel, renderNow, tickNow, NUDGE_SNOOZE_MS, nudgeCopy, setInstallPrompt, clearInstallPrompt,
+  takeInstallPrompt,
 };
