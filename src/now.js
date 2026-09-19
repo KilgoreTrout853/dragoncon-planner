@@ -2,8 +2,8 @@
    coming up, the record of the weekend once the con is over, and the minute
    tick that keeps the countdowns honest without rebuilding the list - and the
    install nudge, which is the tab's first card until the app is on the home
-   screen. render() and the minute interval, in app.js, call renderNow() and
-   tickNow(); nothing here draws anything else. */
+   screen. render(), in shell.js, and the minute tick, in dispatch.js, call
+   renderNow() and tickNow(); nothing here draws anything else. */
 import { esc, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON } from "./storage.js";
 import { IS_IOS, isStandalone } from "./platform.js";

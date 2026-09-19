@@ -32,18 +32,22 @@ import {
 } from "./dispatch.js";
 
 /* ==================================================================
-   Boot. Everything above is declarations, and the consts that read storage
-   and the DOM as the module is imported. Nothing else happens until boot()
-   is called - once, by src/main.js - and then it happens in the order it
-   always did: listeners on one element fire in the order they were added,
-   so the statements below keep the file order they had when they ran as
-   the script parsed.
+   Boot. Everything above is imports, and importing this module evaluates
+   every other one first: that is when the consts that read storage, the DOM
+   and navigator are read. Nothing else happens until boot() is called -
+   once, by src/main.js - and then it happens in the order it always did:
+   listeners on one element fire in the order they were added, so the
+   registrations below keep the order they had when they ran as the script
+   parsed. The handlers are not here. Each lives in the module that owns the
+   state it writes, or in dispatch.js when it spans modules, and is
+   registered by name.
 
    events: the schedule, already parsed. load() uses it instead of fetching,
    and still reaches the first render() with no await on the way.
    reload: what reloadNow() calls, for a caller that cannot replace
    location.reload. The option names are the contract; the locals are
-   renamed because events and reload are the module's own names too.
+   renamed because events is one of the module's own names too, and reload
+   was until loading.js took it.
 
    The handle is state and operations, never internals. ready is load()'s
    promise.
@@ -61,21 +65,16 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.querySelector(".nav").addEventListener("click", onNavClick);
 
   document.querySelector("main").addEventListener("click", onMainClick);
-
   document.querySelector("main").addEventListener("input", onMainInput);
   document.querySelector("main").addEventListener("keydown", onMainKeydown);
   document.querySelector("main").addEventListener("change", onMainChange);
 
   sheetEl.addEventListener("touchstart", onSheetTouchStart, {passive: true});
-
   sheetEl.addEventListener("touchmove", onSheetTouchMove, {passive: true});
-
   sheetEl.addEventListener("touchend", onSheetTouchEnd);
-
   sheetEl.addEventListener("touchcancel", onSheetTouchCancel);
 
   panelEvent.addEventListener("click", onEventPanelClick);
-
   panelHotel.addEventListener("click", onHotelPanelClick);
 
   document.getElementById("minibar").addEventListener("click", onMiniBarClick);
@@ -123,7 +122,6 @@ export function boot({events: data, reload: reloadWith} = {}) {
   }
 
   updatePill.addEventListener("click", onPillClick);
-
   updatePill.addEventListener("touchstart", onPillTouchStart, {passive: true});
   updatePill.addEventListener("touchmove", onPillTouchMove, {passive: true});
   updatePill.addEventListener("touchend", onPillTouchEnd);
@@ -149,14 +147,3 @@ export function boot({events: data, reload: reloadWith} = {}) {
     BOOT, reconcilePicks, recheckSchedule, openSheet, closeSheet, ready,
   };
 }
-
-/* What is left of the test surface: the functions and consts still in this
-   file that a test reaches by name - through the merged namespace the page
-   helper builds (tests/helpers/page.js), or a unit test's import. A name
-   leaves this list in the commit that moves it to a module of its own, which
-   exports it from there. The lets are not here - a test reaches those
-   through boot()'s handle - and nor is reloadNow, which the reload option
-   replaces. */
-export {
-
-};

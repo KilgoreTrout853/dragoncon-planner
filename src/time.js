@@ -52,7 +52,7 @@ function initTimeOverride() {
    and the URL is kept in step so a reload lands on the same moment - only "+"
    is encoded, so the address stays readable - and the hash (an explore deep
    link) is left alone. Returns the override it set: a Date, or null. What the
-   page does about a new moment is setTimeOverride()'s, in app.js. */
+   page does about a new moment is setTimeOverride()'s, in shell.js. */
 function setOverride(value) {
   timeOverride = parseMoment(value);
   writeSession(TIME_OVERRIDE_KEY, timeOverride ? value : null);
