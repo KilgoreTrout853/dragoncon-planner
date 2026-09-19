@@ -1,14 +1,13 @@
 import { dayOf, esc, fmtMins, fmtShort, minutesBetween, toDate } from "./util.js";
 import { loadJSON, saveJSON } from "./storage.js";
 import { IS_IOS } from "./platform.js";
-import { deviceLine, devMarkHTML } from "./build.js";
-import { settings, state } from "./state.js";
+import { devMarkHTML } from "./build.js";
+import { state } from "./state.js";
 import {
-  CON, conEnded, DAY_LABEL, DAY_LONG, effectiveNow, initTimeOverride, isSimulated,
-  localInputValue, now, setOverride, timeOverride,
+  CON, conEnded, DAY_LABEL, effectiveNow, initTimeOverride, isSimulated, now, setOverride,
 } from "./time.js";
-import { hotelVar, placeHTML, WALK } from "./venues.js";
-import { byId, DATA_URL, events, isCeleb, meta, replaceSchedule } from "./data.js";
+import { hotelVar, placeHTML } from "./venues.js";
+import { byId, DATA_URL, events, meta, replaceSchedule } from "./data.js";
 import {
   clearNews, picks, reconcilePicks, replaceNews, replacePicks, savePickNews, savePicks,
 } from "./picks.js";
@@ -16,10 +15,8 @@ import { follows, replaceFollows, saveFollows, toggleFollow } from "./follows.js
 import { exportEventICS, exportICS } from "./ics.js";
 import { currentLocation, leaveInfo, nextPickInConDay } from "./leave.js";
 import { buildIndex, buildSuggestIndex, index, SEARCH_PLACEHOLDER, stripPhrase, tokenise } from "./search.js";
-import { CELEB_BADGE } from "./ui.js";
 import {
-  chipRowsRestore, chipRowsSnapshot, cssEsc, pageScrollBy, pageScrollTo, pageScrollTop,
-  revealChip, scroller,
+  chipRowsRestore, chipRowsSnapshot, cssEsc, pageScrollBy, pageScrollTo, revealChip, scroller,
 } from "./scroll.js";
 import { setRenderer } from "./bus.js";
 import {
@@ -31,8 +28,13 @@ import {
   openExplorePage, queueSpy, renderExplore, renderExploreSections, scrollToExploreSection,
   scrollToGrid, spyDone, spyHoldUntil, syncActiveSection,
 } from "./explore.js";
-import { hotelSheetHTML, MAP_HOTELS, mapDay, renderMap, tickMap } from "./map.js";
+import { mapDay, renderMap, tickMap } from "./map.js";
 import { renderMine } from "./mine.js";
+import {
+  closeSheet, eventSheetHTML, hotelSheetHTML, onCrowdInput, onNoiseDefaultChange, onResetPicks,
+  onSettingsClick, onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart,
+  openSheet, panelEvent, panelHotel, sheetEl, sheetWrap,
+} from "./sheet.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
@@ -253,109 +255,6 @@ function togglePick(id, anchor) {
   if (!el) return;
   const delta = el.getBoundingClientRect().top - wasTop;
   if (Math.abs(delta) > 1) pageScrollBy(delta);
-}
-
-/* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
-const sheetWrap = document.getElementById("sheetWrap");
-const sheetEl = document.getElementById("sheet");
-const panelSettings = document.getElementById("panel-settings");
-const panelEvent = document.getElementById("panel-event");
-const panelHotel = document.getElementById("panel-hotel");
-let sheetScrollY = 0;
-
-function fillSettings() {
-  document.getElementById("crowd").value = settings.crowd;
-  document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`;
-  document.getElementById("noiseDefault").checked = settings.hideNoise;
-  document.getElementById("bigText").checked = document.documentElement.classList.contains("bigtext");
-  document.getElementById("previewTime").value = timeOverride ? localInputValue(timeOverride) : "";
-  document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
-  document.getElementById("deviceLine").textContent = deviceLine();
-}
-
-function eventSheetHTML(ev) {
-  const mine = picks.has(ev.id);
-  const peopleRows = (ev.speakers || []).filter(p => p && p.name).map(p => ({
-    name: p.name,
-    label: p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name,
-  }));
-  const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
-  const chips = [...(ev.tracks || []), ...((ev.tags && ev.tags.fandoms) || [])];
-  return `<div class="ev-head">
-      <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
-      <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}${ev._cd !== ev.day ? ` &middot; ${DAY_LONG[ev._cd] || ev._cd} night` : ""}</div>
-      <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</div>
-      ${ev.cancelled ? `<div><span class="cancelled-tag">Cancelled</span></div>` : ""}
-      ${isCeleb(ev) ? `<div>${CELEB_BADGE}</div>` : ""}
-    </div>
-    <div class="ev-body">
-      ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
-      ${peopleRows.length ? `<div class="ev-people">With ${peopleRows.map(p =>
-        `<span class="who"><span>${esc(p.label)}</span> <button class="see-all" data-explore="person:${esc(p.name)}">See all</button></span>`).join(", ")}</div>` : ""}
-      ${chips.length || (ev.tags && ev.tags.adult) ? `<div class="tagline">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${ev.tags && ev.tags.adult ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
-    </div>
-    <div class="ev-actions">
-      <button class="ev-star" id="sheetStar" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>
-      <button class="btn quiet" id="sheetICS">Add this to calendar</button>
-      <button class="btn" id="closeSheetEvent">Done</button>
-    </div>`;
-}
-
-function openSheet(kind = "settings", id = null) {
-  if (kind === "event" && !byId.get(id)) return;
-  if (kind === "hotel" && !MAP_HOTELS[id]) return;
-  sheetScrollY = pageScrollTop();
-  state.sheetId = kind === "event" ? id : null;
-  state.sheetHotel = kind === "hotel" ? id : null;
-  if (kind === "event") panelEvent.innerHTML = eventSheetHTML(byId.get(id));
-  else if (kind === "hotel") panelHotel.innerHTML = hotelSheetHTML(id, mapDay());
-  else fillSettings();
-  panelSettings.hidden = kind !== "settings";
-  panelEvent.hidden = kind !== "event";
-  panelHotel.hidden = kind !== "hotel";
-  sheetEl.setAttribute("aria-labelledby", {event: "sheetTitleEvent", hotel: "sheetTitleHotel"}[kind] || "sheetTitle");
-  sheetEl.style.transform = "";
-  sheetWrap.hidden = false;
-}
-
-function closeSheet() {
-  sheetWrap.hidden = true;
-  state.sheetId = null;
-  state.sheetHotel = null;
-  sheetEl.classList.remove("settling");
-  sheetEl.style.transform = "";
-  sheetBackEl.style.opacity = "";
-  sheetBackEl.classList.remove("dragging");
-  dragY = null;
-  render();
-  pageScrollTo(sheetScrollY);
-}
-
-/* Swipe down to dismiss.
-   The sheet claims the gesture via touch-action, so the page behind it stays
-   put; the backdrop fades with the drag so the sheet feels attached to it. */
-const sheetBackEl = document.getElementById("sheetBack");
-let dragY = null, dragT = 0, dragDy = 0;
-
-function setDrag(dy) {
-  dragDy = dy;
-  sheetEl.style.transform = dy ? `translateY(${dy}px)` : "";
-  const h = sheetEl.offsetHeight || 1;
-  sheetBackEl.style.opacity = String(Math.max(0, 1 - (dy / h) * 0.9));
-}
-function settle(toClosed) {
-  sheetEl.classList.add("settling");
-  sheetBackEl.classList.remove("dragging");
-  if (toClosed) {
-    sheetEl.style.transform = `translateY(${sheetEl.offsetHeight}px)`;
-    sheetBackEl.style.opacity = "0";
-    const done = () => { sheetEl.removeEventListener("transitionend", done); closeSheet(); };
-    sheetEl.addEventListener("transitionend", done);
-    setTimeout(done, 320);            // belt and braces if the transition never fires
-  } else {
-    setDrag(0);
-    setTimeout(() => sheetEl.classList.remove("settling"), 240);
-  }
 }
 
 /* The sticky filters park directly under the header, whose height changes
@@ -630,33 +529,13 @@ export function boot({events: data, reload: reloadWith} = {}) {
     if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
   });
 
-  sheetEl.addEventListener("touchstart", e => {
-    if (e.target.closest(".ev-body")) return;   // let the description scroll
-    dragY = e.touches[0].clientY;
-    dragT = performance.now();
-    dragDy = 0;
-    sheetEl.classList.remove("settling");
-    sheetBackEl.classList.add("dragging");
-  }, {passive: true});
+  sheetEl.addEventListener("touchstart", onSheetTouchStart, {passive: true});
 
-  sheetEl.addEventListener("touchmove", e => {
-    if (dragY === null) return;
-    const dy = e.touches[0].clientY - dragY;
-    setDrag(dy > 0 ? dy : dy / 4);              // slight resistance upward
-  }, {passive: true});
+  sheetEl.addEventListener("touchmove", onSheetTouchMove, {passive: true});
 
-  sheetEl.addEventListener("touchend", () => {
-    if (dragY === null) return;
-    const dy = dragDy, ms = performance.now() - dragT;
-    dragY = null;
-    /* Below about one frame we have no reliable velocity, so don't invent one -
-       fall back to distance alone rather than treating a 30px nudge as a flick. */
-    const v = ms >= 16 ? dy / ms : 0;
-    const flicked = dy > 40 && v > 0.6;
-    settle(dy > 70 || flicked);
-  });
+  sheetEl.addEventListener("touchend", onSheetTouchEnd);
 
-  sheetEl.addEventListener("touchcancel", () => { if (dragY !== null) { dragY = null; settle(false); } });
+  sheetEl.addEventListener("touchcancel", onSheetTouchCancel);
 
   panelEvent.addEventListener("click", e => {
     const seeAll = e.target.closest("[data-explore]");
@@ -702,11 +581,11 @@ export function boot({events: data, reload: reloadWith} = {}) {
   });
 
   document.getElementById("minibar").addEventListener("click", () => { state.tab = "now"; render(); pageScrollTo(0); });
-  document.getElementById("settingsBtn").addEventListener("click", () => openSheet("settings"));
+  document.getElementById("settingsBtn").addEventListener("click", onSettingsClick);
   document.getElementById("closeSheet").addEventListener("click", closeSheet);
   document.getElementById("sheetBack").addEventListener("click", closeSheet);
-  document.getElementById("crowd").addEventListener("input", e => { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON("dc26.settings", settings); });
-  document.getElementById("noiseDefault").addEventListener("change", e => { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON("dc26.settings", settings); });
+  document.getElementById("crowd").addEventListener("input", onCrowdInput);
+  document.getElementById("noiseDefault").addEventListener("change", onNoiseDefaultChange);
   /* Its own key, so nothing that resets settings ever shrinks someone's text.
      The header is re-measured because its line just changed height. */
   document.getElementById("bigText").addEventListener("change", e => {
@@ -718,7 +597,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.getElementById("applyPreview").addEventListener("click", () => { const v = document.getElementById("previewTime").value; closeSheet(); if (v) setTimeOverride(v); });
   document.getElementById("clearPreview").addEventListener("click", () => { closeSheet(); setTimeOverride(null); });
   document.getElementById("simChip").addEventListener("click", () => setTimeOverride(null));
-  document.getElementById("resetPicks").addEventListener("click", () => { if (confirm("Remove everything from my schedule?")) { replacePicks([]); savePicks(); closeSheet(); } });
+  document.getElementById("resetPicks").addEventListener("click", onResetPicks);
 
   window.addEventListener("hashchange", () => { applyExploreHash(); render(); });
 
@@ -829,9 +708,9 @@ export function boot({events: data, reload: reloadWith} = {}) {
    through boot()'s handle - and nor is reloadNow, which the reload option
    replaces. */
 export {
-  closeSheet, edgeTouchMove, edgeTouchStart, hideUpdatePill, indexReady, openSheet,
-  recheckSchedule, render, renderMiniBar, renderNotice, setDrag, setTimeOverride, showUpdatePill,
-  togglePick, updateClock, updateFresh,
+  edgeTouchMove, edgeTouchStart, hideUpdatePill, indexReady, recheckSchedule, render,
+  renderMiniBar, renderNotice, setTimeOverride, showUpdatePill, togglePick, updateClock,
+  updateFresh,
 
   BOOT,
 };

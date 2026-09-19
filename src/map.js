@@ -5,7 +5,7 @@ import { hotelPhrase, hotelShort, hotelVar, placeHTML } from "./venues.js";
 import { events } from "./data.js";
 import { picks } from "./picks.js";
 import { currentLocation, leaveInfo } from "./leave.js";
-import { chipHTML, rowHTML } from "./ui.js";
+import { chipHTML } from "./ui.js";
 import { chipRowsRestore, chipRowsSnapshot } from "./scroll.js";
 import { nowModel } from "./now.js";
 
@@ -36,8 +36,6 @@ const MAP_HOTELS = {
 /* Each pair is left-to-right or top-to-bottom. None crosses Peachtree. */
 const MAP_BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
 
-/* The user's picks in one hotel on one con day, in time order (events is). */
-const mapPicksAt = (hotel, day) => events.filter(e => picks.has(e.id) && e.hotel === hotel && e._cd === day);
 function mapCounts(day) {
   const counts = {};
   events.forEach(e => { if (picks.has(e.id) && e._cd === day && MAP_HOTELS[e.hotel]) counts[e.hotel] = (counts[e.hotel] || 0) + 1; });
@@ -49,17 +47,6 @@ function mapPillSVG(hotel, b, n) {
   if (!n) return "";
   const w = n > 9 ? 30 : 22, h = 18, cx = Math.min(b.x + b.w - 2, MAP_W - 2 - w / 2), cy = b.y + 2;
   return `<g class="map-pill" data-hotel="${esc(hotel)}" data-count="${n}"><rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="${h / 2}"/><text x="${cx}" y="${cy}">${n}</text></g>`;
-}
-function hotelSheetHTML(hotel, day) {
-  const rows = mapPicksAt(hotel, day), dayName = DAY_LONG[day] || day;
-  const count = rows.length ? `${rows.length} pick${rows.length === 1 ? "" : "s"}` : "no picks";
-  const body = rows.length
-    ? `<div class="ev-body"><ul class="list compact">${rows.map(ev => rowHTML(ev, {list: "map"})).join("")}</ul></div>`
-    : `<div class="ev-body"><p style="color:var(--muted)">No picks here on ${esc(dayName)}.</p>
-        <div class="rowbtns"><button class="btn quiet" data-act="map-search" data-hotel="${esc(hotel)}" data-day="${day}">Search ${esc(hotelPhrase(hotel))} on ${esc(dayName)}</button></div></div>`;
-  return `<div class="ev-head"><h2 id="sheetTitleHotel">${esc(hotel)}</h2><div class="ev-when">${esc(dayName)} &middot; ${count}</div></div>
-    ${body}
-    <div class="ev-actions"><button class="btn" id="closeSheetHotel">Done</button></div>`;
 }
 
 /* What today's overlay is made of, computed once per render: the on-now and
@@ -187,4 +174,4 @@ function tickMap() {
   return true;
 }
 
-export { MAP_HOTELS, hotelSheetHTML, mapCardHTML, mapDay, renderMap, tickMap };
+export { MAP_HOTELS, mapCardHTML, mapDay, renderMap, tickMap };
