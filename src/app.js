@@ -1,32 +1,39 @@
 import { dayOf, esc, fmtMins, fmtShort, minutesBetween, toDate } from "./util.js";
 import { loadJSON, saveJSON } from "./storage.js";
-import { IS_IOS, isStandalone } from "./platform.js";
+import { IS_IOS } from "./platform.js";
 import { deviceLine, devMarkHTML } from "./build.js";
 import { settings, state } from "./state.js";
 import {
-  CON, CON_DAYS, conDayKey, conEnded, conPhase, DAY_LABEL, DAY_LONG, initTimeOverride, isPast,
-  isSimulated, localInputValue, now, setOverride, timeOverride,
+  CON, conEnded, DAY_LABEL, DAY_LONG, initTimeOverride, isSimulated, localInputValue, now,
+  setOverride, timeOverride,
 } from "./time.js";
-import { hotelMatches, hotelPhrase, hotelShort, hotelVar, placeHTML, WALK, walkMin } from "./venues.js";
+import { hotelVar, placeHTML, WALK } from "./venues.js";
+import { byId, DATA_URL, events, isCeleb, meta, replaceSchedule } from "./data.js";
 import {
-  byId, DATA_URL, events, fandomCounts, hotelChips, isCeleb, isNoise, meta, NOISE_TRACKS,
-  replaceSchedule, tracks,
-} from "./data.js";
-import {
-  clearNews, pickNews, pickNewsHTML, picks, reconcilePicks, replaceNews, replacePicks,
-  savePickNews, savePicks,
+  clearNews, picks, reconcilePicks, replaceNews, replacePicks, savePickNews, savePicks,
 } from "./picks.js";
-import {
-  eventsFor, FOLLOW_KINDS, followId, follows, isFollowing, replaceFollows, saveFollows,
-  toggleFollow,
-} from "./follows.js";
+import { follows, replaceFollows, saveFollows, toggleFollow } from "./follows.js";
 import { exportEventICS, exportICS } from "./ics.js";
-import { currentLocation, gapHTML, leaveInfo, nextPickInConDay } from "./leave.js";
+import { currentLocation, leaveInfo, nextPickInConDay } from "./leave.js";
+import { buildIndex, buildSuggestIndex, index, SEARCH_PLACEHOLDER, stripPhrase, tokenise } from "./search.js";
+import { CELEB_BADGE } from "./ui.js";
 import {
-  browseResults, buildIndex, buildSuggestIndex, index, KIND_LABELS, processTerm,
-  SEARCH_PLACEHOLDER, stripPhrase, suggestDocs, suggestionsFor, tokenise,
-} from "./search.js";
-import { CELEB_BADGE, chipHTML, rowHTML } from "./ui.js";
+  chipRowsRestore, chipRowsSnapshot, cssEsc, pageScrollBy, pageScrollTo, pageScrollTop,
+  revealChip, scroller,
+} from "./scroll.js";
+import { setRenderer } from "./bus.js";
+import {
+  clearInstallPrompt, effectiveNow, NUDGE_SNOOZE_MS, renderNow, setInstallPrompt,
+  takeInstallPrompt, tickNow,
+} from "./now.js";
+import { cancelQueuedBrowseRender, queueBrowseRender, renderBrowse } from "./browse.js";
+import {
+  applyExploreHash, buildCatalogue, closeExplorePage, holdSpyUntil, markActiveSection,
+  openExplorePage, queueSpy, renderExplore, renderExploreSections, scrollToExploreSection,
+  scrollToGrid, spyDone, spyHoldUntil, syncActiveSection,
+} from "./explore.js";
+import { hotelSheetHTML, MAP_HOTELS, mapDay, renderMap, tickMap } from "./map.js";
+import { renderMine } from "./mine.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
@@ -38,20 +45,6 @@ let pendingQuery = false;
 const BOOT = {parsed: 0, rendered: 0, indexed: 0, suggested: 0, indexAtRender: null};
 
 let fromNetwork = null, servedOffline = false;
-const PAGE = 150;
-
-/* Everything that scrolls the page goes through here, because the page is
-   not the scroller - main is (see the CSS). jsdom has no scrollTo on
-   elements, so fall back to scrollTop. */
-const scroller = document.querySelector("main");
-const pageScrollTop = () => scroller.scrollTop || 0;
-function pageScrollTo(top, smooth) {
-  const y = Math.max(0, top || 0);
-  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  if (typeof scroller.scrollTo === "function") scroller.scrollTo({top: y, left: 0, behavior: smooth && !reduce ? "smooth" : "auto"});
-  else scroller.scrollTop = y;
-}
-function pageScrollBy(dy) { scroller.scrollTop = pageScrollTop() + dy; }
 
 /* value: an ISO date-time, or null for the real clock. setOverride() in
    time.js sets it, keeps it for the session and keeps the URL in step; this
@@ -151,211 +144,7 @@ function updateFresh() {
 /* ==================================================================
    Rendering
    ================================================================== */
-/* Chip rows scroll sideways, and a render rebuilds them from scratch - which
-   used to snap every row back to its left edge, so the chip just tapped at
-   the far end vanished. Remember where each named row was and put it back. */
-function chipRowsSnapshot() {
-  const m = {};
-  document.querySelectorAll(".chips[data-row]").forEach(el => { if (el.scrollLeft) m[el.dataset.row] = el.scrollLeft; });
-  return m;
-}
-function chipRowsRestore(m) {
-  document.querySelectorAll(".chips[data-row]").forEach(el => { if (m[el.dataset.row]) el.scrollLeft = m[el.dataset.row]; });
-}
-/* Bring one chip fully into its row: the one just tapped, or on Explore the
-   one that just became current. Only ever moves the row sideways, and only
-   as far as it has to; the row is otherwise the reader's to scroll. */
-function revealChip(chip) {
-  const row = chip && chip.closest(".chips");
-  if (!row) return;
-  const pad = 14, r = chip.getBoundingClientRect(), R = row.getBoundingClientRect();
-  let dx = 0;
-  if (r.left < R.left + pad) dx = r.left - R.left - pad;
-  else if (r.right > R.right - pad) dx = r.right - R.right + pad;
-  if (!dx) return;
-  const left = Math.max(0, row.scrollLeft + dx);
-  const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  if (typeof row.scrollTo === "function") row.scrollTo({left, behavior: reduce ? "auto" : "smooth"}); else row.scrollLeft = left;
-}
 
-
-/* ---- Map ---------------------------------------------------------- */
-/* The venues' real positions at one scale - about 0.54 px per metre, the
-   Hyatt's centre at (150, 250) - so the distances mean something: the
-   Hyatt and the Marriott nearly touch, the Hilton is a real walk, the
-   Westin sits south-east of the Mart just west of Peachtree, and the
-   Marriott-Hilton bridge crosses Courtland St, as it does in life. Keys
-   are the walk table's names, so counts, rings and routes join up by
-   hotel. Streams and offsite venues have no place here. */
-const MAP_W = 380;
-/* The frame: the viewBox is cropped to the drawing, with the same inset
-   around it that the card below uses as padding (about 14 px at phone
-   width). Block coordinates stay as they are; only the frame, the streets
-   and their labels are placed against it. */
-const MAP_VIEW = {x: -3, y: 111, w: 385, h: 305};
-const MAP_STREETS = {Peachtree: 110, Courtland: 296};
-const MAP_HOTELS = {
-  "AmericasMart":    {x: 12,  y: 216, w: 72, h: 64},
-  "Westin":          {x: 48,  y: 332, w: 60, h: 56},
-  "Hyatt":           {x: 120, y: 222, w: 60, h: 56},
-  "Marriott":        {x: 190, y: 222, w: 60, h: 56},
-  "Hilton":          {x: 307, y: 222, w: 60, h: 56},
-  "Courtland Grand": {x: 300, y: 347, w: 60, h: 56},
-  "Hardy Ivy Park":  {x: 117, y: 124, w: 60, h: 24, park: true},
-};
-/* Each pair is left-to-right or top-to-bottom. None crosses Peachtree. */
-const MAP_BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
-
-/* The user's picks in one hotel on one con day, in time order (events is). */
-const mapPicksAt = (hotel, day) => events.filter(e => picks.has(e.id) && e.hotel === hotel && e._cd === day);
-function mapCounts(day) {
-  const counts = {};
-  events.forEach(e => { if (picks.has(e.id) && e._cd === day && MAP_HOTELS[e.hotel]) counts[e.hotel] = (counts[e.hotel] || 0) + 1; });
-  return counts;
-}
-/* A gold pill on the block's top-right corner; none at all when zero. A
-   wide pill on a block at the right edge is pulled in to stay on the map. */
-function mapPillSVG(hotel, b, n) {
-  if (!n) return "";
-  const w = n > 9 ? 30 : 22, h = 18, cx = Math.min(b.x + b.w - 2, MAP_W - 2 - w / 2), cy = b.y + 2;
-  return `<g class="map-pill" data-hotel="${esc(hotel)}" data-count="${n}"><rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="${h / 2}"/><text x="${cx}" y="${cy}">${n}</text></g>`;
-}
-function hotelSheetHTML(hotel, day) {
-  const rows = mapPicksAt(hotel, day), dayName = DAY_LONG[day] || day;
-  const count = rows.length ? `${rows.length} pick${rows.length === 1 ? "" : "s"}` : "no picks";
-  const body = rows.length
-    ? `<div class="ev-body"><ul class="list compact">${rows.map(ev => rowHTML(ev, {list: "map"})).join("")}</ul></div>`
-    : `<div class="ev-body"><p style="color:var(--muted)">No picks here on ${esc(dayName)}.</p>
-        <div class="rowbtns"><button class="btn quiet" data-act="map-search" data-hotel="${esc(hotel)}" data-day="${day}">Search ${esc(hotelPhrase(hotel))} on ${esc(dayName)}</button></div></div>`;
-  return `<div class="ev-head"><h2 id="sheetTitleHotel">${esc(hotel)}</h2><div class="ev-when">${esc(dayName)} &middot; ${count}</div></div>
-    ${body}
-    <div class="ev-actions"><button class="btn" id="closeSheetHotel">Done</button></div>`;
-}
-
-/* What today's overlay is made of, computed once per render: the on-now and
-   next picks, where the reader is, and the hero's leave-by. Null on any day
-   but the one the clock is in. */
-function mapNowState(day) {
-  const at = now();
-  if (day !== conDayKey(at)) return null;
-  const model = nowModel(at), next = model.upcoming[0] || null, from = currentLocation(at);
-  return {now: at, onNow: model.onNowEv, next, from, info: leaveInfo(from, next, at)};
-}
-/* A solid gold ring on the hotel of the pick that is on now, a pulsing one on
-   the hotel of the next pick. A next pick off the map gets no ring. */
-function mapRingsSVG(st) {
-  if (!st) return "";
-  const ring = (h, cls) => {
-    const b = MAP_HOTELS[h];
-    if (!b) return "";
-    const pad = cls === "next" ? 7 : 4;
-    return `<rect class="map-ring ${cls}" data-hotel="${esc(h)}" x="${b.x - pad}" y="${b.y - pad}" width="${b.w + 2 * pad}" height="${b.h + 2 * pad}" rx="${(b.park ? 6 : 10) + pad}"/>`;
-  };
-  return (st.onNow ? ring(st.onNow.hotel, "now") : "") + (st.next ? ring(st.next.hotel, "next") : "");
-}
-/* The card under the map: the next pick, as the hero sees it - the same
-   nowModel, the same leaveInfo. It shows whichever day the map has selected,
-   because it is about now, not about the day being looked at. With nothing
-   left today it shows the first pick of the next con day; with no picks at
-   all, how to get one. */
-function mapCardState() {
-  const at = now(), model = nowModel(at), today = conDayKey(at);
-  const next = model.upcoming[0] || null;
-  const later = next ? null : (events.find(e => picks.has(e.id) && e._s > at && conDayKey(e._s) > today) || null);
-  const from = currentLocation(at);
-  return {now: at, onNow: model.onNowEv, next, later, from, info: next ? leaveInfo(from, next, at) : null};
-}
-function mapCardHTML(cs) {
-  if (conEnded()) return "";                 // nothing is next any more
-  const {now, onNow, next, later, info} = cs;
-  const onLine = onNow ? `<button class="next-on" data-hero="${esc(onNow.id)}">On now: <b>${esc(onNow.title)}</b> &middot; ends ${fmtShort(onNow._e)} &middot; ${esc(onNow.hotel === "Other" ? (onNow.room || "offsite") : hotelShort(onNow.hotel))}</button>` : "";
-  const ev = next || later;
-  if (!ev) return onLine + `<div class="next-card empty">Star things in Search and your next pick shows here.</div>`;
-  let label = "", when, cls = "";
-  if (!next) {
-    const dayKey = conDayKey(ev._s), tomorrow = conDayKey(new Date(now.getTime() + 24 * 3600000));
-    label = `<div class="nc-label">${dayKey === tomorrow ? "Tomorrow" : esc(DAY_LONG[dayKey] || dayKey)}</div>`;
-    when = fmtShort(ev._s);
-  } else if (info && info.leaveBy && info.walk > 0) {
-    /* A leave-by only for a walk that exists: a stream has nowhere to go. */
-    const here = onNow && onNow.hotel === "Other" ? esc(onNow.room || "here") : esc(hotelPhrase(info.from));
-    cls = info.late ? " leave late" : " leave";
-    when = info.late ? `leave ${here} now` : `leave ${here} by ${fmtShort(info.leaveBy)}`;
-  } else {
-    when = `${fmtShort(ev._s)} &middot; in ${fmtMins(minutesBetween(now, ev._s))}`;
-  }
-  const walk = next && info && info.estimate ? `<div class="nc-walk">${esc(info.estimate.label)}</div>` : "";
-  return onLine + `<button class="next-card" data-hero="${esc(ev.id)}" style="--h:var(${hotelVar(ev.hotel)})">${label}<div class="nc-title">${esc(ev.title)}</div><div class="nc-where">${placeHTML(ev)}</div><div class="nc-when${cls}">${when}</div>${walk}</button>`;
-}
-const offLineHTML = off => off ? `<div class="map-offmap">${off} pick${off === 1 ? "" : "s"} streaming or offsite</div>` : "";
-/* Picks that day at venues the map does not draw: streams and offsite. */
-const mapOffMapCount = day => events.filter(e => picks.has(e.id) && e._cd === day && !MAP_HOTELS[e.hotel]).length;
-
-function mapSVG(day, st = mapNowState(day), counts = mapCounts(day)) {
-  const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="${MAP_VIEW.y}" x2="${x}" y2="${MAP_VIEW.y + MAP_VIEW.h}"/>
-    <text class="map-street-label" transform="translate(${x - 7} 212) rotate(-90)">${name} St</text>`;
-  const bridges = MAP_BRIDGES.map(([a, b]) => {
-    const A = MAP_HOTELS[a], B = MAP_HOTELS[b], beside = Math.abs(A.y - B.y) < A.h;
-    const [x1, y1, x2, y2] = beside ? [A.x + A.w, A.y + A.h / 2, B.x, B.y + B.h / 2] : [A.x + A.w / 2, A.y + A.h, B.x + B.w / 2, B.y];
-    return `<line class="map-bridge" data-bridge="${esc(a)}|${esc(b)}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
-  }).join("");
-  const blocks = Object.entries(MAP_HOTELS).map(([h, b]) => { const n = counts[h] || 0, label = hotelShort(h).toUpperCase(); return `<g class="map-hotel${b.park ? " map-park" : ""}" data-hotel="${esc(h)}" role="button" tabindex="0" aria-label="${esc(h)}: ${n ? `${n} pick${n === 1 ? "" : "s"}` : "no picks"} on ${esc(DAY_LONG[day] || day)}" style="--h:var(${b.park ? "--park" : hotelVar(h)})">
-    <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.park ? 6 : 10}"/>
-    <text${label.length > 8 ? ' class="long"' : ""} x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(label)}</text></g>`; }).join("");
-  const pills = Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h])).join("");
-  const rings = mapRingsSVG(st);
-  return `<svg class="map" viewBox="${MAP_VIEW.x} ${MAP_VIEW.y} ${MAP_VIEW.w} ${MAP_VIEW.h}" role="group" aria-label="Schematic map of the con hotels, not to scale">
-    <rect class="map-ground" x="${MAP_VIEW.x}" y="${MAP_VIEW.y}" width="${MAP_VIEW.w}" height="${MAP_VIEW.h}" rx="14"/>
-    ${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
-    ${bridges}${blocks}${rings}${pills}</svg>`;
-}
-
-/* The day the map shows: the one tapped, else the con day the clock is in,
-   with the timeline's 5 AM boundary. Outside con week, Thursday. */
-function mapDay() {
-  if (state.map.day) return state.map.day;
-  const d = conDayKey(now());
-  return CON_DAYS.includes(d) ? d : "2026-09-03";
-}
-
-function renderMap() {
-  const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day), cs = mapCardState();
-  const chips = CON_DAYS.map(d => chipHTML(DAY_LABEL[d], day === d, "map-day", d)).join("");
-  document.getElementById("view-map").innerHTML = `<div class="controls controls-sticky"><div class="chips" data-row="map-day">${chips}</div></div>
-    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts)}<div class="map-under" id="mapUnder">${mapCardHTML(cs)}${offLineHTML(off)}</div></div>`;
-  lastMapSig = mapSignature(day, st, counts);
-  lastCardSig = mapCardSignature(cs, off);
-}
-
-/* The minute tick redraws only what changed. The SVG is redrawn when a ring
-   or a pill would move - a redraw restarts the pulse on the next ring, so a
-   quiet minute must leave it alone. The card is refreshed on its own when
-   its words change, which "in 47 min" does every minute. */
-let lastMapSig = null, lastCardSig = null;
-function mapSignature(day, st, counts) {
-  return JSON.stringify([day, st && st.onNow && st.onNow.id, st && st.next && st.next.id, counts]);
-}
-function mapCardSignature(cs, off) {
-  const ev = cs.next || cs.later;
-  return JSON.stringify([cs.onNow && cs.onNow.id, cs.next && cs.next.id, cs.later && cs.later.id, cs.from,
-    cs.info && cs.info.leaveBy ? [String(cs.info.leaveBy), cs.info.late] : ev ? minutesBetween(cs.now, ev._s) : null,
-    cs.info && cs.info.estimate ? cs.info.estimate.label : null, off]);
-}
-function tickMap() {
-  const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day), cs = mapCardState();
-  if (mapSignature(day, st, counts) !== lastMapSig) {
-    const rows = chipRowsSnapshot();
-    renderMap();
-    chipRowsRestore(rows);
-    return true;
-  }
-  const csig = mapCardSignature(cs, off);
-  if (csig === lastCardSig) return false;
-  const under = document.getElementById("mapUnder");
-  if (under) under.innerHTML = mapCardHTML(cs) + offLineHTML(off);
-  lastCardSig = csig;
-  return true;
-}
 
 
 function render() {
@@ -421,75 +210,6 @@ function fitHeaderLine() {
   if (line.scrollWidth > line.clientWidth) line.classList.add("tighter");
 }
 
-const RING_R = 26, RING_C = 2 * Math.PI * RING_R;
-function ringHTML(fraction, minutes, late) {
-  const f = Math.max(0, Math.min(1, fraction));
-  const label = minutes >= 60 ? `${Math.floor(minutes / 60)}h` : `${Math.max(0, minutes)}`;
-  return `<div class="ring"><svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
-      <circle class="track-c" cx="31" cy="31" r="${RING_R}" fill="none" stroke-width="5"></circle>
-      <circle class="prog" cx="31" cy="31" r="${RING_R}" fill="none" stroke-width="5" stroke-linecap="round"
-        stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${(RING_C * (1 - f)).toFixed(1)}"></circle>
-    </svg><div class="num">${label}<small>${minutes >= 60 ? "" : "min"}</small></div></div>`;
-}
-
-function heroHTML(ev, now, onNow, thenNext) {
-  const from = currentLocation(now);
-  let kicker, leaveLine = "", thenLine = "", target, windowStart, late = false;
-
-  if (onNow) {
-    kicker = "On now";
-    target = ev._e;
-    windowStart = ev._s;
-    const info = leaveInfo(from, thenNext, now);
-    if (info && info.leaveBy) {
-      /* The one case with a leave-by: we know where you are because you
-         are in something. Say which building. */
-      late = info.late;
-      const here = ev.hotel === "Other" ? esc(ev.room || "here") : esc(hotelPhrase(ev.hotel));
-      leaveLine = `<div class="hleave">${late ? `leave ${here} now` : `leave ${here} by ${fmtShort(info.leaveBy)}`}</div>`;
-      thenLine = `<div class="hthen">then: <b>${esc(hotelShort(thenNext.hotel))}</b> at ${fmtShort(thenNext._s)}</div>`;
-    } else {
-      leaveLine = `<div class="hleave">ends ${fmtShort(ev._e)}</div>`;
-      if (info) thenLine = `<div class="hthen">then: ${esc(hotelShort(thenNext.hotel))} next</div>`;
-    }
-  } else {
-    /* Nothing is on, so nowhere is known: no leave-by. The ring counts to
-       the start, and the walk from the previous pick is offered as an
-       estimate, not an instruction. */
-    kicker = "Your next";
-    const info = leaveInfo(from, ev, now);
-    target = ev._s;
-    windowStart = new Date(ev._s.getTime() - 60 * 60000);
-    leaveLine = `<div class="hleave">starts ${fmtShort(ev._s)}</div>`;
-    thenLine = info && info.estimate ? `<div class="hthen hwalk">${esc(info.estimate.label)}</div>` : "";
-  }
-  const total = Math.max(1, minutesBetween(windowStart, target));
-  const leftMin = minutesBetween(now, target);
-
-  return `<button class="hero${late ? " late" : ""}" data-hero="${esc(ev.id)}">
-    ${ringHTML(leftMin / total, leftMin, late)}
-    <div class="hbody">
-      <div class="hkicker">${kicker}</div>
-      <div class="htitle">${esc(ev.title)}</div>
-      <div class="hroom" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</div>
-      ${leaveLine}${thenLine}
-    </div>
-  </button>`;
-}
-
-/* ---- Now ---------------------------------------------------------- */
-/* Before the con the Now tab previews a sensible moment instead of an empty
-   one. Shared so the minute tick sees the same clock as the render. After
-   the con the tab is the archive, and this is not consulted. */
-function effectiveNow() {
-  const real = now();
-  if (conPhase(real) === "before") {
-    return {now: toDate("2026-09-03T10:00"),
-      banner: `<b>Con starts Thursday.</b> Showing Thursday 10:00 AM as a preview. Use Settings to preview any other time.`};
-  }
-  return {now: real, banner: ""};
-}
-
 /* ---- The notice above the views ------------------------------------ */
 /* After the con: that it is over, on every tab, until dismissed - once,
    and remembered for that year. Before it: the preview banner. Live:
@@ -514,771 +234,6 @@ function renderNotice() {
   el.innerHTML = html;
 }
 
-/* ---- The Now tab after the con ------------------------------------- */
-/* The record: every starred event, by con day, in time order. Rows work
-   as they do anywhere, so the list can still be tidied. */
-const ARCHIVE_SIG = "archive";
-function archiveHTML() {
-  const mine = events.filter(e => picks.has(e.id));
-  let html = pickNewsHTML() + `<div class="section-title">Your ${CON.year} schedule <span class="count">${mine.length}</span></div>`;
-  if (!mine.length) return html + `<div class="empty"><b>Nothing starred.</b> Star things in Search and they'll be listed here by day.</div>`;
-  html += `<ul class="list">`;
-  let lastDay = "";
-  mine.forEach(ev => {
-    if (ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd}</li>`; lastDay = ev._cd; }
-    html += rowHTML(ev, {list: "archive"});
-  });
-  return html + `</ul>`;
-}
-
-/* What the Now tab would show, without building any of it.
-   The plan is today's - the con day, which runs to 5am - because "your next"
-   and "leave by" are about the next few hours, and a Saturday pick seen from
-   Thursday was being announced as starting at 2:30 PM with no day on it.
-   Anything still running past 5am counts as today too. A pick on a later
-   day gets one line naming the day, so the tab never looks empty when the
-   plan is not. */
-function nowModel(now) {
-  const horizon = new Date(now.getTime() + 60 * 60000);
-  const today = conDayKey(now);
-  const future = events.filter(e => picks.has(e.id) && e._e > now);
-  const minePlan = future.filter(e => conDayKey(e._s) === today || e._s <= now);
-  const later = minePlan.length ? null : (future.find(e => conDayKey(e._s) > today) || null);
-  const onNowEv = minePlan.find(e => e._s <= now && now < e._e) || null;
-  const upcoming = minePlan.filter(e => e._s > now);
-  const heroEv = minePlan.length ? (onNowEv || upcoming[0]) : null;
-  const rest = heroEv ? minePlan.filter(e => e !== heroEv) : [];
-  const around = events.filter(e => e._e > now && e._s <= horizon
-    && !(state.browse.hideNoise && isNoise(e))
-    && hotelMatches(e, state.now.hotel));
-  return {minePlan, later, onNowEv, upcoming, heroEv, rest, around, shown: around.slice(0, state.now.limit)};
-}
-
-const statusShown = (ev, now) => ev._s <= now || minutesBetween(now, ev._s) <= 90;
-
-/* Everything that decides which elements exist. The clock is deliberately
-   absent: a new minute changes the words, not the structure. */
-function nowSignature(m, now, banner) {
-  return [
-    banner,
-    m.heroEv ? m.heroEv.id : "-",
-    m.later ? m.later.id : "-",
-    pickNews.length,
-    nudgeVisible() ? "nudge" : "-",
-    m.onNowEv ? "on" : "next",
-    m.rest.map(e => e.id + (statusShown(e, now) ? "!" : "")).join(","),
-    m.around.length,
-    m.shown.map(e => (e._s <= now ? "o" : "u") + e.id).join(","),
-  ].join("|");
-}
-let lastNowSig = null;
-
-function renderNow() {
-  if (conEnded()) { lastNowSig = ARCHIVE_SIG; document.getElementById("view-now").innerHTML = archiveHTML(); return; }
-  const {now, banner} = effectiveNow();
-  const model = nowModel(now);
-  lastNowSig = nowSignature(model, now, banner);
-  const minePlan = model.minePlan;
-  let mineHTML = nudgeHTML() + pickNewsHTML();
-  if (minePlan.length) {
-    const onNowEv = model.onNowEv, upcoming = model.upcoming, heroEv = model.heroEv;
-    const thenNext = onNowEv ? upcoming[0] : null;
-    mineHTML += heroHTML(heroEv, now, !!onNowEv, thenNext);
-    const rest = model.rest;
-    if (rest.length) {
-      mineHTML += `<div class="section-title">Rest of your day <span class="count">${minePlan.length} today</span></div><ul class="list compact">`;
-      rest.forEach((ev, i) => {
-        const status = ev._s <= now ? `On now, ends ${fmtShort(ev._e)}` : `In ${minutesBetween(now, ev._s)} min`;
-        mineHTML += gapHTML(i === 0 ? heroEv : rest[i - 1], ev) + rowHTML(ev, {list: "next", status: minutesBetween(now, ev._s) <= 90 || ev._s <= now ? status : ""});
-      });
-      mineHTML += `</ul>`;
-    }
-  } else if (model.later) {
-    const day = DAY_LONG[conDayKey(model.later._s)] || model.later.day;
-    mineHTML += `<div class="empty"><b>Nothing picked for later today.</b> Your next pick is on ${day}.</div>
-      <ul class="list compact">${rowHTML(model.later, {list: "next", showDay: true})}</ul>`;
-  } else {
-    mineHTML += `<div class="empty"><b>Nothing picked for later today.</b> Star things in Search and they show up here with walk times.</div>`;
-  }
-
-  const around = model.around, shown = model.shown;
-  let aroundHTML = `<div class="section-title">On now and in the next hour <span class="count">${around.length}</span></div>
-    <div class="controls" style="padding-top:0"><div class="chips" data-row="now-hotel">${chipHTML("All", state.now.hotel === "All", "now-hotel")}${hotelChips.map(h => chipHTML(hotelShort(h), state.now.hotel === h, "now-hotel", h)).join("")}</div></div><ul class="list compact">`;
-  let lastKey = "";
-  shown.forEach(ev => {
-    const key = ev._s <= now ? "on" : fmtShort(ev._s);
-    if (key !== lastKey) { aroundHTML += `<li class="time-head">${key === "on" ? "On now" : "Starts " + key}</li>`; lastKey = key; }
-    aroundHTML += rowHTML(ev, {list: "around"});
-  });
-  aroundHTML += `</ul>`;
-  if (around.length > shown.length) aroundHTML += `<button class="btn quiet more" data-act="more-now">Show ${around.length - shown.length} more</button>`;
-  if (!around.length) aroundHTML += `<div class="empty">Nothing on in this window${state.now.hotel !== "All" ? " at the " + hotelShort(state.now.hotel) : ""}.</div>`;
-  document.getElementById("view-now").innerHTML = mineHTML + aroundHTML;
-}
-
-/* Two rows of chips under the box: who, and what. */
-function suggestHTML() {
-  const q = state.browse.q.trim();
-  const active = /^".+"$/.test(q) ? q.slice(1, -1) : null;
-  if (active) {
-    return `<div class="chips suggest-row"><button class="chip suggest on" data-act="unsuggest"
-      aria-pressed="true" aria-label="Clear ${esc(active)}">${esc(active)} <span aria-hidden="true">&times;</span></button></div>`;
-  }
-  const s = suggestionsFor(q);
-  if (!s.people.length && !s.topics.length) return "";
-  const row = (label, items) => items.length
-    ? `<div class="chips suggest-row"><span class="suggest-label">${label}</span>${items.map(i =>
-        `<button class="chip suggest" data-act="suggest" data-name="${esc(i.name)}">${esc(i.name)} <span class="n">${i.count}</span></button>`).join("")}</div>`
-    : "";
-  return row("People", s.people) + row("Fandoms &amp; topics", s.topics);
-}
-
-/* When nothing matched a word literally, every result is a guess at what was
-   meant - "drag" only reaches "dragons" by prefix. Ranking cannot fix that,
-   but pretending to be confident about it is the part that misleads. */
-function noExactMatchHTML(results) {
-  if (!state.browse.q.trim() || !results.length) return "";
-  const ranked = results.filter(e => e._hit);
-  if (!ranked.length || ranked.some(e => e._hit.exact)) return "";
-  const raw = (state.browse.parsed && state.browse.parsed.residual) || "";
-  const shown = (/^".+"$/.test(raw) ? raw.slice(1, -1) : raw).trim();
-  if (!shown) return "";
-  /* A prefix and a typo are different failures and deserve different words:
-     "philharmonic" does not start with "philharmonc". */
-  const typed = shown.toLowerCase().split(/[\s\p{P}]+/u).map(processTerm).filter(Boolean);
-  const byPrefix = ranked.some(e => (e._hit.terms || []).some(m => typed.some(t => m.startsWith(t) && m !== t)));
-  const how = byPrefix ? "showing words that start with it" : "showing close spellings";
-  return `<div class="no-exact">No exact match for <b>${esc(shown)}</b> &mdash; ${how}.</div>`;
-}
-
-/* Searching a person by name and quietly dropping their photo sessions is
-   the wrong default when the name is the whole query - say what was held
-   back and offer it, rather than hiding it twice. */
-function hiddenForQueryHTML(results) {
-  const b = state.browse;
-  if (!b.q.trim() || b.showHidden || !b.hideNoise) return "";
-  const raw = (b.parsed && b.parsed.residual) || "";
-  const name = /^".+"$/.test(raw) ? raw.slice(1, -1) : raw.trim();
-  if (!name) return "";
-  /* Only for a person: a bare word like "photo" is already handled by the
-     kind override, and we don't want this line on every search. */
-  const isPerson = suggestDocs.some(d => d.group === "people" && d.name.toLowerCase() === name.toLowerCase());
-  if (!isPerson) return "";
-  const lower = name.toLowerCase();
-  const shown = new Set(results.map(e => e.id));
-  const hidden = events.filter(e => isNoise(e) && !shown.has(e.id)
-    && (e.speakers || []).some(p => (p.name || "").toLowerCase() === lower));
-  if (!hidden.length) return "";
-  const word = hidden.length === 1 ? "session" : "sessions";
-  return `<div class="hidden-note">${hidden.length} photo ${word} hidden &middot; <button data-act="show-hidden">show</button></div>`;
-}
-
-/* Show what the query was read as, and let the reader take it back off. */
-function parsedChipsHTML() {
-  const chips = (state.browse.parsed && state.browse.parsed.chips) || [];
-  const today = state.browse.todayScoped
-    ? `<button class="chip parsed" data-act="unparse-today" aria-label="Show the whole con instead of today">Today <span aria-hidden="true">&times;</span></button>`
-    : "";
-  if (!chips.length && !today) return "";
-  return `<div class="chips parsed-chips" aria-label="Filters read from your search">${today}${chips.map(c =>
-    `<button class="chip parsed" data-act="unparse" data-src="${esc(c.src)}" aria-label="Remove ${esc(c.label)} filter">${esc(c.label)} <span aria-hidden="true">&times;</span></button>`).join("")}</div>`;
-}
-
-/* ---- Browse ------------------------------------------------------- */
-
-function renderBrowse() {
-  const b = state.browse;
-  if (b.day === null) { const d = conDayKey(now()); b.day = CON_DAYS.includes(d) ? d : "2026-09-03"; }
-  const searching = !!b.q.trim();
-  const results = browseResults();
-  const shown = results.slice(0, PAGE * b.page);
-  const noiseCount = events.filter(e => isNoise(e) && (b.day === "All" || e._cd === b.day)).length;
-  const hasTags = events.some(e => e.tags);
-  const fandoms = hasTags ? fandomCounts() : [];
-  const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
-
-  const dayChips = `${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}`;
-  const sticky = `<div class="controls controls-sticky">
-    <input class="search${index ? "" : " indexing"}" type="search" id="q" placeholder="${index ? SEARCH_PLACEHOLDER : "indexing…"}" value="${esc(b.q)}" autocomplete="off" enterkeyhint="search">
-    <div class="chips" data-row="day" id="dayChips">${dayChips}</div>
-    </div>`;
-  let html = `<div class="controls controls-rest">
-    <div class="chips" data-row="hotel">${chipHTML("All", b.hotel === "All", "hotel")}${hotelChips.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
-    ${hasTags ? `<div class="chips" data-row="kind">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
-    ${suggestHTML()}
-    ${parsedChipsHTML()}
-    <div class="row-controls">
-      <div class="seg" role="group" aria-label="Type">
-        ${["All", "panel", "gaming"].map(t => `<button data-chip="type" data-value="${t}" aria-pressed="${b.type === t}">${{All: "All", panel: "Panels", gaming: "Gaming"}[t]}</button>`).join("")}
-      </div>
-      ${hasTags ? `<select class="track" id="fandom" aria-label="Fandom"><option value="All">Any fandom</option>${fandoms.map(([f, n]) => `<option value="${esc(f)}" ${b.fandom === f ? "selected" : ""}>${esc(f)} (${n})</option>`).join("")}</select>` : ""}
-      <select class="track" id="track" aria-label="Track"><option value="All">All tracks</option>${tracks.map(t => `<option value="${esc(t)}" ${b.track === t ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
-    </div>
-    <label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label>
-  </div>
-  ${!index && b.q.trim() ? `<div class="empty indexing-note">Indexing the schedule&hellip; your search will run in a moment.</div>` : ""}
-  <div class="section-title">${searching ? "Best matches first" : "Results"} <span class="count">${results.length}</span></div>
-  ${noExactMatchHTML(results)}<ul class="list">`;
-
-  let lastDay = "", lastTime = "", lastSection = "";
-  shown.forEach(ev => {
-    /* An all-filter query ("signing sunday") ranks nothing, so there are no
-       hit terms to highlight - that is not the same as not searching. */
-    if (searching) {
-      if (ev._section !== lastSection) {
-        lastSection = ev._section;
-        if (lastSection === "loose") {
-          html += `<li class="divider">Looser matches</li>`;
-        } else if (lastSection === "past") {
-          const n = results.filter(x => x._section === "past").length;
-          html += `<li class="divider fold"><button data-act="toggle-past" aria-expanded="${b.showPast}">Already happened (${n}) <span aria-hidden="true">${b.showPast ? "▾" : "▸"}</span></button></li>`;
-        }
-      }
-      if (lastSection === "past" && !b.showPast) return;
-      html += rowHTML(ev, {list: "browse", showDay: true, terms: ev._hit ? ev._hit.terms : null});
-      return;
-    }
-    if (b.day === "All" && ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd}</li>`; lastDay = ev._cd; lastTime = ""; }
-    const t = fmtShort(ev._s);
-    if (t !== lastTime) { html += `<li class="time-head">${t}</li>`; lastTime = t; }
-    html += rowHTML(ev, {list: "browse"});
-  });
-  html += `</ul>`;
-  html += hiddenForQueryHTML(results);
-  if (!results.length) html += `<div class="empty"><b>No matches.</b> Try fewer or different words, another day, or turn off the photo/video filter.</div>`;
-  if (results.length > shown.length) html += `<button class="btn quiet more" data-act="more-browse">Show ${Math.min(PAGE, results.length - shown.length)} more of ${results.length - shown.length}</button>`;
-  /* The search box is never rebuilt once it exists. Replacing a focused
-     input under an open iOS keyboard left the keyboard attached to a node
-     that was gone, and dismissing it then landed in the Fandom select. Only
-     what surrounds the box is redrawn; the box has its value kept in step
-     for the times the query is set by a chip rather than by typing. */
-  const view = document.getElementById("view-browse");
-  const q = document.getElementById("q"), rest = document.getElementById("browseRest");
-  if (q && rest) {
-    if (q.value !== b.q) q.value = b.q;
-    q.placeholder = index ? SEARCH_PLACEHOLDER : "indexing…";
-    q.classList.toggle("indexing", !index);
-    document.getElementById("dayChips").innerHTML = dayChips;
-    rest.innerHTML = html;
-  } else {
-    view.innerHTML = sticky + `<div id="browseRest">${html}</div>`;
-  }
-}
-
-/* ---- Explore ------------------------------------------------------- */
-
-const KIND_NOUN = {track: "Track", fandom: "Fandom", topic: "Topic", person: "Person"};
-
-/* Built once from the loaded schedule: everything you could follow, with how
-   many events each carries. Fandoms need 3+ to be worth a tile; people need
-   to be a celebrity guest or busy enough to be worth following. */
-let catalogue = null;
-function buildCatalogue() {
-  const tally = (get) => {
-    const m = new Map();
-    events.forEach(e => (get(e) || []).forEach(k => { if (k) m.set(k, (m.get(k) || 0) + 1); }));
-    return m;
-  };
-  const rank = m => [...m].map(([key, count]) => ({key, count}))
-    .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
-
-  const people = new Map(), celebs = new Set();
-  events.forEach(e => {
-    (e.speakers || []).forEach(p => {
-      const n = (p && p.name || "").trim();
-      if (!n) return;
-      people.set(n, (people.get(n) || 0) + 1);
-      if (isCeleb(e)) celebs.add(n);
-    });
-  });
-
-  /* Tracks are looked up by name, so they go A to Z, with the two noise
-     tracks last: sorted by count the page opened with Epic Photos, which
-     Search hides by default. Fandoms and topics keep count order - there the
-     number is the point. People split in two: guests by how busy they are,
-     panelists A to Z, because "6 events" says nothing about a name you don't
-     know. Both are still one kind of follow. */
-  const byName = (a, b) => a.key.localeCompare(b.key);
-  const person = rank(people).filter(t => celebs.has(t.key) || t.count >= 5);
-  catalogue = {
-    track: [...tally(e => e.tracks)].map(([key, count]) => ({key, count}))
-      .sort((a, b) => (NOISE_TRACKS.has(a.key) - NOISE_TRACKS.has(b.key)) || byName(a, b)),
-    fandom: rank(tally(e => (e.tags || {}).fandoms)).filter(t => t.count >= 3),
-    topic: rank(tally(e => (e.tags || {}).topics)),
-    person,
-    guest: person.filter(t => celebs.has(t.key)),
-    panelist: person.filter(t => !celebs.has(t.key)).sort(byName),
-  };
-  return catalogue;
-}
-const getCatalogue = () => catalogue || buildCatalogue();
-
-/* What the grid shows, in order. id names the list; kind is the follow. */
-const EXPLORE_SECTIONS = [
-  {id: "track", kind: "track", label: "Tracks"},
-  {id: "fandom", kind: "fandom", label: "Fandoms"},
-  {id: "topic", kind: "topic", label: "Topics"},
-  {id: "guest", kind: "person", label: "Guests"},
-  {id: "panelist", kind: "person", label: "Panelists"},
-];
-/* 657 tiles is thirty phone screens. Each section opens with its head and
-   a Show all; the filter box is the way to reach the tail by name. */
-const EXPLORE_HEAD = 12;
-
-/* Only the explore part of the hash is ours to rewrite; anything else in
-   it is left exactly as it was. */
-function setExploreHash(value) {
-  const rest = location.hash.replace(/^#/, "").split("&").filter(x => x && !x.startsWith("explore="));
-  const parts = value ? rest.concat("explore=" + encodeURIComponent(value)) : rest;
-  const h = parts.join("&");
-  history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
-}
-function readExploreHash() {
-  const m = location.hash.match(/explore=([^&]+)/);
-  if (!m) return null;
-  const raw = decodeURIComponent(m[1]);
-  const i = raw.indexOf(":");
-  if (i <= 0) return null;
-  const kind = raw.slice(0, i), key = raw.slice(i + 1);
-  return FOLLOW_KINDS.includes(kind) && key ? {kind, key} : null;
-}
-function openExplorePage(kind, key, keepScroll) {
-  if (!keepScroll) state.explore.scroll = pageScrollTop();
-  state.explore.page = {kind, key};
-  state.explore.showPast = false;
-  state.tab = "explore";
-  setExploreHash(`${kind}:${key}`);
-  render();
-  pageScrollTo(0);
-}
-function closeExplorePage() {
-  state.explore.page = null;
-  setExploreHash(null);
-  render();
-  pageScrollTo(state.explore.scroll || 0);
-}
-
-function tileHTML(kind, item) {
-  const on = isFollowing(kind, item.key);
-  return `<button class="tile${on ? " on" : ""}" data-explore="${esc(kind + ":" + item.key)}">
-    <span class="tile-name">${esc(item.key)}</span>
-    <span class="tile-meta">${on ? `<span class="tile-mark" aria-label="Following">&#9679;</span>` : ""}${item.count}</span>
-  </button>`;
-}
-
-function exploreSectionsHTML() {
-  const cat = getCatalogue();
-  const q = state.explore.q.trim().toLowerCase();
-  const match = list => q ? list.filter(t => t.key.toLowerCase().includes(q)) : list;
-  let html = "", any = false;
-  for (const sec of EXPLORE_SECTIONS) {
-    const items = match(cat[sec.id] || []);
-    if (!items.length) continue;
-    /* A filter shows every match; otherwise the head, until Show all. */
-    const open = !!q || !!state.explore.expanded[sec.id];
-    const shown = open ? items : items.slice(0, EXPLORE_HEAD);
-    html += `<div class="section-title" id="explore-${sec.id}">${sec.label} <span class="count">${items.length}</span></div>`;
-    /* Nothing followed yet, so no Following section to point at: say where it will appear. */
-    if (!any && !follows.length) html += `<div class="hint">Follow a track, fandom or person and it'll show up here.</div>`;
-    any = true;
-    html += `<div class="tiles">${shown.map(i => tileHTML(sec.kind, i)).join("")}</div>`;
-    if (shown.length < items.length) {
-      html += `<button class="btn quiet more" data-act="explore-all" data-section="${sec.id}">Show all ${items.length}</button>`;
-    }
-  }
-  if (!any) html += `<div class="empty"><b>Nothing matches.</b> Try fewer letters.</div>`;
-  return html;
-}
-
-function exploreJumpHTML() {
-  const cat = getCatalogue();
-  return `<div class="chips explore-jump" data-row="explore-jump" aria-label="Jump to a section">${EXPLORE_SECTIONS.map(sec => {
-    const n = (cat[sec.id] || []).length;
-    return n ? `<button class="chip" data-act="explore-jump" data-section="${sec.id}" aria-pressed="${state.explore.active === sec.id}">${sec.label} <span class="n">${n}</span></button>` : "";
-  }).join("")}</div>`;
-}
-
-/* Tracks, fandoms and guests behind the reader's own picks that they do not
-   follow yet, derived on every render. A starred photo session says
-   something about the guest, not the track, so the noise tracks stay out;
-   only things with a tile of their own are offered, so each has a page. */
-const SUGGEST_MAX = 6;
-function suggestedFollows() {
-  if (!picks.size) return [];
-  const cat = getCatalogue();
-  const lists = {track: cat.track, fandom: cat.fandom, person: cat.guest};
-  const tally = new Map();
-  const bump = (kind, key) => {
-    if (!key || isFollowing(kind, key)) return;
-    const item = lists[kind].find(t => t.key === key);
-    if (!item) return;
-    const id = `${kind}:${key}`;
-    const rec = tally.get(id) || {kind, key, count: item.count, picks: 0};
-    rec.picks++;
-    tally.set(id, rec);
-  };
-  picks.forEach(id => {
-    const e = byId.get(id);
-    if (!e) return;
-    (e.tracks || []).forEach(t => { if (!NOISE_TRACKS.has(t)) bump("track", t); });
-    ((e.tags || {}).fandoms || []).forEach(f => bump("fandom", f));
-    (e.speakers || []).forEach(p => bump("person", (p && p.name || "").trim()));
-  });
-  return [...tally.values()]
-    .sort((a, b) => b.picks - a.picks || b.count - a.count || a.key.localeCompare(b.key))
-    .slice(0, SUGGEST_MAX);
-}
-function suggestedHTML() {
-  const items = suggestedFollows();
-  if (!items.length) return "";
-  const n = picks.size;
-  return `<section class="suggested" id="suggested">
-    <div class="section-title">Because you starred <span class="count">${n} thing${n === 1 ? "" : "s"}</span></div>
-    <div class="hint">Tracks, fandoms and guests behind your picks that you don't follow yet.</div>
-    <div class="tiles">${items.map(r => tileHTML(r.kind, r)).join("")}</div>
-  </section>`;
-}
-
-function renderExploreGrid() {
-  document.getElementById("view-explore").innerHTML = `${followingHTML()}${suggestedHTML()}
-    <div class="controls controls-sticky">
-      <input class="search" type="search" id="exploreQ" placeholder="Filter tracks, fandoms, topics, people"
-        value="${esc(state.explore.q)}" autocomplete="off" aria-label="Filter what you can follow">
-      ${exploreJumpHTML()}
-    </div>
-    <div id="exploreGrid">${exploreSectionsHTML()}</div>`;
-  syncActiveSection();
-}
-
-/* The chip for the section on screen reads as pressed, like a day chip in
-   Search. The section on screen is the last one whose header has passed
-   the sticky block; above the first header nothing is pressed. */
-function pickActiveSection(headers, line, atEnd) {
-  /* The last section is usually too short to carry its header up to the
-     line before the page runs out of scroll, so at the end it is current. */
-  if (atEnd && headers.length) return headers[headers.length - 1].id;
-  let active = null;
-  for (const h of headers) if (h.top <= line) active = h.id;
-  return active;
-}
-function activeExploreSection() {
-  const box = document.querySelector("#view-explore .controls-sticky");
-  if (!box) return null;
-  const line = box.getBoundingClientRect().bottom + 1;
-  const headers = EXPLORE_SECTIONS.map(sec => {
-    const el = document.getElementById(`explore-${sec.id}`);
-    return el ? {id: sec.id, top: el.getBoundingClientRect().top} : null;
-  }).filter(Boolean);
-  const atEnd = scroller.scrollHeight > scroller.clientHeight
-    && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
-  return pickActiveSection(headers, line, atEnd);
-}
-function markActiveSection(id) {
-  const changed = state.explore.active !== id;
-  state.explore.active = id;
-  document.querySelectorAll('#view-explore [data-act="explore-jump"]')
-    .forEach(b => b.setAttribute("aria-pressed", String(b.dataset.section === id)));
-  if (changed && id) revealChip(document.querySelector(`#view-explore [data-act="explore-jump"][data-section="${id}"]`));
-}
-function syncActiveSection() {
-  if (state.tab !== "explore" || state.explore.page) return;
-  markActiveSection(activeExploreSection());
-}
-/* A tap marks its chip at once and holds it while the smooth scroll runs,
-   so the chips passed on the way do not flicker through. The hold is a
-   stopwatch, not a clock: a simulated time must not freeze it. */
-let spyQueued = false, spyHoldUntil = 0;
-
-/* Typing in the filter box redraws the tiles and nothing else. Rebuilding the
-   whole view would replace the input mid-word, and take the keyboard with it. */
-function renderExploreSections() {
-  const grid = document.getElementById("exploreGrid");
-  if (grid && !state.explore.page) grid.innerHTML = exploreSectionsHTML(); else renderExplore();
-}
-
-function smoothScrollTo(top) { pageScrollTo(top, true); }
-/* "+ Follow more" used to switch tabs; the tiles are now on the same page,
-   just below. Land the filter box where its sticky position would hold it. */
-function scrollToGrid() {
-  const box = document.querySelector("#view-explore .controls-sticky");
-  if (!box) return;
-  const hdr = parseFloat(document.documentElement.style.getPropertyValue("--hdr-h")) || 0;
-  smoothScrollTo(box.getBoundingClientRect().top + pageScrollTop() - hdr);
-}
-/* A section header lands just under the sticky filter block. */
-function scrollToExploreSection(id) {
-  const el = document.getElementById(`explore-${id}`);
-  const box = document.querySelector("#view-explore .controls-sticky");
-  if (!el) return;
-  const hdr = parseFloat(document.documentElement.style.getPropertyValue("--hdr-h")) || 0;
-  const stickyH = box ? box.getBoundingClientRect().height : 0;
-  smoothScrollTo(el.getBoundingClientRect().top + pageScrollTop() - hdr - stickyH);
-}
-
-function renderExplorePage() {
-  const {kind, key} = state.explore.page;
-  const all = eventsFor({kind, key});
-  const at = now();
-  const upcoming = all.filter(e => !isPast(e, at)), past = all.filter(e => isPast(e, at));
-  const on = isFollowing(kind, key);
-
-  let html = `<div class="explore-head">
-    <button class="back" data-act="explore-back" aria-label="Back to Explore">&#8592; Explore</button>
-    <div class="eh-kind">${KIND_NOUN[kind] || kind}</div>
-    <h2 class="eh-name">${esc(key)}</h2>
-    <div class="eh-count">${all.length} event${all.length === 1 ? "" : "s"}${past.length ? ` &middot; ${upcoming.length} still to come` : ""}</div>
-    <button class="btn follow-btn${on ? " on" : ""}" data-act="toggle-follow" aria-pressed="${on}">${on ? "Following" : "Follow"}</button>
-  </div>`;
-
-  const dayGroups = list => {
-    let out = "", lastDay = "";
-    list.forEach(ev => {
-      if (ev._cd !== lastDay) { out += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd}</li>`; lastDay = ev._cd; }
-      out += rowHTML(ev, {list: "explore"});
-    });
-    return out;
-  };
-
-  if (!all.length) {
-    html += `<div class="empty"><b>No events.</b> Nothing in the schedule matches this any more.</div>`;
-  } else {
-    if (upcoming.length) html += `<ul class="list">${dayGroups(upcoming)}</ul>`;
-    else html += `<div class="empty">Everything here has already happened.</div>`;
-    if (past.length) {
-      html += `<div class="divider fold"><button data-act="explore-past" aria-expanded="${state.explore.showPast}">Already happened (${past.length}) <span aria-hidden="true">${state.explore.showPast ? "▾" : "▸"}</span></button></div>`;
-      if (state.explore.showPast) html += `<ul class="list">${dayGroups(past)}</ul>`;
-    }
-  }
-  document.getElementById("view-explore").innerHTML = html;
-}
-
-function renderExplore() {
-  if (state.explore.page) renderExplorePage(); else renderExploreGrid();
-}
-
-/* ---- Following (the top of Explore) --------------------------------- */
-const FOLLOWING_PAGE = 8;
-
-function followChipsHTML() {
-  const chips = follows.map(f => `<span class="follow-chip">
-      <button class="fc-name" data-explore="${esc(followId(f))}">${esc(f.key)}</button>
-      <button class="fc-x" data-act="unfollow" data-follow="${esc(followId(f))}" aria-label="Unfollow ${esc(f.key)}">&times;</button>
-    </span>`).join("");
-  return `<div class="controls"><div class="chips follow-chips" data-row="follows">${chips}
-    <button class="chip fc-add" data-act="fol-add">+ Follow more</button>
-  </div></div>`;
-}
-
-function followingByInterest(now) {
-  let html = "";
-  follows.forEach(f => {
-    const id = followId(f);
-    const all = eventsFor(f);
-    const upcoming = all.filter(e => !isPast(e, now)), past = all.filter(e => isPast(e, now));
-    const expanded = !!state.following.expanded[id];
-    const shown = expanded ? upcoming : upcoming.slice(0, FOLLOWING_PAGE);
-    html += `<div class="section-title">${esc(f.key)} <span class="count">${KIND_NOUN[f.kind] || f.kind} &middot; ${upcoming.length} ${conEnded() ? "events" : "to come"}</span></div>`;
-    if (!upcoming.length) {
-      html += `<div class="empty">Nothing left today or later.</div>`;
-    } else {
-      html += `<ul class="list">${shown.map(ev => rowHTML(ev, {list: `fol:${id}`, showDay: true})).join("")}</ul>`;
-      if (upcoming.length > shown.length) {
-        html += `<button class="btn quiet more" data-act="fol-more" data-follow="${esc(id)}">Show ${upcoming.length - shown.length} more</button>`;
-      }
-    }
-    if (past.length) {
-      const open = !!state.following.showPast[id];
-      html += `<div class="divider fold"><button data-act="fol-past" data-follow="${esc(id)}" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
-      if (open) html += `<ul class="list">${past.map(ev => rowHTML(ev, {list: `folp:${id}`, showDay: true})).join("")}</ul>`;
-    }
-  });
-  return html;
-}
-
-function followingByTime(now) {
-  /* One row per event, however many follows brought it here - the labels say
-     which, so a panel matched by two interests is not listed twice. */
-  const seen = new Map();
-  follows.forEach(f => eventsFor(f).forEach(e => {
-    if (!seen.has(e.id)) seen.set(e.id, {ev: e, labels: []});
-    const rec = seen.get(e.id);
-    if (!rec.labels.includes(f.key)) rec.labels.push(f.key);
-  }));
-  const rows = [...seen.values()].sort((a, b) => a.ev._s - b.ev._s);
-  const upcoming = rows.filter(r => !isPast(r.ev, now)), past = rows.filter(r => isPast(r.ev, now));
-
-  const group = list => {
-    let out = "", lastDay = "", lastTime = "";
-    list.forEach(({ev, labels}) => {
-      const dk = conDayKey(ev._s);
-      if (dk !== lastDay) { out += `<li class="day-head">${DAY_LONG[dk] || dk}</li>`; lastDay = dk; lastTime = ""; }
-      const t = fmtShort(ev._s);
-      if (t !== lastTime) { out += `<li class="time-head">${t}</li>`; lastTime = t; }
-      out += rowHTML(ev, {list: "foltime", labels});
-    });
-    return out;
-  };
-
-  let html = "";
-  if (!upcoming.length) html += `<div class="empty">Nothing left today or later from what you follow.</div>`;
-  else html += `<ul class="list">${group(upcoming)}</ul>`;
-  if (past.length) {
-    const open = !!state.following.showPast.__time;
-    html += `<div class="divider fold"><button data-act="fol-past" data-follow="__time" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
-    if (open) html += `<ul class="list">${group(past)}</ul>`;
-  }
-  return html;
-}
-
-/* Only there when there is something to show; with no follows the grid
-   carries a one-line hint instead. Closed, the feed is not built at all. */
-function followingHTML() {
-  if (!follows.length) return "";
-  const open = state.following.open !== false;
-  let body = "";
-  if (open) {
-    const l = state.following.layout;
-    body = followChipsHTML() + `<div class="view-toggle" role="group" aria-label="Layout">
-      <button data-act="fol-interest" aria-pressed="${l === "interest"}">By interest</button>
-      <button data-act="fol-time" aria-pressed="${l === "time"}">By time</button>
-    </div>` + (l === "time" ? followingByTime(now()) : followingByInterest(now()));
-  }
-  return `<section class="following" id="following">
-    <button class="fol-head" data-act="fol-toggle" aria-expanded="${open}" aria-controls="folBody">
-      Following <span class="count">(${follows.length})</span><span class="caret" aria-hidden="true">${open ? "▾" : "▸"}</span>
-    </button>
-    <div id="folBody"${open ? "" : " hidden"}>${body}</div>
-  </section>`;
-}
-
-/* ---- Mine --------------------------------------------------------- */
-/* Side-by-side columns for anything that overlaps in time. Events are
-   grouped into clusters that genuinely collide, and each cluster is
-   given only as many columns as it actually needs. */
-const HOUR_PX = 60;
-function layoutColumns(list) {
-  const sorted = [...list].sort((a, b) => a._s - b._s || a._e - b._e);
-  const out = [];
-  let cluster = [], clusterEnd = null;
-  const flush = () => {
-    if (!cluster.length) return;
-    const colEnds = [];
-    cluster.forEach(it => {
-      let c = colEnds.findIndex(end => end <= it.ev._s.getTime());
-      if (c === -1) { c = colEnds.length; colEnds.push(0); }
-      colEnds[c] = it.ev._e.getTime();
-      it.col = c;
-    });
-    cluster.forEach(it => it.cols = colEnds.length);
-    out.push(...cluster);
-    cluster = []; clusterEnd = null;
-  };
-  sorted.forEach(ev => {
-    if (clusterEnd !== null && ev._s.getTime() >= clusterEnd) flush();
-    cluster.push({ev, col: 0, cols: 1});
-    clusterEnd = clusterEnd === null ? ev._e.getTime() : Math.max(clusterEnd, ev._e.getTime());
-  });
-  flush();
-  return out;
-}
-
-function timelineDayHTML(dayKey, list, now) {
-  const items = layoutColumns(list);
-  const sorted = items.map(i => i.ev).sort((a, b) => a._s - b._s);
-  const startMs = Math.min(...sorted.map(e => e._s.getTime()));
-  const endMs = Math.max(...sorted.map(e => e._e.getTime()));
-  const origin = new Date(startMs); origin.setMinutes(0, 0, 0);
-  const last = new Date(endMs);
-  if (last.getMinutes() || last.getSeconds()) { last.setMinutes(0, 0, 0); last.setHours(last.getHours() + 1); }
-  const spanH = Math.max(1, Math.round((last - origin) / 3600000));
-  const top = t => ((t - origin) / 60000) * (HOUR_PX / 60);
-
-  let hours = "";
-  for (let h = 0; h <= spanH; h++) {
-    const at = new Date(origin.getTime() + h * 3600000);
-    hours += `<div class="tl-hour" style="top:${h * HOUR_PX}px"><span>${fmtShort(at)}</span></div>`;
-  }
-
-  const blocks = items.map(({ev, col, cols}) => {
-    const h = Math.max(24, top(ev._e.getTime()) - top(ev._s.getTime()) - 2);
-    const w = 100 / cols;
-    const long = h >= 150;
-    return `<button class="tl-block${long ? " long" : ""}" data-hero="${esc(ev.id)}" style="top:${top(ev._s.getTime()).toFixed(1)}px;height:${h.toFixed(1)}px;left:${(col * w).toFixed(2)}%;width:calc(${w.toFixed(2)}% - 3px);--h:var(${hotelVar(ev.hotel)})">
-      <span class="tb-title">${esc(ev.title)}</span>
-      <span class="tb-room">${esc(ev.room || ev.location || "")}</span>
-      ${long ? `<span class="tb-runs">runs to ${fmtShort(ev._e)}</span>` : ""}
-    </button>`;
-  }).join("");
-
-  let links = "";
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1], next = sorted[i];
-    if (prev.hotel === next.hotel) continue;
-    const walk = walkMin(prev.hotel, next.hotel);
-    const gap = minutesBetween(prev._e, next._s);
-    const y1 = top(prev._e.getTime()), y2 = top(next._s.getTime());
-    const height = Math.max(18, y2 - y1);
-    links += `<div class="tl-link${gap < walk ? " tight" : ""}" style="top:${Math.min(y1, y2).toFixed(1)}px;height:${height.toFixed(1)}px">
-      <span>${walk} min</span></div>`;
-  }
-
-  const nowLine = conDayKey(now) === dayKey && now >= origin && now <= last
-    ? `<div class="tl-now" style="top:${top(now.getTime()).toFixed(1)}px"></div>` : "";
-
-  return `<div class="tl-day">
-    <div class="day-head" style="padding-left:0">${DAY_LONG[dayKey] || dayKey} <span class="count" style="font-size:.875rem;color:var(--dim);font-weight:400">${list.length}</span></div>
-    <div class="tl-grid" style="height:${spanH * HOUR_PX + 12}px">${hours}${links}${blocks}${nowLine}</div>
-  </div>`;
-}
-
-function renderMineTimeline(mine, now) {
-  const days = new Map();
-  mine.forEach(ev => {
-    const k = conDayKey(ev._s);
-    if (!days.has(k)) days.set(k, []);
-    days.get(k).push(ev);
-  });
-  return [...days.keys()].sort().map(k => timelineDayHTML(k, days.get(k), now)).join("");
-}
-
-function renderMine() {
-  const mine = events.filter(e => picks.has(e.id));
-  let html = pickNewsHTML() + `<div class="mine-actions">
-    <button class="btn" data-act="ics" ${mine.length ? "" : "disabled"}>Export to calendar</button>
-    <button class="btn quiet" data-act="clear" ${mine.length ? "" : "disabled"}>Remove all</button>
-  </div>`;
-  if (mine.length) html += `<div class="view-toggle" role="group" aria-label="View">
-    <button data-act="view-timeline" aria-pressed="${state.mineView === "timeline"}">Timeline</button>
-    <button data-act="view-list" aria-pressed="${state.mineView === "list"}">List</button>
-  </div>`;
-  if (!mine.length) {
-    html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Search. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
-  } else if (state.mineView === "timeline") {
-    html += renderMineTimeline(mine, now());
-  } else {
-    html += `<ul class="list">`;
-    let lastDay = "", prev = null;
-    mine.forEach(ev => {
-      if (ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd} <span class="count" style="font-size:.875rem;color:var(--dim);font-weight:400">${mine.filter(x => x._cd === ev._cd).length}</span></li>`; lastDay = ev._cd; prev = null; }
-      html += gapHTML(prev, ev) + rowHTML(ev, {list: "mine"});
-      prev = ev;
-    });
-    html += `</ul>`;
-  }
-  document.getElementById("view-mine").innerHTML = html;
-  fitTimelineBlocks();
-}
-
-/* Measured, so it only acts where it has to; jsdom reports no heights and
-   leaves every block alone. */
-function fitTimelineBlocks() {
-  document.querySelectorAll("#view-mine .tl-block").forEach(b => {
-    b.classList.remove("tight", "tighter");
-    if (b.scrollHeight > b.clientHeight + 1) b.classList.add("tight");
-    if (b.scrollHeight > b.clientHeight + 1) b.classList.add("tighter");
-  });
-}
-
 /* ==================================================================
    Events (the DOM kind)
    ================================================================== */
@@ -1300,23 +255,6 @@ function togglePick(id, anchor) {
   const delta = el.getBoundingClientRect().top - wasTop;
   if (Math.abs(delta) > 1) pageScrollBy(delta);
 }
-const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
-
-/* Long enough to swallow a burst of typing, short enough not to feel laggy.
-   Chip and suggestion taps do not go through this; they draw at once. */
-const SEARCH_DEBOUNCE_MS = 70;
-let browseRenderTimer = null;
-function queueBrowseRender() {
-  clearTimeout(browseRenderTimer);
-  browseRenderTimer = setTimeout(() => {
-    browseRenderTimer = null;
-    const rows = chipRowsSnapshot();
-    renderBrowse();
-    chipRowsRestore(rows);
-  }, SEARCH_DEBOUNCE_MS);
-}
-/* Anything that redraws for another reason should not then redraw again. */
-function cancelQueuedBrowseRender() { clearTimeout(browseRenderTimer); browseRenderTimer = null; }
 
 /* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
 const sheetWrap = document.getElementById("sheetWrap");
@@ -1421,40 +359,6 @@ function settle(toClosed) {
   }
 }
 
-function applyExploreHash() {
-  const target = readExploreHash();
-  if (target) { state.tab = "explore"; state.explore.page = target; state.explore.showPast = false; }
-  else if (state.explore.page) state.explore.page = null;
-}
-
-/* A minute changes the countdowns, not usually the list. Rebuilding the whole
-   Now tab every 60s threw away and recreated every node under the reader's
-   thumb; this redraws the hero and the "in N min" labels and leaves the rest
-   alone, falling back to a full render the moment the structure really moves. */
-function tickNow() {
-  if (conEnded()) { if (lastNowSig !== ARCHIVE_SIG) renderNow(); return; }
-  const {now, banner} = effectiveNow();
-  const model = nowModel(now);
-  const sig = nowSignature(model, now, banner);
-  if (sig !== lastNowSig || !document.querySelector("#view-now .hero, #view-now .empty")) { renderNow(); return; }
-
-  const view = document.getElementById("view-now");
-  const heroEl = view.querySelector(".hero");
-  if (heroEl && model.heroEv) {
-    const holder = document.createElement("div");
-    holder.innerHTML = heroHTML(model.heroEv, now, !!model.onNowEv, model.onNowEv ? model.upcoming[0] : null);
-    const fresh = holder.firstElementChild;
-    /* A countdown reading "2h" says the same thing a minute later; swapping the
-       card anyway would drop a tap that happened to land on the tick. */
-    if (fresh && fresh.outerHTML !== heroEl.outerHTML) heroEl.replaceWith(fresh);
-  }
-  model.rest.forEach(ev => {
-    const el = view.querySelector(`.row[data-list="next"][data-id="${cssEsc(ev.id)}"] .status`);
-    if (!el) return;
-    el.textContent = ev._s <= now ? `On now, ends ${fmtShort(ev._e)}` : `In ${minutesBetween(now, ev._s)} min`;
-  });
-}
-
 /* The sticky filters park directly under the header, whose height changes
    with the clock and the freshness line - measure it rather than guess. */
 function syncHeaderHeight() {
@@ -1467,34 +371,6 @@ function syncHeaderHeight() {
    Offline. The service worker keeps the app openable with no signal;
    this end only has to handle being told the schedule moved on.
    ================================================================== */
-/* Installing is the point for someone who arrived from a chat link: the
-   app works with no signal only once it is on the home screen. So the Now
-   tab opens with a nudge until the app is installed, dismissible for a week
-   at a time. No user-agent sniffing: one honest iOS message covers Safari
-   and the in-app browsers, and Android gets the real install prompt when
-   the browser offers one. */
-const NUDGE_SNOOZE_MS = 7 * 24 * 3600 * 1000;
-let installPrompt = null;
-function nudgeVisible() {
-  if (isStandalone()) return false;
-  const until = loadJSON("dc26.nudgeSnoozedUntil", 0);
-  return !(until && now().getTime() < until);
-}
-function nudgeCopy(ios, canPrompt) {
-  if (ios) return {
-    lead: "Add this to your home screen.",
-    body: "In Safari: Share, then Add to Home Screen. If you opened this from a chat, tap the menu (the dots or the compass) and choose Open in Safari first. Once installed it works with no signal.",
-    install: false,
-  };
-  if (canPrompt) return {lead: "Install this app.", body: "It opens like an app and works with no signal.", install: true};
-  return {lead: "Add this to your home screen.", body: "From the menu (the three dots): Install app, or Add to Home screen. Once installed it works with no signal.", install: false};
-}
-function nudgeHTML() {
-  if (!nudgeVisible()) return "";
-  const c = nudgeCopy(IS_IOS, !!installPrompt);
-  return `<div class="notice nudge" id="nudge"><b>${esc(c.lead)}</b> ${esc(c.body)}
-    <div class="btns">${c.install ? `<button class="btn" data-act="nudge-install">Install app</button>` : ""}<button class="btn quiet" data-act="nudge-later">Not now</button></div></div>`;
-}
 
 /* main scrolls and bounces on its own; the page around it never scrolls,
    yet iOS will still rubber-band it when a drag lands on the header or the
@@ -1590,6 +466,7 @@ async function recheckSchedule() {
    promise.
    ================================================================== */
 export function boot({events: data, reload: reloadWith} = {}) {
+  setRenderer(render);         // first: a view asks for a redraw over the bus, and it throws until this has run
   if (reloadWith) reload = reloadWith;
 
   document.documentElement.classList.toggle("bigtext", !!loadJSON("dc26.bigtext", false));
@@ -1597,10 +474,9 @@ export function boot({events: data, reload: reloadWith} = {}) {
   initTimeOverride();
 
   scroller.addEventListener("scroll", () => {
-    if (spyQueued) return;
-    spyQueued = true;
+    if (!queueSpy()) return;
     requestAnimationFrame(() => {
-      spyQueued = false;
+      spyDone();
       if (performance.now() < spyHoldUntil) return;
       syncActiveSection();
     });
@@ -1653,14 +529,14 @@ export function boot({events: data, reload: reloadWith} = {}) {
       if (a === "dismiss-archive") { saveJSON(ARCHIVE_NOTICE_KEY, CON.year); render(); return; }
       if (a === "nudge-later") { saveJSON("dc26.nudgeSnoozedUntil", now().getTime() + NUDGE_SNOOZE_MS); render(); return; }
       if (a === "nudge-install") {
-        if (installPrompt) { const p = installPrompt; installPrompt = null; p.prompt(); }
+        const p = takeInstallPrompt(); if (p) p.prompt();
         return;
       }
       if (a === "explore-back") { closeExplorePage(); return; }
       if (a === "fol-add") { scrollToGrid(); return; }
       if (a === "explore-jump") {
         markActiveSection(act.dataset.section);
-        spyHoldUntil = performance.now() + 700;
+        holdSpyUntil(performance.now() + 700);
         scrollToExploreSection(act.dataset.section);
         return;
       }
@@ -1872,8 +748,8 @@ export function boot({events: data, reload: reloadWith} = {}) {
     if (hdr) new ResizeObserver(syncHeaderHeight).observe(hdr);
   }
 
-  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; if (state.tab === "now") render(); });
-  window.addEventListener("appinstalled", () => { installPrompt = null; render(); });
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); setInstallPrompt(e); if (state.tab === "now") render(); });
+  window.addEventListener("appinstalled", () => { clearInstallPrompt(); render(); });
 
   if (IS_IOS) {
     document.addEventListener("touchstart", edgeTouchStart, {passive: true});
@@ -1954,12 +830,9 @@ export function boot({events: data, reload: reloadWith} = {}) {
    through boot()'s handle - and nor is reloadNow, which the reload option
    replaces. */
 export {
-  closeSheet, edgeTouchMove, edgeTouchStart, hiddenForQueryHTML, hideUpdatePill, indexReady,
-  layoutColumns, mapCardHTML, mapDay, markActiveSection, nowModel, nowSignature, nudgeCopy,
-  openExplorePage, openSheet, pageScrollBy, pageScrollTo, pickActiveSection, queueBrowseRender,
-  readExploreHash, recheckSchedule, render, renderBrowse, renderExplore, renderMap,
-  renderMiniBar, renderNotice, renderNow, revealChip, setDrag, setExploreHash, setTimeOverride,
-  showUpdatePill, tickMap, tickNow, togglePick, updateClock, updateFresh,
+  closeSheet, edgeTouchMove, edgeTouchStart, hideUpdatePill, indexReady, openSheet,
+  recheckSchedule, render, renderMiniBar, renderNotice, setDrag, setTimeOverride, showUpdatePill,
+  togglePick, updateClock, updateFresh,
 
-  BOOT, EXPLORE_HEAD, getCatalogue, HOUR_PX, MAP_HOTELS, pageScrollTop, SEARCH_DEBOUNCE_MS,
+  BOOT,
 };

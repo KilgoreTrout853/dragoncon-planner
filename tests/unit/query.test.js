@@ -2,7 +2,7 @@
    assertion came from (tests/PORT-LEDGER.md); 2089 onwards sat in the
    harness's real-data section but need no data. */
 import { describe, expect, it } from "vitest";
-import { SEARCH_DEBOUNCE_MS } from "../../src/app.js";
+import { SEARCH_DEBOUNCE_MS } from "../../src/browse.js";
 import { expandQuery, SEARCH_PLACEHOLDER, STOPWORDS, termQuality } from "../../src/search.js";
 
 describe("the search box", () => {
