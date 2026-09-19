@@ -294,6 +294,10 @@ again against `dist/`. The modular app exposes an explicit
 `boot({events, now})` so tests inject data and clock directly instead of
 string-replacing `<script>`. Playwright is deferred; the trigger is the
 first change to `sw.js`, when jsdom can no longer see what is changing.
+2026-09-19: the last two rules over source text that ESLint could take -
+no code scrolls the window, nothing decides by hostname - moved from
+`tests/rules/source.test.js` into `eslint.config.js`, as selectors under the
+`no-restricted-syntax` rule that holds the clock guard; still three rules.
 **Why:** Vitest reads the Vite config, so tests import `src/` the way the
 app does. `no-undef` catches the number-one error of splitting a
 global-scope file — a function used in one module that now lives in
@@ -420,3 +424,59 @@ drawing tool that shows the plan as an underlay; #21's renamed-room failure
 mode now also covers moved partitions. The map needs one persistent SVG
 mutated in place rather than the innerHTML rebuild in `src/app.js` — a
 constraint on step 4's module split.
+
+### 29. Module order and the bus — Standing (2026-09-19)
+**Decided:** The client's modules stand in one order, and `src/boot.js` is
+its root. The order is the array `ORDER` in `tests/rules/imports.test.js` -
+the fourteen leaves, then `scroll` and the `bus`, the five views, then
+`sheet`, `loading`, `shell` and `dispatch` - and a module imports only npm
+packages and the modules before it. No module imports `boot.js`, which
+imports any of them and is imported by `src/main.js` alone; `dispatch` is
+last, and only the root imports it. A module that has to change another
+module's `let` calls a function the owner exports for it (`replacePicks()`,
+`setOverride()`, `setReload()` and eight more today); it never reaches for
+the binding. One call goes upward, `render()`, and it goes over the bus: a
+module below the shell calls `requestRender()`, which calls straight
+through, synchronously, to the function `boot()` registered first. Nothing
+else crosses upward, by the bus or any other way; what two modules both
+need goes below both, as the header's measurement went to `scroll`. A new
+module goes into the order at the lowest place that satisfies its imports.
+A module exports what another module imports from it and what a test
+reaches by name, and nothing more. A handler lives in the module that owns
+the state it writes, or in `dispatch` when it spans modules. `boot()`
+writes no handler: it registers each by name, in a fixed order, because
+listeners on one element fire in the order they were added.
+**Why:** With one order there is no cycle, so no module can meet a binding
+before it is initialised, the order of the `import` lines never matters,
+and any module can be imported alone in a test. ES modules make an imported
+binding read-only, so the write has to be the owner's; one named function
+per write says who may make it. `render()` is the one thing everything
+below the shell needs from above it, and a synchronous call-through keeps
+what always followed the draw - the scroll put back, a measurement -
+following it. The lowest place keeps a module from acquiring dependencies
+it does not have, and keeps the next one's choices open. An export list
+held to what is used is the module's interface and its share of the test
+coupling, and nothing to look through. A handler beside the state it writes
+needs no function to write it, and a `boot()` that only registers reads,
+top to bottom, as the page's wiring. Step 4c's three slices were made under
+these rules; this writes them down for the code that comes after.
+**Enforced by:** `tests/rules/imports.test.js`, four tests: only `main.js`
+imports `boot.js`; a module imports only npm dependencies and the modules
+before it; every file under `src/` is `boot.js`, `main.js` or a module in
+the list, so a new module fails until it is given a place; only the root
+imports `dispatch.js`. `tests/unit/bus.test.js`, two: the bus throws before
+it is wired, and calls through then and there once it is. The write rule is
+the language's and the bundler's: an assignment to an import is a
+`TypeError` when it runs, and Rolldown refuses to build it
+(`ASSIGN_TO_IMPORT`), so `tests/build.test.js` fails. The rest is held by
+review: the tests stop an upward import, not a second bus, and accept any
+legal place, not only the lowest; nothing checks an export list against its
+users, where a handler lives, or the order `boot()` registers in -
+`tools/split/partition.js` checked that last while the split ran, and went
+with it (`docs/SPLIT-MANIFEST.md`).
+**Cost:** A line in a test's array for every new module. Eleven small
+functions that exist only because a `let` has an owner. A redraw asked for
+from below costs an indirection, and throws if it is asked for before
+`boot()` has run. The order is a list in a test file, which is an odd place
+to look for an architecture; ARCHITECTURE.md repeats it and has to be kept
+in step.

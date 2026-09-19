@@ -1,8 +1,30 @@
 # Split manifest
 
-A working document for the module split (DECISIONS #23, #24; plan step 4c):
-for each slice, the plan, and then its as-built record. The docs slice
-decides whether it stays in the repo. Three parts, and the split is done:
+**A record, not a reference.** The module split (plan step 4c) is finished.
+It ran in three slices, merged into `next` as #14 (`9b27a26`), #15
+(`8bdd2ba`) and #16 (`8bbe753`). The code is the truth: for what the client
+is, read `docs/ARCHITECTURE.md`; for the order, `tests/rules/imports.test.js`;
+for the rules that outlived the split, DECISIONS #29. This file is how the
+code got there - each slice's plan as it was reviewed, then what was built -
+and it is kept because the reason for a placement is written here and
+nowhere else. It is not maintained. Its line numbers are those of a file
+that no longer exists (`src/app.js`, which became `src/boot.js`), and a name
+may have moved since.
+
+The tools it describes, `tools/split/` - the scope-aware parser,
+`handlers.js`, `where.js`, `move.js`, `imports.js`, `partition.js` - were
+deleted when the split was done. They were last present at `8bbe753`:
+`git show 8bbe753:tools/split/README.md` has a line on each, and
+`git checkout 8bbe753 -- tools/split` brings them back if a partition ever
+needs checking again.
+
+One correction. "The scroll-spy test" says no page test fired a scroll on
+`main` before it. One did: `tests/page/time.test.js` already checked the
+700 ms hold and the resume, under fake timers. What `tests/page/spy.test.js`
+added is the gate - one frame for a burst of events, and its reopening.
+
+What follows is as it was written (DECISIONS #23, #24; plan step 4c): for
+each slice, the plan, and then its as-built record. Three parts:
 
 - **[Leaves](#leaves)** - as built. Fourteen modules that need nothing from
   `src/app.js`; merged in #14.
