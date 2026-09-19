@@ -31,6 +31,7 @@ import {
   chipRowsRestore, chipRowsSnapshot, cssEsc, pageScrollBy, pageScrollTo, pageScrollTop,
   revealChip, scroller,
 } from "./scroll.js";
+import { setRenderer } from "./bus.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
@@ -1554,6 +1555,7 @@ async function recheckSchedule() {
    promise.
    ================================================================== */
 export function boot({events: data, reload: reloadWith} = {}) {
+  setRenderer(render);         // first: a view asks for a redraw over the bus, and it throws until this has run
   if (reloadWith) reload = reloadWith;
 
   document.documentElement.classList.toggle("bigtext", !!loadJSON("dc26.bigtext", false));
