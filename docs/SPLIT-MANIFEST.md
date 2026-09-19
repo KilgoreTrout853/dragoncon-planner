@@ -965,12 +965,16 @@ ones the review did not raise.
 
 Also decided: the imports rule test is in; `tests/PORT-LEDGER.md` is not
 touched; `docs/ARCHITECTURE.md` gets the surgical edits of commit 15 and no
-more. That leaves these sentences of ARCHITECTURE.md untrue until the rewrite:
+more. That left these sentences of ARCHITECTURE.md untrue:
 "The client"'s opening ("One script. Everything below is in `src/app.js`,
 which is still a single file"), the last sentence of its Time paragraph (the
 rules test that guarded #12 is gone; ESLint guards it), and the list of consts
 in "Boot order" that importing `src/app.js` fills (`settings`, `picks`,
-`state` and `BUILD`, `IS_IOS` now belong to leaves).
+`state` and `BUILD`, `IS_IOS` now belong to leaves). A follow-up commit on
+the same branch, asked for by the review of step two, fixed those three, the
+repo-map rows and the Rules paragraph that said the rules read `src/app.js`
+alone, and the size of app.js's export list (45, not 97). The rewrite is
+still a later PR.
 
 ## Amended during execution
 

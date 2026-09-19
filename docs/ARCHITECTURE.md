@@ -43,8 +43,8 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
 | `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
-| `tests/unit/` | Vitest: the pure exports of `src/app.js`, imported with no page. |
-| `tests/rules/` | Vitest: rules over the text of `src/styles.css` and `src/app.js`. |
+| `tests/unit/` | Vitest: pure exports, imported by name from the module that holds them, with no page. |
+| `tests/rules/` | Vitest: rules over the text of `src/styles.css` and of every module under `src/`, and over the module graph (`imports.test.js`). |
 | `tests/real-data.test.js` | Vitest: search quality and Explore against the real `data/2026/events.json`. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, and a smoke that boots the built page. The only test that executes `dist/`. |
 | `tests/PORT-LEDGER.md` | Where each of the old smoke harness's 817 assertions went, and how. |
@@ -91,9 +91,12 @@ together. `--all` retags everything.
 
 ## The client
 
-One script. Everything below is in `src/app.js`, which is still a single
-file: importing it declares the app, and `boot()` starts it (see Boot
-order). The markup it drives is in `index.html` and the CSS in
+One program in fifteen modules. `src/app.js` holds the views, the shell and
+`boot()`; the fourteen leaves hold what those stand on - helpers, storage,
+the device, the stamp, state, the clock, venues, the schedule, picks,
+follows, the calendar export, leave-by, search and shared markup. Importing
+`app.js` imports them all and declares the app, and `boot()` starts it (see
+Boot order). The markup it drives is in `index.html` and the CSS in
 `src/styles.css`.
 
 **Tabs:** `now`, `browse`, `explore`, `map`, `mine` are the `data-tab` ids
@@ -107,8 +110,9 @@ simulated clock, mirrored to `sessionStorage` (`dc26.timeOverride`, or
 `dc26.timeOverride.<channel>` on a stamped build) so it survives navigation
 but not a new tab. `isSimulated()` shows a chip. `conPhase()` returns
 `preview | live | ended` from `now()` and drives the pre-con banner, the
-live Now tab, and archive mode. `tests/rules/source.test.js` fails on any
-`new Date()` or `Date.now()` outside the Time section.
+live Now tab, and archive mode. All of it is in `src/time.js`, the one file
+ESLint lets read the clock: a bare `new Date()` or `Date.now()` anywhere
+else under `src/` fails `npm run lint`.
 
 **Picks.** A `Set` of event ids, persisted as `dc26.picks`. On load,
 `reconcilePicks()` compares each pick against a stored snapshot: a pick
@@ -135,11 +139,14 @@ fandoms). Query intent parsing turns day/hotel/kind/time words into filters.
 **Other stored keys:** `dc26.bigtext` (larger-text toggle; all sizes outside
 the map SVG are in `rem`), `dc26.archiveNoticeDismissed` (per year).
 
-**Boot order.** `src/app.js` exports `boot({events, reload})`. Importing the
-module runs nothing but its declarations and the consts that read
-`localStorage` and the DOM (`settings`, `picks`, `state`, `scroller`, the
-sheet elements, `updatePill`, `BUILD`, `IS_IOS`), which is why `src/main.js`
-imports it after the markup exists. `main.js` then calls `boot()`, once,
+**Boot order.** `src/app.js` exports `boot({events, reload})`. Importing it
+imports the leaves first, and runs nothing but declarations and the consts
+that read `localStorage`, the DOM and `navigator`: in the leaves `IS_IOS`
+(`platform`), `BUILD` (`build`), `settings` and `state` (`state`), `picks`
+with its snapshots and news (`picks`) and `follows` (`follows`); in `app.js`
+itself `scroller`, the sheet elements and `updatePill`. That is why
+`src/main.js` imports it after the markup exists.
+`main.js` then calls `boot()`, once,
 with no options: the page fetches its own schedule. `boot()` applies the saved text
 size, inserts the dev-build mark, reads the time override, registers every
 listener, timer and observer in the order the one-file script did - listeners
@@ -157,9 +164,10 @@ internals: `state`, `render`, `now`, `setTimeOverride`, `picks` and `follows`
 (each `get`/`set`), `news` (`set`/`clear`), live `meta` and `events` getters,
 `BOOT`, `reconcilePicks`, `recheckSchedule`, `openSheet`, `closeSheet`, and
 `ready`, which is `load()`'s promise. One `export` list at the end of the
-file names the functions and consts the tests import by name (97 today, the
-set the old smoke harness reached through `window.eval`): the inventory of
-test coupling, pruned as functions move to modules of their own.
+file names the functions and consts still in it that the tests reach by name
+(45 today, of the 97 the old smoke harness reached through `window.eval`;
+the rest moved and are exported by their leaves): the inventory of test
+coupling, pruned as functions move to modules of their own.
 
 ## Offline
 
@@ -271,9 +279,11 @@ they reach may read the document as it is imported: `time.js` imports
 `build.js`, which looks for the stamps.
 
 **Rules** (`tests/rules/`) are regexes over the text of `src/styles.css` and
-`src/app.js`: declarations a page in jsdom cannot show, since jsdom computes
-no layout. Each source rule names what is to replace it (ESLint in PR 5, or
-Playwright).
+of every module under `src/`, read one after another: declarations a page
+in jsdom cannot show, since jsdom computes no layout. Each source rule names
+what is to replace it (ESLint in PR 5, or Playwright). `imports.test.js`
+reads the module graph instead: only `main.js` imports `app.js`, and a leaf
+imports only npm packages and the leaves before it.
 
 **`tests/build.test.js`** runs the real `vite build` into temp folders: a
 stamped build, an unstamped one, the default build id, a refused channel,
