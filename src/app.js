@@ -1,4 +1,5 @@
 import MiniSearch from "minisearch";
+import { dayOf, esc, fmt, fmtMins, fmtShort, minutesBetween, pad, toDate } from "./util.js";
 /* ==================================================================
    Data & constants
    ================================================================== */
@@ -226,13 +227,6 @@ function eventsFor(follow) {
     default: return [];
   }
 }
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const pad = n => String(n).padStart(2, "0");
-const toDate = iso => new Date(iso);              // "2026-09-05T11:30" parses as local time
-function fmt(d) { let h = d.getHours(), m = d.getMinutes(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return {t: `${h}:${pad(m)}`, ap}; }
-function fmtShort(d) { const f = fmt(d); return `${f.t} ${f.ap}`; }
-function minutesBetween(a, b) { return Math.round((b - a) / 60000); }
-/* "310 min" is a number, "5 h 10 min" is a plan. */
 /* The source marks offsite venues with a leading "O ": "O Joystick Gamebar".
    The scraper now drops it; this covers data scraped before it did. */
 function cleanRoom(hotel, room) {
@@ -253,11 +247,6 @@ function placeHTML(ev) {
   const room = String(ev.room || "").trim();
   return `<span class="rh">${esc(hotelShort(ev.hotel))}</span>${room ? ` · <span class="rr">${esc(room)}</span>` : ""}`;
 }
-function fmtMins(m) {
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60), r = m % 60;
-  return r ? `${h} h ${r} min` : `${h} h`;
-}
 function walkMin(a, b) {
   if (!a || !b || a === "Streaming" || b === "Streaming") return 0;
   if (a === b) return Math.round(5 * settings.crowd);
@@ -273,8 +262,6 @@ const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
 const hotelGroup = h => HOTEL_GROUP[h] || h;
 /* A chip value is a venue or a group of them; "All" is everything. */
 const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hotel) === v;
-
-function dayOf(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 
 /* ==================================================================
    Build. main publishes straight from the branch: the source carries empty
@@ -2767,23 +2754,24 @@ export function boot({events: data, reload: reloadWith} = {}) {
   };
 }
 
-/* The test surface: every function and const the smoke harness reaches by
-   name. It reaches them through window.eval on the built page, where they
-   are the script's top-level names; this list is that coupling written
-   down. The lets are not here - a test reaches those through boot()'s
-   handle - and nor is reloadNow, which the reload option replaces. It is
-   pruned as functions move to modules of their own. */
+/* What is left of the test surface: the functions and consts still in this
+   file that a test reaches by name - through the merged namespace the page
+   helper builds (tests/helpers/page.js), or a unit test's import. A name
+   leaves this list in the commit that moves it to a module of its own, which
+   exports it from there. The lets are not here - a test reaches those
+   through boot()'s handle - and nor is reloadNow, which the reload option
+   replaces. */
 export {
   activeFilters, browseResults, cleanRoom, closeSheet, conDayKey, conPhase, currentLocation,
-  deviceLine, edgeTouchMove, edgeTouchStart, eventsFor, expandQuery, fmtMins, fmtShort,
-  hiddenForQueryHTML, hideUpdatePill, indexReady, initTimeOverride, isFollowing, isStandalone,
-  layoutColumns, leaveInfo, loadJSON, mapCardHTML, mapDay, markActiveSection, now, nowModel,
-  nowSignature, nudgeCopy, openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery,
+  deviceLine, edgeTouchMove, edgeTouchStart, eventsFor, expandQuery, hiddenForQueryHTML,
+  hideUpdatePill, indexReady, initTimeOverride, isFollowing, isStandalone, layoutColumns,
+  leaveInfo, loadJSON, mapCardHTML, mapDay, markActiveSection, now, nowModel, nowSignature,
+  nudgeCopy, openExplorePage, openSheet, pageScrollBy, pageScrollTo, parseQuery,
   pickActiveSection, placeHTML, queueBrowseRender, readExploreHash, recheckSchedule,
   reconcilePicks, render, renderBrowse, renderExplore, renderMap, renderMiniBar, renderNotice,
-  renderNow, revealChip, saveFollows, saveJSON, savePickNews, savePicks, setDrag,
-  setExploreHash, setTimeOverride, showUpdatePill, suggestionsFor, termQuality, tickMap,
-  tickNow, toggleFollow, togglePick, updateClock, updateFresh, walkMin,
+  renderNow, revealChip, saveFollows, saveJSON, savePickNews, savePicks, setDrag, setExploreHash,
+  setTimeOverride, showUpdatePill, suggestionsFor, termQuality, tickMap, tickNow, toggleFollow,
+  togglePick, updateClock, updateFresh, walkMin,
 
   BOOT, BUILD, CON, CON_DAYS, conEnded, DAY_LONG, EXPLORE_HEAD, FOLLOW_KINDS, followId,
   getCatalogue, hotelGroup, hotelMatches, hotelPhrase, hotelShort, HOUR_PX, IS_IOS, isCeleb,

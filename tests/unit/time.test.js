@@ -3,7 +3,8 @@
    tests/page/time.test.js. The number in brackets is the harness line the
    assertion came from (tests/PORT-LEDGER.md). */
 import { describe, expect, it } from "vitest";
-import { CON, conDayKey, conPhase, fmtMins } from "../../src/app.js";
+import { CON, conDayKey, conPhase } from "../../src/app.js";
+import { fmtMins } from "../../src/util.js";
 
 describe("a con day runs to 5 AM", () => {
   it("1am Sunday counts as Saturday's con day [247, and 493]", () => {
