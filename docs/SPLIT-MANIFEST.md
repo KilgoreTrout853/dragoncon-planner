@@ -1316,6 +1316,12 @@ The plan for the first of the two "rest" slices, and then its as-built
 record. Step one: this part of the manifest and `tools/split/`, committed
 together, and a draft PR. Step two follows it commit by commit.
 
+**Amended 2026-09-19, after the review of draft PR #15**, before any code
+moved. The decisions are in [Decisions of the review of
+rest-1](#decisions-of-the-review-of-rest-1); nothing in the tables below had
+to change for them. What changes while step two is carried out is recorded
+under [Rest-1: amended during execution](#rest-1-amended-during-execution).
+
 - **Base.** `next` at `9b27a2624a2d294d650103dc52fe18fa0bd0b1d9`, branch
   `refactor/rest-1`. No code under `src/` in this step.
 - **The file.** `src/app.js` is 1,965 lines: 14 imports, all of them leaves,
@@ -1369,8 +1375,8 @@ Seven modules, flat files under `src/`, in this commit order:
 1. `tests/rules/imports.test.js`: the ordered list gains `scroll`, `bus`,
    `now`, `browse`, `explore`, `map`, `mine` after `ui`. app.js stays the
    root: imported by `main.js` alone. The list is no longer all leaves, so the
-   constant becomes `ORDER` and the second test's title says "module"
-   (R1-P5); `tools/split/repo.js` reads either name.
+   constant becomes `ORDER` and the second test's title says "module";
+   `tools/split/repo.js` reads either name.
 2. `eslint.config.js`: `no-unused-vars` with `{args: "none", caughtErrors:
    "none"}`, everywhere, and its header comment says three rules. It lands
    here because the list below is clean.
@@ -1385,14 +1391,16 @@ are not this manifest's. Two commits carry something extra: **bus** is new
 code, and `boot()` gains `setRenderer(render)` as its first statement;
 **explore** turns two `render()` calls into `requestRender()`.
 
-**Commit 8 - docs.** `docs/ARCHITECTURE.md`: the repo-map rows for the seven
-modules and for `tools/split/` (added in step one, where only this file and
-the tools could be touched), what `src/app.js` is now, and the ESLint
-paragraph's "two rules". This part's "Amended during execution".
+**Commit 8 - docs.** `docs/ARCHITECTURE.md`, surgical: the module count
+(fifteen to twenty-two), the repo-map rows for the views, scroll and bus, a
+row for `tools/split/` (added in step one, where only this file and the
+tools could be touched), the ESLint paragraph (three rules), and any
+Boot-order sentence this PR makes false. This part's "amended during
+execution".
 
-Expected test counts: 839 passed and 4 skipped throughout. No rule is added
-or removed; the unit tests change import lines only. If the bus gets its
-test (R1-P4), 841.
+Expected test counts: 839 passed and 4 skipped through commits 0 and 1; 841
+from the bus commit on, for its two tests. Otherwise the unit tests change
+import lines only.
 
 ---
 
@@ -1460,7 +1468,8 @@ export { requestRender, setRenderer };
   `vi.resetModules()` gives each boot a bus of its own. A unit test that
   called `openExplorePage()` with no page would throw - none does.
 - **exports:** `requestRender`, `setRenderer`.
-- **tests:** none re-pointed. Proposed: two new unit tests (R1-P4).
+- **tests:** none re-pointed. New: `tests/unit/bus.test.js`, two tests - the
+  throw before wiring, the call-through after. Not rows of the port ledger.
 
 ## R1.3 now
 
@@ -1525,7 +1534,7 @@ the install nudge, which is Now-tab markup (decided).
   `lastNowSig`, `installPrompt`, `nudgeVisible`, `nudgeHTML`. **Pruned:**
   `nowModel`, `nowSignature`, `renderNow`, `tickNow`, `nudgeCopy`.
   `nowSignature` is in the list today and reached by no test and by nothing
-  outside the module, so it becomes private (R1-P6).
+  outside the module, so under the export rule it becomes private.
 - **tests:** `tests/unit/misc.test.js` - `nudgeCopy` from `../../src/now.js`.
 
 ## R1.4 browse
@@ -1795,7 +1804,8 @@ Rule 3. **`render()`, and nothing else.** No function that moves calls the
 sheet, the notice, `updateFresh()`, the pill, the mini-bar or the header, so
 nothing stays behind for that reason. `effectiveNow` would have been a
 second - `renderNow()` and `tickNow()` call it - had it stayed with the
-notice; it moves instead (R1-P1).
+notice; it moves instead (R1-P1; time.js would be a purer home, noted for a
+later tidy).
 
 | shell function | reached from | after rest-1 | after rest-2 |
 |---|---|---|---|
@@ -1902,16 +1912,40 @@ app.js after rest-1 looks up seven elements at import: `#sheetWrap`, `#sheet`,
 `#panel-settings`, `#panel-event`, `#panel-hotel`, `#sheetBack`,
 `#updatePill`. bus holds one let, null until `boot()` runs.
 
-## Proposals for the review of rest-1
+## Decisions of the review of rest-1
 
-| # | proposal | alternative |
+What step one proposed, and what the review of draft PR #15 decided
+(2026-09-19).
+
+| # | proposed | decided |
 |---|---|---|
-| R1-P1 | `effectiveNow` goes to now, and the notice imports it | it stays with the notice, and now reaches into app.js for it - which rule 2 forbids, so it would have to go over the bus or be passed in |
-| R1-P2 | the scroll spy keeps its listener in `boot()` and gets three one-line functions: `queueSpy()`, `spyDone()`, `holdSpyUntil(t)` | the listener's body moves into explore as one function, `boot()` registers it, and both lets become private - tidier, but it is dispatch, which is rest-2's |
-| R1-P3 | `installPrompt` gets `setInstallPrompt(e)`, `clearInstallPrompt()`, `takeInstallPrompt()` and becomes private | one `setInstallPrompt(value)` for both assignments, with the read at 1656 left to the live binding |
-| R1-P4 | bus gets two unit tests, `tests/unit/bus.test.js`: `requestRender()` throws before `setRenderer()`, and calls through after. New tests, not ledger rows: 841 | none; the throw is then checked by nothing |
-| R1-P5 | in `tests/rules/imports.test.js` the constant `LEAVES` becomes `ORDER` and the second test's title says "module", since seven of the twenty-one are not leaves | keep the names; the tools read either |
-| R1-P6 | `nowSignature` leaves the export list and is not exported by now: no test and nothing outside the module reaches it | export it anyway |
+| R1-P1 | `effectiveNow` goes to now, and the notice imports it | as proposed. Its purer home is time.js - it is a question about the clock, and both the notice and the Now tab would then import it from a leaf - which is noted for a later tidy and **not done here** |
+| R1-P2 | the scroll spy keeps its listener in `boot()` and gets three one-line functions: `queueSpy()`, `spyDone()`, `holdSpyUntil(t)` | as proposed; `spyQueued` goes private |
+| R1-P3 | `installPrompt` gets `setInstallPrompt(e)`, `clearInstallPrompt()`, `takeInstallPrompt()` and becomes private | as proposed |
+| R1-P4 | bus gets two unit tests, `tests/unit/bus.test.js`: the throw before wiring, the call-through after | as proposed. New tests, not ledger rows: 841 from the bus commit on |
+| R1-P5 | in `tests/rules/imports.test.js` the constant `LEAVES` becomes `ORDER` and the second test's title says "module" | as proposed |
+| R1-P6 | `nowSignature` leaves the export list and is not exported by now | **generalised into the export rule for every new module:** it exports exactly what app.js imports from it, plus what any test reaches by name - an import line, or `page.app.NAME` - and nothing else |
+
+**The export rule, checked.** It gives the export lists of R1.1 to R1.7 as
+they stand, name for name. The one case that could have broken a literal
+reading - a name a later module needs but neither app.js nor a test does -
+does not arise: map's `nowModel` is reached by tests, and explore's
+`requestRender` by the bus tests. `nowSignature` is the only name in app.js's
+export list today that the rule leaves unexported.
+
+Also decided: `no-unused-vars` lands in commit 0 with one dated clause in
+DECISIONS #24's title and nothing else in the entry; commit 8's scope in
+`docs/ARCHITECTURE.md` is the module count (fifteen to twenty-two), the
+repo-map rows for the views, scroll and bus, a row for `tools/split/`, the
+ESLint paragraph (three rules), and any Boot-order sentence this PR makes
+false.
+
+## Rest-1: amended during execution
+
+Placements and details that changed while step two was carried out, each in
+the commit that changed it.
+
+- *(none yet)*
 
 ## Completeness of rest-1
 
