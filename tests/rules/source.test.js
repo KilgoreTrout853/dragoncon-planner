@@ -33,18 +33,6 @@ describe("src/", () => {
     expect(src + template).not.toMatch(/style="font-size:\d+px/);
   });
 
-  /* Replaced in PR 5 by ESLint: the no-restricted-syntax pair already in
-     eslint.config.js, once src/time.js exists and src/app.js leaves that
-     rule's ignores (DECISIONS #12). 1890 only located the section. */
-  it("no bare new Date() or Date.now() outside the Time section [1892, and 1890]", () => {
-    const from = src.indexOf("   Time. Every read"), to = src.indexOf("   Loading", from);
-    expect(from).toBeGreaterThan(0);
-    expect(to).toBeGreaterThan(from);
-    const outside = src.slice(0, from) + src.slice(to);
-    expect(outside).not.toMatch(/new Date\(\s*\)/);
-    expect(outside).not.toMatch(/Date\.now\(/);
-  });
-
   /* Replaced in PR 5 by ESLint: no-restricted-properties on location.host,
      hostname and origin. The stamp decides the channel, never the address. */
   it("nothing in the page decides by hostname [1989]", () => {

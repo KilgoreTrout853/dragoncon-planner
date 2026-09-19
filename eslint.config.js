@@ -1,8 +1,8 @@
 /* Two rules, nothing inherited (DECISIONS #24). This is a guard for the
    module split, not a style guide: no-undef catches a function that moved
    to another module without its import; the second rule is the #12 clock
-   guard, taking over module by module from the regex the smoke harness
-   had, which is now the Time-section rule in tests/rules/source.test.js. */
+   guard, which took over from the regex the smoke harness had when
+   src/time.js became a module. */
 import globals from "globals";
 
 export default [
@@ -18,11 +18,7 @@ export default [
      not a clock read, and is allowed, exactly as that regex allows it. */
   {
     files: ["src/**/*.js"],
-    ignores: [
-      "src/time.js",
-      /* temporary until src/time.js exists (PR 5); tests/rules/source.test.js guards #12 until then. */
-      "src/app.js",
-    ],
+    ignores: ["src/time.js"],
     rules: {
       "no-restricted-syntax": ["error",
         { selector: "NewExpression[callee.name='Date'][arguments.length=0]",
