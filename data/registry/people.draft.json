@@ -55,7 +55,6 @@
   "from-dusk-till-dawn",
   "frozen",
   "futurama",
-  "galactic-empire-band",
   "garfield",
   "general-hospital",
   "generation-kill",
@@ -767,7 +766,8 @@
     "Dad's Garage Goes to Britannia (Ultima Series)"
    ],
    "known_for": "Atlanta-based improv comedy theater company",
-   "name": "Dad's Garage Theatre Co."
+   "name": "Dad's Garage Theatre Co.",
+   "notes": "a company, not a person"
   },
   "dan-larson": {
    "confidence": "low",
@@ -1038,7 +1038,8 @@
     "Galactic Empire"
    ],
    "known_for": "Star Wars-themed heavy metal band",
-   "name": "Galactic Empire"
+   "name": "Galactic Empire",
+   "notes": "a band, not a person - the model rejected the other bands listed as speakers"
   },
   "garrett-wang": {
    "confidence": "high",
@@ -2916,6 +2917,15 @@
    "name": "Curt Anderson"
   },
   {
+   "by": "review",
+   "events": [
+    "Improvised Dungeons & Dragons – LIVE!",
+    "Dad's Garage Goes to Britannia (Ultima Series)"
+   ],
+   "id": "dads-garage-theatre-co",
+   "name": "Dad's Garage Theatre Co."
+  },
+  {
    "by": "model",
    "events": [
     "Gonzoroo Presents: A Music & Comedy Spectacular",
@@ -3025,6 +3035,14 @@
    ],
    "id": "gabby",
    "name": "Gabby"
+  },
+  {
+   "by": "review",
+   "events": [
+    "Galactic Empire"
+   ],
+   "id": "galactic-empire",
+   "name": "Galactic Empire"
   },
   {
    "by": "model",

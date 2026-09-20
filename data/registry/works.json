@@ -93,7 +93,6 @@
   {"id": "frozen", "name": "Frozen", "aliases": [], "type": "franchise", "reviewed": false},
   {"id": "fullmetal-alchemist", "name": "Fullmetal Alchemist", "aliases": [], "type": "franchise", "reviewed": true},
   {"id": "futurama", "name": "Futurama", "aliases": [], "type": "franchise", "reviewed": false},
-  {"id": "galactic-empire-band", "name": "Galactic Empire (band)", "aliases": [], "type": "franchise", "reviewed": false},
   {"id": "game-of-thrones", "name": "Game of Thrones", "aliases": ["GoT"], "type": "franchise", "terms": ["Westeros", "Targaryen"], "reviewed": true},
   {"id": "garfield", "name": "Garfield", "aliases": [], "type": "franchise", "reviewed": false},
   {"id": "gargoyles", "name": "Gargoyles", "aliases": [], "type": "franchise", "reviewed": true},
