@@ -41,11 +41,14 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own plugin (`dcBuild`) for the HTML fix-ups, the channel stamp and the `data/` copy. |
 | `dist/` | Build output, not in git: `index.html` with the CSS and script inlined, the files from `public/`, and a copy of `data/`. |
 | `data/2026/events.json` | The frozen 2026 schedule: 3,459 events, 2.7 MB. |
+| `data/registry/` | The three curated registries `registry.py` owns, below. Cross-year, unlike `data/2026/`, because a work or a person outlasts a con. The build copies them into `dist/` with the rest of `data/`; nothing on the client reads them yet. |
 | `scraper.py` | Scrape → normalise → dedupe → write `events.json`. |
 | `tag_events.py` | Add `tags` to untagged events via Claude. |
 | `tag_census.py`, `docs/discover/` | A read-only census of the tags in `events.json` - coverage, fandoms, topics, people, title facets, recurrence - written to `docs/discover/census-2026.md`: evidence for the Discover design work, facts only. Standard library; it imports the taxonomy from `tag_events.py` and the facet patterns, the title key and the panelist splitter from `parse_stage.py`, writes nothing under `data/`, and two runs give the same bytes. Not part of the pipeline: nothing runs it but a person. |
 | `parse_stage.py` | The parse stage of tags v2 (DECISIONS #32): `people` and `facets` read out of an event with no model. Pure functions and the standard library; it owns the facet patterns, the title key, the "Additional Panelists:" splitter and `person_slug`. `--out PATH` writes the parsed events for inspection; it writes nothing under `data/` and nothing it writes is committed (#13, #33). |
 | `parse_report.py` | What `parse_stage.py` reads out of the frozen schedule, written to `docs/discover/parse-2026.md`: per facet the count beside the census's figure for the same wording, the people, and four UNSURE lists. Imports `parse_stage` and the census's markdown helpers. Two runs give the same bytes. Nothing runs it but a person. |
+| `registry.py` | The curated registries (DECISIONS #31): `works.json`, `people.json` and `tracks.json`, cross-year and hand-edited. `load()` validates all three and raises one error listing every problem; `resolve_work` / `resolve_track` / `resolve_person` turn a name or an alias into an id. It owns `AXES`, the four closed axis lists, which the tagger will import. Standard library, plus `parse_stage` for its folding. |
+| `registry_report.py` | The seeded registries written to `docs/discover/registry-2026.md` for the review that flips a work to `reviewed: true`: the works and tracks as seeded, where every phrase of `CANON` and `SYNONYMS` went, and the UNSURE list. Two runs give the same bytes. Nothing runs it but a person. |
 | `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
 | `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
@@ -57,6 +60,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/test_parse.py` | Scraper parsing and dedupe unit tests. |
 | `tests/test_tag_census.py` | The census's pure functions and its repeatability, on an inline fixture; it never reads `data/`. |
 | `tests/test_parse_stage.py` | The parse stage's splitter, slug, roles, people and facets, on inline fixtures built from real lines and titles; it never reads `data/`. It pins the copy of `scraper.extract_panelists` that `parse_stage` keeps. |
+| `tests/test_registry.py` | One failing fixture per registry rule, the slug and resolve functions, and a load of the committed `data/registry/`, so CI checks every later edit to it. |
 | `tests/sample-events.json`, `tests/make_sample.py` | 558 synthetic events, the fixture for the page tests and the build smoke; and the seeded script that generates it (it imports `scraper`). |
 | `.github/workflows/scrape.yml` | Manual-trigger scrape (workflow_dispatch). Refuses a scrape with 0 events or a >20% drop; commits and pushes events.json to the branch it was run from. |
 | `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client` and `pipeline`. |
@@ -65,7 +69,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `requirements.txt` | Pinned pipeline dependencies, plus pytest. Python 3.13. |
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
-| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the census and `parse-2026.md`, above, and `schema-v2.md`, the design note for the registries and tags v2 (#31-#33), of which the parse stage is built. |
+| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the census, `parse-2026.md` and `registry-2026.md`, above, and `schema-v2.md`, the design note for the registries and tags v2 (#31-#33), of which the parse stage and the seeded registries are built. |
 | `docs/venues/` | The venues registry (DECISIONS #21, #27, #28): `registry.json`, hand-edited - every hotel × level where programming happens, its rooms as the schedule names them, which published floor plan covers the level, and the state of our own drawing; `README.md`, that checklist rendered, with the notes that do not fit a cell; `drawings/`, our schematics, one draft so far. Nothing reads it yet - the room census validates it against `events.json` when it lands. |
 | `reference/` | Local copies of other people's drawings, gitignored but for its README: the hotels' floor plans in `plans/`, at the paths `registry.json` records, and screenshots of single levels in `shots/`, used as an underlay to trace our own shapes against (#28). Never committed - none of it is ours. |
 
