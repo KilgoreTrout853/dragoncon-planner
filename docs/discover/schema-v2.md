@@ -74,7 +74,9 @@ it.
 ### `works.json`
 
 One registry for everything an event can be about or a person can be
-credited with.
+credited with. A work is anything a fan follows and a person can be credited
+with - a show, film, book, game, podcast, web series, stage show, or a band. A
+person is not a work, and neither is a company.
 
 | field | what it holds |
 |---|---|
