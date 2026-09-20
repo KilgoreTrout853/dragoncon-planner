@@ -1,0 +1,3707 @@
+{
+ "minted": [
+  "12-monkeys",
+  "300",
+  "50-first-dates",
+  "a-different-world",
+  "a-goofy-movie",
+  "a-million-little-things",
+  "agents-of-s-h-i-e-l-d",
+  "anastasia",
+  "arrow",
+  "avengers-endgame",
+  "avengers-infinity-war",
+  "bajillion-dollar-propertie",
+  "baldurs-gate-3",
+  "bastion",
+  "beverly-hills-90210",
+  "birds-of-prey",
+  "blackcollar",
+  "blade-runner",
+  "bridget-joness-diary",
+  "bubble",
+  "burn-notice",
+  "cartoon-therapy",
+  "case-closed",
+  "cedar-cove",
+  "cheaper-by-the-dozen",
+  "chicago-p-d",
+  "chowdaheads",
+  "chronicles-of-nick",
+  "cobra-1985",
+  "coco",
+  "code-monkey",
+  "codex-alera",
+  "comic-book-men",
+  "companion",
+  "da-vincis-notebook",
+  "dances-with-wolves",
+  "dark-hunter",
+  "dark-matter",
+  "days-of-our-lives",
+  "dcs-legends-of-tomorrow",
+  "deadbeat",
+  "deadmans-cross",
+  "death-battle",
+  "dies-the-fire",
+  "dinosaurs",
+  "doctor-strange-in-the-multiverse-of-madness",
+  "dollhouse",
+  "dredd",
+  "drunk-history",
+  "eli-stone",
+  "farscape",
+  "final-fantasy-xiv",
+  "from-dusk-till-dawn",
+  "frozen",
+  "futurama",
+  "garfield",
+  "general-hospital",
+  "generation-kill",
+  "guardians-of-the-galaxy",
+  "gunslinger-girl",
+  "hades-ii",
+  "hard-n-phirm",
+  "harley-quinn",
+  "hawaii-five-0",
+  "heir-to-the-empire",
+  "hell-on-wheels",
+  "helluva-boss",
+  "hercules-the-legendary-journeys",
+  "heroes-of-cosplay",
+  "independence-day",
+  "inhumans",
+  "instant-star",
+  "island-in-the-sea-of-time",
+  "jagged-little-pill",
+  "jordan-jesse-go",
+  "judging-amy",
+  "kill-the-farm-boy",
+  "killer-women",
+  "killjoys",
+  "kingdom-hearts",
+  "knightriders",
+  "known-space",
+  "les-miserables",
+  "letterkenny",
+  "locke-and-key",
+  "loki",
+  "longmire",
+  "lost-girl",
+  "lucifer",
+  "lucifers-hammer",
+  "macgyver",
+  "mad-max-fury-road",
+  "madtv",
+  "major-crimes",
+  "mass-effect",
+  "master-of-none",
+  "merlin",
+  "miami-vice",
+  "new-amsterdam",
+  "night-of-the-living-dead",
+  "nurses",
+  "once-upon-a-time",
+  "oxenfree",
+  "pentiment",
+  "planescape",
+  "portal",
+  "professionals-2020",
+  "psychostick",
+  "quantum-break",
+  "ready-or-not",
+  "reaper",
+  "repo-the-genetic-opera",
+  "resident-alien",
+  "ringworld",
+  "rogue-one-a-star-wars-story",
+  "rudy",
+  "sanders-sides",
+  "saturday-night-live",
+  "saving-hope",
+  "saw",
+  "scanners",
+  "scarecrow-and-mrs-king",
+  "scream",
+  "sentinels-2006",
+  "shroud-of-the-avatar",
+  "silicon-valley",
+  "silver-spoons",
+  "skinny-puppy",
+  "sleepy-hollow",
+  "sneaky-pete",
+  "sonny-with-a-chance",
+  "space-force",
+  "splinter-cell",
+  "stand-and-deliver",
+  "star-trek-iv-the-voyage-home",
+  "star-wars-phasma",
+  "star-wars-the-clone-wars",
+  "stargate-atlantis",
+  "stargate-the-ark-of-truth",
+  "strangely-beautiful",
+  "suits",
+  "supergirl",
+  "surrealestate",
+  "tacoma-fd",
+  "tell-em-steve-dave",
+  "terminator-the-sarah-connor-chronicles",
+  "the-boys",
+  "the-brothers-grimm",
+  "the-choice",
+  "the-cinder-spires",
+  "the-closer",
+  "the-cruxshadows",
+  "the-delta-flyers",
+  "the-dresden-files",
+  "the-eterna-files",
+  "the-fairly-oddparents",
+  "the-frighteners",
+  "the-good-place",
+  "the-goonies",
+  "the-hangover",
+  "the-l-a-complex",
+  "the-league",
+  "the-lion-king-ii-simbas-pride",
+  "the-mote-in-gods-eye",
+  "the-peshawar-lancers",
+  "the-real-housewives-of-beverly-hills",
+  "the-righteous-gemstones",
+  "the-rookie-feds",
+  "the-search-for-wondla",
+  "the-shadow-series",
+  "the-spiderwick-chronicles",
+  "the-thrilling-adventure-hour",
+  "the-transformers-the-movie",
+  "the-world-is-not-enough",
+  "this-is-us",
+  "thrawn",
+  "titans",
+  "top-gun-maverick",
+  "total-recall",
+  "transistor",
+  "tron",
+  "tucker-and-dale-vs-evil",
+  "ultima",
+  "ultima-online",
+  "uncharted",
+  "virgin-river",
+  "w00tstock",
+  "warehouse-13",
+  "we-got-this-with-mark-and-hal",
+  "wednesday",
+  "welcome-to-night-vale",
+  "what-if",
+  "why-we-love-star-wars",
+  "wild-things",
+  "witchy-eye",
+  "x-men-97",
+  "x-men-the-animated-series",
+  "young-justice"
+ ],
+ "people": {
+  "aaron-ashmore": {
+   "confidence": "high",
+   "events": [
+    "Smallville Class Reunion",
+    "Photo Session: Photo Session: Smallville",
+    "Photo Session: Aaron Ashmore",
+    "Photo Session: Photo Session: TeamUp - Brothers",
+    "Photo Session: Photo session: Smallville"
+   ],
+   "known_for": "Actor known for playing Jimmy Olsen on Smallville and John Jaqobis on Killjoys.",
+   "name": "Aaron Ashmore"
+  },
+  "aaron-douglas": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Aaron Douglas",
+    "Battlestar Galactica: A Galaxy of Stars",
+    "Battlestar Galactica: Humans and Cylons",
+    "Battlestar Galactica: Evolution"
+   ],
+   "known_for": "Actor who played Chief Galen Tyrol on the reimagined Battlestar Galactica.",
+   "name": "Aaron Douglas"
+  },
+  "aaron-michael-ritchey": {
+   "confidence": "low",
+   "events": [
+    "Supergirl: Woman of Tomorrow",
+    "Avatar: Fire, Water, and Beyond"
+   ],
+   "known_for": "Science fiction and fantasy author.",
+   "name": "Aaron Michael Ritchey"
+  },
+  "adria-stembridge": {
+   "confidence": "low",
+   "events": [
+    "Release the Bats: The Goth/Industrial Panel"
+   ],
+   "known_for": "",
+   "name": "Adria Stembridge"
+  },
+  "alan-tudyk": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Firefly",
+    "Photo Session: Photo session: Resident Alien",
+    "Photo Session: Photo session: Once We Were Spacemen and Superman",
+    "Photo Session: Photo session: Firefly Duo",
+    "Photo Session: Photo session: Tucker and Dale vs Evil",
+    "Photo Session: Alan Tudyk Solo",
+    "Resident Alien: Alien? Guests Among Us",
+    "Firefly: One More Heist"
+   ],
+   "known_for": "Actor known for Firefly, Resident Alien, and voice work across Disney animation and Star Wars.",
+   "name": "Alan Tudyk"
+  },
+  "alex-rochon": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Alex Rochon Solo",
+    "Photo Session: Photo session: The Amazing Digital Circus",
+    "Amazing Digital Circus Cast: Last Adventure"
+   ],
+   "known_for": "Voice actor who plays Jax on The Amazing Digital Circus.",
+   "name": "Alex Rochon"
+  },
+  "alice-wetterlund": {
+   "confidence": "high",
+   "events": [
+    "Resident Alien: Visitors from Patience, CO",
+    "Photo Session: Alice Wetterlund Solo",
+    "Photo Session: Photo session: Resident Alien Duo",
+    "Photo Session: Photo session: Resident Alien",
+    "Resident Alien: Alien? Guests Among Us",
+    "Resident Alien Guests: Funny Bones Are Universal"
+   ],
+   "known_for": "Actress and comedian known for Resident Alien and Silicon Valley.",
+   "name": "Alice Wetterlund"
+  },
+  "alison-carrier": {
+   "confidence": "low",
+   "events": [
+    "The Video Game Costume Contest"
+   ],
+   "known_for": "",
+   "name": "Alison Carrier"
+  },
+  "alison-sealy-smith": {
+   "confidence": "high",
+   "events": [
+    "X-Men '97 Cast",
+    "X-Men '97 Guests"
+   ],
+   "known_for": "Voice actress who plays Storm in the X-Men animated series and X-Men '97.",
+   "name": "Alison Sealy-Smith"
+  },
+  "alyssa-askani": {
+   "confidence": "low",
+   "events": [
+    "Running Man: The Game Has Changed"
+   ],
+   "known_for": "",
+   "name": "Alyssa Askani"
+  },
+  "amanda-hufford": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Amanda Hufford Solo",
+    "Photo Session: Photo session: The Amazing Digital Circus",
+    "Amazing Digital Circus Cast: Last Adventure"
+   ],
+   "known_for": "Voice actress on The Amazing Digital Circus.",
+   "name": "Amanda Hufford"
+  },
+  "amelia-tyler": {
+   "confidence": "high",
+   "events": [
+    "Hades II Guests",
+    "Photo Session: Photo session: Hades II",
+    "Photo Session: Photo session: Amelia Tyler Solo",
+    "Hades II cast"
+   ],
+   "known_for": "Voice actress who narrates Baldur's Gate 3 and plays Melinoë in Hades II.",
+   "name": "Amelia Tyler"
+  },
+  "angie-matttke": {
+   "confidence": "low",
+   "events": [
+    "The Skeptical Side of Castle"
+   ],
+   "known_for": "",
+   "name": "Angie Matttke"
+  },
+  "anson-mount": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Strange New Worlds",
+    "Photo Session: Photo session: Anson Mount Solo",
+    "Star Trek: Strange New Worlds Guests",
+    "The Annual Dragon Con Parade!",
+    "Dragon Con Masquerade"
+   ],
+   "known_for": "Actor who plays Captain Pike on Star Trek: Strange New Worlds.",
+   "name": "Anson Mount"
+  },
+  "anthony-montgomery": {
+   "confidence": "high",
+   "events": [
+    "Star Trek Enterprise Q&A",
+    "Photo Session: Photo session: Enterprise Group",
+    "Photo Session: Photo session: Anthony Montgomery Solo",
+    "Photo Session: Photo session: Enterprise Duo",
+    "MOVED! Star Trek Actors Q&A"
+   ],
+   "known_for": "Actor who played Travis Mayweather on Star Trek: Enterprise.",
+   "name": "Anthony Montgomery"
+  },
+  "aretta-baumgartner": {
+   "confidence": "low",
+   "events": [
+    "Lip Sync-a-Palooza"
+   ],
+   "known_for": "",
+   "name": "Aretta Baumgartner"
+  },
+  "ashley-barrett": {
+   "confidence": "high",
+   "events": [
+    "Hades II Guests",
+    "Photo Session: Photo session: Ashley Barrett Solo",
+    "Photo Session: Photo session: Hades II",
+    "Hades II cast"
+   ],
+   "known_for": "Singer and voice performer for Supergiant Games' soundtracks and characters.",
+   "name": "Ashley Barrett"
+  },
+  "aurelio-voltaire": {
+   "confidence": "high",
+   "events": [
+    "The Demonatrix Screening",
+    "Release the Bats: The Goth/Industrial Panel",
+    "Aurelio Voltaire"
+   ],
+   "known_for": "Dark cabaret and gothic musician, animator, and author.",
+   "name": "Aurelio Voltaire"
+  },
+  "austin-taylor": {
+   "confidence": "low",
+   "events": [
+    "Gonzo Quiz Show: The Return"
+   ],
+   "known_for": "",
+   "name": "Austin Taylor"
+  },
+  "austinn-west": {
+   "confidence": "low",
+   "events": [
+    "The World of Monster High: The Movies, the Shows, the Dolls, & More"
+   ],
+   "known_for": "",
+   "name": "Austinn West"
+  },
+  "b-dave-walters": {
+   "confidence": "high",
+   "events": [
+    "Roll Against Fear: Tales of the Valiant – LIVE!"
+   ],
+   "known_for": "Tabletop RPG writer and actual-play performer",
+   "name": "B. Dave Walters"
+  },
+  "banachek": {
+   "confidence": "high",
+   "events": [
+    "Banachek - Games of the Mind"
+   ],
+   "known_for": "Mentalist and mind-reader",
+   "name": "Banachek"
+  },
+  "bathroom-of-the-future": {
+   "confidence": "high",
+   "events": [
+    "Bathroom of the Future"
+   ],
+   "known_for": "",
+   "name": "Bathroom of the Future"
+  },
+  "becca-q-co": {
+   "confidence": "high",
+   "events": [
+    "Hades II Guests",
+    "Photo Session: Photo session: Becca Q Co Solo",
+    "Photo Session: Photo session: Hades II",
+    "Hades II cast"
+   ],
+   "known_for": "Voice actress in Hades II",
+   "name": "Becca Q. Co"
+  },
+  "ben-browder": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Stargate - SG1",
+    "Photo Session: Photo session: Ben Browder Solo",
+    "Stargate: The Iris Is Open for SG-1",
+    "Stargate: SG-1 - Make It Spin",
+    "Stargate: SG-1: Taking This Loop off"
+   ],
+   "known_for": "Actor known for Farscape and Stargate SG-1",
+   "name": "Ben Browder"
+  },
+  "ben-singer-death-battle": {
+   "confidence": "high",
+   "events": [
+    "Anime Death Battle: Who Would Win?",
+    "Death Battle: Meet the Cast"
+   ],
+   "known_for": "Creator and host of the Death Battle web series",
+   "name": "Ben Singer Death Battle"
+  },
+  "berta-platas": {
+   "confidence": "low",
+   "events": [
+    "Age in Fandom: Breaking the Stereotypes"
+   ],
+   "known_for": "Romance and fantasy author",
+   "name": "Berta Platas"
+  },
+  "beth-patterson": {
+   "confidence": "low",
+   "events": [
+    "Beth Patterson"
+   ],
+   "known_for": "Celtic and filk musician",
+   "name": "Beth Patterson"
+  },
+  "birma-gainor": {
+   "confidence": "high",
+   "events": [
+    "Avatar: Fire, Water, and Beyond"
+   ],
+   "known_for": "",
+   "name": "Birma Gainor"
+  },
+  "bit-brigade": {
+   "confidence": "high",
+   "events": [
+    "Bit Brigade"
+   ],
+   "known_for": "Band that performs live video game music while a player speedruns the game",
+   "name": "Bit Brigade"
+  },
+  "bobby-blackwolf": {
+   "confidence": "high",
+   "events": [
+    "Stargate: The Iris Is Open for SG-1",
+    "Babylon 5: Space Station Conversation",
+    "Star Trek Enterprise Q&A",
+    "Hades II cast"
+   ],
+   "known_for": "",
+   "name": "Bobby Blackwolf"
+  },
+  "brian-c-thompson": {
+   "confidence": "low",
+   "events": [
+    "Dragon Award Nominee & Past Recipients – Meet & Greet and Signings"
+   ],
+   "known_for": "Science fiction and fantasy author, Dragon Award nominee",
+   "name": "Brian C. Thompson"
+  },
+  "brian-richardson": {
+   "confidence": "high",
+   "events": [
+    "Starship Troopers 30th Anniversary Roughneck Reunion",
+    "Star Trek: Strange New Worlds Guests",
+    "Q&A with the Amazing Sean Astin!",
+    "Firefly: One More Heist",
+    "On the Case with the Cast of The Rookie"
+   ],
+   "known_for": "",
+   "name": "Brian Richardson"
+  },
+  "brobdingnagian-bards": {
+   "confidence": "high",
+   "events": [
+    "Concert – The Brobdingnagian Bards"
+   ],
+   "known_for": "Celtic music duo",
+   "name": "Brobdingnagian Bards"
+  },
+  "bruce-boxleitner": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Babylon 5",
+    "Photo Session: Photo session: Bruce Boxleitner Solo",
+    "Babylon 5: Clearing the Shadows",
+    "Babylon 5: Space Station Conversation",
+    "Babylon 5: A Dream Given Form",
+    "Babylon 5: The End of One Chapter, the Beginning of Another"
+   ],
+   "known_for": "Actor known for Babylon 5 and Tron",
+   "name": "Bruce Boxleitner"
+  },
+  "cammien-ray": {
+   "confidence": "low",
+   "events": [
+    "Supergirl: Woman of Tomorrow"
+   ],
+   "known_for": "",
+   "name": "Cammien Ray"
+  },
+  "carol-malcolm": {
+   "confidence": "high",
+   "events": [
+    "Family & Friends at Nevermore: Wednesday Cast",
+    "Return to Purgatory: Wynonna Earp Cast",
+    "The World of Monster High: The Movies, the Shows, the Dolls, & More"
+   ],
+   "known_for": "",
+   "name": "Carol Malcolm"
+  },
+  "casper-van-dien": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Starship Troopers",
+    "Photo Session: Photo session: Casper Van Dien Solo",
+    "Starship Troopers 30th Anniversary Roughneck Reunion",
+    "Starship Troopers: 30th Anniversary Roughneck Reunion"
+   ],
+   "known_for": "Actor known for Starship Troopers",
+   "name": "Casper Van Dien"
+  },
+  "cassidy-freeman": {
+   "confidence": "high",
+   "events": [
+    "Smallville Class Reunion",
+    "Photo Session: Photo session: Cassidy Freeman Solo",
+    "Photo Session: Photo session: Longmire",
+    "Photo Session: Photo Session: Smallville",
+    "Photo Session: Photo session: Smallville"
+   ],
+   "known_for": "Actress known for Smallville and Longmire",
+   "name": "Cassidy Freeman"
+  },
+  "catherine-lee-jones": {
+   "confidence": "high",
+   "events": [
+    "Dragon Con Masquerade"
+   ],
+   "known_for": "",
+   "name": "Catherine Lee Jones"
+  },
+  "catieosaurus": {
+   "confidence": "low",
+   "events": [
+    "Bard Talk: Shakespeare with Shenanigans - LIVE!"
+   ],
+   "known_for": "",
+   "name": "Catieosaurus"
+  },
+  "celia-rose-gooding": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Celia Rose Gooding",
+    "Photo Session: Strange New Worlds",
+    "Star Trek: Strange New Worlds Guests",
+    "Star Trek: Strange New Worlds"
+   ],
+   "known_for": "Actress who plays Uhura on Star Trek: Strange New Worlds",
+   "name": "Celia Rose Gooding"
+  },
+  "chad-james-death-battle": {
+   "confidence": "high",
+   "events": [
+    "Anime Death Battle: Who Would Win?",
+    "Death Battle: Meet the Cast"
+   ],
+   "known_for": "Co-host and writer of the web series Death Battle",
+   "name": "Chad James Death Battle"
+  },
+  "charles-a-mcfall": {
+   "confidence": "high",
+   "events": [
+    "Welcome to Fandom Face-off: The Ultimate Gameshow of Bad Choices!"
+   ],
+   "known_for": "",
+   "name": "Charles A Mcfall"
+  },
+  "chris-moore": {
+   "confidence": "high",
+   "events": [
+    "Invasion Fan Panel: Day 1, Post Invasion"
+   ],
+   "known_for": "",
+   "name": "Chris Moore"
+  },
+  "chris-spears": {
+   "confidence": "high",
+   "events": [
+    "A Hour with Lord British"
+   ],
+   "known_for": "",
+   "name": "Chris Spears"
+  },
+  "christine-papalexis": {
+   "confidence": "high",
+   "events": [
+    "Lip Sync-a-Palooza"
+   ],
+   "known_for": "",
+   "name": "Christine Papalexis"
+  },
+  "chuck-huber": {
+   "confidence": "high",
+   "events": [
+    "Chuck Huber & Phil Parsons Signing – Vendors Booth # 2529",
+    "Phil Parsons and Chuck Huber Signing – Booth 2529",
+    "Chuck Huber and Phil Parsons Signing – Booth #2529",
+    "Phil Parsons and Chuck Huber Signing – Vendors Booth 2529"
+   ],
+   "known_for": "Anime voice actor known for Dragon Ball Z and Fullmetal Alchemist",
+   "name": "Chuck Huber"
+  },
+  "claudia-black": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Stargate - SG1",
+    "Photo Session: Photo Session: Claudia Black",
+    "Stargate: The Iris Is Open for SG-1",
+    "Stargate: SG-1 - Make It Spin",
+    "Stargate: SG-1: Taking This Loop off"
+   ],
+   "known_for": "Actress from Farscape and Stargate SG-1, also a prolific video game voice actor",
+   "name": "Claudia Black"
+  },
+  "cloudsave": {
+   "confidence": "low",
+   "events": [
+    "CLOUDSAVE"
+   ],
+   "known_for": "",
+   "name": "CLOUDSAVE"
+  },
+  "colby-smith": {
+   "confidence": "high",
+   "events": [
+    "You Want a Killer Hillbilly? – An Hour With Tyler Labine",
+    "The Boys guests: Behind the Mayhem",
+    "Nivek Ogre Q&A",
+    "Stargate: SG-1: Taking This Loop off"
+   ],
+   "known_for": "",
+   "name": "Colby Smith"
+  },
+  "connor-trinneer": {
+   "confidence": "high",
+   "events": [
+    "Star Trek Enterprise Q&A",
+    "Photo Session: Photo session: Enterprise Group",
+    "Photo Session: Photo session: Connor Trinneer Solo",
+    "Photo Session: Photo session: Enterprise Duo",
+    "MOVED! Star Trek Actors Q&A"
+   ],
+   "known_for": "Actor who played Trip Tucker on Star Trek: Enterprise",
+   "name": "Connor Trinneer"
+  },
+  "courtney-eaton": {
+   "confidence": "high",
+   "events": [
+    "Can Anyone Hear Me? A Yellowjackets Cast Panel",
+    "Photo Session: Photo session: Courtney Eaton Solo",
+    "The Hunt Is On: A Yellowjackets Cast Panel",
+    "Rituals in the Wilderness: A Yellowjackets Cast Panel"
+   ],
+   "known_for": "Actress from Yellowjackets and Mad Max: Fury Road",
+   "name": "Courtney Eaton"
+  },
+  "crispy": {
+   "confidence": "low",
+   "events": [
+    "Hades II Guests",
+    "An Hour with Georgie Leahy",
+    "Resident Alien: Alien? Guests Among Us",
+    "Star Trek Lower Decks Q&A"
+   ],
+   "known_for": "",
+   "name": "Crispy"
+  },
+  "cruxshadows": {
+   "confidence": "high",
+   "events": [
+    "An Hour with The Cruxshadows: Discussion & Q&A",
+    "Cruxshadows"
+   ],
+   "known_for": "Gothic rock band, longtime Dragon Con performers",
+   "name": "Cruxshadows"
+  },
+  "crystal-cleveland": {
+   "confidence": "low",
+   "events": [
+    "The Boys: Truth? Justice? ... and Vought"
+   ],
+   "known_for": "",
+   "name": "Crystal Cleveland"
+  },
+  "curt-anderson": {
+   "confidence": "high",
+   "events": [
+    "Banachek - Games of the Mind"
+   ],
+   "known_for": "",
+   "name": "Curt Anderson"
+  },
+  "d-j-butler": {
+   "confidence": "low",
+   "events": [
+    "Dragon Award Nominee & Past Recipients – Meet & Greet and Signings"
+   ],
+   "known_for": "Fantasy author, Dragon Award nominee",
+   "name": "D.J. Butler"
+  },
+  "dads-garage-theatre-co": {
+   "confidence": "high",
+   "events": [
+    "Improvised Dungeons & Dragons – LIVE!",
+    "Dad's Garage Goes to Britannia (Ultima Series)"
+   ],
+   "known_for": "Atlanta-based improv comedy theater company",
+   "name": "Dad's Garage Theatre Co.",
+   "notes": "a company, not a person"
+  },
+  "dan-larson": {
+   "confidence": "low",
+   "events": [
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Gonzo Quiz Show: Looks Like We Made It"
+   ],
+   "known_for": "",
+   "name": "Dan Larson"
+  },
+  "dave-west": {
+   "confidence": "high",
+   "events": [
+    "Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986",
+    "Don't Fear the Reaper – or, Maybe Do: An Hour with Tyler Labine"
+   ],
+   "known_for": "",
+   "name": "Dave West"
+  },
+  "dawnn-lewis": {
+   "confidence": "high",
+   "events": [
+    "Star Trek Lower Decks Q&A",
+    "Photo Session: Photo session: Dawnn Lewis Solo",
+    "Photo Session: Photo session: Lower Decks - Duo 2",
+    "Photo Session: Lower Decks - Full"
+   ],
+   "known_for": "Voice actress; Captain Carol Freeman on Star Trek: Lower Decks",
+   "name": "Dawnn Lewis"
+  },
+  "dczev": {
+   "confidence": "high",
+   "events": [
+    "Dragon Award Nominee & Past Recipients – Meet & Greet and Signings"
+   ],
+   "known_for": "",
+   "name": "DCZev"
+  },
+  "delilah-s-dawson": {
+   "confidence": "high",
+   "events": [
+    "Dragon Award Nominee & Past Recipients – Meet & Greet and Signings",
+    "Delilah Dawson signing"
+   ],
+   "known_for": "Novelist; Star Wars and dark fantasy author",
+   "name": "Delilah S Dawson"
+  },
+  "denim-arcade": {
+   "confidence": "low",
+   "events": [
+    "Denim Arcade"
+   ],
+   "known_for": "",
+   "name": "Denim Arcade"
+  },
+  "denise-richards": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Denise Richards Solo",
+    "Photo Session: Photo session: Starship Troopers",
+    "Starship Troopers 30th Anniversary Roughneck Reunion",
+    "Starship Troopers: 30th Anniversary Roughneck Reunion"
+   ],
+   "known_for": "Actress; Starship Troopers and Wild Things",
+   "name": "Denise Richards"
+  },
+  "deron-generally": {
+   "confidence": "high",
+   "events": [
+    "Real or Fake Anime with Thomas Sanders"
+   ],
+   "known_for": "",
+   "name": "Deron Generally"
+  },
+  "dina-meyer": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Starship Troopers",
+    "Photo Session: Photo session: Dina Meyer Solo",
+    "Starship Troopers 30th Anniversary Roughneck Reunion",
+    "Starship Troopers: 30th Anniversary Roughneck Reunion"
+   ],
+   "known_for": "Actress; Starship Troopers, Saw, and Birds of Prey",
+   "name": "Dina Meyer"
+  },
+  "dj-ichabod": {
+   "confidence": "high",
+   "events": [
+    "Release the Bats: The Goth/Industrial Panel"
+   ],
+   "known_for": "",
+   "name": "DJ Ichabod"
+  },
+  "doc-hammer": {
+   "confidence": "high",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Venture Bros. Panel",
+    "Gonzo Quiz Show: Looks Like We Made It",
+    "Attack of the Celebrity Improv"
+   ],
+   "known_for": "Co-creator, writer, and voice of The Venture Bros.",
+   "name": "Doc Hammer"
+  },
+  "dominic-keating": {
+   "confidence": "high",
+   "events": [
+    "Star Trek Enterprise Q&A",
+    "Photo Session: Photo session: Dominic Keating Solo",
+    "Photo Session: Photo session: Enterprise Group",
+    "MOVED! Star Trek Actors Q&A"
+   ],
+   "known_for": "Actor; Lt. Malcolm Reed on Star Trek: Enterprise",
+   "name": "Dominic Keating"
+  },
+  "dot-r-steverson": {
+   "confidence": "high",
+   "events": [
+    "The Life and Times of Sean Astin",
+    "Firefly: Seeking Serenity",
+    "Improvised Dungeons & Dragons – LIVE!",
+    "Hear Me Roar: An Hour with Lena Headey",
+    "Dragon Con Masquerade"
+   ],
+   "known_for": "",
+   "name": "Dot R Steverson"
+  },
+  "dustin-fletcher": {
+   "confidence": "high",
+   "events": [
+    "The Video Game Costume Contest"
+   ],
+   "known_for": "",
+   "name": "Dustin Fletcher"
+  },
+  "dusty-gannon": {
+   "confidence": "low",
+   "events": [
+    "Release the Bats: The Goth/Industrial Panel"
+   ],
+   "known_for": "",
+   "name": "Dusty Gannon"
+  },
+  "edward-james-olmos": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Edward James Olmos Solo",
+    "Battlestar Galactica: A Galaxy of Stars",
+    "Battlestar Galactica: Humans and Cylons",
+    "Photo Session: Photo session: Battlestar Galactica",
+    "Battlestar Galactica: Evolution"
+   ],
+   "known_for": "Actor; Admiral Adama on Battlestar Galactica, Blade Runner, Miami Vice",
+   "name": "Edward James Olmos"
+  },
+  "elisa-teague": {
+   "confidence": "low",
+   "events": [
+    "Roll Against Fear: Tales of the Valiant – LIVE!"
+   ],
+   "known_for": "Tabletop game designer and developer",
+   "name": "Elisa Teague"
+  },
+  "emily-andras": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Emily Andras Solo",
+    "Photo Session: Wynonna Earp",
+    "Return to Purgatory: Wynonna Earp Cast",
+    "Everyone Welcome: Wynonna Earp Cast",
+    "Home Sweet Homestead: Wynonna Earp Cast"
+   ],
+   "known_for": "TV showrunner and writer; Wynonna Earp and Lost Girl",
+   "name": "Emily Andras"
+  },
+  "emily-henry": {
+   "confidence": "low",
+   "events": [
+    "Concert – Emily Henry"
+   ],
+   "known_for": "",
+   "name": "Emily Henry"
+  },
+  "emunarum": {
+   "confidence": "high",
+   "events": [
+    "FFXIV Team Trivia with Friends!",
+    "From FFXIV to FFXI: Adventuring in Vana'diel"
+   ],
+   "known_for": "",
+   "name": "EmUnArum"
+  },
+  "erica-durance": {
+   "confidence": "high",
+   "events": [
+    "Smallville Class Reunion",
+    "Photo Session: Photo session: Erica Durance Solo",
+    "Photo Session: Photo Session: Smallville",
+    "Photo Session: Photo session: Smallville"
+   ],
+   "known_for": "Actress; Lois Lane on Smallville and Alura on Supergirl",
+   "name": "Erica Durance"
+  },
+  "erin-gray": {
+   "confidence": "high",
+   "events": [
+    "Gil Gerard Remembered",
+    "Tai Chi with Erin Gray **EXTRA FEE WORKSHOP**",
+    "Photo Session: Photo session: Erin Gray Solo"
+   ],
+   "known_for": "Actress, played Colonel Wilma Deering on Buck Rogers in the 25th Century",
+   "name": "Erin Gray"
+  },
+  "erin-yvette": {
+   "confidence": "high",
+   "events": [
+    "Hades II Guests",
+    "Photo Session: Photo session: Hades II",
+    "Photo Session: Photo session: Erin Yvette Solo",
+    "Hades II cast"
+   ],
+   "known_for": "Voice actress known for indie video games",
+   "name": "Erin Yvette"
+  },
+  "eugene-cordero": {
+   "confidence": "high",
+   "events": [
+    "Star Trek Lower Decks Q&A",
+    "Photo Session: Lower Decks - Full",
+    "Photo Session: Photo session: Lower Decks - Duo 3",
+    "Photo Session: Photo session: Eugene Cordero Solo",
+    "Photo Session: Photo session: Lower Decks - Duo 1"
+   ],
+   "known_for": "Actor and comedian, voices Ensign Rutherford on Star Trek: Lower Decks",
+   "name": "Eugene Cordero"
+  },
+  "evie-templeton": {
+   "confidence": "high",
+   "events": [
+    "Family & Friends at Nevermore: Wednesday Cast",
+    "Secrets of Nevermore: Wednesday Cast",
+    "Photo Session: Photo session: Evie Templeton Solo",
+    "Photo session: Wednesday"
+   ],
+   "known_for": "Young actress in the Wednesday series",
+   "name": "Evie Templeton"
+  },
+  "fon-h-davis": {
+   "confidence": "low",
+   "events": [
+    "Dragon Con Masquerade"
+   ],
+   "known_for": "",
+   "name": "Fon H Davis"
+  },
+  "gabby": {
+   "confidence": "low",
+   "events": [
+    "The World of Monster High: The Movies, the Shows, the Dolls, & More"
+   ],
+   "known_for": "",
+   "name": "Gabby"
+  },
+  "galactic-empire": {
+   "confidence": "high",
+   "events": [
+    "Galactic Empire"
+   ],
+   "known_for": "Star Wars-themed heavy metal band",
+   "name": "Galactic Empire",
+   "notes": "a band, not a person - the model rejected the other bands listed as speakers"
+  },
+  "garrett-wang": {
+   "confidence": "high",
+   "events": [
+    "Welcome to Trek Track",
+    "Gil Gerard Remembered",
+    "Gil Gerard's Match Game in the 25th Century - with Garrett Wang",
+    "Star Trek Lower Decks Q&A",
+    "Photo Session: Photo session: Garrett Wang Solo",
+    "Star Trek Enterprise Q&A",
+    "MOVED = Miss Star Trek Universe Pageant",
+    "All Good Things – Closing"
+   ],
+   "known_for": "Actor, played Ensign Harry Kim on Star Trek: Voyager",
+   "name": "Garrett Wang"
+  },
+  "gary-mitchel": {
+   "confidence": "low",
+   "events": [
+    "Patricia Tallman's Greatest Hits: From Knightriders to Night of Living Dead"
+   ],
+   "known_for": "",
+   "name": "Gary Mitchel"
+  },
+  "georgie-leahy": {
+   "confidence": "low",
+   "events": [
+    "An Hour with Georgie Leahy",
+    "Helluva Boss Cast",
+    "Meet the Hellaverse Cast"
+   ],
+   "known_for": "Voice actress in Helluva Boss",
+   "name": "Georgie Leahy"
+  },
+  "gillian-vigman": {
+   "confidence": "high",
+   "events": [
+    "Star Trek Lower Decks Q&A"
+   ],
+   "known_for": "Actress and comedian, voice on Star Trek: Lower Decks",
+   "name": "Gillian Vigman"
+  },
+  "gina-torres": {
+   "confidence": "high",
+   "events": [
+    "Firefly: Seeking Serenity",
+    "Photo Session: Photo session: Firefly",
+    "Photo Session: Photo session: Gina Torres Solo",
+    "Photo Session: Photo session: Firefly Duo",
+    "Firefly: One More Heist"
+   ],
+   "known_for": "Actress, played Zoe Washburne on Firefly",
+   "name": "Gina Torres"
+  },
+  "glenn-parris": {
+   "confidence": "low",
+   "events": [
+    "Age in Fandom: Breaking the Stereotypes"
+   ],
+   "known_for": "",
+   "name": "Glenn Parris"
+  },
+  "grace-park": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Cylons",
+    "Photo Session: Photo session: Grace Park Solo",
+    "Battlestar Galactica: A Galaxy of Stars",
+    "Battlestar Galactica: Humans and Cylons",
+    "Photo Session: Women of Battlestar",
+    "Photo Session: Photo session: Battlestar Galactica",
+    "Battlestar Galactica: Evolution"
+   ],
+   "known_for": "Actress, played Sharon 'Boomer' Valerii on Battlestar Galactica",
+   "name": "Grace Park"
+  },
+  "gracie-palmer": {
+   "confidence": "low",
+   "events": [
+    "The World of Monster High: The Movies, the Shows, the Dolls, & More"
+   ],
+   "known_for": "",
+   "name": "Gracie Palmer"
+  },
+  "gui-agustini": {
+   "confidence": "low",
+   "events": [
+    "X-Men '97 Cast",
+    "X-Men '97 Guests"
+   ],
+   "known_for": "Voice actor in X-Men '97",
+   "name": "Gui Agustini"
+  },
+  "haduo-ken-masters": {
+   "confidence": "low",
+   "events": [
+    "The Boys: Truth? Justice? ... and Vought"
+   ],
+   "known_for": "",
+   "name": "Haduo-Ken Masters"
+  },
+  "hal-lublin": {
+   "confidence": "high",
+   "events": [
+    "How Did You Get So Lucky? – An Hour with Kirk Thatcher",
+    "Gonzo Quiz Show: The Return",
+    "Welcome to Night Vale",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Venture Bros. Panel",
+    "Gonzo Quiz Show: Looks Like We Made It",
+    "Attack of the Celebrity Improv"
+   ],
+   "known_for": "Voice actor and podcaster, cast member of Welcome to Night Vale and The Thrilling Adventure Hour",
+   "name": "Hal Lublin"
+  },
+  "honor-santa-croce": {
+   "confidence": "low",
+   "events": [
+    "Dragon Awards Ceremony – LIVE!"
+   ],
+   "known_for": "",
+   "name": "Honor Santa Croce"
+  },
+  "isaac-ordonez": {
+   "confidence": "high",
+   "events": [
+    "Family & Friends at Nevermore: Wednesday Cast",
+    "Secrets of Nevermore: Wednesday Cast",
+    "Photo Session: Photo session: Isaac Ordonez Solo",
+    "Photo session: Wednesday"
+   ],
+   "known_for": "Young actor, plays Pugsley Addams in Wednesday",
+   "name": "Isaac Ordonez"
+  },
+  "jack-quaid": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Lower Decks - Full",
+    "The Boys Guests: Life in Vought World",
+    "Star Trek Lower Decks Q&A",
+    "The Boys Guests: Supes, Scandals & Stories"
+   ],
+   "known_for": "Actor in The Boys and Star Trek: Lower Decks.",
+   "name": "Jack Quaid"
+  },
+  "jake-busey": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Starship Troopers",
+    "Photo Session: Photo session: Jake Busey Solo",
+    "Starship Troopers 30th Anniversary Roughneck Reunion",
+    "Starship Troopers: 30th Anniversary Roughneck Reunion",
+    "Starship Troopers Roughneck Reunion"
+   ],
+   "known_for": "Actor known for Starship Troopers and The Frighteners.",
+   "name": "Jake Busey"
+  },
+  "james-callis": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: James Callis Solo",
+    "Battlestar Galactica: A Galaxy of Stars",
+    "Battlestar Galactica: Humans and Cylons",
+    "Photo Session: Photo session: Battlestar Galactica",
+    "Battlestar Galactica: Evolution"
+   ],
+   "known_for": "Actor who played Gaius Baltar on Battlestar Galactica.",
+   "name": "James Callis"
+  },
+  "james-saito": {
+   "confidence": "high",
+   "events": [
+    "James Saito signing - Teenage Mutant Ninja Turtles",
+    "James Saito - Teenage Mutant Ninja Turtles signing",
+    "James Saito - Teenage Mutant Ninja Turtles Signing"
+   ],
+   "known_for": "Actor who played the Shredder in the 1990 Teenage Mutant Ninja Turtles film.",
+   "name": "James Saito"
+  },
+  "janet-gerard": {
+   "confidence": "low",
+   "events": [
+    "Gil Gerard Remembered",
+    "Gil Gerard's Match Game in the 25th Century - with Garrett Wang"
+   ],
+   "known_for": "",
+   "name": "Janet Gerard"
+  },
+  "jason-gonding": {
+   "confidence": "low",
+   "events": [
+    "A Hour with Lord British"
+   ],
+   "known_for": "",
+   "name": "Jason Gonding"
+  },
+  "jason-marnocha": {
+   "confidence": "low",
+   "events": [
+    "Hades II Guests",
+    "Photo Session: Photo session: Hades II",
+    "Photo Session: Photo session: Jason Marnocha Solo",
+    "Hades II cast"
+   ],
+   "known_for": "Voice actor who plays Zagreus in Hades II.",
+   "name": "Jason Marnocha"
+  },
+  "jason-marsden": {
+   "confidence": "high",
+   "events": [
+    "Lips-On Voice Acting Workshop w/ Jason Marsden **EXTRA FEE Workshop #1",
+    "Lips-On Voice Acting Workshop w/ Jason Marsden #2 **EXTRA FEE WORKSHOP**",
+    "Anime/Animation Cosplay Contest"
+   ],
+   "known_for": "Voice actor known for Max Goof in A Goofy Movie and Nermal in Garfield.",
+   "name": "Jason Marsden"
+  },
+  "javier-prusky": {
+   "confidence": "low",
+   "events": [
+    "FFXIV Cast Q&A",
+    "Photo Session: Photo session: Javier Prusky Solo",
+    "FFXIV Team Trivia with Friends!",
+    "Final Fantasy XIV Fireside Chat"
+   ],
+   "known_for": "Voice actor in Final Fantasy XIV.",
+   "name": "Javier Prusky"
+  },
+  "jazzmin-wilson": {
+   "confidence": "low",
+   "events": [
+    "Running Man: The Game Has Changed"
+   ],
+   "known_for": "",
+   "name": "Jazzmin Wilson"
+  },
+  "jeni-green": {
+   "confidence": "low",
+   "events": [
+    "Running Man: The Game Has Changed"
+   ],
+   "known_for": "",
+   "name": "Jeni Green"
+  },
+  "jenna-levine": {
+   "confidence": "low",
+   "events": [
+    "Age in Fandom: Breaking the Stereotypes"
+   ],
+   "known_for": "",
+   "name": "Jenna Levine"
+  },
+  "jess-bush": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Jess Bush",
+    "Photo Session: Strange New Worlds",
+    "Star Trek: Strange New Worlds Guests",
+    "Star Trek: Strange New Worlds"
+   ],
+   "known_for": "Actress who plays Nurse Christine Chapel on Star Trek: Strange New Worlds.",
+   "name": "Jess Bush"
+  },
+  "jess-merriman": {
+   "confidence": "low",
+   "events": [
+    "Anime/Animation Cosplay Contest"
+   ],
+   "known_for": "",
+   "name": "Jess Merriman"
+  },
+  "jessica-combs": {
+   "confidence": "low",
+   "events": [
+    "Invasion Fan Panel: Day 1, Post Invasion"
+   ],
+   "known_for": "",
+   "name": "Jessica Combs"
+  },
+  "jewel-staite": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Stargate - SG1",
+    "Photo Session: Photo session: Jewel Staite Solo",
+    "Firefly: Seeking Serenity",
+    "Photo Session: Photo session: Firefly",
+    "Photo Session: Photo session: Resident Alien",
+    "Resident Alien: Alien? Guests Among Us",
+    "Firefly: One More Heist"
+   ],
+   "known_for": "Actress who played Kaylee Frye on Firefly.",
+   "name": "Jewel Staite"
+  },
+  "jim-butcher": {
+   "confidence": "high",
+   "events": [
+    "Dragon Award Nominee & Past Recipients – Meet & Greet and Signings"
+   ],
+   "known_for": "Author of The Dresden Files urban fantasy series.",
+   "name": "Jim Butcher"
+  },
+  "joe-campbell": {
+   "confidence": "low",
+   "events": [
+    "All Good Things – Closing"
+   ],
+   "known_for": "",
+   "name": "Joe Campbell"
+  },
+  "joe-crowe": {
+   "confidence": "low",
+   "events": [
+    "The Thrilling Adventures of Victoria"
+   ],
+   "known_for": "",
+   "name": "Joe Crowe"
+  },
+  "joey-davila": {
+   "confidence": "low",
+   "events": [
+    "The Boys Guests: Life in Vought World",
+    "X-Men '97 Guests",
+    "Star Trek: Strange New Worlds",
+    "Helluva Boss Cast",
+    "Final Fantasy XIV Fireside Chat"
+   ],
+   "known_for": "",
+   "name": "Joey Davila"
+  },
+  "jon-huertas": {
+   "confidence": "high",
+   "events": [
+    "Castle Guests",
+    "Photo Session: Photo session: Castle Duo",
+    "Photo Session: Photo session: Jon Huertas Solo",
+    "Castle Cast",
+    "Photo Session: Photo session: Castle Group",
+    "The Skeptical Side of Castle",
+    "Photo Session: Castle Group"
+   ],
+   "known_for": "Actor who played Javier Esposito on Castle and Miguel on This Is Us.",
+   "name": "Jon Huertas"
+  },
+  "jon-paul-estes": {
+   "confidence": "low",
+   "events": [
+    "Supergirl: Woman of Tomorrow"
+   ],
+   "known_for": "",
+   "name": "Jon-Paul Estes"
+  },
+  "jonathan-coulton": {
+   "confidence": "high",
+   "events": [
+    "Gonzoroo Presents: A Music & Comedy Spectacular"
+   ],
+   "known_for": "Singer-songwriter known for geek-themed comedy songs and video game music.",
+   "name": "Jonathan Coulton"
+  },
+  "jonathan-sarge": {
+   "confidence": "low",
+   "events": [
+    "ZombieCON Vol. 1: Fan Discussion Panel"
+   ],
+   "known_for": "",
+   "name": "Jonathan Sarge"
+  },
+  "jordan-morris": {
+   "confidence": "low",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Gonzo Quiz Show: Looks Like We Made It",
+    "Attack of the Celebrity Improv"
+   ],
+   "known_for": "Comedy writer and podcaster, co-host of Jordan, Jesse, Go!",
+   "name": "Jordan Morris"
+  },
+  "josh-cooper": {
+   "confidence": "low",
+   "events": [
+    "Welcome to Fandom Face-off: The Ultimate Gameshow of Bad Choices!"
+   ],
+   "known_for": "",
+   "name": "Josh Cooper"
+  },
+  "judy-alice-lee": {
+   "confidence": "high",
+   "events": [
+    "Hades II Guests",
+    "Photo Session: Photo session: Hades II",
+    "Photo Session: Photo session: Judy Alice Lee Solo",
+    "Hades II cast"
+   ],
+   "known_for": "Voice actress who plays Melinoë in Hades II.",
+   "name": "Judy Alice Lee"
+  },
+  "julie-caitlin-brown": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Babylon 5",
+    "Photo Session: Photo session: Julie Caitlin Brown Solo",
+    "Babylon 5: Clearing the Shadows",
+    "Babylon 5: Space Station Conversation",
+    "Babylon 5: A Dream Given Form"
+   ],
+   "known_for": "Actress who played Na'Toth on Babylon 5.",
+   "name": "Julie Caitlin Brown"
+  },
+  "justin-lee-ford": {
+   "confidence": "low",
+   "events": [
+    "Q&A with Justin Lee Ford"
+   ],
+   "known_for": "",
+   "name": "Justin Lee Ford"
+  },
+  "kat-barrell": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Katherine Barrell Solo",
+    "Photo Session: Wynonna Earp",
+    "Return to Purgatory: Wynonna Earp Cast",
+    "Everyone Welcome: Wynonna Earp Cast",
+    "Home Sweet Homestead: Wynonna Earp Cast"
+   ],
+   "known_for": "Actress who played Officer Nicole Haught on Wynonna Earp.",
+   "name": "Kat Barrell"
+  },
+  "katee-sackhoff": {
+   "confidence": "high",
+   "events": [
+    "Battlestar Galactica: Humans and Cylons",
+    "Photo Session: Women of Battlestar",
+    "Photo Session: Photo session: Katee Sackhoff Solo",
+    "Photo Session: Photo session: Battlestar Galactica",
+    "Photo Session: Photo session: Longmire",
+    "An Hour with Star Wars' Bo-Katan"
+   ],
+   "known_for": "Actress known for Starbuck on Battlestar Galactica and Bo-Katan Kryze in The Mandalorian.",
+   "name": "Katee Sackhoff"
+  },
+  "kathy-coleman": {
+   "confidence": "high",
+   "events": [
+    "Land of the Lost Cast: Six Decades of a Routine Expedition",
+    "Photo Session: Photo session: Land of the Lost",
+    "Photo Session: Photo session: Kathy Coleman Solo",
+    "Land of the Lost: Six Decades of Routine Expeditions",
+    "Land of the Lost Cast"
+   ],
+   "known_for": "Actress who played Holly Marshall on the original Land of the Lost.",
+   "name": "Kathy Coleman"
+  },
+  "kelsey-ann-brady": {
+   "confidence": "low",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Gonzo Quiz Show: Looks Like We Made It",
+    "Attack of the Celebrity Improv"
+   ],
+   "known_for": "",
+   "name": "Kelsey Ann Brady"
+  },
+  "ken-napzok": {
+   "confidence": "low",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Gonzo Quiz Show: Looks Like We Made It"
+   ],
+   "known_for": "Star Wars podcaster and author of Why We Love Star Wars.",
+   "name": "Ken Napzok"
+  },
+  "ken-plume": {
+   "confidence": "low",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Venture Bros. Panel",
+    "Gonzo Quiz Show: Looks Like We Made It",
+    "Attack of the Celebrity Improv"
+   ],
+   "known_for": "",
+   "name": "Ken Plume"
+  },
+  "kevin-bachelder": {
+   "confidence": "low",
+   "events": [
+    "Secrets of Nevermore: Wednesday Cast",
+    "Everyone Welcome: Wynonna Earp Cast"
+   ],
+   "known_for": "",
+   "name": "Kevin Bachelder"
+  },
+  "kevin-carlson": {
+   "confidence": "low",
+   "events": [
+    "Robots and Teeth: The Puppetry of Kevin Carlson",
+    "Lip Sync-a-Palooza"
+   ],
+   "known_for": "Puppeteer and puppet builder.",
+   "name": "Kevin Carlson"
+  },
+  "kevin-eldridge": {
+   "confidence": "low",
+   "events": [
+    "Supergirl: Woman of Tomorrow",
+    "Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986"
+   ],
+   "known_for": "",
+   "name": "Kevin Eldridge"
+  },
+  "kiki-falkanger": {
+   "confidence": "low",
+   "events": [
+    "The Rookie Guests",
+    "Starship Troopers: 30th Anniversary Roughneck Reunion"
+   ],
+   "known_for": "",
+   "name": "Kiki Falkanger"
+  },
+  "killbillies": {
+   "confidence": "low",
+   "events": [
+    "Killbillies"
+   ],
+   "known_for": "",
+   "name": "Killbillies"
+  },
+  "kirk-thatcher": {
+   "confidence": "high",
+   "events": [
+    "How Did You Get So Lucky? – An Hour with Kirk Thatcher",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Gonzo Quiz Show: Looks Like We Made It",
+    "Attack of the Celebrity Improv"
+   ],
+   "known_for": "Director, producer, and puppeteer known for work on Jim Henson productions and as the punk on the bus in Star Trek IV",
+   "name": "Kirk Thatcher"
+  },
+  "kyle-valle": {
+   "confidence": "low",
+   "events": [
+    "ZombieCON Vol. 1: Fan Discussion Panel"
+   ],
+   "known_for": "",
+   "name": "Kyle Valle"
+  },
+  "larry-niven": {
+   "confidence": "high",
+   "events": [
+    "Age in Fandom: Breaking the Stereotypes"
+   ],
+   "known_for": "Science fiction author, best known for Ringworld and the Known Space series",
+   "name": "Larry Niven"
+  },
+  "last-grasp": {
+   "confidence": "low",
+   "events": [
+    "Last Grasp"
+   ],
+   "known_for": "",
+   "name": "Last Grasp"
+  },
+  "leanna-renee-hieber": {
+   "confidence": "high",
+   "events": [
+    "Sherrilyn Kenyon & Friends: Costume & Book Signing Extravaganza!"
+   ],
+   "known_for": "Gothic fantasy author",
+   "name": "Leanna Renee Hieber"
+  },
+  "lena-headey": {
+   "confidence": "high",
+   "events": [
+    "Long May She Reign: An Hour with Lena Headey",
+    "Photo Session: Photo session: Lena Headey Solo",
+    "Photo Session: Photo session: Sarah Connor Chronicles Duo",
+    "Hear Me Roar: An Hour with Lena Headey"
+   ],
+   "known_for": "Actress best known as Cersei Lannister in Game of Thrones",
+   "name": "Lena Headey"
+  },
+  "leo-visentin": {
+   "confidence": "low",
+   "events": [
+    "Welcome to Trek Track",
+    "All Good Things – Closing"
+   ],
+   "known_for": "",
+   "name": "Leo Visentin"
+  },
+  "levi-fiehler": {
+   "confidence": "high",
+   "events": [
+    "Resident Alien: Visitors from Patience, CO",
+    "Photo Session: Photo session: Levi Fiehler Solo",
+    "Photo Session: Photo session: Resident Alien Couple",
+    "Photo Session: Photo session: Resident Alien",
+    "Resident Alien: Alien? Guests Among Us",
+    "Resident Alien Guests: Funny Bones Are Universal"
+   ],
+   "known_for": "Actor known for playing Mayor Ben Hawthorne on Resident Alien",
+   "name": "Levi Fiehler"
+  },
+  "lisseth-chavez": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Lisseth Chavez Solo",
+    "Photo Session: Photo session: The Rookie",
+    "The Rookie Guests",
+    "On the Case with the Cast of The Rookie"
+   ],
+   "known_for": "Actress known for The Rookie and DC's Legends of Tomorrow",
+   "name": "Lisseth Chavez"
+  },
+  "liz-callaway": {
+   "confidence": "high",
+   "events": [
+    "Heavenly Hour with Liz Calloway",
+    "Photo Session: Photo session: Liz Callaway Solo",
+    "Once Upon a Liz Callaway",
+    "Meet the Hellaverse Cast"
+   ],
+   "known_for": "Broadway and voice actress, singing voice of Anastasia and adult Kiara in The Lion King II",
+   "name": "Liz Callaway"
+  },
+  "logan-jenkins": {
+   "confidence": "low",
+   "events": [
+    "Improvised Dungeons & Dragons – LIVE!"
+   ],
+   "known_for": "",
+   "name": "Logan Jenkins"
+  },
+  "lucy-boydston": {
+   "confidence": "low",
+   "events": [
+    "MOVED = Miss Star Trek Universe Pageant"
+   ],
+   "known_for": "",
+   "name": "Lucy Boydston"
+  },
+  "lyman-chen": {
+   "confidence": "low",
+   "events": [
+    "Q&A with Justin Lee Ford"
+   ],
+   "known_for": "",
+   "name": "Lyman Chen"
+  },
+  "lyndsay-ely": {
+   "confidence": "low",
+   "events": [
+    "Dragon Award Nominee & Past Recipients – Meet & Greet and Signings"
+   ],
+   "known_for": "Young adult science fiction author",
+   "name": "Lyndsay Ely"
+  },
+  "manda-montane": {
+   "confidence": "low",
+   "events": [
+    "Heavenly Hour with Liz Calloway",
+    "Smallville Class Reunion",
+    "X-Men '97 Cast",
+    "Castle Cast"
+   ],
+   "known_for": "",
+   "name": "Manda Montane"
+  },
+  "mandy-collier": {
+   "confidence": "low",
+   "events": [
+    "Dragon Awards Ceremony – LIVE!"
+   ],
+   "known_for": "",
+   "name": "Mandy Collier"
+  },
+  "marc-lee": {
+   "confidence": "low",
+   "events": [
+    "Star Trek Enterprise Q&A",
+    "Stargate: SG-1 - Make It Spin",
+    "Starship Troopers 30th Anniversary Roughneck Reunion",
+    "Battlestar Galactica: Evolution",
+    "Land of the Lost: Six Decades of Routine Expeditions"
+   ],
+   "known_for": "",
+   "name": "Marc Lee"
+  },
+  "marissa-lenti": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Marissa Lenti Solo",
+    "Photo Session: Photo session: The Amazing Digital Circus",
+    "Amazing Digital Circus Cast: Last Adventure"
+   ],
+   "known_for": "Voice actress and ADR director in anime and animation",
+   "name": "Marissa Lenti"
+  },
+  "mark-gagliardi": {
+   "confidence": "high",
+   "events": [
+    "How Did You Get So Lucky? – An Hour with Kirk Thatcher",
+    "Welcome to Night Vale",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Venture Bros. Panel",
+    "Gonzo Quiz Show: Looks Like We Made It",
+    "Attack of the Celebrity Improv"
+   ],
+   "known_for": "Actor and podcaster, co-host of The Thrilling Adventure Hour and We Got This",
+   "name": "Mark Gagliardi"
+  },
+  "mark-meer": {
+   "confidence": "high",
+   "events": [
+    "Improvised Dungeons & Dragons – LIVE!",
+    "Roll Against Fear: Tales of the Valiant – LIVE!",
+    "Dad's Garage Goes to Britannia (Ultima Series)"
+   ],
+   "known_for": "Voice actor, best known as the male Commander Shepard in Mass Effect",
+   "name": "Mark Meer"
+  },
+  "martin-freepaw": {
+   "confidence": "low",
+   "events": [
+    "FFXIV Team Trivia with Friends!"
+   ],
+   "known_for": "",
+   "name": "Martin Freepaw"
+  },
+  "mary-mcdonnell": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Mary McDonnell Solo",
+    "Battlestar Galactica: A Galaxy of Stars",
+    "Battlestar Galactica: Humans and Cylons",
+    "Photo Session: Women of Battlestar",
+    "Photo Session: Photo session: Battlestar Galactica",
+    "Battlestar Galactica: Evolution"
+   ],
+   "known_for": "Actress who played President Laura Roslin on Battlestar Galactica and Capt. Sharon Raydor on Major Crimes.",
+   "name": "Mary McDonnell"
+  },
+  "matt-smith": {
+   "confidence": "low",
+   "events": [
+    "2026 Film Track Kick-Off & Preview: The State of Film in 2026"
+   ],
+   "known_for": "",
+   "name": "Matt Smith"
+  },
+  "matthew-m-foster": {
+   "confidence": "low",
+   "events": [
+    "Dragon Awards Ceremony – LIVE!"
+   ],
+   "known_for": "",
+   "name": "Matthew M Foster"
+  },
+  "matthew-waterson": {
+   "confidence": "high",
+   "events": [
+    "X-Men '97 Guests",
+    "X-Men '97 Cast"
+   ],
+   "known_for": "Voice actor who plays Magneto in X-Men '97.",
+   "name": "Matthew Waterson"
+  },
+  "melanie-scrofano": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Strange New Worlds",
+    "Photo Session: Photo session: Melanie Scrofano Solo",
+    "Photo Session: Wynonna Earp",
+    "Star Trek: Strange New Worlds Guests",
+    "Everyone Welcome: Wynonna Earp Cast",
+    "Home Sweet Homestead: Wynonna Earp Cast"
+   ],
+   "known_for": "Actress who played Wynonna Earp and appears on Star Trek: Strange New Worlds as Captain Batel.",
+   "name": "Melanie Scrofano"
+  },
+  "melissa-oneil": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: The Rookie",
+    "The Rookie Guests",
+    "On the Case with the Cast of The Rookie"
+   ],
+   "known_for": "Actress who plays Officer Lucy Chen on The Rookie and starred as Two on Dark Matter.",
+   "name": "Melissa O'Neil"
+  },
+  "melodicblue": {
+   "confidence": "low",
+   "events": [
+    "FFXIV Team Trivia with Friends!"
+   ],
+   "known_for": "",
+   "name": "MelodicBlue"
+  },
+  "meredith-garretson": {
+   "confidence": "high",
+   "events": [
+    "Resident Alien: Visitors from Patience, CO",
+    "Photo Session: Photo session: Meredith Garretson Solo",
+    "Photo Session: Photo session: Resident Alien Couple",
+    "Photo Session: Photo session: Resident Alien",
+    "Resident Alien: Alien? Guests Among Us",
+    "Resident Alien Guests: Funny Bones Are Universal"
+   ],
+   "known_for": "Actress who plays Kate Hawthorne on Resident Alien.",
+   "name": "Meredith Garretson"
+  },
+  "michael-collins": {
+   "confidence": "low",
+   "events": [
+    "The Boys: Truth? Justice? ... and Vought"
+   ],
+   "known_for": "",
+   "name": "Michael Collins"
+  },
+  "michael-ironside": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Starship Troopers",
+    "Photo Session: Photo session: Michael Ironside Solo",
+    "Starship Troopers 30th Anniversary Roughneck Reunion",
+    "Starship Troopers: 30th Anniversary Roughneck Reunion",
+    "Starship Troopers Roughneck Reunion"
+   ],
+   "known_for": "Actor known for Starship Troopers, Total Recall, Top Gun: Maverick, and voicing Sam Fisher in Splinter Cell.",
+   "name": "Michael Ironside"
+  },
+  "michael-kovach": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Michael Kovach Solo",
+    "Photo Session: Photo session: The Amazing Digital Circus",
+    "Photo Session: Photo session: Hazbin Hotel",
+    "Amazing Digital Circus Cast: Last Adventure",
+    "Photo Session: Hazbin Hotel"
+   ],
+   "known_for": "Voice actor who plays Jax in The Amazing Digital Circus and Angel Dust in Hazbin Hotel.",
+   "name": "Michael Kovach"
+  },
+  "michael-shanks": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Michael Shanks Solo",
+    "Photo Session: Photo session: Stargate - SG1",
+    "Stargate: The Iris Is Open for SG-1",
+    "Stargate: SG-1 - Make It Spin",
+    "Stargate: SG-1: Taking This Loop off"
+   ],
+   "known_for": "Actor who played Dr. Daniel Jackson on Stargate SG-1.",
+   "name": "Michael Shanks"
+  },
+  "michael-wesley-collins": {
+   "confidence": "low",
+   "events": [
+    "Classic Sci-Fi Charity Movie Lock-in : Howard the Duck"
+   ],
+   "known_for": "",
+   "name": "Michael Wesley Collins"
+  },
+  "mikal-mosley": {
+   "confidence": "low",
+   "events": [
+    "The Video Game Costume Contest",
+    "Bard Talk: Shakespeare with Shenanigans - LIVE!",
+    "Dragon Con Masquerade"
+   ],
+   "known_for": "",
+   "name": "Mikal Mosley"
+  },
+  "mike-kaess": {
+   "confidence": "low",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Gonzo Quiz Show: Looks Like We Made It"
+   ],
+   "known_for": "",
+   "name": "Mike Kaess"
+  },
+  "mike-odle": {
+   "confidence": "low",
+   "events": [
+    "Q&A with Justin Lee Ford"
+   ],
+   "known_for": "",
+   "name": "Mike Odle"
+  },
+  "mike-phirman": {
+   "confidence": "low",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Gonzoroo Presents: A Music & Comedy Spectacular"
+   ],
+   "known_for": "Comedian and musician, one half of Hard 'n Phirm and co-host of Cooking with Rockstars.",
+   "name": "Mike Phirman"
+  },
+  "ming-chen": {
+   "confidence": "high",
+   "events": [
+    "Roll Against Fear: Tales of the Valiant – LIVE!"
+   ],
+   "known_for": "Co-host of AMC's Comic Book Men and longtime collaborator with Kevin Smith.",
+   "name": "Ming Chen"
+  },
+  "mo-vermenton": {
+   "confidence": "low",
+   "events": [
+    "Smallville Class Reunion"
+   ],
+   "known_for": "",
+   "name": "Mo Vermenton"
+  },
+  "molly-abigail-coffee": {
+   "confidence": "low",
+   "events": [
+    "Robots and Teeth: The Puppetry of Kevin Carlson",
+    "Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986"
+   ],
+   "known_for": "",
+   "name": "Molly Abigail Coffee"
+  },
+  "molly-quinn": {
+   "confidence": "high",
+   "events": [
+    "Castle Guests",
+    "Photo Session: Photo session: Molly Quinn Solo",
+    "Castle Cast",
+    "Photo Session: Photo session: Castle Group",
+    "Photo Session: Castle Group"
+   ],
+   "known_for": "Actress who played Alexis Castle on ABC's Castle.",
+   "name": "Molly Quinn"
+  },
+  "nathan-fillion": {
+   "confidence": "high",
+   "events": [
+    "Castle Cast",
+    "Photo Session: Photo session: The Rookie",
+    "Photo Session: Photo session: Castle Group",
+    "Photo Session: Photo session: Firefly",
+    "Photo Session: Photo session: Once We Were Spacemen and Superman",
+    "Photo Session: Castle Group",
+    "Firefly: One More Heist"
+   ],
+   "known_for": "Actor known for Firefly, Castle, and The Rookie.",
+   "name": "Nathan Fillion"
+  },
+  "nick-frutiger": {
+   "confidence": "low",
+   "events": [
+    "Classic Sci-Fi Charity Movie Lock-in : Howard the Duck",
+    "Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986",
+    "Avatar: Fire, Water, and Beyond"
+   ],
+   "known_for": "",
+   "name": "Nick Frutiger"
+  },
+  "nivek-ogre": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Nivek Ogre Solo",
+    "The Demonatrix Screening",
+    "Nivek Ogre Q&A",
+    "Release the Bats: The Goth/Industrial Panel"
+   ],
+   "known_for": "Lead singer of industrial band Skinny Puppy.",
+   "name": "Nivek Ogre"
+  },
+  "noel-wells": {
+   "confidence": "high",
+   "events": [
+    "Star Trek Lower Decks Q&A",
+    "Photo Session: Lower Decks - Full",
+    "Photo Session: Photo session: Lower Decks - Duo 1",
+    "Photo Session: Photo session: Noel Wells Solo"
+   ],
+   "known_for": "Actress and voice of Ensign Tendi on Star Trek: Lower Decks.",
+   "name": "Noël Wells"
+  },
+  "omega-jones": {
+   "confidence": "low",
+   "events": [
+    "Roll Against Fear: Tales of the Valiant – LIVE!"
+   ],
+   "known_for": "",
+   "name": "Omega Jones"
+  },
+  "paris-k-arrowsmith": {
+   "confidence": "low",
+   "events": [
+    "The Video Game Costume Contest",
+    "Bard Talk: Shakespeare with Shenanigans - LIVE!"
+   ],
+   "known_for": "",
+   "name": "Paris K Arrowsmith"
+  },
+  "patricia-tallman": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Babylon 5",
+    "Photo Session: Photo session: Patricia Tallman Solo",
+    "Babylon 5: Clearing the Shadows",
+    "Babylon 5: Space Station Conversation",
+    "How to Tame Your Fear Dragon with Patricia Tallman",
+    "Babylon 5: A Dream Given Form",
+    "Patricia Tallman's Greatest Hits: From Knightriders to Night of Living Dead"
+   ],
+   "known_for": "Actress and stuntwoman known for Babylon 5 and Night of the Living Dead.",
+   "name": "Patricia Tallman"
+  },
+  "paul-and-storm": {
+   "confidence": "high",
+   "events": [
+    "Gonzoroo Presents: A Music & Comedy Spectacular"
+   ],
+   "known_for": "Comedy music duo known for geek-culture songs and w00tstock.",
+   "name": "Paul and Storm"
+  },
+  "paul-race": {
+   "confidence": "low",
+   "events": [
+    "The Boys: Truth? Justice? ... and Vought"
+   ],
+   "known_for": "",
+   "name": "Paul Race"
+  },
+  "peter-bramhill": {
+   "confidence": "high",
+   "events": [
+    "FFXIV Cast Q&A",
+    "Photo Session: Photo session: Peter Bramhill Solo",
+    "FFXIV Team Trivia with Friends!",
+    "Final Fantasy XIV Fireside Chat"
+   ],
+   "known_for": "Voice actor known for Final Fantasy XIV.",
+   "name": "Peter Bramhill"
+  },
+  "phil-collins": {
+   "confidence": "low",
+   "events": [
+    "Gil Gerard Remembered"
+   ],
+   "known_for": "",
+   "name": "Phil Collins"
+  },
+  "phil-paley": {
+   "confidence": "high",
+   "events": [
+    "Land of the Lost Cast: Six Decades of a Routine Expedition",
+    "Photo Session: Photo session: Land of the Lost",
+    "Photo Session: Photo session: Phillip Paley Solo",
+    "Land of the Lost: Six Decades of Routine Expeditions",
+    "Land of the Lost Cast"
+   ],
+   "known_for": "Child actor who played Cha-Ka on the original Land of the Lost.",
+   "name": "Phil Paley"
+  },
+  "phil-parsons": {
+   "confidence": "low",
+   "events": [
+    "Chuck Huber & Phil Parsons Signing – Vendors Booth # 2529",
+    "Phil Parsons and Chuck Huber Signing – Booth 2529",
+    "Chuck Huber and Phil Parsons Signing – Booth #2529",
+    "Phil Parsons and Chuck Huber Signing – Vendors Booth 2529"
+   ],
+   "known_for": "Voice actor known for Dragon Ball Z dubs.",
+   "name": "Phil Parsons"
+  },
+  "primetime-steve": {
+   "confidence": "low",
+   "events": [
+    "Can Anyone Hear Me? A Yellowjackets Cast Panel",
+    "Land of the Lost Cast: Six Decades of a Routine Expedition",
+    "Babylon 5: Clearing the Shadows",
+    "Castle Cast",
+    "An Hour with Star Wars' Bo-Katan"
+   ],
+   "known_for": "",
+   "name": "Primetime Steve"
+  },
+  "psychostick": {
+   "confidence": "high",
+   "events": [
+    "Psychostick"
+   ],
+   "known_for": "Comedy metal band.",
+   "name": "Psychostick"
+  },
+  "rachel-reeves": {
+   "confidence": "low",
+   "events": [
+    "Dragon Awards Ceremony – LIVE!"
+   ],
+   "known_for": "",
+   "name": "Rachel Reeves"
+  },
+  "raymond-carr": {
+   "confidence": "low",
+   "events": [
+    "Lip Sync-a-Palooza"
+   ],
+   "known_for": "",
+   "name": "Raymond Carr"
+  },
+  "rebecca-russell": {
+   "confidence": "low",
+   "events": [
+    "Running Man: The Game Has Changed"
+   ],
+   "known_for": "",
+   "name": "Rebecca Russell"
+  },
+  "remy-dee": {
+   "confidence": "high",
+   "events": [
+    "Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986"
+   ],
+   "known_for": "",
+   "name": "Remy Dee"
+  },
+  "richard-dean-anderson": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Richard Dean Anderson Solo",
+    "Photo Session: Photo session: Stargate - SG1",
+    "Stargate: The Iris Is Open for SG-1",
+    "Stargate: SG-1 - Make It Spin",
+    "Stargate: SG-1: Taking This Loop off"
+   ],
+   "known_for": "Actor who led Stargate SG-1 and MacGyver.",
+   "name": "Richard Dean Anderson"
+  },
+  "richard-lord-british-garriott": {
+   "confidence": "high",
+   "events": [
+    "A Hour with Lord British",
+    "Dad's Garage Goes to Britannia (Ultima Series)"
+   ],
+   "known_for": "Game designer who created the Ultima series and coined 'MMORPG'.",
+   "name": "Richard Lord British\"\" Garriott"
+  },
+  "richard-t-jones": {
+   "confidence": "high",
+   "events": [
+    "The Rookie Cast",
+    "Photo Session: Photo session: The Rookie",
+    "The Rookie Guests",
+    "On the Case with the Cast of The Rookie"
+   ],
+   "known_for": "Actor known as Sergeant Wade Grey on The Rookie.",
+   "name": "Richard T Jones"
+  },
+  "rl-grey": {
+   "confidence": "high",
+   "events": [
+    "Classic Sci-Fi Charity Movie Lock-in : Howard the Duck"
+   ],
+   "known_for": "",
+   "name": "RL Grey"
+  },
+  "rob-levy": {
+   "confidence": "high",
+   "events": [
+    "Battlestar Galactica: Humans and Cylons",
+    "Resident Alien Guests: Funny Bones Are Universal",
+    "Starship Troopers Roughneck Reunion"
+   ],
+   "known_for": "",
+   "name": "Rob Levy"
+  },
+  "rob-roberts": {
+   "confidence": "high",
+   "events": [
+    "Star Trek Lower Decks Q&A",
+    "FFXIV Cast Q&A",
+    "Friday Night Costuming Contest",
+    "Long May She Reign: An Hour with Lena Headey"
+   ],
+   "known_for": "",
+   "name": "Rob Roberts"
+  },
+  "robyn-mcglotten": {
+   "confidence": "high",
+   "events": [
+    "The Boys: Truth? Justice? ... and Vought"
+   ],
+   "known_for": "",
+   "name": "Robyn McGlotten"
+  },
+  "rogue": {
+   "confidence": "high",
+   "events": [
+    "An Hour with The Cruxshadows: Discussion & Q&A",
+    "Release the Bats: The Goth/Industrial Panel",
+    "Cruxshadows"
+   ],
+   "known_for": "Frontman and songwriter of the goth/industrial band The Cruxshadows.",
+   "name": "Rogue"
+  },
+  "rose-scott": {
+   "confidence": "high",
+   "events": [
+    "WABE: Imagined Worlds, Real Nation – 40 Years of Fandom & America at 250"
+   ],
+   "known_for": "",
+   "name": "Rose Scott"
+  },
+  "ross-marquand": {
+   "confidence": "high",
+   "events": [
+    "X-Men '97 Cast",
+    "Photo Session: Photo session: Ross Marquand Solo",
+    "X-Men '97 Guests",
+    "Dragon Awards Ceremony – LIVE!"
+   ],
+   "known_for": "Actor and voice actor known for The Walking Dead and voicing Red Skull in the MCU.",
+   "name": "Ross Marquand"
+  },
+  "s-m-stirling": {
+   "confidence": "high",
+   "events": [
+    "Dragon Award Nominee & Past Recipients – Meet & Greet and Signings"
+   ],
+   "known_for": "Science fiction and alternate-history novelist best known for the Emberverse series.",
+   "name": "S. M. Stirling"
+  },
+  "sammi-doneff": {
+   "confidence": "high",
+   "events": [
+    "Castle Guests",
+    "The Hunt Is On: A Yellowjackets Cast Panel",
+    "Amazing Digital Circus Cast: Last Adventure",
+    "Meet the Hellaverse Cast",
+    "Land of the Lost Cast"
+   ],
+   "known_for": "",
+   "name": "Sammi Doneff"
+  },
+  "sara-tomko": {
+   "confidence": "high",
+   "events": [
+    "Resident Alien: Visitors from Patience, CO",
+    "Photo Session: Photo session: Resident Alien Duo",
+    "Photo Session: Photo session: Sara Tomko Solo",
+    "Photo Session: Photo session: Resident Alien",
+    "Resident Alien: Alien? Guests Among Us",
+    "Resident Alien Guests: Funny Bones Are Universal"
+   ],
+   "known_for": "Actress who plays Asta Twelvetrees on Resident Alien.",
+   "name": "Sara Tomko"
+  },
+  "seamus-dever": {
+   "confidence": "high",
+   "events": [
+    "Castle Guests",
+    "Photo Session: Photo session: Castle Duo",
+    "Photo Session: Photo session: Seamus Dever Solo",
+    "Castle Cast",
+    "Photo Session: Photo session: Castle Group",
+    "The Skeptical Side of Castle",
+    "Photo Session: Castle Group"
+   ],
+   "known_for": "Actor who played Detective Kevin Ryan on Castle.",
+   "name": "Seamus Dever"
+  },
+  "sean-astin": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Sean Astin Solo",
+    "The Life and Times of Sean Astin",
+    "Bringing Sam Gamgee to Life – A Visit with Sean Astin!",
+    "Q&A with the Amazing Sean Astin!"
+   ],
+   "known_for": "Actor known for Samwise in The Lord of the Rings, Mikey in The Goonies, and Bob on Stranger Things.",
+   "name": "Sean Astin"
+  },
+  "sean-weiland": {
+   "confidence": "high",
+   "events": [
+    "Real or Fake Anime with Thomas Sanders",
+    "Bard Talk: Shakespeare with Shenanigans - LIVE!"
+   ],
+   "known_for": "",
+   "name": "Sean Weiland"
+  },
+  "sena-bryer": {
+   "confidence": "low",
+   "events": [
+    "FFXIV Cast Q&A",
+    "Photo Session: Photo session: Sena Bryer Solo",
+    "From FFXIV to FFXI: Adventuring in Vana'diel",
+    "Final Fantasy XIV Fireside Chat"
+   ],
+   "known_for": "",
+   "name": "Sena Bryer"
+  },
+  "shawn-ashmore": {
+   "confidence": "high",
+   "events": [
+    "The Rookie Cast",
+    "The Boys guests: Behind the Mayhem",
+    "Photo Session: Photo Session: TeamUp - Brothers",
+    "On the Case with the Cast of The Rookie"
+   ],
+   "known_for": "Actor known as Iceman in the X-Men films and for The Rookie: Feds and Quantum Break.",
+   "name": "Shawn Ashmore"
+  },
+  "shayna-adelman": {
+   "confidence": "high",
+   "events": [
+    "Running Man: The Game Has Changed"
+   ],
+   "known_for": "",
+   "name": "Shayna Adelman"
+  },
+  "sherrilyn-kenyon": {
+   "confidence": "high",
+   "events": [
+    "Sherrilyn Kenyon & Friends: Costume & Book Signing Extravaganza!",
+    "Dragon Award Nominee & Past Recipients – Meet & Greet and Signings"
+   ],
+   "known_for": "Bestselling paranormal romance and urban fantasy novelist.",
+   "name": "Sherrilyn Kenyon"
+  },
+  "sixth-raikage-6": {
+   "confidence": "low",
+   "events": [
+    "Real or Fake Anime with Thomas Sanders"
+   ],
+   "known_for": "",
+   "name": "Sixth_Raikage_6"
+  },
+  "skye-redden": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Skye Redden Solo",
+    "Photo Session: Photo session: The Amazing Digital Circus",
+    "Amazing Digital Circus Cast: Last Adventure"
+   ],
+   "known_for": "Voice actor known for The Amazing Digital Circus.",
+   "name": "Skye Redden"
+  },
+  "starr-long": {
+   "confidence": "high",
+   "events": [
+    "A Hour with Lord British"
+   ],
+   "known_for": "Video game producer, longtime collaborator with Richard Garriott.",
+   "name": "Starr Long"
+  },
+  "steve-saffel": {
+   "confidence": "low",
+   "events": [
+    "Supergirl: Woman of Tomorrow"
+   ],
+   "known_for": "Book editor at Titan Books.",
+   "name": "Steve Saffel"
+  },
+  "sue-kisenwether": {
+   "confidence": "low",
+   "events": [
+    "Once Upon a Liz Callaway",
+    "Home Sweet Homestead: Wynonna Earp Cast"
+   ],
+   "known_for": "",
+   "name": "Sue Kisenwether"
+  },
+  "summer-glau": {
+   "confidence": "high",
+   "events": [
+    "Firefly: Seeking Serenity",
+    "Photo Session: Photo session: Summer Glau",
+    "Photo Session: Photo session: Firefly",
+    "Photo Session: Photo session: Sarah Connor Chronicles Duo",
+    "Firefly: One More Heist"
+   ],
+   "known_for": "Actress known for Firefly and Terminator: The Sarah Connor Chronicles.",
+   "name": "Summer Glau"
+  },
+  "symphony-sanders": {
+   "confidence": "high",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Welcome to Night Vale",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Gonzo Quiz Show: Looks Like We Made It",
+    "Attack of the Celebrity Improv"
+   ],
+   "known_for": "Actress and voice performer, known for Welcome to Night Vale.",
+   "name": "Symphony Sanders"
+  },
+  "tawny-newsome": {
+   "confidence": "high",
+   "events": [
+    "WABE: Imagined Worlds, Real Nation – 40 Years of Fandom & America at 250",
+    "Star Trek Lower Decks Q&A",
+    "Photo Session: Photo session: Lower Decks - Duo 2",
+    "Photo Session: Photo session: Tawny Newsome Solo",
+    "Photo Session: Lower Decks - Full",
+    "Photo Session: Photo session: Lower Decks - Duo 3"
+   ],
+   "known_for": "Actress and comedian, voice of Mariner on Star Trek: Lower Decks.",
+   "name": "Tawny Newsome"
+  },
+  "tay-samms": {
+   "confidence": "low",
+   "events": [
+    "The Rookie Cast",
+    "X-Men '97 Cast",
+    "Rituals in the Wilderness: A Yellowjackets Cast Panel"
+   ],
+   "known_for": "",
+   "name": "Tay Samms"
+  },
+  "teryl-rothery": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Teryl Rothery Solo",
+    "Photo Session: Photo session: Stargate - SG1",
+    "Stargate: The Iris Is Open for SG-1",
+    "Stargate: SG-1 - Make It Spin",
+    "Stargate: SG-1: Taking This Loop off"
+   ],
+   "known_for": "Actress known for Stargate SG-1 as Dr. Janet Fraiser.",
+   "name": "Teryl Rothery"
+  },
+  "the-cybertronic-spree": {
+   "confidence": "high",
+   "events": [
+    "The Cybertronic Spree"
+   ],
+   "known_for": "Rock band that performs Transformers: The Movie soundtrack in costume.",
+   "name": "The Cybertronic Spree"
+  },
+  "the-friggatriskaidekaphobia-treatment-nurse": {
+   "confidence": "low",
+   "events": [
+    "The Skeptical Side of Castle"
+   ],
+   "known_for": "",
+   "name": "The Friggatriskaidekaphobia Treatment Nurse"
+  },
+  "the-tan-and-sober-gentlemen": {
+   "confidence": "high",
+   "events": [
+    "The Tan and Sober Gentlemen"
+   ],
+   "known_for": "Celtic and Appalachian folk band.",
+   "name": "The Tan and Sober Gentlemen"
+  },
+  "thomas-parham": {
+   "confidence": "low",
+   "events": [
+    "Age in Fandom: Breaking the Stereotypes",
+    "Land of the Lost: Six Decades of Routine Expeditions",
+    "Babylon 5: A Dream Given Form",
+    "Smallville Class Reunion",
+    "MOVED! Star Trek Actors Q&A"
+   ],
+   "known_for": "",
+   "name": "Thomas Parham"
+  },
+  "thomas-sanders": {
+   "confidence": "high",
+   "events": [
+    "Real or Fake Anime with Thomas Sanders",
+    "Welcome to Fandom Face-off: The Ultimate Gameshow of Bad Choices!"
+   ],
+   "known_for": "Internet personality and singer known for Vine and Sanders Sides.",
+   "name": "Thomas Sanders"
+  },
+  "tim-rozon": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Wynonna Earp",
+    "Photo Session: Photo session: Timothy Rozon Solo",
+    "Return to Purgatory: Wynonna Earp Cast",
+    "Everyone Welcome: Wynonna Earp Cast",
+    "Home Sweet Homestead: Wynonna Earp Cast"
+   ],
+   "known_for": "Actor known as Doc Holliday on Wynonna Earp.",
+   "name": "Tim Rozon"
+  },
+  "timothy-zahn": {
+   "confidence": "high",
+   "events": [
+    "Dragon Award Nominee & Past Recipients – Meet & Greet and Signings",
+    "The Annual Dragon Con Parade!"
+   ],
+   "known_for": "Science fiction author, creator of Grand Admiral Thrawn.",
+   "name": "Timothy Zahn"
+  },
+  "tom-smith": {
+   "confidence": "high",
+   "events": [
+    "Concert – Tom Smith"
+   ],
+   "known_for": "Filk musician, known as the Fastest Filker in the World.",
+   "name": "Tom Smith"
+  },
+  "tom-welling": {
+   "confidence": "high",
+   "events": [
+    "Smallville Class Reunion",
+    "Photo Session: Photo Session: Smallville",
+    "Photo Session: Photo session: Tom Welling Solo",
+    "Photo Session: Photo session: Smallville"
+   ],
+   "known_for": "Actor who played Clark Kent on Smallville.",
+   "name": "Tom Welling"
+  },
+  "tomer-capone": {
+   "confidence": "high",
+   "events": [
+    "The Boys Guests: Life in Vought World",
+    "The Boys guests: Behind the Mayhem",
+    "The Boys Guests: Supes, Scandals & Stories"
+   ],
+   "known_for": "Israeli actor who plays Frenchie on The Boys",
+   "name": "Tomer Capone"
+  },
+  "toniann-marini": {
+   "confidence": "low",
+   "events": [
+    "Classic Sci-Fi Charity Movie Lock-in : Howard the Duck"
+   ],
+   "known_for": "",
+   "name": "ToniAnn Marini"
+  },
+  "tony-diterlizzi": {
+   "confidence": "high",
+   "events": [
+    "The Annual Dragon Con Parade!"
+   ],
+   "known_for": "Author and illustrator of children's fantasy books",
+   "name": "Tony DiTerlizzi"
+  },
+  "tony-p-henderson": {
+   "confidence": "low",
+   "events": [
+    "Resident Alien: Visitors from Patience, CO",
+    "Battlestar Galactica: A Galaxy of Stars",
+    "Bringing Sam Gamgee to Life – A Visit with Sean Astin!",
+    "The Boys Guests: Supes, Scandals & Stories"
+   ],
+   "known_for": "",
+   "name": "Tony P Henderson"
+  },
+  "tracie-miss-magitek-hearne": {
+   "confidence": "low",
+   "events": [
+    "Roll Against Fear: Tales of the Valiant – LIVE!"
+   ],
+   "known_for": "",
+   "name": "Tracie Miss Magitek Hearne"
+  },
+  "trey-lawson": {
+   "confidence": "low",
+   "events": [
+    "Classic Sci-Fi Charity Movie Lock-in : Howard the Duck"
+   ],
+   "known_for": "",
+   "name": "Trey Lawson"
+  },
+  "tricia-helfer": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Cylons",
+    "Photo Session: Photo session: Tricia Helfer Solo",
+    "Battlestar Galactica: A Galaxy of Stars",
+    "Battlestar Galactica: Humans and Cylons",
+    "Photo Session: Women of Battlestar",
+    "Photo Session: Photo session: Battlestar Galactica",
+    "Battlestar Galactica: Evolution"
+   ],
+   "known_for": "Actor who played Number Six on Battlestar Galactica",
+   "name": "Tricia Helfer"
+  },
+  "tyler-labine": {
+   "confidence": "high",
+   "events": [
+    "You Want a Killer Hillbilly? – An Hour With Tyler Labine",
+    "Photo Session: Photo session: Tyler Labine Solo",
+    "Photo Session: Photo session: Tucker and Dale vs Evil",
+    "Don't Fear the Reaper – or, Maybe Do: An Hour with Tyler Labine"
+   ],
+   "known_for": "Actor known for Tucker and Dale vs. Evil and Reaper",
+   "name": "Tyler Labine"
+  },
+  "van-allen-plexico": {
+   "confidence": "low",
+   "events": [
+    "Babylon 5: The End of One Chapter, the Beginning of Another"
+   ],
+   "known_for": "Author of superhero and space opera novels",
+   "name": "Van Allen Plexico"
+  },
+  "varun-saranga": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Wynonna Earp",
+    "Photo Session: Photo session: Varun Saranga Solo",
+    "Return to Purgatory: Wynonna Earp Cast",
+    "Everyone Welcome: Wynonna Earp Cast",
+    "Home Sweet Homestead: Wynonna Earp Cast"
+   ],
+   "known_for": "Actor who played Jeremy Chetri on Wynonna Earp",
+   "name": "Varun Saranga"
+  },
+  "victoria": {
+   "confidence": "low",
+   "events": [
+    "Dragon Con Wrestling",
+    "The Thrilling Adventures of Victoria"
+   ],
+   "known_for": "",
+   "name": "Victoria"
+  },
+  "vikki-ortone": {
+   "confidence": "low",
+   "events": [
+    "The World of Monster High: The Movies, the Shows, the Dolls, & More"
+   ],
+   "known_for": "",
+   "name": "Vikki Ortone"
+  },
+  "viv-medrano": {
+   "confidence": "high",
+   "events": [
+    "Photo Session: Photo session: Hazbin Hotel",
+    "Photo Session: Vivienne Medrano Solo",
+    "Helluva Boss Cast",
+    "Photo Session: Hazbin Hotel",
+    "Meet the Hellaverse Cast"
+   ],
+   "known_for": "Animator and creator of Hazbin Hotel and Helluva Boss",
+   "name": "Viv Medrano"
+  },
+  "wesley-eure": {
+   "confidence": "high",
+   "events": [
+    "Land of the Lost Cast: Six Decades of a Routine Expedition",
+    "Photo Session: Photo session: Land of the Lost",
+    "Photo Session: Wesley Eure Solo",
+    "Land of the Lost: Six Decades of Routine Expeditions",
+    "Land of the Lost Cast"
+   ],
+   "known_for": "Actor who played Will Marshall on Land of the Lost",
+   "name": "Wesley Eure"
+  },
+  "yaya-han": {
+   "confidence": "high",
+   "events": [
+    "WABE: Imagined Worlds, Real Nation – 40 Years of Fandom & America at 250",
+    "Friday Night Costuming Contest"
+   ],
+   "known_for": "Cosplayer, costume designer, and cosplay industry pioneer",
+   "name": "Yaya Han"
+  }
+ },
+ "rejected": [
+  {
+   "by": "model",
+   "events": [
+    "Release the Bats: The Goth/Industrial Panel"
+   ],
+   "id": "adria-stembridge",
+   "name": "Adria Stembridge"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Video Game Costume Contest"
+   ],
+   "id": "alison-carrier",
+   "name": "Alison Carrier"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Running Man: The Game Has Changed"
+   ],
+   "id": "alyssa-askani",
+   "name": "Alyssa Askani"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Skeptical Side of Castle"
+   ],
+   "id": "angie-matttke",
+   "name": "Angie Matttke"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Lip Sync-a-Palooza"
+   ],
+   "id": "aretta-baumgartner",
+   "name": "Aretta Baumgartner"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Gonzo Quiz Show: The Return"
+   ],
+   "id": "austin-taylor",
+   "name": "Austin Taylor"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The World of Monster High: The Movies, the Shows, the Dolls, & More"
+   ],
+   "id": "austinn-west",
+   "name": "Austinn West"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Bathroom of the Future"
+   ],
+   "id": "bathroom-of-the-future",
+   "name": "Bathroom of the Future"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Avatar: Fire, Water, and Beyond"
+   ],
+   "id": "birma-gainor",
+   "name": "Birma Gainor"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Stargate: The Iris Is Open for SG-1",
+    "Babylon 5: Space Station Conversation",
+    "Star Trek Enterprise Q&A",
+    "Hades II cast"
+   ],
+   "id": "bobby-blackwolf",
+   "name": "Bobby Blackwolf"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Starship Troopers 30th Anniversary Roughneck Reunion",
+    "Star Trek: Strange New Worlds Guests",
+    "Q&A with the Amazing Sean Astin!",
+    "Firefly: One More Heist",
+    "On the Case with the Cast of The Rookie"
+   ],
+   "id": "brian-richardson",
+   "name": "Brian Richardson"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Supergirl: Woman of Tomorrow"
+   ],
+   "id": "cammien-ray",
+   "name": "Cammien Ray"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Family & Friends at Nevermore: Wednesday Cast",
+    "Return to Purgatory: Wynonna Earp Cast",
+    "The World of Monster High: The Movies, the Shows, the Dolls, & More"
+   ],
+   "id": "carol-malcolm",
+   "name": "Carol Malcolm"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Dragon Con Masquerade"
+   ],
+   "id": "catherine-lee-jones",
+   "name": "Catherine Lee Jones"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Bard Talk: Shakespeare with Shenanigans - LIVE!"
+   ],
+   "id": "catieosaurus",
+   "name": "Catieosaurus"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Welcome to Fandom Face-off: The Ultimate Gameshow of Bad Choices!"
+   ],
+   "id": "charles-a-mcfall",
+   "name": "Charles A Mcfall"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Invasion Fan Panel: Day 1, Post Invasion"
+   ],
+   "id": "chris-moore",
+   "name": "Chris Moore"
+  },
+  {
+   "by": "model",
+   "events": [
+    "A Hour with Lord British"
+   ],
+   "id": "chris-spears",
+   "name": "Chris Spears"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Lip Sync-a-Palooza"
+   ],
+   "id": "christine-papalexis",
+   "name": "Christine Papalexis"
+  },
+  {
+   "by": "model",
+   "events": [
+    "CLOUDSAVE"
+   ],
+   "id": "cloudsave",
+   "name": "CLOUDSAVE"
+  },
+  {
+   "by": "model",
+   "events": [
+    "You Want a Killer Hillbilly? – An Hour With Tyler Labine",
+    "The Boys guests: Behind the Mayhem",
+    "Nivek Ogre Q&A",
+    "Stargate: SG-1: Taking This Loop off"
+   ],
+   "id": "colby-smith",
+   "name": "Colby Smith"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Hades II Guests",
+    "An Hour with Georgie Leahy",
+    "Resident Alien: Alien? Guests Among Us",
+    "Star Trek Lower Decks Q&A"
+   ],
+   "id": "crispy",
+   "name": "Crispy"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Boys: Truth? Justice? ... and Vought"
+   ],
+   "id": "crystal-cleveland",
+   "name": "Crystal Cleveland"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Banachek - Games of the Mind"
+   ],
+   "id": "curt-anderson",
+   "name": "Curt Anderson"
+  },
+  {
+   "by": "review",
+   "events": [
+    "Improvised Dungeons & Dragons – LIVE!",
+    "Dad's Garage Goes to Britannia (Ultima Series)"
+   ],
+   "id": "dads-garage-theatre-co",
+   "name": "Dad's Garage Theatre Co."
+  },
+  {
+   "by": "model",
+   "events": [
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Gonzo Quiz Show: Looks Like We Made It"
+   ],
+   "id": "dan-larson",
+   "name": "Dan Larson"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986",
+    "Don't Fear the Reaper – or, Maybe Do: An Hour with Tyler Labine"
+   ],
+   "id": "dave-west",
+   "name": "Dave West"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Dragon Award Nominee & Past Recipients – Meet & Greet and Signings"
+   ],
+   "id": "dczev",
+   "name": "DCZev"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Denim Arcade"
+   ],
+   "id": "denim-arcade",
+   "name": "Denim Arcade"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Real or Fake Anime with Thomas Sanders"
+   ],
+   "id": "deron-generally",
+   "name": "Deron Generally"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Release the Bats: The Goth/Industrial Panel"
+   ],
+   "id": "dj-ichabod",
+   "name": "DJ Ichabod"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Life and Times of Sean Astin",
+    "Firefly: Seeking Serenity",
+    "Improvised Dungeons & Dragons – LIVE!",
+    "Hear Me Roar: An Hour with Lena Headey",
+    "Dragon Con Masquerade"
+   ],
+   "id": "dot-r-steverson",
+   "name": "Dot R Steverson"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Video Game Costume Contest"
+   ],
+   "id": "dustin-fletcher",
+   "name": "Dustin Fletcher"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Release the Bats: The Goth/Industrial Panel"
+   ],
+   "id": "dusty-gannon",
+   "name": "Dusty Gannon"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Concert – Emily Henry"
+   ],
+   "id": "emily-henry",
+   "name": "Emily Henry"
+  },
+  {
+   "by": "model",
+   "events": [
+    "FFXIV Team Trivia with Friends!",
+    "From FFXIV to FFXI: Adventuring in Vana'diel"
+   ],
+   "id": "emunarum",
+   "name": "EmUnArum"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Dragon Con Masquerade"
+   ],
+   "id": "fon-h-davis",
+   "name": "Fon H Davis"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The World of Monster High: The Movies, the Shows, the Dolls, & More"
+   ],
+   "id": "gabby",
+   "name": "Gabby"
+  },
+  {
+   "by": "review",
+   "events": [
+    "Galactic Empire"
+   ],
+   "id": "galactic-empire",
+   "name": "Galactic Empire"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Patricia Tallman's Greatest Hits: From Knightriders to Night of Living Dead"
+   ],
+   "id": "gary-mitchel",
+   "name": "Gary Mitchel"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Age in Fandom: Breaking the Stereotypes"
+   ],
+   "id": "glenn-parris",
+   "name": "Glenn Parris"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The World of Monster High: The Movies, the Shows, the Dolls, & More"
+   ],
+   "id": "gracie-palmer",
+   "name": "Gracie Palmer"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Boys: Truth? Justice? ... and Vought"
+   ],
+   "id": "haduo-ken-masters",
+   "name": "Haduo-Ken Masters"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Dragon Awards Ceremony – LIVE!"
+   ],
+   "id": "honor-santa-croce",
+   "name": "Honor Santa Croce"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Gil Gerard Remembered",
+    "Gil Gerard's Match Game in the 25th Century - with Garrett Wang"
+   ],
+   "id": "janet-gerard",
+   "name": "Janet Gerard"
+  },
+  {
+   "by": "model",
+   "events": [
+    "A Hour with Lord British"
+   ],
+   "id": "jason-gonding",
+   "name": "Jason Gonding"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Running Man: The Game Has Changed"
+   ],
+   "id": "jazzmin-wilson",
+   "name": "Jazzmin Wilson"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Running Man: The Game Has Changed"
+   ],
+   "id": "jeni-green",
+   "name": "Jeni Green"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Age in Fandom: Breaking the Stereotypes"
+   ],
+   "id": "jenna-levine",
+   "name": "Jenna Levine"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Anime/Animation Cosplay Contest"
+   ],
+   "id": "jess-merriman",
+   "name": "Jess Merriman"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Invasion Fan Panel: Day 1, Post Invasion"
+   ],
+   "id": "jessica-combs",
+   "name": "Jessica Combs"
+  },
+  {
+   "by": "model",
+   "events": [
+    "All Good Things – Closing"
+   ],
+   "id": "joe-campbell",
+   "name": "Joe Campbell"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Thrilling Adventures of Victoria"
+   ],
+   "id": "joe-crowe",
+   "name": "Joe Crowe"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Boys Guests: Life in Vought World",
+    "X-Men '97 Guests",
+    "Star Trek: Strange New Worlds",
+    "Helluva Boss Cast",
+    "Final Fantasy XIV Fireside Chat"
+   ],
+   "id": "joey-davila",
+   "name": "Joey Davila"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Supergirl: Woman of Tomorrow"
+   ],
+   "id": "jon-paul-estes",
+   "name": "Jon-Paul Estes"
+  },
+  {
+   "by": "model",
+   "events": [
+    "ZombieCON Vol. 1: Fan Discussion Panel"
+   ],
+   "id": "jonathan-sarge",
+   "name": "Jonathan Sarge"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Welcome to Fandom Face-off: The Ultimate Gameshow of Bad Choices!"
+   ],
+   "id": "josh-cooper",
+   "name": "Josh Cooper"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Q&A with Justin Lee Ford"
+   ],
+   "id": "justin-lee-ford",
+   "name": "Justin Lee Ford"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Gonzo Quiz Show: Looks Like We Made It",
+    "Attack of the Celebrity Improv"
+   ],
+   "id": "kelsey-ann-brady",
+   "name": "Kelsey Ann Brady"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Venture Bros. Panel",
+    "Gonzo Quiz Show: Looks Like We Made It",
+    "Attack of the Celebrity Improv"
+   ],
+   "id": "ken-plume",
+   "name": "Ken Plume"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Secrets of Nevermore: Wednesday Cast",
+    "Everyone Welcome: Wynonna Earp Cast"
+   ],
+   "id": "kevin-bachelder",
+   "name": "Kevin Bachelder"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Supergirl: Woman of Tomorrow",
+    "Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986"
+   ],
+   "id": "kevin-eldridge",
+   "name": "Kevin Eldridge"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Rookie Guests",
+    "Starship Troopers: 30th Anniversary Roughneck Reunion"
+   ],
+   "id": "kiki-falkanger",
+   "name": "Kiki Falkanger"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Killbillies"
+   ],
+   "id": "killbillies",
+   "name": "Killbillies"
+  },
+  {
+   "by": "model",
+   "events": [
+    "ZombieCON Vol. 1: Fan Discussion Panel"
+   ],
+   "id": "kyle-valle",
+   "name": "Kyle Valle"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Last Grasp"
+   ],
+   "id": "last-grasp",
+   "name": "Last Grasp"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Welcome to Trek Track",
+    "All Good Things – Closing"
+   ],
+   "id": "leo-visentin",
+   "name": "Leo Visentin"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Improvised Dungeons & Dragons – LIVE!"
+   ],
+   "id": "logan-jenkins",
+   "name": "Logan Jenkins"
+  },
+  {
+   "by": "model",
+   "events": [
+    "MOVED = Miss Star Trek Universe Pageant"
+   ],
+   "id": "lucy-boydston",
+   "name": "Lucy Boydston"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Q&A with Justin Lee Ford"
+   ],
+   "id": "lyman-chen",
+   "name": "Lyman Chen"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Heavenly Hour with Liz Calloway",
+    "Smallville Class Reunion",
+    "X-Men '97 Cast",
+    "Castle Cast"
+   ],
+   "id": "manda-montane",
+   "name": "Manda Montane"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Dragon Awards Ceremony – LIVE!"
+   ],
+   "id": "mandy-collier",
+   "name": "Mandy Collier"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Star Trek Enterprise Q&A",
+    "Stargate: SG-1 - Make It Spin",
+    "Starship Troopers 30th Anniversary Roughneck Reunion",
+    "Battlestar Galactica: Evolution",
+    "Land of the Lost: Six Decades of Routine Expeditions"
+   ],
+   "id": "marc-lee",
+   "name": "Marc Lee"
+  },
+  {
+   "by": "model",
+   "events": [
+    "FFXIV Team Trivia with Friends!"
+   ],
+   "id": "martin-freepaw",
+   "name": "Martin Freepaw"
+  },
+  {
+   "by": "model",
+   "events": [
+    "2026 Film Track Kick-Off & Preview: The State of Film in 2026"
+   ],
+   "id": "matt-smith",
+   "name": "Matt Smith"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Dragon Awards Ceremony – LIVE!"
+   ],
+   "id": "matthew-m-foster",
+   "name": "Matthew M Foster"
+  },
+  {
+   "by": "model",
+   "events": [
+    "FFXIV Team Trivia with Friends!"
+   ],
+   "id": "melodicblue",
+   "name": "MelodicBlue"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Boys: Truth? Justice? ... and Vought"
+   ],
+   "id": "michael-collins",
+   "name": "Michael Collins"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Classic Sci-Fi Charity Movie Lock-in : Howard the Duck"
+   ],
+   "id": "michael-wesley-collins",
+   "name": "Michael Wesley Collins"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Video Game Costume Contest",
+    "Bard Talk: Shakespeare with Shenanigans - LIVE!",
+    "Dragon Con Masquerade"
+   ],
+   "id": "mikal-mosley",
+   "name": "Mikal Mosley"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Gonzo Quiz Show: The Return",
+    "Gonzoroo Presents: A Music & Comedy Spectacular",
+    "Gonzo Quiz Show: Looks Like We Made It"
+   ],
+   "id": "mike-kaess",
+   "name": "Mike Kaess"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Q&A with Justin Lee Ford"
+   ],
+   "id": "mike-odle",
+   "name": "Mike Odle"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Smallville Class Reunion"
+   ],
+   "id": "mo-vermenton",
+   "name": "Mo Vermenton"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Robots and Teeth: The Puppetry of Kevin Carlson",
+    "Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986"
+   ],
+   "id": "molly-abigail-coffee",
+   "name": "Molly Abigail Coffee"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Classic Sci-Fi Charity Movie Lock-in : Howard the Duck",
+    "Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986",
+    "Avatar: Fire, Water, and Beyond"
+   ],
+   "id": "nick-frutiger",
+   "name": "Nick Frutiger"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Roll Against Fear: Tales of the Valiant – LIVE!"
+   ],
+   "id": "omega-jones",
+   "name": "Omega Jones"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Video Game Costume Contest",
+    "Bard Talk: Shakespeare with Shenanigans - LIVE!"
+   ],
+   "id": "paris-k-arrowsmith",
+   "name": "Paris K Arrowsmith"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Boys: Truth? Justice? ... and Vought"
+   ],
+   "id": "paul-race",
+   "name": "Paul Race"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Gil Gerard Remembered"
+   ],
+   "id": "phil-collins",
+   "name": "Phil Collins"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Can Anyone Hear Me? A Yellowjackets Cast Panel",
+    "Land of the Lost Cast: Six Decades of a Routine Expedition",
+    "Babylon 5: Clearing the Shadows",
+    "Castle Cast",
+    "An Hour with Star Wars' Bo-Katan"
+   ],
+   "id": "primetime-steve",
+   "name": "Primetime Steve"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Dragon Awards Ceremony – LIVE!"
+   ],
+   "id": "rachel-reeves",
+   "name": "Rachel Reeves"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Lip Sync-a-Palooza"
+   ],
+   "id": "raymond-carr",
+   "name": "Raymond Carr"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Running Man: The Game Has Changed"
+   ],
+   "id": "rebecca-russell",
+   "name": "Rebecca Russell"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986"
+   ],
+   "id": "remy-dee",
+   "name": "Remy Dee"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Classic Sci-Fi Charity Movie Lock-in : Howard the Duck"
+   ],
+   "id": "rl-grey",
+   "name": "RL Grey"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Battlestar Galactica: Humans and Cylons",
+    "Resident Alien Guests: Funny Bones Are Universal",
+    "Starship Troopers Roughneck Reunion"
+   ],
+   "id": "rob-levy",
+   "name": "Rob Levy"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Star Trek Lower Decks Q&A",
+    "FFXIV Cast Q&A",
+    "Friday Night Costuming Contest",
+    "Long May She Reign: An Hour with Lena Headey"
+   ],
+   "id": "rob-roberts",
+   "name": "Rob Roberts"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Boys: Truth? Justice? ... and Vought"
+   ],
+   "id": "robyn-mcglotten",
+   "name": "Robyn McGlotten"
+  },
+  {
+   "by": "model",
+   "events": [
+    "WABE: Imagined Worlds, Real Nation – 40 Years of Fandom & America at 250"
+   ],
+   "id": "rose-scott",
+   "name": "Rose Scott"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Castle Guests",
+    "The Hunt Is On: A Yellowjackets Cast Panel",
+    "Amazing Digital Circus Cast: Last Adventure",
+    "Meet the Hellaverse Cast",
+    "Land of the Lost Cast"
+   ],
+   "id": "sammi-doneff",
+   "name": "Sammi Doneff"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Real or Fake Anime with Thomas Sanders",
+    "Bard Talk: Shakespeare with Shenanigans - LIVE!"
+   ],
+   "id": "sean-weiland",
+   "name": "Sean Weiland"
+  },
+  {
+   "by": "model",
+   "events": [
+    "FFXIV Cast Q&A",
+    "Photo Session: Photo session: Sena Bryer Solo",
+    "From FFXIV to FFXI: Adventuring in Vana'diel",
+    "Final Fantasy XIV Fireside Chat"
+   ],
+   "id": "sena-bryer",
+   "name": "Sena Bryer"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Running Man: The Game Has Changed"
+   ],
+   "id": "shayna-adelman",
+   "name": "Shayna Adelman"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Real or Fake Anime with Thomas Sanders"
+   ],
+   "id": "sixth-raikage-6",
+   "name": "Sixth_Raikage_6"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Once Upon a Liz Callaway",
+    "Home Sweet Homestead: Wynonna Earp Cast"
+   ],
+   "id": "sue-kisenwether",
+   "name": "Sue Kisenwether"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Rookie Cast",
+    "X-Men '97 Cast",
+    "Rituals in the Wilderness: A Yellowjackets Cast Panel"
+   ],
+   "id": "tay-samms",
+   "name": "Tay Samms"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The Skeptical Side of Castle"
+   ],
+   "id": "the-friggatriskaidekaphobia-treatment-nurse",
+   "name": "The Friggatriskaidekaphobia Treatment Nurse"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Age in Fandom: Breaking the Stereotypes",
+    "Land of the Lost: Six Decades of Routine Expeditions",
+    "Babylon 5: A Dream Given Form",
+    "Smallville Class Reunion",
+    "MOVED! Star Trek Actors Q&A"
+   ],
+   "id": "thomas-parham",
+   "name": "Thomas Parham"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Classic Sci-Fi Charity Movie Lock-in : Howard the Duck"
+   ],
+   "id": "toniann-marini",
+   "name": "ToniAnn Marini"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Resident Alien: Visitors from Patience, CO",
+    "Battlestar Galactica: A Galaxy of Stars",
+    "Bringing Sam Gamgee to Life – A Visit with Sean Astin!",
+    "The Boys Guests: Supes, Scandals & Stories"
+   ],
+   "id": "tony-p-henderson",
+   "name": "Tony P Henderson"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Roll Against Fear: Tales of the Valiant – LIVE!"
+   ],
+   "id": "tracie-miss-magitek-hearne",
+   "name": "Tracie Miss Magitek Hearne"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Classic Sci-Fi Charity Movie Lock-in : Howard the Duck"
+   ],
+   "id": "trey-lawson",
+   "name": "Trey Lawson"
+  },
+  {
+   "by": "model",
+   "events": [
+    "Dragon Con Wrestling",
+    "The Thrilling Adventures of Victoria"
+   ],
+   "id": "victoria",
+   "name": "Victoria"
+  },
+  {
+   "by": "model",
+   "events": [
+    "The World of Monster High: The Movies, the Shows, the Dolls, & More"
+   ],
+   "id": "vikki-ortone",
+   "name": "Vikki Ortone"
+  }
+ ]
+}
