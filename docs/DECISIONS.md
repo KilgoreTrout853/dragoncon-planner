@@ -528,10 +528,11 @@ every link says why.
 - `tags`: `kind` unchanged (13). `works`: registry ids, each with `via` =
   `about` | `credit:<person>` | `track`. `topics` is replaced by four closed
   axes, at most 2 each (lists in `docs/discover/schema-v2.md`): `medium`,
-  `genre`, `craft`, `subject`. `audience`: kids | all | mature, mature
-  derived from facets. `play {format, level}` on gaming events. `guests` is
-  derived from people tiers, never asked. `adult` comes from the parsed
-  marker first; the model may only add.
+  `genre`, `craft`, `subject`. `audience`: kids | all | mature - mature when
+  the parsed marker says so or when the model adds it; the model may add
+  mature, never remove it. v1's `adult` flag folds into `audience`.
+  `play {format, level}` on gaming events. `guests` is derived from people
+  tiers, never asked.
 - The model is asked for axes only where `tracks.json` does not decide.
 - One input is tagged once: answers are cached by a hash of what the tagger
   was sent.

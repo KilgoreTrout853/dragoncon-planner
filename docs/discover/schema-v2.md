@@ -133,11 +133,11 @@ would fill them.
   ],
   "cancelled": false,
   "people": [
-    {"name": "Primetime Steve", "role": "Moderator", "src": "speakers"},
-    {"name": "Seamus Dever", "role": "Speaker", "src": "speakers"},
-    {"name": "Nathan Fillion", "role": "Speaker", "src": "speakers", "id": "nathan-fillion"},
-    {"name": "Jon Huertas", "role": "Speaker", "src": "speakers"},
-    {"name": "Molly Quinn", "role": "Speaker", "src": "speakers"}
+    {"id": "primetime-steve", "name": "Primetime Steve", "role": "Moderator", "src": "speakers"},
+    {"id": "seamus-dever", "name": "Seamus Dever", "role": "Speaker", "src": "speakers"},
+    {"id": "nathan-fillion", "name": "Nathan Fillion", "role": "Speaker", "src": "speakers"},
+    {"id": "jon-huertas", "name": "Jon Huertas", "role": "Speaker", "src": "speakers"},
+    {"id": "molly-quinn", "name": "Molly Quinn", "role": "Speaker", "src": "speakers"}
   ],
   "facets": {},
   "tags": {
@@ -151,22 +151,27 @@ would fill them.
     "craft": [],
     "subject": [],
     "audience": "all",
-    "guests": "celebrity",
-    "adult": false
+    "guests": "celebrity"
   }
 }
 ```
 
 **`people`** is the resolved superset of `speakers`: everyone in `speakers`,
 and everyone the description's "Additional Panelists:" line names, each with
-`src` saying which (`speakers` | `description`). A person the registry knows
-carries its `id`. Only Nathan Fillion's entry is shown in this note, so only
-he has one here; the rest of the cast would resolve the same way once
-registered, and the moderator is outside the registry.
+`src` saying which (`speakers` | `description`). Every entry carries an `id`:
+the registry's id when the person is known, otherwise a deterministic slug
+from the normalised name. Follows are stored by id (#31), and any panelist
+can be followed today, so there is one keying, not two. The cost: two people
+with one name share a slug until the registry separates them. Above, Nathan
+Fillion's id is the registry's, his being the one `people.json` entry this
+note shows; the other four are slugs.
 
 **`tags.works`** holds registry ids, each with `via` = `about` |
-`credit:<person>` | `track`. The event is about Castle. Firefly arrives by a
-reviewed credit. The Rookie does not arrive: its credit is not reviewed.
+`credit:<person>` | `track`. A work linked more than one way is listed once,
+with the strongest `via`: `about`, then `track`, then `credit`. The event is
+about Castle, so Castle is listed once, as `about`, though Nathan Fillion's
+reviewed credit links it too. Firefly arrives by a reviewed credit. The
+Rookie does not arrive: its credit is not reviewed.
 
 **`tags.guests`** is derived, never asked: the highest tier among the
 event's people, `celebrity` over `creator`, else the key is absent. `fan`
@@ -174,10 +179,15 @@ and `unknown` retire; the client reads only `celebrity` today (`isCeleb`).
 The cost: a celebrity missing from the registry gets no badge, so census v2
 lists the unregistered people on `qa`, `photo` and `signing` events.
 
-**`tags.adult`** comes from the parsed marker first; the model may only add.
-**`tags.audience`** is `kids` | `all` | `mature`, and `mature` is derived
-from `facets`. **`tags.play`** is `{format, level}`, on gaming events only.
-`kind` is unchanged: the same 13.
+**`tags.audience`** is `kids` | `all` | `mature`. It is `mature` when the
+parsed marker says so, or when the model adds it: the pipeline forces
+`mature` where `facets.mature` is true, and the model may add `mature`,
+never remove it. The marker alone would not reach every such event: 30
+events are tagged adult today and say nothing of it (section 6). v1's `adult`
+flag folds into `audience`, so `tags` carries no `adult`.
+
+**`tags.play`** is `{format, level}`, on gaming events only. `kind` is
+unchanged: the same 13.
 
 ### Facets
 
@@ -193,7 +203,10 @@ with no `cost` is one whose listing states no fee, and nothing more.
 | `sold_out` | `true` | "SOLD OUT" | section 9: 19 titles |
 | `signup` | `true` | pre-registration wording | section 9: within the 45 titles above, and 248 descriptions |
 | `part` | N | "Part 2", "Pt 2", "Part Two" | section 9: Part N or Repeat in 16 titles |
-| `repeat_key` | the normalised title | the same title at another start | section 11: 371 titles recur, over 1,254 events |
+| `repeat_key` | the normalised title | the same key at more than one start | section 11: 371 titles recur, over 1,254 events |
+
+`repeat_key` follows the same rule as the rest: it is present only on an
+event whose key occurs at more than one start, and absent otherwise.
 
 Exactly which wording sets each facet is the parse stage's to pin down, with
 tests (PR 2). Two real titles:
@@ -273,12 +286,14 @@ Asked, each from a closed list:
 
 - `kind`: one of the 13.
 - The works the event is about. A name resolves against `works.json`, names
-  and aliases; one that does not is added, `reviewed: false`.
+  and aliases; one that does not is added, `reviewed: false`. A work that
+  only a title names, as in `Photo Session: Castle Group`, is found here:
+  `via: about`.
 - The four axes, at most 2 each, and only where `tracks.json` does not
   decide.
-- `audience`: `kids` or `all`.
+- `audience`: `kids` | `all` | `mature`. It may add `mature`, never remove
+  it: the pipeline forces `mature` where `facets.mature` is true.
 - `play`, on a gaming event.
-- `adult`, which it may only add to.
 
 Not asked:
 
@@ -287,7 +302,6 @@ Not asked:
 - The credit links in `works`. They come from `people.json`.
 - A `via: track` work, and the axes a track decides. They come from
   `tracks.json`.
-- `audience: mature`. It is derived from `facets`.
 - Anything it has already answered. One input is tagged once: the answer is
   cached by a hash of what the tagger was sent.
 
@@ -341,18 +355,6 @@ of its own switches it. For 2027 the pipeline writes the v2 shape into
 
 - The credit-review format: how about 225 people's credits (section 7) are
   put in front of a person and marked reviewed.
-- Names that appear only in a photo-session title. Not measured: the census
-  does not count them, so this has no number yet. A look at the frozen file
-  found no Epic Photos session with an empty `speakers`; what a group
-  session's title names that `speakers` does not is the work, as in
-  `Photo Session: Castle Group`. PR 2 measures it, before anything is
-  designed for it.
 - The tag cache's path and format. PR 4.
 - Whether the build's copy of `data/` into `dist/` leaves `events.v2.json`
   out until the switch (#33). The PR that first writes the file decides.
-- `repeat_key`: on every event, or only on one whose title recurs.
-- A work linked more than one way: listed once, as the example lists Castle,
-  or once per reason.
-- An event the model marks `adult` with no parsed marker keeps
-  `audience: all`, by the letter of #32. 30 events are tagged adult today
-  and say nothing of it (section 6). Whether that is wanted.
