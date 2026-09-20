@@ -15,3 +15,7 @@ __pycache__/
 
 # Build output (vite build); the next deploy publishes it, main never builds
 dist/
+
+# Third-party floor plans kept locally, never committed (reference/README.md)
+reference/*
+!reference/README.md

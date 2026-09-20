@@ -66,6 +66,8 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
 | `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the census and `parse-2026.md`, above, and `schema-v2.md`, the design note for the registries and tags v2 (#31-#33), of which the parse stage is built. |
+| `docs/venues/` | The venues registry (DECISIONS #21, #27, #28): `registry.json`, hand-edited - every hotel × level where programming happens, its rooms as the schedule names them, which published floor plan covers the level, and the state of our own drawing; `README.md`, that checklist rendered, with the notes that do not fit a cell; `drawings/`, our schematics, one draft so far. Nothing reads it yet - the room census validates it against `events.json` when it lands. |
+| `reference/` | Local copies of other people's drawings, gitignored but for its README: the hotels' floor plans in `plans/`, at the paths `registry.json` records, and screenshots of single levels in `shots/`, used as an underlay to trace our own shapes against (#28). Never committed - none of it is ours. |
 
 ## The data pipeline
 
