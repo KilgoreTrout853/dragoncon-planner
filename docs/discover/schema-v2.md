@@ -317,7 +317,7 @@ Two real titles:
 | axis | values |
 |---|---|
 | `medium` | `tv`, `film`, `books`, `comics`, `animation`, `anime`, `music`, `podcast-web`, `video-games`, `tabletop` |
-| `genre` | `fantasy`, `sci-fi`, `horror`, `comedy`, `superhero` |
+| `genre` | `fantasy`, `sci-fi`, `horror`, `comedy`, `superhero`, `romance` |
 | `craft` | `writing`, `costuming`, `props-making`, `art`, `photography`, `puppetry`, `performance` |
 | `subject` | `science`, `space`, `tech`, `history`, `politics`, `skepticism`, `paranormal`, `fitness`, `food`, `community`, `fandom-culture` |
 
@@ -370,8 +370,10 @@ Each one's v2 home, in `TOPICS`' own order, with its events today (section
 | Skepticism | 37 | `subject: skepticism` |
 | Paranormal | 34 | `subject: paranormal` |
 
-Two v2 values have no topic behind them: `genre: superhero` and
-`craft: performance`.
+Three v2 values have no topic behind them: `genre: superhero`,
+`craft: performance` and `genre: romance`. The last was added after the
+seed: 13 events say romance or romantasy, 8 of them in the title, and no
+other value expresses them (`registry-2026.md`).
 
 ## What the model is asked
 

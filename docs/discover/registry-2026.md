@@ -5,7 +5,7 @@ Written by `registry_report.py` from `data/registry/` and `data/2026/events.json
 What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the review that flips a row to `reviewed: true`. It states what was seeded and why, and resolves nothing: `UNSURE` marks a judgment that is a person's to make.
 
 - Works: 139, all `reviewed: false`. Tracks: 54, 26 with axes. People: 0 - PR 3b.
-- Phrases labelled: 256. UNSURE: 4. Kept in `src/search.js`: 16. Dropped: 0.
+- Phrases labelled: 256. UNSURE: 4. Kept in `src/search.js`: 13. Dropped: 0.
 - Coverage: 0 unresolved fandom names, 0 unresolved tracks, 0 unlabelled phrases, 0 tracks whose axes the evidence does not support.
 
 ## 1. Works
@@ -233,6 +233,7 @@ Decided here, not left open.
 - `avengers` -> id `avengers`, name "Avengers": BritTrack has its own The Avengers, and an id is forever; `the-avengers` would have claimed the name before anyone chose which one gets it.
 - Group Cosplay Photoshoot, Live-Action Roleplaying Games -> no axes: the rule offers each one a value and each declines it: the track is the facet, and an axis would say less than the track's own name.
 - Kids Track -> `audience: kids`, no axes: schema-v2.md sends the topic Kids to `audience`, which is not one of the four axes.
+- `genre: romance` -> added to the axis list: 13 events say romance or romantasy, 8 of them in the title, and no other value expresses them. Karaoke, dance and wrestling got no value: `kind` already covers them, and their words stay in `src/search.js`.
 
 ### The evidence for a track's axes
 
@@ -298,22 +299,22 @@ A track takes a value on an axis where that one value covers at least 80% of its
 - Tracks the rule gives a value: 28; of those, 2 decline it, below. Tracks where the file and the rule disagree: **0**.
 
 
-### What the schedule says about the search-only words
+### The words the axes were weighed against
 
-Events whose title or description holds the word. The axis lists are schema-v2.md's and nothing here changes them; this is the count a decision about them would rest on.
+Events whose title or description holds one. `genre: romance` was added to the axis list on this evidence: 13 events say romance or romantasy, 8 of them in the title, and no other value expresses them. The other three got no value - `kind` already carries a karaoke night, a dance and a wrestling show - and their words stay in `src/search.js`.
 
-| words | events | of those, in the title |
-| --- | ---: | ---: |
-| `romance, romantasy` | 13 | 8 |
-| `wrestling` | 5 | 2 |
-| `karaoke, sing-along` | 29 | 20 |
-| `dance, dancing` | 43 | 21 |
+| words | events | of those, in the title | its v2 home |
+| --- | ---: | ---: | ---: |
+| `romance, romantasy` | 13 | 8 | `genre: romance` |
+| `wrestling` | 5 | 2 | the kind `performance`; search-only |
+| `karaoke, sing-along` | 29 | 20 | the kind `performance`; search-only |
+| `dance, dancing` | 43 | 21 | the kind `party`; search-only |
 
 ## 3. Every phrase of CANON and SYNONYMS
 
 `tag_events.CANON` and `src/search.js`'s `SYNONYMS` are associations, not identities, so each of their 256 distinct phrases carries one label. A **work** is the seeded entry's own name, an **alias** another name for it, a **child** a work with a parent, a **term** a word that should lead a searcher to a work but is not a name for it (terms never resolve), **elsewhere** a v2 home that is not a work, **search-only** a phrase the registries have no home for that stays in `src/search.js`, and **dropped** a phrase that is wrong. Nothing is dropped for lacking a registry home.
 
-- **elsewhere** (129), **alias** (36), **term** (28), **work** (26), **child** (21), **search-only** (16).
+- **elsewhere** (132), **alias** (36), **term** (28), **work** (26), **child** (21), **search-only** (13).
 
 ### work: 26
 
@@ -446,7 +447,7 @@ Events whose title or description holds the word. The axis lists are schema-v2.m
 | `whovian` | doctor-who |
 | `xenomorph` | alien |
 
-### elsewhere: 129
+### elsewhere: 132
 
 | phrase | where it went |
 | --- | --- |
@@ -525,6 +526,7 @@ Events whose title or description holds the word. The axis lists are schema-v2.m
 | `novel` | craft: writing |
 | `orbit` | subject: space |
 | `otaku` | medium: anime |
+| `paranormal romance` | genre: romance, and subject: paranormal |
 | `photo op` | the kind `photo` |
 | `photo session` | the kind `photo` |
 | `photos with` | the kind `photo` |
@@ -543,6 +545,8 @@ Events whose title or description holds the word. The axis lists are schema-v2.m
 | `rocket` | subject: space |
 | `role-playing` | medium: tabletop |
 | `roleplaying` | medium: tabletop |
+| `romance` | genre: romance |
+| `romantasy` | genre: romance |
 | `scary` | genre: horror |
 | `science` | the track science |
 | `scientist` | subject: science |
@@ -580,7 +584,7 @@ Events whose title or description holds the word. The axis lists are schema-v2.m
 | `zombie` | genre: horror |
 | `zombies` | genre: horror |
 
-### search-only: 16
+### search-only: 13
 
 | phrase | where it went |
 | --- | --- |
@@ -589,10 +593,7 @@ Events whose title or description holds the word. The axis lists are schema-v2.m
 | `dancing` | an activity no axis names |
 | `karaoke` | an activity no axis names |
 | `orchestra` | an ensemble, not a work |
-| `paranormal romance` | `subject: paranormal` is about the paranormal, not the genre of romance |
 | `philharmonic` | an ensemble, not a work |
-| `romance` | no romance value on any of the four axes |
-| `romantasy` | no romance value on any of the four axes |
 | `sing along` | an activity no axis names |
 | `sing-along` | an activity no axis names |
 | `singalong` | an activity no axis names |

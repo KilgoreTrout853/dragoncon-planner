@@ -28,7 +28,7 @@ FILES = ("works.json", "people.json", "tracks.json")
 AXES = {
     "medium": ("tv", "film", "books", "comics", "animation", "anime", "music", "podcast-web",
                "video-games", "tabletop"),
-    "genre": ("fantasy", "sci-fi", "horror", "comedy", "superhero"),
+    "genre": ("fantasy", "sci-fi", "horror", "comedy", "superhero", "romance"),
     "craft": ("writing", "costuming", "props-making", "art", "photography", "puppetry", "performance"),
     "subject": ("science", "space", "tech", "history", "politics", "skepticism", "paranormal",
                 "fitness", "food", "community", "fandom-culture"),

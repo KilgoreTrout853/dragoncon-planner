@@ -78,6 +78,8 @@ ELSEWHERE = {
     "concert": "the kind `performance`", "dance party": "the kind `party`", "rave": "the kind `party`",
     "contest": "the kind `contest`", "competition": "the kind `contest`",
     "championship": "the kind `contest`", "tournament": "play.format: tournament",
+    "romance": "genre: romance", "romantasy": "genre: romance",
+    "paranormal romance": "genre: romance, and subject: paranormal",
 }
 
 # A phrase the registries have no home for. It is not wrong and it is not dropped: it stays in
@@ -93,9 +95,6 @@ SEARCH_ONLY = {
     "singalong": "an activity no axis names", "sing along": "an activity no axis names",
     "dance": "an activity no axis names", "dancing": "an activity no axis names",
     "ball": "an activity no axis names, and too common a word to be a term",
-    "romance": "no romance value on any of the four axes",
-    "romantasy": "no romance value on any of the four axes",
-    "paranormal romance": "`subject: paranormal` is about the paranormal, not the genre of romance",
 }
 
 # A phrase that is wrong - one that would send a reader somewhere the schedule does not go.
@@ -103,8 +102,9 @@ SEARCH_ONLY = {
 # worth keeping.
 DROPPED = {}
 
-# What the schedule says, for the vocabulary the axes have no home for: 2026 events whose title or
-# description holds the word. The axis lists are schema-v2.md's and this report does not change them.
+# What the schedule says about the words the axes were weighed against: 2026 events whose title or
+# description holds one. `romance` became a genre value on this evidence; the other three did not,
+# because `kind` already covers them.
 MENTIONS = [
     ("romance, romantasy", r"\bromance\b|\bromantasy\b"),
     ("wrestling", r"\bwrestl\w*\b"),
@@ -168,6 +168,10 @@ DECIDED = [
      "say less than the track's own name"),
     ("Kids Track", "`audience: kids`, no axes",
      "schema-v2.md sends the topic Kids to `audience`, which is not one of the four axes"),
+    ("`genre: romance`", "added to the axis list",
+     "13 events say romance or romantasy, 8 of them in the title, and no other value expresses them. "
+     "Karaoke, dance and wrestling got no value: `kind` already covers them, and their words stay in "
+     "`src/search.js`"),
 ]
 
 
@@ -336,11 +340,16 @@ def mentions_section(events, facts):
                                   if rx.search(e["title"]) or rx.search(e.get("description") or "")),
                        sum(1 for e in events if rx.search(e["title"]))))
     facts["mentions"] = counts
-    return ["### What the schedule says about the search-only words", "",
-            "Events whose title or description holds the word. The axis lists are schema-v2.md's and "
-            "nothing here changes them; this is the count a decision about them would rest on.", ""] + \
-        table(["words", "events", "of those, in the title"],
-              [(code(label), n(k), n(t)) for label, k, t in counts], left=1)[:-1]
+    return ["### The words the axes were weighed against", "",
+            "Events whose title or description holds one. `genre: romance` was added to the axis list on "
+            "this evidence: 13 events say romance or romantasy, 8 of them in the title, and no other "
+            "value expresses them. The other three got no value - `kind` already carries a karaoke "
+            "night, a dance and a wrestling show - and their words stay in `src/search.js`.", ""] + \
+        table(["words", "events", "of those, in the title", "its v2 home"],
+              [(code(label), n(k), n(t), home) for (label, k, t), home in
+               zip(counts, ("`genre: romance`", "the kind `performance`; search-only",
+                            "the kind `performance`; search-only", "the kind `party`; search-only"))],
+              left=1)[:-1]
 
 
 def tracks_section(reg, facts):

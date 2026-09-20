@@ -138,6 +138,23 @@ def test_a_tracks_axes_come_from_the_four_closed_lists(tmp_path):
     assert "is not an axis" in only(tmp_path, tracks=[{**TRACK, "axes": {"mood": ["music"]}}])
     assert "is not a value of medium" in only(tmp_path, tracks=[{**TRACK, "axes": {"medium": ["opera"]}}])
     assert "is not a value of subject" in only(tmp_path, tracks=[{**TRACK, "axes": {"subject": ["music"]}}])
+    assert "is not a value of genre" in only(tmp_path, tracks=[{**TRACK, "axes": {"genre": ["romantasy"]}}])
+
+
+def test_the_closed_axis_values_are_schema_v2s():
+    """`AXES` lives here and the tagger imports it, so the four lists are pinned by name."""
+    assert registry.AXES["medium"] == ("tv", "film", "books", "comics", "animation", "anime", "music",
+                                       "podcast-web", "video-games", "tabletop")
+    assert registry.AXES["genre"] == ("fantasy", "sci-fi", "horror", "comedy", "superhero", "romance")
+    assert registry.AXES["craft"] == ("writing", "costuming", "props-making", "art", "photography",
+                                      "puppetry", "performance")
+    assert registry.AXES["subject"] == ("science", "space", "tech", "history", "politics", "skepticism",
+                                        "paranormal", "fitness", "food", "community", "fandom-culture")
+
+
+def test_romance_is_a_genre_a_track_may_take(tmp_path):
+    reg = registry.load(write(tmp_path, tracks=[{**TRACK, "axes": {"genre": ["romance"]}}]))
+    assert reg.tracks[0]["axes"] == {"genre": ["romance"]}
 
 
 def test_an_axis_holds_at_most_two_values(tmp_path):
