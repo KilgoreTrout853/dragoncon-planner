@@ -49,6 +49,22 @@ export default [
     },
   },
 
+  /* tools/ is not part of the build and never reaches dist/: pages opened from
+     disk, with no server and no bundler. The block above gives every file both
+     browser and Node globals, which for a page is too generous - a `process`
+     or a `require` there is a mistake, not a global - so Node's own names are
+     turned off for tools/ and the browser's left on. */
+  {
+    files: ["tools/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...Object.fromEntries(Object.keys(globals.node)
+          .filter(name => !(name in globals.browser)).map(name => [name, "off"])),
+      },
+    },
+  },
+
   /* One rule, two lists. A later object's options for a rule replace an
      earlier object's, they are not added to them: so the page's selectors are
      given for all of src/, and given again, with the clock's, for every file

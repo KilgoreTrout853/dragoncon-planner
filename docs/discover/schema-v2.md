@@ -114,14 +114,45 @@ which sizes the credit review.
 | `name` | The name shown. |
 | `aliases` | The spellings the schedule uses. Section 7 has 9 variant groups, and 45 names that carry a title, a credential, a parenthetical or a "from X" tail. |
 | `tier` | Optional: `celebrity` \| `creator`. A person outside the registry has no tier, and an entry with no tier exists to carry aliases. |
+| `reviewed` | Required, as on a work: a person has confirmed who this is and the tier. |
 | `credits` | At most about 5, each `{work, reviewed}`: a work's id, and whether a person has checked the credit. Only a credit with `reviewed: true` reaches an event. |
 
 ```json
 {"id": "nathan-fillion", "name": "Nathan Fillion", "aliases": [], "tier": "celebrity",
  "credits": [{"work": "firefly", "reviewed": true},
              {"work": "castle", "reviewed": true},
-             {"work": "the-rookie", "reviewed": false}]}
+             {"work": "the-rookie", "reviewed": false}],
+ "reviewed": true}
 ```
+
+**How a person gets there.** `draft_people.py` asks a model about everyone on a
+`guests: celebrity` event and writes them `reviewed: false`, every credit
+`reviewed: false`, and every work it had to invent `reviewed: false`. A model
+answer of "not a guest" writes no entry at all: it writes a rejection, which is
+also what makes a second run quiet - a candidate already in `people.json`, held
+there under an alias, or already rejected is never asked about twice.
+
+**The sidecar**, `data/registry/people.draft.json`, holds what the registry has
+no field for: each person's `known_for` and the model's confidence, the event
+titles it was shown, the work ids it minted, and the rejections with `by`
+saying whether the model or a reviewer made each one. `registry.load` ignores
+it, and it is the review page's third input.
+
+**The review** is `tools/review-people.html`, opened from disk with no server
+and no network. One card a person, low confidence first, filtered by tier so
+the celebrities can go first; a tier control, each credit a chip to keep or
+drop, a notes box and a web-search link. Approving turns the person, the
+credits kept and the works those credits point at `reviewed: true`; a dropped
+credit is removed, and a minted work that no credit points at any more is
+dropped on export. "Not a guest" removes the person and records the rejection;
+the model's own rejections sit in a collapsed list with a control that adds
+anyone it got wrong, with no credits, for a later pass. It exports the three
+files as downloads, formatted as the drafter writes them, so a review's diff is
+the rows it changed and nothing else.
+
+A person's id is `parse_stage.person_slug`'s, the same id the parse stage puts
+on an event's `people`. Wiring the two together - a credit reaching an event,
+`guests` derived from tiers - is the tagger's, in PR 4.
 
 ### `tracks.json`
 
@@ -449,8 +480,9 @@ of its own switches it. For 2027 the pipeline writes the v2 shape into
 
 ## Open
 
-- The credit-review format: how about 225 people's credits (section 7) are
-  put in front of a person and marked reviewed.
+- ~~The credit-review format.~~ Settled in PR 3b: `draft_people.py` drafts,
+  `tools/review-people.html` reviews, and the sidecar carries what the
+  registry has no field for.
 - The tag cache's path and format. PR 4.
 - Whether the build's copy of `data/` into `dist/` leaves `events.v2.json`
   out until the switch (#33). The PR that first writes the file decides.

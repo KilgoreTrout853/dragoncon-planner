@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review people — Dragon Con registry</title>
+<style>
+  :root { --bg:#14161a; --card:#1d2026; --line:#2c313a; --ink:#e6e8ec; --dim:#9aa3b0;
+          --keep:#2f6f4f; --drop:#6f2f3a; --accent:#4a7fd4; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, sans-serif; }
+  header { position:sticky; top:0; z-index:2; background:var(--bg); border-bottom:1px solid var(--line);
+           padding:12px 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  h1 { font-size:16px; margin:0 12px 0 0; font-weight:600; }
+  main { padding:20px; max-width:820px; margin:0 auto; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:16px 18px; margin-bottom:14px; }
+  .card.done { opacity:.45; }
+  .name { font-size:18px; font-weight:600; }
+  .known { color:var(--dim); margin:4px 0 10px; }
+  .events { color:var(--dim); font-size:13px; margin:0 0 12px; padding-left:18px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:10px 0; }
+  .lbl { color:var(--dim); font-size:12px; text-transform:uppercase; letter-spacing:.04em;
+         min-width:58px; }
+  button, select, input, textarea { font:inherit; color:var(--ink); background:#262a32;
+         border:1px solid var(--line); border-radius:6px; padding:6px 10px; }
+  button { cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  .chip.keep { background:var(--keep); }
+  .chip.drop { background:var(--drop); text-decoration:line-through; opacity:.7; }
+  .tier[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); }
+  .approve { background:var(--keep); border-color:var(--keep); font-weight:600; }
+  .notguest { background:var(--drop); border-color:var(--drop); }
+  textarea { width:100%; min-height:44px; resize:vertical; }
+  a { color:var(--accent); }
+  .count { color:var(--dim); margin-left:auto; }
+  details { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; }
+  details .card { background:#22262e; }
+  .empty { color:var(--dim); padding:40px 0; text-align:center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Review people</h1>
+  <label>people.json <input type="file" id="fPeople" accept=".json"></label>
+  <label>works.json <input type="file" id="fWorks" accept=".json"></label>
+  <label>sidecar <input type="file" id="fSide" accept=".json"></label>
+  <label><input type="checkbox" id="onlyUnreviewed" checked> unreviewed only</label>
+  <label>tier
+    <select id="tierFilter">
+      <option value="all">all</option>
+      <option value="celebrity">celebrity</option>
+      <option value="creator">creator</option>
+    </select>
+  </label>
+  <button id="export">Export three files</button>
+  <span class="count" id="count"></span>
+</header>
+<main>
+  <div id="cards"></div>
+  <details id="rejectedBox" hidden>
+    <summary id="rejectedSummary"></summary>
+    <p class="known">The model said these are not guests. Anyone it got wrong can be added here;
+      write their credits in the notes and a later pass can pick them up.</p>
+    <div id="rejectedCards"></div>
+  </details>
+</main>
+<script src="review-people.js"></script>
+<script>
+"use strict";
+/* Resolved at use, not at parse: if review-people.js is missing the page says so once,
+   instead of every button throwing a TypeError. */
+function R() {
+  const lib = globalThis.ReviewPeople;
+  if (!lib) throw new Error("review-people.js did not load - keep it beside this page.");
+  return lib;
+}
+const KEY = "dc-review-people";
+let state = null;
+let draft = {};              // per person: {tier, drop:Set, notes}, before approving
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+};
+
+/* The one way in. The pickers below read files and call this; a manual pass calls it directly. */
+function loadFiles(peopleJson, worksJson, sidecarJson) {
+  state = R().load(peopleJson, worksJson, sidecarJson);
+  const saved = readSaved();
+  if (saved) state = saved;
+  draft = {};
+  render();
+  return state;
+}
+globalThis.loadFiles = loadFiles;
+
+function readSaved() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* private window */ }
+}
+
+function draftFor(p) {
+  if (!draft[p.id]) draft[p.id] = { tier: p.tier || "creator", drop: new Set(), notes: "" };
+  return draft[p.id];
+}
+
+function card(p) {
+  const meta = state.sidecar.people[p.id] || {};
+  const d = draftFor(p);
+  const node = el("div", "card" + (p.reviewed ? " done" : ""));
+  node.appendChild(el("div", "name", p.name + (meta.confidence === "low" ? "  · low confidence" : "")));
+  node.appendChild(el("div", "known", meta.known_for || "(no description drafted)"));
+  if ((meta.events || []).length) {
+    const ul = el("ul", "events");
+    for (const t of meta.events) ul.appendChild(el("li", null, t));
+    node.appendChild(ul);
+  }
+
+  const tiers = el("div", "row");
+  tiers.appendChild(el("span", "lbl", "tier"));
+  for (const t of ["celebrity", "creator"]) {
+    const b = el("button", "tier", t);
+    b.setAttribute("aria-pressed", String(d.tier === t));
+    b.onclick = () => { d.tier = t; render(); };
+    tiers.appendChild(b);
+  }
+  const search = el("a", null, "search the web");
+  search.href = "https://duckduckgo.com/?q=" + encodeURIComponent(p.name + " actor author");
+  search.target = "_blank";
+  search.rel = "noreferrer";
+  tiers.appendChild(search);
+  node.appendChild(tiers);
+
+  const chips = el("div", "row");
+  chips.appendChild(el("span", "lbl", "credits"));
+  const works = Object.fromEntries(state.works.map((w) => [w.id, w]));
+  if (!(p.credits || []).length) chips.appendChild(el("span", "known", "none drafted"));
+  for (const c of p.credits || []) {
+    const dropped = d.drop.has(c.work);
+    const b = el("button", "chip " + (dropped ? "drop" : "keep"),
+                 (works[c.work] ? works[c.work].name : c.work));
+    b.title = c.work;
+    b.onclick = () => { if (dropped) d.drop.delete(c.work); else d.drop.add(c.work); render(); };
+    chips.appendChild(b);
+  }
+  node.appendChild(chips);
+
+  const notes = el("textarea");
+  notes.placeholder = "notes";
+  notes.value = d.notes;
+  notes.oninput = () => { d.notes = notes.value; };
+  node.appendChild(notes);
+
+  const actions = el("div", "row");
+  const ok = el("button", "approve", "Approve all on this card");
+  ok.onclick = () => {
+    state = R().approve(state, p.id, { tier: d.tier, drop: [...d.drop], notes: d.notes });
+    save(); render();
+  };
+  const no = el("button", "notguest", "Not a guest");
+  no.onclick = () => { state = R().reject(state, p.id, d.notes); save(); render(); };
+  actions.appendChild(ok);
+  actions.appendChild(no);
+  node.appendChild(actions);
+  return node;
+}
+
+function rejectedCard(r) {
+  const node = el("div", "card");
+  node.appendChild(el("div", "name", r.name));
+  node.appendChild(el("div", "known", "rejected by " + r.by
+    + ((r.events || []).length ? " · " + r.events[0] : "")));
+  const row = el("div", "row");
+  row.appendChild(el("span", "lbl", "is a"));
+  const notes = el("textarea");
+  notes.placeholder = "credits, for a later pass";
+  for (const t of ["celebrity", "creator"]) {
+    const b = el("button", "tier", t);
+    b.onclick = () => { state = R().unreject(state, r.id, t, notes.value); save(); render(); };
+    row.appendChild(b);
+  }
+  node.appendChild(row);
+  node.appendChild(notes);
+  return node;
+}
+
+function render() {
+  if (!state) return;
+  const filters = { unreviewedOnly: $("onlyUnreviewed").checked, tier: $("tierFilter").value };
+  const list = R().order(state, filters);
+  const cards = $("cards");
+  cards.replaceChildren();
+  if (!list.length) cards.appendChild(el("div", "empty", "Nothing left under this filter."));
+  for (const p of list) cards.appendChild(card(p));
+
+  const model = state.sidecar.rejected.filter((r) => r.by === "model");
+  $("rejectedBox").hidden = !model.length;
+  $("rejectedSummary").textContent = model.length + " the model said are not guests";
+  const box = $("rejectedCards");
+  box.replaceChildren();
+  for (const r of model) box.appendChild(rejectedCard(r));
+
+  const p = R().progress(state);
+  $("count").textContent = p.done + " of " + p.total + " reviewed · " + p.left + " left";
+}
+
+function download(name, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  const a = el("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$("export").onclick = () => {
+  if (!state) return;
+  const out = R().exported(state);
+  download("people.json", R().toJson(out.people));
+  download("works.json", R().toJson(out.works));
+  download("people.draft.json", R().toJson(out.sidecar));
+};
+$("onlyUnreviewed").onchange = render;
+$("tierFilter").onchange = render;
+
+/* The picker is thin on purpose: read three files, hand them to loadFiles. */
+const picked = {};
+function pick(input, slot) {
+  input.onchange = () => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try { picked[slot] = JSON.parse(reader.result); } catch (e) { alert(slot + ": not JSON"); return; }
+      if (picked.people && picked.works) loadFiles(picked.people, picked.works, picked.side || {});
+    };
+    reader.readAsText(file);
+  };
+}
+pick($("fPeople"), "people");
+pick($("fWorks"), "works");
+pick($("fSide"), "side");
+
+if (!globalThis.ReviewPeople) {
+  document.getElementById("cards").textContent =
+    "review-people.js did not load. Keep it in the same folder as this page.";
+}
+</script>
+</body>
+</html>

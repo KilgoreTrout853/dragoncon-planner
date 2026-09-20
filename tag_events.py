@@ -95,9 +95,12 @@ def call_claude_code(prompt, model):
     cmd = ["claude", "-p", prompt, "--output-format", "text"]
     if model:
         cmd += ["--model", model]
-    res = subprocess.run(cmd, capture_output=True, text=True, timeout=600, env=env)
+    # encoding, not the locale's: text=True alone decodes with locale.getencoding(), which is
+    # cp1252 on Windows, and every non-ASCII character the model returns comes back double-encoded
+    # ("Les MisÃ©rables"). The model answers in UTF-8 whatever the console is set to.
+    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=600, env=env)
     if res.returncode != 0 and model:  # maybe the alias isn't accepted; try the default model
-        res = subprocess.run(cmd[:-2], capture_output=True, text=True, timeout=600, env=env)
+        res = subprocess.run(cmd[:-2], capture_output=True, text=True, encoding="utf-8", timeout=600, env=env)
     if res.returncode != 0:
         raise RuntimeError(res.stderr.strip()[:300] or f"claude exited {res.returncode}")
     return res.stdout

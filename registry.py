@@ -272,6 +272,9 @@ def _people(people, work_ids):
         tier = e.get("tier")  # optional: an entry with no tier exists to carry aliases
         if tier is not None and tier not in TIERS:
             out.append(f"{here}: tier {tier!r} is not one of {', '.join(TIERS)}")
+        # Required, as on a work: a person has confirmed who this is and the tier.
+        if not isinstance(e.get("reviewed"), bool):
+            out.append(f"{here}: reviewed {e.get('reviewed')!r} is not true or false")
         credits = e.get("credits")
         if credits is None:
             continue

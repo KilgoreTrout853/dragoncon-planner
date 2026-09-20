@@ -19,7 +19,7 @@ import registry  # noqa: E402
 WORK = {"id": "firefly", "name": "Firefly", "aliases": ["Serenity"], "type": "franchise", "reviewed": False}
 TRACK = {"id": "filk-music", "name": "Filk Music", "aliases": ["Filk"], "axes": {"medium": ["music"]}}
 PERSON = {"id": "nathan-fillion", "name": "Nathan Fillion", "aliases": [], "tier": "celebrity",
-          "credits": [{"work": "firefly", "reviewed": True}]}
+          "credits": [{"work": "firefly", "reviewed": True}], "reviewed": False}
 
 
 def write(tmp_path, works=None, people=None, tracks=None):
@@ -174,10 +174,18 @@ def test_a_tracks_work_must_exist(tmp_path):
 
 # --- people ----------------------------------------------------------------
 
+def test_a_person_carries_reviewed(tmp_path):
+    """Required, as on a work: a person has confirmed who this is and the tier."""
+    assert "is not true or false" in only(tmp_path, people=[{**PERSON, "reviewed": "yes"}])
+    assert "is not true or false" in only(
+        tmp_path, people=[{k: v for k, v in PERSON.items() if k != "reviewed"}])
+
+
 def test_a_tier_is_optional_and_closed(tmp_path):
     assert "is not one of celebrity, creator" in only(tmp_path, people=[{**PERSON, "tier": "fan"}])
     # An entry with no tier exists to carry aliases.
-    reg = registry.load(write(tmp_path, people=[{"id": "ada-quill", "name": "Ada Quill", "aliases": ["A Quill"]}]))
+    reg = registry.load(write(tmp_path, people=[
+        {"id": "ada-quill", "name": "Ada Quill", "aliases": ["A Quill"], "reviewed": True}]))
     assert reg.resolve_person("Dr. A Quill") == "ada-quill"
 
 
