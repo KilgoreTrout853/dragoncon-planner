@@ -184,13 +184,15 @@ parse stage's splitter (ROADMAP, Pipeline shape).
 **The slug rules**, as `parse_stage.person_slug` builds them. Case, accents,
 punctuation and whitespace fold: `François Custardy` is `francois-custardy`,
 `Ra'Neith` is `raneith`, `&` reads as "and". An honorific goes (`Dr. Nicole
-Gugliucci` is `nicole-gugliucci`), even where it is the stage name (`Mr.
-Corporate` is `corporate`), and so does a trailing credential or suffix
-(`Theda Daniels-Race PhD` and `Theda Daniels - Race` are both
-`theda-daniels-race`; `Calvin Watts III` is `calvin-watts`). A trailing
-parenthetical that is a role becomes the role and leaves the name
-(`Karen Henson(Judge)` is `karen-henson`, a judge); one that is not stays
-(`Kei (tophat_tiara)`).
+Gugliucci` is `nicole-gugliucci`), and so does a trailing credential or
+suffix (`Theda Daniels-Race PhD` and `Theda Daniels - Race` are both
+`theda-daniels-race`; `Calvin Watts III` is `calvin-watts`) - but only where
+two or more words are left without it. In `Mr. Corporate`, `Ms. Leisure`,
+`Mr. Vader` and `Dr. Craz` the honorific is the name, and those four are the
+schedule's only such names; the registry is seeded from these slugs, and
+`corporate` is the wrong id to make permanent. A trailing parenthetical that
+is a role becomes the role and leaves the name (`Karen Henson(Judge)` is
+`karen-henson`, a judge); one that is not stays (`Kei (tophat_tiara)`).
 
 What the slug **keeps** is as much the point: a middle initial
 (`laura-j-schroeder` is not `laura-schroeder`) and a "from X" or "of X" tail

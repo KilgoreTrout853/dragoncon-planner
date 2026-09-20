@@ -105,10 +105,19 @@ def test_person_slug_drops_honorifics_and_trailing_credentials():
     assert ps.person_slug("Dr. Nicole Gugliucci") == "nicole-gugliucci"
     assert ps.person_slug("Theda Daniels-Race PhD") == ps.person_slug("Theda Daniels - Race") == "theda-daniels-race"
     assert ps.person_slug("Calvin Watts III") == ps.person_slug("Calvin Watts") == "calvin-watts"
-    # The honorific goes even where it is the stage name: "Mr. Corporate" and "Ms. Leisure" are real.
-    assert ps.person_slug("Mr. Corporate") == "corporate"
-    assert ps.person_slug("Dr. Craz") == "craz"
-    assert ps.person_slug("Dr.") == "dr"  # an honorific that is the whole name stays
+
+
+def test_an_honorific_or_credential_goes_only_if_two_words_are_left_without_it():
+    # "Mr. Corporate", "Ms. Leisure", "Mr. Vader" and "Dr. Craz" are real names, and there the
+    # honorific is the name. PR 3 seeds the registry from these slugs; `corporate` is the wrong
+    # id to make permanent.
+    assert ps.person_slug("Mr. Corporate") == "mr-corporate"
+    assert ps.person_slug("Ms. Leisure") == "ms-leisure"
+    assert ps.person_slug("Dr. Craz") == "dr-craz"
+    assert ps.person_slug("Dr.") == "dr"
+    assert ps.person_slug("Dr. Lea Harris") == "lea-harris"  # two words left, so it goes
+    assert ps.person_slug("Smith Jr.") == "smith-jr"  # the same guard on a trailing credential
+    assert ps.person_slug("Mark NeCamp, Jr.") == "mark-necamp"
 
 
 def test_person_slug_keeps_middle_initials_and_a_from_or_of_tail():

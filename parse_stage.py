@@ -139,12 +139,16 @@ def person_slug(name):
     """A name's id: deterministic, and forever (#31). Case, accents, punctuation and whitespace
     fold; an honorific and a trailing credential go; a trailing role parenthetical is the role,
     not the name. A middle initial and a "from X" tail stay: two spellings of one person are the
-    registry's to merge with an alias, and an id that moves is a follow that breaks."""
+    registry's to merge with an alias, and an id that moves is a follow that breaks.
+
+    An honorific goes only where two or more words are left without it, and a credential the
+    same. In "Mr. Corporate", "Ms. Leisure" and "Dr. Craz" the honorific is the name, and PR 3
+    seeds the registry from these slugs: `corporate` is the wrong id to make permanent."""
     bare, _ = split_role(name)
     w = words(bare)
-    while len(w) > 1 and w[0] in HONORIFICS:
+    while len(w) > 2 and w[0] in HONORIFICS:
         w = w[1:]
-    while len(w) > 1 and w[-1] in CREDENTIALS:
+    while len(w) > 2 and w[-1] in CREDENTIALS:
         w = w[:-1]
     return "-".join(w)
 
