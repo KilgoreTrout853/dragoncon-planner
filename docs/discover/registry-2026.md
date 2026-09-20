@@ -1,16 +1,16 @@
-# The registries - seeded, and not yet reviewed
+# The registries
 
 Written by `registry_report.py` from `data/registry/` and `data/2026/events.json` (`generated_at` 2026-09-07T12:50:19+00:00). Do not edit it by hand; run the script again.
 
-What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the review that flips a row to `reviewed: true`. It states what was seeded and why, and resolves nothing: `UNSURE` marks a judgment that is a person's to make.
+What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the review that flipped every row to `reviewed: true` in `data/works-review-1`. It states what was seeded and why, and resolves nothing: `UNSURE` marks a judgment that is a person's to make.
 
-- Works: 139, all `reviewed: false`. Tracks: 54, 26 with axes. People: 0 - PR 3b.
-- Phrases labelled: 256. UNSURE: 4. Kept in `src/search.js`: 13. Dropped: 0.
+- Works: 139, 139 reviewed. Tracks: 54, 26 with axes. People: 0 - PR 3b.
+- Phrases labelled: 256. UNSURE: 0. Kept in `src/search.js`: 13. Dropped: 0.
 - Coverage: 0 unresolved fandom names, 0 unresolved tracks, 0 unlabelled phrases, 0 tracks whose axes the evidence does not support.
 
 ## 1. Works
 
-139 entries, every one `reviewed: false`. 110 carry events under a 2026 fandom name and 29 carry none - a child is seeded whether or not 2026 names it, because the parent link is worth having either way. Rows with events come first; a row with none is marked `-`.
+139 entries, 139 of them `reviewed: true`. 110 carry events under a 2026 fandom name and 29 carry none - a child is seeded whether or not 2026 names it, because the parent link is worth having either way. Rows with events come first; a row with none is marked `-`.
 
 ### franchise: 104
 
@@ -45,8 +45,8 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `dune` | Dune |  |  |  |  | 2 |
 | `haikyuu` | Haikyuu!! |  |  |  |  | 2 |
 | `one-piece` | One Piece |  |  |  |  | 2 |
-| `smallville` | Smallville |  |  |  |  | 2 |
-| `the-hitchhikers-guide-to-the-galaxy` | The Hitchhiker's Guide to the Galaxy |  |  |  |  | 2 |
+| `smallville` | Smallville | `superman` |  |  |  | 2 |
+| `the-hitchhikers-guide-to-the-galaxy` | The Hitchhiker's Guide to the Galaxy |  |  | `Hitchhiker's Guide` |  | 2 |
 | `the-hunger-games` | The Hunger Games |  |  |  |  | 2 |
 | `the-muppets` | The Muppets |  |  |  |  | 2 |
 | `the-neverending-story` | The NeverEnding Story |  |  |  |  | 2 |
@@ -56,7 +56,7 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `the-witcher` | The Witcher |  |  |  |  | 2 |
 | `transformers` | Transformers |  |  |  |  | 2 |
 | `adventure-time` | Adventure Time |  |  |  |  | 1 |
-| `buck-rogers-in-the-25th-century` | Buck Rogers in the 25th Century |  |  |  |  | 1 |
+| `buck-rogers-in-the-25th-century` | Buck Rogers in the 25th Century |  |  | `Buck Rogers` |  | 1 |
 | `chainsaw-man` | Chainsaw Man |  |  |  |  | 1 |
 | `detective-conan` | Detective Conan |  |  |  |  | 1 |
 | `downton-abbey` | Downton Abbey |  |  |  |  | 1 |
@@ -66,14 +66,14 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `fullmetal-alchemist` | Fullmetal Alchemist |  |  |  |  | 1 |
 | `gargoyles` | Gargoyles |  |  |  |  | 1 |
 | `ghostbusters` | Ghostbusters |  |  | `Ghostbuster` |  | 1 |
+| `gundam` | Gundam |  |  | `Mobile Suit Gundam` |  | 1 |
 | `jujutsu-kaisen` | Jujutsu Kaisen |  |  |  |  | 1 |
 | `labyrinth` | Labyrinth |  |  |  |  | 1 |
-| `mighty-morphin-power-rangers` | Mighty Morphin Power Rangers |  |  |  |  | 1 |
-| `mobile-suit-gundam` | Mobile Suit Gundam |  |  |  |  | 1 |
 | `nirvanna-the-band-the-show` | Nirvanna the Band the Show |  |  |  |  | 1 |
 | `outlander` | Outlander |  |  |  |  | 1 |
-| `pee-wees-playhouse` | Pee Wee's Playhouse |  |  |  |  | 1 |
+| `pee-wees-playhouse` | Pee-wee's Playhouse |  |  |  |  | 1 |
 | `ponies` | Ponies |  |  |  |  | 1 |
+| `power-rangers` | Power Rangers |  |  | `Mighty Morphin Power Rangers` |  | 1 |
 | `rent` | Rent |  |  |  |  | 1 |
 | `rick-and-morty` | Rick and Morty |  |  |  |  | 1 |
 | `rwby` | RWBY |  |  |  |  | 1 |
@@ -90,7 +90,7 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `upload` | Upload |  |  |  |  | 1 |
 | `vikings` | Vikings |  |  |  |  | 1 |
 | `witch-hat-atelier` | Witch Hat Atelier |  |  |  |  | 1 |
-| `xena-warrior-princess` | Xena: Warrior Princess |  |  |  |  | 1 |
+| `xena-warrior-princess` | Xena: Warrior Princess |  |  | `Xena` |  | 1 |
 | `yellowjackets` | Yellowjackets |  |  |  |  | 1 |
 | `yu-gi-oh` | Yu-Gi-Oh! |  |  |  |  | 1 |
 | `andor` | Andor | `star-wars` |  | `Star Wars: Andor` |  | - |
@@ -136,7 +136,7 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `fallout` | Fallout |  | video |  |  | 2 |
 | `halo` | Halo |  | video |  |  | 2 |
 | `the-legend-of-zelda` | The Legend of Zelda |  | video | `Zelda` | `Nintendo` | 2 |
-| `baldurs-gate` | Baldur's Gate |  | video |  |  | 1 |
+| `baldurs-gate` | Baldur's Gate | `dungeons-and-dragons` | video |  |  | 1 |
 | `battletech` | BattleTech |  | miniatures |  |  | 1 |
 | `borderlands` | Borderlands |  | video |  |  | 1 |
 | `deltarune` | Deltarune |  | video |  |  | 1 |
@@ -144,7 +144,7 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `dragon-age` | Dragon Age |  | video |  |  | 1 |
 | `dragon-quest` | Dragon Quest |  | video |  |  | 1 |
 | `fire-emblem` | Fire Emblem |  | video |  |  | 1 |
-| `flesh-and-blood-tcg` | Flesh & Blood TCG |  | ccg |  |  | 1 |
+| `flesh-and-blood` | Flesh and Blood |  | ccg | `Flesh & Blood TCG` |  | 1 |
 | `fortnite` | Fortnite |  | video |  |  | 1 |
 | `genshin-impact` | Genshin Impact |  | video |  |  | 1 |
 | `hades` | Hades |  | video |  |  | 1 |
@@ -233,6 +233,10 @@ Decided here, not left open.
 - `avengers` -> id `avengers`, name "Avengers": BritTrack has its own The Avengers, and an id is forever; `the-avengers` would have claimed the name before anyone chose which one gets it.
 - Group Cosplay Photoshoot, Live-Action Roleplaying Games -> no axes: the rule offers each one a value and each declines it: the track is the facet, and an axis would say less than the track's own name.
 - Kids Track -> `audience: kids`, no axes: schema-v2.md sends the topic Kids to `audience`, which is not one of the four axes.
+- `angel` -> a child of Buffy the Vampire Slayer: a bare "Angel" is an ambiguous name to resolve, and the only entry whose name is an everyday word; reviewed and kept as drafted.
+- `dragon-ball-z` -> a child of Dragon Ball, not merged with it: the census flags the two as a prefix pair (section 2) and they are one v1 name each; reviewed and kept as drafted.
+- `predator` -> kept: two 2026 mentions, of which one is `D&D 5.5E: Crowning The Apex Predator` and not the film; the other, `Predator: The Hunt Re-Imagined`, is; reviewed and kept as drafted.
+- The character-led children -> kept as child works: a character is not a franchise, but the schedule names them as properties; reviewed and kept as drafted, following the brief's own "batman under dc-comics".
 - `genre: romance` -> added to the axis list: 13 events say romance or romantasy, 8 of them in the title, and no other value expresses them. Karaoke, dance and wrestling got no value: `kind` already covers them, and their words stay in `src/search.js`.
 
 ### The evidence for a track's axes
@@ -637,12 +641,9 @@ Search vocabulary and nothing else, so `src/search.js` keeps them; the registrie
 
 ## 4. UNSURE
 
-4 judgments a person has to make. Nothing here is resolved, and every work is `reviewed: false` until one is.
+0 judgments a person has to make. Every work carries a person's review.
 
-- UNSURE: `angel` (Angel) - Seeded as a child of Buffy the Vampire Slayer. A bare "Angel" is an ambiguous name to resolve, and this is the only entry whose name is an everyday word.
-- UNSURE: `dragon-ball-z` (Dragon Ball Z) - Seeded as a child of Dragon Ball rather than merged with it. The census flags the two as a prefix pair (section 2); they are one v1 name each.
-- UNSURE: `predator` (Predator) - Seeded on two 2026 mentions, of which one is `D&D 5.5E: Crowning The Apex Predator` - not the film. The other, `Predator: The Hunt Re-Imagined`, is.
-- UNSURE: character-led children (`batman`, `superman`, `wonder-woman`, `justice-league`, `spider-man`, `x-men`, `avengers`, `wolverine`, `deadpool`, `daredevil`) - seeded as child works, following the brief's own "batman under dc-comics". A character is not a franchise, and a reviewer may want some of them folded into the parent instead.
+- none. The four rows that carried a mark were reviewed in `data/works-review-1` and stand as drafted; the calls are under Tracks, above. The character-led children are `batman`, `superman`, `wonder-woman`, `justice-league`, `spider-man`, `x-men`, `avengers`, `wolverine`, `deadpool`, `daredevil`.
 
 ## 5. Coverage
 

@@ -2,7 +2,7 @@
 """The seeded registries, written to docs/discover/registry-2026.md for review.
 
 PR 3a of the Discover sequence (DECISIONS #31, `docs/discover/schema-v2.md`). Every work is
-`reviewed: false` until a person says otherwise, and this is what that person reads: the works and
+`reviewed: false` until a person says otherwise, and this is what that person read: the works and
 tracks as seeded, where every phrase of `tag_events.CANON` and `src/search.js`'s `SYNONYMS` went,
 what was left out, and what needs a judgment.
 
@@ -135,15 +135,9 @@ AXIS_SHARE = 0.8
 DECLINED = {"group-cosplay-photoshoot": "186 cosplay meetups are not \"the craft of photography\"",
             "live-action-roleplaying-games": "a LARP is not played at a table"}
 
-# What a person has to settle. Nothing here is guessed quietly.
-UNSURE = [
-    ("angel", "Seeded as a child of Buffy the Vampire Slayer. A bare \"Angel\" is an ambiguous name to "
-              "resolve, and this is the only entry whose name is an everyday word."),
-    ("dragon-ball-z", "Seeded as a child of Dragon Ball rather than merged with it. The census flags the "
-                      "two as a prefix pair (section 2); they are one v1 name each."),
-    ("predator", "Seeded on two 2026 mentions, of which one is `D&D 5.5E: Crowning The Apex Predator` - "
-                 "not the film. The other, `Predator: The Hunt Re-Imagined`, is."),
-]
+# What a person has to settle. Empty: the four rows that carried a mark were reviewed in
+# `data/works-review-1` and stand as drafted, and their reasoning moved to the calls below.
+UNSURE = []
 CHARACTER_LED = ["batman", "superman", "wonder-woman", "justice-league", "spider-man", "x-men",
                  "avengers", "wolverine", "deadpool", "daredevil"]
 
@@ -168,6 +162,18 @@ DECIDED = [
      "say less than the track's own name"),
     ("Kids Track", "`audience: kids`, no axes",
      "schema-v2.md sends the topic Kids to `audience`, which is not one of the four axes"),
+    ("`angel`", "a child of Buffy the Vampire Slayer",
+     "a bare \"Angel\" is an ambiguous name to resolve, and the only entry whose name is an everyday "
+     "word; reviewed and kept as drafted"),
+    ("`dragon-ball-z`", "a child of Dragon Ball, not merged with it",
+     "the census flags the two as a prefix pair (section 2) and they are one v1 name each; reviewed "
+     "and kept as drafted"),
+    ("`predator`", "kept",
+     "two 2026 mentions, of which one is `D&D 5.5E: Crowning The Apex Predator` and not the film; the "
+     "other, `Predator: The Hunt Re-Imagined`, is; reviewed and kept as drafted"),
+    ("The character-led children", "kept as child works",
+     "a character is not a franchise, but the schedule names them as properties; reviewed and kept as "
+     "drafted, following the brief's own \"batman under dc-comics\""),
     ("`genre: romance`", "added to the axis list",
      "13 events say romance or romantasy, 8 of them in the title, and no other value expresses them. "
      "Karaoke, dance and wrestling got no value: `kind` already covers them, and their words stay in "
@@ -254,9 +260,11 @@ def works_section(reg, events, facts):
         wid = reg.resolve_work(name)
         if wid:
             by_work[wid] += k
-    facts.update(works=len(reg.works), with_events=sum(1 for w in reg.works if by_work[w["id"]]))
+    facts.update(works=len(reg.works), with_events=sum(1 for w in reg.works if by_work[w["id"]]),
+                 reviewed=sum(1 for w in reg.works if w["reviewed"]))
     out = ["## 1. Works", "",
-           f"{n(len(reg.works))} entries, every one `reviewed: false`. {n(facts['with_events'])} carry "
+           f"{n(len(reg.works))} entries, {n(facts['reviewed'])} of them `reviewed: true`. "
+           f"{n(facts['with_events'])} carry "
            f"events under a 2026 fandom name and {n(len(reg.works) - facts['with_events'])} carry none - "
            "a child is seeded whether or not 2026 names it, because the parent link is worth having "
            "either way. Rows with events come first; a row with none is marked `-`.", ""]
@@ -370,14 +378,17 @@ def tracks_section(reg, facts):
 
 def unsure_section(reg, facts):
     by_id = reg.by_id()
-    facts["unsure"] = len(UNSURE) + 1
+    unreviewed = sorted(w["id"] for w in reg.works if not w["reviewed"])
+    facts["unsure"] = len(UNSURE)
     out = ["## 4. UNSURE", "",
-           f"{n(len(UNSURE) + 1)} judgments a person has to make. Nothing here is resolved, and every "
-           "work is `reviewed: false` until one is.", ""]
-    out += [f"- UNSURE: `{wid}` ({by_id[wid]['name'] if wid in by_id else '?'}) - {why}" for wid, why in UNSURE]
-    out += [f"- UNSURE: character-led children ({', '.join(f'`{w}`' for w in CHARACTER_LED)}) - seeded as "
-            "child works, following the brief's own \"batman under dc-comics\". A character is not a "
-            "franchise, and a reviewer may want some of them folded into the parent instead."]
+           f"{n(len(UNSURE))} judgments a person has to make."
+           + (" Every work carries a person's review." if not unreviewed else
+              f" Works still unreviewed: {n(len(unreviewed))}."), ""]
+    out += [f"- UNSURE: `{wid}` ({by_id[wid]['name'] if wid in by_id else '?'}) - {why}"
+            for wid, why in UNSURE] or \
+        ["- none. The four rows that carried a mark were reviewed in `data/works-review-1` and stand "
+         "as drafted; the calls are under Tracks, above. The character-led children are "
+         f"{', '.join(f'`{w}`' for w in CHARACTER_LED)}."]
     return out
 
 
@@ -411,14 +422,14 @@ def render(reg, data, source=EVENTS):
     body += phrases_section(reg, facts) + [""]
     body += unsure_section(reg, facts) + [""]
     body += coverage_section(reg, events, facts)
-    head = ["# The registries - seeded, and not yet reviewed", "",
+    head = ["# The registries", "",
             f"Written by `registry_report.py` from `data/registry/` and "
             f"`{source.replace(os.sep, '/')}` (`generated_at` {data.get('generated_at')}). Do not edit it "
             "by hand; run the script again.", "",
             "What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the review that "
-            "flips a row to `reviewed: true`. It states what was seeded and why, and resolves nothing: "
-            "`UNSURE` marks a judgment that is a person's to make.", "",
-            f"- Works: {n(facts['works'])}, all `reviewed: false`. Tracks: {n(facts['tracks'])}, "
+            "flipped every row to `reviewed: true` in `data/works-review-1`. It states what was seeded and "
+            "why, and resolves nothing: `UNSURE` marks a judgment that is a person's to make.", "",
+            f"- Works: {n(facts['works'])}, {n(facts['reviewed'])} reviewed. Tracks: {n(facts['tracks'])}, "
             f"{n(facts['track_axes'])} with axes. People: {n(len(reg.people))} - PR 3b.",
             f"- Phrases labelled: {n(facts['phrases'])}. UNSURE: {n(facts['unsure'])}. Kept in "
             f"`src/search.js`: {n(len(SEARCH_ONLY))}. Dropped: {n(len(DROPPED))}.",
