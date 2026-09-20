@@ -240,9 +240,15 @@ def test_resolve_finds_a_name_or_an_alias_and_nothing_else(tmp_path):
 def test_the_real_registry_is_valid():
     """The seed in data/registry/, so that CI checks every later edit to it."""
     reg = registry.load(os.path.join(ROOT, registry.DIR))
+    works = reg.by_id()
     assert len(reg.works) > 100 and len(reg.tracks) == 54
     assert all(w["reviewed"] is False for w in reg.works)   # PR 3a seeds nothing as reviewed
     assert reg.resolve_work("d&d") == "dungeons-and-dragons"
     assert reg.resolve_work("Wheel of Time") == reg.resolve_work("The Wheel of Time")
     assert reg.resolve_track("Trek Track") == "trek-track"
-    assert reg.by_id()["trek-track" and "star-trek"]["name"] == "Star Trek"
+    assert works["star-trek"]["name"] == "Star Trek"
+    # Warhammer is the parent, not an alias of 40,000.
+    assert reg.resolve_work("Warhammer") == "warhammer" != reg.resolve_work("40k")
+    assert works["warhammer-40000"]["parent"] == "warhammer"
+    assert [w["id"] for w in reg.works] == sorted(works), "works.json is sorted by id"
+    assert [t["id"] for t in reg.tracks] == sorted(t["id"] for t in reg.tracks)

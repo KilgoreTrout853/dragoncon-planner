@@ -82,7 +82,7 @@ credited with.
 | `name` | The name shown. |
 | `aliases` | Other names and spellings that resolve to this id, a renamed or merged work's old name among them. |
 | `parent` | Optional. The id of the work this one belongs to. |
-| `type` | `franchise` \| `game`. |
+| `type` | `franchise` \| `game`: where the work started. It picks a shelf and nothing more, so a work that grew into the other kind keeps the type it began with - Pokemon is a `game` and Yu-Gi-Oh! a `franchise`, one having begun on a Game Boy and the other as a manga. |
 | `family` | Games only: `rpg` \| `ccg` \| `board` \| `miniatures` \| `video`. |
 | `terms` | Optional. Words that should lead a searcher to the work but are not names for it: `klingon`, `hogwarts`, `rocinante`, and creators' names. |
 | `reviewed` | `false` on a work the tagger proposed and the pipeline added by itself; the census lists those. It can be wrong until someone looks. |
@@ -97,9 +97,10 @@ credited with.
 Firefly, Buffy and Angel - so the loader does not require them unique. What
 it does require is that a term is not also a name or an alias somewhere,
 which would make one string both resolvable and not. The tagger ignores
-terms; they reach the client at the switch (PR 6) baked into the
-pipeline-built search index, not by the client reading a registry, so #31's
-"the client sees only resolved data" still holds.
+terms. They reach the client inside the resolved data the pipeline writes,
+never by the client reading a registry, which is #31's rule; whether that is
+a field on each event or an index the pipeline builds beside them is the
+client switch's call (PR 6), and this note does not make it.
 
 ### `people.json`
 

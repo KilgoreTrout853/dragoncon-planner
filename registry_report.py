@@ -80,61 +80,92 @@ ELSEWHERE = {
     "championship": "the kind `contest`", "tournament": "play.format: tournament",
 }
 
-# A phrase with no v2 home at all. Short, and each says why.
-DROPPED = {
-    "symphony": "an ensemble; no work, no axis value",
-    "orchestra": "an ensemble; no work, no axis value",
-    "philharmonic": "an ensemble; no work, no axis value",
-    "wrestling": "the schedule has wrestling events; no axis has a value for them",
-    "wrestlers": "the schedule has wrestling events; no axis has a value for them",
-    "wrestle": "the schedule has wrestling events; no axis has a value for them",
-    "karaoke": "an activity with no v2 home",
-    "sing-along": "an activity with no v2 home",
-    "singalong": "an activity with no v2 home",
-    "sing along": "an activity with no v2 home",
-    "dance": "an activity with no v2 home",
-    "dancing": "an activity with no v2 home",
-    "ball": "an activity with no v2 home, and too common a word to be a term",
+# A phrase the registries have no home for. It is not wrong and it is not dropped: it stays in
+# `src/search.js`, which is where it came from and where it still earns its place. The counts
+# beside these are 2026 events whose title or description says the word (`MENTIONS`).
+SEARCH_ONLY = {
+    "symphony": "an ensemble, not a work",
+    "orchestra": "an ensemble, not a work",
+    "philharmonic": "an ensemble, not a work",
+    "wrestling": "no axis has a value for it", "wrestlers": "no axis has a value for it",
+    "wrestle": "no axis has a value for it",
+    "karaoke": "an activity no axis names", "sing-along": "an activity no axis names",
+    "singalong": "an activity no axis names", "sing along": "an activity no axis names",
+    "dance": "an activity no axis names", "dancing": "an activity no axis names",
+    "ball": "an activity no axis names, and too common a word to be a term",
     "romance": "no romance value on any of the four axes",
     "romantasy": "no romance value on any of the four axes",
     "paranormal romance": "`subject: paranormal` is about the paranormal, not the genre of romance",
 }
 
+# A phrase that is wrong - one that would send a reader somewhere the schedule does not go.
+# There are none: every phrase in CANON and SYNONYMS is either a work, a v2 value, or vocabulary
+# worth keeping.
+DROPPED = {}
+
+# What the schedule says, for the vocabulary the axes have no home for: 2026 events whose title or
+# description holds the word. The axis lists are schema-v2.md's and this report does not change them.
+MENTIONS = [
+    ("romance, romantasy", r"\bromance\b|\bromantasy\b"),
+    ("wrestling", r"\bwrestl\w*\b"),
+    ("karaoke, sing-along", r"\bkaraoke\b|\bsing[\s-]?alongs?\b"),
+    ("dance, dancing", r"\bdanc\w*\b"),
+]
+
+# A v1 topic's v2 home, from schema-v2.md's "From TOPICS to v2" table. `Kids` goes to `audience`,
+# which is not an axis, and `Gaming` has no single home: it is the medium the track plays in.
+TOPIC_V2 = {
+    "Space": ("subject", "space"), "Science": ("subject", "science"), "Writing": ("craft", "writing"),
+    "Costuming": ("craft", "costuming"), "Props & Making": ("craft", "props-making"),
+    "Comics": ("medium", "comics"), "Animation": ("medium", "animation"), "Anime": ("medium", "anime"),
+    "Film": ("medium", "film"), "TV": ("medium", "tv"), "Literature": ("medium", "books"),
+    "Music": ("medium", "music"), "Comedy": ("genre", "comedy"), "History": ("subject", "history"),
+    "Tech": ("subject", "tech"), "Horror": ("genre", "horror"), "Fantasy": ("genre", "fantasy"),
+    "Sci-Fi": ("genre", "sci-fi"), "Tabletop": ("medium", "tabletop"), "Fitness": ("subject", "fitness"),
+    "Food": ("subject", "food"), "Podcasting": ("medium", "podcast-web"), "Art": ("craft", "art"),
+    "Community": ("subject", "community"), "Politics": ("subject", "politics"),
+    "Fandom Culture": ("subject", "fandom-culture"), "Puppetry": ("craft", "puppetry"),
+    "Cosplay Photography": ("craft", "photography"), "Skepticism": ("subject", "skepticism"),
+    "Paranormal": ("subject", "paranormal"),
+}
+VIDEO_TRACKS = ("Video Gaming", "Artemis Spaceship Bridge Simulator")
+AXIS_SHARE = 0.8
+# Where the rule offers a value and the seed declines it: the track is the facet, and an axis
+# would say less than its own name already does.
+DECLINED = {"group-cosplay-photoshoot": "186 cosplay meetups are not \"the craft of photography\"",
+            "live-action-roleplaying-games": "a LARP is not played at a table"}
+
 # What a person has to settle. Nothing here is guessed quietly.
 UNSURE = [
-    ("pokemon", "Typed `franchise`. It is equally a video-game series and a collectible card game; "
-                "one entry cannot be both, and `type` decides which shelf it sits on."),
-    ("yu-gi-oh", "Typed `game`/`ccg` after the card game the schedule plays. It is also an anime "
-                 "franchise."),
-    ("fallout", "Typed `game`/`video`. It now has a television series, which makes it a franchise too."),
-    ("halo", "Typed `game`/`video`. Novels and a television series make the same argument."),
-    ("the-last-of-us", "Typed `game`/`video`. Its television series is what most people mean by the name."),
-    ("battletech", "Typed `game`/`miniatures`. It also has novels and video games."),
-    ("warhammer-40000", "`Warhammer` is seeded as an alias, following `CANON`. Warhammer is really the "
-                        "parent: Warhammer Fantasy and Warhammer 40,000 are two works under it."),
     ("angel", "Seeded as a child of Buffy the Vampire Slayer. A bare \"Angel\" is an ambiguous name to "
               "resolve, and this is the only entry whose name is an everyday word."),
     ("dragon-ball-z", "Seeded as a child of Dragon Ball rather than merged with it. The census flags the "
                       "two as a prefix pair (section 2); they are one v1 name each."),
-    ("ponies", "The v1 fandom name, kept as the schedule writes it. Presumably My Little Pony, but the "
-               "schedule never says so, and a rename later keeps this as an alias."),
     ("predator", "Seeded on two 2026 mentions, of which one is `D&D 5.5E: Crowning The Apex Predator` - "
                  "not the film. The other, `Predator: The Hunt Re-Imagined`, is."),
-    ("critical-role", "Typed `franchise`, not `game`: it is an actual-play show about a game, and its "
-                      "events are panels and photo sessions."),
 ]
 CHARACTER_LED = ["batman", "superman", "wonder-woman", "justice-league", "spider-man", "x-men",
-                 "the-avengers", "wolverine", "deadpool", "daredevil"]
+                 "avengers", "wolverine", "deadpool", "daredevil"]
 
 # Calls made, not open questions.
 DECIDED = [
-    ("Collectible Card Games, Board Games, Werewolf Games", "`medium: tabletop`",
-     "their dominant topic is Gaming, which has no single v2 home; all three are played at a table"),
-    ("Artemis Spaceship Bridge Simulator", "`medium: video-games`",
-     "also Gaming-dominant, but it is a video game played on networked screens"),
-    ("Live-Action Roleplaying Games", "no axes",
-     "its dominant topic is Tabletop, and a LARP is not played at a table; no medium fits, and the "
-     "track is itself the facet"),
+    ("`type`", "where the work started",
+     "it picks a shelf and nothing more, so a work that grew into something else keeps the type it "
+     "began with: `pokemon` is `game`/`video` and `yu-gi-oh` a `franchise`, because one began on a Game "
+     "Boy and the other as a manga. `fallout`, `halo`, `the-last-of-us`, `battletech` and "
+     "`critical-role` keep the type they were drafted with for the same reason"),
+    ("`warhammer`", "a work of its own, the parent of `warhammer-40000`",
+     "`CANON` folds \"warhammer\" into 40,000; it is really the parent, and Warhammer Fantasy is its "
+     "other child. \"Warhammer\" is no longer an alias of the child"),
+    ("`ponies`", "kept as the schedule writes it",
+     "not My Little Pony: its one event calls it \"the Peacock show Ponies\" and talks about Moscow and "
+     "a season 2, so the id is `ponies` and no other name is minted"),
+    ("`avengers`", "id `avengers`, name \"Avengers\"",
+     "BritTrack has its own The Avengers, and an id is forever; `the-avengers` would have claimed the "
+     "name before anyone chose which one gets it"),
+    ("Group Cosplay Photoshoot, Live-Action Roleplaying Games", "no axes",
+     "the rule offers each one a value and each declines it: the track is the facet, and an axis would "
+     "say less than the track's own name"),
     ("Kids Track", "`audience: kids`, no axes",
      "schema-v2.md sends the topic Kids to `audience`, which is not one of the four axes"),
 ]
@@ -163,6 +194,8 @@ def label_for(reg, phrase, terms):
         return "term", ", ".join(sorted(terms[registry.resolve_key(phrase)]))
     if phrase in ELSEWHERE:
         return "elsewhere", ELSEWHERE[phrase]
+    if phrase in SEARCH_ONLY:
+        return "search-only", SEARCH_ONLY[phrase]
     if phrase in DROPPED:
         return "dropped", DROPPED[phrase]
     return "UNACCOUNTED", ""
@@ -193,9 +226,11 @@ def phrases_section(reg, facts):
            f"each of their {n(len(rows))} distinct phrases carries one label. A **work** is the seeded "
            "entry's own name, an **alias** another name for it, a **child** a work with a parent, a "
            "**term** a word that should lead a searcher to a work but is not a name for it (terms never "
-           "resolve), **elsewhere** a v2 home that is not a work, and **dropped** the rest.", "",
+           "resolve), **elsewhere** a v2 home that is not a work, **search-only** a phrase the "
+           "registries have no home for that stays in `src/search.js`, and **dropped** a phrase that is "
+           "wrong. Nothing is dropped for lacking a registry home.", "",
            f"- {counted((f'**{lab}**', k) for lab, k in ranked(by_label))}.", ""]
-    for label in ("work", "alias", "child", "term", "elsewhere", "dropped", "UNACCOUNTED"):
+    for label in ("work", "alias", "child", "term", "elsewhere", "search-only", "dropped", "UNACCOUNTED"):
         here = [(p, w) for p, lab, w in rows if lab == label]
         if not here:
             continue
@@ -233,6 +268,81 @@ def works_section(reg, events, facts):
     return out
 
 
+def axis_evidence(reg, events):
+    """Per track: its tagged events, and the best v2 value on each axis with the share of those
+    events carrying it. A track takes a value where one value covers AXIS_SHARE of them."""
+    by_track = defaultdict(list)
+    for e in events:
+        for name in e.get("tracks") or []:
+            by_track[name].append(e)
+    out = {}
+    for t in reg.tracks:
+        tagged = [e for e in by_track.get(t["name"], []) if e.get("tags")]
+        hits = Counter()
+        for e in tagged:
+            seen = set()
+            for topic in e["tags"].get("topics") or []:
+                v2 = (("medium", "video-games" if t["name"] in VIDEO_TRACKS else "tabletop")
+                      if topic == "Gaming" else TOPIC_V2.get(topic))
+                if v2 and v2 not in seen:
+                    seen.add(v2)
+                    hits[v2] += 1
+        best = {}
+        for (axis, value), k in sorted(hits.items(), key=lambda kv: (-kv[1], kv[0])):
+            best.setdefault(axis, (value, k / len(tagged) if tagged else 0))
+        out[t["id"]] = (len(tagged), best)
+    return out
+
+
+def evidence_section(reg, events, facts):
+    ev = axis_evidence(reg, events)
+    rows, disagree = [], []
+    for t in sorted(reg.tracks, key=lambda t: t["id"]):
+        tagged, best = ev[t["id"]]
+        rule = {a: (v, s) for a, (v, s) in best.items() if s >= AXIS_SHARE}
+        held = {a: vs[0] for a, vs in (t.get("axes") or {}).items()}
+        taken = {a: v for a, (v, _) in rule.items()}
+        note = DECLINED.get(t["id"], "")
+        if held != taken and not note:
+            disagree.append(t["id"])
+        rows.append((t, tagged, best, rule, held, note))
+    facts.update(declined=len(DECLINED), disagree=disagree,
+                 cleared=sum(1 for _, _, _, rule, _, _ in rows if rule))
+    out = ["### The evidence for a track's axes", "",
+           f"A track takes a value on an axis where that one value covers at least "
+           f"{AXIS_SHARE:.0%} of its **tagged** events, after each v1 topic is mapped to its v2 home "
+           "(schema-v2.md's TOPICS table). `Gaming` has no single home, so on a track it is the medium "
+           f"that track plays in: `video-games` on {' and '.join(VIDEO_TRACKS)}, `tabletop` elsewhere. "
+           "The best candidate on each axis is shown whether or not it clears, so that a track that "
+           "takes nothing shows how far off it was.", ""]
+    out += table(["track", "tagged", "best candidate per axis", "at " + f"{AXIS_SHARE:.0%}", "held"],
+                 [(f"`{t['id']}`", n(tagged),
+                   ", ".join(f"{a}: {v} {s:.0%}" for a, (v, s) in sorted(best.items(), key=lambda x: -x[1][1])[:3]) or "no topics",
+                   ", ".join(f"`{a}: {v}`" for a, (v, _) in sorted(rule.items())) + (f" - declined, {note}" if note else "") or "-",
+                   ", ".join(f"`{a}: {v}`" for a, v in sorted(held.items())) or "-")
+                  for t, tagged, best, rule, held, note in rows], left=3)
+    out += [f"- Tracks the rule gives a value: {n(facts['cleared'])}; of those, {n(len(DECLINED))} "
+            "decline it, below. Tracks where the file and the rule disagree: "
+            f"**{n(len(disagree))}**{': ' + ', '.join(f'`{i}`' for i in disagree) if disagree else '.'}", ""]
+    return out
+
+
+def mentions_section(events, facts):
+    """What the schedule says about the vocabulary the axes have no value for."""
+    counts = []
+    for label, pattern in MENTIONS:
+        rx = re.compile(pattern, re.I)
+        counts.append((label, sum(1 for e in events
+                                  if rx.search(e["title"]) or rx.search(e.get("description") or "")),
+                       sum(1 for e in events if rx.search(e["title"]))))
+    facts["mentions"] = counts
+    return ["### What the schedule says about the search-only words", "",
+            "Events whose title or description holds the word. The axis lists are schema-v2.md's and "
+            "nothing here changes them; this is the count a decision about them would rest on.", ""] + \
+        table(["words", "events", "of those, in the title"],
+              [(code(label), n(k), n(t)) for label, k, t in counts], left=1)[:-1]
+
+
 def tracks_section(reg, facts):
     axes = sum(1 for t in reg.tracks if t.get("axes"))
     facts.update(tracks=len(reg.tracks), track_axes=axes)
@@ -245,8 +355,7 @@ def tracks_section(reg, facts):
                    "; ".join(f"{axis}: {', '.join(v)}" for axis, v in sorted((t.get("axes") or {}).items())),
                    t.get("audience", ""), f"`{t['work']}`" if t.get("work") else "")
                   for t in sorted(reg.tracks, key=lambda t: t["id"])], left=6)
-    out += ["### Calls made", "",
-            "Decided here, not left open. Each is a track whose dominant topic has no single v2 home.", ""]
+    out += ["### Calls made", "", "Decided here, not left open.", ""]
     return out + [f"- {who} -> {what}: {why}." for who, what, why in DECIDED]
 
 
@@ -288,6 +397,8 @@ def render(reg, data, source=EVENTS):
     facts = {}
     body = works_section(reg, events, facts) + [""]
     body += tracks_section(reg, facts) + [""]
+    body += evidence_section(reg, events, facts) + [""]
+    body += mentions_section(events, facts) + [""]
     body += phrases_section(reg, facts) + [""]
     body += unsure_section(reg, facts) + [""]
     body += coverage_section(reg, events, facts)
@@ -300,10 +411,11 @@ def render(reg, data, source=EVENTS):
             "`UNSURE` marks a judgment that is a person's to make.", "",
             f"- Works: {n(facts['works'])}, all `reviewed: false`. Tracks: {n(facts['tracks'])}, "
             f"{n(facts['track_axes'])} with axes. People: {n(len(reg.people))} - PR 3b.",
-            f"- Phrases labelled: {n(facts['phrases'])}. UNSURE: {n(facts['unsure'])}. Dropped: "
-            f"{n(len(DROPPED))}.",
+            f"- Phrases labelled: {n(facts['phrases'])}. UNSURE: {n(facts['unsure'])}. Kept in "
+            f"`src/search.js`: {n(len(SEARCH_ONLY))}. Dropped: {n(len(DROPPED))}.",
             f"- Coverage: {n(facts['unresolved'])} unresolved fandom names, {n(facts['missing'])} "
-            f"unresolved tracks, {n(len(facts['unaccounted']))} unlabelled phrases.", ""]
+            f"unresolved tracks, {n(len(facts['unaccounted']))} unlabelled phrases, "
+            f"{n(len(facts['disagree']))} tracks whose axes the evidence does not support.", ""]
     return "\n".join(head + body)
 
 

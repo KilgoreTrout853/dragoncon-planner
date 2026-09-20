@@ -4,13 +4,13 @@ Written by `registry_report.py` from `data/registry/` and `data/2026/events.json
 
 What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the review that flips a row to `reviewed: true`. It states what was seeded and why, and resolves nothing: `UNSURE` marks a judgment that is a person's to make.
 
-- Works: 138, all `reviewed: false`. Tracks: 54, 25 with axes. People: 0 - PR 3b.
-- Phrases labelled: 256. UNSURE: 13. Dropped: 16.
-- Coverage: 0 unresolved fandom names, 0 unresolved tracks, 0 unlabelled phrases.
+- Works: 139, all `reviewed: false`. Tracks: 54, 26 with axes. People: 0 - PR 3b.
+- Phrases labelled: 256. UNSURE: 4. Kept in `src/search.js`: 16. Dropped: 0.
+- Coverage: 0 unresolved fandom names, 0 unresolved tracks, 0 unlabelled phrases, 0 tracks whose axes the evidence does not support.
 
 ## 1. Works
 
-138 entries, every one `reviewed: false`. 110 carry events under a 2026 fandom name and 28 carry none - a child is seeded whether or not 2026 names it, because the parent link is worth having either way. Rows with events come first; a row with none is marked `-`.
+139 entries, every one `reviewed: false`. 110 carry events under a 2026 fandom name and 29 carry none - a child is seeded whether or not 2026 names it, because the parent link is worth having either way. Rows with events come first; a row with none is marked `-`.
 
 ### franchise: 104
 
@@ -19,7 +19,6 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `star-trek` | Star Trek |  |  | `Trek` | `Starfleet`, `Klingon`, `Trekkie` | 111 |
 | `star-wars` | Star Wars |  |  |  | `Jedi`, `Sith`, `Skywalker`, `Lightsaber` | 58 |
 | `marvel` | Marvel |  |  | `MCU`, `Marvel Cinematic Universe`, `Marvel Comics` |  | 51 |
-| `pokemon` | Pokemon |  |  | `Pokémon` |  | 38 |
 | `dc-comics` | DC Comics |  |  | `DC`, `DC Universe`, `DCEU` |  | 34 |
 | `the-lord-of-the-rings` | The Lord of the Rings |  |  | `LOTR` | `Tolkien`, `Middle-earth` | 29 |
 | `doctor-who` | Doctor Who |  |  | `Dr Who` | `TARDIS`, `Whovian`, `Dalek` | 23 |
@@ -93,8 +92,10 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `witch-hat-atelier` | Witch Hat Atelier |  |  |  |  | 1 |
 | `xena-warrior-princess` | Xena: Warrior Princess |  |  |  |  | 1 |
 | `yellowjackets` | Yellowjackets |  |  |  |  | 1 |
+| `yu-gi-oh` | Yu-Gi-Oh! |  |  |  |  | 1 |
 | `andor` | Andor | `star-wars` |  | `Star Wars: Andor` |  | - |
 | `angel` | Angel | `buffy-the-vampire-slayer` |  |  | `Whedon` | - |
+| `avengers` | Avengers | `marvel` |  |  |  | - |
 | `batman` | Batman | `dc-comics` |  |  | `Gotham` | - |
 | `daredevil` | Daredevil | `marvel` |  |  |  | - |
 | `deadpool` | Deadpool | `marvel` |  |  |  | - |
@@ -113,7 +114,6 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `star-trek-voyager` | Star Trek: Voyager | `star-trek` |  | `Voyager` |  | - |
 | `stargate-sg-1` | Stargate SG-1 | `stargate` |  | `SG-1` |  | - |
 | `superman` | Superman | `dc-comics` |  |  |  | - |
-| `the-avengers` | The Avengers | `marvel` |  |  |  | - |
 | `the-hobbit` | The Hobbit | `the-lord-of-the-rings` |  |  |  | - |
 | `the-mandalorian` | The Mandalorian | `star-wars` |  |  |  | - |
 | `the-rings-of-power` | The Rings of Power | `the-lord-of-the-rings` |  |  |  | - |
@@ -121,13 +121,14 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `wonder-woman` | Wonder Woman | `dc-comics` |  |  |  | - |
 | `x-men` | X-Men | `marvel` |  | `XMen` |  | - |
 
-### game: 34
+### game: 35
 
 | id | name | parent | family | aliases | terms | events |
 | --- | --- | --- | --- | --- | --- | ---: |
 | `dungeons-and-dragons` | Dungeons & Dragons |  | rpg | `D&D`, `DnD`, `5e` | `Dungeon Master`, `DDAL`, `Adventurers League` | 147 |
 | `magic-the-gathering` | Magic: The Gathering |  | ccg | `MTG` |  | 89 |
-| `warhammer-40000` | Warhammer 40,000 |  | miniatures | `Warhammer`, `40k`, `Warhammer 40k`, `40,000` |  | 18 |
+| `pokemon` | Pokemon |  | video | `Pokémon` |  | 38 |
+| `warhammer-40000` | Warhammer 40,000 | `warhammer` | miniatures | `40k`, `Warhammer 40k`, `40,000` |  | 18 |
 | `pathfinder` | Pathfinder |  | rpg |  |  | 8 |
 | `final-fantasy` | Final Fantasy |  | video |  |  | 4 |
 | `starfinder` | Starfinder |  | rpg |  |  | 4 |
@@ -156,14 +157,14 @@ What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the r
 | `tales-of-the-valiant` | Tales of the Valiant |  | rpg |  |  | 1 |
 | `team-fortress-2` | Team Fortress 2 |  | video |  |  | 1 |
 | `the-last-of-us` | The Last of Us |  | video |  |  | 1 |
-| `yu-gi-oh` | Yu-Gi-Oh! |  | ccg |  |  | 1 |
 | `zenless-zone-zero` | Zenless Zone Zero |  | video |  |  | 1 |
 | `super-mario` | Super Mario |  | video | `Mario` | `Nintendo` | - |
+| `warhammer` | Warhammer |  | miniatures |  |  | - |
 
 
 ## 2. Tracks
 
-All 54 tracks of the 2026 schedule. 25 carry axes - the single-topic tracks of census section 10, through schema-v2.md's TOPICS table - and the rest carry none, because the model is asked for axes only where a track does not decide them.
+All 54 tracks of the 2026 schedule. 26 carry axes - the single-topic tracks of census section 10, through schema-v2.md's TOPICS table - and the rest carry none, because the model is asked for axes only where a track does not decide them.
 
 | id | name | aliases | axes | audience | work |
 | --- | --- | --- | --- | --- | --- |
@@ -188,8 +189,8 @@ All 54 tracks of the 2026 schedule. 25 carry axes - the single-topic tracks of c
 | `fantasy-literature` | Fantasy Literature |  |  |  |  |
 | `filk-music` | Filk Music | `Filk`, `Filking` | medium: music |  |  |
 | `film-track` | Film Track |  | medium: film |  |  |
-| `group-cosplay-photoshoot` | Group Cosplay Photoshoot |  | craft: photography |  |  |
-| `high-fantasy` | High Fantasy |  |  |  |  |
+| `group-cosplay-photoshoot` | Group Cosplay Photoshoot |  |  |  |  |
+| `high-fantasy` | High Fantasy |  | genre: fantasy |  |  |
 | `horror` | Horror |  | genre: horror |  |  |
 | `kids-track` | Kids Track |  |  | kids |  |
 | `live-action-roleplaying-games` | Live-Action Roleplaying Games | `LARP`, `Live-Action Roleplaying`, `Live Action Roleplaying` |  |  |  |
@@ -204,7 +205,7 @@ All 54 tracks of the 2026 schedule. 25 carry axes - the single-topic tracks of c
 | `robotics-and-maker-track` | Robotics and Maker Track |  |  |  |  |
 | `role-playing-games-campaign` | Role-Playing Games (Campaign) |  | medium: tabletop |  |  |
 | `role-playing-games-non-campaign` | Role-Playing Games (Non-Campaign) |  | medium: tabletop |  |  |
-| `sci-fi-literature` | Sci-fi Literature |  |  |  |  |
+| `sci-fi-literature` | Sci-fi Literature |  | genre: sci-fi |  |  |
 | `science` | Science |  | subject: science |  |  |
 | `silk-road` | Silk Road |  |  |  |  |
 | `skeptics` | Skeptics | `Skeptrack`, `Skeptic` | subject: skepticism |  |  |
@@ -224,18 +225,95 @@ All 54 tracks of the 2026 schedule. 25 carry axes - the single-topic tracks of c
 
 ### Calls made
 
-Decided here, not left open. Each is a track whose dominant topic has no single v2 home.
+Decided here, not left open.
 
-- Collectible Card Games, Board Games, Werewolf Games -> `medium: tabletop`: their dominant topic is Gaming, which has no single v2 home; all three are played at a table.
-- Artemis Spaceship Bridge Simulator -> `medium: video-games`: also Gaming-dominant, but it is a video game played on networked screens.
-- Live-Action Roleplaying Games -> no axes: its dominant topic is Tabletop, and a LARP is not played at a table; no medium fits, and the track is itself the facet.
+- `type` -> where the work started: it picks a shelf and nothing more, so a work that grew into something else keeps the type it began with: `pokemon` is `game`/`video` and `yu-gi-oh` a `franchise`, because one began on a Game Boy and the other as a manga. `fallout`, `halo`, `the-last-of-us`, `battletech` and `critical-role` keep the type they were drafted with for the same reason.
+- `warhammer` -> a work of its own, the parent of `warhammer-40000`: `CANON` folds "warhammer" into 40,000; it is really the parent, and Warhammer Fantasy is its other child. "Warhammer" is no longer an alias of the child.
+- `ponies` -> kept as the schedule writes it: not My Little Pony: its one event calls it "the Peacock show Ponies" and talks about Moscow and a season 2, so the id is `ponies` and no other name is minted.
+- `avengers` -> id `avengers`, name "Avengers": BritTrack has its own The Avengers, and an id is forever; `the-avengers` would have claimed the name before anyone chose which one gets it.
+- Group Cosplay Photoshoot, Live-Action Roleplaying Games -> no axes: the rule offers each one a value and each declines it: the track is the facet, and an axis would say less than the track's own name.
 - Kids Track -> `audience: kids`, no axes: schema-v2.md sends the topic Kids to `audience`, which is not one of the four axes.
+
+### The evidence for a track's axes
+
+A track takes a value on an axis where that one value covers at least 80% of its **tagged** events, after each v1 topic is mapped to its v2 home (schema-v2.md's TOPICS table). `Gaming` has no single home, so on a track it is the medium that track plays in: `video-games` on Video Gaming and Artemis Spaceship Bridge Simulator, `tabletop` elsewhere. The best candidate on each axis is shown whether or not it clears, so that a track that takes nothing shows how far off it was.
+
+| track | tagged | best candidate per axis | at 80% | held |
+| --- | --- | --- | ---: | ---: |
+| `alternate-and-historical-fiction` | 64 | subject: history 55%, medium: books 30%, craft: costuming 14% | - | - |
+| `american-sci-fi-and-fantasy-media` | 61 | medium: tv 59%, genre: sci-fi 44%, subject: fandom-culture 26% | - | - |
+| `american-sci-fi-classics` | 45 | medium: tv 42%, genre: sci-fi 40%, subject: fandom-culture 20% | - | - |
+| `animation` | 48 | medium: animation 96%, subject: fandom-culture 15%, genre: comedy 6% | `medium: animation` | `medium: animation` |
+| `anime-manga` | 35 | medium: anime 97%, subject: fandom-culture 14%, craft: costuming 6% | `medium: anime` | `medium: anime` |
+| `apocalypse-rising` | 35 | genre: sci-fi 37%, subject: science 23%, medium: tv 14% | - | - |
+| `art-show-programming` | 38 | craft: art 89%, subject: community 16%, genre: fantasy 11% | `craft: art` | `craft: art` |
+| `artemis-spaceship-bridge-simulator` | 5 | medium: video-games 100%, genre: sci-fi 60%, subject: tech 60% | `medium: video-games` | `medium: video-games` |
+| `author-signings` | 15 | medium: books 73%, genre: fantasy 13%, subject: fandom-culture 7% | - | - |
+| `board-games` | 65 | medium: tabletop 100%, genre: horror 2% | `medium: tabletop` | `medium: tabletop` |
+| `brittrack` | 50 | medium: tv 46%, subject: fandom-culture 22%, genre: sci-fi 14% | - | - |
+| `collectible-card-games` | 240 | medium: tabletop 100%, genre: fantasy 5% | `medium: tabletop` | `medium: tabletop` |
+| `comics-and-pop-art` | 67 | medium: comics 93%, craft: art 34%, subject: fandom-culture 7% | `medium: comics` | `medium: comics` |
+| `costuming` | 76 | craft: costuming 88%, subject: community 12%, medium: film 3% | `craft: costuming` | `craft: costuming` |
+| `digital-media` | 134 | medium: podcast-web 49%, subject: community 25%, craft: art 16% | - | - |
+| `diversity-track` | 35 | subject: community 49%, craft: art 29%, medium: comics 23% | - | - |
+| `electronic-frontiers-forum` | 39 | subject: tech 85%, craft: art 5%, genre: sci-fi 5% | `subject: tech` | `subject: tech` |
+| `epic-photos` | 312 | craft: photography 7%, medium: tv 2% | - | - |
+| `fantasy-literature` | 33 | medium: books 76%, genre: fantasy 67%, craft: writing 33% | - | - |
+| `filk-music` | 35 | medium: music 100%, subject: fandom-culture 26%, genre: comedy 3% | `medium: music` | `medium: music` |
+| `film-track` | 28 | medium: film 100%, subject: tech 25%, craft: writing 18% | `medium: film` | `medium: film` |
+| `group-cosplay-photoshoot` | 185 | craft: photography 100%, subject: fandom-culture 4%, medium: anime 3% | `craft: photography` - declined, 186 cosplay meetups are not "the craft of photography" | - |
+| `high-fantasy` | 50 | genre: fantasy 80%, medium: books 54%, craft: writing 12% | `genre: fantasy` | `genre: fantasy` |
+| `horror` | 40 | genre: horror 95%, medium: film 28%, subject: fandom-culture 12% | `genre: horror` | `genre: horror` |
+| `kids-track` | 48 | craft: art 23%, medium: tabletop 12%, subject: community 12% | - | - |
+| `live-action-roleplaying-games` | 3 | medium: tabletop 100%, genre: fantasy 67% | `medium: tabletop` - declined, a LARP is not played at a table | - |
+| `live-performances` | 19 | medium: music 89%, subject: community 11%, genre: comedy 5% | `medium: music` | `medium: music` |
+| `live-performances-hyatt-concourse` | 32 | medium: music 94%, genre: comedy 6%, subject: fandom-culture 6% | `medium: music` | `medium: music` |
+| `main-programming` | 96 | subject: community 33%, medium: music 12%, craft: art 10% | - | - |
+| `military-sci-fi-media` | 44 | genre: sci-fi 70%, medium: tv 66%, subject: community 16% | - | - |
+| `miniatures-games` | 123 | medium: tabletop 73%, craft: art 38%, genre: fantasy 6% | - | - |
+| `nsdmg-war-college` | 25 | subject: history 52%, medium: tabletop 28%, genre: sci-fi 16% | - | - |
+| `puppetry` | 42 | craft: puppetry 100%, genre: comedy 7%, medium: music 7% | `craft: puppetry` | `craft: puppetry` |
+| `reading-sessions` | 22 | medium: books 77% | - | - |
+| `robotics-and-maker-track` | 51 | subject: tech 73%, craft: props-making 39%, genre: sci-fi 6% | - | - |
+| `role-playing-games-campaign` | 177 | medium: tabletop 100%, genre: fantasy 29%, subject: space 2% | `medium: tabletop` | `medium: tabletop` |
+| `role-playing-games-non-campaign` | 240 | medium: tabletop 100%, genre: fantasy 35%, subject: food 0% | `medium: tabletop` | `medium: tabletop` |
+| `sci-fi-literature` | 30 | genre: sci-fi 80%, medium: books 73%, craft: writing 20% | `genre: sci-fi` | `genre: sci-fi` |
+| `science` | 43 | subject: science 95%, genre: sci-fi 7%, medium: film 5% | `subject: science` | `subject: science` |
+| `silk-road` | 29 | medium: film 31%, craft: art 24%, subject: history 21% | - | - |
+| `skeptics` | 31 | subject: skepticism 87%, genre: comedy 16%, craft: art 10% | `subject: skepticism` | `subject: skepticism` |
+| `space` | 42 | subject: space 98%, craft: props-making 2%, genre: comedy 2% | `subject: space` | `subject: space` |
+| `star-wars` | 35 | subject: fandom-culture 43%, genre: sci-fi 37%, medium: film 17% | - | - |
+| `table-top-gaming` | 47 | medium: tabletop 98%, subject: history 9%, genre: horror 6% | `medium: tabletop` | `medium: tabletop` |
+| `trek-track` | 52 | medium: tv 63%, genre: sci-fi 40%, subject: fandom-culture 33% | - | - |
+| `urban-fantasy` | 67 | genre: fantasy 63%, medium: tv 42%, craft: writing 15% | - | - |
+| `vendor-workshops-events` | 139 | medium: books 47%, craft: costuming 12% | - | - |
+| `video-gaming` | 58 | medium: video-games 69%, subject: tech 10%, craft: photography 5% | - | - |
+| `video-room` | 88 | medium: film 58%, genre: sci-fi 26%, craft: puppetry 1% | - | - |
+| `werewolf-games` | 12 | medium: tabletop 100% | `medium: tabletop` | `medium: tabletop` |
+| `workshops` | 32 | craft: writing 69%, subject: fitness 16%, medium: animation 6% | - | - |
+| `writers-track` | 44 | craft: writing 100%, medium: books 14%, subject: community 7% | `craft: writing` | `craft: writing` |
+| `xtrack` | 40 | subject: paranormal 65%, medium: tv 18%, genre: horror 8% | - | - |
+| `young-adult-literature` | 28 | medium: books 89%, subject: fandom-culture 18%, craft: writing 14% | `medium: books` | `medium: books` |
+
+- Tracks the rule gives a value: 28; of those, 2 decline it, below. Tracks where the file and the rule disagree: **0**.
+
+
+### What the schedule says about the search-only words
+
+Events whose title or description holds the word. The axis lists are schema-v2.md's and nothing here changes them; this is the count a decision about them would rest on.
+
+| words | events | of those, in the title |
+| --- | ---: | ---: |
+| `romance, romantasy` | 13 | 8 |
+| `wrestling` | 5 | 2 |
+| `karaoke, sing-along` | 29 | 20 |
+| `dance, dancing` | 43 | 21 |
 
 ## 3. Every phrase of CANON and SYNONYMS
 
-`tag_events.CANON` and `src/search.js`'s `SYNONYMS` are associations, not identities, so each of their 256 distinct phrases carries one label. A **work** is the seeded entry's own name, an **alias** another name for it, a **child** a work with a parent, a **term** a word that should lead a searcher to a work but is not a name for it (terms never resolve), **elsewhere** a v2 home that is not a work, and **dropped** the rest.
+`tag_events.CANON` and `src/search.js`'s `SYNONYMS` are associations, not identities, so each of their 256 distinct phrases carries one label. A **work** is the seeded entry's own name, an **alias** another name for it, a **child** a work with a parent, a **term** a word that should lead a searcher to a work but is not a name for it (terms never resolve), **elsewhere** a v2 home that is not a work, **search-only** a phrase the registries have no home for that stays in `src/search.js`, and **dropped** a phrase that is wrong. Nothing is dropped for lacking a registry home.
 
-- **elsewhere** (129), **alias** (37), **term** (28), **work** (26), **child** (20), **dropped** (16).
+- **elsewhere** (129), **alias** (36), **term** (28), **work** (26), **child** (21), **search-only** (16).
 
 ### work: 26
 
@@ -266,9 +344,9 @@ Decided here, not left open. Each is a track whose dominant topic has no single 
 | `star wars` | star-wars |
 | `stargate` | stargate |
 | `stranger things` | stranger-things |
-| `warhammer 40000` | warhammer-40000 |
+| `warhammer` | warhammer |
 
-### alias: 37
+### alias: 36
 
 | phrase | where it went |
 | --- | --- |
@@ -304,19 +382,18 @@ Decided here, not left open. Each is a track whose dominant topic has no single 
 | `tng` | star-trek-the-next-generation |
 | `trek` | star-trek |
 | `voyager` | star-trek-voyager |
-| `warhammer` | warhammer-40000 |
 | `warhammer 40k` | warhammer-40000 |
 | `wizarding world` | harry-potter |
 | `xmen` | x-men |
 | `zelda` | the-legend-of-zelda |
 
-### child: 20
+### child: 21
 
 | phrase | where it went |
 | --- | --- |
 | `andor` | andor under star-wars |
 | `angel` | angel under buffy-the-vampire-slayer |
-| `avengers` | the-avengers under marvel |
+| `avengers` | avengers under marvel |
 | `batman` | batman under dc-comics |
 | `daredevil` | daredevil under marvel |
 | `deadpool` | deadpool under marvel |
@@ -331,6 +408,7 @@ Decided here, not left open. Each is a track whose dominant topic has no single 
 | `star trek: the next generation` | star-trek-the-next-generation under star-trek |
 | `superman` | superman under dc-comics |
 | `the mandalorian` | the-mandalorian under star-wars |
+| `warhammer 40000` | warhammer-40000 under warhammer |
 | `wolverine` | wolverine under marvel |
 | `wonder woman` | wonder-woman under dc-comics |
 | `x-men` | x-men under marvel |
@@ -502,26 +580,26 @@ Decided here, not left open. Each is a track whose dominant topic has no single 
 | `zombie` | genre: horror |
 | `zombies` | genre: horror |
 
-### dropped: 16
+### search-only: 16
 
 | phrase | where it went |
 | --- | --- |
-| `ball` | an activity with no v2 home, and too common a word to be a term |
-| `dance` | an activity with no v2 home |
-| `dancing` | an activity with no v2 home |
-| `karaoke` | an activity with no v2 home |
-| `orchestra` | an ensemble; no work, no axis value |
+| `ball` | an activity no axis names, and too common a word to be a term |
+| `dance` | an activity no axis names |
+| `dancing` | an activity no axis names |
+| `karaoke` | an activity no axis names |
+| `orchestra` | an ensemble, not a work |
 | `paranormal romance` | `subject: paranormal` is about the paranormal, not the genre of romance |
-| `philharmonic` | an ensemble; no work, no axis value |
+| `philharmonic` | an ensemble, not a work |
 | `romance` | no romance value on any of the four axes |
 | `romantasy` | no romance value on any of the four axes |
-| `sing along` | an activity with no v2 home |
-| `sing-along` | an activity with no v2 home |
-| `singalong` | an activity with no v2 home |
-| `symphony` | an ensemble; no work, no axis value |
-| `wrestle` | the schedule has wrestling events; no axis has a value for them |
-| `wrestlers` | the schedule has wrestling events; no axis has a value for them |
-| `wrestling` | the schedule has wrestling events; no axis has a value for them |
+| `sing along` | an activity no axis names |
+| `sing-along` | an activity no axis names |
+| `singalong` | an activity no axis names |
+| `symphony` | an ensemble, not a work |
+| `wrestle` | no axis has a value for it |
+| `wrestlers` | no axis has a value for it |
+| `wrestling` | no axis has a value for it |
 
 ### Groups that name no work: 28
 
@@ -558,21 +636,12 @@ Search vocabulary and nothing else, so `src/search.js` keeps them; the registrie
 
 ## 4. UNSURE
 
-13 judgments a person has to make. Nothing here is resolved, and every work is `reviewed: false` until one is.
+4 judgments a person has to make. Nothing here is resolved, and every work is `reviewed: false` until one is.
 
-- UNSURE: `pokemon` (Pokemon) - Typed `franchise`. It is equally a video-game series and a collectible card game; one entry cannot be both, and `type` decides which shelf it sits on.
-- UNSURE: `yu-gi-oh` (Yu-Gi-Oh!) - Typed `game`/`ccg` after the card game the schedule plays. It is also an anime franchise.
-- UNSURE: `fallout` (Fallout) - Typed `game`/`video`. It now has a television series, which makes it a franchise too.
-- UNSURE: `halo` (Halo) - Typed `game`/`video`. Novels and a television series make the same argument.
-- UNSURE: `the-last-of-us` (The Last of Us) - Typed `game`/`video`. Its television series is what most people mean by the name.
-- UNSURE: `battletech` (BattleTech) - Typed `game`/`miniatures`. It also has novels and video games.
-- UNSURE: `warhammer-40000` (Warhammer 40,000) - `Warhammer` is seeded as an alias, following `CANON`. Warhammer is really the parent: Warhammer Fantasy and Warhammer 40,000 are two works under it.
 - UNSURE: `angel` (Angel) - Seeded as a child of Buffy the Vampire Slayer. A bare "Angel" is an ambiguous name to resolve, and this is the only entry whose name is an everyday word.
 - UNSURE: `dragon-ball-z` (Dragon Ball Z) - Seeded as a child of Dragon Ball rather than merged with it. The census flags the two as a prefix pair (section 2); they are one v1 name each.
-- UNSURE: `ponies` (Ponies) - The v1 fandom name, kept as the schedule writes it. Presumably My Little Pony, but the schedule never says so, and a rename later keeps this as an alias.
 - UNSURE: `predator` (Predator) - Seeded on two 2026 mentions, of which one is `D&D 5.5E: Crowning The Apex Predator` - not the film. The other, `Predator: The Hunt Re-Imagined`, is.
-- UNSURE: `critical-role` (Critical Role) - Typed `franchise`, not `game`: it is an actual-play show about a game, and its events are panels and photo sessions.
-- UNSURE: character-led children (`batman`, `superman`, `wonder-woman`, `justice-league`, `spider-man`, `x-men`, `the-avengers`, `wolverine`, `deadpool`, `daredevil`) - seeded as child works, following the brief's own "batman under dc-comics". A character is not a franchise, and a reviewer may want some of them folded into the parent instead.
+- UNSURE: character-led children (`batman`, `superman`, `wonder-woman`, `justice-league`, `spider-man`, `x-men`, `avengers`, `wolverine`, `deadpool`, `daredevil`) - seeded as child works, following the brief's own "batman under dc-comics". A character is not a franchise, and a reviewer may want some of them folded into the parent instead.
 
 ## 5. Coverage
 
