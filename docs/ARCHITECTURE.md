@@ -43,7 +43,9 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `data/2026/events.json` | The frozen 2026 schedule: 3,459 events, 2.7 MB. |
 | `scraper.py` | Scrape → normalise → dedupe → write `events.json`. |
 | `tag_events.py` | Add `tags` to untagged events via Claude. |
-| `tag_census.py`, `docs/discover/` | A read-only census of the tags in `events.json` - coverage, fandoms, topics, people, title facets, recurrence - written to `docs/discover/census-2026.md`: evidence for the Discover design work, facts only. Standard library; it imports the taxonomy from `tag_events.py`, writes nothing under `data/`, and two runs give the same bytes. Not part of the pipeline: nothing runs it but a person. |
+| `tag_census.py`, `docs/discover/` | A read-only census of the tags in `events.json` - coverage, fandoms, topics, people, title facets, recurrence - written to `docs/discover/census-2026.md`: evidence for the Discover design work, facts only. Standard library; it imports the taxonomy from `tag_events.py` and the facet patterns, the title key and the panelist splitter from `parse_stage.py`, writes nothing under `data/`, and two runs give the same bytes. Not part of the pipeline: nothing runs it but a person. |
+| `parse_stage.py` | The parse stage of tags v2 (DECISIONS #32): `people` and `facets` read out of an event with no model. Pure functions and the standard library; it owns the facet patterns, the title key, the "Additional Panelists:" splitter and `person_slug`. `--out PATH` writes the parsed events for inspection; it writes nothing under `data/` and nothing it writes is committed (#13, #33). |
+| `parse_report.py` | What `parse_stage.py` reads out of the frozen schedule, written to `docs/discover/parse-2026.md`: per facet the count beside the census's figure for the same wording, the people, and four UNSURE lists. Imports `parse_stage` and the census's markdown helpers. Two runs give the same bytes. Nothing runs it but a person. |
 | `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
 | `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
@@ -54,6 +56,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record. |
 | `tests/test_parse.py` | Scraper parsing and dedupe unit tests. |
 | `tests/test_tag_census.py` | The census's pure functions and its repeatability, on an inline fixture; it never reads `data/`. |
+| `tests/test_parse_stage.py` | The parse stage's splitter, slug, roles, people and facets, on inline fixtures built from real lines and titles; it never reads `data/`. It pins the copy of `scraper.extract_panelists` that `parse_stage` keeps. |
 | `tests/sample-events.json`, `tests/make_sample.py` | 558 synthetic events, the fixture for the page tests and the build smoke; and the seeded script that generates it (it imports `scraper`). |
 | `.github/workflows/scrape.yml` | Manual-trigger scrape (workflow_dispatch). Refuses a scrape with 0 events or a >20% drop; commits and pushes events.json to the branch it was run from. |
 | `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client` and `pipeline`. |
@@ -62,7 +65,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `requirements.txt` | Pinned pipeline dependencies, plus pytest. Python 3.13. |
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
-| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the census, above, and `schema-v2.md`, the design note for the registries and tags v2 (#31-#33), none of it built. |
+| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the census and `parse-2026.md`, above, and `schema-v2.md`, the design note for the registries and tags v2 (#31-#33), of which the parse stage is built. |
 
 ## The data pipeline
 

@@ -31,6 +31,10 @@ JSON and the Postgres mirror (#27). Also year rollover (#13), scrape cadence,
 failing loudly, and `scrape.yml`'s path onto a PR-only branch (#26). Only the
 fetch and id stages wait on outreach (#19).
 
+For 2027 the scraper stops deriving `speakers` from the description's
+"Additional Panelists:" line, or uses `parse_stage.split_panelists` for it;
+the parse stage owns that parse.
+
 ### 2. Discover — in design and execution
 
 What an event is about, who is on it, and how a reader finds it: the
