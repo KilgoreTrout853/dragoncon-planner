@@ -312,7 +312,7 @@ where its cast is appearing.
 
 ## The derived file and the cache
 
-#33. `data/2026/events.json` stays frozen (#13): the v2 pipeline reads it and
+`data/2026/events.json` stays frozen (#13, #33): the v2 pipeline reads it and
 never writes it. It writes `data/2026/events.v2.json` beside it, and a
 committed tag cache keyed by input hash. Frozen events + registries + cache
 give the same bytes on every run, with no model call, which is what CI needs,
