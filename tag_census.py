@@ -16,9 +16,12 @@ import argparse
 import json
 import os
 import re
-import unicodedata
 from collections import Counter, defaultdict
 
+# The facet patterns, the title key and the panelist splitter belong to the parse stage, which
+# decides values from them; this report only counts what they match (DECISIONS #32).
+from parse_stage import (CREDENTIALS, FACETS, HONORIFICS, PANELIST_MARKER, STRIPPED, fold, person_slug,
+                         split_panelists, strip_facets, title_facets, title_key, words)
 from tag_events import KINDS, TOPICS, canon_fandom  # the taxonomy in use, not a copy of it
 
 EVENTS = "data/2026/events.json"
@@ -31,43 +34,16 @@ GENERIC = ["Anime", "Board Games", "Books", "Card Games", "Cartoons", "Cosplay",
            "Movies", "Science Fiction", "Superheroes", "Tabletop Games", "Television", "TV", "Video Games"]
 STOP = set("a an and are as at be by for from how i in is it its my of on or our the this to vs we what who why "
            "with you your".split())
-HONORIFICS = set("dr mr mrs ms miss prof professor capt captain col colonel rev sir lt sgt maj gen cmdr".split())
-CREDENTIALS = set("jr sr ii iii iv phd md esq dds dvm mba jd edd".split())  # not "ma" or "pe": those are surnames
 
 # 18+, 21+ and adults only, and "(Mature Audience)", which is the marker the schedule itself uses.
 ADULT_RX = re.compile(r"\b(?:18|21)\s*\+|\b(?:18|21)\s*(?:and|&|or)\s*(?:up|over|older)\b|\badults?[\s-]+only\b"
                       r"|\bmature audiences?\b", re.I)
 AGE_RX = re.compile(ADULT_RX.pattern + r"|\b(?:1[3-9]|2[01])\s*\+", re.I)  # section 6's table also shows 13+ to 17+
-PANELISTS_RX = re.compile(r"additional panelists:", re.I)
-# (key, label, pattern), in report order. "Ticket to Ride" is a board game, not a ticket.
-FACETS = [
-    ("paid", "$ / $$", re.compile(r"(?<![\w$])\${1,3}(?![\w$])")),
-    ("sold_out", "SOLD OUT", re.compile(r"\bsold[\s-]*out\b", re.I)),
-    ("age", "18+ / 21+", re.compile(r"\b(?:18|21)\s*\+")),
-    ("clock", "a clock time", re.compile(
-        r"\b(?:[01]?\d|2[0-3]):[0-5]\d(?:\s*[ap]\.?m?\.?(?![a-z]))?|\b(?:1[0-2]|0?[1-9])\s*[ap]\.?m\b\.?", re.I)),
-    ("cancelled", "CANCELLED", re.compile(r"\bcancell?ed\b", re.I)),
-    ("part", "Part N / Repeat", re.compile(
-        r"\bpart\s+(?:\d+|[ivx]+|one|two|three|four|five)\b|\bpart\d+\b|\bpt\.?\s*\d+\b|\brepeat\b", re.I)),
-    ("fee", "fee / ticket / pre-registration", re.compile(
-        r"\bfees?\b|\bticket(?:s|ed)?\b(?!\s+to\s+ride)|\bpre-?\s?reg(?:ist\w*)?\b|\bregistration\b|\$\d", re.I)),
-]
-STRIPPED = ("paid", "sold_out", "clock", "cancelled")  # what section 11 takes out of a title before comparing
 
 
 # ---------------------------------------------------------------------------
 # Pure functions: what tests/test_tag_census.py reaches
 # ---------------------------------------------------------------------------
-
-def fold(s):
-    """Case, accents and curly apostrophes out of the way."""
-    s = unicodedata.normalize("NFKD", str(s).replace("’", "'"))
-    return "".join(c for c in s if not unicodedata.combining(c)).casefold()
-
-
-def words(s):
-    return re.sub(r"[^a-z0-9]+", " ", fold(s).replace("&", " and ").replace("'", "")).split()
-
 
 def fandom_key(name):
     """What two spellings of one property share: case, punctuation, and/&, a leading "the"."""
@@ -126,21 +102,19 @@ def generic_reason(name, topics=TOPICS):
     return "in the generic list" if k in {fandom_key(g) for g in GENERIC} else None
 
 
-def title_facets(title):
-    """The keys of the FACETS a title carries, in FACETS order."""
-    return [key for key, _, rx in FACETS if rx.search(title)]
-
-
-def strip_facets(title):
-    out = title
-    for key, _, rx in FACETS:
-        if key in STRIPPED:
-            out = rx.sub(" ", out)
-    return out
-
-
-def title_key(title):
-    return " ".join(words(title))
+def line_adds(events):
+    """What an "Additional Panelists:" line adds to the `speakers` beside it, over the events that have both:
+    (lines that name someone `speakers` does not hold, lines that name nobody it does not, how many distinct people
+    the first group names). Names are matched by `parse_stage.person_slug`, which is also what decides an id."""
+    adds, known, fresh = 0, 0, Counter()
+    for e in events:
+        if not e.get("speakers") or not PANELIST_MARKER.search(e.get("description") or ""):
+            continue
+        held = {person_slug(s["name"]) for s in e["speakers"]}
+        new = {person_slug(p["name"]) for p in split_panelists(e["description"])} - held - {""}
+        adds, known = adds + bool(new), known + (not new)
+        fresh.update(new)
+    return adds, known, len(fresh)
 
 
 def adult_wording(event):
@@ -415,10 +389,14 @@ def people(events, facts):
     initials = sum(1 for _, what in carrying if what == "middle initial")
     silent = [e for e in events if not e.get("speakers")]
     silent_kind = Counter(tag(e, "kind") for e in silent)
-    more = [e for e in events if PANELISTS_RX.search(e.get("description") or "")]
+    more = [e for e in events if PANELIST_MARKER.search(e.get("description") or "")]
     more_silent = sorted((e for e in more if not e.get("speakers")), key=lambda e: (e["title"], e["start"], e["id"]))
+    # What the line adds, said rather than guessed: the old sentence read "Those names are in the description only",
+    # and 417 of the 981 lines name nobody `speakers` does not already hold.
+    adds, known, fresh = line_adds(events)
     facts.update(names=len(names), variants=len(variants), carrying=len(carrying) - initials, celeb_names=len(celeb), silent=len(silent),
-                 more=len(more) - len(more_silent), more_silent=len(more_silent))
+                 more=len(more) - len(more_silent), more_silent=len(more_silent),
+                 line_adds=adds, line_known=known, line_people=fresh)
     facts["appendix_b"] = table(["name", "celebrity events", "all events"], [(p, n(k), n(names[p])) for p, k in ranked(celeb)])
     out = ["## 7. People", "",
            f"- Distinct speaker names: {n(len(names))}, over {n(sum(names.values()))} appearances.", "",
@@ -446,7 +424,10 @@ def people(events, facts):
             f"{counted(ranked(silent_kind))}.",
             f"- Of those, with \"Additional Panelists:\" in the description: {n(len(more_silent))}.",
             f"- Events that do have speakers and whose description also has \"Additional Panelists:\": "
-            f"{n(len(more) - len(more_silent))}. Those names are in the description only."]
+            f"{n(len(more) - len(more_silent))}. Of those, {n(facts['line_adds'])} name at least one person "
+            f"`speakers` does not hold and {n(facts['line_known'])} name nobody it does not, matched by "
+            f"`parse_stage.person_slug`; the first group names {n(facts['line_people'])} distinct people. "
+            "`parse_stage.py` and `parse-2026.md` have the rest."]
     return out + [f"  - {code(e['title'])} - {e['start']}" for e in more_silent]
 
 
@@ -611,7 +592,8 @@ def observations(f):
             f"true on {n(f['adult'])}. Says so and tagged false: {n(f['says_not_tagged'])}, of which "
             f"{n(f['past_600'])} say it only past character {TAGGER_SAW} of the description, which the tagger never saw.",
             f"- {n(f['silent'])} events ({pct(f['silent'], total)}) have no speakers, and {n(f['more'])} events with "
-            "speakers name more people in an \"Additional Panelists:\" line that `speakers` does not hold.",
+            f"speakers carry an \"Additional Panelists:\" line; {n(f['line_adds'])} of those lines name someone "
+            f"`speakers` does not hold, {n(f['line_people'])} distinct people in all.",
             f"- {n(f['recurring'])} titles recur, over {n(f['recurring_events'])} events ({pct(f['recurring_events'], total)} "
             f"of the schedule); most often the title's kind is `{f['recurring_kind'][0]}` ({n(f['recurring_kind'][1])} titles). "
             f"Of {n(f['same_input'])} groups of events that gave the tagger the same input, {n(f['same_input_differs'])} "

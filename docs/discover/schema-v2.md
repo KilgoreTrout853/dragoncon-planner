@@ -166,6 +166,47 @@ with one name share a slug until the registry separates them. Above, Nathan
 Fillion's id is the registry's, his being the one `people.json` entry this
 note shows; the other four are slugs.
 
+**The line is the source's.** "Additional Panelists:" is written by whoever
+wrote the listing; `scraper.py` reads the description verbatim and never
+composes it. It runs the other way once: where the detail page has no
+Speakers section, the scraper fills `speakers` *from* that line
+(`speakers = detail["speakers"] or extract_panelists(description)`), which is
+why no event with an empty `speakers` carries one (section 7). On those 375
+events `speakers` is not a second source but an older parse of the line, and
+an imperfect one - it reads "(Judge)" as part of a name, and on the one
+description that says "Additional Panelists:" twice it reads to the end of
+the string. `parse_stage.scraper_derived_speakers` detects that case exactly,
+by comparing `speakers` with what `extract_panelists` returns, and reads the
+line again instead; everyone on such an event is `src: description`. Both go
+when the 2027 scraper stops deriving speakers from the line, or uses the
+parse stage's splitter (ROADMAP, Pipeline shape).
+
+**The slug rules**, as `parse_stage.person_slug` builds them. Case, accents,
+punctuation and whitespace fold: `François Custardy` is `francois-custardy`,
+`Ra'Neith` is `raneith`, `&` reads as "and". An honorific goes (`Dr. Nicole
+Gugliucci` is `nicole-gugliucci`), and so does a trailing credential or
+suffix (`Theda Daniels-Race PhD` and `Theda Daniels - Race` are both
+`theda-daniels-race`; `Calvin Watts III` is `calvin-watts`) - but only where
+two or more words are left without it. In `Mr. Corporate`, `Ms. Leisure`,
+`Mr. Vader` and `Dr. Craz` the honorific is the name, and those four are the
+schedule's only such names; the registry is seeded from these slugs, and
+`corporate` is the wrong id to make permanent. A trailing parenthetical that
+is a role becomes the role and leaves the name (`Karen Henson(Judge)` is
+`karen-henson`, a judge); one that is not stays (`Kei (tophat_tiara)`).
+
+What the slug **keeps** is as much the point: a middle initial
+(`laura-j-schroeder` is not `laura-schroeder`) and a "from X" or "of X" tail
+(`madison-may-from-cut-sew`). An id is forever, and merging two spellings is
+the registry's job, with an alias (#31): a slug that moves later is a follow
+that breaks. Nine slugs are shared by two or more spellings today, listed
+UNSURE in `parse-2026.md`.
+
+A role has two readings where the schedule writes one into the name itself.
+A parenthetical in the name beats a `role` field that says no more than that
+a person is there - `Speaker`, `Panelist`, or nothing - and loses to a field
+that names a specific role. Between `speakers` and the line, `speakers`
+wins.
+
 **`tags.works`** holds registry ids, each with `via` = `about` |
 `credit:<person>` | `track`. A work linked more than one way is listed once,
 with the strongest `via`: `about`, then `track`, then `credit`. The event is
@@ -195,21 +236,34 @@ Parsed, no model. A facet is present only when the source says so; otherwise
 the key is absent, as all of them are above. Absence is not "free": an event
 with no `cost` is one whose listing states no fee, and nothing more.
 
+The wording each one is read from, as PR 2 built it in `parse_stage.py`.
+Unless a row says otherwise, the wording is looked for in the title and the
+description together.
+
 | key | value | the source says it as | census |
 |---|---|---|---|
-| `mature` | `true` | "(Mature Audience)" | section 6: 72 events |
-| `min_age` | N | "18+", "17+", "(Age 18+)" | section 6: `18+` on 13 events, `17+` on 14 |
-| `cost` | `"extra"` | "$", "$$", "EXTRA FEE" | section 9: `$ / $$` in 23 titles; fee, ticket or pre-registration wording in 45 |
-| `sold_out` | `true` | "SOLD OUT" | section 9: 19 titles |
-| `signup` | `true` | pre-registration wording | section 9: within the 45 titles above, and 248 descriptions |
-| `part` | N | "Part 2", "Pt 2", "Part Two" | section 9: Part N or Repeat in 16 titles |
-| `repeat_key` | the normalised title | the same key at more than one start | section 11: 371 titles recur, over 1,254 events |
+| `mature` | `true` | "Mature Audience", bracketed or not; "adults only"; or a `min_age` of 18 or more | section 6: 72 events; parse: 75 |
+| `min_age` | N | "18+", "17+", "(Age 18+)", "18 and up". 13 to 21 only, and the highest stated where a listing gives two | section 6: a 13+ to 21+ wording on 31 events; parse: 31 |
+| `cost` | `"extra"` | "$" or "$$" **in the title**, "EXTRA FEE", or an amount of money ("Price: $8", "$10 cash donation"). Not a number that is not a price ("$3 trillion"), and not zero | section 9: `$ / $$` in 23 titles, fee or ticket wording in 45; parse: 214, most of them a description's "Price: $N" |
+| `sold_out` | `true` | "SOLD OUT" | section 9: 19 titles; parse: 19 |
+| `signup` | `true` | "pre-reg", "pre-registration", "advance registration", "registration required", "must register", "sign-up required", "reserve a seat", "RSVP". Not "ticket" or "fee" alone | section 9: fee, ticket or pre-registration wording in 45 titles and 248 descriptions; parse: 112 |
+| `part` | N | "Part 2", "Pt 2", "Part Two", **in the title**. "Repeat" alone gives no number and sets nothing | section 9: Part N or Repeat in 16 titles; parse: 16 |
+| `repeat_key` | the normalised title | the same key at more than one start | section 11: 371 titles recur, over 1,254 events; parse: the same |
 
 `repeat_key` follows the same rule as the rest: it is present only on an
-event whose key occurs at more than one start, and absent otherwise.
+event whose key occurs at more than one start, and absent otherwise. The key
+is the title with `$`, SOLD OUT, a clock time and CANCELLED taken out, cased
+and punctuated away - the census's section 11 key, which `parse_stage.py`
+now owns and the census imports.
 
-Exactly which wording sets each facet is the parse stage's to pin down, with
-tests (PR 2). Two real titles:
+`cost` and `signup` are the two a reader would be angry to see wrong, so
+they take precision over recall: where the same listing says there is no fee
+("No fee to enter", the photoshoots' "There is no charge to participate" on
+185 events), neither key is set, and wording the parse does not act on is
+listed UNSURE rather than guessed at. An absent key still means only that
+the listing states nothing.
+
+Two real titles:
 
 - `Battle of the Tropes 2: Late-Night Edition (18+)`, whose description
   closes "(Age 18+)(Mature Audience)", would carry
@@ -337,12 +391,13 @@ of its own switches it. For 2027 the pipeline writes the v2 shape into
 ## The PR sequence
 
 1. **Docs.** This note, DECISIONS #30-#33, `docs/ROADMAP.md`.
-2. **The parse stage.** `facets` and `people`, no model. It builds the tested
-   splitter for the "Additional Panelists:" line, and the census imports it
-   to report exactly how many events' line names someone `speakers` lacks.
-   The census says today, of all 981, that "those names are in the
-   description only"; that was never checked, and some lines repeat a
-   speaker. The correction rides here.
+2. **The parse stage.** `facets` and `people`, no model. Built:
+   `parse_stage.py` and its report `parse_report.py`, which writes
+   `parse-2026.md`. The census imports the splitter, the facet patterns and
+   the title key from it - one owner - and its sentence about all 981 lines,
+   "those names are in the description only", which was never checked, is
+   now three counts: 564 lines name someone `speakers` lacks, 417 name
+   nobody it does not, and the first group names 567 distinct people.
 3. **Registries seeded.** `works.json`, `people.json`, `tracks.json`.
 4. **Tagger v2.** The closed axes, the hash cache, `events.v2.json`.
 5. **Census v2.** The same questions of the v2 file, and two lists: the

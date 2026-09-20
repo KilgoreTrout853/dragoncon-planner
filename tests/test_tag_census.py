@@ -10,6 +10,7 @@ import sys
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, ROOT)
 
+import parse_stage as ps  # noqa: E402
 import tag_census as tc  # noqa: E402
 
 
@@ -92,39 +93,31 @@ def test_generic_reason_names_topics_near_topics_and_the_generic_list():
     assert tc.generic_reason("Star Trek") is None
 
 
-# --- title facets ----------------------------------------------------------
+# --- what the parse stage owns ---------------------------------------------
 
-def test_title_facets_found():
-    found = {
-        "Sew Your Own Beret - $$ 12:45p-2:45p SOLD OUT": ["paid", "sold_out", "clock"],
-        "Learn Watercolor Basics -$- 5:00-6:30 sold-out": ["paid", "sold_out", "clock"],
-        "Battle of the Tropes 2: Late-Night Edition (18+)": ["age"],
-        "Highlander CCG sealed deck - Friday 11am": ["clock"],
-        "FREE Arcade Games!!! 10 a.m. to 4AM": ["clock"],
-        "CANCELLED: Dragon Con Burlesque": ["cancelled"],
-        "Canceled - The Temporal Formal": ["cancelled"],
-        "Liminal Spaces, Part 2": ["part"], "Wicked - Part Two": ["part"], "Fallout Universe: Pt 2!": ["part"],
-        "Puppet Slam (Repeat)": ["part"],
-        "Plotting: **EXTRA FEE WORKSHOP**": ["fee"], "Champagne Ball - Ticketed Event": ["fee"],
-        "Pre-Registration Required: Armor 101": ["fee"], "Intro Sculpting Part 1 - **$50": ["part", "fee"],
-    }
-    assert {title: tc.title_facets(title) for title in found} == found
+def test_the_census_and_the_parse_stage_share_one_set_of_facet_patterns():
+    """The patterns, the title key and the splitter moved to parse_stage.py, which decides values
+    from them; the census only counts what they match. tests/test_parse_stage.py tests them."""
+    assert tc.FACETS is ps.FACETS and tc.STRIPPED is ps.STRIPPED
+    assert (tc.title_facets, tc.strip_facets, tc.title_key) == (ps.title_facets, ps.strip_facets, ps.title_key)
+    assert (tc.fold, tc.words, tc.split_panelists) == (ps.fold, ps.words, ps.split_panelists)
+    assert (tc.HONORIFICS, tc.CREDENTIALS) == (ps.HONORIFICS, ps.CREDENTIALS)
 
 
-def test_title_facets_not_found():
-    for title in ["Hopes, Dreams, & Cancellations: The Festivus Panel",  # not CANCELLED
-                  "Rose Tatu Productions Presents: Ticket to Ride",      # a board game, not a ticket
-                  "TADC Fan Panel: The Last Encore", "Party Games", "Partial Eclipse", "Part of Your World",
-                  "Starfinder 1-16/1-17", "21 Years of Twilight", "BARELY COPING? Play the Game! (17+)",
-                  "Free Comic Book Day", "Coffee with the Cast", "US$ and Them", "5e for Beginners"]:
-        assert tc.title_facets(title) == [], title
-
-
-def test_strip_facets_leaves_the_title_two_sessions_share():
-    a = tc.title_key(tc.strip_facets("Sew a Beret - $$ 12:45p-2:45p SOLD OUT"))
-    assert a == tc.title_key(tc.strip_facets("Sew a Beret - $$ 3:00-5:00p")) == "sew a beret"
-    assert tc.title_key(tc.strip_facets("Liminal Spaces, Part 2")) == "liminal spaces part 2"  # a series is not a repeat
-    assert tc.title_key(tc.strip_facets("2:00 and Counting")) == "and counting"  # the "a" of "and" is not a.m.
+def test_line_adds_counts_what_the_line_holds_that_speakers_does_not():
+    """The correction section 7 carries: not every line names someone `speakers` lacks."""
+    def with_line(names, speakers):
+        return {"description": f"A panel. Additional Panelists: {names}",
+                "speakers": [{"name": s, "role": "Speaker"} for s in speakers]}
+    events = [
+        with_line("Jim Wert(Moderator), Alli Martin", ["Jim Wert"]),       # adds Alli Martin
+        with_line("Dr. Ada Quill", ["Ada Quill", "Jim Wert"]),             # names nobody new
+        with_line("Alli Martin, Karen Henson(Judge)", ["Rose Scott"]),     # adds two, one already counted
+        with_line("Joe Crowe", []),                                        # no speakers: not counted at all
+        {"description": "A panel with no line.", "speakers": [{"name": "Joe Crowe", "role": "Speaker"}]},
+    ]
+    # Two lines add someone, one adds nobody, and the distinct people added are alli-martin (twice) and karen-henson.
+    assert tc.line_adds(events) == (2, 1, 2)
 
 
 # --- adult wording, tag differences, counting ------------------------------

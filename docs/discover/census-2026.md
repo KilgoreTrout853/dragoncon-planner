@@ -505,7 +505,7 @@ Whether or not another spelling exists. Left out of the list: the 120 names whos
 
 - 1,334 events (38.6%) have an empty `speakers`. By kind: gaming (826), photo (186), screening (95), panel (90), workshop (58), contest (27), party (24), other (17), performance (8), signing (2), reading (1).
 - Of those, with "Additional Panelists:" in the description: 0.
-- Events that do have speakers and whose description also has "Additional Panelists:": 981. Those names are in the description only.
+- Events that do have speakers and whose description also has "Additional Panelists:": 981. Of those, 564 name at least one person `speakers` does not hold and 417 name nobody it does not, matched by `parse_stage.person_slug`; the first group names 567 distinct people. `parse_stage.py` and `parse-2026.md` have the rest.
 
 ## 8. Descriptions
 
@@ -794,7 +794,7 @@ Facts from the sections above; at most ten.
 - `other` is 0.6% of tagged events; the least used kind is `tour` (2).
 - `guests` is `unknown` on 386 events; the kind with the most of them is `gaming` (224).
 - "Mature Audience", the schedule's own marker, is in the text of 72 events, and `adult` is true on 104. Says so and tagged false: 1, of which 0 say it only past character 600 of the description, which the tagger never saw.
-- 1,334 events (38.6%) have no speakers, and 981 events with speakers name more people in an "Additional Panelists:" line that `speakers` does not hold.
+- 1,334 events (38.6%) have no speakers, and 981 events with speakers carry an "Additional Panelists:" line; 564 of those lines name someone `speakers` does not hold, 567 distinct people in all.
 - 371 titles recur, over 1,254 events (36.3% of the schedule); most often the title's kind is `gaming` (172 titles). Of 331 groups of events that gave the tagger the same input, 231 do not all carry the same tags.
 - 27 of 54 tracks have a single topic on more than 80% of their events; 104 descriptions run past the 600 characters the tagger was sent.
 
