@@ -259,8 +259,13 @@ def test_the_real_registry_is_valid():
     reg = registry.load(os.path.join(ROOT, registry.DIR))
     works = reg.by_id()
     assert len(reg.works) > 100 and len(reg.tracks) == 54
-    assert all(w["reviewed"] is False for w in reg.works)   # PR 3a seeds nothing as reviewed
+    assert all(isinstance(w["reviewed"], bool) for w in reg.works)
     assert reg.resolve_work("d&d") == "dungeons-and-dragons"
+    # data/works-review-1 renamed three works; their 2026 fandom names stay resolvable as aliases,
+    # which is what keeps the report's coverage at zero unresolved names.
+    assert reg.resolve_work("Flesh & Blood TCG") == "flesh-and-blood"
+    assert reg.resolve_work("Mighty Morphin Power Rangers") == "power-rangers"
+    assert reg.resolve_work("Mobile Suit Gundam") == "gundam"
     assert reg.resolve_work("Wheel of Time") == reg.resolve_work("The Wheel of Time")
     assert reg.resolve_track("Trek Track") == "trek-track"
     assert works["star-trek"]["name"] == "Star Trek"
