@@ -1,0 +1,767 @@
+{
+  "version": "2026-09-18",
+  "purpose": "Every hotel × level where Dragon Con programming happens, with the room list per level and whether we hold a floor plan for it. Source of truth for the venues curation (DECISIONS #21, #27, #28). Hand-edited; the room census validates it against events.json.",
+  "conventions": {
+    "hotel": "matches the `hotel` field in data/<year>/events.json",
+    "rooms": "room ids as the schedule names them; combined strings (\"209-211\") are the census's job, not this file's",
+    "seen_2026": "rooms observed in the 2026 schedule so far — partial until room_census.py runs; the census replaces it",
+    "plan.status": "have | partial | none | unknown (not yet searched)",
+    "plan.local": "path under reference/ (gitignored: the hotels' drawings are theirs; we keep copies locally, never in the repo)",
+    "drawing": "none | draft | verified — the state of OUR schematic for that level"
+  },
+  "hotels": [
+    {
+      "hotel": "Hyatt",
+      "name": "Hyatt Regency Atlanta",
+      "levels": [
+        {
+          "id": "acc",
+          "name": "Atlanta Conference Center (LL3)",
+          "order": 0,
+          "rooms": [
+            "Auburn",
+            "Baker",
+            "Courtland",
+            "Dunwoody",
+            "Edgewood",
+            "Fairlie",
+            "Greenbriar",
+            "Harris",
+            "Heritage Boardroom",
+            "Inman",
+            "Kennesaw",
+            "Lenox",
+            "Marietta",
+            "Piedmont",
+            "Roswell",
+            "Spring",
+            "Techwood",
+            "University",
+            "Vinings",
+            "Williams"
+          ],
+          "seen_2026": [
+            "Kennesaw"
+          ],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's official floor-plan PDF (2012 rev.), conference-hosted copy",
+            "url": "https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf",
+            "pages": "one page per level; confirm",
+            "local": "reference/plans/hyatt-floorplan-2012.pdf",
+            "dimensions": true
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "exhibit",
+          "name": "Exhibit Level (LL2)",
+          "order": 1,
+          "rooms": [
+            "Grand Hall A",
+            "Grand Hall B",
+            "Grand Hall C",
+            "Grand Hall D",
+            "Hanover A",
+            "Hanover B",
+            "Hanover C",
+            "Hanover D",
+            "Hanover E",
+            "Hanover F",
+            "Hanover G",
+            "Chicago A",
+            "Chicago B",
+            "Chicago C",
+            "Chicago D",
+            "Chicago E"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's official floor-plan PDF (2012 rev.), conference-hosted copy",
+            "url": "https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf",
+            "pages": "one page per level; confirm",
+            "local": "reference/plans/hyatt-floorplan-2012.pdf",
+            "dimensions": true
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "ballroom",
+          "name": "Ballroom Level (LL1)",
+          "order": 2,
+          "rooms": [
+            "Centennial I",
+            "Centennial II",
+            "Centennial III",
+            "Centennial IV",
+            "Regency V",
+            "Regency VI",
+            "Regency VII",
+            "Learning Center"
+          ],
+          "seen_2026": [
+            "Regency V",
+            "Regency VI-VII",
+            "Centennial II-IV"
+          ],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's official floor-plan PDF (2012 rev.), conference-hosted copy",
+            "url": "https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf",
+            "pages": "one page per level; confirm",
+            "local": "reference/plans/hyatt-floorplan-2012.pdf",
+            "dimensions": true
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "lobby",
+          "name": "Lobby Level",
+          "order": 3,
+          "rooms": [],
+          "seen_2026": [],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's official floor-plan PDF (2012 rev.), conference-hosted copy",
+            "url": "https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf",
+            "pages": "one page per level; confirm",
+            "local": "reference/plans/hyatt-floorplan-2012.pdf",
+            "dimensions": true
+          },
+          "drawing": "none",
+          "note": "registration and the atrium; no programming rooms known"
+        },
+        {
+          "id": "tower-ll2",
+          "name": "International Tower · LL2",
+          "order": 4,
+          "rooms": [
+            "Embassy A",
+            "Embassy B",
+            "Embassy C",
+            "Embassy D",
+            "Embassy E",
+            "Embassy F",
+            "Embassy G",
+            "Embassy H"
+          ],
+          "seen_2026": [
+            "Embassy AB"
+          ],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's official floor-plan PDF (2012 rev.), conference-hosted copy",
+            "url": "https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf",
+            "pages": "one page per level; confirm",
+            "local": "reference/plans/hyatt-floorplan-2012.pdf",
+            "dimensions": true
+          },
+          "drawing": "none",
+          "note": "two levels below the lobby, in the International Tower; reached from the ACC"
+        },
+        {
+          "id": "tower-ll1",
+          "name": "International Tower · LL1",
+          "order": 5,
+          "rooms": [
+            "International North",
+            "International South"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's official floor-plan PDF (2012 rev.), conference-hosted copy",
+            "url": "https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf",
+            "pages": "one page per level; confirm",
+            "local": "reference/plans/hyatt-floorplan-2012.pdf",
+            "dimensions": true
+          },
+          "drawing": "none"
+        }
+      ]
+    },
+    {
+      "hotel": "Marriott",
+      "name": "Atlanta Marriott Marquis",
+      "levels": [
+        {
+          "id": "international",
+          "name": "International Level",
+          "order": 0,
+          "rooms": [
+            "International 1",
+            "International 2",
+            "International 3",
+            "International 4",
+            "International 5",
+            "International 6",
+            "International 7",
+            "International 8",
+            "International 9",
+            "International 10",
+            "International A",
+            "International B",
+            "International C",
+            "International Hall North",
+            "International Hall South"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "partial",
+            "source": "AOM 2017 level map (image only) + NAQT all-in-one map + NFB prose walk-through; dimensions per room on thevendry.co",
+            "url": "https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf",
+            "pages": "all levels on one sheet",
+            "local": "reference/plans/marriott-marquis-aom-2017.pdf",
+            "dimensions": "per room, from a third-party site"
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "marquis",
+          "name": "Marquis Level",
+          "order": 1,
+          "rooms": [
+            "Marquis Ballroom A",
+            "Marquis Ballroom B",
+            "Marquis Ballroom C",
+            "Marquis Ballroom D",
+            "Imperial Ballroom A",
+            "Imperial Ballroom B",
+            "M101-M109 (confirm the run)",
+            "M2xx (confirm)",
+            "M301",
+            "M302",
+            "M303",
+            "M304 (confirm the run)"
+          ],
+          "seen_2026": [
+            "M103-M105",
+            "M301",
+            "M302-M303",
+            "M303-M304"
+          ],
+          "plan": {
+            "status": "partial",
+            "source": "AOM 2017 level map (image only) + NAQT all-in-one map + NFB prose walk-through; dimensions per room on thevendry.co",
+            "url": "https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf",
+            "pages": "all levels on one sheet",
+            "local": "reference/plans/marriott-marquis-aom-2017.pdf",
+            "dimensions": "per room, from a third-party site"
+          },
+          "drawing": "none",
+          "note": "room codes carry the level: M = Marquis"
+        },
+        {
+          "id": "lobby",
+          "name": "Lobby Level",
+          "order": 2,
+          "rooms": [
+            "L401",
+            "L402",
+            "L403",
+            "L404",
+            "L405",
+            "L406"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "partial",
+            "source": "AOM 2017 level map (image only) + NAQT all-in-one map + NFB prose walk-through; dimensions per room on thevendry.co",
+            "url": "https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf",
+            "pages": "all levels on one sheet",
+            "local": "reference/plans/marriott-marquis-aom-2017.pdf",
+            "dimensions": "per room, from a third-party site"
+          },
+          "drawing": "none",
+          "note": "L = Lobby"
+        },
+        {
+          "id": "atrium",
+          "name": "Atrium Level",
+          "order": 3,
+          "rooms": [
+            "Atrium Ballroom A",
+            "Atrium Ballroom B",
+            "Atrium Ballroom C",
+            "Atrium Ballroom D",
+            "A601-A602 … A707 (confirm the runs)"
+          ],
+          "seen_2026": [
+            "Atrium Ballroom",
+            "A601-A602",
+            "A703",
+            "A707"
+          ],
+          "plan": {
+            "status": "partial",
+            "source": "AOM 2017 level map (image only) + NAQT all-in-one map + NFB prose walk-through; dimensions per room on thevendry.co",
+            "url": "https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf",
+            "pages": "all levels on one sheet",
+            "local": "reference/plans/marriott-marquis-aom-2017.pdf",
+            "dimensions": "per room, from a third-party site"
+          },
+          "drawing": "none",
+          "note": "A = Atrium"
+        }
+      ]
+    },
+    {
+      "hotel": "Hilton",
+      "name": "Hilton Atlanta",
+      "levels": [
+        {
+          "id": "galleria",
+          "name": "Galleria",
+          "order": 0,
+          "rooms": [
+            "Galleria 1",
+            "Galleria 2",
+            "Galleria 3",
+            "Galleria 4",
+            "Galleria 5",
+            "Galleria 6",
+            "Galleria 7",
+            "Galleria 8"
+          ],
+          "seen_2026": [
+            "Galleria 1",
+            "Galleria 5",
+            "Galleria 6",
+            "Galleria 8"
+          ],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's 2024 group sales playbook (floor plans + capacity charts)",
+            "url": "https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf",
+            "pages": "floor plans follow the capacity charts; confirm page numbers",
+            "local": "reference/plans/hilton-playbook-2024.pdf",
+            "dimensions": true
+          },
+          "drawing": "none",
+          "note": "directly under the lobby; Galleria 1-8 are the hotel's own partitions"
+        },
+        {
+          "id": "l1",
+          "name": "Level 1",
+          "order": 1,
+          "rooms": [
+            "Crystal A",
+            "Crystal B",
+            "Crystal C",
+            "Crystal D",
+            "Crystal E",
+            "Crystal F"
+          ],
+          "seen_2026": [
+            "Crystal Ballroom"
+          ],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's 2024 group sales playbook (floor plans + capacity charts)",
+            "url": "https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf",
+            "pages": "floor plans follow the capacity charts; confirm page numbers",
+            "local": "reference/plans/hilton-playbook-2024.pdf",
+            "dimensions": true
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "lobby",
+          "name": "Lobby",
+          "order": 2,
+          "rooms": [],
+          "seen_2026": [],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's 2024 group sales playbook (floor plans + capacity charts)",
+            "url": "https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf",
+            "pages": "floor plans follow the capacity charts; confirm page numbers",
+            "local": "reference/plans/hilton-playbook-2024.pdf",
+            "dimensions": true
+          },
+          "drawing": "none",
+          "note": "escalators up to Level 2"
+        },
+        {
+          "id": "l2",
+          "name": "Level 2",
+          "order": 3,
+          "rooms": [
+            "201",
+            "202",
+            "203",
+            "204",
+            "205",
+            "206",
+            "207",
+            "208",
+            "209",
+            "210",
+            "211",
+            "212",
+            "213",
+            "214",
+            "215",
+            "216",
+            "217",
+            "218",
+            "219",
+            "220",
+            "221",
+            "222",
+            "223",
+            "224",
+            "Grand Ballroom A",
+            "Grand Ballroom B",
+            "Grand Ballroom C",
+            "Grand Ballroom D",
+            "Grand East",
+            "Grand West",
+            "Salon East",
+            "Salon West"
+          ],
+          "seen_2026": [
+            "202",
+            "203",
+            "209-211",
+            "212-214",
+            "Salon",
+            "Grand East"
+          ],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's 2024 group sales playbook (floor plans + capacity charts)",
+            "url": "https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf",
+            "pages": "floor plans follow the capacity charts; confirm page numbers",
+            "local": "reference/plans/hilton-playbook-2024.pdf",
+            "dimensions": true
+          },
+          "drawing": "draft",
+          "note": "our draft drawing: docs/venues/drawings/hilton-second-floor.svg — sizes true, placement unverified"
+        },
+        {
+          "id": "l3",
+          "name": "Level 3",
+          "order": 4,
+          "rooms": [
+            "301",
+            "302",
+            "303",
+            "304",
+            "305",
+            "306",
+            "307",
+            "308",
+            "309",
+            "310",
+            "311",
+            "312",
+            "313",
+            "314",
+            "315"
+          ],
+          "seen_2026": [
+            "313-314"
+          ],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's 2024 group sales playbook (floor plans + capacity charts)",
+            "url": "https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf",
+            "pages": "floor plans follow the capacity charts; confirm page numbers",
+            "local": "reference/plans/hilton-playbook-2024.pdf",
+            "dimensions": true
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "l4",
+          "name": "Level 4",
+          "order": 5,
+          "rooms": [
+            "401",
+            "402",
+            "403",
+            "404",
+            "405",
+            "406",
+            "407"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "have",
+            "source": "Hotel's 2024 group sales playbook (floor plans + capacity charts)",
+            "url": "https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf",
+            "pages": "floor plans follow the capacity charts; confirm page numbers",
+            "local": "reference/plans/hilton-playbook-2024.pdf",
+            "dimensions": true
+          },
+          "drawing": "none"
+        }
+      ],
+      "unplaced": [
+        "Steps B"
+      ],
+      "unplaced_note": "a Dragon Con name, not the hotel's; level unknown"
+    },
+    {
+      "hotel": "Westin",
+      "name": "The Westin Peachtree Plaza",
+      "levels": [
+        {
+          "id": "chastain",
+          "name": "Chastain (level unknown)",
+          "order": 0,
+          "rooms": [
+            "Chastain 1",
+            "Chastain 2",
+            "Chastain A … J (confirm)"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "unknown",
+            "source": null,
+            "url": null,
+            "pages": null,
+            "local": null,
+            "dimensions": false
+          },
+          "drawing": "none",
+          "note": "post-renovation rooms; not in the old PDF — find the current plan"
+        },
+        {
+          "id": "f6",
+          "name": "Sixth Floor",
+          "order": 1,
+          "rooms": [
+            "International",
+            "International Boardroom",
+            "American",
+            "Vinings I",
+            "Vinings II",
+            "Overlook",
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "partial",
+            "source": "Pre-renovation hotel floor-plan PDF (floors 6-10, 12, 14); the Chastain level is not in it",
+            "url": "https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf",
+            "pages": "one page per floor",
+            "local": "reference/plans/westin-floorplans-old.pdf",
+            "dimensions": false
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "f7",
+          "name": "Seventh Floor",
+          "order": 2,
+          "rooms": [
+            "Augusta I",
+            "Augusta II",
+            "Augusta III",
+            "Atlanta Ballroom A",
+            "Atlanta Ballroom B",
+            "Atlanta Ballroom C",
+            "Atlanta Ballroom D",
+            "Atlanta Ballroom E",
+            "Atlanta Ballroom F"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "partial",
+            "source": "Pre-renovation hotel floor-plan PDF (floors 6-10, 12, 14); the Chastain level is not in it",
+            "url": "https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf",
+            "pages": "one page per floor",
+            "local": "reference/plans/westin-floorplans-old.pdf",
+            "dimensions": false
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "f8",
+          "name": "Eighth Floor",
+          "order": 3,
+          "rooms": [
+            "Peachtree Ballroom A",
+            "Peachtree Ballroom B",
+            "Peachtree Ballroom C",
+            "Peachtree Ballroom D",
+            "Peachtree Ballroom E",
+            "Peachtree Ballroom F",
+            "Roswell I",
+            "Roswell II"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "partial",
+            "source": "Pre-renovation hotel floor-plan PDF (floors 6-10, 12, 14); the Chastain level is not in it",
+            "url": "https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf",
+            "pages": "one page per floor",
+            "local": "reference/plans/westin-floorplans-old.pdf",
+            "dimensions": false
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "f9",
+          "name": "Ninth Floor",
+          "order": 4,
+          "rooms": [
+            "Peachtree G",
+            "Peachtree H"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "partial",
+            "source": "Pre-renovation hotel floor-plan PDF (floors 6-10, 12, 14); the Chastain level is not in it",
+            "url": "https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf",
+            "pages": "one page per floor",
+            "local": "reference/plans/westin-floorplans-old.pdf",
+            "dimensions": false
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "f10",
+          "name": "Tenth Floor",
+          "order": 5,
+          "rooms": [
+            "Plaza Ballroom A",
+            "Plaza Ballroom B",
+            "Plaza Ballroom C"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "partial",
+            "source": "Pre-renovation hotel floor-plan PDF (floors 6-10, 12, 14); the Chastain level is not in it",
+            "url": "https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf",
+            "pages": "one page per floor",
+            "local": "reference/plans/westin-floorplans-old.pdf",
+            "dimensions": false
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "f12",
+          "name": "Twelfth Floor",
+          "order": 6,
+          "rooms": [
+            "1201",
+            "1202",
+            "1203",
+            "1204",
+            "1205",
+            "1206",
+            "1207",
+            "1208"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "partial",
+            "source": "Pre-renovation hotel floor-plan PDF (floors 6-10, 12, 14); the Chastain level is not in it",
+            "url": "https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf",
+            "pages": "one page per floor",
+            "local": "reference/plans/westin-floorplans-old.pdf",
+            "dimensions": false
+          },
+          "drawing": "none"
+        },
+        {
+          "id": "f14",
+          "name": "Fourteenth Floor",
+          "order": 7,
+          "rooms": [
+            "1401",
+            "1402",
+            "1403",
+            "1404",
+            "1405",
+            "1406",
+            "1407",
+            "1408"
+          ],
+          "seen_2026": [],
+          "plan": {
+            "status": "partial",
+            "source": "Pre-renovation hotel floor-plan PDF (floors 6-10, 12, 14); the Chastain level is not in it",
+            "url": "https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf",
+            "pages": "one page per floor",
+            "local": "reference/plans/westin-floorplans-old.pdf",
+            "dimensions": false
+          },
+          "drawing": "none"
+        }
+      ]
+    },
+    {
+      "hotel": "Courtland Grand",
+      "name": "Courtland Grand Hotel (formerly Sheraton Atlanta)",
+      "levels": [
+        {
+          "id": "unknown",
+          "name": "levels unknown",
+          "order": 0,
+          "rooms": [
+            "Capitol Ballroom",
+            "Athens",
+            "(55 meeting rooms in two towers; list unknown)"
+          ],
+          "seen_2026": [
+            "Grand Athens",
+            "Grand Capitol Ballroom",
+            "Grand Atlanta 3-4"
+          ],
+          "plan": {
+            "status": "none",
+            "source": null,
+            "url": null,
+            "pages": null,
+            "local": null,
+            "dimensions": false
+          },
+          "drawing": "none",
+          "note": "no plan found in a quick search; the hotel's sales office is the likely source"
+        }
+      ],
+      "data_note": "the scraper leaves a spurious \"Grand \" on every Courtland room (\"Grand Athens\" is the Athens room) — a normaliser rule for the census"
+    },
+    {
+      "hotel": "AmericasMart",
+      "name": "AmericasMart",
+      "levels": [
+        {
+          "id": "unknown",
+          "name": "buildings 1-3, floors unknown",
+          "order": 0,
+          "rooms": [],
+          "seen_2026": [],
+          "plan": {
+            "status": "unknown",
+            "source": null,
+            "url": null,
+            "pages": null,
+            "local": null,
+            "dimensions": false
+          },
+          "drawing": "none",
+          "note": "several buildings, each with floors; Dragon Con's exhibitor map is the real source. Not searched yet."
+        }
+      ]
+    },
+    {
+      "hotel": "Hardy Ivy Park",
+      "name": "Hardy Ivy Park",
+      "levels": [],
+      "note": "outdoor; no levels, no plan needed"
+    }
+  ]
+}
