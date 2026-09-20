@@ -46,6 +46,31 @@ resolved data, never a registry. They are cross-year, unlike
 An id is a slug and is forever. A rename or a merge keeps the old name as an
 alias, because follows are stored by id.
 
+**The work slug.** `registry.work_slug` drafts a work's or a track's id from
+its name: case, accents and punctuation fold to hyphens, `&` reads "and",
+and a comma inside a number is not a separator, so `Warhammer 40,000` is
+`warhammer-40000`. A leading "the" stays - `the-expanse`, not `expanse` -
+because it is part of the name. The seed holds `id == work_slug(name)` for
+every entry, but that is not a rule the loader enforces: an id never
+changes, and a name may be corrected later.
+
+**The resolution key** is the work slug without a leading "the", so
+`The Wheel of Time` and `Wheel of Time` are one name and neither needs an
+alias, as are `Dungeons & Dragons` and `Dungeons and Dragons`. Two entries
+in one file may not share a key. A person's names normalise the way a
+person's id is made instead, by `parse_stage.person_slug`, which sets aside
+an honorific and a trailing credential rather than a leading "the".
+
+**What a phrase can be.** `tag_events.CANON` and `src/search.js`'s
+`SYNONYMS` are associations, not identities, so seeding the registry from
+them means labelling every phrase. A phrase is a work's own **name**; an
+**alias**, another name for the same work (`mcu`, `serenity`); a **child**,
+its own work with a parent (`the-mandalorian` under `star-wars`); a
+**term**; **elsewhere**, meaning it has a v2 home that is not a work - an
+axis value, a facet, a kind or a track; or **dropped**. A group of phrases
+that names no work at all is search vocabulary, and `src/search.js` keeps
+it.
+
 ### `works.json`
 
 One registry for everything an event can be about or a person can be
@@ -57,13 +82,25 @@ credited with.
 | `name` | The name shown. |
 | `aliases` | Other names and spellings that resolve to this id, a renamed or merged work's old name among them. |
 | `parent` | Optional. The id of the work this one belongs to. |
-| `type` | `franchise` \| `game`. |
+| `type` | `franchise` \| `game`: where the work started. It picks a shelf and nothing more, so a work that grew into the other kind keeps the type it began with - Pokemon is a `game` and Yu-Gi-Oh! a `franchise`, one having begun on a Game Boy and the other as a manga. |
 | `family` | Games only: `rpg` \| `ccg` \| `board` \| `miniatures` \| `video`. |
+| `terms` | Optional. Words that should lead a searcher to the work but are not names for it: `klingon`, `hogwarts`, `rocinante`, and creators' names. |
 | `reviewed` | `false` on a work the tagger proposed and the pipeline added by itself; the census lists those. It can be wrong until someone looks. |
 
 ```json
-{"id": "firefly", "name": "Firefly", "aliases": ["Serenity"], "type": "franchise", "reviewed": true}
+{"id": "firefly", "name": "Firefly", "aliases": ["Serenity"], "type": "franchise",
+ "terms": ["Whedon"], "reviewed": true}
 ```
+
+**A term is not a name.** Terms never resolve: `resolve_work("whedon")` is
+`None`. That is what lets one term sit on several works - `whedon` on
+Firefly, Buffy and Angel - so the loader does not require them unique. What
+it does require is that a term is not also a name or an alias somewhere,
+which would make one string both resolvable and not. The tagger ignores
+terms. They reach the client inside the resolved data the pipeline writes,
+never by the client reading a registry, which is #31's rule; whether that is
+a field on each event or an index the pipeline builds beside them is the
+client switch's call (PR 6), and this note does not make it.
 
 ### `people.json`
 
@@ -76,7 +113,7 @@ which sizes the credit review.
 | `id` | The slug. Forever. |
 | `name` | The name shown. |
 | `aliases` | The spellings the schedule uses. Section 7 has 9 variant groups, and 45 names that carry a title, a credential, a parenthetical or a "from X" tail. |
-| `tier` | `celebrity` \| `creator`. A person outside the registry has no tier. |
+| `tier` | Optional: `celebrity` \| `creator`. A person outside the registry has no tier, and an entry with no tier exists to carry aliases. |
 | `credits` | At most about 5, each `{work, reviewed}`: a work's id, and whether a person has checked the credit. Only a credit with `reviewed: true` reaches an event. |
 
 ```json
@@ -93,11 +130,13 @@ which sizes the credit review.
 | `id` | The slug. Forever. |
 | `name` | The track's name as the schedule gives it. |
 | `aliases` | Other names for the same track. |
-| `axes` | Optional. The default axes of a single-topic track: any of `medium`, `genre`, `craft`, `subject`. |
+| `axes` | Optional. The default axes of a single-topic track: any of `medium`, `genre`, `craft`, `subject`, at most 2 values each. |
+| `audience` | Optional: `kids` \| `mature`. A track's default audience, where it has one. Kids Track's topic is Kids, which this note sends to `audience` and not to an axis, so `axes` cannot carry it. |
 | `work` | Optional. Where a track is about one work, that work's id. This is the source of `via: track`. |
 
 ```json
-{"id": "filk-music", "name": "Filk Music", "aliases": [], "axes": {"medium": ["music"]}}
+{"id": "filk-music", "name": "Filk Music", "aliases": ["Filk"], "axes": {"medium": ["music"]}}
+{"id": "kids-track", "name": "Kids Track", "aliases": [], "audience": "kids"}
 ```
 
 All 35 Filk Music events carry the topic Music today (section 10).
@@ -278,7 +317,7 @@ Two real titles:
 | axis | values |
 |---|---|
 | `medium` | `tv`, `film`, `books`, `comics`, `animation`, `anime`, `music`, `podcast-web`, `video-games`, `tabletop` |
-| `genre` | `fantasy`, `sci-fi`, `horror`, `comedy`, `superhero` |
+| `genre` | `fantasy`, `sci-fi`, `horror`, `comedy`, `superhero`, `romance` |
 | `craft` | `writing`, `costuming`, `props-making`, `art`, `photography`, `puppetry`, `performance` |
 | `subject` | `science`, `space`, `tech`, `history`, `politics`, `skepticism`, `paranormal`, `fitness`, `food`, `community`, `fandom-culture` |
 
@@ -331,8 +370,10 @@ Each one's v2 home, in `TOPICS`' own order, with its events today (section
 | Skepticism | 37 | `subject: skepticism` |
 | Paranormal | 34 | `subject: paranormal` |
 
-Two v2 values have no topic behind them: `genre: superhero` and
-`craft: performance`.
+Three v2 values have no topic behind them: `genre: superhero`,
+`craft: performance` and `genre: romance`. The last was added after the
+seed: 13 events say romance or romantasy, 8 of them in the title, and no
+other value expresses them (`registry-2026.md`).
 
 ## What the model is asked
 
