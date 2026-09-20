@@ -37,7 +37,7 @@ every starred pick breaks. Duplicate listings (a panel in both the panel and
 gaming feeds) collapse to the smallest id so a pick survives a re-scrape,
 but that is a workaround, not stability by design. See #7.
 
-### 3. Tags come from Claude, keyed by event id, preserved across scrapes — Standing (2026)
+### 3. Tags come from Claude, keyed by event id, preserved across scrapes — Standing (2026); to be superseded by #32 (shape, keying) and #33 (where tags are written)
 **Decided:** `tag_events.py` sends untagged events to Claude (Haiku) and
 writes `tags` (fandoms, kind, topics, adult, guests) back into `events.json`.
 The scraper carries existing tags over by id on each refresh; only new
@@ -480,3 +480,91 @@ from below costs an indirection, and throws if it is asked for before
 `boot()` has run. The order is a list in a test file, which is an odd place
 to look for an architecture; ARCHITECTURE.md repeats it and has to be kept
 in step.
+
+### 30. Tentpoles order the 2027 work — Standing (2026-09-20)
+**Decided:** `docs/ROADMAP.md` names six tentpoles: pipeline shape,
+Discover, Places, identity and sync, delivery, where things live. Each
+opens with a design chat that ends in DECISIONS entries, a data contract
+and a first Claude Code prompt, usually a read-only census. One tentpole is
+in design and one in execution at a time. A feature is specified when its
+tentpole opens, not before. Discover is first. The only dates are the
+spring checkpoint, the freeze and the con.
+**Why:** Most features hang off a few load-bearing designs. Review
+attention, not code throughput, is the limit.
+**Cost:** No feature-level plan exists until a tentpole opens. The
+checkpoint and freeze dates are still unset.
+
+### 31. Curated registries live in git, cross-year — Decided, not built (2026-09-20)
+**Decided:** #27's pattern, generalised. `data/registry/works.json`,
+`people.json` and `tracks.json` are hand-curated, validated by the pipeline
+on every run, and resolved to ids; the client sees only resolved data. They
+are cross-year, unlike venues, because a work or a person outlasts a con.
+One works registry: id, name, aliases, optional parent, type (franchise |
+game), and for games a family (rpg, ccg, board, miniatures, video). People
+holds curated people only - celebrity guests, prolific creators: id, name,
+aliases, tier, and at most about 5 credits, each pointing at a work and
+carrying reviewed true/false; only reviewed credits reach events. Works the
+tagger proposes are auto-added, marked unreviewed, and listed by the
+census. `tracks.json` holds track aliases, the default axes of single-topic
+tracks and, where a track is about one work, that work, which is the source
+of `via: track` (#32).
+**Why:** Census sections 2, 7 and 11 (`docs/discover/census-2026.md`).
+Spelling is not the problem (one near-duplicate); identity is. Firefly has
+9 events and its cast about 60 appearances (Appendix B: Tudyk, Staite,
+Fillion, Torres, Glau). Guest tier disagreed on 31% of same-input groups
+because fame is not in a blurb.
+**Cost:** Reviewing credits for about 225 people. An id is forever: a
+rename or merge keeps an alias, because follows are stored by id. An
+unreviewed work can be wrong until someone looks.
+
+### 32. Tags v2 — Decided, not built (2026-09-20)
+**Decided:** Supersedes #3's tag shape and its keying by event id, when
+built. Parse what the source states; closed lists for what the model fills;
+every link says why.
+- `facets`, parsed, no model: `mature`, `min_age`, `cost`, `sold_out`,
+  `signup`, `repeat_key`, `part`.
+- `people`: from `speakers` and from the description's "Additional
+  Panelists:" line, each with `src`.
+- `tags`: `kind` unchanged (13). `works`: registry ids, each with `via` =
+  `about` | `credit:<person>` | `track`. `topics` is replaced by four closed
+  axes, at most 2 each (lists in `docs/discover/schema-v2.md`): `medium`,
+  `genre`, `craft`, `subject`. `audience`: kids | all | mature - mature when
+  the parsed marker says so or when the model adds it; the model may add
+  mature, never remove it. v1's `adult` flag folds into `audience`.
+  `play {format, level}` on gaming events. `guests` is derived from people
+  tiers, never asked.
+- The model is asked for axes only where `tracks.json` does not decide.
+- One input is tagged once: answers are cached by a hash of what the tagger
+  was sent.
+- Following or searching a work: events about it first, then a separate
+  "with the cast" group linked by credits; photo and signing kinds hidden
+  there unless asked for.
+- The on-device profile uses the same ids: follows, mutes, and weights
+  computed from stars. Weights sync only as settings after the email
+  upgrade (#8, #25).
+- Embedding a typed query at runtime stays out (#22).
+
+**Why:** Census section 11: 231 of 331 same-input groups disagree; topics
+53.2%, guests 30.8%, fandoms 16.3%, kind 3.0%, adult 0.6%. Closed
+single-choice fields hold; "up to 3 of 32" across five mixed axes does not.
+27 of 54 tracks are over 80% one topic (section 10). "(Mature Audience)" is
+the schedule's own marker (section 6). 981 events carry an "Additional
+Panelists:" line in the description (section 7).
+**Cost:** A full retag. The client's search index, Explore, follows and
+filters change shape, in a PR of their own, after a golden query set
+exists. Follows stored by name need mapping to ids. The file grows;
+unmeasured and accepted, to be measured after.
+
+### 33. The frozen 2026 file is the input; v2 output is derived beside it — Decided, not built (2026-09-20)
+**Decided:** Supersedes #3's writing of tags back into `events.json`, when
+built. #13 stands. The v2 pipeline reads `data/2026/events.json` and never
+writes it. It writes `data/2026/events.v2.json`, and a committed tag cache
+keyed by input hash. Frozen events + registries + cache give the same bytes
+every run with no model call. The client on `next` reads the frozen file
+until a PR of its own switches it. For 2027 the pipeline writes the v2
+shape into `data/2027/` directly.
+**Why:** #13's reasons; `tests/real-data.test.js` asserts against the
+frozen file; CI has no model access; reproducibility.
+**Cost:** Two copies of the 2026 schedule in the repo. The build copies
+`data/` into `dist/`, so the v2 file ships unused until the switch unless
+the copy excludes it; decide in the PR that first writes it.
