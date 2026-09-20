@@ -62,7 +62,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `requirements.txt` | Pinned pipeline dependencies, plus pytest. Python 3.13. |
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
-| `docs/` | This file, DECISIONS.md and VISION.md; SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`, above. |
+| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the census, above, and `schema-v2.md`, the design note for the registries and tags v2 (#31-#33), none of it built. |
 
 ## The data pipeline
 
