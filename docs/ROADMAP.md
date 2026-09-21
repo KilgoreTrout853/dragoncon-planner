@@ -42,6 +42,10 @@ read as cp1252 ("â€“" for "–", "FaerÃ»n" for "Faerûn"), found by
 `draft_people.looks_double_encoded`. The frozen file keeps them as scraped,
 and so does `events.v2.json`, which copies the scraped fields as they are.
 
+How works the tagger mints during a live scrape season get reviewed is an
+open question for this tentpole: 2026's were reviewed in one pass after the
+con (`docs/discover/works-review-2.json`).
+
 ### 2. Discover — in design and execution
 
 What an event is about, who is on it, and how a reader finds it: the
