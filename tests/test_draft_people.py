@@ -241,6 +241,39 @@ def test_a_second_run_drafts_nothing_and_calls_nothing(tmp_path):
     assert len(transport2.calls) <= 1          # nothing to batch, so main() calls nothing at all
 
 
+def test_a_run_records_as_minted_only_the_works_it_added(tmp_path, monkeypatch):
+    """main() once folded the registry's works into the list it records as minted, so a run against a registry that
+    already held works marked every one of them minted - and the review page prunes by that list, the parents pass
+    tidies it, and census_v2.py reads the drafter's works from it."""
+    reg_dir = tmp_path / "registry"
+    reg_dir.mkdir()
+    castle = {"id": "castle", "name": "Castle", "aliases": [], "type": "franchise", "reviewed": True}
+    earlier = {"id": "the-boys", "name": "The Boys", "aliases": [], "type": "franchise", "reviewed": False}
+    registry_at(reg_dir, works=(WORK, castle, earlier))
+    events = tmp_path / "events.json"
+    events.write_text(json.dumps({"events": [ev("Castle Cast", [("Nathan Fillion", "Speaker")])]}), encoding="utf-8")
+    sidecar = tmp_path / "people.draft.json"
+    dp.write_json(str(sidecar), {"people": {}, "rejected": [], "minted": ["the-boys"]})
+    transport = answers({"id": "nathan-fillion", "tier": "celebrity", "known_for": "an actor", "confidence": "high",
+                         "credits": [{"work": "Firefly"}, {"work": "The Rookie"}, {"work": "Castle"}]})
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr(dp, "call_claude_code", transport)
+    monkeypatch.setattr(sys, "argv", ["draft_people.py", "--file", str(events), "--registry", str(reg_dir),
+                                      "--sidecar", str(sidecar)])
+    dp.main()
+    assert [model for _, model in transport.calls] == [dp.CODE_MODEL]
+    works = json.loads((reg_dir / "works.json").read_text(encoding="utf-8"))
+    assert [w["id"] for w in works] == ["castle", "firefly", "the-boys", "the-rookie"]
+    # the earlier run's work and this run's new one; not the registry's firefly or castle
+    assert json.loads(sidecar.read_text(encoding="utf-8"))["minted"] == ["the-boys", "the-rookie"]
+
+
+def test_the_drafter_names_opus_by_its_full_id():
+    """An alias moves with the CLI - `opus` was claude-opus-4-7 on CLI 2.1.145 - so the drafter asks for the full id
+    on the API and on Claude Code alike, as the tag stage does (DECISIONS #34)."""
+    assert dp.API_MODEL == dp.CODE_MODEL == "claude-opus-5"
+
+
 def test_the_sidecar_round_trips(tmp_path):
     path = str(tmp_path / "people.draft.json")
     empty = {"people": {}, "rejected": [], "minted": []}
