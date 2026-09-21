@@ -578,17 +578,19 @@ def test_rewriting_the_committed_works_json_changes_no_line():
         assert open(os.path.join(tmp, "works.json"), "rb").read() == open(path, "rb").read()
 
 
-# --- the pilot stays off the tag and build path -------------------------------
+# --- the pilot and the census stay off the tag and build path -----------------
 
-def test_neither_tag_stage_nor_events_v2_imports_the_pilot():
-    """tools/tag_pilot.py string-matches work names against event text to choose test events. Only a
-    model's answer may link an event to a work, so nothing on the tag or build path may import it."""
+def test_neither_tag_stage_nor_events_v2_imports_the_pilot_or_the_census():
+    """tools/tag_pilot.py string-matches work names against event text to choose test events, and
+    census_v2.py matches text to choose the rows it lists. Only a model's answer may link an event to a
+    work, so nothing on the tag or build path may import either."""
     for name in ("tag_stage.py", "events_v2.py"):
         tree = ast.parse(open(os.path.join(ROOT, name), encoding="utf-8").read())
         imported = {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names} | \
                    {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
-        assert not any("pilot" in (m or "") or (m or "").startswith("tools") for m in imported), name
+        assert not any("pilot" in (m or "") or "census_v2" in (m or "") or (m or "").startswith("tools")
+                       for m in imported), name
     code = "import sys; sys.path.insert(0, sys.argv[1]); import tag_stage, events_v2; " \
-           "print(sorted(m for m in sys.modules if 'pilot' in m))"
+           "print(sorted(m for m in sys.modules if 'pilot' in m or 'census_v2' in m))"
     out = subprocess.run([sys.executable, "-c", code, ROOT], capture_output=True, text=True, check=True).stdout
     assert out.strip() == "[]"
