@@ -11,45 +11,43 @@ It never links: only the tagger links an event to a work (#34). Where a list her
 ## 0. Headline
 
 1. Events: 3,459 in `events.v2.json`, a fresh build. Every event has exactly one cache line: 2,580 lines for 2,580 distinct inputs.
-2. Works linked: 540, by 1,699 links - `about` 1,669 on 1,594 events, `track` 30, `credit` 0. Events with no work and no axis value: 285 (8.2%).
-3. Unreviewed works: 253 of 718 - the drafter's 198, the tagger's 55, other 0. Linked by events: 89, on 318 events (Appendix A).
+2. Works linked: 654, by 3,366 links - `about` 1,669 on 1,594 events, `track` 30, `credit` 1,667. Events with no work and no axis value: 48 (1.4%).
+3. Unreviewed works: 97 of 699 - the drafter's 42, the tagger's 55, other 0. Linked by events: 64, on 239 events (Appendix A).
 4. Kind: of the 3,449 events v1 tagged, 3,147 keep their kind; the pairs that differ: 42, over 312 events. The largest kind: `panel` (1,086). Events that say wrestl*: 5, each UNSURE.
 5. Audience: `all` 3,266, `mature` 105, `kids` 88. Events where v1's `adult` and v2's `mature` disagree: 9.
 6. Play: on 868 of 931 gaming events; on other events: 0.
-7. Guests: on 0 events; v1 called 470 `celebrity`. People: 1,798 ids; `people.json` holds 143, reviewed 2. On qa, photo and signing events and not in `people.json`: 198 (Appendix B).
+7. Guests: on 483 events; v1 called 470 `celebrity`. People: 1,798 ids; `people.json` holds 138, reviewed 113. On qa, photo and signing events and not in `people.json`: 197 (Appendix B).
 8. Tracks: track and axis pairs where one value is on 80% or more of the track's events and `tracks.json` does not decide: 19 (UNSURE).
 9. Recurring: repeat groups that sent more than one input: 45 of 371; of those, building different tags: 8. Hand lines in the cache: 0.
 10. Links to check (UNSURE): resume mentions: 49, on 22 inputs. Music performances with no work: 72; with a registry work's name in the title: 1.
-11. v1 fandoms: 815 assignments compared - same 553, more specific 108, less specific 6, lost 148.
+11. v1 fandoms: 815 assignments compared - same 577, more specific 137, less specific 6, lost 95.
 12. Text: double-encoded events: 45; model strings that look double-encoded: 0. Strings holding U+2018: 1; U+FFFD: 0. Descriptions over the cap: 0.
 
 ## 1. Coverage
 
 - Events: 3,459. `count` in the file says 3,459, which agrees.
 - Every event has exactly one cache line: the 3,459 events send 2,580 distinct inputs, and each input's key is on exactly one of the cache's 2,580 lines.
-- No work, by any via, and no axis value: 285 (8.2%).
+- No work, by any via, and no axis value: 48 (1.4%).
 
 No work and no axis value, by kind:
 
 | kind | events | of | share |
 | --- | ---: | ---: | ---: |
-| `photo` | 233 | 506 | 46.0% |
 | `panel` | 16 | 1,086 | 1.5% |
-| `other` | 12 | 78 | 15.4% |
+| `other` | 11 | 78 | 14.1% |
 | `contest` | 6 | 67 | 9.0% |
 | `workshop` | 6 | 197 | 3.0% |
-| `qa` | 4 | 118 | 3.4% |
 | `party` | 3 | 62 | 4.8% |
 | `gaming` | 2 | 868 | 0.2% |
-| `signing` | 2 | 137 | 1.5% |
+| `qa` | 2 | 118 | 1.7% |
 | `screening` | 1 | 116 | 0.9% |
+| `signing` | 1 | 137 | 0.7% |
 
 No work and no axis value, by track (top 15; an event with two tracks counts under both):
 
 | track | events | of | share |
 | --- | ---: | ---: | ---: |
-| Epic Photos | 233 | 318 | 73.3% |
-| Main Programming | 12 | 96 | 12.5% |
+| Main Programming | 9 | 96 | 9.4% |
 | Apocalypse Rising | 8 | 35 | 22.9% |
 | Robotics and Maker Track | 7 | 51 | 13.7% |
 | Digital Media | 6 | 134 | 4.5% |
@@ -59,28 +57,27 @@ No work and no axis value, by track (top 15; an event with two tracks counts und
 | BritTrack | 2 | 50 | 4.0% |
 | Silk Road | 2 | 29 | 6.9% |
 | Vendor Workshops/Events | 2 | 139 | 1.4% |
-| (no track) | 1 | 1 | 100.0% |
 | American Sci-fi and Fantasy Media | 1 | 61 | 1.6% |
 
 ## 2. Works
 
-- Distinct works linked: 540, by 1,699 links. A work linked more than one way on one event is listed once, under its strongest via: about, then track, then credit (#32).
+- Distinct works linked: 654, by 3,366 links. A work linked more than one way on one event is listed once, under its strongest via: about, then track, then credit (#32).
 
 | via | works | links | events |
 | --- | ---: | ---: | ---: |
 | `about` | 540 | 1,669 | 1,594 |
 | `track` | 2 | 30 | 30 |
-| `credit` | 0 | 0 | 0 |
+| `credit` | 172 | 1,667 | 453 |
 
 How many works have how many events, by any via:
 
 | events | works |
 | --- | ---: |
-| 1 | 346 |
-| 2 | 78 |
-| 3-5 | 57 |
-| 6-20 | 49 |
-| 21+ | 10 |
+| 1 | 330 |
+| 2 | 69 |
+| 3-5 | 63 |
+| 6-20 | 163 |
+| 21+ | 29 |
 
 ### Top 50
 
@@ -151,13 +148,24 @@ The 30 works of `tools/tag_pilot.py`'s `EVERYDAY`: registry works whose name, or
 
 | work | the word | events linking it | titles with the word |
 | --- | --- | ---: | ---: |
+| `castle` | `Castle` | 28 | 12 |
+| `the-rookie` | `rookie` | 22 | 5 |
+| `loki` | `Loki` | 15 | 0 |
 | `marvel` | `marvel` | 14 | 12 |
-| `castle` | `Castle` | 9 | 12 |
+| `titans` | `titans` | 13 | 1 |
+| `lucifer` | `Lucifer` | 13 | 0 |
+| `game-of-thrones` | `GoT` | 12 | 3 |
+| `companion` | `companion` | 11 | 0 |
+| `suits` | `suits` | 10 | 0 |
+| `the-closer` | `closer` | 10 | 0 |
+| `saw` | `saw` | 9 | 0 |
+| `star-trek-voyager` | `Voyager` | 8 | 1 |
 | `alien` | `Alien` | 7 | 19 |
+| `wednesday` | `Wednesday` | 7 | 7 |
+| `300` | `300` | 7 | 1 |
 | `one-piece` | `one piece` | 6 | 6 |
-| `wednesday` | `Wednesday` | 5 | 7 |
-| `the-rookie` | `rookie` | 5 | 5 |
-| `game-of-thrones` | `GoT` | 5 | 3 |
+| `the-choice` | `Choice` | 6 | 1 |
+| `what-if` | `What if` | 6 | 0 |
 | `dc-comics` | `DC` | 4 | 41 |
 | `fallout` | `fallout` | 3 | 3 |
 | `labyrinth` | `Labyrinth` | 3 | 3 |
@@ -166,35 +174,24 @@ The 30 works of `tools/tag_pilot.py`'s `EVERYDAY`: registry works whose name, or
 | `destiny` | `Destiny` | 1 | 2 |
 | `predator` | `Predator` | 1 | 2 |
 | `persona` | `persona` | 1 | 1 |
+| `portal` | `portal` | 1 | 0 |
 | `the-league` | `League` | 0 | 17 |
-| `300` | `300` | 0 | 1 |
 | `nurses` | `Nurses` | 0 | 1 |
-| `star-trek-voyager` | `Voyager` | 0 | 1 |
-| `the-choice` | `Choice` | 0 | 1 |
-| `titans` | `titans` | 0 | 1 |
-| `companion` | `companion` | 0 | 0 |
 | `dinosaurs` | `dinosaurs` | 0 | 0 |
-| `loki` | `Loki` | 0 | 0 |
-| `lucifer` | `Lucifer` | 0 | 0 |
-| `portal` | `portal` | 0 | 0 |
-| `saw` | `saw` | 0 | 0 |
-| `suits` | `suits` | 0 | 0 |
-| `the-closer` | `closer` | 0 | 0 |
-| `what-if` | `What if` | 0 | 0 |
 
 ### Unreviewed works
 
-- 253 of the 718 works are `reviewed: false`, and events link 89 of them, on 318 events.
+- 97 of the 699 works are `reviewed: false`, and events link 64 of them, on 239 events.
 - By where they came from: the drafter, when the sidecar's `minted` holds the id; the tagger, when a cached answer names it otherwise - `tag_stage.py` keeps no record of what it mints, so this is inferred; other, neither.
 
 | source | works | linked | on events |
 | --- | ---: | ---: | ---: |
-| drafter | 198 | 34 | 90 |
+| drafter | 42 | 9 | 10 |
 | tagger | 55 | 55 | 229 |
 | other | 0 | 0 | 0 |
-| all | 253 | 89 | 318 |
+| all | 97 | 64 | 239 |
 
-Linked by events: 89, listed in Appendix A. Linked by none: 164, counted here and not listed.
+Linked by events: 64, listed in Appendix A. Linked by none: 33, counted here and not listed.
 
 ## 3. Axes
 
@@ -432,7 +429,8 @@ The highest tier among an event's reviewed people, else absent (#32, #34). This 
 
 | guests | events | share |
 | --- | ---: | ---: |
-| (absent) | 3,459 | 100.0% |
+| (absent) | 2,976 | 86.0% |
+| `celebrity` | 483 | 14.0% |
 
 ### The Celebrity badge
 
@@ -440,13 +438,13 @@ v1 `guests` against v2 `guests`:
 
 | v1 guests | `celebrity` | `creator` | (absent) |
 | --- | ---: | ---: | ---: |
-| `fan` | 0 | 0 | 1,405 |
-| `creator` | 0 | 0 | 1,188 |
-| `celebrity` | 0 | 0 | 470 |
-| `unknown` | 0 | 0 | 386 |
-| (untagged) | 0 | 0 | 10 |
+| `fan` | 5 | 0 | 1,400 |
+| `creator` | 28 | 0 | 1,160 |
+| `celebrity` | 436 | 0 | 34 |
+| `unknown` | 5 | 0 | 381 |
+| (untagged) | 9 | 0 | 1 |
 
-The 470 events v1 called `celebrity` that v2 does not are in Appendix C, with up to 5 of their people each.
+The 34 events v1 called `celebrity` that v2 does not are in Appendix C, with up to 5 of their people each.
 
 ### People
 
@@ -462,163 +460,47 @@ Status, by person: reviewed and drafted are `people.json` entries, `reviewed` tr
 | status | people | on qa, photo or signing events |
 | --- | ---: | ---: |
 | never drafted | 1,541 | 162 |
-| drafted | 141 | 116 |
-| rejected by model | 112 | 36 |
-| rejected by review | 2 | 0 |
-| reviewed | 2 | 0 |
+| drafted | 25 | 17 |
+| rejected by model | 110 | 34 |
+| rejected by review | 9 | 1 |
+| reviewed | 113 | 100 |
 | all | 1,798 | 314 |
 
-### Drafted people: 141
+### Drafted people: 25
 
-Every `people.json` entry with `reviewed: false`: celebrities first, then by events, then by id. Confidence is the drafter's, from the sidecar. Each credit shows its work's own reviewed state; 0 of the 327 credits are reviewed themselves.
+Every `people.json` entry with `reviewed: false`: celebrities first, then by events, then by id. Confidence is the drafter's, from the sidecar. Each credit shows its work's own reviewed state; 0 of the 46 credits are reviewed themselves.
 
 | id | name | tier | confidence | events | qa | photo | signing | other | credits |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `alan-tudyk` | `Alan Tudyk` | celebrity | high | 16 | 1 | 14 | 0 | 1 | `firefly` (reviewed), `resident-alien` (unreviewed), `rogue-one-a-star-wars-story` (unreviewed), `tucker-and-dale-vs-evil` (unreviewed), `harley-quinn` (unreviewed) |
-| `tawny-newsome` | `Tawny Newsome` | celebrity | high | 16 | 3 | 12 | 0 | 1 | `star-trek-lower-decks` (reviewed), `space-force` (unreviewed), `bajillion-dollar-propertie` (unreviewed) |
-| `eugene-cordero` | `Eugene Cordero` | celebrity | high | 15 | 3 | 12 | 0 | 0 | `star-trek-lower-decks` (reviewed), `loki` (unreviewed), `the-good-place` (unreviewed), `tacoma-fd` (unreviewed) |
-| `jewel-staite` | `Jewel Staite` | celebrity | high | 14 | 2 | 11 | 0 | 1 | `firefly` (reviewed), `stargate-atlantis` (unreviewed), `resident-alien` (unreviewed), `the-l-a-complex` (unreviewed) |
-| `anthony-montgomery` | `Anthony Montgomery` | celebrity | high | 13 | 4 | 9 | 0 | 0 | `star-trek-enterprise` (reviewed) |
-| `connor-trinneer` | `Connor Trinneer` | celebrity | high | 13 | 4 | 9 | 0 | 0 | `star-trek-enterprise` (reviewed), `stargate-atlantis` (unreviewed) |
-| `grace-park` | `Grace Park` | celebrity | high | 13 | 3 | 10 | 0 | 0 | `battlestar-galactica` (reviewed), `hawaii-five-0` (unreviewed), `a-million-little-things` (unreviewed) |
-| `jon-huertas` | `Jon Huertas` | celebrity | high | 13 | 3 | 8 | 0 | 2 | `castle` (reviewed), `this-is-us` (unreviewed), `generation-kill` (unreviewed) |
-| `seamus-dever` | `Seamus Dever` | celebrity | high | 13 | 3 | 8 | 0 | 2 | `castle` (reviewed), `titans` (unreviewed), `general-hospital` (unreviewed) |
-| `tricia-helfer` | `Tricia Helfer` | celebrity | high | 13 | 3 | 10 | 0 | 0 | `battlestar-galactica` (reviewed), `lucifer` (unreviewed), `killer-women` (unreviewed) |
-| `dawnn-lewis` | `Dawnn Lewis` | celebrity | high | 12 | 3 | 9 | 0 | 0 | `star-trek-lower-decks` (reviewed), `a-different-world` (unreviewed), `futurama` (unreviewed) |
-| `melanie-scrofano` | `Melanie Scrofano` | celebrity | high | 12 | 3 | 9 | 0 | 0 | `wynonna-earp` (reviewed), `star-trek-strange-new-worlds` (reviewed), `letterkenny` (unreviewed), `ready-or-not` (unreviewed) |
-| `nathan-fillion` | `Nathan Fillion` | celebrity | high | 12 | 2 | 10 | 0 | 0 | `firefly` (reviewed), `castle` (reviewed), `the-rookie` (reviewed), `guardians-of-the-galaxy` (unreviewed) |
-| `noel-wells` | `Noël Wells` | celebrity | high | 12 | 3 | 9 | 0 | 0 | `star-trek-lower-decks` (reviewed), `master-of-none` (unreviewed), `saturday-night-live` (unreviewed) |
-| `alice-wetterlund` | `Alice Wetterlund` | celebrity | high | 11 | 1 | 8 | 0 | 2 | `resident-alien` (unreviewed), `silicon-valley` (unreviewed) |
-| `jack-quaid` | `Jack Quaid` | celebrity | high | 11 | 3 | 8 | 0 | 0 | `the-boys` (unreviewed), `star-trek-lower-decks` (reviewed), `scream` (unreviewed), `companion` (unreviewed), `the-hunger-games` (reviewed) |
-| `levi-fiehler` | `Levi Fiehler` | celebrity | high | 11 | 1 | 8 | 0 | 2 | `resident-alien` (unreviewed) |
-| `meredith-garretson` | `Meredith Garretson` | celebrity | high | 11 | 1 | 8 | 0 | 2 | `resident-alien` (unreviewed), `the-righteous-gemstones` (unreviewed) |
-| `patricia-tallman` | `Patricia Tallman` | celebrity | high | 11 | 4 | 6 | 0 | 1 | `babylon-5` (reviewed), `night-of-the-living-dead` (unreviewed), `knightriders` (unreviewed), `star-trek-the-next-generation` (reviewed) |
-| `sara-tomko` | `Sara Tomko` | celebrity | high | 11 | 1 | 8 | 0 | 2 | `resident-alien` (unreviewed), `once-upon-a-time` (unreviewed), `sneaky-pete` (unreviewed) |
-| `bruce-boxleitner` | `Bruce Boxleitner` | celebrity | high | 10 | 4 | 6 | 0 | 0 | `babylon-5` (reviewed), `tron` (unreviewed), `scarecrow-and-mrs-king` (unreviewed) |
-| `cassidy-freeman` | `Cassidy Freeman` | celebrity | high | 10 | 3 | 7 | 0 | 0 | `smallville` (reviewed), `longmire` (unreviewed), `the-righteous-gemstones` (unreviewed) |
-| `claudia-black` | `Claudia Black` | celebrity | high | 10 | 4 | 6 | 0 | 0 | `farscape` (unreviewed), `stargate-sg-1` (reviewed), `dragon-age` (reviewed), `uncharted` (unreviewed) |
-| `dominic-keating` | `Dominic Keating` | celebrity | high | 10 | 4 | 6 | 0 | 0 | `star-trek-enterprise` (reviewed) |
-| `gina-torres` | `Gina Torres` | celebrity | high | 10 | 3 | 7 | 0 | 0 | `firefly` (reviewed), `suits` (unreviewed), `angel` (reviewed), `hercules-the-legendary-journeys` (unreviewed) |
-| `jake-busey` | `Jake Busey` | celebrity | high | 10 | 4 | 6 | 0 | 0 | `starship-troopers` (reviewed), `the-frighteners` (unreviewed), `stranger-things` (reviewed), `agents-of-s-h-i-e-l-d` (unreviewed), `from-dusk-till-dawn` (unreviewed) |
-| `julie-caitlin-brown` | `Julie Caitlin Brown` | celebrity | high | 10 | 3 | 6 | 0 | 1 | `babylon-5` (reviewed) |
-| `katee-sackhoff` | `Katee Sackhoff` | celebrity | high | 10 | 2 | 8 | 0 | 0 | `battlestar-galactica` (reviewed), `the-mandalorian` (reviewed), `longmire` (unreviewed), `star-wars-the-clone-wars` (unreviewed) |
-| `kathy-coleman` | `Kathy Coleman` | celebrity | high | 10 | 4 | 6 | 0 | 0 | `land-of-the-lost` (reviewed) |
-| `mary-mcdonnell` | `Mary McDonnell` | celebrity | high | 10 | 3 | 7 | 0 | 0 | `battlestar-galactica` (reviewed), `major-crimes` (unreviewed), `the-closer` (unreviewed), `dances-with-wolves` (unreviewed), `independence-day` (unreviewed) |
-| `michael-ironside` | `Michael Ironside` | celebrity | high | 10 | 4 | 6 | 0 | 0 | `starship-troopers` (reviewed), `total-recall` (unreviewed), `top-gun-maverick` (unreviewed), `scanners` (unreviewed), `splinter-cell` (unreviewed) |
-| `phil-paley` | `Phil Paley` | celebrity | high | 10 | 4 | 6 | 0 | 0 | `land-of-the-lost` (reviewed) |
-| `richard-dean-anderson` | `Richard Dean Anderson` | celebrity | high | 10 | 3 | 7 | 0 | 0 | `stargate-sg-1` (reviewed), `macgyver` (unreviewed) |
-| `wesley-eure` | `Wesley Eure` | celebrity | high | 10 | 4 | 6 | 0 | 0 | `land-of-the-lost` (reviewed), `days-of-our-lives` (unreviewed) |
-| `aaron-ashmore` | `Aaron Ashmore` | celebrity | high | 9 | 3 | 6 | 0 | 0 | `smallville` (reviewed), `warehouse-13` (unreviewed), `killjoys` (unreviewed), `locke-and-key` (unreviewed) |
-| `anson-mount` | `Anson Mount` | celebrity | high | 9 | 1 | 6 | 0 | 2 | `star-trek-strange-new-worlds` (reviewed), `hell-on-wheels` (unreviewed), `inhumans` (unreviewed) |
-| `ben-browder` | `Ben Browder` | celebrity | high | 9 | 3 | 6 | 0 | 0 | `farscape` (unreviewed), `stargate-sg-1` (reviewed) |
-| `casper-van-dien` | `Casper Van Dien` | celebrity | high | 9 | 3 | 6 | 0 | 0 | `starship-troopers` (reviewed), `sleepy-hollow` (unreviewed) |
-| `celia-rose-gooding` | `Celia Rose Gooding` | celebrity | high | 9 | 2 | 6 | 0 | 1 | `star-trek-strange-new-worlds` (reviewed), `jagged-little-pill` (unreviewed) |
-| `denise-richards` | `Denise Richards` | celebrity | high | 9 | 3 | 6 | 0 | 0 | `starship-troopers` (reviewed), `wild-things` (unreviewed), `the-world-is-not-enough` (unreviewed), `the-real-housewives-of-beverly-hills` (unreviewed) |
-| `dina-meyer` | `Dina Meyer` | celebrity | high | 9 | 3 | 6 | 0 | 0 | `starship-troopers` (reviewed), `saw` (unreviewed), `birds-of-prey` (unreviewed), `beverly-hills-90210` (unreviewed) |
-| `jess-bush` | `Jess Bush` | celebrity | high | 9 | 2 | 6 | 0 | 1 | `star-trek-strange-new-worlds` (reviewed) |
-| `kat-barrell` | `Kat Barrell` | celebrity | high | 9 | 3 | 6 | 0 | 0 | `wynonna-earp` (reviewed), `nurses` (unreviewed) |
-| `michael-shanks` | `Michael Shanks` | celebrity | high | 9 | 3 | 6 | 0 | 0 | `stargate-sg-1` (reviewed), `stargate-the-ark-of-truth` (unreviewed), `saving-hope` (unreviewed), `burn-notice` (unreviewed) |
-| `summer-glau` | `Summer Glau` | celebrity | high | 9 | 2 | 7 | 0 | 0 | `firefly` (reviewed), `terminator-the-sarah-connor-chronicles` (unreviewed), `arrow` (unreviewed), `dollhouse` (unreviewed) |
-| `teryl-rothery` | `Teryl Rothery` | celebrity | high | 9 | 3 | 6 | 0 | 0 | `stargate-sg-1` (reviewed), `virgin-river` (unreviewed), `cedar-cove` (unreviewed) |
-| `tim-rozon` | `Tim Rozon` | celebrity | high | 9 | 3 | 6 | 0 | 0 | `wynonna-earp` (reviewed), `schitts-creek` (reviewed), `surrealestate` (unreviewed), `instant-star` (unreviewed) |
-| `varun-saranga` | `Varun Saranga` | celebrity | high | 9 | 3 | 6 | 0 | 0 | `wynonna-earp` (reviewed) |
-| `edward-james-olmos` | `Edward James Olmos` | celebrity | high | 8 | 3 | 5 | 0 | 0 | `battlestar-galactica` (reviewed), `blade-runner` (unreviewed), `miami-vice` (unreviewed), `stand-and-deliver` (unreviewed), `coco` (unreviewed) |
-| `erica-durance` | `Erica Durance` | celebrity | high | 8 | 3 | 5 | 0 | 0 | `smallville` (reviewed), `supergirl` (unreviewed), `saving-hope` (unreviewed) |
-| `garrett-wang` | `Garrett Wang` | celebrity | high | 8 | 2 | 1 | 0 | 5 | `star-trek-voyager` (reviewed), `the-delta-flyers` (unreviewed) |
-| `james-callis` | `James Callis` | celebrity | high | 8 | 3 | 5 | 0 | 0 | `battlestar-galactica` (reviewed), `bridget-joness-diary` (unreviewed), `12-monkeys` (unreviewed), `merlin` (unreviewed) |
-| `molly-quinn` | `Molly Quinn` | celebrity | high | 8 | 3 | 5 | 0 | 0 | `castle` (reviewed), `guardians-of-the-galaxy` (unreviewed) |
-| `erin-gray` | `Erin Gray` | celebrity | high | 7 | 0 | 3 | 0 | 4 | `buck-rogers-in-the-25th-century` (reviewed), `silver-spoons` (unreviewed) |
-| `lena-headey` | `Lena Headey` | celebrity | high | 7 | 2 | 5 | 0 | 0 | `game-of-thrones` (reviewed), `terminator-the-sarah-connor-chronicles` (unreviewed), `300` (unreviewed), `the-brothers-grimm` (unreviewed), `dredd` (unreviewed) |
-| `nivek-ogre` | `Nivek Ogre` | celebrity | high | 7 | 1 | 3 | 0 | 3 | `skinny-puppy` (unreviewed), `repo-the-genetic-opera` (unreviewed) |
-| `shawn-ashmore` | `Shawn Ashmore` | celebrity | high | 7 | 3 | 4 | 0 | 0 | `x-men` (reviewed), `the-rookie-feds` (unreviewed), `the-boys` (unreviewed), `quantum-break` (unreviewed), `frozen` (unreviewed) |
-| `tyler-labine` | `Tyler Labine` | celebrity | high | 7 | 2 | 5 | 0 | 0 | `tucker-and-dale-vs-evil` (unreviewed), `reaper` (unreviewed), `new-amsterdam` (unreviewed), `deadbeat` (unreviewed) |
-| `aaron-douglas` | `Aaron Douglas` | celebrity | high | 6 | 3 | 3 | 0 | 0 | `battlestar-galactica` (reviewed) |
-| `courtney-eaton` | `Courtney Eaton` | celebrity | high | 6 | 3 | 3 | 0 | 0 | `yellowjackets` (reviewed), `mad-max-fury-road` (unreviewed) |
-| `lisseth-chavez` | `Lisseth Chavez` | celebrity | high | 6 | 2 | 4 | 0 | 0 | `the-rookie` (reviewed), `dcs-legends-of-tomorrow` (unreviewed), `chicago-p-d` (unreviewed) |
-| `liz-callaway` | `Liz Callaway` | celebrity | high | 6 | 3 | 3 | 0 | 0 | `anastasia` (unreviewed), `the-lion-king-ii-simbas-pride` (unreviewed), `hazbin-hotel` (reviewed) |
-| `peter-bramhill` | `Peter Bramhill` | celebrity | high | 6 | 2 | 3 | 0 | 1 | `final-fantasy-xiv` (unreviewed) |
-| `ross-marquand` | `Ross Marquand` | celebrity | high | 6 | 2 | 3 | 0 | 1 | `the-walking-dead` (reviewed), `x-men-97` (unreviewed), `avengers-infinity-war` (unreviewed), `avengers-endgame` (unreviewed), `what-if` (unreviewed) |
-| `sean-astin` | `Sean Astin` | celebrity | high | 6 | 3 | 3 | 0 | 0 | `the-lord-of-the-rings` (reviewed), `the-goonies` (unreviewed), `stranger-things` (reviewed), `rudy` (unreviewed), `50-first-dates` (unreviewed) |
-| `symphony-sanders` | `Symphony Sanders` | celebrity | high | 6 | 1 | 0 | 0 | 5 | `welcome-to-night-vale` (unreviewed) |
-| `tom-welling` | `Tom Welling` | celebrity | high | 6 | 2 | 4 | 0 | 0 | `smallville` (reviewed), `the-choice` (unreviewed), `cheaper-by-the-dozen` (unreviewed), `professionals-2020` (unreviewed) |
-| `richard-t-jones` | `Richard T Jones` | celebrity | high | 5 | 3 | 2 | 0 | 0 | `the-rookie` (reviewed), `judging-amy` (unreviewed), `terminator-the-sarah-connor-chronicles` (unreviewed) |
-| `thomas-sanders` | `Thomas Sanders` | celebrity | high | 5 | 0 | 0 | 0 | 5 | `sanders-sides` (unreviewed), `cartoon-therapy` (unreviewed) |
-| `tomer-capone` | `Tomer Capone` | celebrity | high | 5 | 3 | 2 | 0 | 0 | `the-boys` (unreviewed) |
-| `chuck-huber` | `Chuck Huber` | celebrity | high | 4 | 0 | 0 | 4 | 0 | `dragon-ball-z` (reviewed), `fullmetal-alchemist` (reviewed), `case-closed` (unreviewed) |
-| `evie-templeton` | `Evie Templeton` | celebrity | high | 4 | 2 | 2 | 0 | 0 | `wednesday` (unreviewed) |
-| `isaac-ordonez` | `Isaac Ordonez` | celebrity | high | 4 | 2 | 2 | 0 | 0 | `wednesday` (unreviewed), `doctor-strange-in-the-multiverse-of-madness` (unreviewed) |
-| `james-saito` | `James Saito` | celebrity | high | 4 | 0 | 0 | 4 | 0 | `teenage-mutant-ninja-turtles` (reviewed), `eli-stone` (unreviewed) |
-| `melissa-oneil` | `Melissa O'Neil` | celebrity | high | 4 | 2 | 2 | 0 | 0 | `the-rookie` (reviewed), `dark-matter` (unreviewed), `les-miserables` (unreviewed) |
-| `alison-sealy-smith` | `Alison Sealy-Smith` | celebrity | high | 3 | 3 | 0 | 0 | 0 | `x-men-97` (unreviewed), `x-men-the-animated-series` (unreviewed) |
-| `gillian-vigman` | `Gillian Vigman` | celebrity | high | 3 | 3 | 0 | 0 | 0 | `star-trek-lower-decks` (reviewed), `the-hangover` (unreviewed), `madtv` (unreviewed), `sonny-with-a-chance` (unreviewed) |
-| `jason-marsden` | `Jason Marsden` | celebrity | high | 3 | 0 | 0 | 0 | 3 | `a-goofy-movie` (unreviewed), `the-fairly-oddparents` (unreviewed), `kingdom-hearts` (unreviewed), `young-justice` (unreviewed), `garfield` (unreviewed) |
 | `delilah-s-dawson` | `Delilah S Dawson` | creator | high | 13 | 0 | 0 | 3 | 10 | `star-wars-phasma` (unreviewed), `kill-the-farm-boy` (unreviewed), `the-shadow-series` (unreviewed) |
 | `aaron-michael-ritchey` | `Aaron Michael Ritchey` | creator | low | 11 | 0 | 0 | 1 | 10 | none |
-| `michael-kovach` | `Michael Kovach` | creator | high | 11 | 2 | 8 | 0 | 1 | `the-amazing-digital-circus` (reviewed), `hazbin-hotel` (reviewed), `helluva-boss` (unreviewed) |
 | `van-allen-plexico` | `Van Allen Plexico` | creator | low | 11 | 2 | 0 | 0 | 9 | `sentinels-2006` (unreviewed) |
-| `becca-q-co` | `Becca Q. Co` | creator | high | 10 | 2 | 6 | 0 | 2 | `hades-ii` (unreviewed) |
-| `emily-andras` | `Emily Andras` | creator | high | 10 | 4 | 6 | 0 | 0 | `wynonna-earp` (reviewed), `lost-girl` (unreviewed) |
-| `judy-alice-lee` | `Judy Alice Lee` | creator | high | 10 | 2 | 6 | 0 | 2 | `hades-ii` (unreviewed) |
 | `s-m-stirling` | `S. M. Stirling` | creator | high | 10 | 0 | 0 | 2 | 8 | `dies-the-fire` (unreviewed), `island-in-the-sea-of-time` (unreviewed), `the-peshawar-lancers` (unreviewed) |
-| `skye-redden` | `Skye Redden` | creator | high | 10 | 2 | 6 | 0 | 2 | `the-amazing-digital-circus` (reviewed) |
-| `alex-rochon` | `Alex Rochon` | creator | high | 9 | 2 | 6 | 0 | 1 | `the-amazing-digital-circus` (reviewed) |
-| `amanda-hufford` | `Amanda Hufford` | creator | high | 9 | 2 | 6 | 0 | 1 | `the-amazing-digital-circus` (reviewed) |
-| `amelia-tyler` | `Amelia Tyler` | creator | high | 9 | 2 | 6 | 0 | 1 | `baldurs-gate-3` (unreviewed), `hades-ii` (unreviewed) |
-| `ashley-barrett` | `Ashley Barrett` | creator | high | 9 | 2 | 6 | 0 | 1 | `hades` (reviewed), `hades-ii` (unreviewed), `bastion` (unreviewed), `transistor` (unreviewed) |
-| `erin-yvette` | `Erin Yvette` | creator | high | 9 | 2 | 6 | 0 | 1 | `hades-ii` (unreviewed), `oxenfree` (unreviewed), `pentiment` (unreviewed) |
-| `jason-marnocha` | `Jason Marnocha` | creator | low | 9 | 2 | 6 | 0 | 1 | `hades-ii` (unreviewed), `hades` (reviewed) |
 | `jim-butcher` | `Jim Butcher` | creator | high | 9 | 1 | 0 | 2 | 6 | `the-dresden-files` (unreviewed), `codex-alera` (unreviewed), `the-cinder-spires` (unreviewed) |
-| `kevin-carlson` | `Kevin Carlson` | creator | low | 9 | 1 | 0 | 2 | 6 | none |
 | `leanna-renee-hieber` | `Leanna Renee Hieber` | creator | high | 9 | 0 | 0 | 1 | 8 | `strangely-beautiful` (unreviewed), `the-eterna-files` (unreviewed) |
-| `marissa-lenti` | `Marissa Lenti` | creator | high | 9 | 2 | 6 | 0 | 1 | `the-amazing-digital-circus` (reviewed) |
 | `sherrilyn-kenyon` | `Sherrilyn Kenyon` | creator | high | 9 | 1 | 0 | 2 | 6 | `dark-hunter` (unreviewed), `chronicles-of-nick` (unreviewed), `the-league` (unreviewed), `deadmans-cross` (unreviewed) |
 | `steve-saffel` | `Steve Saffel` | creator | low | 9 | 0 | 0 | 0 | 9 | none |
 | `timothy-zahn` | `Timothy Zahn` | creator | high | 9 | 3 | 0 | 3 | 3 | `thrawn` (unreviewed), `heir-to-the-empire` (unreviewed), `cobra-1985` (unreviewed), `blackcollar` (unreviewed) |
-| `hal-lublin` | `Hal Lublin` | creator | high | 8 | 2 | 0 | 0 | 6 | `welcome-to-night-vale` (unreviewed), `the-thrilling-adventure-hour` (unreviewed), `we-got-this-with-mark-and-hal` (unreviewed) |
-| `brobdingnagian-bards` | `Brobdingnagian Bards` | creator | high | 7 | 0 | 0 | 0 | 7 | none |
-| `javier-prusky` | `Javier Prusky` | creator | low | 7 | 2 | 3 | 0 | 2 | `final-fantasy-xiv` (unreviewed) |
-| `mark-gagliardi` | `Mark Gagliardi` | creator | high | 7 | 2 | 0 | 0 | 5 | `the-thrilling-adventure-hour` (unreviewed), `we-got-this-with-mark-and-hal` (unreviewed), `drunk-history` (unreviewed) |
-| `mark-meer` | `Mark Meer` | creator | high | 7 | 0 | 0 | 0 | 7 | `mass-effect` (unreviewed), `dragon-age` (reviewed) |
 | `richard-lord-british-garriott` | `Richard Lord British"" Garriott` | creator | high | 7 | 1 | 0 | 0 | 6 | `ultima` (unreviewed), `ultima-online` (unreviewed), `shroud-of-the-avatar` (unreviewed) |
 | `elisa-teague` | `Elisa Teague` | creator | low | 6 | 0 | 0 | 0 | 6 | `tales-of-the-valiant` (reviewed) |
 | `tony-diterlizzi` | `Tony DiTerlizzi` | creator | high | 6 | 2 | 0 | 0 | 4 | `the-spiderwick-chronicles` (unreviewed), `dungeons-and-dragons` (reviewed), `planescape` (unreviewed), `the-search-for-wondla` (unreviewed) |
-| `viv-medrano` | `Viv Medrano` | creator | high | 6 | 2 | 4 | 0 | 0 | `hazbin-hotel` (reviewed), `helluva-boss` (unreviewed) |
 | `b-dave-walters` | `B. Dave Walters` | creator | high | 5 | 0 | 0 | 0 | 5 | `dungeons-and-dragons` (reviewed) |
-| `doc-hammer` | `Doc Hammer` | creator | high | 5 | 0 | 0 | 0 | 5 | `the-venture-bros` (reviewed) |
 | `jordan-morris` | `Jordan Morris` | creator | low | 5 | 0 | 0 | 0 | 5 | `jordan-jesse-go` (unreviewed), `bubble` (unreviewed) |
 | `kirk-thatcher` | `Kirk Thatcher` | creator | high | 5 | 1 | 0 | 0 | 4 | `the-muppets` (reviewed), `star-trek-iv-the-voyage-home` (unreviewed), `dinosaurs` (unreviewed) |
 | `lyndsay-ely` | `Lyndsay Ely` | creator | low | 5 | 0 | 0 | 1 | 4 | `gunslinger-girl` (unreviewed) |
-| `aurelio-voltaire` | `Aurelio Voltaire` | creator | high | 4 | 0 | 0 | 0 | 4 | none |
-| `banachek` | `Banachek` | creator | high | 4 | 0 | 0 | 0 | 4 | none |
 | `ben-singer-death-battle` | `Ben Singer Death Battle` | creator | high | 4 | 3 | 0 | 0 | 1 | `death-battle` (unreviewed) |
 | `berta-platas` | `Berta Platas` | creator | low | 4 | 0 | 0 | 0 | 4 | none |
-| `beth-patterson` | `Beth Patterson` | creator | low | 4 | 0 | 0 | 0 | 4 | none |
 | `brian-c-thompson` | `Brian C. Thompson` | creator | low | 4 | 0 | 0 | 1 | 3 | none |
 | `d-j-butler` | `D.J. Butler` | creator | low | 4 | 0 | 0 | 2 | 2 | `witchy-eye` (unreviewed) |
 | `ken-napzok` | `Ken Napzok` | creator | low | 4 | 0 | 0 | 0 | 4 | `why-we-love-star-wars` (unreviewed) |
 | `larry-niven` | `Larry Niven` | creator | high | 4 | 0 | 0 | 0 | 4 | `ringworld` (unreviewed), `the-mote-in-gods-eye` (unreviewed), `known-space` (unreviewed), `lucifers-hammer` (unreviewed) |
-| `phil-parsons` | `Phil Parsons` | creator | low | 4 | 0 | 0 | 4 | 0 | `dragon-ball-z` (reviewed) |
-| `rogue` | `Rogue` | creator | high | 4 | 1 | 0 | 0 | 3 | `the-cruxshadows` (unreviewed) |
-| `tom-smith` | `Tom Smith` | creator | high | 4 | 0 | 0 | 0 | 4 | none |
 | `yaya-han` | `Yaya Han` | creator | high | 4 | 0 | 0 | 0 | 4 | `heroes-of-cosplay` (unreviewed) |
 | `chad-james-death-battle` | `Chad James Death Battle` | creator | high | 3 | 3 | 0 | 0 | 0 | `death-battle` (unreviewed) |
-| `georgie-leahy` | `Georgie Leahy` | creator | low | 3 | 3 | 0 | 0 | 0 | `helluva-boss` (unreviewed), `hazbin-hotel` (reviewed) |
-| `gui-agustini` | `Gui Agustini` | creator | low | 3 | 3 | 0 | 0 | 0 | `x-men-97` (unreviewed) |
-| `cruxshadows` | `Cruxshadows` | creator | high | 2 | 1 | 0 | 0 | 1 | `the-cruxshadows` (unreviewed) |
-| `matthew-waterson` | `Matthew Waterson` | creator | high | 2 | 2 | 0 | 0 | 0 | `x-men-97` (unreviewed) |
-| `mike-phirman` | `Mike Phirman` | creator | low | 2 | 0 | 0 | 0 | 2 | `hard-n-phirm` (unreviewed), `chowdaheads` (unreviewed) |
-| `ming-chen` | `Ming Chen` | creator | high | 2 | 0 | 0 | 0 | 2 | `comic-book-men` (unreviewed), `tell-em-steve-dave` (unreviewed) |
-| `bit-brigade` | `Bit Brigade` | creator | high | 1 | 0 | 0 | 0 | 1 | none |
-| `jonathan-coulton` | `Jonathan Coulton` | creator | high | 1 | 0 | 0 | 0 | 1 | `portal` (unreviewed), `code-monkey` (unreviewed) |
-| `paul-and-storm` | `Paul and Storm` | creator | high | 1 | 0 | 0 | 0 | 1 | `w00tstock` (unreviewed), `da-vincis-notebook` (unreviewed) |
-| `psychostick` | `Psychostick` | creator | high | 1 | 0 | 0 | 0 | 1 | `psychostick` (unreviewed) |
 | `starr-long` | `Starr Long` | creator | high | 1 | 1 | 0 | 0 | 0 | `ultima-online` (unreviewed), `shroud-of-the-avatar` (unreviewed) |
-| `the-cybertronic-spree` | `The Cybertronic Spree` | creator | high | 1 | 0 | 0 | 0 | 1 | `the-transformers-the-movie` (unreviewed) |
-| `the-tan-and-sober-gentlemen` | `The Tan and Sober Gentlemen` | creator | high | 1 | 0 | 0 | 0 | 1 | none |
 
-### Not in `people.json`, on qa, photo or signing events: 198
+### Not in `people.json`, on qa, photo or signing events: 197
 
-The top 30 by those events; all 198 are in Appendix B.
+The top 30 by those events; all 197 are in Appendix B.
 
 | name | id | status | qa | photo | signing | all events |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
@@ -630,7 +512,6 @@ The top 30 by those events; all 198 are in Appendix B.
 | `Marc Lee` | `marc-lee` | rejected by model | 5 | 0 | 0 | 7 |
 | `Thomas Parham` | `thomas-parham` | rejected by model | 5 | 0 | 0 | 7 |
 | `Brian Richardson` | `brian-richardson` | rejected by model | 5 | 0 | 0 | 6 |
-| `Sena Bryer` | `sena-bryer` | rejected by model | 2 | 3 | 0 | 6 |
 | `Sammi Doneff` | `sammi-doneff` | rejected by model | 5 | 0 | 0 | 5 |
 | `Carol Malcolm` | `carol-malcolm` | rejected by model | 4 | 0 | 0 | 21 |
 | `Ingrid Seymour` | `ingrid-seymour` | never drafted | 0 | 0 | 4 | 9 |
@@ -652,6 +533,7 @@ The top 30 by those events; all 198 are in Appendix B.
 | `Ryan Cahill` | `ryan-cahill` | never drafted | 0 | 0 | 3 | 8 |
 | `Dot R Steverson` | `dot-r-steverson` | rejected by model | 3 | 0 | 0 | 7 |
 | `Christopher D. Schmitz` | `christopher-d-schmitz` | never drafted | 0 | 0 | 3 | 6 |
+| `Silas Reames` | `silas-reames` | never drafted | 0 | 0 | 3 | 6 |
 
 ## 8. Tracks
 
@@ -957,21 +839,21 @@ Each of v1's fandom assignments, resolved through `works.json`, against the even
 
 | class | assignments | share |
 | --- | ---: | ---: |
-| same | 553 | 67.9% |
-| lost | 148 | 18.2% |
-| more specific | 108 | 13.3% |
+| same | 577 | 70.8% |
+| more specific | 137 | 16.8% |
+| lost | 95 | 11.7% |
 | less specific | 6 | 0.7% |
 
 The lost, by the event's v2 kind:
 
 | kind | assignments |
 | --- | ---: |
-| `photo` | 52 |
 | `panel` | 33 |
 | `gaming` | 24 |
 | `performance` | 14 |
-| `qa` | 13 |
-| `signing` | 8 |
+| `photo` | 8 |
+| `qa` | 7 |
+| `signing` | 5 |
 | `other` | 1 |
 | `party` | 1 |
 | `screening` | 1 |
@@ -994,28 +876,9 @@ v2 `about` links on the events v1 gave no fandom: 930. By kind:
 | `other` | 2 |
 | `reading` | 1 |
 
-### Lost, by fandom: 148
+### Lost, by fandom: 95
 
-Fandoms: 33.
-
-**Star Trek** (31)
-
-- `Photo Session: Jess Bush` (3)
-- `Photo Session: Photo session: Anthony Montgomery Solo` (3)
-- `Photo Session: Photo session: Connor Trinneer Solo` (3)
-- `Photo Session: Photo session: Dominic Keating Solo` (3)
-- `Photo Session: Photo session: Eugene Cordero Solo` (3)
-- `Photo Session: Photo session: Noel Wells Solo` (3)
-- `Photo Session: Photo session: Tawny Newsome Solo` (3)
-- `Photo Session: Photo session: Dawnn Lewis Solo` (2)
-- `Felt Nerdy's Stargate Puppet Show!`
-- `Galaxy Quest`
-- `How Did You Get So Lucky? – An Hour with Kirk Thatcher`
-- `Patricia Tallman's Greatest Hits: From Knightriders to Night of Living Dead`
-- `Photo Session: Celia Rose Gooding`
-- `Photo Session: Photo session: Garrett Wang Solo`
-- `Photo Session: Photo session: Michael Shanks Solo`
-- `Photo Session: Photo session: Stargate - SG1`
+Fandoms: 27.
 
 **Dungeons & Dragons** (12)
 
@@ -1046,17 +909,6 @@ Fandoms: 33.
 - `Command Zone Package` (4)
 - `Convention League` (4)
 - `DDAL FR-DC-TDD-03: The Zephyr's Fold`
-
-**The Lord of the Rings** (9)
-
-- `Photo Session: Photo session: Sean Astin Solo` (2)
-- `An Evening In Bree`
-- `Brobdignagian Bards`
-- `Coming Soon: The Magician's Nephew`
-- `LOotR: Ribbon Drop STAGING (Participants ONLY)`
-- `Please Adapt This`
-- `The Life and Times of Sean Astin`
-- `The Mentorship of Moiraine`
 
 **Marvel** (8)
 
@@ -1090,32 +942,28 @@ Fandoms: 33.
 - `Witchy Comics: Magic in Comics`
 - `With Great Trivia Comes Great Responsibility`
 
-**Battlestar Galactica** (5)
+**The Lord of the Rings** (6)
 
-- `Photo Session: Photo session: Grace Park Solo` (2)
-- `Photo Session: Photo session: Tricia Helfer Solo` (2)
-- `Photo Session: Photo session: Edward James Olmos Solo`
+- `An Evening In Bree`
+- `Brobdignagian Bards`
+- `Coming Soon: The Magician's Nephew`
+- `LOotR: Ribbon Drop STAGING (Participants ONLY)`
+- `Please Adapt This`
+- `The Mentorship of Moiraine`
 
-**Starship Troopers** (5)
+**Star Trek** (5)
 
-- `Photo Session: Photo session: Casper Van Dien Solo`
-- `Photo Session: Photo session: Denise Richards Solo`
-- `Photo Session: Photo session: Dina Meyer Solo`
-- `Photo Session: Photo session: Jake Busey Solo`
-- `Photo Session: Photo session: Michael Ironside Solo`
+- `Felt Nerdy's Stargate Puppet Show!`
+- `Galaxy Quest`
+- `How Did You Get So Lucky? – An Hour with Kirk Thatcher`
+- `Photo Session: Photo session: Michael Shanks Solo`
+- `Photo Session: Photo session: Stargate - SG1`
 
 **Firefly** (4)
 
 - `Nerdy Irish Pub Song Sing-along` (2)
 - `MSFM MAD-LIBs – LIVE!`
 - `Mikey Mason`
-
-**Game of Thrones** (4)
-
-- `Hear Me Roar: An Hour with Lena Headey`
-- `Long May She Reign: An Hour with Lena Headey`
-- `Photo Session: Photo session: Lena Headey Solo`
-- `Photoshoot: We Do Not Care Club`
 
 **Pokemon** (4)
 
@@ -1124,29 +972,11 @@ Fandoms: 33.
 - `Photoshoot: Sonic and Friends/Villains`
 - `What Exactly Is Kirby?`
 
-**Land of the Lost** (3)
-
-- `Photo Session: Photo session: Kathy Coleman Solo`
-- `Photo Session: Photo session: Phillip Paley Solo`
-- `Photo Session: Wesley Eure Solo`
-
 **My Hero Academia** (3)
 
 - `Chuck Huber & Phil Parsons Signing – Vendors Booth # 2529`
 - `Chuck Huber and Phil Parsons Signing – Booth #2529`
 - `Phil Parsons and Chuck Huber Signing – Vendors Booth 2529`
-
-**Stargate** (3)
-
-- `MSFM MAD-LIBs – LIVE!`
-- `Photo Session: Photo session: Richard Dean Anderson Solo`
-- `Photo Session: Photo session: Teryl Rothery Solo`
-
-**Stranger Things** (3)
-
-- `Licensed Properties in Comics`
-- `Tales from the Loop: Friend or Foe?`
-- `The Life and Times of Sean Astin`
 
 **Warhammer 40,000** (3)
 
@@ -1154,15 +984,10 @@ Fandoms: 33.
 - `Battletech Classic - NAIS Adv. Combat School`
 - `Battletech Classic - Rivalry`
 
-**Dragon Ball** (2)
+**Stranger Things** (2)
 
-- `Chuck Huber & Phil Parsons Signing – Vendors Booth # 2529`
-- `Chuck Huber and Phil Parsons Signing – Booth #2529`
-
-**Hazbin Hotel** (2)
-
-- `Alastor Explains Asexuality`
-- `Helluva Boss Cast`
+- `Licensed Properties in Comics`
+- `Tales from the Loop: Friend or Foe?`
 
 **The Expanse** (2)
 
@@ -1177,13 +1002,17 @@ Fandoms: 33.
 
 - `CAIN: JJK/Chainsaw Man + XFiles/SCP/Control`
 
-**Dragon Ball Z** (1)
-
-- `Phil Parsons and Chuck Huber Signing – Vendors Booth 2529`
-
 **Fallout** (1)
 
 - `Photoshoot: The Pitt`
+
+**Game of Thrones** (1)
+
+- `Photoshoot: We Do Not Care Club`
+
+**Hazbin Hotel** (1)
+
+- `Alastor Explains Asexuality`
 
 **Jujutsu Kaisen** (1)
 
@@ -1197,9 +1026,9 @@ Fandoms: 33.
 
 - `Adult Swim, Awesome Games, Great Job!`
 
-**Smallville** (1)
+**Stargate** (1)
 
-- `Photo Session: Photo session: Cassidy Freeman Solo`
+- `MSFM MAD-LIBs – LIVE!`
 
 **The Muppets** (1)
 
@@ -1277,7 +1106,7 @@ Text that was UTF-8 read as cp1252 before it reached the frozen file, by `draft_
 
 ### What the model returned
 
-Strings the model wrote that look double-encoded, as a transport that decoded its reply wrongly would leave them: `works.json` names 0 of 718; cached work names 0 of 551; cached evidence 0 of 848.
+Strings the model wrote that look double-encoded, as a transport that decoded its reply wrongly would leave them: `works.json` names 0 of 699; cached work names 0 of 551; cached evidence 0 of 848.
 
 ### Two characters
 
@@ -1288,11 +1117,11 @@ U+2018 is a left single quote, which `parse_stage.fold` does not fold and `tag_s
 | titles | 2,536 | 0 | 0 |
 | descriptions | 2,189 | 1 | 0 |
 | people's names on events | 1,811 | 0 | 0 |
-| `people.json` names and aliases | 145 | 0 | 0 |
-| `works.json` names and aliases | 778 | 0 | 0 |
+| `people.json` names and aliases | 141 | 0 | 0 |
+| `works.json` names and aliases | 759 | 0 | 0 |
 | cached work names | 551 | 0 | 0 |
 | cached evidence | 848 | 0 | 0 |
-| the sidecar's strings | 1,116 | 0 | 0 |
+| the sidecar's strings | 1,104 | 0 | 0 |
 
 - U+2018 in the description of `Building a Campaign for the Long Haul`
 
@@ -1304,16 +1133,16 @@ U+2018 is a left single quote, which `parse_stage.fold` does not fold and `tag_s
 
 Facts from the sections above; at most ten.
 
-- Events with no work and no axis value: 285 (8.2%); the kind with the most of them is `photo` (233), and the track Epic Photos (233).
-- Works linked by one event: 346 of the 540 linked; the most, rolled up through descendants, is `dungeons-and-dragons` (138).
-- Unreviewed works that events link: 89, on 318 events - the drafter's 34 and the tagger's 55.
+- Events with no work and no axis value: 48 (1.4%); the kind with the most of them is `panel` (16), and the track Main Programming (9).
+- Works linked by one event: 330 of the 654 linked; the most, rolled up through descendants, is `dungeons-and-dragons` (138).
+- Unreviewed works that events link: 64, on 239 events - the drafter's 9 and the tagger's 55.
 - Events whose kind changed from v1: 312; the largest change is `panel` to `performance` (40).
 - `mature` events: 105; made mature by the model alone 30, by the parse alone 1.
 - Gaming events with no `play`: 63 of 931; the kind with the most of them is `workshop` (51).
-- Events with `guests`: 0. Reviewed people in `people.json`: 2; reviewed credits: 0. Events v1 called `celebrity`: 470.
-- People on qa, photo and signing events who are not in `people.json`: 198 - never drafted (162), rejected by model (36).
+- Events with `guests`: 483. Reviewed people in `people.json`: 113; reviewed credits: 256. Events v1 called `celebrity`: 470.
+- People on qa, photo and signing events who are not in `people.json`: 197 - never drafted (162), rejected by model (34), rejected by review (1).
 - Repeat groups that sent more than one input: 45 of 371; of those, building different tags: 8.
-- v1 fandom assignments lost in v2: 148 of 815; the fandom with the most is Star Trek (31).
+- v1 fandom assignments lost in v2: 95 of 815; the fandom with the most is Dungeons & Dragons (12).
 
 ## Appendix A. Unreviewed works that events link
 
@@ -1325,49 +1154,32 @@ Facts from the sections above; at most ten.
 | `barely-coping` | `Barely Coping` | tagger | game / board |  | 14 | `BARELY COPING? Play the Game! (17+)` |
 | `luminous` | `Luminous` | tagger | game / ccg |  | 14 | `Learn to Play Luminous Card Game` |
 | `into-the-lair` | `Into the Lair` | tagger | game / rpg |  | 12 | `Into the Lair: The Beast of Briar Ridge`, `Into the Lair: The Night Shift` |
-| `resident-alien` | `Resident Alien` | drafter | franchise |  | 11 | `Photo Session: Photo session: Resident Alien`, `Photo Session: Photo session: Resident Alien Couple`, `Photo Session: Photo session: Resident Alien Duo` ... |
-| `the-boys` | `The Boys` | drafter | franchise |  | 11 | `Academic: Post-Modern Superheroes – Power, Violence, & Trauma`, `Photo Session: The Boys`, `Photoshoot: The Boys` ... |
 | `urban-insanity` | `Urban Insanity` | tagger | game / board |  | 10 | `Urban Insanity` |
-| `final-fantasy-xiv` | `Final Fantasy XIV` | drafter | game / video | `final-fantasy` | 9 | `FFXIV Cast Q&A`, `FFXIV Team Trivia with Friends!`, `Final Fantasy Fish Finding Scavenger Hunt (FFFFSH!)` ... |
 | `inter-sidera` | `Inter Sidera` | tagger | game / rpg |  | 8 | `Inter Sidera: Attempted murder of Sir Flynn Doyle`, `Inter Sidera: Coronatus War- Prometheus's Fire`, `Inter Sidera: The War for Coronatus with Creator` |
 | `time-rift` | `Time Rift` | tagger | game / ccg |  | 7 | `Time Rift - Casual play pods - Each half hour`, `Time Rift - Constructed Tournament - Empire Builders`, `Time Rift - Demos- Learn to play, Get free cards` |
 | `armored-coffins` | `Armored Coffins` | tagger | game / rpg |  | 6 | `Armored Coffins: Illusory Remnants`, `Armored Coffins: Titanomachy` |
-| `hades-ii` | `Hades II` | drafter | game / video | `hades` | 6 | `Hades II Guests`, `Hades II Live`, `Hades II cast` ... |
 | `land-and-sea` | `Land & Sea` | tagger | franchise |  | 6 | `Land & Sea Miniatures Game` |
 | `safe-mode-disabled` | `Safe Mode: Disabled` | tagger | game / rpg |  | 6 | `Safe Mode Disabled: Con Crashers Adventure` |
 | `the-garden` | `The Garden` | tagger | game / rpg |  | 5 | `The Garden: The Salt Crust Sanctum` |
-| `wednesday` | `Wednesday` | drafter | franchise |  | 5 | `Family & Friends at Nevermore: Wednesday Cast`, `Family Matters: A Wednesday Fan Panel`, `Photo session: Wednesday` ... |
 | `battlequest` | `BattleQuest` | tagger | game / miniatures |  | 4 | `BattleQuest Adventure Awaits` |
 | `cataclysm-arcade-tcg` | `Cataclysm Arcade TCG` | tagger | game / ccg |  | 4 | `Cataclysm Arcade TCG Free Demos` |
 | `ember-obsidian-protocol` | `Ember: Obsidian Protocol` | tagger | game / miniatures |  | 4 | `E:OP - Official Ember: Obsidian Protocol Tournament` |
-| `helluva-boss` | `Helluva Boss` | drafter | franchise |  | 4 | `Helluva Boss Cast`, `Helluva Hazbin Sing-Along`, `Meet the Hellaverse Cast` ... |
-| `supergirl` | `Supergirl` | drafter | franchise | `dc-comics` | 4 | `Supergirl & Lobo: An Unlikely Team-up`, `Supergirl: Beautiful Disaster`, `Supergirl: Woman of Tomorrow` ... |
-| `x-men-97` | `X-Men '97` | drafter | franchise | `x-men` | 4 | `X-Men '97 Cast`, `X-Men '97 Guests`, `X-Men '97: The Mutant Saga` |
 | `death-battle` | `Death Battle` | drafter | franchise |  | 3 | `Anime Death Battle: Who Would Win?`, `Death Battle: Behind the Scenes`, `Death Battle: Meet the Cast` |
 | `koopia` | `Koopia` | tagger | game / board |  | 3 | `Koopia Demo` |
 | `limbo-the-land-of-the-dead` | `Limbo: The Land of the Dead` | tagger | game / miniatures |  | 3 | `Limbo... The Land of the Dead` |
 | `supershow-the-game` | `Supershow The Game` | tagger | game / ccg |  | 3 | `Return Of The Cosmic Crusaders`, `Supershow The Game - 2026 Dragon*Con Championship`, `Â¡SUPER LUCHA! Saturday Night` |
-| `tucker-and-dale-vs-evil` | `Tucker & Dale vs. Evil` | drafter | franchise |  | 3 | `Photo Session: Photo session: Tucker and Dale vs Evil`, `You Want a Killer Hillbilly? – An Hour With Tyler Labine` |
 | `be-awesome-together` | `Be Awesome Together` | tagger | franchise |  | 2 | `Be Awesome Together` |
 | `codex-alera` | `Codex Alera` | drafter | franchise |  | 2 | `An Hour with Jim Butcher`, `Photoshoot: Dresden Files, Alera & Cinder Spires` |
 | `earth-station-boo` | `Earth Station Boo` | tagger | franchise |  | 2 | `Earth Station Boo Show – LIVE!` |
-| `farscape` | `Farscape` | drafter | franchise |  | 2 | `Claudia Black Live!`, `Space Muppets & CGI: Constructs as Characters in Farscape` |
 | `game-mechanics` | `Game Mechanics` | tagger | franchise |  | 2 | `Game Mechanics LIVE` |
-| `harley-quinn` | `Harley Quinn` | drafter | franchise | `dc-comics` | 2 | `Harley Quinn & the Gotham Sirens`, `Photoshoot: Harley Flash Mob` |
 | `hollowed-oath` | `Hollowed Oath` | tagger | game / video |  | 2 | `Hollowed Oath` |
-| `longmire` | `Longmire` | drafter | franchise |  | 2 | `Photo Session: Photo session: Longmire` |
-| `night-of-the-living-dead` | `Night of the Living Dead` | drafter | franchise |  | 2 | `Patricia Tallman's Greatest Hits: From Knightriders to Night of Living Dead`, `The Undying Legacy: Celebrating Romero's Zombie World Since 1968` |
 | `sock-puppets` | `Sock Puppets` | tagger | game / rpg |  | 2 | `Sock Puppets RPG: Make a Puppet`, `Sock Puppets RPG: The Episode Where Things Really Go off the Rails` |
 | `star-forest` | `Star Forest` | tagger | franchise |  | 2 | `Kids Track Presents: Star Forest Goblin Song Craft`, `Star Forest Family-Friendly Dance *ENDS at 6PM*` |
-| `terminator-the-sarah-connor-chronicles` | `Terminator: The Sarah Connor Chronicles` | drafter | franchise |  | 2 | `Photo Session: Photo session: Sarah Connor Chronicles Duo` |
 | `the-cinder-spires` | `The Cinder Spires` | drafter | franchise |  | 2 | `An Hour with Jim Butcher`, `Photoshoot: Dresden Files, Alera & Cinder Spires` |
-| `the-cruxshadows` | `The Cruxshadows` | drafter | franchise |  | 2 | `An Hour with The Cruxshadows: Discussion & Q&A`, `Cruxshadows` |
 | `the-dresden-files` | `The Dresden Files` | drafter | franchise |  | 2 | `An Hour with Jim Butcher`, `Photoshoot: Dresden Files, Alera & Cinder Spires` |
 | `the-transformers-the-movie` | `The Transformers: The Movie` | drafter | franchise | `transformers` | 2 | `Break the Rules, Take the Heat: Transformers the Movie at 40`, `The Transformers: The Movie Turns 40` |
 | `those-were-the-days` | `Those Were the Days` | tagger | franchise |  | 2 | `Those Were the Days – LIVE!` |
-| `welcome-to-night-vale` | `Welcome to Night Vale` | drafter | franchise |  | 2 | `Emily Henry`, `Welcome to Night Vale` |
 | `wingspan-pocket` | `Wingspan Pocket` | tagger | game / board | `wingspan` | 2 | `Rose Tatu Productions Presents: Wingspan Pocket` |
-| `young-justice` | `Young Justice` | drafter | franchise | `dc-comics` | 2 | `DC Comics' Animated TV Shows`, `Photoshoot: Teen Titans/Young Justice` |
 | `afterall` | `Afterall` | tagger | franchise |  | 1 | `Afterall Reading with Discussion and Q&A` |
 | `avengers-age-of-ultron` | `Avengers: Age of Ultron` | tagger | franchise | `avengers` | 1 | `Marvel: Age of Ultron 2.0` |
 | `black-nerd` | `Black Nerd` | tagger | franchise |  | 1 | `Black Nerd Reads – LIVE!` |
@@ -1384,28 +1196,20 @@ Facts from the sections above; at most ten.
 | `hells-half-acre` | `Hell's Half Acre` | tagger | franchise |  | 1 | `Sherrilyn Kenyon & Friends: Costume & Book Signing Extravaganza!` |
 | `in-the-wild` | `In the Wild` | tagger | game / rpg |  | 1 | `Dungeon Crawler Carl Character Creation Panel!` |
 | `inkwell` | `Inkwell` | tagger | game / board |  | 1 | `Rose Tatu Productions Presents: Inkwell` |
-| `knightriders` | `Knightriders` | drafter | franchise |  | 1 | `Patricia Tallman's Greatest Hits: From Knightriders to Night of Living Dead` |
 | `neuroscape` | `NeuroScape` | tagger | game / ccg |  | 1 | `NeuroScape Sealed` |
 | `no-latency` | `No Latency` | tagger | franchise |  | 1 | `No Latency – LIVE!` |
 | `no-way-out` | `No Way Out` | tagger | franchise |  | 1 | `No Way Out: A Fan Panel` |
 | `psychostick` | `Psychostick` | drafter | franchise |  | 1 | `Psychostick` |
-| `reaper` | `Reaper` | drafter | franchise |  | 1 | `Don't Fear the Reaper – or, Maybe Do: An Hour with Tyler Labine` |
-| `rogue-one-a-star-wars-story` | `Rogue One: A Star Wars Story` | drafter | franchise | `star-wars` | 1 | `10 Years of Rogue One` |
 | `sanctuary` | `Sanctuary` | tagger | game / board |  | 1 | `Rose Tatu Productions Presents: Sanctuary` |
 | `sarah-j-maas-universe` | `Sarah J Maas Universe` | tagger | franchise |  | 1 | `Photoshoot: Sarah J Maas Universe` |
-| `saturday-night-live` | `Saturday Night Live` | drafter | franchise |  | 1 | `Classic TV Table Read: Saturday Night Live` |
-| `scream` | `Scream` | drafter | franchise |  | 1 | `What's Your Favorite Scary Movie? The Scream Saga` |
 | `starfire` | `Starfire` | tagger | franchise | `dc-comics` | 1 | `DC Comics' Animated TV Shows` |
 | `talking-strange` | `Talking Strange` | tagger | franchise |  | 1 | `Talking Strange: Haunted Lore vs. Haunted History – LIVE!` |
 | `tamora-pierce-universe` | `Tamora Pierce Universe` | tagger | franchise |  | 1 | `Photoshoot: Tamora Pierce Universe` |
 | `the-demonatrix` | `The Demonatrix` | tagger | franchise |  | 1 | `The Demonatrix Screening` |
-| `the-goonies` | `The Goonies` | drafter | franchise |  | 1 | `The Goonies` |
 | `the-smoke-and-the-sea` | `The Smoke and the Sea` | tagger | franchise |  | 1 | `YA Book Club: The Smoke and the Sea – Katie Cross` |
 | `the-someday-garden` | `The Someday Garden` | tagger | franchise |  | 1 | `Romance Book Club: The Someday Garden – Ashley Poston` |
-| `tron` | `Tron` | drafter | franchise |  | 1 | `Tron/Ares: The Grid Evolves` |
 | `ultima` | `Ultima` | drafter | franchise |  | 1 | `Dad's Garage Goes to Britannia (Ultima Series)` |
 | `warriors` | `Warriors` | tagger | franchise |  | 1 | `Grown-up Games: Warrior Cats, or Game of Thrones?` |
-| `we-got-this-with-mark-and-hal` | `We Got This with Mark and Hal` | drafter | franchise |  | 1 | `We Got This with Mark & Hal` |
 | `welcome-to-widows-bay` | `Welcome to Widow's Bay` | tagger | franchise |  | 1 | `Welcome to Widow's Bay: A Fan Panel` |
 | `zombiecon-vol-1` | `ZombieCON Vol. 1` | tagger | franchise |  | 1 | `ZombieCON Vol. 1: Fan Discussion Panel` |
 
@@ -1421,7 +1225,6 @@ Facts from the sections above; at most ten.
 | `Marc Lee` | `marc-lee` | rejected by model | 5 | 0 | 0 | 7 |
 | `Thomas Parham` | `thomas-parham` | rejected by model | 5 | 0 | 0 | 7 |
 | `Brian Richardson` | `brian-richardson` | rejected by model | 5 | 0 | 0 | 6 |
-| `Sena Bryer` | `sena-bryer` | rejected by model | 2 | 3 | 0 | 6 |
 | `Sammi Doneff` | `sammi-doneff` | rejected by model | 5 | 0 | 0 | 5 |
 | `Carol Malcolm` | `carol-malcolm` | rejected by model | 4 | 0 | 0 | 21 |
 | `Ingrid Seymour` | `ingrid-seymour` | never drafted | 0 | 0 | 4 | 9 |
@@ -1581,6 +1384,7 @@ Facts from the sections above; at most ten.
 | `Scott Sigler` | `scott-sigler` | never drafted | 1 | 0 | 0 | 3 |
 | `Alex Taylor` | `alex-taylor` | never drafted | 1 | 0 | 0 | 2 |
 | `Brandon Highbaugh` | `brandon-highbaugh` | never drafted | 1 | 0 | 0 | 2 |
+| `Cruxshadows` | `cruxshadows` | rejected by review | 1 | 0 | 0 | 2 |
 | `Daniel Ball` | `daniel-ball` | never drafted | 1 | 0 | 0 | 2 |
 | `Darius Washington` | `darius-washington` | never drafted | 1 | 0 | 0 | 2 |
 | `Dominic Bozzo` | `dominic-bozzo` | never drafted | 1 | 0 | 0 | 2 |
@@ -1592,7 +1396,6 @@ Facts from the sections above; at most ten.
 | `Mike Odle` | `mike-odle` | rejected by model | 1 | 0 | 0 | 2 |
 | `Rachael Conniff` | `rachael-conniff` | never drafted | 1 | 0 | 0 | 2 |
 | `Tim Jacobus` | `tim-jacobus` | never drafted | 1 | 0 | 0 | 2 |
-| `Victoria` | `victoria` | rejected by model | 1 | 0 | 0 | 2 |
 | `A C Haskins` | `a-c-haskins` | never drafted | 0 | 0 | 1 | 1 |
 | `A Sigler` | `a-sigler` | never drafted | 1 | 0 | 0 | 1 |
 | `AC Haskins` | `ac-haskins` | never drafted | 0 | 0 | 1 | 1 |
@@ -1617,470 +1420,34 @@ Facts from the sections above; at most ten.
 - `2026 Film Track Kick-Off & Preview: The State of Film in 2026` - 2026-09-03T19:00 - Film Track - `Matt Smith`
 - `A Hour with Lord British` - 2026-09-05T14:30 - Video Gaming - `Richard Lord British"" Garriott`, `Chris Spears`, `Jason Gonding`, `Starr Long`
 - `Age in Fandom: Breaking the Stereotypes` - 2026-09-04T14:30 - Diversity Track - `Thomas Parham`, `Jenna Levine`, `Larry Niven`, `Berta Platas`, `Glenn Parris`
-- `All Good Things – Closing` - 2026-09-07T14:30 - Trek Track - `Garrett Wang`, `Joe Campbell`, `Leo Visentin`
-- `Amazing Digital Circus Cast: Last Adventure` - 2026-09-06T13:00 - Animation - `Sammi Doneff`, `Amanda Hufford`, `Michael Kovach`, `Marissa Lenti`, `Skye Redden`, and 1 more
-- `An Hour with Georgie Leahy` - 2026-09-04T19:00 - Animation - `Crispy`, `Georgie Leahy`
-- `An Hour with Star Wars' Bo-Katan` - 2026-09-06T11:30 - Star Wars - `Primetime Steve`, `Katee Sackhoff`
-- `An Hour with The Cruxshadows: Discussion & Q&A` - 2026-09-04T19:00 - Main Programming - `Rogue`, `Cruxshadows`
 - `Anime Death Battle: Who Would Win?` - 2026-09-04T14:30 - Anime/Manga - `Ben Singer Death Battle`, `Chad James Death Battle`
-- `Anime/Animation Cosplay Contest` - 2026-09-05T16:00 - Anime/Manga, Animation - `Jason Marsden`, `Jess Merriman`
-- `Attack of the Celebrity Improv` - 2026-09-06T20:30 - Main Programming - `Ken Plume`, `Kelsey Ann Brady`, `Mark Gagliardi`, `Doc Hammer`, `Hal Lublin`, and 3 more
-- `Aurelio Voltaire` - 2026-09-05T23:00 - Live Performances - `Aurelio Voltaire`
 - `Avatar: Fire, Water, and Beyond` - 2026-09-05T13:00 - American Sci-fi and Fantasy Media - `Birma Gainor`, `Aaron Michael Ritchey`, `Nick Frutiger`
-- `Babylon 5: A Dream Given Form` - 2026-09-06T10:00 - Military Sci-fi Media - `Thomas Parham`, `Bruce Boxleitner`, `Julie Caitlin Brown`, `Patricia Tallman`
-- `Babylon 5: Clearing the Shadows` - 2026-09-04T14:30 - Military Sci-fi Media - `Primetime Steve`, `Bruce Boxleitner`, `Julie Caitlin Brown`, `Patricia Tallman`
-- `Babylon 5: Space Station Conversation` - 2026-09-05T11:30 - Military Sci-fi Media - `Bobby Blackwolf`, `Bruce Boxleitner`, `Julie Caitlin Brown`, `Patricia Tallman`
-- `Babylon 5: The End of One Chapter, the Beginning of Another` - 2026-09-07T10:00 - Military Sci-fi Media - `Van Allen Plexico`, `Bruce Boxleitner`
-- `Banachek - Games of the Mind` - 2026-09-05T20:30 - Skeptics - `Curt Anderson`, `Banachek`
 - `Bard Talk: Shakespeare with Shenanigans - LIVE!` - 2026-09-04T23:30 - Digital Media - `Sean Weiland`, `Paris K Arrowsmith`, `Catieosaurus`, `Mikal Mosley`
 - `Bathroom of the Future` - 2026-09-05T01:30 - Live Performances - `Bathroom of the Future`
-- `Battlestar Galactica: A Galaxy of Stars` - 2026-09-04T17:30 - Military Sci-fi Media - `Tony P Henderson`, `James Callis`, `Aaron Douglas`, `Tricia Helfer`, `Mary McDonnell`, and 2 more
-- `Battlestar Galactica: Evolution` - 2026-09-06T11:30 - Military Sci-fi Media - `Marc Lee`, `James Callis`, `Aaron Douglas`, `Tricia Helfer`, `Mary McDonnell`, and 2 more
-- `Battlestar Galactica: Humans and Cylons` - 2026-09-05T13:00 - Military Sci-fi Media - `Rob Levy`, `James Callis`, `Aaron Douglas`, `Tricia Helfer`, `Mary McDonnell`, and 3 more
-- `Beth Patterson` - 2026-09-04T16:00 - Live Performances - Hyatt Concourse - `Beth Patterson`
-- `Beth Patterson` - 2026-09-06T17:30 - Live Performances - Hyatt Concourse - `Beth Patterson`
 - `Bit Brigade` - 2026-09-07T00:00 - Live Performances - `Bit Brigade`
-- `Bringing Sam Gamgee to Life – A Visit with Sean Astin!` - 2026-09-05T11:30 - High Fantasy - `Tony P Henderson`, `Sean Astin`
 - `CLOUDSAVE` - 2026-09-07T01:30 - Live Performances - `CLOUDSAVE`
-- `Can Anyone Hear Me? A Yellowjackets Cast Panel` - 2026-09-04T10:00 - Horror - `Primetime Steve`, `Courtney Eaton`
-- `Castle Cast` - 2026-09-05T11:30 - Main Programming - `Primetime Steve`, `Seamus Dever`, `Nathan Fillion`, `Jon Huertas`, `Molly Quinn`
-- `Castle Cast` - 2026-09-06T13:00 - Main Programming - `Manda Montane`, `Seamus Dever`, `Jon Huertas`, `Molly Quinn`
-- `Castle Guests` - 2026-09-04T14:30 - Main Programming - `Sammi Doneff`, `Seamus Dever`, `Jon Huertas`, `Molly Quinn`
-- `Chuck Huber & Phil Parsons Signing – Vendors Booth # 2529` - 2026-09-04T10:00 - Vendor Workshops/Events - `Chuck Huber`, `Phil Parsons`
-- `Chuck Huber and Phil Parsons Signing – Booth #2529` - 2026-09-06T10:00 - Vendor Workshops/Events - `Chuck Huber`, `Phil Parsons`
 - `Classic Sci-Fi Charity Movie Lock-in : Howard the Duck` - 2026-09-04T19:00 - American Sci-fi Classics - `ToniAnn Marini`, `Michael Wesley Collins`, `Nick Frutiger`, `RL Grey`, `Trey Lawson`
 - `Concert – Emily Henry` - 2026-09-04T13:00 - Filk Music - `Emily Henry`
 - `Concert – The Brobdingnagian Bards` - 2026-09-05T20:30 - Filk Music - `Brobdingnagian Bards`
-- `Concert – Tom Smith` - 2026-09-06T17:30 - Filk Music - `Tom Smith`
-- `Cruxshadows` - 2026-09-07T01:30 - Live Performances - `Cruxshadows`, `Rogue`
-- `Dad's Garage Goes to Britannia (Ultima Series)` - 2026-09-06T20:30 - Video Gaming - `Dad's Garage Theatre Co.`, `Richard Lord British"" Garriott`, `Mark Meer`
 - `Death Battle: Meet the Cast` - 2026-09-06T19:00 - Anime/Manga - `Ben Singer Death Battle`, `Chad James Death Battle`
 - `Delilah Dawson signing` - 2026-09-06T13:00 - Vendor Workshops/Events - `Delilah S Dawson`
 - `Denim Arcade` - 2026-09-05T00:00 - Live Performances - `Denim Arcade`
-- `Don't Fear the Reaper – or, Maybe Do: An Hour with Tyler Labine` - 2026-09-06T10:00 - Urban Fantasy - `Dave West`, `Tyler Labine`
 - `Dragon Award Nominee & Past Recipients – Meet & Greet and Signings` - 2026-09-04T19:00 - Author Signings - `DCZev`, `Jim Butcher`, `D.J. Butler`, `Delilah S Dawson`, `Lyndsay Ely`, and 4 more
-- `Dragon Awards Ceremony – LIVE!` - 2026-09-06T16:00 - Main Programming - `Ross Marquand`, `Matthew M Foster`, `Honor Santa Croce`, `Mandy Collier`, `Pat Henry`, and 2 more
-- `Dragon Con Masquerade` - 2026-09-06T20:30 - Main Programming - `Fon H Davis`, `Catherine Lee Jones`, `Mikal Mosley`, `Anson Mount`, `Dot R Steverson`
-- `Dragon Con Wrestling` - 2026-09-03T19:00 - Main Programming - `Victoria`
-- `Everyone Welcome: Wynonna Earp Cast` - 2026-09-05T14:30 - Urban Fantasy - `Kevin Bachelder`, `Emily Andras`, `Kat Barrell`, `Tim Rozon`, `Varun Saranga`, and 1 more
-- `FFXIV Cast Q&A` - 2026-09-04T14:30 - Video Gaming - `Rob Roberts`, `Peter Bramhill`, `Sena Bryer`, `Javier Prusky`
-- `FFXIV Team Trivia with Friends!` - 2026-09-05T13:00 - Video Gaming - `Peter Bramhill`, `EmUnArum`, `Javier Prusky`, `Martin Freepaw`, `MelodicBlue`
-- `Family & Friends at Nevermore: Wednesday Cast` - 2026-09-04T11:30 - Urban Fantasy - `Isaac Ordonez`, `Evie Templeton`, `Carol Malcolm`
-- `Final Fantasy XIV Fireside Chat` - 2026-09-06T14:30 - Video Gaming - `Joey Davila`, `Peter Bramhill`, `Sena Bryer`, `Javier Prusky`
-- `Firefly: One More Heist` - 2026-09-06T13:00 - Military Sci-fi Media - `Brian Richardson`, `Nathan Fillion`, `Summer Glau`, `Jewel Staite`, `Gina Torres`, and 1 more
-- `Firefly: Seeking Serenity` - 2026-09-04T17:30 - Military Sci-fi Media - `Dot R Steverson`, `Summer Glau`, `Jewel Staite`, `Gina Torres`
 - `Friday Night Costuming Contest` - 2026-09-04T20:30 - Costuming - `Yaya Han`, `Rob Roberts`
-- `From FFXIV to FFXI: Adventuring in Vana'diel` - 2026-09-05T14:30 - Video Gaming - `Sena Bryer`, `EmUnArum`
 - `Galactic Empire` - 2026-09-06T00:00 - Live Performances - `Galactic Empire`
-- `Gil Gerard Remembered` - 2026-09-04T13:00 - Military Sci-fi Media - `Garrett Wang`, `Erin Gray`, `Janet Gerard`, `Pat Henry`, `Phil Collins`
-- `Gil Gerard's Match Game in the 25th Century - with Garrett Wang` - 2026-09-04T19:30 - Main Programming - `Garrett Wang`, `Janet Gerard`
-- `Gonzo Quiz Show: Looks Like We Made It` - 2026-09-06T19:00 - Main Programming - `Ken Plume`, `Kelsey Ann Brady`, `Mark Gagliardi`, `Doc Hammer`, `Mike Kaess`, and 6 more
-- `Gonzo Quiz Show: The Return` - 2026-09-04T19:00 - Main Programming - `Ken Plume`, `Kelsey Ann Brady`, `Doc Hammer`, `Mike Kaess`, `Hal Lublin`, and 5 more
-- `Gonzoroo Presents: A Music & Comedy Spectacular` - 2026-09-05T20:30 - Main Programming - `Ken Plume`, `Kelsey Ann Brady`, `Jonathan Coulton`, `Mark Gagliardi`, `Doc Hammer`, and 9 more
-- `Hades II Guests` - 2026-09-04T11:30 - Video Gaming - `Crispy`, `Ashley Barrett`, `Becca Q. Co`, `Judy Alice Lee`, `Jason Marnocha`, and 2 more
-- `Hades II cast` - 2026-09-07T11:30 - Video Gaming - `Bobby Blackwolf`, `Ashley Barrett`, `Becca Q. Co`, `Judy Alice Lee`, `Jason Marnocha`, and 2 more
-- `Hear Me Roar: An Hour with Lena Headey` - 2026-09-06T10:00 - High Fantasy - `Dot R Steverson`, `Lena Headey`
-- `Heavenly Hour with Liz Calloway` - 2026-09-04T11:30 - Animation - `Manda Montane`, `Liz Callaway`
-- `Helluva Boss Cast` - 2026-09-05T19:00 - Animation - `Joey Davila`, `Georgie Leahy`, `Viv Medrano`
-- `Home Sweet Homestead: Wynonna Earp Cast` - 2026-09-06T13:00 - Urban Fantasy - `Sue Kisenwether`, `Emily Andras`, `Kat Barrell`, `Tim Rozon`, `Varun Saranga`, and 1 more
-- `How Did You Get So Lucky? – An Hour with Kirk Thatcher` - 2026-09-04T17:30 - Main Programming - `Mark Gagliardi`, `Hal Lublin`, `Kirk Thatcher`
-- `How to Tame Your Fear Dragon with Patricia Tallman` - 2026-09-05T13:00 - Workshops - `Patricia Tallman`
-- `Improvised Dungeons & Dragons – LIVE!` - 2026-09-04T19:00 - Main Programming - `Mark Meer`, `Dad's Garage Theatre Co.`, `Logan Jenkins`, `Dot R Steverson`
 - `Invasion Fan Panel: Day 1, Post Invasion` - 2026-09-07T11:30 - XTrack - `Chris Moore`, `Jessica Combs`
-- `James Saito - Teenage Mutant Ninja Turtles Signing` - 2026-09-06T10:00 - Vendor Workshops/Events - `James Saito`
-- `James Saito - Teenage Mutant Ninja Turtles Signing` - 2026-09-07T10:00 - Vendor Workshops/Events - `James Saito`
-- `James Saito - Teenage Mutant Ninja Turtles signing` - 2026-09-05T10:00 - Vendor Workshops/Events - `James Saito`
-- `James Saito signing - Teenage Mutant Ninja Turtles` - 2026-09-04T10:00 - Vendor Workshops/Events - `James Saito`
 - `Killbillies` - 2026-09-05T20:30 - Live Performances - Hyatt Concourse - `Killbillies`
-- `Land of the Lost Cast` - 2026-09-07T11:30 - American Sci-fi Classics - `Sammi Doneff`, `Kathy Coleman`, `Wesley Eure`, `Phil Paley`
-- `Land of the Lost Cast: Six Decades of a Routine Expedition` - 2026-09-04T13:00 - American Sci-fi Classics - `Primetime Steve`, `Kathy Coleman`, `Wesley Eure`, `Phil Paley`
-- `Land of the Lost: Six Decades of Routine Expeditions` - 2026-09-05T11:30 - American Sci-fi Classics - `Thomas Parham`, `Kathy Coleman`, `Wesley Eure`, `Phil Paley`
-- `Land of the Lost: Six Decades of Routine Expeditions` - 2026-09-06T14:30 - American Sci-fi Classics - `Marc Lee`, `Kathy Coleman`, `Wesley Eure`, `Phil Paley`
 - `Last Grasp` - 2026-09-07T00:00 - Live Performances - `Last Grasp`
-- `Lip Sync-a-Palooza` - 2026-09-06T20:30 - Puppetry - `Aretta Baumgartner`, `Kevin Carlson`, `Christine Papalexis`, `Raymond Carr`
-- `Lips-On Voice Acting Workshop w/ Jason Marsden #2 **EXTRA FEE WORKSHOP**` - 2026-09-04T11:30 - Workshops - `Jason Marsden`
-- `Lips-On Voice Acting Workshop w/ Jason Marsden **EXTRA FEE Workshop #1` - 2026-09-03T11:30 - Workshops - `Jason Marsden`
-- `Long May She Reign: An Hour with Lena Headey` - 2026-09-05T14:30 - High Fantasy - `Rob Roberts`, `Lena Headey`
-- `MOVED = Miss Star Trek Universe Pageant` - 2026-09-06T17:30 - Trek Track - `Garrett Wang`, `Lucy Boydston`
-- `MOVED! Star Trek Actors Q&A` - 2026-09-07T10:00 - Trek Track - `Thomas Parham`, `Dominic Keating`, `Anthony Montgomery`, `Connor Trinneer`
-- `Meet the Hellaverse Cast` - 2026-09-06T16:00 - Animation - `Sammi Doneff`, `Liz Callaway`, `Georgie Leahy`, `Viv Medrano`
-- `Nivek Ogre Q&A` - 2026-09-05T13:00 - Horror - `Colby Smith`, `Nivek Ogre`
-- `On the Case with the Cast of The Rookie` - 2026-09-06T14:30 - Main Programming - `Brian Richardson`, `Shawn Ashmore`, `Lisseth Chavez`, `Richard T Jones`, `Melissa O'Neil`
-- `Once Upon a Liz Callaway` - 2026-09-05T11:30 - Animation - `Sue Kisenwether`, `Liz Callaway`
-- `Patricia Tallman's Greatest Hits: From Knightriders to Night of Living Dead` - 2026-09-06T13:00 - American Sci-fi Classics - `Patricia Tallman`, `Gary Mitchel`
 - `Pee Wee's Playhouse 40th Anniversary: Saturday Morning 1986` - 2026-09-05T11:30 - American Sci-fi Classics - `Kevin Eldridge`, `Molly Abigail Coffee`, `Remy Dee`, `Dave West`, `Nick Frutiger`
-- `Phil Parsons and Chuck Huber Signing – Booth 2529` - 2026-09-05T10:00 - Vendor Workshops/Events - `Chuck Huber`, `Phil Parsons`
-- `Phil Parsons and Chuck Huber Signing – Vendors Booth 2529` - 2026-09-07T10:00 - Vendor Workshops/Events - `Chuck Huber`, `Phil Parsons`
-- `Photo Session: Aaron Ashmore` - 2026-09-05T16:00 - Epic Photos - `Aaron Ashmore`
-- `Photo Session: Aaron Ashmore` - 2026-09-06T16:20 - Epic Photos - `Aaron Ashmore`
-- `Photo Session: Aaron Douglas` - 2026-09-04T13:00 - Epic Photos - `Aaron Douglas`
-- `Photo Session: Aaron Douglas` - 2026-09-05T14:20 - Epic Photos - `Aaron Douglas`
-- `Photo Session: Aaron Douglas` - 2026-09-06T14:10 - Epic Photos - `Aaron Douglas`
-- `Photo Session: Alan Tudyk Solo` - 2026-09-05T14:10 - Epic Photos - `Alan Tudyk`
-- `Photo Session: Alan Tudyk Solo` - 2026-09-06T11:00 - Epic Photos - `Alan Tudyk`
-- `Photo Session: Alex Rochon Solo` - 2026-09-04T14:20 - Epic Photos - `Alex Rochon`
-- `Photo Session: Alex Rochon Solo` - 2026-09-06T15:20 - Epic Photos - `Alex Rochon`
-- `Photo Session: Alice Wetterlund Solo` - 2026-09-04T17:40 - Epic Photos - `Alice Wetterlund`
-- `Photo Session: Alice Wetterlund Solo` - 2026-09-05T13:30 - Epic Photos - `Alice Wetterlund`
-- `Photo Session: Alice Wetterlund Solo` - 2026-09-06T11:00 - Epic Photos - `Alice Wetterlund`
-- `Photo Session: Amanda Hufford Solo` - 2026-09-04T14:10 - Epic Photos - `Amanda Hufford`
-- `Photo Session: Amanda Hufford Solo` - 2026-09-06T15:20 - Epic Photos - `Amanda Hufford`
-- `Photo Session: Castle Group` - 2026-09-06T11:50 - Epic Photos - `Seamus Dever`, `Nathan Fillion`, `Jon Huertas`, `Molly Quinn`
-- `Photo Session: Celia Rose Gooding` - 2026-09-04T11:20 - Epic Photos - `Celia Rose Gooding`
-- `Photo Session: Celia Rose Gooding` - 2026-09-05T17:30 - Epic Photos - `Celia Rose Gooding`
-- `Photo Session: Celia Rose Gooding` - 2026-09-06T16:00 - Epic Photos - `Celia Rose Gooding`
-- `Photo Session: Hazbin Hotel` - 2026-09-06T15:00 - Epic Photos - `Michael Kovach`, `Viv Medrano`
-- `Photo Session: Jess Bush` - 2026-09-04T11:20 - Epic Photos - `Jess Bush`
-- `Photo Session: Jess Bush` - 2026-09-05T17:30 - Epic Photos - `Jess Bush`
-- `Photo Session: Jess Bush` - 2026-09-06T16:00 - Epic Photos - `Jess Bush`
-- `Photo Session: Lower Decks - Full` - 2026-09-04T13:10 - Epic Photos - `Eugene Cordero`, `Dawnn Lewis`, `Tawny Newsome`, `Jack Quaid`, `Noël Wells`
-- `Photo Session: Lower Decks - Full` - 2026-09-05T11:50 - Epic Photos - `Eugene Cordero`, `Dawnn Lewis`, `Tawny Newsome`, `Jack Quaid`, `Noël Wells`
-- `Photo Session: Lower Decks - Full` - 2026-09-06T13:20 - Epic Photos - `Eugene Cordero`, `Dawnn Lewis`, `Tawny Newsome`, `Jack Quaid`, `Noël Wells`
-- `Photo Session: Photo Session: Claudia Black` - 2026-09-04T13:40 - Epic Photos - `Claudia Black`
-- `Photo Session: Photo Session: Claudia Black` - 2026-09-05T16:30 - Epic Photos - `Claudia Black`
-- `Photo Session: Photo Session: Claudia Black` - 2026-09-06T16:00 - Epic Photos - `Claudia Black`
-- `Photo Session: Photo Session: Smallville` - 2026-09-05T15:50 - Epic Photos - `Aaron Ashmore`, `Erica Durance`, `Cassidy Freeman`, `Tom Welling`
-- `Photo Session: Photo Session: TeamUp - Brothers` - 2026-09-05T16:00 - Epic Photos - `Aaron Ashmore`, `Shawn Ashmore`
-- `Photo Session: Photo Session: TeamUp - Brothers` - 2026-09-06T16:20 - Epic Photos - `Aaron Ashmore`, `Shawn Ashmore`
-- `Photo Session: Photo session: Amelia Tyler Solo` - 2026-09-04T17:20 - Epic Photos - `Amelia Tyler`
-- `Photo Session: Photo session: Amelia Tyler Solo` - 2026-09-05T11:30 - Epic Photos - `Amelia Tyler`
-- `Photo Session: Photo session: Amelia Tyler Solo` - 2026-09-06T15:50 - Epic Photos - `Amelia Tyler`
-- `Photo Session: Photo session: Anson Mount Solo` - 2026-09-04T14:20 - Epic Photos - `Anson Mount`
-- `Photo Session: Photo session: Anson Mount Solo` - 2026-09-05T12:00 - Epic Photos - `Anson Mount`
-- `Photo Session: Photo session: Anson Mount Solo` - 2026-09-06T14:20 - Epic Photos - `Anson Mount`
-- `Photo Session: Photo session: Anthony Montgomery Solo` - 2026-09-04T16:10 - Epic Photos - `Anthony Montgomery`
-- `Photo Session: Photo session: Anthony Montgomery Solo` - 2026-09-05T12:20 - Epic Photos - `Anthony Montgomery`
-- `Photo Session: Photo session: Anthony Montgomery Solo` - 2026-09-06T12:40 - Epic Photos - `Anthony Montgomery`
-- `Photo Session: Photo session: Ashley Barrett Solo` - 2026-09-04T17:00 - Epic Photos - `Ashley Barrett`
-- `Photo Session: Photo session: Ashley Barrett Solo` - 2026-09-05T11:20 - Epic Photos - `Ashley Barrett`
-- `Photo Session: Photo session: Ashley Barrett Solo` - 2026-09-06T15:40 - Epic Photos - `Ashley Barrett`
-- `Photo Session: Photo session: Babylon 5` - 2026-09-04T13:30 - Epic Photos - `Bruce Boxleitner`, `Julie Caitlin Brown`, `Patricia Tallman`
-- `Photo Session: Photo session: Babylon 5` - 2026-09-05T17:10 - Epic Photos - `Bruce Boxleitner`, `Julie Caitlin Brown`, `Patricia Tallman`
-- `Photo Session: Photo session: Babylon 5` - 2026-09-06T15:10 - Epic Photos - `Bruce Boxleitner`, `Julie Caitlin Brown`, `Patricia Tallman`
-- `Photo Session: Photo session: Battlestar Galactica` - 2026-09-05T15:30 - Epic Photos - `James Callis`, `Tricia Helfer`, `Mary McDonnell`, `Edward James Olmos`, `Grace Park`, and 1 more
-- `Photo Session: Photo session: Battlestar Galactica` - 2026-09-06T14:10 - Epic Photos - `James Callis`, `Tricia Helfer`, `Mary McDonnell`, `Edward James Olmos`, `Grace Park`, and 1 more
-- `Photo Session: Photo session: Becca Q Co Solo` - 2026-09-04T17:00 - Epic Photos - `Becca Q. Co`
-- `Photo Session: Photo session: Becca Q Co Solo` - 2026-09-05T11:20 - Epic Photos - `Becca Q. Co`
-- `Photo Session: Photo session: Becca Q Co Solo` - 2026-09-06T15:40 - Epic Photos - `Becca Q. Co`
-- `Photo Session: Photo session: Ben Browder Solo` - 2026-09-04T11:30 - Epic Photos - `Ben Browder`
-- `Photo Session: Photo session: Ben Browder Solo` - 2026-09-05T12:40 - Epic Photos - `Ben Browder`
-- `Photo Session: Photo session: Ben Browder Solo` - 2026-09-06T11:40 - Epic Photos - `Ben Browder`
-- `Photo Session: Photo session: Bruce Boxleitner Solo` - 2026-09-04T13:30 - Epic Photos - `Bruce Boxleitner`
-- `Photo Session: Photo session: Bruce Boxleitner Solo` - 2026-09-05T17:10 - Epic Photos - `Bruce Boxleitner`
-- `Photo Session: Photo session: Bruce Boxleitner Solo` - 2026-09-06T15:20 - Epic Photos - `Bruce Boxleitner`
-- `Photo Session: Photo session: Casper Van Dien Solo` - 2026-09-04T12:10 - Epic Photos - `Casper Van Dien`
-- `Photo Session: Photo session: Casper Van Dien Solo` - 2026-09-05T17:00 - Epic Photos - `Casper Van Dien`
-- `Photo Session: Photo session: Casper Van Dien Solo` - 2026-09-06T13:40 - Epic Photos - `Casper Van Dien`
-- `Photo Session: Photo session: Cassidy Freeman Solo` - 2026-09-04T17:50 - Epic Photos - `Cassidy Freeman`
-- `Photo Session: Photo session: Cassidy Freeman Solo` - 2026-09-05T15:40 - Epic Photos - `Cassidy Freeman`
-- `Photo Session: Photo session: Cassidy Freeman Solo` - 2026-09-06T14:30 - Epic Photos - `Cassidy Freeman`
-- `Photo Session: Photo session: Castle Duo` - 2026-09-04T16:00 - Epic Photos - `Seamus Dever`, `Jon Huertas`
-- `Photo Session: Photo session: Castle Duo` - 2026-09-05T13:00 - Epic Photos - `Seamus Dever`, `Jon Huertas`
-- `Photo Session: Photo session: Castle Duo` - 2026-09-06T12:00 - Epic Photos - `Seamus Dever`, `Jon Huertas`
-- `Photo Session: Photo session: Castle Group` - 2026-09-05T12:50 - Epic Photos - `Seamus Dever`, `Nathan Fillion`, `Jon Huertas`, `Molly Quinn`
-- `Photo Session: Photo session: Connor Trinneer Solo` - 2026-09-04T16:10 - Epic Photos - `Connor Trinneer`
-- `Photo Session: Photo session: Connor Trinneer Solo` - 2026-09-05T12:20 - Epic Photos - `Connor Trinneer`
-- `Photo Session: Photo session: Connor Trinneer Solo` - 2026-09-06T12:40 - Epic Photos - `Connor Trinneer`
-- `Photo Session: Photo session: Courtney Eaton Solo` - 2026-09-04T15:30 - Epic Photos - `Courtney Eaton`
-- `Photo Session: Photo session: Courtney Eaton Solo` - 2026-09-05T12:10 - Epic Photos - `Courtney Eaton`
-- `Photo Session: Photo session: Courtney Eaton Solo` - 2026-09-06T15:00 - Epic Photos - `Courtney Eaton`
-- `Photo Session: Photo session: Cylons` - 2026-09-04T14:00 - Epic Photos - `Tricia Helfer`, `Grace Park`
-- `Photo Session: Photo session: Cylons` - 2026-09-05T15:00 - Epic Photos - `Tricia Helfer`, `Grace Park`
-- `Photo Session: Photo session: Cylons` - 2026-09-06T13:20 - Epic Photos - `Tricia Helfer`, `Grace Park`
-- `Photo Session: Photo session: Dawnn Lewis Solo` - 2026-09-04T13:00 - Epic Photos - `Dawnn Lewis`
-- `Photo Session: Photo session: Dawnn Lewis Solo` - 2026-09-05T11:40 - Epic Photos - `Dawnn Lewis`
-- `Photo Session: Photo session: Dawnn Lewis Solo` - 2026-09-06T13:30 - Epic Photos - `Dawnn Lewis`
-- `Photo Session: Photo session: Denise Richards Solo` - 2026-09-04T11:50 - Epic Photos - `Denise Richards`
-- `Photo Session: Photo session: Denise Richards Solo` - 2026-09-05T16:40 - Epic Photos - `Denise Richards`
-- `Photo Session: Photo session: Denise Richards Solo` - 2026-09-06T13:40 - Epic Photos - `Denise Richards`
-- `Photo Session: Photo session: Dina Meyer Solo` - 2026-09-04T12:10 - Epic Photos - `Dina Meyer`
-- `Photo Session: Photo session: Dina Meyer Solo` - 2026-09-05T17:00 - Epic Photos - `Dina Meyer`
-- `Photo Session: Photo session: Dina Meyer Solo` - 2026-09-06T13:40 - Epic Photos - `Dina Meyer`
-- `Photo Session: Photo session: Dominic Keating Solo` - 2026-09-04T16:00 - Epic Photos - `Dominic Keating`
-- `Photo Session: Photo session: Dominic Keating Solo` - 2026-09-05T12:30 - Epic Photos - `Dominic Keating`
-- `Photo Session: Photo session: Dominic Keating Solo` - 2026-09-06T12:50 - Epic Photos - `Dominic Keating`
-- `Photo Session: Photo session: Edward James Olmos Solo` - 2026-09-04T14:40 - Epic Photos - `Edward James Olmos`
-- `Photo Session: Photo session: Edward James Olmos Solo` - 2026-09-05T15:20 - Epic Photos - `Edward James Olmos`
-- `Photo Session: Photo session: Edward James Olmos Solo` - 2026-09-06T13:30 - Epic Photos - `Edward James Olmos`
-- `Photo Session: Photo session: Emily Andras Solo` - 2026-09-04T11:40 - Epic Photos - `Emily Andras`
-- `Photo Session: Photo session: Emily Andras Solo` - 2026-09-05T16:20 - Epic Photos - `Emily Andras`
-- `Photo Session: Photo session: Emily Andras Solo` - 2026-09-06T14:50 - Epic Photos - `Emily Andras`
-- `Photo Session: Photo session: Enterprise Duo` - 2026-09-04T16:10 - Epic Photos - `Anthony Montgomery`, `Connor Trinneer`
-- `Photo Session: Photo session: Enterprise Duo` - 2026-09-05T12:20 - Epic Photos - `Anthony Montgomery`, `Connor Trinneer`
-- `Photo Session: Photo session: Enterprise Duo` - 2026-09-06T12:40 - Epic Photos - `Anthony Montgomery`, `Connor Trinneer`
-- `Photo Session: Photo session: Enterprise Group` - 2026-09-04T16:00 - Epic Photos - `Dominic Keating`, `Anthony Montgomery`, `Connor Trinneer`
-- `Photo Session: Photo session: Enterprise Group` - 2026-09-05T12:30 - Epic Photos - `Dominic Keating`, `Anthony Montgomery`, `Connor Trinneer`
-- `Photo Session: Photo session: Enterprise Group` - 2026-09-06T12:50 - Epic Photos - `Dominic Keating`, `Anthony Montgomery`, `Connor Trinneer`
-- `Photo Session: Photo session: Erica Durance Solo` - 2026-09-04T17:30 - Epic Photos - `Erica Durance`
-- `Photo Session: Photo session: Erica Durance Solo` - 2026-09-05T15:40 - Epic Photos - `Erica Durance`
-- `Photo Session: Photo session: Erica Durance Solo` - 2026-09-06T14:30 - Epic Photos - `Erica Durance`
-- `Photo Session: Photo session: Erin Gray Solo` - 2026-09-04T16:30 - Epic Photos - `Erin Gray`
-- `Photo Session: Photo session: Erin Gray Solo` - 2026-09-05T11:50 - Epic Photos - `Erin Gray`
-- `Photo Session: Photo session: Erin Gray Solo` - 2026-09-06T12:30 - Epic Photos - `Erin Gray`
-- `Photo Session: Photo session: Erin Yvette Solo` - 2026-09-04T17:20 - Epic Photos - `Erin Yvette`
-- `Photo Session: Photo session: Erin Yvette Solo` - 2026-09-05T11:30 - Epic Photos - `Erin Yvette`
-- `Photo Session: Photo session: Erin Yvette Solo` - 2026-09-06T15:50 - Epic Photos - `Erin Yvette`
-- `Photo Session: Photo session: Eugene Cordero Solo` - 2026-09-04T13:20 - Epic Photos - `Eugene Cordero`
-- `Photo Session: Photo session: Eugene Cordero Solo` - 2026-09-05T11:50 - Epic Photos - `Eugene Cordero`
-- `Photo Session: Photo session: Eugene Cordero Solo` - 2026-09-06T13:10 - Epic Photos - `Eugene Cordero`
-- `Photo Session: Photo session: Evie Templeton Solo` - 2026-09-05T14:50 - Epic Photos - `Evie Templeton`
-- `Photo Session: Photo session: Firefly` - 2026-09-05T13:00 - Epic Photos - `Nathan Fillion`, `Summer Glau`, `Jewel Staite`, `Gina Torres`, `Alan Tudyk`
-- `Photo Session: Photo session: Firefly` - 2026-09-05T13:10 - Epic Photos - `Nathan Fillion`, `Summer Glau`, `Jewel Staite`, `Gina Torres`, `Alan Tudyk`
-- `Photo Session: Photo session: Firefly` - 2026-09-06T11:30 - Epic Photos - `Nathan Fillion`, `Jewel Staite`, `Gina Torres`, `Alan Tudyk`
-- `Photo Session: Photo session: Firefly Duo` - 2026-09-05T13:50 - Epic Photos - `Gina Torres`, `Alan Tudyk`
-- `Photo Session: Photo session: Firefly Duo` - 2026-09-06T11:20 - Epic Photos - `Gina Torres`, `Alan Tudyk`
-- `Photo Session: Photo session: Garrett Wang Solo` - 2026-09-05T14:40 - Epic Photos - `Garrett Wang`
-- `Photo Session: Photo session: Gina Torres Solo` - 2026-09-05T13:40 - Epic Photos - `Gina Torres`
-- `Photo Session: Photo session: Gina Torres Solo` - 2026-09-06T11:20 - Epic Photos - `Gina Torres`
-- `Photo Session: Photo session: Grace Park Solo` - 2026-09-04T14:00 - Epic Photos - `Grace Park`
-- `Photo Session: Photo session: Grace Park Solo` - 2026-09-05T15:00 - Epic Photos - `Grace Park`
-- `Photo Session: Photo session: Grace Park Solo` - 2026-09-06T13:20 - Epic Photos - `Grace Park`
-- `Photo Session: Photo session: Hades II` - 2026-09-04T17:10 - Epic Photos - `Ashley Barrett`, `Becca Q. Co`, `Judy Alice Lee`, `Jason Marnocha`, `Amelia Tyler`, and 1 more
-- `Photo Session: Photo session: Hades II` - 2026-09-05T11:30 - Epic Photos - `Ashley Barrett`, `Becca Q. Co`, `Judy Alice Lee`, `Jason Marnocha`, `Amelia Tyler`, and 1 more
-- `Photo Session: Photo session: Hades II` - 2026-09-06T15:40 - Epic Photos - `Ashley Barrett`, `Becca Q. Co`, `Judy Alice Lee`, `Jason Marnocha`, `Amelia Tyler`, and 1 more
-- `Photo Session: Photo session: Hazbin Hotel` - 2026-09-05T17:20 - Epic Photos - `Michael Kovach`, `Viv Medrano`
-- `Photo Session: Photo session: Isaac Ordonez Solo` - 2026-09-05T14:50 - Epic Photos - `Isaac Ordonez`
-- `Photo Session: Photo session: Jake Busey Solo` - 2026-09-04T12:10 - Epic Photos - `Jake Busey`
-- `Photo Session: Photo session: Jake Busey Solo` - 2026-09-05T17:00 - Epic Photos - `Jake Busey`
-- `Photo Session: Photo session: Jake Busey Solo` - 2026-09-06T13:50 - Epic Photos - `Jake Busey`
-- `Photo Session: Photo session: James Callis Solo` - 2026-09-04T13:50 - Epic Photos - `James Callis`
-- `Photo Session: Photo session: James Callis Solo` - 2026-09-05T15:20 - Epic Photos - `James Callis`
-- `Photo Session: Photo session: James Callis Solo` - 2026-09-06T13:30 - Epic Photos - `James Callis`
-- `Photo Session: Photo session: Jason Marnocha Solo` - 2026-09-04T17:20 - Epic Photos - `Jason Marnocha`
-- `Photo Session: Photo session: Jason Marnocha Solo` - 2026-09-05T11:20 - Epic Photos - `Jason Marnocha`
-- `Photo Session: Photo session: Jason Marnocha Solo` - 2026-09-06T15:50 - Epic Photos - `Jason Marnocha`
-- `Photo Session: Photo session: Javier Prusky Solo` - 2026-09-04T16:40 - Epic Photos - `Javier Prusky`
-- `Photo Session: Photo session: Javier Prusky Solo` - 2026-09-05T15:00 - Epic Photos - `Javier Prusky`
-- `Photo Session: Photo session: Javier Prusky Solo` - 2026-09-06T12:50 - Epic Photos - `Javier Prusky`
-- `Photo Session: Photo session: Jewel Staite Solo` - 2026-09-04T11:30 - Epic Photos - `Jewel Staite`
-- `Photo Session: Photo session: Jewel Staite Solo` - 2026-09-05T12:50 - Epic Photos - `Jewel Staite`
-- `Photo Session: Photo session: Jewel Staite Solo` - 2026-09-06T11:40 - Epic Photos - `Jewel Staite`
-- `Photo Session: Photo session: Jon Huertas Solo` - 2026-09-04T16:00 - Epic Photos - `Jon Huertas`
-- `Photo Session: Photo session: Jon Huertas Solo` - 2026-09-05T13:00 - Epic Photos - `Jon Huertas`
-- `Photo Session: Photo session: Jon Huertas Solo` - 2026-09-06T12:00 - Epic Photos - `Jon Huertas`
-- `Photo Session: Photo session: Judy Alice Lee Solo` - 2026-09-04T17:10 - Epic Photos - `Judy Alice Lee`
-- `Photo Session: Photo session: Judy Alice Lee Solo` - 2026-09-05T11:20 - Epic Photos - `Judy Alice Lee`
-- `Photo Session: Photo session: Judy Alice Lee Solo` - 2026-09-06T15:50 - Epic Photos - `Judy Alice Lee`
-- `Photo Session: Photo session: Julie Caitlin Brown Solo` - 2026-09-04T13:40 - Epic Photos - `Julie Caitlin Brown`
-- `Photo Session: Photo session: Julie Caitlin Brown Solo` - 2026-09-05T17:20 - Epic Photos - `Julie Caitlin Brown`
-- `Photo Session: Photo session: Julie Caitlin Brown Solo` - 2026-09-06T15:10 - Epic Photos - `Julie Caitlin Brown`
-- `Photo Session: Photo session: Katee Sackhoff Solo` - 2026-09-05T15:20 - Epic Photos - `Katee Sackhoff`
-- `Photo Session: Photo session: Katee Sackhoff Solo` - 2026-09-06T14:00 - Epic Photos - `Katee Sackhoff`
-- `Photo Session: Photo session: Katherine Barrell Solo` - 2026-09-04T11:30 - Epic Photos - `Kat Barrell`
-- `Photo Session: Photo session: Katherine Barrell Solo` - 2026-09-05T16:10 - Epic Photos - `Kat Barrell`
-- `Photo Session: Photo session: Katherine Barrell Solo` - 2026-09-06T14:30 - Epic Photos - `Kat Barrell`
-- `Photo Session: Photo session: Kathy Coleman Solo` - 2026-09-04T15:50 - Epic Photos - `Kathy Coleman`
-- `Photo Session: Photo session: Kathy Coleman Solo` - 2026-09-05T13:20 - Epic Photos - `Kathy Coleman`
-- `Photo Session: Photo session: Kathy Coleman Solo` - 2026-09-06T16:10 - Epic Photos - `Kathy Coleman`
-- `Photo Session: Photo session: Land of the Lost` - 2026-09-04T15:40 - Epic Photos - `Kathy Coleman`, `Wesley Eure`, `Phil Paley`
-- `Photo Session: Photo session: Land of the Lost` - 2026-09-05T13:20 - Epic Photos - `Kathy Coleman`, `Wesley Eure`, `Phil Paley`
-- `Photo Session: Photo session: Land of the Lost` - 2026-09-06T16:00 - Epic Photos - `Kathy Coleman`, `Wesley Eure`, `Phil Paley`
-- `Photo Session: Photo session: Lena Headey Solo` - 2026-09-05T16:10 - Epic Photos - `Lena Headey`
-- `Photo Session: Photo session: Lena Headey Solo` - 2026-09-05T16:20 - Epic Photos - `Lena Headey`
-- `Photo Session: Photo session: Lena Headey Solo` - 2026-09-06T13:00 - Epic Photos - `Lena Headey`
-- `Photo Session: Photo session: Levi Fiehler Solo` - 2026-09-04T15:20 - Epic Photos - `Levi Fiehler`
-- `Photo Session: Photo session: Levi Fiehler Solo` - 2026-09-05T14:10 - Epic Photos - `Levi Fiehler`
-- `Photo Session: Photo session: Levi Fiehler Solo` - 2026-09-06T13:00 - Epic Photos - `Levi Fiehler`
-- `Photo Session: Photo session: Lisseth Chavez Solo` - 2026-09-05T12:30 - Epic Photos - `Lisseth Chavez`
-- `Photo Session: Photo session: Lisseth Chavez Solo` - 2026-09-06T12:10 - Epic Photos - `Lisseth Chavez`
-- `Photo Session: Photo session: Liz Callaway Solo` - 2026-09-04T15:10 - Epic Photos - `Liz Callaway`
-- `Photo Session: Photo session: Liz Callaway Solo` - 2026-09-05T11:10 - Epic Photos - `Liz Callaway`
-- `Photo Session: Photo session: Liz Callaway Solo` - 2026-09-06T13:50 - Epic Photos - `Liz Callaway`
-- `Photo Session: Photo session: Longmire` - 2026-09-05T15:40 - Epic Photos - `Cassidy Freeman`, `Katee Sackhoff`
-- `Photo Session: Photo session: Longmire` - 2026-09-06T14:20 - Epic Photos - `Cassidy Freeman`, `Katee Sackhoff`
-- `Photo Session: Photo session: Lower Decks - Duo 1` - 2026-09-04T13:20 - Epic Photos - `Eugene Cordero`, `Noël Wells`
-- `Photo Session: Photo session: Lower Decks - Duo 1` - 2026-09-05T11:50 - Epic Photos - `Eugene Cordero`, `Noël Wells`
-- `Photo Session: Photo session: Lower Decks - Duo 1` - 2026-09-06T13:10 - Epic Photos - `Eugene Cordero`, `Noël Wells`
-- `Photo Session: Photo session: Lower Decks - Duo 2` - 2026-09-04T13:00 - Epic Photos - `Dawnn Lewis`, `Tawny Newsome`
-- `Photo Session: Photo session: Lower Decks - Duo 2` - 2026-09-05T11:40 - Epic Photos - `Dawnn Lewis`, `Tawny Newsome`
-- `Photo Session: Photo session: Lower Decks - Duo 2` - 2026-09-06T13:30 - Epic Photos - `Dawnn Lewis`, `Tawny Newsome`
-- `Photo Session: Photo session: Lower Decks - Duo 3` - 2026-09-04T13:10 - Epic Photos - `Eugene Cordero`, `Tawny Newsome`
-- `Photo Session: Photo session: Lower Decks - Duo 3` - 2026-09-05T11:40 - Epic Photos - `Eugene Cordero`, `Tawny Newsome`
-- `Photo Session: Photo session: Lower Decks - Duo 3` - 2026-09-06T13:10 - Epic Photos - `Eugene Cordero`, `Tawny Newsome`
-- `Photo Session: Photo session: Marissa Lenti Solo` - 2026-09-04T14:40 - Epic Photos - `Marissa Lenti`
-- `Photo Session: Photo session: Marissa Lenti Solo` - 2026-09-06T15:10 - Epic Photos - `Marissa Lenti`
-- `Photo Session: Photo session: Mary McDonnell Solo` - 2026-09-04T14:10 - Epic Photos - `Mary McDonnell`
-- `Photo Session: Photo session: Mary McDonnell Solo` - 2026-09-05T15:10 - Epic Photos - `Mary McDonnell`
-- `Photo Session: Photo session: Mary McDonnell Solo` - 2026-09-06T13:50 - Epic Photos - `Mary McDonnell`
-- `Photo Session: Photo session: Melanie Scrofano Solo` - 2026-09-04T11:30 - Epic Photos - `Melanie Scrofano`
-- `Photo Session: Photo session: Melanie Scrofano Solo` - 2026-09-05T16:20 - Epic Photos - `Melanie Scrofano`
-- `Photo Session: Photo session: Melanie Scrofano Solo` - 2026-09-06T14:30 - Epic Photos - `Melanie Scrofano`
-- `Photo Session: Photo session: Meredith Garretson Solo` - 2026-09-04T15:20 - Epic Photos - `Meredith Garretson`
-- `Photo Session: Photo session: Meredith Garretson Solo` - 2026-09-05T14:10 - Epic Photos - `Meredith Garretson`
-- `Photo Session: Photo session: Meredith Garretson Solo` - 2026-09-06T13:00 - Epic Photos - `Meredith Garretson`
-- `Photo Session: Photo session: Michael Ironside Solo` - 2026-09-04T12:10 - Epic Photos - `Michael Ironside`
-- `Photo Session: Photo session: Michael Ironside Solo` - 2026-09-05T16:40 - Epic Photos - `Michael Ironside`
-- `Photo Session: Photo session: Michael Ironside Solo` - 2026-09-06T13:40 - Epic Photos - `Michael Ironside`
-- `Photo Session: Photo session: Michael Kovach Solo` - 2026-09-04T14:50 - Epic Photos - `Michael Kovach`
-- `Photo Session: Photo session: Michael Kovach Solo` - 2026-09-05T17:20 - Epic Photos - `Michael Kovach`
-- `Photo Session: Photo session: Michael Kovach Solo` - 2026-09-06T15:10 - Epic Photos - `Michael Kovach`
-- `Photo Session: Photo session: Michael Shanks Solo` - 2026-09-04T11:10 - Epic Photos - `Michael Shanks`
-- `Photo Session: Photo session: Michael Shanks Solo` - 2026-09-05T12:50 - Epic Photos - `Michael Shanks`
-- `Photo Session: Photo session: Michael Shanks Solo` - 2026-09-06T12:20 - Epic Photos - `Michael Shanks`
-- `Photo Session: Photo session: Molly Quinn Solo` - 2026-09-04T16:30 - Epic Photos - `Molly Quinn`
-- `Photo Session: Photo session: Molly Quinn Solo` - 2026-09-05T13:00 - Epic Photos - `Molly Quinn`
-- `Photo Session: Photo session: Molly Quinn Solo` - 2026-09-06T12:00 - Epic Photos - `Molly Quinn`
-- `Photo Session: Photo session: Nivek Ogre Solo` - 2026-09-04T15:20 - Epic Photos - `Nivek Ogre`
-- `Photo Session: Photo session: Nivek Ogre Solo` - 2026-09-05T11:40 - Epic Photos - `Nivek Ogre`
-- `Photo Session: Photo session: Noel Wells Solo` - 2026-09-04T13:20 - Epic Photos - `Noël Wells`
-- `Photo Session: Photo session: Noel Wells Solo` - 2026-09-05T11:50 - Epic Photos - `Noël Wells`
-- `Photo Session: Photo session: Noel Wells Solo` - 2026-09-06T13:20 - Epic Photos - `Noël Wells`
-- `Photo Session: Photo session: Once We Were Spacemen and Superman` - 2026-09-05T13:30 - Epic Photos - `Nathan Fillion`, `Alan Tudyk`
-- `Photo Session: Photo session: Once We Were Spacemen and Superman` - 2026-09-05T13:40 - Epic Photos - `Nathan Fillion`, `Alan Tudyk`
-- `Photo Session: Photo session: Once We Were Spacemen and Superman` - 2026-09-06T11:40 - Epic Photos - `Nathan Fillion`, `Alan Tudyk`
-- `Photo Session: Photo session: Patricia Tallman Solo` - 2026-09-04T13:40 - Epic Photos - `Patricia Tallman`
-- `Photo Session: Photo session: Patricia Tallman Solo` - 2026-09-05T17:20 - Epic Photos - `Patricia Tallman`
-- `Photo Session: Photo session: Patricia Tallman Solo` - 2026-09-06T15:20 - Epic Photos - `Patricia Tallman`
-- `Photo Session: Photo session: Peter Bramhill Solo` - 2026-09-04T16:50 - Epic Photos - `Peter Bramhill`
-- `Photo Session: Photo session: Peter Bramhill Solo` - 2026-09-05T15:30 - Epic Photos - `Peter Bramhill`
-- `Photo Session: Photo session: Peter Bramhill Solo` - 2026-09-06T12:40 - Epic Photos - `Peter Bramhill`
-- `Photo Session: Photo session: Phillip Paley Solo` - 2026-09-04T15:40 - Epic Photos - `Phil Paley`
-- `Photo Session: Photo session: Phillip Paley Solo` - 2026-09-05T13:10 - Epic Photos - `Phil Paley`
-- `Photo Session: Photo session: Phillip Paley Solo` - 2026-09-06T16:00 - Epic Photos - `Phil Paley`
-- `Photo Session: Photo session: Resident Alien` - 2026-09-05T13:20 - Epic Photos - `Levi Fiehler`, `Meredith Garretson`, `Jewel Staite`, `Sara Tomko`, `Alan Tudyk`, and 1 more
-- `Photo Session: Photo session: Resident Alien` - 2026-09-06T11:10 - Epic Photos - `Levi Fiehler`, `Meredith Garretson`, `Jewel Staite`, `Sara Tomko`, `Alan Tudyk`, and 1 more
-- `Photo Session: Photo session: Resident Alien Couple` - 2026-09-04T15:20 - Epic Photos - `Levi Fiehler`, `Meredith Garretson`
-- `Photo Session: Photo session: Resident Alien Couple` - 2026-09-05T14:10 - Epic Photos - `Levi Fiehler`, `Meredith Garretson`
-- `Photo Session: Photo session: Resident Alien Couple` - 2026-09-06T13:00 - Epic Photos - `Levi Fiehler`, `Meredith Garretson`
-- `Photo Session: Photo session: Resident Alien Duo` - 2026-09-04T17:40 - Epic Photos - `Sara Tomko`, `Alice Wetterlund`
-- `Photo Session: Photo session: Resident Alien Duo` - 2026-09-05T13:30 - Epic Photos - `Sara Tomko`, `Alice Wetterlund`
-- `Photo Session: Photo session: Resident Alien Duo` - 2026-09-06T11:00 - Epic Photos - `Sara Tomko`, `Alice Wetterlund`
-- `Photo Session: Photo session: Richard Dean Anderson Solo` - 2026-09-04T11:00 - Epic Photos - `Richard Dean Anderson`
-- `Photo Session: Photo session: Richard Dean Anderson Solo` - 2026-09-04T11:10 - Epic Photos - `Richard Dean Anderson`
-- `Photo Session: Photo session: Richard Dean Anderson Solo` - 2026-09-05T12:20 - Epic Photos - `Richard Dean Anderson`
-- `Photo Session: Photo session: Richard Dean Anderson Solo` - 2026-09-06T11:50 - Epic Photos - `Richard Dean Anderson`
-- `Photo Session: Photo session: Ross Marquand Solo` - 2026-09-04T16:10 - Epic Photos - `Ross Marquand`
-- `Photo Session: Photo session: Ross Marquand Solo` - 2026-09-05T12:00 - Epic Photos - `Ross Marquand`
-- `Photo Session: Photo session: Ross Marquand Solo` - 2026-09-05T15:50 - Epic Photos - `Ross Marquand`
-- `Photo Session: Photo session: Sara Tomko Solo` - 2026-09-04T17:40 - Epic Photos - `Sara Tomko`
-- `Photo Session: Photo session: Sara Tomko Solo` - 2026-09-05T13:30 - Epic Photos - `Sara Tomko`
-- `Photo Session: Photo session: Sara Tomko Solo` - 2026-09-06T11:00 - Epic Photos - `Sara Tomko`
-- `Photo Session: Photo session: Sarah Connor Chronicles Duo` - 2026-09-05T16:30 - Epic Photos - `Summer Glau`, `Lena Headey`
-- `Photo Session: Photo session: Sarah Connor Chronicles Duo` - 2026-09-06T13:10 - Epic Photos - `Summer Glau`, `Lena Headey`
-- `Photo Session: Photo session: Seamus Dever Solo` - 2026-09-04T16:00 - Epic Photos - `Seamus Dever`
-- `Photo Session: Photo session: Seamus Dever Solo` - 2026-09-05T13:00 - Epic Photos - `Seamus Dever`
-- `Photo Session: Photo session: Seamus Dever Solo` - 2026-09-06T12:10 - Epic Photos - `Seamus Dever`
-- `Photo Session: Photo session: Sean Astin Solo` - 2026-09-04T12:30 - Epic Photos - `Sean Astin`
-- `Photo Session: Photo session: Sean Astin Solo` - 2026-09-05T16:40 - Epic Photos - `Sean Astin`
-- `Photo Session: Photo session: Sean Astin Solo` - 2026-09-06T12:30 - Epic Photos - `Sean Astin`
-- `Photo Session: Photo session: Sena Bryer Solo` - 2026-09-04T17:10 - Epic Photos - `Sena Bryer`
-- `Photo Session: Photo session: Sena Bryer Solo` - 2026-09-05T16:50 - Epic Photos - `Sena Bryer`
-- `Photo Session: Photo session: Sena Bryer Solo` - 2026-09-06T15:40 - Epic Photos - `Sena Bryer`
-- `Photo Session: Photo session: Skye Redden Solo` - 2026-09-04T14:40 - Epic Photos - `Skye Redden`
-- `Photo Session: Photo session: Skye Redden Solo` - 2026-09-05T17:30 - Epic Photos - `Skye Redden`
-- `Photo Session: Photo session: Skye Redden Solo` - 2026-09-06T15:20 - Epic Photos - `Skye Redden`
-- `Photo Session: Photo session: Smallville` - 2026-09-06T14:40 - Epic Photos - `Aaron Ashmore`, `Erica Durance`, `Cassidy Freeman`, `Tom Welling`
-- `Photo Session: Photo session: Stargate - SG1` - 2026-09-04T11:20 - Epic Photos - `Richard Dean Anderson`, `Claudia Black`, `Ben Browder`, `Teryl Rothery`, `Michael Shanks`, and 1 more
-- `Photo Session: Photo session: Stargate - SG1` - 2026-09-05T12:40 - Epic Photos - `Richard Dean Anderson`, `Claudia Black`, `Ben Browder`, `Teryl Rothery`, `Michael Shanks`, and 1 more
-- `Photo Session: Photo session: Stargate - SG1` - 2026-09-06T11:50 - Epic Photos - `Richard Dean Anderson`, `Claudia Black`, `Ben Browder`, `Teryl Rothery`, `Michael Shanks`, and 1 more
-- `Photo Session: Photo session: Starship Troopers` - 2026-09-04T12:00 - Epic Photos - `Jake Busey`, `Michael Ironside`, `Dina Meyer`, `Denise Richards`, `Casper Van Dien`
-- `Photo Session: Photo session: Starship Troopers` - 2026-09-05T16:50 - Epic Photos - `Jake Busey`, `Michael Ironside`, `Dina Meyer`, `Denise Richards`, `Casper Van Dien`
-- `Photo Session: Photo session: Starship Troopers` - 2026-09-06T13:50 - Epic Photos - `Jake Busey`, `Michael Ironside`, `Dina Meyer`, `Denise Richards`, `Casper Van Dien`
-- `Photo Session: Photo session: Summer Glau` - 2026-09-04T17:30 - Epic Photos - `Summer Glau`
-- `Photo Session: Photo session: Summer Glau` - 2026-09-05T16:30 - Epic Photos - `Summer Glau`
-- `Photo Session: Photo session: Summer Glau` - 2026-09-06T13:10 - Epic Photos - `Summer Glau`
-- `Photo Session: Photo session: Tawny Newsome Solo` - 2026-09-04T13:00 - Epic Photos - `Tawny Newsome`
-- `Photo Session: Photo session: Tawny Newsome Solo` - 2026-09-05T11:40 - Epic Photos - `Tawny Newsome`
-- `Photo Session: Photo session: Tawny Newsome Solo` - 2026-09-06T13:30 - Epic Photos - `Tawny Newsome`
-- `Photo Session: Photo session: Teryl Rothery Solo` - 2026-09-04T11:10 - Epic Photos - `Teryl Rothery`
-- `Photo Session: Photo session: Teryl Rothery Solo` - 2026-09-05T12:50 - Epic Photos - `Teryl Rothery`
-- `Photo Session: Photo session: Teryl Rothery Solo` - 2026-09-06T11:40 - Epic Photos - `Teryl Rothery`
-- `Photo Session: Photo session: The Amazing Digital Circus` - 2026-09-04T14:50 - Epic Photos - `Amanda Hufford`, `Michael Kovach`, `Marissa Lenti`, `Skye Redden`, `Alex Rochon`
-- `Photo Session: Photo session: The Amazing Digital Circus` - 2026-09-05T17:30 - Epic Photos - `Amanda Hufford`, `Michael Kovach`, `Marissa Lenti`, `Skye Redden`, `Alex Rochon`
-- `Photo Session: Photo session: The Amazing Digital Circus` - 2026-09-06T15:10 - Epic Photos - `Amanda Hufford`, `Michael Kovach`, `Marissa Lenti`, `Skye Redden`, `Alex Rochon`
-- `Photo Session: Photo session: The Rookie` - 2026-09-05T12:40 - Epic Photos - `Lisseth Chavez`, `Nathan Fillion`, `Richard T Jones`, `Melissa O'Neil`
-- `Photo Session: Photo session: The Rookie` - 2026-09-06T12:00 - Epic Photos - `Lisseth Chavez`, `Nathan Fillion`, `Richard T Jones`, `Melissa O'Neil`
-- `Photo Session: Photo session: Timothy Rozon Solo` - 2026-09-04T11:50 - Epic Photos - `Tim Rozon`
-- `Photo Session: Photo session: Timothy Rozon Solo` - 2026-09-05T16:20 - Epic Photos - `Tim Rozon`
-- `Photo Session: Photo session: Timothy Rozon Solo` - 2026-09-06T14:40 - Epic Photos - `Tim Rozon`
-- `Photo Session: Photo session: Tom Welling Solo` - 2026-09-05T16:00 - Epic Photos - `Tom Welling`
-- `Photo Session: Photo session: Tricia Helfer Solo` - 2026-09-04T14:00 - Epic Photos - `Tricia Helfer`
-- `Photo Session: Photo session: Tricia Helfer Solo` - 2026-09-05T15:00 - Epic Photos - `Tricia Helfer`
-- `Photo Session: Photo session: Tricia Helfer Solo` - 2026-09-06T13:20 - Epic Photos - `Tricia Helfer`
-- `Photo Session: Photo session: Tucker and Dale vs Evil` - 2026-09-05T14:00 - Epic Photos - `Tyler Labine`, `Alan Tudyk`
-- `Photo Session: Photo session: Tucker and Dale vs Evil` - 2026-09-06T11:20 - Epic Photos - `Tyler Labine`, `Alan Tudyk`
-- `Photo Session: Photo session: Tyler Labine Solo` - 2026-09-04T16:50 - Epic Photos - `Tyler Labine`
-- `Photo Session: Photo session: Tyler Labine Solo` - 2026-09-05T13:50 - Epic Photos - `Tyler Labine`
-- `Photo Session: Photo session: Tyler Labine Solo` - 2026-09-06T11:10 - Epic Photos - `Tyler Labine`
-- `Photo Session: Photo session: Varun Saranga Solo` - 2026-09-04T11:50 - Epic Photos - `Varun Saranga`
-- `Photo Session: Photo session: Varun Saranga Solo` - 2026-09-05T16:10 - Epic Photos - `Varun Saranga`
-- `Photo Session: Photo session: Varun Saranga Solo` - 2026-09-06T14:50 - Epic Photos - `Varun Saranga`
-- `Photo Session: Strange New Worlds` - 2026-09-04T11:20 - Epic Photos - `Jess Bush`, `Celia Rose Gooding`, `Anson Mount`, `Melanie Scrofano`
-- `Photo Session: Strange New Worlds` - 2026-09-05T17:30 - Epic Photos - `Jess Bush`, `Celia Rose Gooding`, `Anson Mount`, `Melanie Scrofano`
-- `Photo Session: Strange New Worlds` - 2026-09-06T16:00 - Epic Photos - `Jess Bush`, `Celia Rose Gooding`, `Anson Mount`, `Melanie Scrofano`
-- `Photo Session: Vivienne Medrano Solo` - 2026-09-05T17:20 - Epic Photos - `Viv Medrano`
-- `Photo Session: Vivienne Medrano Solo` - 2026-09-06T15:00 - Epic Photos - `Viv Medrano`
-- `Photo Session: Wesley Eure Solo` - 2026-09-04T15:50 - Epic Photos - `Wesley Eure`
-- `Photo Session: Wesley Eure Solo` - 2026-09-05T13:20 - Epic Photos - `Wesley Eure`
-- `Photo Session: Wesley Eure Solo` - 2026-09-06T16:20 - Epic Photos - `Wesley Eure`
-- `Photo Session: Women of Battlestar` - 2026-09-05T15:10 - Epic Photos - `Tricia Helfer`, `Mary McDonnell`, `Grace Park`, `Katee Sackhoff`
-- `Photo Session: Women of Battlestar` - 2026-09-06T14:20 - Epic Photos - `Tricia Helfer`, `Mary McDonnell`, `Grace Park`, `Katee Sackhoff`
-- `Photo Session: Wynonna Earp` - 2026-09-04T11:40 - Epic Photos - `Emily Andras`, `Kat Barrell`, `Tim Rozon`, `Varun Saranga`, `Melanie Scrofano`
-- `Photo Session: Wynonna Earp` - 2026-09-05T16:10 - Epic Photos - `Emily Andras`, `Kat Barrell`, `Tim Rozon`, `Varun Saranga`, `Melanie Scrofano`
-- `Photo Session: Wynonna Earp` - 2026-09-06T14:40 - Epic Photos - `Emily Andras`, `Kat Barrell`, `Tim Rozon`, `Varun Saranga`, `Melanie Scrofano`
-- `Photo session: Wednesday` - 2026-09-05T14:50 - Epic Photos - `Isaac Ordonez`, `Evie Templeton`
 - `Psychostick` - 2026-09-06T01:30 - Live Performances - `Psychostick`
 - `Q&A with Justin Lee Ford` - 2026-09-05T19:00 - Silk Road - `Justin Lee Ford`, `Mike Odle`, `Lyman Chen`
-- `Q&A with the Amazing Sean Astin!` - 2026-09-06T10:00 - Main Programming - `Brian Richardson`, `Sean Astin`
 - `Real or Fake Anime with Thomas Sanders` - 2026-09-04T20:30 - Digital Media - no people
-- `Real or Fake Anime with Thomas Sanders` - 2026-09-04T20:30 - Digital Media - `Thomas Sanders`, `Sixth_Raikage_6`, `Sean Weiland`, `Deron Generally`
-- `Release the Bats: The Goth/Industrial Panel` - 2026-09-05T17:30 - Horror - `DJ Ichabod`, `Nivek Ogre`, `Rogue`, `Aurelio Voltaire`, `Adria Stembridge`, and 1 more
-- `Resident Alien Guests: Funny Bones Are Universal` - 2026-09-06T11:30 - American Sci-fi and Fantasy Media - `Rob Levy`, `Levi Fiehler`, `Meredith Garretson`, `Sara Tomko`, `Alice Wetterlund`
-- `Resident Alien: Alien? Guests Among Us` - 2026-09-05T16:00 - American Sci-fi and Fantasy Media - `Crispy`, `Levi Fiehler`, `Meredith Garretson`, `Jewel Staite`, `Sara Tomko`, and 2 more
-- `Resident Alien: Visitors from Patience, CO` - 2026-09-04T10:00 - American Sci-fi and Fantasy Media - `Tony P Henderson`, `Levi Fiehler`, `Meredith Garretson`, `Sara Tomko`, `Alice Wetterlund`
-- `Return to Purgatory: Wynonna Earp Cast` - 2026-09-04T13:00 - Urban Fantasy - `Emily Andras`, `Kat Barrell`, `Tim Rozon`, `Varun Saranga`, `Carol Malcolm`
-- `Rituals in the Wilderness: A Yellowjackets Cast Panel` - 2026-09-06T11:30 - Horror - `Tay Samms`, `Courtney Eaton`
-- `Robots and Teeth: The Puppetry of Kevin Carlson` - 2026-09-04T20:30 - Puppetry - `Molly Abigail Coffee`, `Kevin Carlson`
-- `Roll Against Fear: Tales of the Valiant – LIVE!` - 2026-09-05T19:00 - Table Top Gaming - `B. Dave Walters`, `Ming Chen`, `Tracie Miss Magitek Hearne`, `Omega Jones`, `Mark Meer`, and 1 more
 - `Running Man: The Game Has Changed` - 2026-09-04T10:00 - American Sci-fi and Fantasy Media - `Alyssa Askani`, `Jazzmin Wilson`, `Jeni Green`, `Rebecca Russell`, `Shayna Adelman`
-- `Secrets of Nevermore: Wednesday Cast` - 2026-09-05T13:00 - Urban Fantasy - `Kevin Bachelder`, `Isaac Ordonez`, `Evie Templeton`
 - `Sherrilyn Kenyon & Friends: Costume & Book Signing Extravaganza!` - 2026-09-03T19:00 - Main Programming - `Leanna Renee Hieber`, `Sherrilyn Kenyon`
-- `Smallville Class Reunion` - 2026-09-04T16:00 - American Sci-fi Classics - `Manda Montane`, `Aaron Ashmore`, `Erica Durance`, `Cassidy Freeman`
-- `Smallville Class Reunion` - 2026-09-05T11:30 - American Sci-fi Classics - `Mo Vermenton`, `Aaron Ashmore`, `Erica Durance`, `Cassidy Freeman`, `Tom Welling`
-- `Smallville Class Reunion` - 2026-09-06T13:00 - American Sci-fi Classics - `Thomas Parham`, `Aaron Ashmore`, `Erica Durance`, `Cassidy Freeman`, `Tom Welling`
-- `Star Trek Enterprise Q&A` - 2026-09-04T14:30 - Trek Track - `Marc Lee`, `Dominic Keating`, `Anthony Montgomery`, `Connor Trinneer`
-- `Star Trek Enterprise Q&A` - 2026-09-05T17:30 - Trek Track - `Garrett Wang`, `Dominic Keating`, `Anthony Montgomery`, `Connor Trinneer`
-- `Star Trek Enterprise Q&A` - 2026-09-06T16:00 - Trek Track - `Bobby Blackwolf`, `Dominic Keating`, `Anthony Montgomery`, `Connor Trinneer`
-- `Star Trek Lower Decks Q&A` - 2026-09-04T11:30 - Trek Track - `Rob Roberts`, `Eugene Cordero`, `Dawnn Lewis`, `Tawny Newsome`, `Gillian Vigman`, and 1 more
-- `Star Trek Lower Decks Q&A` - 2026-09-05T13:00 - Trek Track - `Garrett Wang`, `Eugene Cordero`, `Dawnn Lewis`, `Tawny Newsome`, `Jack Quaid`, and 2 more
-- `Star Trek Lower Decks Q&A` - 2026-09-06T11:30 - Trek Track - `Crispy`, `Eugene Cordero`, `Dawnn Lewis`, `Tawny Newsome`, `Gillian Vigman`, and 1 more
-- `Star Trek: Strange New Worlds` - 2026-09-05T16:00 - Trek Track - `Joey Davila`, `Jess Bush`, `Celia Rose Gooding`
-- `Star Trek: Strange New Worlds Guests` - 2026-09-04T17:30 - Trek Track - `Brian Richardson`, `Jess Bush`, `Celia Rose Gooding`, `Anson Mount`, `Melanie Scrofano`
-- `Star Trek: Strange New Worlds Guests` - 2026-09-06T14:30 - Trek Track - `Jess Bush`, `Celia Rose Gooding`
-- `Stargate: SG-1 - Make It Spin` - 2026-09-05T14:30 - Military Sci-fi Media - `Marc Lee`, `Richard Dean Anderson`, `Claudia Black`, `Ben Browder`, `Teryl Rothery`, and 1 more
-- `Stargate: SG-1: Taking This Loop off` - 2026-09-06T14:30 - Military Sci-fi Media - `Colby Smith`, `Richard Dean Anderson`, `Claudia Black`, `Ben Browder`, `Teryl Rothery`, and 1 more
-- `Stargate: The Iris Is Open for SG-1` - 2026-09-04T16:00 - Military Sci-fi Media - `Bobby Blackwolf`, `Richard Dean Anderson`, `Claudia Black`, `Ben Browder`, `Teryl Rothery`, and 1 more
-- `Starship Troopers 30th Anniversary Roughneck Reunion` - 2026-09-04T16:00 - American Sci-fi Classics - `Brian Richardson`, `Jake Busey`, `Michael Ironside`, `Dina Meyer`, `Denise Richards`, and 1 more
-- `Starship Troopers 30th Anniversary Roughneck Reunion` - 2026-09-05T17:30 - American Sci-fi Classics - `Marc Lee`, `Jake Busey`, `Michael Ironside`, `Dina Meyer`, `Denise Richards`, and 1 more
-- `Starship Troopers Roughneck Reunion` - 2026-09-07T10:00 - American Sci-fi Classics - `Rob Levy`, `Jake Busey`, `Michael Ironside`
-- `Starship Troopers: 30th Anniversary Roughneck Reunion` - 2026-09-06T10:00 - American Sci-fi Classics - `Kiki Falkanger`, `Jake Busey`, `Michael Ironside`, `Dina Meyer`, `Denise Richards`, and 1 more
 - `Supergirl: Woman of Tomorrow` - 2026-09-04T17:30 - American Sci-fi and Fantasy Media - `Aaron Michael Ritchey`, `Kevin Eldridge`, `Steve Saffel`, `Cammien Ray`, `Jon-Paul Estes`
-- `Tai Chi with Erin Gray **EXTRA FEE WORKSHOP**` - 2026-09-04T16:00 - Workshops - `Erin Gray`
-- `Tai Chi with Erin Gray **EXTRA FEE WORKSHOP**` - 2026-09-05T14:30 - Workshops - `Erin Gray`
-- `Tai Chi with Erin Gray **EXTRA FEE WORKSHOP**` - 2026-09-06T14:30 - Workshops - `Erin Gray`
-- `The Annual Dragon Con Parade!` - 2026-09-05T10:00 - Main Programming - `Tony DiTerlizzi`, `Anson Mount`, `Timothy Zahn`
-- `The Boys Guests: Life in Vought World` - 2026-09-04T14:30 - American Sci-fi and Fantasy Media - `Joey Davila`, `Tomer Capone`, `Jack Quaid`
-- `The Boys Guests: Supes, Scandals & Stories` - 2026-09-06T11:30 - American Sci-fi and Fantasy Media - `Tony P Henderson`, `Tomer Capone`, `Jack Quaid`
-- `The Boys guests: Behind the Mayhem` - 2026-09-05T11:30 - American Sci-fi and Fantasy Media - `Colby Smith`, `Shawn Ashmore`, `Tomer Capone`
 - `The Boys: Truth? Justice? ... and Vought` - 2026-09-05T16:00 - American Sci-fi and Fantasy Media - `Crystal Cleveland`, `Haduo-Ken Masters`, `Michael Collins`, `Paul Race`, `Robyn McGlotten`
 - `The Cybertronic Spree` - 2026-09-04T23:30 - Live Performances - `The Cybertronic Spree`
-- `The Demonatrix Screening` - 2026-09-04T22:00 - Horror - `Aurelio Voltaire`, `Nivek Ogre`
-- `The Hunt Is On: A Yellowjackets Cast Panel` - 2026-09-05T17:30 - Horror - `Sammi Doneff`, `Courtney Eaton`
-- `The Life and Times of Sean Astin` - 2026-09-04T13:00 - Main Programming - `Dot R Steverson`, `Sean Astin`
-- `The Rookie Cast` - 2026-09-04T13:00 - Main Programming - `Tay Samms`, `Shawn Ashmore`, `Richard T Jones`
-- `The Rookie Guests` - 2026-09-05T14:30 - Main Programming - `Kiki Falkanger`, `Lisseth Chavez`, `Richard T Jones`, `Melissa O'Neil`
-- `The Skeptical Side of Castle` - 2026-09-05T19:00 - Skeptics - `Seamus Dever`, `Jon Huertas`, `The Friggatriskaidekaphobia Treatment Nurse`, `Angie Matttke`
 - `The Tan and Sober Gentlemen` - 2026-09-05T01:30 - Live Performances - `The Tan and Sober Gentlemen`
-- `The Thrilling Adventures of Victoria` - 2026-09-06T10:00 - Main Programming - `Victoria`, `Joe Crowe`
 - `The Video Game Costume Contest` - 2026-09-04T17:30 - Video Gaming - `Alison Carrier`, `Dustin Fletcher`, `Mikal Mosley`, `Paris K Arrowsmith`
 - `The World of Monster High: The Movies, the Shows, the Dolls, & More` - 2026-09-05T11:30 - Urban Fantasy - `Austinn West`, `Carol Malcolm`, `Gabby`, `Gracie Palmer`, `Vikki Ortone`
-- `Venture Bros. Panel` - 2026-09-06T11:30 - Animation - `Ken Plume`, `Mark Gagliardi`, `Doc Hammer`, `Hal Lublin`
-- `WABE: Imagined Worlds, Real Nation – 40 Years of Fandom & America at 250` - 2026-09-03T12:00 - Main Programming - `Yaya Han`, `Tawny Newsome`, `Pat Henry - President of Dragon Con`, `Rose Scott`
-- `Welcome to Fandom Face-off: The Ultimate Gameshow of Bad Choices!` - 2026-09-06T16:00 - Digital Media - `Charles A Mcfall`, `Thomas Sanders`, `Josh Cooper`
-- `Welcome to Night Vale` - 2026-09-05T16:00 - Digital Media - `Mark Gagliardi`, `Hal Lublin`, `Symphony Sanders`
-- `Welcome to Trek Track` - 2026-09-04T10:00 - Trek Track - `Garrett Wang`, `Leo Visentin`
-- `X-Men '97 Cast` - 2026-09-04T14:30 - Animation - `Tay Samms`, `Gui Agustini`, `Ross Marquand`, `Alison Sealy-Smith`
-- `X-Men '97 Cast` - 2026-09-06T10:00 - Animation - `Manda Montane`, `Gui Agustini`, `Alison Sealy-Smith`, `Matthew Waterson`
-- `X-Men '97 Guests` - 2026-09-05T13:00 - Animation - `Joey Davila`, `Gui Agustini`, `Ross Marquand`, `Alison Sealy-Smith`, `Matthew Waterson`
-- `You Want a Killer Hillbilly? – An Hour With Tyler Labine` - 2026-09-04T10:00 - Horror - `Colby Smith`, `Tyler Labine`
 - `ZombieCON Vol. 1: Fan Discussion Panel` - 2026-09-04T19:00 - Apocalypse Rising - `Jonathan Sarge`, `Kyle Valle`

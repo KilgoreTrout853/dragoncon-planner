@@ -6,7 +6,6 @@
   "a-different-world",
   "a-goofy-movie",
   "a-million-little-things",
-  "agents-of-s-h-i-e-l-d",
   "anastasia",
   "arrow",
   "avengers-endgame",
@@ -15,29 +14,24 @@
   "baldurs-gate-3",
   "bastion",
   "beverly-hills-90210",
-  "birds-of-prey",
   "blackcollar",
   "blade-runner",
   "bridget-joness-diary",
   "bubble",
   "burn-notice",
   "cartoon-therapy",
-  "case-closed",
   "cedar-cove",
   "cheaper-by-the-dozen",
   "chicago-p-d",
-  "chowdaheads",
   "chronicles-of-nick",
   "cobra-1985",
   "coco",
-  "code-monkey",
   "codex-alera",
   "comic-book-men",
   "companion",
-  "da-vincis-notebook",
   "dances-with-wolves",
   "dark-hunter",
-  "dark-matter",
+  "dark-matter-2015",
   "days-of-our-lives",
   "dcs-legends-of-tomorrow",
   "deadbeat",
@@ -45,7 +39,6 @@
   "death-battle",
   "dies-the-fire",
   "dinosaurs",
-  "doctor-strange-in-the-multiverse-of-madness",
   "dollhouse",
   "dredd",
   "drunk-history",
@@ -53,7 +46,6 @@
   "farscape",
   "final-fantasy-xiv",
   "from-dusk-till-dawn",
-  "frozen",
   "futurama",
   "garfield",
   "general-hospital",
@@ -79,7 +71,6 @@
   "kill-the-farm-boy",
   "killer-women",
   "killjoys",
-  "kingdom-hearts",
   "knightriders",
   "known-space",
   "les-miserables",
@@ -96,14 +87,11 @@
   "major-crimes",
   "mass-effect",
   "master-of-none",
-  "merlin",
   "miami-vice",
   "new-amsterdam",
   "night-of-the-living-dead",
   "nurses",
   "once-upon-a-time",
-  "oxenfree",
-  "pentiment",
   "planescape",
   "portal",
   "professionals-2020",
@@ -128,9 +116,6 @@
   "silicon-valley",
   "silver-spoons",
   "skinny-puppy",
-  "sleepy-hollow",
-  "sneaky-pete",
-  "sonny-with-a-chance",
   "space-force",
   "splinter-cell",
   "stand-and-deliver",
@@ -144,7 +129,6 @@
   "supergirl",
   "surrealestate",
   "tacoma-fd",
-  "tell-em-steve-dave",
   "terminator-the-sarah-connor-chronicles",
   "the-boys",
   "the-brothers-grimm",
@@ -167,7 +151,6 @@
   "the-peshawar-lancers",
   "the-real-housewives-of-beverly-hills",
   "the-righteous-gemstones",
-  "the-rookie-feds",
   "the-search-for-wondla",
   "the-shadow-series",
   "the-spiderwick-chronicles",
@@ -177,7 +160,6 @@
   "this-is-us",
   "thrawn",
   "titans",
-  "top-gun-maverick",
   "total-recall",
   "transistor",
   "tron",
@@ -186,7 +168,6 @@
   "ultima-online",
   "uncharted",
   "virgin-river",
-  "w00tstock",
   "warehouse-13",
   "we-got-this-with-mark-and-hal",
   "wednesday",
@@ -487,7 +468,8 @@
     "Bit Brigade"
    ],
    "known_for": "Band that performs live video game music while a player speedruns the game",
-   "name": "Bit Brigade"
+   "name": "Bit Brigade",
+   "notes": "Bit Brigade is a band or a duo, not a person: a band is a work (schema-v2), as with galactic-empire."
   },
   "bobby-blackwolf": {
    "confidence": "high",
@@ -526,7 +508,8 @@
     "Concert – The Brobdingnagian Bards"
    ],
    "known_for": "Celtic music duo",
-   "name": "Brobdingnagian Bards"
+   "name": "Brobdingnagian Bards",
+   "notes": "The Brobdingnagian Bards is a band or a duo, not a person: a band is a work (schema-v2), as with galactic-empire."
   },
   "bruce-boxleitner": {
    "confidence": "high",
@@ -733,7 +716,8 @@
     "Cruxshadows"
    ],
    "known_for": "Gothic rock band, longtime Dragon Con performers",
-   "name": "Cruxshadows"
+   "name": "Cruxshadows",
+   "notes": "The Cruxshadows is a band or a duo, not a person: a band is a work (schema-v2), as with galactic-empire."
   },
   "crystal-cleveland": {
    "confidence": "low",
@@ -2064,7 +2048,8 @@
     "Gonzoroo Presents: A Music & Comedy Spectacular"
    ],
    "known_for": "Comedy music duo known for geek-culture songs and w00tstock.",
-   "name": "Paul and Storm"
+   "name": "Paul and Storm",
+   "notes": "Paul and Storm is a band or a duo, not a person: a band is a work (schema-v2), as with galactic-empire."
   },
   "paul-race": {
    "confidence": "low",
@@ -2134,7 +2119,8 @@
     "Psychostick"
    ],
    "known_for": "Comedy metal band.",
-   "name": "Psychostick"
+   "name": "Psychostick",
+   "notes": "Psychostick is a band or a duo, not a person: a band is a work (schema-v2), as with galactic-empire."
   },
   "rachel-reeves": {
    "confidence": "low",
@@ -2480,7 +2466,8 @@
     "The Cybertronic Spree"
    ],
    "known_for": "Rock band that performs Transformers: The Movie soundtrack in costume.",
-   "name": "The Cybertronic Spree"
+   "name": "The Cybertronic Spree",
+   "notes": "The Cybertronic Spree is a band or a duo, not a person: a band is a work (schema-v2), as with galactic-empire."
   },
   "the-friggatriskaidekaphobia-treatment-nurse": {
    "confidence": "low",
@@ -2496,7 +2483,8 @@
     "The Tan and Sober Gentlemen"
    ],
    "known_for": "Celtic and Appalachian folk band.",
-   "name": "The Tan and Sober Gentlemen"
+   "name": "The Tan and Sober Gentlemen",
+   "notes": "The Tan and Sober Gentlemen is a band or a duo, not a person: a band is a work (schema-v2), as with galactic-empire."
   },
   "thomas-parham": {
    "confidence": "low",
@@ -2782,6 +2770,14 @@
    "name": "Birma Gainor"
   },
   {
+   "by": "review",
+   "events": [
+    "Bit Brigade"
+   ],
+   "id": "bit-brigade",
+   "name": "Bit Brigade"
+  },
+  {
    "by": "model",
    "events": [
     "Stargate: The Iris Is Open for SG-1",
@@ -2803,6 +2799,14 @@
    ],
    "id": "brian-richardson",
    "name": "Brian Richardson"
+  },
+  {
+   "by": "review",
+   "events": [
+    "Concert – The Brobdingnagian Bards"
+   ],
+   "id": "brobdingnagian-bards",
+   "name": "Brobdingnagian Bards"
   },
   {
    "by": "model",
@@ -2899,6 +2903,15 @@
    ],
    "id": "crispy",
    "name": "Crispy"
+  },
+  {
+   "by": "review",
+   "events": [
+    "An Hour with The Cruxshadows: Discussion & Q&A",
+    "Cruxshadows"
+   ],
+   "id": "cruxshadows",
+   "name": "Cruxshadows"
   },
   {
    "by": "model",
@@ -3460,6 +3473,14 @@
    "name": "Paris K Arrowsmith"
   },
   {
+   "by": "review",
+   "events": [
+    "Gonzoroo Presents: A Music & Comedy Spectacular"
+   ],
+   "id": "paul-and-storm",
+   "name": "Paul and Storm"
+  },
+  {
    "by": "model",
    "events": [
     "The Boys: Truth? Justice? ... and Vought"
@@ -3486,6 +3507,14 @@
    ],
    "id": "primetime-steve",
    "name": "Primetime Steve"
+  },
+  {
+   "by": "review",
+   "events": [
+    "Psychostick"
+   ],
+   "id": "psychostick",
+   "name": "Psychostick"
   },
   {
    "by": "model",
@@ -3588,17 +3617,6 @@
   {
    "by": "model",
    "events": [
-    "FFXIV Cast Q&A",
-    "Photo Session: Photo session: Sena Bryer Solo",
-    "From FFXIV to FFXI: Adventuring in Vana'diel",
-    "Final Fantasy XIV Fireside Chat"
-   ],
-   "id": "sena-bryer",
-   "name": "Sena Bryer"
-  },
-  {
-   "by": "model",
-   "events": [
     "Running Man: The Game Has Changed"
    ],
    "id": "shayna-adelman",
@@ -3632,12 +3650,28 @@
    "name": "Tay Samms"
   },
   {
+   "by": "review",
+   "events": [
+    "The Cybertronic Spree"
+   ],
+   "id": "the-cybertronic-spree",
+   "name": "The Cybertronic Spree"
+  },
+  {
    "by": "model",
    "events": [
     "The Skeptical Side of Castle"
    ],
    "id": "the-friggatriskaidekaphobia-treatment-nurse",
    "name": "The Friggatriskaidekaphobia Treatment Nurse"
+  },
+  {
+   "by": "review",
+   "events": [
+    "The Tan and Sober Gentlemen"
+   ],
+   "id": "the-tan-and-sober-gentlemen",
+   "name": "The Tan and Sober Gentlemen"
   },
   {
    "by": "model",
@@ -3685,15 +3719,6 @@
    ],
    "id": "trey-lawson",
    "name": "Trey Lawson"
-  },
-  {
-   "by": "model",
-   "events": [
-    "Dragon Con Wrestling",
-    "The Thrilling Adventures of Victoria"
-   ],
-   "id": "victoria",
-   "name": "Victoria"
   },
   {
    "by": "model",
