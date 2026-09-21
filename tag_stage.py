@@ -54,10 +54,13 @@ PER_REQUEST = 25
 DESCRIPTION_CAP = 2000
 MAX_WORKS = 3
 API_MODEL = "claude-sonnet-5"
-CODE_MODEL = "sonnet"
+# A full id on Claude Code too, never an alias: an alias moves with the CLI, and here `sonnet` is
+# claude-sonnet-4-6 (claude 2.1.145, 2026-09-21). The tag stage names the model it asks for, and the
+# cache records the one that answered.
+CODE_MODEL = "claude-sonnet-5"
 AXIS_NAMES = tuple(registry.AXES)   # medium, genre, craft, subject
 AUDIENCES = ("kids", "all", "mature")
-PLAY_FORMATS = ("demo", "learn-to-play", "organized-play", "tournament", "open-play", "campaign")
+PLAY_FORMATS = ("demo", "learn-to-play", "organized-play", "tournament", "open-play", "campaign", "one-shot")
 PLAY_LEVELS = ("beginner", "any", "experienced")
 # What strip_facets can leave at either end of a title: "Matt Dinniman - Signing - SOLD OUT"
 # comes out "Matt Dinniman - Signing -".
@@ -67,7 +70,9 @@ ANSWER_FIELDS = ("kind", "works") + AXIS_NAMES + ("audience", "play")
 WORK_FIELDS = ("name", "evidence", "type", "family")
 STOP_AFTER_FAILURES = 3   # requests in a row; a rate limit fails every request after it
 CHARS_PER_TOKEN = 4       # for the dry run's estimate only
-TOKENS_PER_ANSWER = 75    # likewise; the pilot measures it
+# Likewise: Claude Code's own count of claude-sonnet-5's output in the pilot, which includes its
+# thinking - about 310 an answer, where the answer itself is about 50.
+TOKENS_PER_ANSWER = 310
 
 
 # ---------------------------------------------------------------------------
@@ -130,6 +135,44 @@ def batches_of(items, size):
 # The prompt
 # ---------------------------------------------------------------------------
 
+# What each kind means. qa, panel, screening, signing, photo, party and tour are v1's words
+# (tag_events.PROMPT), so that the two stay comparable; workshop, gaming, contest, performance and
+# reading were rewritten after the pilot, where they were the kinds two runs disagreed on.
+KIND_GLOSSES = {
+    "qa": "an appearance, Q&A, or spotlight featuring actors, creators, or notable named guests",
+    "panel": "a fan-run or expert discussion",
+    "screening": "a film, episode, or video showing",
+    "workshop": "hands-on: the attendees make, practise or do the thing in the session. A how-to talk "
+                "with nothing hands-on is a panel",
+    "signing": "autographs",
+    "photo": "photo ops or photo sessions",
+    "contest": "a competition with winners that is not the playing of a game: costume, art, film, talent",
+    "performance": "concerts, comedy, puppetry, wrestling, burlesque, theatrical shows, a staged or table "
+                   "read, an artist or maker working live for an audience",
+    "party": "dances, socials, mixers, meetups",
+    "gaming": "any session where the attendees play a game: open play, RPG sessions, LAN, demo tables, "
+              "learn-to-play, and game tournaments too (the tournament goes in play.format)",
+    "reading": "an author reading their own work",
+    "tour": "walking tours",
+    "other": None,
+}
+PLAY_FORMAT_GLOSSES = {
+    "demo": "a publisher or designer showing a game; short, drop-in",
+    "learn-to-play": "the session teaches the rules",
+    "organized-play": "a sanctioned league or society session: Adventurers League (DDAL), Pathfinder "
+                      "Society and the like",
+    "tournament": "players compete for a result over rounds or a bracket, usually for prizes. A story "
+                  "that happens to be about a tournament is not one",
+    "open-play": "drop in and play: a game library, a free-play room",
+    "campaign": "one of a linked series of sessions with continuing characters, outside a sanctioned league",
+    "one-shot": "a scheduled, self-contained session of a game, none of the above",
+}
+PLAY_LEVEL_GLOSSES = {
+    "beginner": "the listing says new players are welcome, the rules are taught or characters are provided",
+    "experienced": "it asks for rules knowledge, your own deck or army, or high-level characters",
+    "any": "it says neither",
+}
+
 PROMPT = """You are tagging the events of Dragon Con 2026, a very large science fiction, fantasy and
 pop-culture convention, so that a reader can find what each event is about.
 
@@ -138,25 +181,24 @@ its "tracks" and its "description". Return one object per event, with every one 
 every time:
 
 - "id": copy exactly.
-- "kind": exactly one of {kinds}. qa = an appearance, Q&A, or spotlight featuring actors, creators,
-  or notable named guests; panel = a fan-run or expert discussion; screening = a film, episode, or
-  video showing; workshop = hands-on or how-to; signing = autographs; photo = photo ops or photo
-  sessions; contest = a competition, contest, or tournament with winners; performance = concerts,
-  comedy, puppetry, wrestling, burlesque, theatrical shows; party = dances, socials, mixers,
-  meetups; gaming = open play, RPG sessions, LAN, demo tables; reading = author readings; tour =
-  walking tours; other.
+- "kind": exactly one of {kinds}:
+{kind_glosses}
 - "works": at most {max_works} works the listing is about. A work is anything a fan follows and a
   person can be credited with: a show, film, book, game, podcast, web series, stage show or band.
   A person or a convention is not a work, and neither is a genre or a medium; a company or a brand
   is not a work unless it is in the list below. An event this convention puts on - a contest, a
   show, a party, a parade - is not a work, however often it recurs. A scenario, module, adventure
-  or session is not a work; the published game it is played in is. Link a work only when the
+  or session is not a work; the published game it is played in is. A campaign setting or game
+  world is named only when it is in the list below; otherwise name the game system it is played
+  in, and if the listing does not say which system, name nothing. Link a work only when the
   listing itself refers to it, in its title or its description, never because of who is
   appearing. A work mentioned in passing, or in a list of examples, is not what the listing is
-  about. For each, name the most specific work the listing is about: "Star Trek: Lower Decks", not
-  "Star Trek", for a listing about Lower Decks. Use a name from the list of works below, spelled
-  exactly as it is there, where one fits; otherwise use the work's plain name. Each work is an
-  object:
+  about. A work named only to say what a presenter has worked on, or as one example among
+  several, is not what the listing is about. If the work's name could be removed and the listing
+  would still describe the same event, do not link it. For each, name the most specific work the
+  listing is about: "Star Trek: Lower Decks", not "Star Trek", for a listing about Lower Decks. Use
+  a name from the list of works below, spelled exactly as it is there, where one fits; otherwise
+  use the work's plain name. Each work is an object:
     "name": the work's name;
     "evidence": the shortest phrase of the title or the description that shows it, copied exactly;
     "type": "game" for a work that began as a game, "franchise" for one that began as anything else;
@@ -169,8 +211,11 @@ every time:
   For these four, only values from their list, and an empty list when none fits.
 - "audience": "kids" for an event made for children or families, "mature" for one that is 18+,
   adults-only or explicitly sexual, and "all" otherwise.
-- "play": for an event where people play a game, {{"format": one of {formats}, "level": one of
-  {levels}}}; null otherwise.
+- "play": for an event where people play a game, {{"format": ..., "level": ...}}; null otherwise.
+  "format" is exactly one of:
+{format_glosses}
+  "level" is exactly one of:
+{level_glosses}
 
 Return ONLY a JSON array of these objects, one per event, in the same order. No prose, no code
 fences.
@@ -180,6 +225,11 @@ The works already known, as a guide to spelling. A work indented under another b
 
 Events:
 {events}"""
+
+
+def glosses(table):
+    """One line a value, indented under its field: "    value = what it means."."""
+    return "\n".join(f"    {value} = {gloss}." if gloss else f"    {value}." for value, gloss in table.items())
 
 
 def works_guide(works):
@@ -208,11 +258,11 @@ def build_prompt(batch, guide):
     """One request's prompt, and {short id: key}. The model sees e1..eN, never a key."""
     ids = {f"e{i}": key for i, (key, _) in enumerate(batch, 1)}
     block = events_block([(f"e{i}", inp) for i, (_, inp) in enumerate(batch, 1)])
-    prompt = PROMPT.format(kinds=", ".join(KINDS), max_works=MAX_WORKS,
+    prompt = PROMPT.format(kinds=", ".join(KINDS), kind_glosses=glosses(KIND_GLOSSES), max_works=MAX_WORKS,
                            families=", ".join(registry.GAME_FAMILIES),
                            max_axis=registry.MAX_AXIS_VALUES,
                            **{axis: ", ".join(values) for axis, values in registry.AXES.items()},
-                           formats=", ".join(PLAY_FORMATS), levels=", ".join(PLAY_LEVELS),
+                           format_glosses=glosses(PLAY_FORMAT_GLOSSES), level_glosses=glosses(PLAY_LEVEL_GLOSSES),
                            works=guide, events=block)
     return prompt, ids
 

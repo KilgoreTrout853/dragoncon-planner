@@ -183,11 +183,33 @@ def test_the_prompt_states_every_rule():
                  "a company or a brand is not a work unless it is in the list below",
                  "An event this convention puts on", "in passing, or in a list of examples",
                  "A scenario, module, adventure or session is not a work; the published game",
+                 "A campaign setting or game world is named only when it is in the list below; otherwise "
+                 "name the game system it is played in, and if the listing does not say which system, name nothing.",
+                 "A work named only to say what a presenter has worked on, or as one example among several, "
+                 "is not what the listing is about. If the work's name could be removed and the listing would "
+                 "still describe the same event, do not link it.",
                  "the shortest phrase of the title or the description that shows it, copied exactly",
                  '"game" for a work that began as a game', "rpg, ccg, board, miniatures, video",
-                 '"kids"', '"mature"', '"all"', "null otherwise", "demo, learn-to-play, organized-play",
-                 "beginner, any, experienced"] + [", ".join(v) for v in registry.AXES.values()]:
+                 '"kids"', '"mature"', '"all"', "null otherwise"] + [", ".join(v) for v in registry.AXES.values()]:
         assert said in " ".join(prompt.split()), said
+
+
+def test_every_kind_format_and_level_has_its_gloss_in_the_prompt():
+    assert list(ts.KIND_GLOSSES) == ts.KINDS
+    assert set(ts.PLAY_FORMAT_GLOSSES) == set(ts.PLAY_FORMATS) and set(ts.PLAY_LEVEL_GLOSSES) == set(ts.PLAY_LEVELS)
+    assert "one-shot" in ts.PLAY_FORMATS
+    prompt = " ".join(ts.build_prompt([], "")[0].split())
+    for table in (ts.KIND_GLOSSES, ts.PLAY_FORMAT_GLOSSES, ts.PLAY_LEVEL_GLOSSES):
+        for value, gloss in table.items():
+            assert (f"{value} = {gloss}." if gloss else f" {value}.") in prompt, value
+    assert "workshop = hands-on: the attendees make, practise or do the thing in the session." in prompt
+    assert "reading = an author reading their own work." in prompt
+    assert "one-shot = a scheduled, self-contained session of a game, none of the above." in prompt
+
+
+def test_the_tag_stage_names_a_model_by_its_full_id():
+    """An alias moves with the CLI: `sonnet` was claude-sonnet-4-6 on the day the pilot ran."""
+    assert ts.CODE_MODEL == ts.API_MODEL == "claude-sonnet-5"
 
 
 def test_requests_go_in_first_track_then_title_order_25_to_a_request_under_short_ids():
@@ -231,6 +253,8 @@ def test_a_play_outside_its_lists_is_null():
     tally = ts.new_tally()
     assert ts.validate(row(play={"format": "Tournament", "level": "any"}), INP, tally)["play"] == \
         {"format": "tournament", "level": "any"}
+    assert ts.validate(row(play={"format": "one-shot", "level": "beginner"}), INP, tally)["play"] == \
+        {"format": "one-shot", "level": "beginner"}
     assert ts.validate(row(play={"format": "league", "level": "any"}), INP, tally)["play"] is None
     assert ts.validate(row(play={"format": "demo"}), INP, tally)["play"] is None
     assert ts.validate(row(play="demo"), INP, tally)["play"] is None
