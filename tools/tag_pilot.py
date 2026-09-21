@@ -212,6 +212,15 @@ def as_built(answer, event, reg):
     return out
 
 
+def cell(answer, name, reg):
+    if name == "works":
+        return describe_works(answer, reg)
+    if name == "play":
+        play = answer["play"]
+        return f"{play['format']} / {play['level']}" if play else "null"
+    return answer[name]
+
+
 def describe_works(answer, reg):
     out = []
     for w in answer["works"]:
@@ -231,7 +240,7 @@ def table(head, rows):
     return out
 
 
-def cmd_compare(out_dir, runs, pairs):
+def cmd_compare(out_dir, runs, pairs, out_file=None):
     events, reg = load()
     with open(os.path.join(out_dir, "sample.json"), encoding="utf-8") as f:
         sample_rows = json.load(f)
@@ -312,13 +321,21 @@ def cmd_compare(out_dir, runs, pairs):
                + [["any field"] + [str(built[p]["any field"]) for p in pairs]]) + [""]
     for p in pairs:
         a, b = p
-        for f in ("works", "kind"):
+        for f in ("works", "kind", "play"):
             if diffs[p][f]:
                 L += [f"### {f}: {a} and {b} differ on {len(diffs[p][f])}", ""]
-                L += table(["title", a, b], [[inputs[k]["title"],
-                                              describe_works(caches[a][k]["answer"], reg) if f == "works" else caches[a][k]["answer"]["kind"],
-                                              describe_works(caches[b][k]["answer"], reg) if f == "works" else caches[b][k]["answer"]["kind"]]
+                L += table(["title", a, b], [[inputs[k]["title"], cell(caches[a][k]["answer"], f, reg),
+                                              cell(caches[b][k]["answer"], f, reg)]
                                              for k in sorted(diffs[p][f], key=lambda k: inputs[k]["title"])]) + [""]
+    L += ["### play.format over the gaming inputs", "",
+          f"The {sum(1 for k in strata if inputs[k]['type'] == 'gaming')} sampled inputs whose scraped type is gaming, "
+          f"by the format each run gave them (none: play null).", ""]
+    formats = {r: Counter((caches[r][k]["answer"]["play"] or {}).get("format", "none") for k in strata
+                          if inputs[k]["type"] == "gaming" and k in caches[r]) for r in runs}
+    L += table(["format"] + list(runs), [[f] + [formats[r][f] for r in runs]
+                                         for f in list(ts.PLAY_FORMATS) + ["none"]]) + [""]
+    L += ["Inputs with at least one work: " + "; ".join(
+        f"{r} {sum(1 for k in strata if k in caches[r] and caches[r][k]['answer']['works'])}" for r in runs) + ".", ""]
 
     # --- against v1 -----------------------------------------------------------------------------
     L += [f"## {ref} against the frozen v1 tags", "",
@@ -485,7 +502,7 @@ def cmd_compare(out_dir, runs, pairs):
         L += [f"**{inputs[k]['title']}** ({strata[k][0]})", "", "```json",
               json.dumps(inputs[k], ensure_ascii=False), json.dumps(caches[ref][k]["answer"], ensure_ascii=False), "```", ""]
 
-    path = os.path.join(out_dir, "report.md")
+    path = out_file or os.path.join(out_dir, "report.md")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(L) + "\n")
     print(path)
@@ -501,12 +518,13 @@ def main():
     c.add_argument("runs", nargs="+", help="the runs, the reference first")
     c.add_argument("--pairs", nargs="+", default=[], metavar="A:B",
                    help="the runs to compare field by field; default: the first two")
+    c.add_argument("--out", help="where to write the report; default DIR/report.md")
     args = ap.parse_args()
     if args.cmd == "sample":
         cmd_sample(args.dir)
     else:
         pairs = [tuple(p.split(":", 1)) for p in args.pairs] or [(args.runs[0], args.runs[1])]
-        cmd_compare(args.dir, args.runs, pairs)
+        cmd_compare(args.dir, args.runs, pairs, args.out)
 
 
 if __name__ == "__main__":
