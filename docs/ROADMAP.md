@@ -53,7 +53,8 @@ evidence is `docs/discover/census-2026.md`. The sequence:
 2. The parse stage: `facets` and `people`, no model; the census corrected
    with its name splitter.
 3. Registries seeded: `works.json`, `people.json`, `tracks.json`.
-4. Tagger v2: the closed axes, the hash cache, `events.v2.json`.
+4. Tagger v2 - built: `tag_stage.py` and its cache, `events_v2.py` and
+   `events.v2.json` (DECISIONS #34).
 5. Census v2.
 6. The client switch, in a PR of its own, after a golden query set exists.
 

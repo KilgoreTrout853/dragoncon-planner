@@ -517,7 +517,7 @@ because fame is not in a blurb.
 rename or merge keeps an alias, because follows are stored by id. An
 unreviewed work can be wrong until someone looks.
 
-### 32. Tags v2 — Decided, not built (2026-09-20)
+### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's
 **Decided:** Supersedes #3's tag shape and its keying by event id, when
 built. Parse what the source states; closed lists for what the model fills;
 every link says why.
@@ -555,7 +555,7 @@ filters change shape, in a PR of their own, after a golden query set
 exists. Follows stored by name need mapping to ids. The file grows;
 unmeasured and accepted, to be measured after.
 
-### 33. The frozen 2026 file is the input; v2 output is derived beside it — Decided, not built (2026-09-20)
+### 33. The frozen 2026 file is the input; v2 output is derived beside it — Decided, not built (2026-09-20) — built by #34; the client switch is PR 6's
 **Decided:** Supersedes #3's writing of tags back into `events.json`, when
 built. #13 stands. The v2 pipeline reads `data/2026/events.json` and never
 writes it. It writes `data/2026/events.v2.json`, and a committed tag cache
@@ -568,3 +568,76 @@ frozen file; CI has no model access; reproducibility.
 **Cost:** Two copies of the 2026 schedule in the repo. The build copies
 `data/` into `dist/`, so the v2 file ships unused until the switch unless
 the copy excludes it; decide in the PR that first writes it.
+
+### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21)
+**Decided:** `tag_stage.py` asks the model and `events_v2.py` builds
+(#32, #33); `docs/discover/schema-v2.md` has the detail.
+- **The input and its key.** The model is sent an event's title without its
+  price mark, SOLD OUT, clock time or CANCELLED and the separators they
+  leave, its scraped type and tracks, and its description without the
+  "Additional Panelists:" line, capped at 2,000 characters. No people: a
+  panel with a different moderator is the same input, and a guest's name
+  cannot pull their other shows in. The key is the sha256 of the canonical
+  JSON of `{"v": PROMPT_VERSION, "input": ...}`; the prompt text, the works
+  list, `tracks.json` and the model are not in it. `PROMPT_VERSION` is
+  bumped by hand to ask everything again. The 3,459 events are 2,580 inputs.
+- **The cache** is per year, `data/2026/tags.cache.jsonl`, and the key holds
+  no year. One entry a line, sorted by key, `{key, title, model, answer}`,
+  no timestamps, rewritten after every request, so a crash or a rate limit
+  resumes where it stopped. It holds what the model said, held to the
+  closed lists, and depends on no registry: a work in it is a name and the
+  phrase that shows it, never an id. `events_v2.py` resolves every name on
+  every run, so an alias, a merge or a rename fixes events with no model
+  call. A name that is a registry term stays cached and is dropped by the
+  build until a person makes it an alias.
+- **Every field asked, every time.** The four axes are asked on every input,
+  and `tracks.json` decides at build, per axis; this supersedes #32's "asked
+  only where `tracks.json` does not decide". `play` is a format - demo,
+  learn-to-play, organized-play, tournament, open-play or one-shot - and a
+  level, beginner or any. `one-shot` is a scheduled, self-contained session
+  that is none of the others. `campaign` and `experienced` were struck
+  before the full run: at this con the Campaign track is organized play,
+  and they were the values two runs disagreed on.
+- **Mint only in `tag`.** A cached name the registry cannot resolve becomes
+  a `works.json` row, `reviewed: false`, placed under a parent by one
+  request with a closed list, and the file is written once, or not at all
+  if that request fails. `--mint-only` mints with no model and asks no
+  parent. `events_v2.py` never writes a registry: an unresolved name stops
+  it, and it names the command that mints.
+- **People and guests.** Every person's id goes through the registry,
+  reviewed or not: resolution is spelling, and an id that changed on the day
+  a person was approved would break a follow. A credit reaches an event only
+  where the person and the credit are both reviewed, and `guests` is the
+  highest tier among reviewed people, else absent.
+- **The model by full id,** `claude-sonnet-5`, on the API and on Claude Code
+  alike: an alias moves with the CLI, and on 2026-09-21 `sonnet` was
+  claude-sonnet-4-6. The cache records the model that answered. Claude Code
+  runs with no tools, no MCP servers, no saved session and no CLAUDE.md or
+  memory; the prompt goes on stdin.
+- **Shipped unused.** `events.v2.json` and the cache ride in `dist/`'s copy of
+  `data/` until PR 6, which turns the copy into an allowlist of what the
+  client reads; `sw.js` does not precache them. This settles #33's open
+  cost.
+- **Recorded for PR 6:** an unreviewed work is searchable, never followable,
+  so no id becomes permanent before a person has looked at it.
+
+**Why:** Census section 11: 231 of 331 groups of events that sent v1's
+tagger the same input do not all carry the same tags; one input, one
+answer. Names in the cache keep an id a person's decision (#31). CI has no
+model (#33). The prompt was settled over a pilot of 150 inputs and two
+gates, whose tables are in the pull request, and the alias moved under us
+between two briefs.
+**Cost:** A retag is not neutral. On identical inputs, two runs of the same
+model and prompt differ on about 2-3% of inputs for works, 1-2% for kind,
+and 7-10% for each axis (pilot, gate and re-gate, 150 inputs). The cache,
+not the model, is what makes an event's tags stable, so `PROMPT_VERSION` is
+bumped rarely and on purpose, and a listing that does not change between
+years keeps its answer. A wrong cached answer is corrected by hand in
+`tags.cache.jsonl`, with `"model": "hand"` on that line so a reader can
+tell. The correction is lost if `PROMPT_VERSION` is bumped; if hand lines
+grow past a handful, census v2 is where an overrides file gets designed.
+The first run minted 383 works, every one unreviewed and each a person's to
+check; a name that is a registry term links nothing until someone makes it
+an alias. `dist/` carries `events.v2.json` and the cache unused until PR 6.
+A full run is about a hundred requests: about 41 minutes on Claude Code with
+three workers.

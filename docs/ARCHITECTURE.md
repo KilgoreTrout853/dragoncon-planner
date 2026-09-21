@@ -10,14 +10,20 @@ A Python scraper turns the official Dragon Con app's web view into one JSON
 file. A web app, built by Vite into a single HTML file, reads that JSON,
 lets you search, star, and plan, and stores your picks in the browser. A
 service worker keeps the app usable with no signal. GitHub Pages serves
-it; there is no backend.
+it; there is no backend. Beside the frozen 2026 file, tags v2 derive a
+second one - people, facets and tags from the registries and a cache of a
+model's answers - that nothing reads yet.
 
 ```
 app.core-apps.com/dragoncon26          (official schedule, HTML)
         │  scraper.py  (fetch, parse, dedupe, carry tags over)
         ▼
-data/2026/events.json  ◄── tag_events.py (Claude adds tags to untagged events)
-        │  fetched by the page; cached by sw.js
+data/2026/events.json  (frozen; its v1 tags are tag_events.py's, now retired)
+        │                                 │  tags v2, reading it and never writing it:
+        │  fetched by the page;           │  parse_stage.py  people, facets; no model
+        │  cached by sw.js                │  tag_stage.py    Claude, once an input ──► data/2026/tags.cache.jsonl
+        │                                 │                  unknown works minted ──► data/registry/works.json
+        │                                 │  events_v2.py    no model ──► data/2026/events.v2.json (not read yet)
         ▼
 index.html + src/  ──vite build──►  dist/index.html  (the whole client, inlined)
         │                                   └──►  localStorage (picks, settings)
@@ -40,17 +46,21 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own plugin (`dcBuild`) for the HTML fix-ups, the channel stamp and the `data/` copy. |
 | `dist/` | Build output, not in git: `index.html` with the CSS and script inlined, the files from `public/`, and a copy of `data/`. |
-| `data/2026/events.json` | The frozen 2026 schedule: 3,459 events, 2.7 MB. |
-| `data/registry/` | The three curated registries `registry.py` owns, below, and `people.draft.json`, the drafter's sidecar - `known_for`, confidence, the event titles, the minted work ids and the rejections, which the loader ignores. Cross-year, unlike `data/2026/`, because a work or a person outlasts a con. The build copies them into `dist/` with the rest of `data/`; nothing on the client reads them yet. |
+| `data/2026/events.json` | The frozen 2026 schedule: 3,459 events, 2.7 MB. Read by the client, and by tags v2, which never write it. |
+| `data/2026/tags.cache.jsonl` | The tag stage's answers, one a line, sorted by the hash of what the model was sent (DECISIONS #34): names, never ids. `tag_stage.py` alone writes it; a line corrected by hand says `"model": "hand"`. |
+| `data/2026/events.v2.json` | The frozen schedule with `people`, `facets` and tags v2, built by `events_v2.py` from the frozen file, the registries and the cache. Nothing reads it yet: the client switches in PR 6. |
+| `data/registry/` | The three curated registries `registry.py` owns, below, and `people.draft.json`, the drafter's sidecar - `known_for`, confidence, the event titles, the minted work ids and the rejections, which the loader ignores. `works.json` also holds the works the tag stage minted, `reviewed: false`, which the sidecar does not list, so the review page never prunes them. Cross-year, unlike `data/2026/`, because a work or a person outlasts a con. The build copies them into `dist/` with the rest of `data/`; nothing on the client reads them yet. |
 | `scraper.py` | Scrape → normalise → dedupe → write `events.json`. |
-| `tag_events.py` | Add `tags` to untagged events via Claude. |
+| `tag_events.py` | The 2026 tagger, retired: its `main()` refuses to write the frozen file. It keeps `KINDS`, `TOPICS`, `CANON`, `parse_json_array` and the two transports, which the census, the drafter and the tag stage import. `call_claude_code` sends the prompt on stdin; with `isolated=True`, the tag stage's call, it runs `claude -p` with no tools, no MCP servers and no saved session, from an empty directory of its own, and reports the model that answered. |
+| `tag_stage.py` | The tag stage of tags v2 (DECISIONS #34): each distinct input - the title without its price or clock marks, type, tracks and the description without its panelist line - is asked of `claude-sonnet-5` once, 25 to a request, and the answer, held to the closed lists, is cached in `data/2026/tags.cache.jsonl` after every request. Then mint: every cached work name the registry cannot resolve becomes a `works.json` row, `reviewed: false`, placed under a parent by one request, the file written once. `--dry-run` calls nothing; `--mint-only` mints with no model. |
+| `events_v2.py` | Builds `data/2026/events.v2.json` with no model: the parse stage's people and facets, every person's id through the registry, tracks through `tracks.json`, the cached answer by key, and the merge - works about > track > credit, a track's axes over the model's, mature > kids > all, play on gaming, guests from reviewed tiers. A cache miss, an unresolved work name or track stops it; a name that is a registry term is dropped and counted. `--check` exits 1 if the file on disk is stale. |
 | `tag_census.py`, `docs/discover/` | A read-only census of the tags in `events.json` - coverage, fandoms, topics, people, title facets, recurrence - written to `docs/discover/census-2026.md`: evidence for the Discover design work, facts only. Standard library; it imports the taxonomy from `tag_events.py` and the facet patterns, the title key and the panelist splitter from `parse_stage.py`, writes nothing under `data/`, and two runs give the same bytes. Not part of the pipeline: nothing runs it but a person. |
-| `parse_stage.py` | The parse stage of tags v2 (DECISIONS #32): `people` and `facets` read out of an event with no model. Pure functions and the standard library; it owns the facet patterns, the title key, the "Additional Panelists:" splitter and `person_slug`. `--out PATH` writes the parsed events for inspection; it writes nothing under `data/` and nothing it writes is committed (#13, #33). |
+| `parse_stage.py` | The parse stage of tags v2 (DECISIONS #32): `people` and `facets` read out of an event with no model. Pure functions and the standard library; it owns the facet patterns, the title key, the "Additional Panelists:" splitter, `strip_panelists` (the description the tagger is sent) and `person_slug`. `--out PATH` writes the parsed events for inspection; it writes nothing under `data/` and nothing it writes is committed (#13, #33). |
 | `parse_report.py` | What `parse_stage.py` reads out of the frozen schedule, written to `docs/discover/parse-2026.md`: per facet the count beside the census's figure for the same wording, the people, and four UNSURE lists. Imports `parse_stage` and the census's markdown helpers. Two runs give the same bytes. Nothing runs it but a person. |
-| `registry.py` | The curated registries (DECISIONS #31): `works.json`, `people.json` and `tracks.json`, cross-year and hand-edited. `load()` validates all three and raises one error listing every problem; `resolve_work` / `resolve_track` / `resolve_person` turn a name or an alias into an id. It owns `AXES`, the four closed axis lists, which the tagger will import. Standard library, plus `parse_stage` for its folding. |
-| `draft_people.py` | Drafts people into `people.json` with a model, for review (DECISIONS #31): everyone on a `guests: celebrity` event, skipped when the registry already resolves the name or the sidecar records a rejection, so a second run calls nothing. Reuses `tag_events.py`'s two transports; Opus by default. `--parents` is a second, narrow pass that gives each work it minted a parent from the registry. Nothing it writes is reviewed. |
+| `registry.py` | The curated registries (DECISIONS #31): `works.json`, `people.json` and `tracks.json`, cross-year and hand-edited. `load()` validates all three and raises one error listing every problem; `resolve_work` / `resolve_track` / `resolve_person` turn a name or an alias into an id, and `is_term` says whether a name is a term, which never resolves. It owns `AXES`, the four closed axis lists, which the tag stage imports. Standard library, plus `parse_stage` for its folding. |
+| `draft_people.py` | Drafts people into `people.json` with a model, for review (DECISIONS #31): everyone on a `guests: celebrity` event, skipped when the registry already resolves the name or the sidecar records a rejection, so a second run calls nothing. Reuses `tag_events.py`'s two transports; Opus by default - on Claude Code by the alias `opus`, which moves with the CLI (see Sharp edges). `--parents` is a second, narrow pass that gives each work it minted a parent from the registry. Nothing it writes is reviewed. |
 | `registry_report.py` | The seeded registries written to `docs/discover/registry-2026.md` for the review that flips a work to `reviewed: true`: the works and tracks as seeded, where every phrase of `CANON` and `SYNONYMS` went, and the UNSURE list. Two runs give the same bytes. Nothing runs it but a person. |
-| `tools/` | Pages opened from disk - no server, no network, not part of the build and never copied into `dist/`. `review-people.html` + `review-people.js` are the review for `draft_people.py`'s output: one card a person, tier and credit controls, and an export of the three files formatted as the drafter writes them. The state changes are pure functions in the `.js`, which is a classic script - no import, no export - because a browser refuses an ES module over `file://`. |
+| `tools/` | Tools a person runs, not part of the build and never copied into `dist/`. `review-people.html` + `review-people.js` are pages opened from disk - no server, no network - and the review for `draft_people.py`'s output: one card a person, tier and credit controls, and an export of the three files formatted as the drafter writes them. The state changes are pure functions in the `.js`, which is a classic script - no import, no export - because a browser refuses an ES module over `file://`. `tag_pilot.py` is the tag stage's pilot: `sample` picks about 150 inputs, and `compare` reports how runs of the tag stage into scratch caches agree. It string-matches work names against event text to choose test events, which the tag stage must never do, so nothing on the tag or build path imports it. |
 | `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
 | `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
@@ -64,6 +74,9 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/test_parse_stage.py` | The parse stage's splitter, slug, roles, people and facets, on inline fixtures built from real lines and titles; it never reads `data/`. It pins the copy of `scraper.extract_panelists` that `parse_stage` keeps. |
 | `tests/test_draft_people.py` | The drafter with the model mocked: candidates, the skip, credit resolution, the cap, the parents pass, and the transport's encoding. |
 | `tests/test_registry.py` | One failing fixture per registry rule, the slug and resolve functions, and a load of the committed `data/registry/`, so CI checks every later edit to it. |
+| `tests/test_tag_stage.py` | The tag stage with the model mocked: the input and its key, the prompt, the checks before an answer is cached, the cache, the retry, mint and its parents request, a rewrite of the committed `works.json` that changes no line, and that neither stage imports the pilot. |
+| `tests/test_events_v2.py` | The build's merge rules and hard errors on inline fixtures, its bytes under two hash seeds, that it never touches its input - and a fresh build of the committed data compared byte for byte with `data/2026/events.v2.json`, so an edit to a registry or the cache with no rebuild fails CI. |
+| `tests/test_tag_events.py` | What the retired tagger still does: refuse the frozen file, and carry a prompt to `claude -p` on stdin, isolated for the tag stage. |
 | `tests/sample-events.json`, `tests/make_sample.py` | 558 synthetic events, the fixture for the page tests and the build smoke; and the seeded script that generates it (it imports `scraper`). |
 | `.github/workflows/scrape.yml` | Manual-trigger scrape (workflow_dispatch). Refuses a scrape with 0 events or a >20% drop; commits and pushes events.json to the branch it was run from. |
 | `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client` and `pipeline`. |
@@ -72,7 +85,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `requirements.txt` | Pinned pipeline dependencies, plus pytest. Python 3.13. |
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
-| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the census, `parse-2026.md` and `registry-2026.md`, above, and `schema-v2.md`, the design note for the registries and tags v2 (#31-#33), of which the parse stage and the seeded registries are built. |
+| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the census, `parse-2026.md` and `registry-2026.md`, above, and `schema-v2.md`, the design note for the registries and tags v2 (#31-#34), of which the pipeline half is built - the parse stage, the registries, the tag stage and `events.v2.json` - and the client switch is PR 6's. |
 | `docs/venues/` | The venues registry (DECISIONS #21, #27, #28): `registry.json`, hand-edited - every hotel × level where programming happens, its rooms as the schedule names them, which published floor plan covers the level, and the state of our own drawing; `README.md`, that checklist rendered, with the notes that do not fit a cell; `drawings/`, our schematics, one draft so far. Nothing reads it yet - the room census validates it against `events.json` when it lands. |
 | `reference/` | Local copies of other people's drawings, gitignored but for its README: the hotels' floor plans in `plans/`, at the paths `registry.json` records, and screenshots of single levels in `shots/`, used as an underlay to trace our own shapes against (#28). Never committed - none of it is ours. |
 
@@ -101,10 +114,31 @@ Then, in this order:
 The `id` is the official site's hex id from the event URL. It is **not**
 first-seen stable (DECISIONS #7).
 
-`tag_events.py` batches untagged events to Claude Haiku (API key, or
-`claude -p` on a subscription) and writes `tags: {fandoms[≤3], kind,
-topics[≤3], adult, guests}` back. A `CANON` map folds fandom name variants
-together. `--all` retags everything.
+The v1 tags in the frozen file are `tag_events.py`'s: it batched untagged
+events to Claude Haiku and wrote `tags: {fandoms[≤3], kind, topics[≤3],
+adult, guests}` back, with a `CANON` map folding fandom name variants
+together. It is retired for 2026 and refuses to write the frozen file.
+
+**Tags v2** (DECISIONS #32-#34; `docs/discover/schema-v2.md` has the shape)
+read the frozen file and never write it, in three stages:
+
+1. **Parse**, `parse_stage.py`, no model: `people` from `speakers` and the
+   description's "Additional Panelists:" line, and `facets` from the
+   wording.
+2. **Tag**, `tag_stage.py`: each distinct input - the title without its
+   price, clock or SOLD OUT marks, the type, the tracks, the description
+   without its panelist line; no people - is asked of `claude-sonnet-5`
+   once, 25 to a request, on the API when `ANTHROPIC_API_KEY` is in the
+   environment and on Claude Code otherwise. Each answer is held to the
+   closed lists and cached in `data/2026/tags.cache.jsonl` by a hash of the
+   input and `PROMPT_VERSION`, as names, never ids. Then mint: a cached
+   work name the registry cannot resolve becomes a `works.json` row,
+   `reviewed: false`, under a parent a second request chose from a closed
+   list.
+3. **Build**, `events_v2.py`, no model: the frozen events, the registries
+   and the cache give `data/2026/events.v2.json`, the same bytes every run.
+   Names resolve through the registry on every build, so an alias, a merge
+   or a rename fixes events with no model call.
 
 ## The client: modules and their order
 
@@ -333,7 +367,10 @@ On `next` the client is built (DECISIONS #23). `npm run build` runs Vite
   because the same build is deployed at two subpaths. `build.target` is
   `safari16.4`. The script and the CSS are minified, by Vite's defaults,
   and there is no source map.
-- everything in `public/`, verbatim, and a copy of `data/`.
+- everything in `public/`, verbatim, and a copy of `data/`. The copy carries
+  `events.v2.json`, the tag cache and the registries, unused: nothing on the
+  client reads them, and `sw.js` does not precache them. PR 6 turns the copy
+  into an allowlist of what the client reads (DECISIONS #34).
 
 `build/vite-dc.js` (`dcBuild`) runs last, in `closeBundle`. Vite emits the
 entry as `<script type="module" crossorigin>` in `<head>`; `dcBuild` moves
@@ -377,7 +414,7 @@ npm ci                        # once; Node major from .nvmrc
 npm run lint                  # eslint .
 npm test                      # vitest run: everything under tests/ that ends .test.js
 pip install -r requirements.txt
-python -m pytest tests/       # test_parse.py, test_tag_census.py
+python -m pytest tests/       # every tests/test_*.py: the pipeline's tests
 ```
 
 The client is tested by Vitest (DECISIONS #24), in four kinds of file.
@@ -468,7 +505,9 @@ The Python test files are plain pytest modules; running one directly with
 for every pull request into `next` or `main`, every push to `next`, and on
 demand: job `client` (Node from `.nvmrc`, `npm ci`, lint, test) and job
 `pipeline` (Python 3.13, `pip install`, pytest). `npm test` runs the build
-itself, inside `tests/build.test.js`. The ruleset on `next` requires both
+itself, inside `tests/build.test.js`; pytest builds `events.v2.json` afresh
+and compares it with the committed file, byte for byte, with no model. The
+ruleset on `next` requires both
 jobs to pass before a pull request can merge (DECISIONS #26), and it knows
 them by their job ids: renaming either one un-gates the branch.
 
@@ -530,3 +569,12 @@ them by their job ids: renaming either one un-gates the branch.
 - The page makes one third-party request at run time: Google Fonts, for
   Barlow Semi Condensed (`index.html`). The worker caches it.
 - No backend, no accounts, no sync: picks live on one device.
+- A Claude Code model alias moves with the CLI: on CLI 2.1.145 (2026-09-21)
+  `sonnet` was claude-sonnet-4-6 and `opus` claude-opus-4-7. The tag stage
+  asks by full id (`claude-sonnet-5`) and caches the id of the model that
+  answered; `draft_people.py` still asks for the alias `opus`.
+- A retag is not neutral. Two runs of one model and prompt differ on a few
+  percent of inputs for works and kind and more for the axes (DECISIONS
+  #34), so the cache, not the model, keeps an event's tags stable: bumping
+  `PROMPT_VERSION` asks everything again, and any edit to a registry or the
+  cache needs `python events_v2.py` after it, or CI fails.

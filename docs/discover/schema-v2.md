@@ -29,9 +29,11 @@ DECISIONS.md and update this file in the same PR.
    description. Spelling is nearly clean - one same-key group and one prefix
    pair among 116 fandom names (section 2) - so the work is knowing who and
    what, not mending strings.
-5. **Ask only what is not already known.** 27 of 54 tracks have one topic on
-   over 80% of their events (section 10). The model is asked for axes only
-   where `tracks.json` does not decide.
+5. **Let what is already known decide.** 27 of 54 tracks have one topic on
+   over 80% of their events (section 10). The model is always asked for all
+   four axes, and where `tracks.json` gives a track's axes, those decide at
+   build, per axis. One prompt for every input keeps the cache free of the
+   registry (#34).
 6. **One input, one answer.** 231 of 331 groups of events that sent the
    tagger the same input do not all carry the same tags (section 11). An
    answer is cached by a hash of what was sent, so one input is tagged once.
@@ -98,8 +100,9 @@ person is not a work, and neither is a company.
 `None`. That is what lets one term sit on several works - `whedon` on
 Firefly, Buffy and Angel - so the loader does not require them unique. What
 it does require is that a term is not also a name or an alias somewhere,
-which would make one string both resolvable and not. The tagger ignores
-terms. They reach the client inside the resolved data the pipeline writes,
+which would make one string both resolvable and not. The tagger is not
+shown terms, and a work it names that is a term is dropped by the build, not
+minted (#34). They reach the client inside the resolved data the pipeline writes,
 never by the client reading a registry, which is #31's rule; whether that is
 a field on each event or an index the pipeline builds beside them is the
 client switch's call (PR 6), and this note does not make it.
@@ -231,12 +234,14 @@ would fill them.
 **`people`** is the resolved superset of `speakers`: everyone in `speakers`,
 and everyone the description's "Additional Panelists:" line names, each with
 `src` saying which (`speakers` | `description`). Every entry carries an `id`:
-the registry's id when the person is known, otherwise a deterministic slug
-from the normalised name. Follows are stored by id (#31), and any panelist
-can be followed today, so there is one keying, not two. The cost: two people
-with one name share a slug until the registry separates them. Above, Nathan
-Fillion's id is the registry's, his being the one `people.json` entry this
-note shows; the other four are slugs.
+the registry's id when the registry resolves the name, by name or alias,
+reviewed or not, otherwise a deterministic slug from the normalised name.
+Resolution is spelling, not review: an id that changed on the day a person
+was approved would break a follow. Follows are stored by id (#31), and any
+panelist can be followed today, so there is one keying, not two. The cost:
+two people with one name share a slug until the registry separates them.
+Above, Nathan Fillion's id is the registry's, his being the one `people.json`
+entry this note shows; the other four are slugs.
 
 **The line is the source's.** "Additional Panelists:" is written by whoever
 wrote the listing; `scraper.py` reads the description verbatim and never
@@ -287,8 +292,10 @@ reviewed credit links it too. Firefly arrives by a reviewed credit. The
 Rookie does not arrive: its credit is not reviewed.
 
 **`tags.guests`** is derived, never asked: the highest tier among the
-event's people, `celebrity` over `creator`, else the key is absent. `fan`
-and `unknown` retire; the client reads only `celebrity` today (`isCeleb`).
+event's people whose registry entry is reviewed, `celebrity` over `creator`,
+else the key is absent. An unreviewed person gives no tier and no credits.
+`fan` and `unknown` retire; the client reads only `celebrity` today
+(`isCeleb`).
 The cost: a celebrity missing from the registry gets no badge, so census v2
 lists the unregistered people on `qa`, `photo` and `signing` events.
 
@@ -299,8 +306,45 @@ never remove it. The marker alone would not reach every such event: 30
 events are tagged adult today and say nothing of it (section 6). v1's `adult`
 flag folds into `audience`, so `tags` carries no `adult`.
 
-**`tags.play`** is `{format, level}`, on gaming events only. `kind` is
-unchanged: the same 13.
+**`tags.play`** is `{format, level}`, on gaming events only: an event whose
+scraped type or whose kind is `gaming`. `kind` is unchanged: the same 13.
+
+`tags` keeps its keys in one order - `kind`, `works`, `medium`, `genre`,
+`craft`, `subject`, `audience`, `play`, `guests` - with `play` and `guests`
+only where they apply. A gaming event, as `events_v2.py` builds it from the
+frozen file today:
+
+```json
+{
+  "id": "bce7ff2348591845cd7ed7e5477048cd",
+  "type": "gaming",
+  "title": "Shovel Knight: Dungeon Duels. Learn to play",
+  "day": "2026-09-04",
+  "start": "2026-09-04T10:30",
+  "end": "2026-09-04T11:30",
+  "duration_min": 60,
+  "location": "Mart Building 3, Floor 1",
+  "hotel": "AmericasMart",
+  "room": "Mart Building 3, Floor 1",
+  "description": "Grab your shovel and join Panda Cult Games for a learn-to-play demo of Shovel Knight: Dungeon Duels! New players welcome. No experience needed.",
+  "tracks": ["Miniatures Games"],
+  "track": "Miniatures Games",
+  "speakers": [],
+  "cancelled": false,
+  "people": [],
+  "facets": {"repeat_key": "shovel knight dungeon duels learn to play"},
+  "tags": {
+    "kind": "gaming",
+    "works": [{"id": "shovel-knight", "via": "about"}],
+    "medium": ["tabletop"],
+    "genre": ["fantasy"],
+    "craft": [],
+    "subject": [],
+    "audience": "all",
+    "play": {"format": "learn-to-play", "level": "beginner"}
+  }
+}
+```
 
 ### Facets
 
@@ -358,8 +402,15 @@ And on gaming events:
 
 | field | values |
 |---|---|
-| `play.format` | `demo`, `learn-to-play`, `organized-play`, `tournament`, `open-play`, `campaign` |
-| `play.level` | `beginner`, `any`, `experienced` |
+| `play.format` | `demo`, `learn-to-play`, `organized-play`, `tournament`, `open-play`, `one-shot` |
+| `play.level` | `beginner`, `any` |
+
+What each value means is in `tag_stage.py` (`PLAY_FORMAT_GLOSSES`,
+`PLAY_LEVEL_GLOSSES`), and the model is given the same words. `one-shot` is a
+scheduled, self-contained session that is none of the others. `campaign` and
+`experienced` were struck before the first full run (#34): at this con the
+Campaign track is organized play, and they were the values two runs of the
+same model disagreed on.
 
 ## From `TOPICS` to v2
 
@@ -410,26 +461,31 @@ other value expresses them (`registry-2026.md`).
 
 ## What the model is asked
 
-Asked, each from a closed list:
+Asked, every field of every input, each from a closed list; the prompt is
+`tag_stage.PROMPT`:
 
-- `kind`: one of the 13.
-- The works the event is about. A name resolves against `works.json`, names
-  and aliases; one that does not is added, `reviewed: false`. A work that
-  only a title names, as in `Photo Session: Castle Group`, is found here:
-  `via: about`.
-- The four axes, at most 2 each, and only where `tracks.json` does not
-  decide.
+- `kind`: one of the 13, each with a line saying what it means
+  (`KIND_GLOSSES`).
+- The works the event is about: at most 3, each the most specific the
+  listing names, with the phrase that shows it. The cache keeps the name the
+  model wrote; the build resolves it against `works.json`, names and
+  aliases, on every run. A name that does not resolve is added by the tag
+  stage, `reviewed: false`, and a name that is a registry term is dropped. A
+  work that only a title names, as in `Photo Session: Castle Group`, is
+  found here: `via: about`.
+- The four axes, at most 2 each, always; `tracks.json` decides at build, per
+  axis.
 - `audience`: `kids` | `all` | `mature`. It may add `mature`, never remove
   it: the pipeline forces `mature` where `facets.mature` is true.
-- `play`, on a gaming event.
+- `play`, where people play a game: a format and a level from the lists
+  above.
 
 Not asked:
 
 - `facets` and `people`. They are parsed.
 - `guests`. It is derived from tiers.
 - The credit links in `works`. They come from `people.json`.
-- A `via: track` work, and the axes a track decides. They come from
-  `tracks.json`.
+- A `via: track` work. It comes from `tracks.json`.
 - Anything it has already answered. One input is tagged once: the answer is
   cached by a hash of what the tagger was sent.
 
@@ -462,6 +518,42 @@ having no model access. The client on `next` reads the frozen file until a PR
 of its own switches it. For 2027 the pipeline writes the v2 shape into
 `data/2027/` directly.
 
+As built in PR 4 (#34):
+
+- **What the tagger is sent**, `tag_stage.tagger_input`: the title without
+  its price mark, SOLD OUT, clock time or CANCELLED and the separators they
+  leave, case kept; the scraped `type` and `tracks`; the description without
+  its "Additional Panelists:" line, capped at 2,000 characters. No people.
+  The 3,459 events are 2,580 inputs.
+- **The key** is the sha256 of the canonical JSON (sorted keys, compact,
+  UTF-8) of `{"v": PROMPT_VERSION, "input": ...}`. The prompt text, the
+  works list, `tracks.json` and the model are not in it; `PROMPT_VERSION` is
+  bumped by hand to ask everything again.
+- **The cache** is `data/2026/tags.cache.jsonl`: one entry a line, sorted by
+  key, LF, in the order `{"key", "title", "model", "answer"}`, no timestamps.
+  `tag_stage.py` rewrites it after every request, so a crash or a rate limit
+  resumes where it stopped and a second run sends nothing. `model` is the
+  model that answered, by full id; a line corrected by hand says `"hand"`,
+  and the correction is lost if `PROMPT_VERSION` is bumped.
+- **An answer** is what the model said, held to the closed lists before it is
+  cached: a `kind` outside the list rejects the row, which is asked once
+  more; an axis value outside its list is dropped and an axis capped at 2;
+  an `audience` outside its list is `all`; a `play` outside its lists is
+  null; works are capped at 3, and a work whose phrase is not in the text
+  that was sent - both folded, whitespace collapsed - is dropped. Nothing
+  here reads a registry.
+- **Names, not ids.** `{"name", "evidence", "type", "family"}` is a work in
+  the cache; `events_v2.py` resolves the name on every run, so an alias, a
+  merge or a rename fixes events with no model call. Only `tag_stage.py`
+  turns a name into an id, by minting a `works.json` row, `reviewed: false`,
+  placed under a parent by one request; `events_v2.py` never writes a
+  registry, and a name it cannot resolve stops it.
+- **`dist/`** carries `events.v2.json` and the cache in its copy of `data/`,
+  unused, until PR 6 turns the copy into an allowlist of what the client
+  reads; `sw.js` does not precache them.
+- **Recorded for PR 6:** an unreviewed work is searchable, never followable,
+  so no id becomes permanent before a person has looked at it.
+
 ## The PR sequence
 
 1. **Docs.** This note, DECISIONS #30-#33, `docs/ROADMAP.md`.
@@ -473,7 +565,13 @@ of its own switches it. For 2027 the pipeline writes the v2 shape into
    now three counts: 564 lines name someone `speakers` lacks, 417 name
    nobody it does not, and the first group names 567 distinct people.
 3. **Registries seeded.** `works.json`, `people.json`, `tracks.json`.
-4. **Tagger v2.** The closed axes, the hash cache, `events.v2.json`.
+4. **Tagger v2.** Built: `tag_stage.py` asks `claude-sonnet-5` once for each
+   distinct input and caches the answers in `data/2026/tags.cache.jsonl`,
+   minting the works it names that the registry lacks; `events_v2.py`
+   builds `data/2026/events.v2.json` from the frozen schedule, the
+   registries and the cache, with no model, and CI checks that the
+   committed file is a fresh build. The prompt was settled over a pilot of
+   150 inputs and two gates (#34).
 5. **Census v2.** The same questions of the v2 file, and two lists: the
    unreviewed works, and the unregistered people on `qa`, `photo` and
    `signing` events.
@@ -485,6 +583,8 @@ of its own switches it. For 2027 the pipeline writes the v2 shape into
 - ~~The credit-review format.~~ Settled in PR 3b: `draft_people.py` drafts,
   `tools/review-people.html` reviews, and the sidecar carries what the
   registry has no field for.
-- The tag cache's path and format. PR 4.
-- Whether the build's copy of `data/` into `dist/` leaves `events.v2.json`
-  out until the switch (#33). The PR that first writes the file decides.
+- ~~The tag cache's path and format.~~ Settled in PR 4 (#34):
+  `data/2026/tags.cache.jsonl`, under The derived file and the cache.
+- ~~Whether the build's copy of `data/` into `dist/` leaves `events.v2.json`
+  out until the switch (#33).~~ Settled in PR 4 (#34): it ships unused, and
+  PR 6 turns the copy into an allowlist of what the client reads.
