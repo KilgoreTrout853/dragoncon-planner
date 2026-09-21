@@ -1,6 +1,7 @@
 """Tests for events_v2.py: the merge rules, the hard errors, the shape of the file, and that a build is
 the same bytes every time and never touches its input. Registries, cache and events are inline
-fixtures written to tmp_path; nothing here reads data/ or calls a model.
+fixtures written to tmp_path, and nothing calls a model; the last test alone reads data/, to hold the
+committed events.v2.json to a fresh build of the committed inputs.
 
 Run:  python -m pytest tests/
 """
@@ -315,3 +316,18 @@ def test_the_build_never_writes_over_its_input(tmp_path):
     with pytest.raises(SystemExit):
         v2.main(args + ["--out", str(tmp_path / "events.json")])
     assert (tmp_path / "events.json").read_bytes() == before
+
+
+# --- the committed file --------------------------------------------------------
+
+def test_the_committed_events_v2_is_a_fresh_build():
+    """data/2026/events.v2.json is exactly what the frozen schedule, the committed registries and the
+    committed tag cache build today, with no model: an edit to any of them with no rebuild after it
+    fails here, in CI's pipeline job, rather than shipping a stale file."""
+    with open(os.path.join(ROOT, ts.EVENTS), "rb") as f:
+        data = json.loads(f.read().decode("utf-8"))
+    doc, _ = v2.build(data, registry.load(os.path.join(ROOT, registry.DIR)),
+                      ts.load_cache(os.path.join(ROOT, ts.CACHE)))
+    with open(os.path.join(ROOT, v2.OUT), "rb") as f:
+        committed = f.read()
+    assert v2.dumps(doc) == committed, "stale: run `python events_v2.py` and commit the result"
