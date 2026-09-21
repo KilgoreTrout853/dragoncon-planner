@@ -185,6 +185,7 @@ def test_the_prompt_states_every_rule():
                  "A scenario, module, adventure or session is not a work; the published game",
                  "A campaign setting or game world is named only when it is in the list below; otherwise "
                  "name the game system it is played in, and if the listing does not say which system, name nothing.",
+                 "A traditional game with no publisher - chess, poker, bingo - is not a work.",
                  "A work named only to say what a presenter has worked on, or as one example among several, "
                  "is not what the listing is about. If the work's name could be removed and the listing would "
                  "still describe the same event, do not link it.",
@@ -197,8 +198,11 @@ def test_the_prompt_states_every_rule():
 def test_every_kind_format_and_level_has_its_gloss_in_the_prompt():
     assert list(ts.KIND_GLOSSES) == ts.KINDS
     assert set(ts.PLAY_FORMAT_GLOSSES) == set(ts.PLAY_FORMATS) and set(ts.PLAY_LEVEL_GLOSSES) == set(ts.PLAY_LEVELS)
-    assert "one-shot" in ts.PLAY_FORMATS
+    assert ts.PLAY_FORMATS == ("demo", "learn-to-play", "organized-play", "tournament", "open-play", "one-shot")
+    assert ts.PLAY_LEVELS == ("beginner", "any")        # campaign and experienced struck after the gate
     prompt = " ".join(ts.build_prompt([], "")[0].split())
+    assert "campaign =" not in prompt and "experienced" not in prompt
+    assert "or a sporting or combat match that people watch." in prompt
     for table in (ts.KIND_GLOSSES, ts.PLAY_FORMAT_GLOSSES, ts.PLAY_LEVEL_GLOSSES):
         for value, gloss in table.items():
             assert (f"{value} = {gloss}." if gloss else f" {value}.") in prompt, value
@@ -258,8 +262,10 @@ def test_a_play_outside_its_lists_is_null():
     assert ts.validate(row(play={"format": "league", "level": "any"}), INP, tally)["play"] is None
     assert ts.validate(row(play={"format": "demo"}), INP, tally)["play"] is None
     assert ts.validate(row(play="demo"), INP, tally)["play"] is None
+    assert ts.validate(row(play={"format": "campaign", "level": "any"}), INP, tally)["play"] is None
+    assert ts.validate(row(play={"format": "demo", "level": "experienced"}), INP, tally)["play"] is None
     assert ts.validate(row(play=None), INP, tally)["play"] is None
-    assert sum(tally["play_nulled"].values()) == 3
+    assert sum(tally["play_nulled"].values()) == 5
 
 
 def test_a_work_whose_evidence_is_not_in_the_text_sent_is_dropped_and_counted():

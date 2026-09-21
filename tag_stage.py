@@ -60,8 +60,10 @@ API_MODEL = "claude-sonnet-5"
 CODE_MODEL = "claude-sonnet-5"
 AXIS_NAMES = tuple(registry.AXES)   # medium, genre, craft, subject
 AUDIENCES = ("kids", "all", "mature")
-PLAY_FORMATS = ("demo", "learn-to-play", "organized-play", "tournament", "open-play", "campaign", "one-shot")
-PLAY_LEVELS = ("beginner", "any", "experienced")
+# campaign and experienced were struck after the gate: at this con the Campaign track IS organized
+# play, and most format and level flips between two runs were organized-play/campaign and any/experienced.
+PLAY_FORMATS = ("demo", "learn-to-play", "organized-play", "tournament", "open-play", "one-shot")
+PLAY_LEVELS = ("beginner", "any")
 # What strip_facets can leave at either end of a title: "Matt Dinniman - Signing - SOLD OUT"
 # comes out "Matt Dinniman - Signing -".
 SEPARATORS = " -–—:,/|"
@@ -146,7 +148,8 @@ KIND_GLOSSES = {
                 "with nothing hands-on is a panel",
     "signing": "autographs",
     "photo": "photo ops or photo sessions",
-    "contest": "a competition with winners that is not the playing of a game: costume, art, film, talent",
+    "contest": "a competition with winners that is not the playing of a game: costume, art, film, talent, "
+               "or a sporting or combat match that people watch",
     "performance": "concerts, comedy, puppetry, wrestling, burlesque, theatrical shows, a staged or table "
                    "read, an artist or maker working live for an audience",
     "party": "dances, socials, mixers, meetups",
@@ -159,18 +162,18 @@ KIND_GLOSSES = {
 PLAY_FORMAT_GLOSSES = {
     "demo": "a publisher or designer showing a game; short, drop-in",
     "learn-to-play": "the session teaches the rules",
-    "organized-play": "a sanctioned league or society session: Adventurers League (DDAL), Pathfinder "
-                      "Society and the like",
+    "organized-play": "a session of a league or living campaign with continuing characters: Adventurers "
+                      "League (DDAL), Pathfinder and Starfinder Society, Legends of Greyhawk, and the "
+                      "sessions of the schedule's Campaign track",
     "tournament": "players compete for a result over rounds or a bracket, usually for prizes. A story "
                   "that happens to be about a tournament is not one",
     "open-play": "drop in and play: a game library, a free-play room",
-    "campaign": "one of a linked series of sessions with continuing characters, outside a sanctioned league",
     "one-shot": "a scheduled, self-contained session of a game, none of the above",
 }
 PLAY_LEVEL_GLOSSES = {
-    "beginner": "the listing says new players are welcome, the rules are taught or characters are provided",
-    "experienced": "it asks for rules knowledge, your own deck or army, or high-level characters",
-    "any": "it says neither",
+    "beginner": "the listing says new players are welcome, the rules are taught, or characters or decks "
+                "are provided",
+    "any": "everything else",
 }
 
 PROMPT = """You are tagging the events of Dragon Con 2026, a very large science fiction, fantasy and
@@ -190,7 +193,8 @@ every time:
   show, a party, a parade - is not a work, however often it recurs. A scenario, module, adventure
   or session is not a work; the published game it is played in is. A campaign setting or game
   world is named only when it is in the list below; otherwise name the game system it is played
-  in, and if the listing does not say which system, name nothing. Link a work only when the
+  in, and if the listing does not say which system, name nothing. A traditional game with no
+  publisher - chess, poker, bingo - is not a work. Link a work only when the
   listing itself refers to it, in its title or its description, never because of who is
   appearing. A work mentioned in passing, or in a list of examples, is not what the listing is
   about. A work named only to say what a presenter has worked on, or as one example among
