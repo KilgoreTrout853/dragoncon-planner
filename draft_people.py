@@ -6,7 +6,7 @@ Candidates are everyone `parse_stage.people_for` names on an event whose v1 tags
 finds - in `people.json` by name or alias - and anyone the sidecar records as rejected is skipped,
 so a second run drafts nothing and calls nothing.
 
-    python draft_people.py                    # `claude -p --model opus` on your subscription
+    python draft_people.py                    # `claude -p --model claude-opus-5` on your subscription
     ANTHROPIC_API_KEY=sk-... python draft_people.py       # the Anthropic API, claude-opus-5
     python draft_people.py --names FILE --dry-run
 
@@ -32,8 +32,10 @@ from tag_events import call_api, call_claude_code, parse_json_array
 
 EVENTS = os.path.join("data", "2026", "events.json")
 SIDECAR = os.path.join("data", "registry", "people.draft.json")
-API_MODEL = "claude-opus-5"   # the current Opus id; the Claude Code path takes the alias instead
-CODE_MODEL = "opus"
+API_MODEL = "claude-opus-5"   # the current Opus id
+# A full id on Claude Code too, never an alias, as the tag stage asks (DECISIONS #34): an alias moves with
+# the CLI, and on claude 2.1.145 (2026-09-21) `opus` was claude-opus-4-7.
+CODE_MODEL = "claude-opus-5"
 PER_REQUEST = 20
 MAX_TITLES = 8
 MAX_CREDITS = registry.MAX_CREDITS
@@ -358,13 +360,14 @@ def main():
         except Exception as exc:  # noqa: BLE001
             print(f"  request {i}/{len(batches)} failed: {str(exc)[:200]}", file=sys.stderr)
 
-    people, works, notes, rejections = fold(answers, {p["id"]: p for p in todo}, reg)
+    people, new_works, notes, rejections = fold(answers, {p["id"]: p for p in todo}, reg)
     people = sorted(reg.people + people, key=lambda p: p["id"])
-    works = sorted(reg.works + works, key=lambda w: w["id"])
+    works = sorted(reg.works + new_works, key=lambda w: w["id"])
     sidecar["people"].update(notes)
     sidecar["rejected"] += rejections
-    # what this run minted, so the review page knows which works it may drop again
-    sidecar["minted"] = sorted(set(sidecar["minted"]) | {w["id"] for w in works})
+    # what this run minted, and only that - never the registry's own works - so the review page knows which works it
+    # may drop again
+    sidecar["minted"] = sorted(set(sidecar["minted"]) | {w["id"] for w in new_works})
     write_json(os.path.join(args.registry, "people.json"),
                [in_order(p, PERSON_KEYS) for p in people])
     write_json(os.path.join(args.registry, "works.json"),
