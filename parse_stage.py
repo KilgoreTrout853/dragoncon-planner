@@ -183,6 +183,16 @@ def split_panelists(description):
     return out
 
 
+def strip_panelists(description):
+    """The description without its "Additional Panelists:" line. The line closes the description
+    on all 981 events that carry one and never holds a newline, so it is everything from the first
+    marker on, the one description that says it twice included. The tag stage sends the rest, so
+    that who is on a listing never reaches the model."""
+    text = description or ""
+    m = PANELIST_MARKER.search(text)
+    return text[:m.start()] if m else text
+
+
 def speaker_role(speaker):
     """A speaker's role. A role parenthetical the schedule wrote into the name itself is better
     than a role field that only says a person is present: "Karen Henson(Judge)" with the role

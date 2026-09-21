@@ -125,6 +125,15 @@ def test_a_term_may_not_also_be_a_name_or_an_alias(tmp_path):
     assert any("is also the name or alias of" in p for p in found)
 
 
+def test_is_term_finds_a_term_and_nothing_else(tmp_path):
+    """The tag stage's check for a work name the model took from a term: "DDAL" for an Adventurers
+    League table. A term never resolves, and a name or an alias is never a term."""
+    reg = registry.load(write(tmp_path, works=[{**WORK, "terms": ["Whedon", "Big Damn Heroes"]}]))
+    assert reg.is_term("Whedon") and reg.is_term("whedon") and reg.is_term("big damn heroes!")
+    assert not reg.is_term("Firefly") and not reg.is_term("Serenity") and not reg.is_term("Castle")
+    assert reg.resolve_work("Whedon") is None
+
+
 def test_a_term_need_not_be_unique(tmp_path):
     """One term may sit on several works: "whedon" is on Firefly, Buffy and Angel."""
     buffy = {"id": "buffy", "name": "Buffy", "type": "franchise", "reviewed": False, "terms": ["Whedon"]}

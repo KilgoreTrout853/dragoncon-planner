@@ -35,6 +35,17 @@ For 2027 the scraper stops deriving `speakers` from the description's
 "Additional Panelists:" line, or uses `parse_stage.split_panelists` for it;
 the parse stage owns that parse.
 
+The 2027 scraper decodes these feeds correctly. 45 events of the frozen 2026
+file - 27 in Role-Playing Games (Campaign), 17 in Role-Playing Games
+(Non-Campaign) and 1 in Collectible Card Games - carry text that was UTF-8
+read as cp1252 ("â€“" for "–", "FaerÃ»n" for "Faerûn"), found by
+`draft_people.looks_double_encoded`. The frozen file keeps them as scraped,
+and so does `events.v2.json`, which copies the scraped fields as they are.
+
+How works the tagger mints during a live scrape season get reviewed is an
+open question for this tentpole: 2026's were reviewed in one pass after the
+con (`docs/discover/works-review-2.json`).
+
 ### 2. Discover — in design and execution
 
 What an event is about, who is on it, and how a reader finds it: the
@@ -46,7 +57,8 @@ evidence is `docs/discover/census-2026.md`. The sequence:
 2. The parse stage: `facets` and `people`, no model; the census corrected
    with its name splitter.
 3. Registries seeded: `works.json`, `people.json`, `tracks.json`.
-4. Tagger v2: the closed axes, the hash cache, `events.v2.json`.
+4. Tagger v2 - built: `tag_stage.py` and its cache, `events_v2.py` and
+   `events.v2.json` (DECISIONS #34).
 5. Census v2.
 6. The client switch, in a PR of its own, after a golden query set exists.
 

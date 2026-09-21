@@ -3,6 +3,11 @@
 
 The tags power the Fandom picker, the kind chips, the 18+ filter, and search in index.html.
 
+Retired for 2026: the schedule is frozen (DECISIONS #13, #33), and main() refuses to write
+data/2026/events.json. Tags v2 are tag_stage.py (the model, cached) and events_v2.py (no model).
+KINDS, TOPICS, CANON, the two transports and parse_json_array stay here: the census, the drafter
+and the tag stage import them.
+
 Two ways to run:
     ANTHROPIC_API_KEY=sk-... python tag_events.py     # Anthropic API (claude-haiku-4-5, cheap)
     python tag_events.py                               # Claude Code's `claude -p` on your subscription
@@ -25,10 +30,20 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 EVENTS = "data/2026/events.json"
+# The frozen schedule by where it is, not by the name --file was given, so no spelling of the path
+# gets past the refusal in main().
+FROZEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "2026", "events.json")
+REFUSAL = ("tag_events.py will not write data/2026/events.json: the 2026 schedule is frozen "
+           "(DECISIONS #13, #33). Tags v2 are `python tag_stage.py`, which asks the model and caches "
+           "its answers in data/2026/tags.cache.jsonl, and `python events_v2.py`, which writes "
+           "data/2026/events.v2.json with no model.")
+# Where the tag stage's `claude -p` runs: an empty directory of its own (see call_claude_code).
+ISOLATED_DIR = os.path.join(tempfile.gettempdir(), "dragoncon-tagger")
 KINDS = ["qa", "panel", "screening", "workshop", "signing", "photo", "contest", "performance",
          "party", "gaming", "reading", "tour", "other"]
 TOPICS = ["Space", "Science", "Writing", "Costuming", "Props & Making", "Comics", "Animation", "Anime",
@@ -90,17 +105,65 @@ def call_api(prompt, model):
     return "".join(b.get("text", "") for b in r.json()["content"])
 
 
-def call_claude_code(prompt, model):
-    env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDECODE")}  # allow running from inside Claude Code
-    cmd = ["claude", "-p", prompt, "--output-format", "text"]
+def claude_code_command(model, isolated=False):
+    """The command line call_claude_code runs. The prompt is not on it: it goes on stdin."""
+    cmd = ["claude", "-p", "--output-format", "json" if isolated else "text"]
+    if isolated:
+        cmd += ["--tools", "", "--strict-mcp-config", "--no-session-persistence"]
     if model:
         cmd += ["--model", model]
+    return cmd
+
+
+def isolated_dir():
+    """The empty directory the tag stage's `claude -p` runs in. Claude Code reads a CLAUDE.md from
+    the working directory and every directory above it, and keys its memory on the working
+    directory, so an empty directory of its own keeps both out of the request. One fixed place,
+    because Claude Code makes an (empty) memory folder for every directory it is run from."""
+    os.makedirs(ISOLATED_DIR, exist_ok=True)
+    if os.listdir(ISOLATED_DIR):
+        raise RuntimeError(f"{ISOLATED_DIR} must be empty: whatever is in it rides along with every request")
+    return ISOLATED_DIR
+
+
+def call_claude_code(prompt, model, *, isolated=False, meta=None):
+    """`claude -p` on the subscription. The prompt goes on stdin, not on the command line: Windows
+    caps a command line at 32,767 characters, and a tag stage prompt runs past 30,000.
+
+    `isolated=True` is the tag stage's: no tools and no MCP servers (`--tools ""`,
+    `--strict-mcp-config`), no session saved (`--no-session-persistence`), and run from an empty
+    directory of its own, so that no CLAUDE.md and no project memory ride along. A request then
+    carries about 6,100 tokens of Claude Code's own context instead of 24,000 to 32,000 (CLI
+    2.1.145, measured 2026-09-21). The reply is read from `--output-format json`, which names the
+    model that answered - `sonnet` is an alias, not an id - and when `meta` is a dict that id goes
+    in meta["model"] and the token counts in meta["usage"]. There is no fallback to the default
+    model: the tag stage records the model it asked for, or fails.
+
+    The default is the call draft_people.py has always made, the prompt now on stdin."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDECODE")}  # allow running from inside Claude Code
     # encoding, not the locale's: text=True alone decodes with locale.getencoding(), which is
     # cp1252 on Windows, and every non-ASCII character the model returns comes back double-encoded
-    # ("Les MisÃ©rables"). The model answers in UTF-8 whatever the console is set to.
-    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=600, env=env)
+    # ("Les MisÃ©rables"). The model answers in UTF-8 whatever the console is set to, and the prompt
+    # goes out in UTF-8 the same way.
+    if isolated:
+        res = subprocess.run(claude_code_command(model, isolated=True), input=prompt, capture_output=True,
+                             text=True, encoding="utf-8", timeout=600, env=env, cwd=isolated_dir())
+        if res.returncode != 0:
+            raise RuntimeError(res.stderr.strip()[:300] or res.stdout.strip()[:300] or f"claude exited {res.returncode}")
+        out = json.loads(res.stdout)
+        if out.get("is_error") or out.get("subtype") != "success":
+            raise RuntimeError(f"claude: {out.get('subtype')}: {str(out.get('result'))[:300]}")
+        if isinstance(meta, dict):
+            used = out.get("modelUsage") or {}
+            # the model that wrote the answer, should Claude Code have made a small call of its own
+            meta["model"] = max(used, key=lambda m: ((used[m] or {}).get("outputTokens") or 0, m)) if used else model
+            meta["usage"] = out.get("usage") or {}
+        return out.get("result") or ""
+    cmd = claude_code_command(model)
+    res = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", timeout=600, env=env)
     if res.returncode != 0 and model:  # maybe the alias isn't accepted; try the default model
-        res = subprocess.run(cmd[:-2], capture_output=True, text=True, encoding="utf-8", timeout=600, env=env)
+        res = subprocess.run(claude_code_command(None), input=prompt, capture_output=True, text=True,
+                             encoding="utf-8", timeout=600, env=env)
     if res.returncode != 0:
         raise RuntimeError(res.stderr.strip()[:300] or f"claude exited {res.returncode}")
     return res.stdout
@@ -127,6 +190,14 @@ def clean_tags(obj):
         "adult": bool(obj.get("adult", False)),
         "guests": obj.get("guests") if obj.get("guests") in ("celebrity", "creator", "fan", "unknown") else "unknown",
     }
+
+
+def is_frozen(path):
+    """True where `path` is data/2026/events.json, however it is spelled."""
+    try:
+        return os.path.samefile(path, FROZEN)
+    except OSError:  # one of the two does not exist
+        return os.path.normcase(os.path.realpath(path)) == os.path.normcase(os.path.realpath(FROZEN))
 
 
 def tag_batch(batch, transport, model):
@@ -159,6 +230,8 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--file", default=EVENTS)
     args = ap.parse_args()
+    if is_frozen(args.file):
+        sys.exit(REFUSAL)
 
     with open(args.file, encoding="utf-8") as f:
         data = json.load(f)

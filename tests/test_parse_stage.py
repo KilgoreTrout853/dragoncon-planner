@@ -90,6 +90,16 @@ def test_no_line_no_names():
     assert ps.split_panelists("") == [] and ps.split_panelists(None) == []
 
 
+def test_strip_panelists_keeps_what_comes_before_the_line():
+    # The tag stage sends this, so that who is on a listing never reaches the model.
+    assert ps.strip_panelists(line("Jim Wert(Moderator), Alli Martin")) == "Bring your questions for our guests! "
+    doubled = ("Dragon Con Sober is a casual meetup. Additional Panelists: Carter Alexander (Moderator). "
+               "Additional Panelists: Carter Alexander(Moderator)")
+    assert ps.strip_panelists(doubled) == "Dragon Con Sober is a casual meetup. "
+    assert ps.strip_panelists("A panel with no line at all.") == "A panel with no line at all."
+    assert ps.strip_panelists("") == "" and ps.strip_panelists(None) == ""
+
+
 # --- the slug --------------------------------------------------------------
 
 def test_person_slug_folds_case_accents_punctuation_and_whitespace():

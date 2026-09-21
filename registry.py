@@ -90,11 +90,21 @@ class Registry:
         # A person's names normalise the way a person's id is made (`parse_stage.person_slug`),
         # which sets aside an honorific and a trailing credential rather than a leading "the".
         self._people = _lookup(people, person_slug)
+        self._terms = {resolve_key(t) for e in works if isinstance(e, dict)
+                       for t in (e.get("terms") if _is_str_list(e.get("terms")) else [])
+                       if t.strip()}
 
     def resolve_work(self, name):
         """A work's id, by name or alias, or None. Terms never resolve: one term may sit on
         several works, and a term is not a name for the work."""
         return self._works.get(resolve_key(name))
+
+    def is_term(self, name):
+        """True where the name is a term on some work: a word that leads a searcher to a work but
+        is not a name for it, and so never resolves. The tagger's answers can name one - "DDAL"
+        for an Adventurers League table - and the cache keeps it as the model said it; mint skips
+        it and events_v2 drops it. Made an alias instead, it links with no model call."""
+        return resolve_key(name) in self._terms
 
     def resolve_track(self, name):
         return self._tracks.get(resolve_key(name))
