@@ -10,7 +10,8 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 |---|---|
 | `data/2026/events.json` | The final 2026 schedule, frozen after the con: 3,459 events, scraped Sep 7 12:50 UTC. |
 | `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app, merges duplicates, and writes `data/2026/events.json`. Takes ~20 minutes. |
-| `tag_events.py` | Has Claude tag each event with fandoms, kind (celebrity Q&A, fan panel, screening…), topics, guests, and 18+. Powers the fandom picker, kind chips, the Celebrity badge and Guests section, and search. |
+| `tag_events.py` | The 2026 tagger, retired: its tags (fandoms, kind, topics, guests, 18+) are in the frozen `events.json` and still power the fandom picker, kind chips, the Celebrity badge and Guests section, and search. |
+| `tag_stage.py`, `events_v2.py` | Tags v2: a model's answers about each event, cached, and the schedule with them built into `data/2026/events.v2.json`. See Tagging. |
 | `index.html`, `src/` | The planner: the page's markup, the script as ES modules under `src/` (`main.js` is the entry and `boot.js` starts the app) and `src/styles.css`. Vite builds them into one inlined `dist/index.html`, which reads `data/2026/events.json`. |
 | `public/sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `public/manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
@@ -40,7 +41,7 @@ npm ci
 npm run lint                     # eslint: three rules
 npm test                         # vitest: units, rules, the page in jsdom, the real schedule, the build
 pip install -r requirements.txt
-python -m pytest tests/          # the scraper's parsing and dedupe
+python -m pytest tests/          # the pipeline: scraper, parse, tag and build stages, registries
 ```
 
 CI runs the same commands on every pull request (`.github/workflows/ci.yml`), and `next` takes no pull request until both of its jobs pass.
@@ -99,19 +100,21 @@ Bump `CACHE` in `public/sw.js` when the built page or the worker changes in a wa
 
 ## Tagging
 
-`tag_events.py` sends events to Claude in batches of 40 and writes back `tags: {fandoms, kind, topics, adult, guests}`. It only sends untagged events, so after a refresh you re-run it for the new ones; `--all` retags everything.
+The 2026 schedule is frozen, so tags v2 are written beside it rather than into it, by two scripts.
 
-**Use the API key path.** With `ANTHROPIC_API_KEY` set it makes one HTTPS request per batch and tags ~3,500 events in about seven minutes for well under a dollar. The `claude -p` fallback spawns a full CLI process per batch and is not practical at this scale — it managed 160 events in two hours before being stopped.
+`tag_stage.py` asks a model what each event is about - its kind, the works it is about, four closed axes, the audience and, on a gaming event, how it is played - once for each distinct input, and caches the answer in `data/2026/tags.cache.jsonl`. The input is what the model is sent: the title without its price, clock time or SOLD OUT, the scraped type and tracks, and the description without its "Additional Panelists:" line. A second run sends nothing. A work name the registry does not know becomes a `data/registry/works.json` row, unreviewed, placed under a parent by one more request.
+
+`events_v2.py` builds `data/2026/events.v2.json` from the frozen schedule, the registries and the cache, with no model. CI checks that the committed file is a fresh build.
 
 ```bash
-ANTHROPIC_API_KEY=$(cat anthropic_key.txt) python tag_events.py
+python tag_stage.py --dry-run    # what would be sent, and how big; calls nothing
+python tag_stage.py --workers 3  # asks about every uncached input, then mints the new works
+python events_v2.py              # no model; --check exits 1 if the committed file is stale
 ```
 
-`anthropic_key.txt` is gitignored. Delete it and revoke the key when you're done with the con.
+With `ANTHROPIC_API_KEY` set in the environment it calls the API; nothing reads a key from a file. Without it, it runs `claude -p` on your subscription: the prompt on stdin, from an empty directory of its own, with no tools, no MCP servers and no saved session, so that no CLAUDE.md or memory rides along. That is practical now - about 70 seconds for a request of 25 inputs.
 
-The scraper carries tags forward across refreshes by event id — including through duplicate merging, where the surviving id may not be the one that was tagged. The GitHub Action has no Claude access, so events added during the con arrive untagged until you re-run the tagger. Search still finds them by their words; the fandom and kind filters won't, and they carry no Celebrity badge.
-
-Fandom names are normalised (`CANON` in the script) so the picker shows one "Marvel" rather than Marvel, MCU and Avengers.
+`tag_events.py`, the 2026 tagger, is retired: it wrote `tags: {fandoms, kind, topics, adult, guests}` into `events.json` and now refuses to. The client reads those v1 tags until it switches to `events.v2.json`. Fandom names there were normalised by `CANON` in that script, so the picker shows one "Marvel" rather than Marvel, MCU and Avengers.
 
 ## Duplicates
 
