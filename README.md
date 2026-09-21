@@ -106,10 +106,13 @@ The 2026 schedule is frozen, so tags v2 are written beside it rather than into i
 
 `events_v2.py` builds `data/2026/events.v2.json` from the frozen schedule, the registries and the cache, with no model. CI checks that the committed file is a fresh build.
 
+`census_v2.py` writes `docs/discover/census-v2-2026.md`, the census of that file: what it holds, the works and people still to review, and the links worth a look. CI checks that it is fresh too, so an edit to a registry or the cache is followed by `python events_v2.py` and then `python census_v2.py`, and both files are committed.
+
 ```bash
 python tag_stage.py --dry-run    # what would be sent, and how big; calls nothing
 python tag_stage.py --workers 3  # asks about every uncached input, then mints the new works
 python events_v2.py              # no model; --check exits 1 if the committed file is stale
+python census_v2.py              # no model; the census of it; --check exits 1 if the report is stale
 ```
 
 With `ANTHROPIC_API_KEY` set in the environment it calls the API; nothing reads a key from a file. Without it, it runs `claude -p` on your subscription: the prompt on stdin, from an empty directory of its own, with no tools, no MCP servers and no saved session, so that no CLAUDE.md or memory rides along. That is practical now - about 70 seconds for a request of 25 inputs.

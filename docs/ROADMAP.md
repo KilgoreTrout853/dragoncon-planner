@@ -44,7 +44,13 @@ and so does `events.v2.json`, which copies the scraped fields as they are.
 
 How works the tagger mints during a live scrape season get reviewed is an
 open question for this tentpole: 2026's were reviewed in one pass after the
-con (`docs/discover/works-review-2.json`).
+con (`docs/discover/works-review-2.json`). `tag_stage.py` keeps no record of
+what it minted: a minted row is `reviewed: false` and nothing more, so census
+v2 can only infer that the tagger made it.
+
+`PROMPT_VERSION` is one global and the cache is per year, so a bump for 2027
+makes every 2026 key miss and fails the 2026 build, unless the version
+becomes per year.
 
 ### 2. Discover — in design and execution
 
@@ -59,7 +65,8 @@ evidence is `docs/discover/census-2026.md`. The sequence:
 3. Registries seeded: `works.json`, `people.json`, `tracks.json`.
 4. Tagger v2 - built: `tag_stage.py` and its cache, `events_v2.py` and
    `events.v2.json` (DECISIONS #34).
-5. Census v2.
+5. Census v2 - built: `census_v2.py` writes
+   `docs/discover/census-v2-2026.md`, held fresh by CI (DECISIONS #35).
 6. The client switch, in a PR of its own, after a golden query set exists.
 
 ### 3. Places — designed; two PRs held

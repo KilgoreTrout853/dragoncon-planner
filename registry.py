@@ -12,7 +12,7 @@ the old name as an alias, because follows are stored by id.
 
 The four closed axis lists are `AXES`, here and nowhere else: `tracks.json` is validated against
 them and the tagger (PR 4) imports them. Standard library, plus `parse_stage` for its folding.
-Report code is `registry_report.py`; nothing here writes a file or prints.
+Report code is `census_v2.py`; nothing here writes a file or prints.
 """
 
 import json
