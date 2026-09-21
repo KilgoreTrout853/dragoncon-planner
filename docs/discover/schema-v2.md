@@ -572,9 +572,12 @@ As built in PR 4 (#34):
    registries and the cache, with no model, and CI checks that the
    committed file is a fresh build. The prompt was settled over a pilot of
    150 inputs and two gates (#34).
-5. **Census v2.** The same questions of the v2 file, and two lists: the
-   unreviewed works, and the unregistered people on `qa`, `photo` and
-   `signing` events.
+5. **Census v2.** Built: `census_v2.py` writes `census-v2-2026.md`, the
+   census's questions asked of the v2 file, and the lists owed a reviewer:
+   the unreviewed works that events link, the drafted people, the people on
+   `qa`, `photo` and `signing` events whom `people.json` does not hold, and,
+   marked UNSURE, the links worth a person's look. It never links, and CI
+   holds it fresh, as it does `events.v2.json` (#35).
 6. **The client switch.** The search index, Explore, follows and filters
    change shape, in a PR of their own. A golden query set exists before it.
 

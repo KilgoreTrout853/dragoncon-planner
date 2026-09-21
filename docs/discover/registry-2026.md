@@ -1,5 +1,7 @@
 # The registries
 
+The record of the seed review, generated at d01027b: `census-v2-2026.md` now reports the registries, and `registry_report.py` is retired.
+
 Written by `registry_report.py` from `data/registry/` and `data/2026/events.json` (`generated_at` 2026-09-07T12:50:19+00:00). Do not edit it by hand; run the script again.
 
 What PR 3a seeded into `works.json` and `tracks.json` (DECISIONS #31), for the review that flipped every row to `reviewed: true` in `data/works-review-1`. It states what was seeded and why, and resolves nothing: `UNSURE` marks a judgment that is a person's to make.

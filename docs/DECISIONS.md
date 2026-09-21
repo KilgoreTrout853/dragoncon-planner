@@ -644,3 +644,26 @@ check; a name that is a registry term links nothing until someone makes it
 an alias. `dist/` carries `events.v2.json` and the cache unused until PR 6.
 A full run is about a hundred requests: about 41 minutes on Claude Code with
 three workers.
+
+### 35. Census v2 is a living report, held fresh by CI — Standing (2026-09-21)
+**Decided:** `census_v2.py` writes `docs/discover/census-v2-2026.md`: the
+questions of `census-2026.md` asked of `events.v2.json`, and the lists the
+v2 design owes a reviewer - the unreviewed works that events link, the
+drafted people, the people on `qa`, `photo` and `signing` events whom
+`people.json` does not hold, and the links worth a person's look. It builds
+`events.v2.json` in memory first and stops if the file on disk is stale. A
+test in CI's `pipeline` job renders the report afresh and compares it byte
+for byte with the committed file, beside the check on `events.v2.json`;
+`--check` does the same by hand. It never links (#34): where a list comes
+of matching text, every row is UNSURE, and the fix it names is a person's,
+a `"model": "hand"` line in the cache. `registry-2026.md` stays as the
+record of the seed review.
+**Why:** Its inputs are living: the registries and the tag cache change
+with every review. `registry-2026.md`, which nothing held, went stale: it
+still reads 139 works, and `works.json` held 718 when this was written.
+Held by CI, a data PR's diff shows its effect on the census beside its
+effect on `events.v2.json`.
+**Cost:** Every data PR that edits a registry or the cache re-renders two
+files, `events.v2.json` and the census. The report can hold nothing
+volatile - no date, no timing, nothing of the machine that ran it - or it
+could never be fresh. `registry_report.py` is retired.
