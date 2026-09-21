@@ -629,10 +629,13 @@ gates, whose tables are in the pull request, and the alias moved under us
 between two briefs.
 **Cost:** A retag is not neutral. On identical inputs, two runs of the same
 model and prompt differ on about 2-3% of inputs for works, 1-2% for kind,
-and 7-10% for each axis (pilot, gate and re-gate, 150 inputs). The cache,
-not the model, is what makes an event's tags stable, so `PROMPT_VERSION` is
-bumped rarely and on purpose, and a listing that does not change between
-years keeps its answer. A wrong cached answer is corrected by hand in
+and 7-10% for each axis (pilot, gate and re-gate, 150 inputs). On the same
+prompt, the full run differed from a pilot run on 10 of 150 inputs for
+works, wider than the same-sample pairs (1, 3, 5), because an input's
+neighbours in a request change. The cache, not the model, is what makes an
+event's tags stable, so `PROMPT_VERSION` is bumped rarely and on purpose,
+and a listing that does not change between years keeps its answer. A wrong
+cached answer is corrected by hand in
 `tags.cache.jsonl`, with `"model": "hand"` on that line so a reader can
 tell. The correction is lost if `PROMPT_VERSION` is bumped; if hand lines
 grow past a handful, census v2 is where an overrides file gets designed.

@@ -287,6 +287,18 @@ def test_the_evidence_check_folds_case_accents_curly_apostrophes_and_whitespace(
     assert not ts.evidence_holds(None, inp)
 
 
+def test_the_evidence_check_folds_a_left_single_quote_too_and_person_ids_do_not_move():
+    """The text of "Building a Campaign for the Long Haul" opens a quote with U+2018; the model
+    answered with a straight one, and the link was dropped. The tag stage folds it now;
+    parse_stage.fold does not, because it makes person ids."""
+    inp = {"title": "Building a Campaign for the Long Haul", "type": "panel", "tracks": [],
+           "description": "Paris Arrowsmith, Creator of the popular Cyberpunk Red Podcast ‘No Latency,' dives in."}
+    assert ts.evidence_holds("Cyberpunk Red Podcast 'No Latency", inp)
+    assert ts.evidence_holds("Podcast ‘No Latency", {**inp, "description": "Podcast 'No Latency' dives in."})
+    import parse_stage as ps
+    assert ps.fold("‘") == "‘"      # parse_stage.fold is unchanged, so no person id moves
+
+
 def test_works_are_capped_at_three_the_overflow_counted_and_one_work_is_one_spelling():
     tally = ts.new_tally()
     inp = {**INP, "description": "Castle, Firefly, Buffy, Angel and The Rookie."}

@@ -22,10 +22,10 @@ alias, a merge or a rename fixes events with no model call. Nothing the model wr
 except through mint, here: a cached name the registry cannot resolve becomes a works.json row,
 `reviewed: false`, placed under a parent by one more request, and the file is written once.
 
-Transports are tag_events.py's: the Anthropic API when ANTHROPIC_API_KEY is set in the environment
-(claude-sonnet-5), otherwise `claude -p` on the subscription (the alias sonnet), run with no tools,
-no MCP servers, no saved session and no CLAUDE.md. --model overrides either. The key is read from
-the environment and nowhere else.
+Transports are tag_events.py's: the Anthropic API when ANTHROPIC_API_KEY is set in the environment,
+otherwise `claude -p` on the subscription, run with no tools, no MCP servers, no saved session and no
+CLAUDE.md. Both ask for claude-sonnet-5 by full id; --model overrides it. The key is read from the
+environment and nowhere else.
 """
 
 import argparse
@@ -283,12 +283,15 @@ def new_tally():
 
 
 def folded(s):
-    return " ".join(ps.fold(s).split())
+    """parse_stage.fold, and the left single quote read as a straight one too. parse_stage.fold
+    folds only the right one (U+2019) and is not changed for this: it makes person ids, and an id
+    is forever. "Podcast ‘No Latency,'" lost its link to that before the fix."""
+    return " ".join(ps.fold(str(s).replace("\u2018", "'")).split())
 
 
 def evidence_holds(evidence, inp):
     """True where the evidence is in the title or the description that was sent, both sides folded
-    (case, accents, curly apostrophes) and whitespace collapsed. An empty phrase holds nowhere."""
+    (case, accents, curly quotes) and whitespace collapsed. An empty phrase holds nowhere."""
     phrase = folded(evidence or "")
     return bool(phrase) and phrase in folded(f"{inp['title']}\n{inp['description']}")
 
