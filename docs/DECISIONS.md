@@ -26,7 +26,7 @@ phone's home screen. One person could hold the whole thing in their head.
 file, and the tests read it as a string. This is the constraint the 2027
 foundation work exists to relax (see #23 and #29).
 
-### 2. The scraper is the schedule's source of truth — Standing (2026) — on `next` the client reads `events.v2.json`, derived from the scraper's file (#39)
+### 2. The scraper is the schedule's source of truth — Standing (2026) — on `next` since 2026-09-22 the client reads `events.v2.json`, derived from the scraper's file (#39)
 **Decided:** `scraper.py` pulls the official Dragon Con app's web view
 (`app.core-apps.com/dragoncon26`), normalises it, and writes
 `data/2026/events.json`. The client reads that file and nothing else.
@@ -555,7 +555,7 @@ filters change shape, in a PR of their own, after a golden query set
 exists. Follows stored by name need mapping to ids. The file grows;
 unmeasured and accepted, to be measured after.
 
-### 33. The frozen 2026 file is the input; v2 output is derived beside it — Decided, not built (2026-09-20) — built by #34; the client switch is PR 6's; built by #39
+### 33. The frozen 2026 file is the input; v2 output is derived beside it — Decided, not built (2026-09-20) — built by #34; the client switch is PR 6's, built by #39
 **Decided:** Supersedes #3's writing of tags back into `events.json`, when
 built. #13 stands. The v2 pipeline reads `data/2026/events.json` and never
 writes it. It writes `data/2026/events.v2.json`, and a committed tag cache
@@ -752,13 +752,14 @@ read the block.
 **Decided:** The client on `next` reads `data/2026/events.v2.json` (#33,
 #38), and every surface keeps its behaviour: plumbing and parity, not a
 search redesign (#36). `docs/discover/schema-v2.md` has the detail, under
-The file and The profile.
+The file, The profile and About, and with the cast.
 - **The file.** `data.js` builds `worksById` from the works block and a
   descendants map from `parent`, and `linksTo(event, work, vias)` is true
   where the event names the work or anything under it by one of the vias -
-  about and track unless the credit via is asked for. It is the only walk
-  of `parent`; every count, filter, tile and follow of a work agrees with
-  it, and a count is taken in one pass over the events.
+  about and track unless the credit via is asked for. `data.js` is the
+  only module that walks `parent`; every count, filter, tile and follow of
+  a work agrees with `linksTo`, and a count is taken in one pass over the
+  events.
 - **Fandoms are works.** Where the client read `tags.fandoms` it reads the
   about and track works: the index's `fandoms` field (their names and the
   names above them), the suggestion chips, the Fandom select (value the
@@ -771,7 +772,8 @@ The file and The profile.
   the file, in count order, and `audience:kids`. Follow kind `axis`, key
   `<axis>:<value>`. `AXIS_LABELS` in `search.js` is the only place a slug
   becomes a label - v1's topic name where schema-v2 maps one, and Video
-  Games, Superhero, Romance and Performance for the four with none. The
+  Games (which v1's Gaming split), Superhero, Romance and Performance for
+  the four with none. The
   index's `topics` field holds the four axes' labels, and the synonym scan
   reads them.
 - **A work's cast.** A work's page ends with a collapsed "With the cast (N)"
@@ -809,11 +811,16 @@ by id survives a rename where a name does not; a follow judged by its shape
 needs no data to be read and outlives a schedule that briefly lacks its
 subject.
 **Cost:** The Fandom select gains a threshold it did not have: v1 listed
-every fandom, 116; it now lists the 106 reviewed works with 3+ events.
-Three reviewed celebrities - chuck-huber, james-saito and phil-parsons -
-reach celebrity events only through description lines, so they get no
-Guests tile until the client reads people tiers. The file the page fetches
-is 37% larger: 3,688,074 bytes against the frozen file's 2,688,886 when
-this was written, 30% gzipped. v1's stored follows are dropped, not mapped;
-`next` has no users until 2027. The worker's update notice keys on
-`generated_at`, which a registry-only rebuild keeps (ROADMAP, Held).
+every fandom, 116; it lists the reviewed works with 3+ events, 106 when this
+was written. Three reviewed celebrities - chuck-huber, james-saito and
+phil-parsons, when this was written - reach celebrity events only through
+description lines, so they get no Guests tile until the client reads people
+tiers. The file the page fetches is 37% larger: 3,688,074 bytes against the
+frozen file's 2,688,886 when this was written, 30% gzipped. v1's fandom,
+topic and person follows are dropped, not mapped, and a track follow is
+kept. `next` has no users until 2027, but the live site shares its origin
+and its storage (#15): a follow saved on `next` drops the live site's
+fandom, topic and person follows from the stored list, and one saved on the
+live site drops `next`'s work and axis follows. The worker's update notice
+keys on `generated_at`, which every rebuild of `events.v2.json` keeps
+(ROADMAP, Held).

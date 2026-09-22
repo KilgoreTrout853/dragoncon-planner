@@ -115,7 +115,7 @@ crews, a filter sheet and the building view need homes. No decisions yet.
 - Dragon Con outreach (#19). It goes out when Pipeline shape's design opens
   (#37). It gates the fetch and id stages of the pipeline, and nothing else.
 - The worker's new-schedule notice. `sw.js` tells the page of a new schedule
-  only when `generated_at` moves, and a rebuild of `events.v2.json` after a
-  registry-only edit keeps it (#39). The fix is a deterministic content
+  only when `generated_at` moves, and every rebuild of `events.v2.json` -
+  after a registry or a cache edit - keeps it (#39). The fix is a deterministic content
   digest the build writes - nothing volatile (#35) - or the HTTP ETag:
   Delivery's call, with an input from Pipeline shape.

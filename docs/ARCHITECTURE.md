@@ -182,9 +182,9 @@ the dev-build mark, the device readout. `state`: `settings` and `state`.
 buffer, `walkMin()`, `placeHTML()`. `data`: `DATA_URL`, the schedule as the
 app holds it (`events`, `byId`, `meta`), the file's works block as
 `worksById`, and `replaceSchedule()`; `linksTo()`, which says whether an
-event is about a work or anything under it and is the only walk of a work's
-parent, the rolled-up counts and `topWorks()` it agrees with, and a person's
-display name. `picks` and `follows`: what the reader starred and follows -
+event is about a work or anything under it, the rolled-up counts and
+`topWorks()` it agrees with, and a person's display name. `data` is the only
+module that walks a work's parent. `picks` and `follows`: what the reader starred and follows -
 a follow is a track by name, or a work, an axis value or a person by id.
 `ics`: the calendar export. `leave`: leave-by. `search`: the two MiniSearch
 indexes (MiniSearch is an npm dependency, pinned to 7.2.0), the reading of a
@@ -336,7 +336,7 @@ display names, works and topic labels). Query intent parsing turns day/hotel/kin
 **Explore.** Everything that can be followed - tracks, works (the Fandoms
 section), axis values (Topics), guests, panelists - as tiles with counts, a
 work's count taking in the works under it; a page for each, linkable as
-`#explore=kind:key` with the key an id, and a work's page ending with its
+`#explore=kind:key` with the key an id, or a track's name, and a work's page ending with its
 cast, apart and collapsed; above the grid, a Following feed and suggestions
 drawn from the reader's picks. The jump chips follow the scroll through a spy that
 runs once per animation frame.
@@ -481,7 +481,8 @@ and only the root imports `dispatch.js`.
 **`tests/build.test.js`** runs the real `vite build` into temp folders: a
 stamped build, an unstamped one, the default build id, a refused channel,
 the shape of the output (one classic `<script>` at the end of the body,
-one `<style>`, no separate assets, relative links in the head), and checks
+one `<style>`, no separate assets, relative links in the head, the one file
+copied from `data/`), and checks
 of `sw.js`, the manifest, the icons and the head. It ends with the one test
 that executes `dist/`: the built page in a JSDOM of its own, `fetch` stubbed
 to serve the sample fixture, asserting that the first screen renders, a
@@ -526,8 +527,8 @@ demand: job `client` (Node from `.nvmrc`, `npm ci`, lint, test) and job
 `pipeline` (Python 3.13, `pip install`, pytest). `npm test` runs the build
 itself, inside `tests/build.test.js`; pytest builds `events.v2.json` afresh
 and compares it with the committed file, byte for byte, with no model, and
-renders the census of it (DECISIONS #35) the same way, and rebuilds the page
-tests' fixture from the v1 sample. The
+renders the census of it (DECISIONS #35) the same way, and checks that the
+page tests' fixture is a fresh build of the v1 sample. The
 ruleset on `next` requires both
 jobs to pass before a pull request can merge (DECISIONS #26), and it knows
 them by their job ids: renaming either one un-gates the branch.
