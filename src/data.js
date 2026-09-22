@@ -133,6 +133,6 @@ function replaceSchedule(data) {
 
 export {
   NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, isCeleb, DATA_URL,
-  AXES, ABOUT_TRACK, CAST, WORK_MIN, worksById, workCounts, axisKeys,
-  replaceSchedule, directWorks, ancestorsOf, linkedWorks, linksTo, personName, topWorks,
+  AXES, CAST, worksById, workCounts, axisKeys,
+  replaceSchedule, directWorks, linkedWorks, linksTo, personName, topWorks,
 };
