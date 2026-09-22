@@ -123,10 +123,10 @@ describe("polish 5: refresh on foreground", () => {
     back(); await settle();
     expect(calls).toHaveLength(0);
   });
-  it("after the interval, two visibility events in a row make one check, of data/2026/events.json with cache: no-cache [1683]", async () => {
+  it("after the interval, two visibility events in a row make one check, of data/2026/events.v2.json with cache: no-cache [1683]", async () => {
     handle.setTimeOverride("2026-09-05T13:21");                  // sixteen minutes on
     back(); back(); await settle();
-    expect(calls).toEqual([["data/2026/events.json", "no-cache"]]);
+    expect(calls).toEqual([["data/2026/events.v2.json", "no-cache"]]);
   });
   it("an unchanged schedule shows no pill and leaves the freshness alone [1684]", () => {
     expect(document.getElementById("updatePill").hidden).toBe(true);

@@ -74,8 +74,10 @@ evidence is `docs/discover/census-2026.md`. The sequence:
    `events.v2.json` (DECISIONS #34).
 5. Census v2 - built: `census_v2.py` writes
    `docs/discover/census-v2-2026.md`, held fresh by CI (DECISIONS #35).
-6. The client switch, in a PR of its own: plumbing and parity (#36).
-7. Search tuning, by an eval harness (#36).
+6. The client switch - built, in two: the works block in `events.v2.json`
+   (DECISIONS #38), and the client reading it, plumbing and parity (#36,
+   #39).
+7. Search tuning, by an eval harness (#36) - next.
 
 ### 3. Places — designed; its data half is Pipeline shape's
 
@@ -112,3 +114,8 @@ crews, a filter sheet and the building view need homes. No decisions yet.
 - `scrape.yml`'s path onto a PR-only branch (#26). Pipeline shape.
 - Dragon Con outreach (#19). It goes out when Pipeline shape's design opens
   (#37). It gates the fetch and id stages of the pipeline, and nothing else.
+- The worker's new-schedule notice. `sw.js` tells the page of a new schedule
+  only when `generated_at` moves, and every rebuild of `events.v2.json` -
+  after a registry or a cache edit - keeps it (#39). The fix is a deterministic content
+  digest the build writes - nothing volatile (#35) - or the HTTP ETag:
+  Delivery's call, with an input from Pipeline shape.

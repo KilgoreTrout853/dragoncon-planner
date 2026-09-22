@@ -1,4 +1,4 @@
-"""Generate a realistic sample events.json (for UI testing only; not shipped)."""
+"""Generate the v1 sample, tests/sample-events.v1.json (for UI testing only; not shipped). tools/sample_v2.py makes the page tests' v2 fixture, tests/sample-events.json, from it."""
 import json, random, datetime as dt, os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import scraper
@@ -63,5 +63,5 @@ events, merged, removed = scraper.dedupe(events)
 if merged:
     print(f"merged {merged} duplicate groups ({removed} rows) so the fixture matches the scraper")
 now=dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
-json.dump({"generated_at":now,"changed_at":now,"source":"sample","count":len(events),"failures":0,"events":events},open("tests/sample-events.json","w"),ensure_ascii=False,separators=(",",":"))
+json.dump({"generated_at":now,"changed_at":now,"source":"sample","count":len(events),"failures":0,"events":events},open("tests/sample-events.v1.json","w"),ensure_ascii=False,separators=(",",":"))
 print(len(events),"sample events")

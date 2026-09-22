@@ -13,7 +13,7 @@ describe("against the real schedule", () => {
 
   /* run a query with the default filters and say what came back; it does not draw */
   function search(q, over = {}) {
-    Object.assign(state.browse, { q, day: "All", hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", showHidden: false, showPast: false, noToday: false, hideNoise: true, page: 1 }, over);
+    Object.assign(state.browse, { q, day: "All", hotel: "All", type: "All", track: "All", work: "All", kind: "All", showHidden: false, showPast: false, noToday: false, hideNoise: true, page: 1 }, over);
     const results = app.browseResults(), of = section => results.filter(e => e._section === section);
     return { results, total: results.length, main: of("main").length, loose: of("loose").length, past: of("past").length,
       topTitles: of("main").slice(0, 5).map(e => e.title), mainDays: of("main").map(e => e.day), mainEvents: of("main"),
@@ -75,13 +75,13 @@ describe("against the real schedule", () => {
   });
 
   describe("the quoted suggestion path", () => {
-    /* the harness took the name from the internal suggestDocs; the busiest speaker outside the photo sessions is the same kind of person */
+    /* the harness took the name from the internal suggestDocs; the busiest person outside the photo sessions is the same kind of person */
     let who, quoted;
     beforeAll(() => {
       const tally = {};
-      handle.events.filter(e => !app.isNoise(e)).forEach(e => (e.speakers || []).forEach(p => { if (p.name) tally[p.name] = (tally[p.name] || 0) + 1; }));
+      handle.events.filter(e => !app.isNoise(e)).forEach(e => (e.people || []).forEach(p => { tally[p.id] = (tally[p.id] || 0) + 1; }));
       who = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
-      quoted = search(`"${who}"`);
+      quoted = search(`"${app.personName(who)}"`);
     });
 
     it("a tapped suggestion still returns results [2081]", () => {
@@ -91,7 +91,7 @@ describe("against the real schedule", () => {
       expect(quoted.loose).toBe(0);
     });
     it("every result actually features them [2083]", () => {
-      expect(quoted.results.every(e => (e.speakers || []).some(p => p.name === who))).toBe(true);
+      expect(quoted.results.every(e => (e.people || []).some(p => p.id === who))).toBe(true);
     });
   });
 
@@ -198,7 +198,7 @@ describe("against the real schedule", () => {
       hiddenCount = parseInt(note, 10);
     });
     it("with the right count [2159]", () => {
-      expect(hiddenCount).toBe(handle.events.filter(e => app.isNoise(e) && (e.speakers || []).some(p => /alan tudyk/i.test(p.name))).length);
+      expect(hiddenCount).toBe(handle.events.filter(e => app.isNoise(e) && (e.people || []).some(p => p.id === "alan-tudyk")).length);
     });
     it("tapping show includes them [2161]", () => {
       expect(search("alan tudyk", { showHidden: true }).main).toBeGreaterThanOrEqual(hiddenCount);
@@ -213,11 +213,11 @@ describe("against the real schedule", () => {
     let celeb;
     beforeAll(() => {
       const tally = {};
-      handle.events.filter(app.isNoise).forEach(e => (e.speakers || []).forEach(p => { if (p.name) tally[p.name] = (tally[p.name] || 0) + 1; }));
-      const name = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
-      celeb = name ? { name, hidden: tally[name] } : null;
+      handle.events.filter(app.isNoise).forEach(e => (e.people || []).forEach(p => { tally[p.id] = (tally[p.id] || 0) + 1; }));
+      const id = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
+      celeb = id ? { id, hidden: tally[id] } : null;
     });
-    const theirs = () => app.eventsFor({ kind: "person", key: celeb.name });
+    const theirs = () => app.eventsFor({ kind: "person", key: celeb.id });
 
     it("the schedule has someone with photo sessions [2173]", () => {
       expect(celeb).toBeTruthy();
@@ -242,7 +242,7 @@ describe("against the real schedule", () => {
   });
 
   describe("Explore against the real schedule: all five sections, correct counts", () => {
-    const celebrityGuest = name => handle.events.some(e => app.isCeleb(e) && (e.speakers || []).some(s => s.name === name));
+    const celebrityGuest = id => handle.events.some(e => app.isCeleb(e) && (e.people || []).some(p => p.id === id && p.src === "speakers"));
     const distinct = pick => new Set(handle.events.flatMap(pick)).size;
     beforeAll(() => { handle.follows.set([]); state.tab = "explore"; state.explore.page = null; state.explore.q = ""; handle.render(); });
     afterAll(() => { state.explore.page = null; app.setExploreHash(null); handle.follows.set([]); handle.picks.set([]); state.tab = "browse"; handle.render(); });
@@ -266,8 +266,8 @@ describe("against the real schedule", () => {
     describe("a starred celebrity panel suggests its guest, not its photo sessions", () => {
       let guest, tiles;
       beforeAll(() => {
-        const ev = handle.events.find(e => app.isCeleb(e) && !app.isNoise(e) && (e.speakers || []).length === 1);
-        guest = ev.speakers[0].name;
+        const ev = handle.events.find(e => app.isCeleb(e) && !app.isNoise(e) && (e.people || []).length === 1 && e.people[0].src === "speakers");
+        guest = ev.people[0].id;
         handle.picks.set([ev.id]); handle.render();
         tiles = [...document.querySelectorAll("#suggested .tile")].map(t => t.dataset.explore);
         handle.picks.set([]); handle.render();
@@ -288,7 +288,8 @@ describe("against the real schedule", () => {
       expect(app.getCatalogue().fandom.every(f => f.count >= 3)).toBe(true);
     });
     it("which is fewer than all of them [2215]", () => {
-      expect(app.getCatalogue().fandom.length).toBeLessThan(distinct(e => (e.tags || {}).fandoms || []));
+      const reviewedWithAny = handle.meta.works.filter(w => w.reviewed && handle.events.some(e => app.linksTo(e, w.id)));
+      expect(app.getCatalogue().fandom.length).toBeLessThan(reviewedWithAny.length);
     });
     it("people are listed [2217]", () => {
       expect(app.getCatalogue().person.length).toBeGreaterThan(0);
@@ -400,6 +401,194 @@ describe("against the real schedule", () => {
     });
     it.each(["skeptrack", "filk", "larp"])('track aliases: "%s" finds something [2281]', q => {
       expect(search(q).total).toBeGreaterThan(0);
+    });
+  });
+
+  /* DECISIONS #39: the client reads events.v2.json - works by id, rolled up
+     through the works block; the four axes by label; a work's cast apart. */
+  describe("the v2 file: works by id, axes by label, the cast apart", () => {
+    const AXES = ["medium", "genre", "craft", "subject"];
+    const axisValues = () => new Set(handle.events.flatMap(e => AXES.flatMap(a => ((e.tags || {})[a] || []).map(v => `${a}:${v}`))));
+    const valueOf = key => [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
+    afterAll(() => {
+      state.explore.page = null; app.setExploreHash(null); handle.follows.set([]);
+      state.browse.work = "All"; state.tab = "browse"; handle.render();
+    });
+
+    it("every axis value in the file has a label", () => {
+      const values = [...axisValues()];
+      expect(values.length).toBeGreaterThan(30);
+      expect(values.filter(k => { const [a, v] = valueOf(k); return !(app.AXIS_LABELS[a] || {})[v]; })).toEqual([]);
+      expect(app.AXIS_LABELS.audience.kids).toBe("Kids");
+    });
+    it("the Topics tiles are every axis value in the file and the kids audience, each shown by its label", () => {
+      const topics = app.getCatalogue().topic;
+      expect(topics.map(t => t.key).sort()).toEqual([...axisValues(), "audience:kids"].sort());
+      expect(topics.every(t => t.name === app.axisLabel(t.key))).toBe(true);
+    });
+    it("a work's count is the events linksTo finds, for every work in the block", () => {
+      const wrong = handle.meta.works.filter(w => (app.workCounts.get(w.id) || 0) !== handle.events.filter(e => app.linksTo(e, w.id)).length);
+      expect(wrong.map(w => w.id)).toEqual([]);
+    });
+    it("and it takes in the events of the works under it", () => {
+      const direct = handle.events.filter(e => (e.tags.works || []).some(w => w.id === "star-trek" && (w.via === "about" || w.via === "track")));
+      expect(app.workCounts.get("star-trek")).toBeGreaterThan(direct.length);
+    });
+    it("only reviewed works get a tile", () => {
+      expect(app.getCatalogue().fandom.every(t => app.worksById.get(t.key).reviewed === true)).toBe(true);
+      expect(handle.meta.works.some(w => !w.reviewed && (app.workCounts.get(w.id) || 0) >= 3)).toBe(true);
+    });
+
+    describe("the Fandom select", () => {
+      beforeAll(() => { state.tab = "browse"; Object.assign(state.browse, { q: "", day: "All", work: "All" }); handle.render(); });
+
+      it("lists the reviewed works with 3+ events, by id, each named with its count", () => {
+        const options = [...document.querySelectorAll("#fandom option")].slice(1);
+        expect(options.map(o => o.value)).toEqual(app.getCatalogue().fandom.map(t => t.key));
+        expect(options.every(o => {
+          const w = app.worksById.get(o.value), n = app.workCounts.get(o.value);
+          return w.reviewed === true && n >= 3 && o.textContent === `${w.name} (${n})`;
+        })).toBe(true);
+      });
+      it("choosing one keeps the events linked to it, or to anything under it", () => {
+        const select = document.getElementById("fandom");
+        select.value = "star-trek";
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        expect(state.browse.work).toBe("star-trek");
+        const found = search("", { work: "star-trek", hideNoise: false });
+        expect(found.total).toBe(app.workCounts.get("star-trek"));
+        expect(found.results.every(e => app.linksTo(e, "star-trek"))).toBe(true);
+      });
+    });
+
+    describe("Star Trek's page: the cast collapsed, its photo ops and signings behind a reveal", () => {
+      let about, cast, quiet;
+      const castButton = () => document.querySelector('#view-explore [data-act="explore-cast"]');
+      const reveal = () => document.querySelector('#view-explore [data-act="explore-cast-noise"]');
+      const rows = list => [...document.querySelectorAll(`#view-explore .row[data-list="${list}"]`)].map(r => r.dataset.id);
+      beforeAll(() => {
+        about = app.eventsFor({ kind: "work", key: "star-trek" }).map(e => e.id);
+        cast = handle.events.filter(e => app.linksTo(e, "star-trek", ["credit"]) && !about.includes(e.id));
+        quiet = cast.filter(e => ["photo", "signing"].includes(e.tags.kind)).map(e => e.id);
+        state.explore.page = null;
+        app.openExplorePage("work", "star-trek");
+        state.explore.showPast = true; handle.render();
+      });
+
+      it("Star Trek has a cast group, part of it photo ops and signings", () => {
+        expect(cast.length).toBeGreaterThan(quiet.length);
+        expect(quiet.length).toBeGreaterThan(0);
+      });
+      it("the page's own count is the events about it or its track", () => {
+        expect(document.querySelector("#view-explore .eh-count").textContent.startsWith(`${about.length} events`)).toBe(true);
+      });
+      it("the group is collapsed by default and says how many it holds", () => {
+        expect(castButton().getAttribute("aria-expanded")).toBe("false");
+        expect(castButton().textContent.trim()).toMatch(new RegExp(`^With the cast \\(${cast.length}\\)`));
+        expect(rows("explore-cast")).toEqual([]);
+      });
+      it("opened, it lists the cast's events but the photo ops and signings, and offers those by count", () => {
+        castButton().click();
+        expect(castButton().getAttribute("aria-expanded")).toBe("true");
+        expect(rows("explore-cast").sort()).toEqual(cast.map(e => e.id).filter(id => !quiet.includes(id)).sort());
+        expect(reveal().textContent).toBe(`show photo ops and signings (${quiet.length})`);
+      });
+      it("the reveal adds them, and goes", () => {
+        reveal().click();
+        expect(rows("explore-cast").sort()).toEqual(cast.map(e => e.id).sort());
+        expect(reveal()).toBe(null);
+      });
+      it("no event is in both lists", () => {
+        expect(rows("explore").length).toBe(about.length);
+        expect(rows("explore-cast").filter(id => rows("explore").includes(id))).toEqual([]);
+      });
+    });
+
+    describe("what the index holds of a work, an axis and the audience", () => {
+      const text = e => [e.title, e.description, ...(e.tracks || []), ...(e.people || []).map(p => p.name)].join(" ").toLowerCase();
+      const found = (q, over = {}) => new Set(search(q, { hideNoise: false, noToday: true, ...over }).results.map(e => e.id));
+
+      it("a work's name is in the index of the events about the works under it", () => {
+        const lowerDecks = handle.events.filter(e => app.linksTo(e, "star-trek-lower-decks") && !/trek|starfleet|klingon/.test(text(e)));
+        expect(lowerDecks.length).toBeGreaterThan(0);
+        const hits = found("star trek");
+        expect(lowerDecks.filter(e => !hits.has(e.id)).map(e => e.title)).toEqual([]);
+      });
+      it("and so are the registry's other names for it: DCEU finds every DC Comics event", () => {
+        const dc = handle.events.filter(e => app.linksTo(e, "dc-comics"));
+        expect(dc.some(e => !text(e).includes("dceu"))).toBe(true);
+        const hits = found("dceu");
+        expect(dc.filter(e => !hits.has(e.id)).map(e => e.title)).toEqual([]);
+      });
+      it("an axis is indexed by its label: 'literature' finds books events whose text never says it", () => {
+        const books = handle.events.filter(e => (e.tags.medium || []).includes("books") && !text(e).includes("literature"));
+        expect(books.length).toBeGreaterThan(0);
+        const hits = found("literature");
+        expect(books.filter(e => !hits.has(e.id)).map(e => e.title)).toEqual([]);
+      });
+      it("an unreviewed work is searchable, and offered as a suggestion", () => {
+        const w = app.worksById.get("brandish");
+        expect(w.reviewed).toBe(false);
+        state.browse.hideNoise = false;
+        expect(app.suggestionsFor("brandi").topics.map(t => t.name)).toContain(w.name);
+      });
+      it("Kids is still a suggestion, as the topic it was", () => {
+        state.browse.hideNoise = false;
+        expect(app.suggestionsFor("kid").topics.map(t => t.name)).toContain("Kids");
+      });
+      it('"18+" finds the mature events and nothing else', () => {
+        const r = search("18+", { noToday: true, hideNoise: false });
+        expect(r.total).toBe(handle.events.filter(e => e.tags.audience === "mature").length);
+        expect(r.results.every(e => e.tags.audience === "mature")).toBe(true);
+      });
+      it('"kids" keeps the mature ones out, though the Kids Track has one', () => {
+        const kidsTrack = handle.events.filter(e => (e.tracks || []).includes("Kids Track"));
+        expect(kidsTrack.some(e => e.tags.audience === "mature")).toBe(true);
+        const r = search("kids", { noToday: true, hideNoise: false });
+        expect(r.total).toBe(kidsTrack.filter(e => e.tags.audience !== "mature").length);
+        expect(r.results.some(e => e.tags.audience === "mature")).toBe(false);
+      });
+      it("the sheet marks a mature event 18+, and no other", () => {
+        const mature = handle.events.find(e => e.tags.audience === "mature");
+        const other = handle.events.find(e => e.tags.audience === "all");
+        handle.openSheet("event", mature.id);
+        expect(document.querySelector("#panel-event .tag.adult")).toBeTruthy();
+        handle.openSheet("event", other.id);
+        expect(document.querySelector("#panel-event .tag.adult")).toBe(null);
+        handle.closeSheet();
+      });
+    });
+
+    describe("pages the tiles do not reach", () => {
+      afterAll(() => { state.explore.page = null; app.setExploreHash(null); });
+
+      it("an unreviewed work's page has no Follow button", () => {
+        app.openExplorePage("work", "brandish");
+        expect(document.querySelector("#view-explore .eh-name").textContent).toBe(app.worksById.get("brandish").name);
+        expect(document.querySelector("#view-explore .follow-btn")).toBe(null);
+      });
+      it("a work with only a cast shows its cast group, and no 'No events'", () => {
+        const w = handle.meta.works.find(x => x.reviewed && !app.workCounts.get(x.id) && handle.events.some(e => app.linksTo(e, x.id, ["credit"])));
+        app.openExplorePage("work", w.id);
+        expect(document.querySelector('#view-explore [data-act="explore-cast"]')).toBeTruthy();
+        expect(document.querySelector("#view-explore").textContent).not.toMatch(/No events/);
+      });
+    });
+
+    it("a link to an unreviewed work, or by v1's names, lands on the grid; one by id opens its page", () => {
+      const unreviewed = handle.meta.works.find(w => !w.reviewed && (app.workCounts.get(w.id) || 0) > 0);
+      const open = target => {
+        window.location.hash = "#explore=" + encodeURIComponent(target);
+        window.dispatchEvent(new Event("hashchange"));
+        return state.explore.page;
+      };
+      for (const target of [`work:${unreviewed.id}`, "person:Nathan Fillion", "fandom:Star Trek", "topic:Horror"]) {
+        expect(open(target), target).toBe(null);
+      }
+      expect(open("work:star-trek")).toEqual({ kind: "work", key: "star-trek" });
+      expect(document.querySelector("#view-explore .eh-name").textContent).toBe("Star Trek");
+      expect(open("axis:genre:horror")).toEqual({ kind: "axis", key: "genre:horror" });
+      expect(document.querySelector("#view-explore .eh-name").textContent).toBe("Horror");
     });
   });
 });

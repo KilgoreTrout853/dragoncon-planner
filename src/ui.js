@@ -49,7 +49,7 @@ function snippetFor(ev, terms) {
   let pos = -1;
   for (const w of words) { const i = d.toLowerCase().indexOf(w); if (i >= 0 && (pos < 0 || i < pos)) pos = i; }
   if (pos < 0) {
-    const who = (ev.speakers || []).map(p => p.name).join(", ");
+    const who = (ev.people || []).map(p => p.name).join(", ");
     if (who && words.some(w => who.toLowerCase().includes(w))) return `With ${highlighter(terms)(who)}`;
     return d ? esc(d.slice(0, 110)) + (d.length > 110 ? "…" : "") : "";
   }

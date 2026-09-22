@@ -1,20 +1,34 @@
 import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
 import { conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
-import { byId, events, isCeleb, NOISE_TRACKS } from "./data.js";
+import { AXES, byId, CAST, events, isCeleb, linkedWorks, linksTo, NOISE_TRACKS, personName, topWorks, worksById } from "./data.js";
 import { picks } from "./picks.js";
-import { eventsFor, FOLLOW_KINDS, followId, follows, isFollowing } from "./follows.js";
+import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing } from "./follows.js";
+import { axisLabel } from "./search.js";
 import { rowHTML } from "./ui.js";
 import { pageScrollTo, pageScrollTop, revealChip, scroller } from "./scroll.js";
 import { requestRender } from "./bus.js";
 
 /* ---- Explore ------------------------------------------------------- */
 
-const KIND_NOUN = {track: "Track", fandom: "Fandom", topic: "Topic", person: "Person"};
+/* The words the page uses for each kind of follow. A work is still a
+   fandom and an axis value a topic, to the reader. */
+const KIND_NOUN = {track: "Track", work: "Fandom", axis: "Topic", person: "Person"};
+
+/* What a follow is called on screen: its key is an id. */
+function labelFor(kind, key) {
+  switch (kind) {
+    case "work": return (worksById.get(key) || {}).name || key;
+    case "axis": return axisLabel(key);
+    case "person": return personName(key) || key;
+    default: return key;
+  }
+}
 
 /* Built once from the loaded schedule: everything you could follow, with how
-   many events each carries. Fandoms need 3+ to be worth a tile; people need
-   to be a celebrity guest or busy enough to be worth following. */
+   many events each carries. A work needs 3+ events, its own and those of the
+   works under it, and a person's review, to be worth a tile; people need to
+   be a celebrity guest or busy enough to be worth following. */
 let catalogue = null;
 function buildCatalogue() {
   const tally = (get) => {
@@ -22,17 +36,16 @@ function buildCatalogue() {
     events.forEach(e => (get(e) || []).forEach(k => { if (k) m.set(k, (m.get(k) || 0) + 1); }));
     return m;
   };
-  const rank = m => [...m].map(([key, count]) => ({key, count}))
-    .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+  const rank = (m, name) => [...m].map(([key, count]) => ({key, name: name(key), count}))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
+  /* A guest is someone the listing itself puts on a celebrity event; a
+     panelist named only in the description's "Additional Panelists:" line is
+     not made a guest by it. */
   const people = new Map(), celebs = new Set();
   events.forEach(e => {
-    (e.speakers || []).forEach(p => {
-      const n = (p && p.name || "").trim();
-      if (!n) return;
-      people.set(n, (people.get(n) || 0) + 1);
-      if (isCeleb(e)) celebs.add(n);
-    });
+    new Set((e.people || []).map(p => p.id)).forEach(id => people.set(id, (people.get(id) || 0) + 1));
+    if (isCeleb(e)) (e.people || []).forEach(p => { if (p.src === "speakers") celebs.add(p.id); });
   });
 
   /* Tracks are looked up by name, so they go A to Z, with the two noise
@@ -41,13 +54,17 @@ function buildCatalogue() {
      number is the point. People split in two: guests by how busy they are,
      panelists A to Z, because "6 events" says nothing about a name you don't
      know. Both are still one kind of follow. */
-  const byName = (a, b) => a.key.localeCompare(b.key);
-  const person = rank(people).filter(t => celebs.has(t.key) || t.count >= 5);
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  const person = rank(people, personName).filter(t => celebs.has(t.key) || t.count >= 5);
+  const topics = tally(e => {
+    const tg = e.tags || {};
+    return AXES.flatMap(a => (tg[a] || []).map(v => `${a}:${v}`)).concat(tg.audience === "kids" ? ["audience:kids"] : []);
+  });
   catalogue = {
-    track: [...tally(e => e.tracks)].map(([key, count]) => ({key, count}))
+    track: [...tally(e => e.tracks)].map(([key, count]) => ({key, name: key, count}))
       .sort((a, b) => (NOISE_TRACKS.has(a.key) - NOISE_TRACKS.has(b.key)) || byName(a, b)),
-    fandom: rank(tally(e => (e.tags || {}).fandoms)).filter(t => t.count >= 3),
-    topic: rank(tally(e => (e.tags || {}).topics)),
+    fandom: topWorks().map(w => ({key: w.id, name: w.name, count: w.count})),
+    topic: rank(topics, axisLabel),
     person,
     guest: person.filter(t => celebs.has(t.key)),
     panelist: person.filter(t => !celebs.has(t.key)).sort(byName),
@@ -59,8 +76,8 @@ const getCatalogue = () => catalogue || buildCatalogue();
 /* What the grid shows, in order. id names the list; kind is the follow. */
 const EXPLORE_SECTIONS = [
   {id: "track", kind: "track", label: "Tracks"},
-  {id: "fandom", kind: "fandom", label: "Fandoms"},
-  {id: "topic", kind: "topic", label: "Topics"},
+  {id: "fandom", kind: "work", label: "Fandoms"},
+  {id: "topic", kind: "axis", label: "Topics"},
   {id: "guest", kind: "person", label: "Guests"},
   {id: "panelist", kind: "person", label: "Panelists"},
 ];
@@ -83,12 +100,16 @@ function readExploreHash() {
   const i = raw.indexOf(":");
   if (i <= 0) return null;
   const kind = raw.slice(0, i), key = raw.slice(i + 1);
-  return FOLLOW_KINDS.includes(kind) && key ? {kind, key} : null;
+  /* A link names an id the schedule offers, or it lands on the grid: an old
+     link by name, or to a work nobody has reviewed, opens no page. */
+  return FOLLOW_KINDS.includes(kind) && key && canFollow(kind, key) ? {kind, key} : null;
 }
 function openExplorePage(kind, key, keepScroll) {
   if (!keepScroll) state.explore.scroll = pageScrollTop();
   state.explore.page = {kind, key};
   state.explore.showPast = false;
+  state.explore.showCast = false;
+  state.explore.castNoise = false;
   state.tab = "explore";
   setExploreHash(`${kind}:${key}`);
   requestRender();
@@ -104,7 +125,7 @@ function closeExplorePage() {
 function tileHTML(kind, item) {
   const on = isFollowing(kind, item.key);
   return `<button class="tile${on ? " on" : ""}" data-explore="${esc(kind + ":" + item.key)}">
-    <span class="tile-name">${esc(item.key)}</span>
+    <span class="tile-name">${esc(item.name || item.key)}</span>
     <span class="tile-meta">${on ? `<span class="tile-mark" aria-label="Following">&#9679;</span>` : ""}${item.count}</span>
   </button>`;
 }
@@ -112,7 +133,7 @@ function tileHTML(kind, item) {
 function exploreSectionsHTML() {
   const cat = getCatalogue();
   const q = state.explore.q.trim().toLowerCase();
-  const match = list => q ? list.filter(t => t.key.toLowerCase().includes(q)) : list;
+  const match = list => q ? list.filter(t => (t.name || t.key).toLowerCase().includes(q)) : list;
   let html = "", any = false;
   for (const sec of EXPLORE_SECTIONS) {
     const items = match(cat[sec.id] || []);
@@ -149,14 +170,14 @@ const SUGGEST_MAX = 6;
 function suggestedFollows() {
   if (!picks.size) return [];
   const cat = getCatalogue();
-  const lists = {track: cat.track, fandom: cat.fandom, person: cat.guest};
+  const lists = {track: cat.track, work: cat.fandom, person: cat.guest};
   const tally = new Map();
   const bump = (kind, key) => {
     if (!key || isFollowing(kind, key)) return;
     const item = lists[kind].find(t => t.key === key);
     if (!item) return;
     const id = `${kind}:${key}`;
-    const rec = tally.get(id) || {kind, key, count: item.count, picks: 0};
+    const rec = tally.get(id) || {kind, key, name: item.name, count: item.count, picks: 0};
     rec.picks++;
     tally.set(id, rec);
   };
@@ -164,11 +185,12 @@ function suggestedFollows() {
     const e = byId.get(id);
     if (!e) return;
     (e.tracks || []).forEach(t => { if (!NOISE_TRACKS.has(t)) bump("track", t); });
-    ((e.tags || {}).fandoms || []).forEach(f => bump("fandom", f));
-    (e.speakers || []).forEach(p => bump("person", (p && p.name || "").trim()));
+    /* A pick about Andor is behind Star Wars too, as Star Wars' count says. */
+    linkedWorks(e).forEach(w => bump("work", w));
+    new Set((e.people || []).map(p => p.id)).forEach(p => bump("person", p));
   });
   return [...tally.values()]
-    .sort((a, b) => b.picks - a.picks || b.count - a.count || a.key.localeCompare(b.key))
+    .sort((a, b) => b.picks - a.picks || b.count - a.count || a.name.localeCompare(b.name))
     .slice(0, SUGGEST_MAX);
 }
 function suggestedHTML() {
@@ -270,31 +292,43 @@ function scrollToExploreSection(id) {
   smoothScrollTo(el.getBoundingClientRect().top + pageScrollTop() - hdr - stickyH);
 }
 
+/* The kinds a work's cast group keeps behind its own reveal. */
+const CAST_QUIET = ["photo", "signing"];
+
 function renderExplorePage() {
   const {kind, key} = state.explore.page;
   const all = eventsFor({kind, key});
   const at = now();
   const upcoming = all.filter(e => !isPast(e, at)), past = all.filter(e => isPast(e, at));
   const on = isFollowing(kind, key);
+  /* A work's page ends with the events its cast is on - linked by a credit to
+     the work or anything under it - that are not already in the list above. */
+  const cast = kind === "work" ? events.filter(e => linksTo(e, key, CAST) && !linksTo(e, key)) : [];
+  /* Nothing unreviewed is followable; a follow already made can still be undone here. */
+  const button = on || canFollow(kind, key)
+    ? `<button class="btn follow-btn${on ? " on" : ""}" data-act="toggle-follow" aria-pressed="${on}">${on ? "Following" : "Follow"}</button>`
+    : "";
 
   let html = `<div class="explore-head">
     <button class="back" data-act="explore-back" aria-label="Back to Explore">&#8592; Explore</button>
     <div class="eh-kind">${KIND_NOUN[kind] || kind}</div>
-    <h2 class="eh-name">${esc(key)}</h2>
+    <h2 class="eh-name">${esc(labelFor(kind, key))}</h2>
     <div class="eh-count">${all.length} event${all.length === 1 ? "" : "s"}${past.length ? ` &middot; ${upcoming.length} still to come` : ""}</div>
-    <button class="btn follow-btn${on ? " on" : ""}" data-act="toggle-follow" aria-pressed="${on}">${on ? "Following" : "Follow"}</button>
+    ${button}
   </div>`;
 
-  const dayGroups = list => {
+  const dayGroups = (list, name = "explore") => {
     let out = "", lastDay = "";
     list.forEach(ev => {
       if (ev._cd !== lastDay) { out += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd}</li>`; lastDay = ev._cd; }
-      out += rowHTML(ev, {list: "explore"});
+      out += rowHTML(ev, {list: name});
     });
     return out;
   };
 
-  if (!all.length) {
+  if (!all.length && cast.length) {
+    /* Only the cast: the group below is the page. */
+  } else if (!all.length) {
     html += `<div class="empty"><b>No events.</b> Nothing in the schedule matches this any more.</div>`;
   } else {
     if (upcoming.length) html += `<ul class="list">${dayGroups(upcoming)}</ul>`;
@@ -302,6 +336,18 @@ function renderExplorePage() {
     if (past.length) {
       html += `<div class="divider fold"><button data-act="explore-past" aria-expanded="${state.explore.showPast}">Already happened (${past.length}) <span aria-hidden="true">${state.explore.showPast ? "▾" : "▸"}</span></button></div>`;
       if (state.explore.showPast) html += `<ul class="list">${dayGroups(past)}</ul>`;
+    }
+  }
+  if (cast.length) {
+    const open = !!state.explore.showCast;
+    const quiet = cast.filter(e => CAST_QUIET.includes((e.tags || {}).kind));
+    const shown = state.explore.castNoise ? cast : cast.filter(e => !CAST_QUIET.includes((e.tags || {}).kind));
+    html += `<div class="divider fold"><button data-act="explore-cast" aria-expanded="${open}">With the cast (${cast.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
+    if (open) {
+      if (shown.length) html += `<ul class="list">${dayGroups(shown, "explore-cast")}</ul>`;
+      if (quiet.length && !state.explore.castNoise) {
+        html += `<button class="btn quiet more" data-act="explore-cast-noise">show photo ops and signings (${quiet.length})</button>`;
+      }
     }
   }
   document.getElementById("view-explore").innerHTML = html;
@@ -316,8 +362,8 @@ const FOLLOWING_PAGE = 8;
 
 function followChipsHTML() {
   const chips = follows.map(f => `<span class="follow-chip">
-      <button class="fc-name" data-explore="${esc(followId(f))}">${esc(f.key)}</button>
-      <button class="fc-x" data-act="unfollow" data-follow="${esc(followId(f))}" aria-label="Unfollow ${esc(f.key)}">&times;</button>
+      <button class="fc-name" data-explore="${esc(followId(f))}">${esc(labelFor(f.kind, f.key))}</button>
+      <button class="fc-x" data-act="unfollow" data-follow="${esc(followId(f))}" aria-label="Unfollow ${esc(labelFor(f.kind, f.key))}">&times;</button>
     </span>`).join("");
   return `<div class="controls"><div class="chips follow-chips" data-row="follows">${chips}
     <button class="chip fc-add" data-act="fol-add">+ Follow more</button>
@@ -332,7 +378,7 @@ function followingByInterest(now) {
     const upcoming = all.filter(e => !isPast(e, now)), past = all.filter(e => isPast(e, now));
     const expanded = !!state.following.expanded[id];
     const shown = expanded ? upcoming : upcoming.slice(0, FOLLOWING_PAGE);
-    html += `<div class="section-title">${esc(f.key)} <span class="count">${KIND_NOUN[f.kind] || f.kind} &middot; ${upcoming.length} ${conEnded() ? "events" : "to come"}</span></div>`;
+    html += `<div class="section-title">${esc(labelFor(f.kind, f.key))} <span class="count">${KIND_NOUN[f.kind] || f.kind} &middot; ${upcoming.length} ${conEnded() ? "events" : "to come"}</span></div>`;
     if (!upcoming.length) {
       html += `<div class="empty">Nothing left today or later.</div>`;
     } else {
@@ -357,7 +403,8 @@ function followingByTime(now) {
   follows.forEach(f => eventsFor(f).forEach(e => {
     if (!seen.has(e.id)) seen.set(e.id, {ev: e, labels: []});
     const rec = seen.get(e.id);
-    if (!rec.labels.includes(f.key)) rec.labels.push(f.key);
+    const label = labelFor(f.kind, f.key);
+    if (!rec.labels.includes(label)) rec.labels.push(label);
   }));
   const rows = [...seen.values()].sort((a, b) => a.ev._s - b.ev._s);
   const upcoming = rows.filter(r => !isPast(r.ev, now)), past = rows.filter(r => isPast(r.ev, now));
@@ -408,7 +455,10 @@ function followingHTML() {
 
 function applyExploreHash() {
   const target = readExploreHash();
-  if (target) { state.tab = "explore"; state.explore.page = target; state.explore.showPast = false; }
+  if (target) {
+    state.tab = "explore"; state.explore.page = target;
+    state.explore.showPast = false; state.explore.showCast = false; state.explore.castNoise = false;
+  }
   else if (state.explore.page) state.explore.page = null;
 }
 

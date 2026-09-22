@@ -9,9 +9,9 @@ const state = {
   tab: "now", sheetId: null, sheetHotel: null, mineView: loadJSON("dc26.mineView", "timeline"),
   now: {hotel: "All", limit: 80},
   map: {day: null},                       /* null: follow the clock */
-  explore: {q: "", page: null, scroll: 0, showPast: false, expanded: {}, active: null},
+  explore: {q: "", page: null, scroll: 0, showPast: false, showCast: false, castNoise: false, expanded: {}, active: null},
   following: {layout: loadJSON("dc26.followingLayout", "interest"), expanded: {}, showPast: {}, open: loadJSON("dc26.followingOpen", true)},
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All", kind: "All", showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
+  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All", showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
 };
 
 export { settings, state };

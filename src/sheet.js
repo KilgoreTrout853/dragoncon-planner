@@ -12,7 +12,7 @@ import { deviceLine } from "./build.js";
 import { settings, state } from "./state.js";
 import { DAY_LONG, localInputValue, timeOverride } from "./time.js";
 import { hotelPhrase, hotelVar, placeHTML, WALK } from "./venues.js";
-import { byId, events, isCeleb } from "./data.js";
+import { byId, directWorks, events, isCeleb, worksById } from "./data.js";
 import { picks, replacePicks, savePicks } from "./picks.js";
 import { CELEB_BADGE, rowHTML } from "./ui.js";
 import { pageScrollTo, pageScrollTop } from "./scroll.js";
@@ -39,12 +39,15 @@ function fillSettings() {
 
 function eventSheetHTML(ev) {
   const mine = picks.has(ev.id);
-  const peopleRows = (ev.speakers || []).filter(p => p && p.name).map(p => ({
-    name: p.name,
+  /* Each person as this listing spells them, with the role it gives them;
+     See all opens their page by id. */
+  const peopleRows = (ev.people || []).filter(p => p && p.name).map(p => ({
+    id: p.id,
     label: p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name,
   }));
   const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
-  const chips = [...(ev.tracks || []), ...((ev.tags && ev.tags.fandoms) || [])];
+  const chips = [...(ev.tracks || []), ...directWorks(ev).map(id => (worksById.get(id) || {}).name).filter(Boolean)];
+  const mature = !!(ev.tags && ev.tags.audience === "mature");
   return `<div class="ev-head">
       <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
       <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}${ev._cd !== ev.day ? ` &middot; ${DAY_LONG[ev._cd] || ev._cd} night` : ""}</div>
@@ -55,8 +58,8 @@ function eventSheetHTML(ev) {
     <div class="ev-body">
       ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
       ${peopleRows.length ? `<div class="ev-people">With ${peopleRows.map(p =>
-        `<span class="who"><span>${esc(p.label)}</span> <button class="see-all" data-explore="person:${esc(p.name)}">See all</button></span>`).join(", ")}</div>` : ""}
-      ${chips.length || (ev.tags && ev.tags.adult) ? `<div class="tagline">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${ev.tags && ev.tags.adult ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
+        `<span class="who"><span>${esc(p.label)}</span> <button class="see-all" data-explore="person:${esc(p.id)}">See all</button></span>`).join(", ")}</div>` : ""}
+      ${chips.length || mature ? `<div class="tagline">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${mature ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
     </div>
     <div class="ev-actions">
       <button class="ev-star" id="sheetStar" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>

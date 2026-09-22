@@ -8,7 +8,9 @@ rule for the first time, 2002 is a test of its own, and the leave-by rows check 
 Amended in the docs slice (2026-09-19), for what has moved since: four lint-like rows no longer live in
 `tests/rules/source.test.js`, because ESLint took them over as selectors under `no-restricted-syntax` - 1890 and 1892 in #14, when
 `src/time.js` became a module and the Time-section rule was deleted, 780 and 1989 in the docs slice - and `tests/build.test.js`
-lost its same-program case in #13. Those four rows and that sentence are corrected below. The tables' counts are as of 4b-ii, and
+lost its same-program case in #13. Those four rows and that sentence are corrected below. Amended in the client switch
+(2026-09-22, DECISIONS #39), for two rows whose titles name what moved: 1290's cache is v5, and 1683's fetch is of
+`data/2026/events.v2.json`; both rows are corrected below. The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
@@ -830,7 +832,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 1284 | c | index.html registers ./sw.js by relative path (scope stays under /dragoncon-p… | `build.test.js` | 4b-i | build | port |
 | 1286 | c | registration is guarded by a serviceWorker capability check | `build.test.js` | 4b-i | build | port |
 | 1288 | d | a failed registration is reported, not swallowed | `page/offline.test.js` | 4b-ii | provoke | **rewrite** make the stub's register() reject and dispatch load: console.warn is called with 'Offline support unavailable' |
-| 1290 | c | the cache name is versioned (v4) under a prefix the build can stamp, and only… | `build.test.js` | 4b-i | build | port |
+| 1290 | c | the cache name is versioned (v5) under a prefix the build can stamp, and only… | `build.test.js` | 4b-i | build | port |
 | 1292 | c | the Apple touch icon is a PNG, not the SVG iOS ignores | `build.test.js` | 4b-i |  | **merge** with build.test.js case 6, which already asserts this exact <link> |
 | 1293 | c | the home-screen title is DC26 | `build.test.js` | 4b-i | build | port |
 | 1295 | c | the head carries … | `build.test.js` | 4b-i | build | port. ×5 (one per og: tag) |
@@ -1022,7 +1024,7 @@ One row per call site, in harness order, under the harness's own section comment
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
 | 1682 | a | a return within 15 minutes of the last check asks for nothing (… fetches) | `page/offline.test.js` | 4b-ii | provoke | **rewrite** fetch stubbed; visibilitychange straight after boot: no fetch (loading was a check) |
-| 1683 | a | after the interval, two visibility events in a row make one check, of data/20… | `page/offline.test.js` | 4b-ii | provoke | **rewrite** handle.setTimeOverride(+16 min) moves now() past the gate (a simulated clock stands still, which is why the harness wrote lastScheduleCheck): two visibilitychange events make one fetch of data/2026/events.json, cache: no-cache |
+| 1683 | a | after the interval, two visibility events in a row make one check, of data/20… | `page/offline.test.js` | 4b-ii | provoke | **rewrite** handle.setTimeOverride(+16 min) moves now() past the gate (a simulated clock stands still, which is why the harness wrote lastScheduleCheck): two visibilitychange events make one fetch of data/2026/events.v2.json, cache: no-cache |
 | 1684 | a | an unchanged schedule shows no pill and leaves the freshness alone | `page/offline.test.js` | 4b-ii | provoke | **rewrite** same run: the reply's generated_at is unchanged, so no pill and the same freshness text |
 | 1685 | a | pageshow checks too, and a newer generated_at shows the pill and updates the … | `page/offline.test.js` | 4b-ii | provoke | **rewrite** setTimeOverride(+32 min), a newer generated_at in the reply, pageshow: second fetch, pill shown, handle.meta.generated_at is the newer one |
 | 1687 | d | the check never re-renders under the reader; the pill offers the reload | `page/offline.test.js` | 4b-ii | observe | **rewrite** MutationObserver on main during 1685's recheck: nothing under main changes; only the pill and #fresh do |

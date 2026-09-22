@@ -19,7 +19,7 @@ describe("constants the layout and the leave-by depend on", () => {
     expect(HOUR_PX).toBe(60);
   });
   it("four kinds of follow [951]", () => {
-    expect(FOLLOW_KINDS).toEqual(["track", "fandom", "topic", "person"]);
+    expect(FOLLOW_KINDS).toEqual(["track", "work", "axis", "person"]);
   });
   it("the edge-touch handlers are not wired up outside iOS [784]", () => {
     expect(IS_IOS).toBe(false);

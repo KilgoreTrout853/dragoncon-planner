@@ -9,7 +9,7 @@ import { dayOf } from "./util.js";
 import { state } from "./state.js";
 import { conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
 import { hotelMatches, hotelShort } from "./venues.js";
-import { byId, events, isNoise } from "./data.js";
+import { AXES, byId, events, isNoise, linkedWorks, linksTo, personName, worksById } from "./data.js";
 
 /* Con vocabulary. If an event mentions any phrase in a group, every phrase in the group becomes searchable for it.
    Add your own lines freely; lowercase, no punctuation needed. */
@@ -75,6 +75,29 @@ const STOPWORDS = new Set(["a","an","the","and","or","of","in","on","at","to","f
      Howl's Moving Castle, which is nobody's idea of a match for "how to". */
   "how","can","do","does","should","will","want","wanna","gonna"]);
 const KIND_LABELS = {qa: "Celebrity Q&A", panel: "Fan panel", screening: "Screening", workshop: "Workshop", signing: "Signing", photo: "Photo op", contest: "Contest", performance: "Performance", party: "Party", gaming: "Gaming", reading: "Reading", tour: "Tour", other: "Other"};
+/* The only place an axis slug becomes a label. Where v1 had a topic for the
+   value, the label is that topic's name (docs/discover/schema-v2.md, From
+   TOPICS to v2); audience has one value that is a topic of its own. */
+const AXIS_LABELS = {
+  medium: {tv: "TV", film: "Film", books: "Literature", comics: "Comics", animation: "Animation", anime: "Anime",
+    music: "Music", "podcast-web": "Podcasting", "video-games": "Video Games", tabletop: "Tabletop"},
+  genre: {fantasy: "Fantasy", "sci-fi": "Sci-Fi", horror: "Horror", comedy: "Comedy", superhero: "Superhero", romance: "Romance"},
+  craft: {writing: "Writing", costuming: "Costuming", "props-making": "Props & Making", art: "Art",
+    photography: "Cosplay Photography", puppetry: "Puppetry", performance: "Performance"},
+  subject: {science: "Science", space: "Space", tech: "Tech", history: "History", politics: "Politics",
+    skepticism: "Skepticism", paranormal: "Paranormal", fitness: "Fitness", food: "Food", community: "Community",
+    "fandom-culture": "Fandom Culture"},
+  audience: {kids: "Kids"},
+};
+/* "genre:horror" is "Horror"; a key with no label shows its value. */
+function axisLabel(key) {
+  const i = String(key).indexOf(":"), axis = key.slice(0, i), value = key.slice(i + 1);
+  return (AXIS_LABELS[axis] || {})[value] || value;
+}
+/* The labels of an event's four axes, which is what v1 called its topics. */
+const axisLabelsOf = e => AXES.flatMap(a => ((e.tags || {})[a] || []).map(v => axisLabel(`${a}:${v}`)));
+/* The names of what an event is about, and of everything above it. */
+const workNamesOf = e => [...linkedWorks(e)].map(id => (worksById.get(id) || {}).name).filter(Boolean);
 let index = null;
 
 const SEARCH_PLACEHOLDER = "Search titles, guests, fandoms, words";
@@ -101,11 +124,13 @@ function buildIndex() {
   });
   index.addAll(events.map(e => {
     const tg = e.tags || {};
-    const fandoms = (tg.fandoms || []).join(" "), topics = (tg.topics || []).join(" ");
+    const fandoms = workNamesOf(e).join(" "), topics = axisLabelsOf(e).join(" ");
     const kind = tg.kind ? `${tg.kind} ${KIND_LABELS[tg.kind] || ""}` : "";
     const text = [e.title, e.description, (e.tracks || []).join(" "), fandoms, topics, kind, e.location].join(" ").toLowerCase();
-    return {id: e.id, title: e.title, description: e.description || "", speakers: e._people, tracks: (e.tracks || []).join(" "),
-      fandoms, kind, topics, aliases: aliasesFor(e, text), location: e.location || ""};
+    /* The registry's other names for those works, beside the con's vocabulary. */
+    const registry = [...linkedWorks(e)].flatMap(id => { const w = worksById.get(id); return w ? [...(w.aliases || []), ...(w.terms || [])] : []; });
+    return {id: e.id, title: e.title, description: e.description || "", speakers: e._people || "", tracks: (e.tracks || []).join(" "),
+      fandoms, kind, topics, aliases: [aliasesFor(e, text), ...registry].filter(Boolean).join(" "), location: e.location || ""};
   }));
 }
 /* A second, tiny index: one document per name, so we can suggest whole
@@ -115,20 +140,24 @@ function buildSuggestIndex() {
   /* Two counts per name. A celebrity's dozen entries are mostly photo
      sessions, which are hidden by default - a chip promising 12 that yields
      2 is worse than no number at all. */
+  /* People are counted by id and shown by their display name; works and axis
+     labels share one row, by name, as fandoms and topics did. */
   const people = new Map(), topics = new Map();
-  const bump = (m, n, quiet) => {
-    if (n.length <= 2) return;
-    const c = m.get(n) || {all: 0, visible: 0};
+  const bump = (m, key, name, quiet) => {
+    if (name.length <= 2) return;
+    const c = m.get(key) || {name, all: 0, visible: 0};
     c.all++; if (!quiet) c.visible++;
-    m.set(n, c);
+    m.set(key, c);
   };
   events.forEach(e => {
     const quiet = isNoise(e);
-    (e.speakers || []).forEach(p => bump(people, (p && p.name || "").trim(), quiet));
-    const tg = e.tags || {};
-    [...(tg.fandoms || []), ...(tg.topics || [])].forEach(t => bump(topics, String(t || "").trim(), quiet));
+    new Set((e.people || []).map(p => p.id)).forEach(id => bump(people, id, personName(id).trim(), quiet));
+    /* Kids was one of v1's topics, so it is a chip here as it was, though
+       audience is not an axis and stays out of the index's topics field. */
+    const kids = (e.tags || {}).audience === "kids" ? [axisLabel("audience:kids")] : [];
+    new Set([...workNamesOf(e), ...axisLabelsOf(e), ...kids]).forEach(t => bump(topics, t.trim(), t.trim(), quiet));
   });
-  const doc = (group, prefix) => ([name, c]) => ({id: `${prefix}:${name}`, name, all: c.all, visible: c.visible, group});
+  const doc = (group, prefix) => ([key, c]) => ({id: `${prefix}:${key}`, key, name: c.name, all: c.all, visible: c.visible, group});
   suggestDocs = [
     ...[...people].map(doc("people", "p")),
     ...[...topics].map(doc("topics", "t")),
@@ -171,10 +200,10 @@ function passesFilters(e) {
     hotelMatches(e, f.hotel) &&
     (f.type === "All" || e.type === f.type) &&
     (f.track === "All" || (e.tracks || []).includes(f.track)) &&
-    (f.fandom === "All" || (tg.fandoms || []).includes(f.fandom)) &&
+    (f.work === "All" || linksTo(e, f.work)) &&
     (f.kind === "All" || tg.kind === f.kind) &&
-    (!f.adultOnly || !!tg.adult) &&
-    (!f.hideAdult || !tg.adult) &&
+    (!f.adultOnly || tg.audience === "mature") &&
+    (!f.hideAdult || tg.audience !== "mature") &&
     (!f.time || inTimeBand(e, f.time)) &&
     (!f.hideNoise || !isNoise(e));
 }
@@ -313,7 +342,7 @@ function activeFilters() {
     kind: f.kind !== undefined ? f.kind : b.kind,
     type: b.type,
     track: f.track !== undefined ? f.track : b.track,
-    fandom: b.fandom,
+    work: b.work,
     adultOnly: f.adult === true,
     /* Only a query word hides 18+ now ("kids"); the checkbox is gone. */
     hideAdult: f.adult === false,
@@ -425,7 +454,7 @@ function browseResults() {
 }
 
 export {
-  STOPWORDS, KIND_LABELS, index, SEARCH_PLACEHOLDER, processTerm, buildIndex, suggestDocs,
+  STOPWORDS, KIND_LABELS, AXIS_LABELS, axisLabel, index, SEARCH_PLACEHOLDER, processTerm, buildIndex, suggestDocs,
   buildSuggestIndex, suggestionsFor, expandQuery, tokenise, stripPhrase, parseQuery,
   activeFilters, termQuality, browseResults,
 };

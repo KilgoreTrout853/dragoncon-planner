@@ -45,19 +45,27 @@ describe("follows", () => {
     });
     it("follows keep the order they were added [963]", () => {
       handle.follows.set([]);
-      app.toggleFollow("topic", "Space"); app.toggleFollow("track", "Costuming"); app.toggleFollow("fandom", "Star Trek");
-      expect(handle.follows.get().map(f => f.kind)).toEqual(["topic", "track", "fandom"]);
+      app.toggleFollow("axis", "subject:space"); app.toggleFollow("track", "Costuming"); app.toggleFollow("work", "rick-and-morty");
+      expect(handle.follows.get().map(f => f.kind)).toEqual(["axis", "track", "work"]);
     });
     it("a follow has a stable id [964]", () => {
-      expect(app.followId(handle.follows.get()[0])).toBe("topic:Space");
+      expect(app.followId(handle.follows.get()[0])).toBe("axis:subject:space");
     });
   });
 
   describe("eventsFor, one kind at a time", () => {
-    let track, fandom, topic, person;
+    let track, work, axis, person;
+    const aboutOrTrack = e => ((e.tags || {}).works || []).filter(w => w.via === "about" || w.via === "track");
+    /* The works under a work, walked here from the file's block rather than by
+       asking linksTo, which would test the code with itself. */
+    const under = id => {
+      const parent = new Map(handle.meta.works.map(w => [w.id, w.parent]));
+      return new Set(handle.meta.works.map(w => w.id).filter(w => { for (let at = w; at; at = parent.get(at)) if (at === id) return true; return false; }));
+    };
     beforeAll(() => {
-      track = most(e => e.tracks || []); fandom = most(e => (e.tags || {}).fandoms || []);
-      topic = most(e => (e.tags || {}).topics || []); person = most(e => (e.speakers || []).map(p => p.name));
+      track = most(e => e.tracks || []); work = most(e => aboutOrTrack(e).map(w => w.id));
+      axis = most(e => ["medium", "genre", "craft", "subject"].flatMap(a => ((e.tags || {})[a] || []).map(v => `${a}:${v}`)));
+      person = most(e => (e.people || []).map(p => p.id));
     });
 
     it("a track follow finds its events [977]", () => {
@@ -67,22 +75,32 @@ describe("follows", () => {
       expect(app.eventsFor({ kind: "track", key: track }).every(e => (e.tracks || []).includes(track))).toBe(true);
     });
     it("a fandom follow finds its events [983]", () => {
-      expect(fandom).toBeTruthy();
-      expect(app.eventsFor({ kind: "fandom", key: fandom }).length).toBeGreaterThan(0);
+      expect(work).toBeTruthy();
+      expect(app.eventsFor({ kind: "work", key: work }).length).toBeGreaterThan(0);
     });
     it("and only those [984]", () => {
-      expect(app.eventsFor({ kind: "fandom", key: fandom }).every(e => ((e.tags || {}).fandoms || []).includes(fandom))).toBe(true);
+      const ids = under(work);
+      expect(app.eventsFor({ kind: "work", key: work }).every(e => aboutOrTrack(e).some(w => ids.has(w.id)))).toBe(true);
+    });
+    it("a work follow takes in the works under it, by about or track", () => {
+      const ids = under("star-wars");
+      expect(ids.has("andor")).toBe(true);
+      const found = app.eventsFor({ kind: "work", key: "star-wars" });
+      const expected = handle.events.filter(e => aboutOrTrack(e).some(w => ids.has(w.id)));
+      expect(found.map(e => e.id)).toEqual(expected.map(e => e.id));
+      expect(found.some(e => aboutOrTrack(e).some(w => w.id === "andor"))).toBe(true);
+      expect(found.length).toBeGreaterThan(handle.events.filter(e => aboutOrTrack(e).some(w => w.id === "star-wars")).length);
     });
     it("a topic follow finds its events [988]", () => {
-      expect(topic).toBeTruthy();
-      expect(app.eventsFor({ kind: "topic", key: topic }).length).toBeGreaterThan(0);
+      expect(axis).toBeTruthy();
+      expect(app.eventsFor({ kind: "axis", key: axis }).length).toBeGreaterThan(0);
     });
     it("a person follow finds their events [992]", () => {
       expect(person).toBeTruthy();
       expect(app.eventsFor({ kind: "person", key: person }).length).toBeGreaterThan(0);
     });
     it("and only theirs [993]", () => {
-      expect(app.eventsFor({ kind: "person", key: person }).every(e => (e.speakers || []).some(p => p.name === person))).toBe(true);
+      expect(app.eventsFor({ kind: "person", key: person }).every(e => (e.people || []).some(p => p.id === person))).toBe(true);
     });
     it("an unknown key finds nothing [996]", () => {
       expect(app.eventsFor({ kind: "track", key: "No Such Track At All" })).toHaveLength(0);
@@ -326,20 +344,63 @@ describe("follows", () => {
       });
     });
   });
+
+  describe("what the reader sees of a follow is a name, never an id", () => {
+    const texts = sel => [...document.querySelectorAll(sel)].map(n => n.textContent.replace(/\s+/g, " ").trim());
+    beforeAll(() => {
+      handle.follows.set([{ kind: "work", key: "rick-and-morty" }, { kind: "axis", key: "subject:space" }]);
+      state.tab = "explore"; state.explore.page = null; state.following.open = true; state.following.layout = "interest"; handle.render();
+    });
+    afterAll(() => { handle.follows.set([]); state.following.layout = "interest"; handle.render(); });
+
+    it("the Following chips", () => {
+      expect(texts("#following .fc-name")).toEqual(["Rick and Morty", "Space"]);
+      expect([...document.querySelectorAll("#following .fc-x")].map(b => b.getAttribute("aria-label"))).toEqual(["Unfollow Rick and Morty", "Unfollow Space"]);
+    });
+    it("the Following sections, by interest", () => {
+      expect(texts("#following .section-title").map(t => t.split(" Fandom")[0].split(" Topic")[0])).toEqual(["Rick and Morty", "Space"]);
+    });
+    it("the labels on each row, by time", () => {
+      state.following.layout = "time"; handle.render();
+      const labels = texts("#following .flabel");
+      expect(labels.length).toBeGreaterThan(0);
+      expect(labels.every(l => ["Rick and Morty", "Space"].includes(l))).toBe(true);
+    });
+    it("the tiles, and a work's page", () => {
+      expect(texts('#view-explore [data-explore^="work:"] .tile-name')).toEqual(expect.arrayContaining(["Star Wars", "Andor"]));
+      expect(texts("#view-explore .tile-name").some(n => /^[a-z0-9-]+$/.test(n) && n.includes("-"))).toBe(false);
+      app.openExplorePage("work", "star-wars");
+      expect(texts("#view-explore .eh-name")).toEqual(["Star Wars"]);
+      expect(texts("#view-explore .eh-kind")).toEqual(["Fandom"]);
+      app.closeExplorePage();
+    });
+  });
 });
 
 /* The harness saved four junk entries and then filtered them with a copy of
    the app's rule written into the test; the app's own loader never ran. It
-   runs when the module is imported, so: junk in storage, then a boot. */
+   runs when the module is imported, so: junk in storage, then a boot. It
+   judges a follow's shape, never whether the schedule knows its key, so v1's
+   follows fall away and a follow of something with no events stays. */
 describe("a boot with junk among the stored follows", () => {
   let page;
+  const kept = [{ kind: "track", key: "Costuming" }, { kind: "work", key: "no-such-work" }];
   beforeAll(async () => {
-    window.localStorage.setItem("dc26.follows", JSON.stringify([{ kind: "bogus", key: "x" }, { kind: "track" }, null, { kind: "track", key: "Costuming" }]));
+    window.localStorage.setItem("dc26.follows", JSON.stringify([{ kind: "bogus", key: "x" }, { kind: "track" }, null, kept[0],
+      { kind: "fandom", key: "Star Trek" }, { kind: "topic", key: "Space" }, { kind: "person", key: "Nathan Fillion" }, kept[1]]));
     page = await bootPage();
   }, 30000);
   afterAll(() => page.cleanup());
 
   it("malformed stored follows are dropped on load [966]", () => {
-    expect(page.handle.follows.get()).toEqual([{ kind: "track", key: "Costuming" }]);
+    expect(page.handle.follows.get()).toEqual(kept);
+  });
+  it("a follow of something with no events stays, and its page says nothing matches it", () => {
+    page.handle.state.tab = "explore";
+    page.handle.render();
+    const chip = [...document.querySelectorAll("#following .fc-name")].find(b => b.dataset.explore === "work:no-such-work");
+    expect(chip).toBeTruthy();
+    chip.click();
+    expect(document.querySelector("#view-explore .empty").textContent).toMatch(/Nothing in the schedule matches this any more/);
   });
 });

@@ -46,7 +46,7 @@ async function load(data) {
       } catch (e2) { /* no Cache API: fall through to the empty state */ }
       if (!data) {
       document.getElementById("view-now").innerHTML =
-        `<div class="empty"><b>No schedule data yet.</b><br>${DATA_URL} is missing or unreadable. Run <code>python scraper.py</code> in this folder, then reload.</div>`;
+        `<div class="empty"><b>No schedule data yet.</b><br>${DATA_URL} is missing or unreadable. Run <code>python events_v2.py</code> in this folder, then reload.</div>`;
       return;
       }
     }
