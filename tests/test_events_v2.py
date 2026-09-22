@@ -87,10 +87,15 @@ def cache_for(pairs):
     return out
 
 
+def built_doc(tmp_path, pairs, **reg):
+    """The whole v2 document for [(event, answer)], and the build's counts."""
+    return v2.build({"generated_at": "2026-09-07T12:50:19+00:00", "events": [e for e, _ in pairs]},
+                    reg_with(tmp_path, **reg), cache_for(pairs))
+
+
 def built(tmp_path, pairs, **reg):
     """The v2 events for [(event, answer)], and the build's counts."""
-    doc, stats = v2.build({"generated_at": "2026-09-07T12:50:19+00:00", "events": [e for e, _ in pairs]},
-                          reg_with(tmp_path, **reg), cache_for(pairs))
+    doc, stats = built_doc(tmp_path, pairs, **reg)
     return doc["events"], stats
 
 
@@ -235,6 +240,112 @@ def test_every_problem_is_listed_not_the_first(tmp_path):
     assert len(exc.value.problems) == 3
 
 
+# --- the works block -----------------------------------------------------------
+
+# Two levels under Marvel, a sibling, a work linked only by a credit or only by a track whose parent no
+# event links, and a name that sorts elsewhere than its id. File order is not id order (marvel before
+# avengers), so a block in file order fails, and name order is not id order either.
+BLOCK_WORKS = WORKS + [
+    {"id": "marvel", "name": "Marvel", "aliases": ["MCU"], "parent": None, "type": "franchise",   # null is no parent
+     "reviewed": True},
+    {"id": "avengers", "name": "Avengers", "parent": "marvel", "type": "franchise", "reviewed": False},  # no aliases key
+    {"id": "avengers-endgame", "name": "Avengers: Endgame", "aliases": ["Endgame"], "parent": "avengers",
+     "type": "franchise", "terms": ["Thanos"], "reviewed": True},
+    {"id": "avengers-infinity-war", "name": "Avengers: Infinity War", "aliases": [], "parent": "avengers",
+     "type": "franchise", "reviewed": True},
+    {"id": "blood-of-my-blood", "name": "Outlander: Blood of My Blood", "aliases": [], "type": "franchise",
+     "reviewed": True},
+]
+BLOCK_PEOPLE = PEOPLE + [
+    {"id": "tawny-newsome", "name": "Tawny Newsome", "aliases": [], "tier": "celebrity", "reviewed": True,
+     "credits": [{"work": "star-trek-lower-decks", "reviewed": True}]},
+]
+BLOCK_TRACKS = TRACKS + [
+    {"id": "lower-decks-track", "name": "Lower Decks Track", "aliases": [], "work": "star-trek-lower-decks"},
+]
+BLOCK_REG = {"works": BLOCK_WORKS, "people": BLOCK_PEOPLE, "tracks": BLOCK_TRACKS}
+
+ENDGAME = (ev("Endgame Rewatch"), answer(works=["Avengers: Endgame"]))                    # about, two levels down
+TREK_TRACK = (ev("Trek Track Meetup", tracks=["Trek Track"]), answer())                   # track: star-trek
+FILLION = (ev("Big Damn Heroes", speakers=[("Nathan Fillion", "Speaker")]), answer())      # credit: firefly
+NEWSOME = (ev("Lower Decks Live", speakers=[("Tawny Newsome", "Speaker")]), answer())      # credit: a child
+DECKS_TRACK = (ev("Decks Meetup", tracks=["Lower Decks Track"]), answer())               # track: a child
+DDAL = (ev("DDAL Table", type="gaming"), answer(kind="gaming", works=["Dungeons & Dragons"]))   # a game
+
+
+def block_of(tmp_path, pairs):
+    doc, _ = built_doc(tmp_path, pairs, **BLOCK_REG)
+    return doc
+
+
+def test_every_work_an_event_links_by_any_via_is_in_the_block(tmp_path):
+    doc = block_of(tmp_path, [ENDGAME, TREK_TRACK, FILLION])
+    links = [w for e in doc["events"] for w in e["tags"]["works"]]
+    assert {w["via"].split(":")[0] for w in links} == {"about", "track", "credit"}
+    ids = {r["id"] for r in doc["works"]}
+    for w in links:
+        assert w["id"] in ids, f"{w['id']}, linked {w['via']}, is not in the block"
+
+
+def test_every_parent_named_in_the_block_is_in_the_block(tmp_path):
+    # the walk goes all the way up, and from a work linked by any via, not only about
+    for case, pair, expected in [("about, two levels", ENDGAME, ["avengers", "avengers-endgame", "marvel"]),
+                                 ("credit", NEWSOME, ["star-trek", "star-trek-lower-decks"]),
+                                 ("track", DECKS_TRACK, ["star-trek", "star-trek-lower-decks"])]:
+        rows = block_of(tmp_path, [pair])["works"]
+        ids = {r["id"] for r in rows}
+        for r in rows:
+            if "parent" in r:
+                assert r["parent"] in ids, f"{case}: {r['id']}'s parent {r['parent']} is not in the block"
+        assert [r["id"] for r in rows] == expected, case
+
+
+def test_the_block_is_sorted_by_id_one_row_a_work(tmp_path):
+    # star-trek is linked by two events and is also Lower Decks' ancestor: still one row
+    outlander = (ev("Outlander Prequel Panel"), answer(works=["Outlander: Blood of My Blood"]))
+    rows = block_of(tmp_path, [ENDGAME, TREK_TRACK, (ev("Trek Track Social", tracks=["Trek Track"]), answer()),
+                               NEWSOME, DDAL, outlander])["works"]
+    ids, names = [r["id"] for r in rows], [r["name"] for r in rows]
+    assert ids == sorted(ids)
+    assert len(ids) == len(set(ids)), "a work has two rows"
+    assert ids != [w["id"] for w in BLOCK_WORKS if w["id"] in ids]    # the registry's own order would fail
+    assert names != sorted(names) and names != sorted(names, key=str.casefold)   # and so would name order
+
+
+def test_a_work_no_event_reaches_and_no_listed_work_descends_from_is_absent(tmp_path):
+    rows = block_of(tmp_path, [ENDGAME, TREK_TRACK, FILLION])["works"]
+    ids = [r["id"] for r in rows]
+    assert "castle" not in ids, "a work no event links is listed"
+    assert "the-rookie" not in ids, ("a work only the raw registry reaches is listed (Nathan Fillion's unreviewed "
+                                     "credit): the block is built from the merged events")
+    assert "star-trek-lower-decks" not in ids, ("a descendant of a linked work is listed (Trek Track links "
+                                                "star-trek): the walk goes up, never down")
+    assert "avengers-infinity-war" not in ids, ("a sibling under a listed ancestor is listed: an ancestor brings "
+                                                "none of its other descendants")
+    assert ids == ["avengers", "avengers-endgame", "firefly", "marvel", "star-trek"], "nothing else"
+
+
+def test_a_row_holds_the_registry_values_in_one_key_order(tmp_path):
+    rows = {r["id"]: r for r in block_of(tmp_path, [ENDGAME, DDAL])["works"]}
+    # not the registry's order, which puts parent before terms and reviewed; no type, no family
+    assert list(rows["avengers-endgame"]) == ["id", "name", "aliases", "terms", "reviewed", "parent"]
+    assert rows["avengers-endgame"] == {"id": "avengers-endgame", "name": "Avengers: Endgame", "aliases": ["Endgame"],
+                                        "terms": ["Thanos"], "reviewed": True, "parent": "avengers"}
+    # aliases and terms always, [] where the registry holds none; parent only where it has one
+    assert rows["avengers"] == {"id": "avengers", "name": "Avengers", "aliases": [], "terms": [], "reviewed": False,
+                                "parent": "marvel"}
+    assert list(rows["marvel"]) == ["id", "name", "aliases", "terms", "reviewed"]
+    assert rows["marvel"] == {"id": "marvel", "name": "Marvel", "aliases": ["MCU"], "terms": [], "reviewed": True}
+    # a game's family stays in the registry
+    assert rows["dungeons-and-dragons"] == {"id": "dungeons-and-dragons", "name": "Dungeons & Dragons",
+                                            "aliases": ["D&D"], "terms": ["DDAL"], "reviewed": True}
+
+
+def test_the_build_counts_the_block_and_its_ancestors_only(tmp_path):
+    _, stats = built_doc(tmp_path, [ENDGAME, TREK_TRACK], **BLOCK_REG)
+    assert stats["block"] == {"rows": 4, "ancestors_only": 2, "registry": len(BLOCK_WORKS)}
+
+
 # --- the file ----------------------------------------------------------------
 
 def test_the_v1_tags_object_is_gone_and_the_keys_are_in_schema_order(tmp_path):
@@ -254,12 +365,26 @@ def test_the_v1_tags_object_is_gone_and_the_keys_are_in_schema_order(tmp_path):
     assert not {"fandoms", "topics", "adult"} & set(events[0]["tags"])
 
 
-def test_every_top_level_field_is_copied_as_it_is(tmp_path):
+def test_every_top_level_field_is_copied_as_it_is_and_works_comes_before_events(tmp_path):
     event = ev("A Panel")
     data = {"generated_at": "2026-09-07T12:50:19+00:00", "changed_at": "2026-09-06T00:00:00+00:00",
             "source": "fixture", "count": 1, "failures": 0, "events": [event]}
     doc, _ = v2.build(data, reg_with(tmp_path), cache_for([(event, answer())]))
-    assert list(doc) == list(data) and all(doc[k] == data[k] for k in data if k != "events")
+    assert list(doc) == ["generated_at", "changed_at", "source", "count", "failures", "works", "events"]
+    assert all(doc[k] == data[k] for k in data if k != "events")
+
+
+def test_a_works_key_in_the_input_gives_way_to_the_block(tmp_path):
+    event = ev("Trek Track Meetup", tracks=["Trek Track"])
+    block = [{"id": "star-trek", "name": "Star Trek", "aliases": [], "terms": [], "reviewed": True}]
+    at = "2026-09-07T12:50:19+00:00"
+    # before events or after it, the input's works is dropped; a field after events stays after it
+    for data, order in [({"works": ["not the block"], "generated_at": at, "events": [event]},
+                         ["generated_at", "works", "events"]),
+                        ({"generated_at": at, "events": [event], "works": ["not the block"], "failures": 0},
+                         ["generated_at", "works", "events", "failures"])]:
+        doc, _ = v2.build(data, reg_with(tmp_path), cache_for([(event, answer())]))
+        assert list(doc) == order and doc["works"] == block
 
 
 def _write_inputs(tmp_path):
