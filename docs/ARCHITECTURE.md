@@ -7,23 +7,27 @@ file in the same PR as any change that alters the shape described here.
 ## In one paragraph
 
 A Python scraper turns the official Dragon Con app's web view into one JSON
-file. A web app, built by Vite into a single HTML file, reads that JSON,
-lets you search, star, and plan, and stores your picks in the browser. A
-service worker keeps the app usable with no signal. GitHub Pages serves
-it; there is no backend. Beside the frozen 2026 file, tags v2 derive a
-second one - people, facets and tags from the registries and a cache of a
-model's answers - that nothing reads yet.
+file, frozen for 2026. Beside it, tags v2 derive a second one - people,
+facets and tags from the registries and a cache of a model's answers, and
+the works those tags name - and that is the file the client reads. A web
+app, built by Vite into a single HTML file, reads it, lets you search,
+star, and plan, and stores your picks in the browser. A service worker
+keeps the app usable with no signal. GitHub Pages serves it; there is no
+backend.
 
 ```
 app.core-apps.com/dragoncon26          (official schedule, HTML)
         │  scraper.py  (fetch, parse, dedupe, carry tags over)
         ▼
 data/2026/events.json  (frozen; its v1 tags are tag_events.py's, now retired)
-        │                                 │  tags v2, reading it and never writing it:
-        │  fetched by the page;           │  parse_stage.py  people, facets; no model
-        │  cached by sw.js                │  tag_stage.py    Claude, once an input ──► data/2026/tags.cache.jsonl
-        │                                 │                  unknown works minted ──► data/registry/works.json
-        │                                 │  events_v2.py    no model ──► data/2026/events.v2.json (not read yet)
+        │  tags v2, reading it and never writing it:
+        │  parse_stage.py  people, facets; no model
+        │  tag_stage.py    Claude, once an input ──► data/2026/tags.cache.jsonl
+        │                  unknown works minted ──► data/registry/works.json
+        │  events_v2.py    no model
+        ▼
+data/2026/events.v2.json  (people, facets, tags v2, the works block)
+        │  fetched by the page; cached by sw.js
         ▼
 index.html + src/  ──vite build──►  dist/index.html  (the whole client, inlined)
         │                                   └──►  localStorage (picks, settings)
@@ -45,11 +49,11 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own plugin (`dcBuild`) for the HTML fix-ups, the channel stamp and the `data/` copy. |
-| `dist/` | Build output, not in git: `index.html` with the CSS and script inlined, the files from `public/`, and a copy of `data/`. |
-| `data/2026/events.json` | The frozen 2026 schedule: 3,459 events, 2.7 MB. Read by the client, and by tags v2, which never write it. |
+| `dist/` | Build output, not in git: `index.html` with the CSS and script inlined, the files from `public/`, and the one file from `data/` the client reads. |
+| `data/2026/events.json` | The frozen 2026 schedule: 3,459 events, 2.7 MB. Read by tags v2, which never write it, and by the live site's one-file app on `main`; the client on `next` reads `events.v2.json` (DECISIONS #39). |
 | `data/2026/tags.cache.jsonl` | The tag stage's answers, one a line, sorted by the hash of what the model was sent (DECISIONS #34): names, never ids. `tag_stage.py` alone writes it; a line corrected by hand says `"model": "hand"`. |
-| `data/2026/events.v2.json` | The frozen schedule with `people`, `facets` and tags v2, built by `events_v2.py` from the frozen file, the registries and the cache. Before the events, a `works` block (DECISIONS #38): every work an event links and every ancestor of those, sorted by id, each row the registry's `id`, `name`, `aliases`, `terms`, `reviewed` and, where it has one, `parent` - what the client reads a work by, never a registry. The other top-level fields are the frozen file's. Nothing reads it yet: the client switches in PR 6b. |
-| `data/registry/` | The three curated registries `registry.py` owns, below, and `people.draft.json`, the drafter's sidecar - `known_for`, confidence, the event titles, the minted work ids and the rejections, which the loader ignores. `works.json` also holds the works the tag stage minted, `reviewed: false`, which the sidecar does not list, so the review page never prunes them. Cross-year, unlike `data/2026/`, because a work or a person outlasts a con. The build copies them into `dist/` with the rest of `data/`; nothing on the client reads them yet. |
+| `data/2026/events.v2.json` | The frozen schedule with `people`, `facets` and tags v2, built by `events_v2.py` from the frozen file, the registries and the cache. Before the events, a `works` block (DECISIONS #38): every work an event links and every ancestor of those, sorted by id, each row the registry's `id`, `name`, `aliases`, `terms`, `reviewed` and, where it has one, `parent` - what the client reads a work by, never a registry. The other top-level fields are the frozen file's. The file the client reads (DECISIONS #39), and the only one the build copies from `data/`. |
+| `data/registry/` | The three curated registries `registry.py` owns, below, and `people.draft.json`, the drafter's sidecar - `known_for`, confidence, the event titles, the minted work ids and the rejections, which the loader ignores. `works.json` also holds the works the tag stage minted, `reviewed: false`, which the sidecar does not list, so the review page never prunes them. Cross-year, unlike `data/2026/`, because a work or a person outlasts a con. The client never reads them (#31) - what it needs of a work is in `events.v2.json`'s block - and the build does not copy them into `dist/`. |
 | `scraper.py` | Scrape → normalise → dedupe → write `events.json`. |
 | `tag_events.py` | The 2026 tagger, retired: its `main()` refuses to write the frozen file. It keeps `KINDS`, `TOPICS`, `CANON`, `parse_json_array` and the two transports, which the census, the drafter and the tag stage import. `call_claude_code` sends the prompt on stdin; with `isolated=True`, the tag stage's call, it runs `claude -p` with no tools, no MCP servers and no saved session, from an empty directory of its own, and reports the model that answered. |
 | `tag_stage.py` | The tag stage of tags v2 (DECISIONS #34): each distinct input - the title without its price or clock marks, type, tracks and the description without its panelist line - is asked of `claude-sonnet-5` once, 25 to a request, and the answer, held to the closed lists, is cached in `data/2026/tags.cache.jsonl` after every request. Then mint: every cached work name the registry cannot resolve becomes a `works.json` row, `reviewed: false`, placed under a parent by one request, the file written once. `--dry-run` calls nothing; `--mint-only` mints with no model. |
@@ -60,13 +64,13 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `parse_report.py` | What `parse_stage.py` reads out of the frozen schedule, written to `docs/discover/parse-2026.md`: per facet the count beside the census's figure for the same wording, the people, and four UNSURE lists. Imports `parse_stage` and the census's markdown helpers. Two runs give the same bytes. Nothing runs it but a person. |
 | `registry.py` | The curated registries (DECISIONS #31): `works.json`, `people.json` and `tracks.json`, cross-year and hand-edited. `load()` validates all three and raises one error listing every problem; `resolve_work` / `resolve_track` / `resolve_person` turn a name or an alias into an id, and `is_term` says whether a name is a term, which never resolves. It owns `AXES`, the four closed axis lists, which the tag stage imports. Standard library, plus `parse_stage` for its folding. |
 | `draft_people.py` | Drafts people into `people.json` with a model, for review (DECISIONS #31): everyone on a `guests: celebrity` event, skipped when the registry already resolves the name or the sidecar records a rejection, so a second run calls nothing. Reuses `tag_events.py`'s two transports; Opus by full id, `claude-opus-5`, on the API and on Claude Code alike (see Sharp edges). `--parents` is a second, narrow pass that gives each work it minted a parent from the registry. Nothing it writes is reviewed. |
-| `tools/` | Tools a person runs, not part of the build and never copied into `dist/`. `review-people.html` + `review-people.js` are pages opened from disk - no server, no network - and the review for `draft_people.py`'s output: one card a person, tier and credit controls, and an export of the three files formatted as the drafter writes them. The state changes are pure functions in the `.js`, which is a classic script - no import, no export - because a browser refuses an ES module over `file://`. `tag_pilot.py` is the tag stage's pilot: `sample` picks about 150 inputs, and `compare` reports how runs of the tag stage into scratch caches agree. It string-matches work names against event text to choose test events, which the tag stage must never do, so nothing on the tag or build path imports it. |
+| `tools/` | Tools a person runs, not part of the build and never copied into `dist/`. `review-people.html` + `review-people.js` are pages opened from disk - no server, no network - and the review for `draft_people.py`'s output: one card a person, tier and credit controls, and an export of the three files formatted as the drafter writes them. The state changes are pure functions in the `.js`, which is a classic script - no import, no export - because a browser refuses an ES module over `file://`. `tag_pilot.py` is the tag stage's pilot: `sample` picks about 150 inputs, and `compare` reports how runs of the tag stage into scratch caches agree. It string-matches work names against event text to choose test events, which the tag stage must never do, so nothing on the tag or build path imports it. `sample_v2.py` makes `tests/sample-events.json`, the page tests' v2 fixture, from the v1 sample: people and facets from the parse stage, the five tagged events' fandoms as works and topics as axes, one parent chain for a roll-up, and the works block. |
 | `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
 | `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
 | `tests/unit/` | Vitest: pure exports, imported by name from the module that holds them, with no page. |
 | `tests/rules/` | Vitest: rules over the text of `src/styles.css` and of every module under `src/`, and over the module graph (`imports.test.js`). |
-| `tests/real-data.test.js` | Vitest: search quality and Explore against the real `data/2026/events.json`. |
+| `tests/real-data.test.js` | Vitest: search quality and Explore against the real `data/2026/events.v2.json`. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, and a smoke that boots the built page. The only test that executes `dist/`. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record. |
 | `tests/test_parse.py` | Scraper parsing and dedupe unit tests. |
@@ -76,9 +80,10 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/test_registry.py` | One failing fixture per registry rule, the slug and resolve functions, and a load of the committed `data/registry/`, so CI checks every later edit to it. |
 | `tests/test_tag_stage.py` | The tag stage with the model mocked: the input and its key, the prompt, the checks before an answer is cached, the cache, the retry, mint and its parents request, a rewrite of the committed `works.json` that changes no line, and that neither stage imports the pilot or the census. |
 | `tests/test_events_v2.py` | The build's merge rules and hard errors on inline fixtures, its bytes under two hash seeds, that it never touches its input - and a fresh build of the committed data compared byte for byte with `data/2026/events.v2.json`, so an edit to a registry or the cache with no rebuild fails CI. |
+| `tests/test_sample_v2.py` | The page tests' fixture: its shape beside the v1 sample's events, its tags, its roll-up and people, and the committed file compared with a fresh build under two hash seeds, so an edit to the v1 sample, a registry or the tool with no rebuild fails CI. |
 | `tests/test_census_v2.py` | The census's pure parts on inline fixtures - the fandom classes, the resume rule, the band marker, which input field varied, where an unreviewed work came from - a fixture rendered under two hash seeds, what stops it and `--check`, a real run that reaches no model, no process and no network and leaves `data/` as it was, and the committed report compared byte for byte with a fresh render, so a data PR with no re-render fails CI. |
 | `tests/test_tag_events.py` | What the retired tagger still does: refuse the frozen file, and carry a prompt to `claude -p` on stdin, isolated for the tag stage. |
-| `tests/sample-events.json`, `tests/make_sample.py` | 558 synthetic events, the fixture for the page tests and the build smoke; and the seeded script that generates it (it imports `scraper`). |
+| `tests/sample-events.json`, `tests/sample-events.v1.json`, `tests/make_sample.py` | 558 synthetic events: in the v2 shape, the fixture for the page tests and the build smoke, which `tools/sample_v2.py` makes from the v1 sample; and the seeded script that generates the v1 sample (it imports `scraper`). |
 | `.github/workflows/scrape.yml` | Manual-trigger scrape (workflow_dispatch). Refuses a scrape with 0 events or a >20% drop; commits and pushes events.json to the branch it was run from. |
 | `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client` and `pipeline`. |
 | `.github/dependabot.yml` | Monthly update PRs for GitHub Actions only. |
@@ -86,7 +91,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `requirements.txt` | Pinned pipeline dependencies, plus pytest. Python 3.13. |
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
-| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the two censuses, `census-2026.md` of v1's tags and `census-v2-2026.md` of the v2 file, which CI holds fresh; `parse-2026.md`, above; `registry-2026.md`, the record of the seed review, whose script is retired; `works-review-2.json` and `people-review-1.json`, the review records - what each review decided, applied by a one-off script outside the repo; and `schema-v2.md`, the design note for the registries and tags v2 (#31-#34), of which the pipeline half is built - the parse stage, the registries, the tag stage and `events.v2.json` - and the client switch is PR 6's. |
+| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the two censuses, `census-2026.md` of v1's tags and `census-v2-2026.md` of the v2 file, which CI holds fresh; `parse-2026.md`, above; `registry-2026.md`, the record of the seed review, whose script is retired; `works-review-2.json` and `people-review-1.json`, the review records - what each review decided, applied by a one-off script outside the repo; and `schema-v2.md`, the design note for the registries and tags v2 (#31-#34, #38, #39), built: the pipeline half - the parse stage, the registries, the tag stage and `events.v2.json` - and the client switch. |
 | `docs/venues/` | The venues registry (DECISIONS #21, #27, #28): `registry.json`, hand-edited - every hotel × level where programming happens, its rooms as the schedule names them, which published floor plan covers the level, and the state of our own drawing; `README.md`, that checklist rendered, with the notes that do not fit a cell; `drawings/`, our schematics, one draft so far. Nothing reads it yet - the room census validates it against `events.json` when it lands. |
 | `reference/` | Local copies of other people's drawings, gitignored but for its README: the hotels' floor plans in `plans/`, at the paths `registry.json` records, and screenshots of single levels in `shots/`, used as an underlay to trace our own shapes against (#28). Never committed - none of it is ours. |
 
@@ -175,10 +180,16 @@ the dev-build mark, the device readout. `state`: `settings` and `state`.
 `time`: `now()`, the override, `CON`, `conPhase()`, `conDayKey()`,
 `effectiveNow()`. `venues`: hotel identity, the `WALK` table, the seating
 buffer, `walkMin()`, `placeHTML()`. `data`: `DATA_URL`, the schedule as the
-app holds it (`events`, `byId`, `meta`) and `replaceSchedule()`. `picks` and
-`follows`: what the reader starred and follows. `ics`: the calendar export.
-`leave`: leave-by. `search`: the two MiniSearch indexes (MiniSearch is an npm
-dependency, pinned to 7.2.0), the reading of a query, the ranking. `ui`:
+app holds it (`events`, `byId`, `meta`), the file's works block as
+`worksById`, and `replaceSchedule()`; `linksTo()`, which says whether an
+event is about a work or anything under it and is the only walk of a work's
+parent, the rolled-up counts and `topWorks()` it agrees with, and a person's
+display name. `picks` and `follows`: what the reader starred and follows -
+a follow is a track by name, or a work, an axis value or a person by id.
+`ics`: the calendar export. `leave`: leave-by. `search`: the two MiniSearch
+indexes (MiniSearch is an npm dependency, pinned to 7.2.0), the reading of a
+query, the ranking, and `AXIS_LABELS`, the only place an axis slug becomes a
+label. `ui`:
 markup every view shares, `rowHTML()` and `chipHTML()`. Five read storage,
 the document or `navigator` as they are imported: `platform`, `build`,
 `state`, `picks`, `follows`.
@@ -319,13 +330,15 @@ its signature has changed - the day, the pick that is on, the next pick, the
 counts - and otherwise only the card under it, when that has.
 
 **Search.** The first render happens with no index; the search index is
-built in idle time afterwards, then a suggestion index (guest names,
-fandoms). Query intent parsing turns day/hotel/kind/time words into filters.
+built in idle time afterwards, then a suggestion index (people by their
+display names, works and topic labels). Query intent parsing turns day/hotel/kind/time words into filters.
 
-**Explore.** Everything that can be followed - tracks, fandoms, topics,
-guests, panelists - as tiles with counts; a page for each, linkable as
-`#explore=kind:key`; above the grid, a Following feed and suggestions drawn
-from the reader's picks. The jump chips follow the scroll through a spy that
+**Explore.** Everything that can be followed - tracks, works (the Fandoms
+section), axis values (Topics), guests, panelists - as tiles with counts, a
+work's count taking in the works under it; a page for each, linkable as
+`#explore=kind:key` with the key an id, and a work's page ending with its
+cast, apart and collapsed; above the grid, a Following feed and suggestions
+drawn from the reader's picks. The jump chips follow the scroll through a spy that
 runs once per animation frame.
 
 **The sheet.** One bottom sheet, three panels: Settings, an event's detail, a
@@ -336,7 +349,7 @@ hotel's picks for the day. Swipe down to dismiss.
 | Key | Read in | Written in | What |
 |---|---|---|---|
 | `dc26.picks`, `dc26.pickInfo`, `dc26.pickNews` | `picks` | `picks` | Starred event ids; what each looked like when starred; the report of what changed |
-| `dc26.follows` | `follows` | `follows` | What the reader follows |
+| `dc26.follows` | `follows` | `follows` | What the reader follows: `{kind, key}`, a track by name, a work, an axis value or a person by id; kept by its shape as it is read (DECISIONS #39) |
 | `dc26.settings` | `state` | `sheet` | Crowd factor, the default noise filter |
 | `dc26.mineView`, `dc26.followingLayout`, `dc26.followingOpen` | `state` | `dispatch` | Timeline or list; the Following feed's layout, and whether it is folded |
 | `dc26.bigtext` | `boot` | `shell` | Larger text. Its own key, so nothing that resets settings shrinks it; all sizes outside the map SVG are in `rem` |
@@ -351,10 +364,10 @@ hotel's picks for the day. Swipe down to dismiss.
 | Request | Strategy | Why |
 |---|---|---|
 | `index.html` | Network-first, 3 s timeout, fall back to cache; late responses still cached | A fix should land when there's signal; a slow tower must not block launch |
-| `events.json` | Cache-first; revalidate in the background; notify the page only if `generated_at` changed | 2.7 MB on con wifi is the thing that makes the app feel broken |
+| `events.v2.json` | Cache-first; revalidate in the background; notify the page only if `generated_at` changed | Megabytes on con wifi are the thing that makes the app feel broken |
 | Fonts | Cache-first forever (opaque responses allowed) | Never change; a missing font is a visibly broken page |
 
-Cache name is `dc26-v4` (or `dc26-<channel>-v4` on a stamped build). Bump
+Cache name is `dc26-v5` (or `dc26-<channel>-v5` on a stamped build). Bump
 the version when the built page or `sw.js` changes; older caches under the
 same prefix are deleted on activate. Install precaches the shell
 individually so one failed fetch doesn't fail the install.
@@ -373,10 +386,10 @@ On `next` the client is built (DECISIONS #23). `npm run build` runs Vite
   because the same build is deployed at two subpaths. `build.target` is
   `safari16.4`. The script and the CSS are minified, by Vite's defaults,
   and there is no source map.
-- everything in `public/`, verbatim, and a copy of `data/`. The copy carries
-  `events.v2.json`, the tag cache and the registries, unused: nothing on the
-  client reads them, and `sw.js` does not precache them. PR 6 turns the copy
-  into an allowlist of what the client reads (DECISIONS #34).
+- everything in `public/`, verbatim, and from `data/` only what the client
+  reads: `data/2026/events.v2.json`, an allowlist (DECISIONS #39). The frozen
+  v1 file, the tag cache and the registries are the pipeline's and stay
+  behind.
 
 `build/vite-dc.js` (`dcBuild`) runs last, in `closeBundle`. Vite emits the
 entry as `<script type="module" crossorigin>` in `<head>`; `dcBuild` moves
@@ -389,7 +402,7 @@ minified. When `DC_CHANNEL` is set it stamps the channel into
 (default: short commit sha) into `<meta name="dc-build">`; a bad channel
 string fails the build before it starts. With no channel both stamps stay
 empty and `dist/sw.js` is byte-identical to `public/sw.js`. Then it copies
-`data/` into `dist/data/`.
+the allowlist into `dist/data/`.
 
 `npm run dev` serves the unbuilt modules for development. It runs the app
 as a real ES module - deferred, strict, no globals - which is not what
@@ -513,7 +526,8 @@ demand: job `client` (Node from `.nvmrc`, `npm ci`, lint, test) and job
 `pipeline` (Python 3.13, `pip install`, pytest). `npm test` runs the build
 itself, inside `tests/build.test.js`; pytest builds `events.v2.json` afresh
 and compares it with the committed file, byte for byte, with no model, and
-renders the census of it (DECISIONS #35) the same way. The
+renders the census of it (DECISIONS #35) the same way, and rebuilds the page
+tests' fixture from the v1 sample. The
 ruleset on `next` requires both
 jobs to pass before a pull request can merge (DECISIONS #26), and it knows
 them by their job ids: renaming either one un-gates the branch.
@@ -573,6 +587,11 @@ them by their job ids: renaming either one un-gates the branch.
   tests run real modules and do not show it.
 - `sw.js` cache version is bumped by hand. Any change to `public/sw.js`,
   a comment included, is a new worker for every installed client.
+- The worker tells the page of a new schedule only when `generated_at`
+  moves, and `events.v2.json` copies `generated_at` from the frozen file: a
+  rebuild after a registry or cache edit changes the bytes and keeps the
+  stamp, so an installed client takes it in quietly on its next revalidation
+  and says nothing (ROADMAP, Held).
 - The page makes one third-party request at run time: Google Fonts, for
   Barlow Semi Condensed (`index.html`). The worker caches it.
 - No backend, no accounts, no sync: picks live on one device.

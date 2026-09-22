@@ -524,8 +524,10 @@ Embedding a typed query at runtime stays out (#22).
 
 On the device, and keyed by the same ids as the data: follows, mutes, and
 weights computed from stars. Weights sync only as settings, and only after
-the email upgrade (#8, #25). Follows are stored by name today and need
-mapping to ids; that is part of the client switch.
+the email upgrade (#8, #25). Since the client switch (#39) a follow is
+stored by id - a work, an axis value as `<axis>:<value>`, a person - or, for
+a track, by its name. v1's follows by name were not mapped: they fall away
+as the stored list is read, because their shape is not an id's.
 
 ## About, and with the cast
 
@@ -537,14 +539,20 @@ unless asked for; they are 499 and 134 of the schedule's events (section 4).
 For Firefly that is the 9 events about it (section 2), and then, apart,
 where its cast is appearing.
 
+As built by the client switch (#39), the second group is on a work's
+Explore page only: collapsed, "With the cast (N)", with its photo ops and
+signings behind a reveal of their own, and none of the events already in
+the first group. The Following feed and search take the events about the
+work, and search has no cast section.
+
 ## The derived file and the cache
 
 `data/2026/events.json` stays frozen (#13, #33): the v2 pipeline reads it and
 never writes it. It writes `data/2026/events.v2.json` beside it, and a
 committed tag cache keyed by input hash. Frozen events + registries + cache
 give the same bytes on every run, with no model call, which is what CI needs,
-having no model access. The client on `next` reads the frozen file until a PR
-of its own switches it. For 2027 the pipeline writes the v2 shape into
+having no model access. The client on `next` reads `events.v2.json`, since
+the switch (#39). For 2027 the pipeline writes the v2 shape into
 `data/2027/` directly.
 
 As built in PR 4 (#34):
@@ -577,11 +585,13 @@ As built in PR 4 (#34):
   turns a name into an id, by minting a `works.json` row, `reviewed: false`,
   placed under a parent by one request; `events_v2.py` never writes a
   registry, and a name it cannot resolve stops it.
-- **`dist/`** carries `events.v2.json` and the cache in its copy of `data/`,
-  unused, until PR 6 turns the copy into an allowlist of what the client
-  reads; `sw.js` does not precache them.
-- **Recorded for PR 6:** an unreviewed work is searchable, never followable,
-  so no id becomes permanent before a person has looked at it.
+- **`dist/`** carried `events.v2.json` and the cache in its copy of
+  `data/`, unused, until the client switch made the copy an allowlist of
+  what the client reads: `events.v2.json` alone, which `sw.js` precaches
+  (#39).
+- **Recorded for PR 6**, and built by it (#39): an unreviewed work is
+  searchable, never followable, so no id becomes permanent before a person
+  has looked at it.
 
 ## The PR sequence
 
@@ -607,9 +617,11 @@ As built in PR 4 (#34):
    `qa`, `photo` and `signing` events whom `people.json` does not hold, and,
    marked UNSURE, the links worth a person's look. It never links, and CI
    holds it fresh, as it does `events.v2.json` (#35).
-6. **The client switch.** The search index, Explore, follows and filters
-   change shape, in a PR of their own. It is plumbing and parity, not a
-   search redesign: v1's search behaviour carries across as it is (#36).
+6. **The client switch.** Built, in two PRs: 6a, the works block in
+   `events.v2.json` (#38); 6b, the client reading it - the search index,
+   Explore, follows and filters by id - as plumbing and parity, not a
+   search redesign: v1's search behaviour carries across as it is (#36,
+   #39).
 7. **Search tuning.** By an eval harness (#36).
 
 ## Open
@@ -621,4 +633,5 @@ As built in PR 4 (#34):
   `data/2026/tags.cache.jsonl`, under The derived file and the cache.
 - ~~Whether the build's copy of `data/` into `dist/` leaves `events.v2.json`
   out until the switch (#33).~~ Settled in PR 4 (#34): it ships unused, and
-  PR 6 turns the copy into an allowlist of what the client reads.
+  PR 6 turns the copy into an allowlist of what the client reads. Built in
+  6b (#39).

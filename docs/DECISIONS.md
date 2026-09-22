@@ -26,7 +26,7 @@ phone's home screen. One person could hold the whole thing in their head.
 file, and the tests read it as a string. This is the constraint the 2027
 foundation work exists to relax (see #23 and #29).
 
-### 2. The scraper is the schedule's source of truth — Standing (2026)
+### 2. The scraper is the schedule's source of truth — Standing (2026) — on `next` the client reads `events.v2.json`, derived from the scraper's file (#39)
 **Decided:** `scraper.py` pulls the official Dragon Con app's web view
 (`app.core-apps.com/dragoncon26`), normalises it, and writes
 `data/2026/events.json`. The client reads that file and nothing else.
@@ -517,7 +517,7 @@ because fame is not in a blurb.
 rename or merge keeps an alias, because follows are stored by id. An
 unreviewed work can be wrong until someone looks.
 
-### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's; its golden-query gate replaced by #36
+### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's; its golden-query gate replaced by #36; PR 6 built by #38 and #39, the cast group on a work's page only
 **Decided:** Supersedes #3's tag shape and its keying by event id, when
 built. Parse what the source states; closed lists for what the model fills;
 every link says why.
@@ -555,7 +555,7 @@ filters change shape, in a PR of their own, after a golden query set
 exists. Follows stored by name need mapping to ids. The file grows;
 unmeasured and accepted, to be measured after.
 
-### 33. The frozen 2026 file is the input; v2 output is derived beside it — Decided, not built (2026-09-20) — built by #34; the client switch is PR 6's
+### 33. The frozen 2026 file is the input; v2 output is derived beside it — Decided, not built (2026-09-20) — built by #34; the client switch is PR 6's; built by #39
 **Decided:** Supersedes #3's writing of tags back into `events.json`, when
 built. #13 stands. The v2 pipeline reads `data/2026/events.json` and never
 writes it. It writes `data/2026/events.v2.json`, and a committed tag cache
@@ -569,7 +569,7 @@ frozen file; CI has no model access; reproducibility.
 `data/` into `dist/`, so the v2 file ships unused until the switch unless
 the copy excludes it; decide in the PR that first writes it.
 
-### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21)
+### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21) — its PR 6 items built by #39: the allowlist into `dist/`, and no follow of an unreviewed work
 **Decided:** `tag_stage.py` asks the model and `events_v2.py` builds
 (#32, #33); `docs/discover/schema-v2.md` has the detail.
 - **The input and its key.** The model is sent an event's title without its
@@ -668,7 +668,7 @@ files, `events.v2.json` and the census. The report can hold nothing
 volatile - no date, no timing, nothing of the machine that ran it - or it
 could never be fresh. `registry_report.py` is retired.
 
-### 36. The golden-query gate is replaced by a search-eval harness after the client switch — Decided, not built (2026-09-22)
+### 36. The golden-query gate is replaced by a search-eval harness after the client switch — Decided, not built (2026-09-22) — PR 6 built by #38 and #39; the harness is still to build
 **Decided:** An eval harness after the client switch replaces the golden
 query set that #32 put before it.
 - PR 6, the client switch, is plumbing and parity: the client reads
@@ -747,3 +747,73 @@ terms, reviewed flag or parent of a work in the block now changes
 `events.v2.json` even where it changes no link, so a works review that only
 marks such works reviewed now rebuilds the file. The census report does not
 read the block.
+
+### 39. The client switch as built — Standing (2026-09-22)
+**Decided:** The client on `next` reads `data/2026/events.v2.json` (#33,
+#38), and every surface keeps its behaviour: plumbing and parity, not a
+search redesign (#36). `docs/discover/schema-v2.md` has the detail, under
+The file and The profile.
+- **The file.** `data.js` builds `worksById` from the works block and a
+  descendants map from `parent`, and `linksTo(event, work, vias)` is true
+  where the event names the work or anything under it by one of the vias -
+  about and track unless the credit via is asked for. It is the only walk
+  of `parent`; every count, filter, tile and follow of a work agrees with
+  it, and a count is taken in one pass over the events.
+- **Fandoms are works.** Where the client read `tags.fandoms` it reads the
+  about and track works: the index's `fandoms` field (their names and the
+  names above them), the suggestion chips, the Fandom select (value the
+  id, label the name), the filter, the Explore tiles, the feed, the sheet's
+  chips and the suggested follows. The select and the tiles take reviewed
+  works with 3+ rolled-up events; the index and the suggestions take every
+  work. The follow kind is `work`, `state.browse.work` holds an id, and
+  `#explore=` holds ids. DOM ids, CSS classes and the copy stay.
+- **Topics are axes.** One Topics section: every value of the four axes in
+  the file, in count order, and `audience:kids`. Follow kind `axis`, key
+  `<axis>:<value>`. `AXIS_LABELS` in `search.js` is the only place a slug
+  becomes a label - v1's topic name where schema-v2 maps one, and Video
+  Games, Superhero, Romance and Performance for the four with none. The
+  index's `topics` field holds the four axes' labels, and the synonym scan
+  reads them.
+- **A work's cast.** A work's page ends with a collapsed "With the cast (N)"
+  group: events linked by a credit to the work or anything under it that
+  are not already in the list, with photo ops and signings behind a reveal
+  of their own. The feed takes about and track only; search has no cast
+  section.
+- **People.** Where the client read `speakers` it reads `people[]`, and a
+  person is followed, counted and linked by id. The name shown is the
+  spelling used most under the id, ties to the shortest, then code-unit
+  order. Guests are people the listing names (`src: speakers`) on a
+  celebrity event, not description-line panelists; panelists are the rest
+  with 5+ events. `isCeleb` is unchanged.
+- **Adult is audience:** `tags.audience === "mature"`, and the 18+, adult
+  and kids query words keep their behaviour. `play` and `facets` get no UI.
+- **Search is unchanged:** the synonyms, the query rules and expansions,
+  the stopwords, the boosts, prefix and fuzzy matching, the loose
+  threshold. The registry's aliases and terms of the about and track works,
+  and of the works above them, join the `aliases` field.
+- **Stored follows.** A stored follow is kept by its shape, as it is read
+  and before any schedule: a slug for a work or a person, `<axis>:<slug>`
+  for an axis or audience value, any name for a track. v1's fandom, topic
+  and person-by-name follows fall away with no migration, and a follow of
+  something with no events stays. `canFollow` asks the loaded schedule when
+  the reader acts - a reviewed work, a person or an axis value it carries -
+  for `toggleFollow` and `#explore=`, so an unreviewed work is never
+  followable (#34).
+- **Shipped.** `build/vite-dc.js` copies an allowlist into `dist/data`,
+  `data/2026/events.v2.json` alone, which settles #34's copy. The worker's
+  `DATA` and shell entry name that file, and its cache goes from v4 to v5.
+
+**Why:** #31's rule that the client sees only resolved data, #36's parity,
+#34's "searchable, never followable". An id is forever (#31), so a follow
+by id survives a rename where a name does not; a follow judged by its shape
+needs no data to be read and outlives a schedule that briefly lacks its
+subject.
+**Cost:** The Fandom select gains a threshold it did not have: v1 listed
+every fandom, 116; it now lists the 106 reviewed works with 3+ events.
+Three reviewed celebrities - chuck-huber, james-saito and phil-parsons -
+reach celebrity events only through description lines, so they get no
+Guests tile until the client reads people tiers. The file the page fetches
+is 37% larger: 3,688,074 bytes against the frozen file's 2,688,886 when
+this was written, 30% gzipped. v1's stored follows are dropped, not mapped;
+`next` has no users until 2027. The worker's update notice keys on
+`generated_at`, which a registry-only rebuild keeps (ROADMAP, Held).

@@ -10,10 +10,10 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 |---|---|
 | `data/2026/events.json` | The final 2026 schedule, frozen after the con: 3,459 events, scraped Sep 7 12:50 UTC. |
 | `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app, merges duplicates, and writes `data/2026/events.json`. Takes ~20 minutes. |
-| `tag_events.py` | The 2026 tagger, retired: its tags (fandoms, kind, topics, guests, 18+) are in the frozen `events.json` and still power the fandom picker, kind chips, the Celebrity badge and Guests section, and search. |
+| `tag_events.py` | The 2026 tagger, retired: its tags (fandoms, kind, topics, guests, 18+) are in the frozen `events.json`, which the live site on `main` still reads. The client on `next` reads tags v2, from `events.v2.json`. |
 | `tag_stage.py`, `events_v2.py` | Tags v2: a model's answers about each event, cached, and the schedule with them built into `data/2026/events.v2.json`. See Tagging. |
 | `parse_stage.py`, `registry.py` and `data/registry/`, `draft_people.py`, `census_v2.py`, `tools/` | The rest of the Discover pipeline, and the tools a person runs beside it. `docs/ARCHITECTURE.md`'s repo map says what each one is. |
-| `index.html`, `src/` | The planner: the page's markup, the script as ES modules under `src/` (`main.js` is the entry and `boot.js` starts the app) and `src/styles.css`. Vite builds them into one inlined `dist/index.html`, which reads `data/2026/events.json`. |
+| `index.html`, `src/` | The planner: the page's markup, the script as ES modules under `src/` (`main.js` is the entry and `boot.js` starts the app) and `src/styles.css`. Vite builds them into one inlined `dist/index.html`, which reads `data/2026/events.v2.json`. |
 | `public/sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `public/manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `public/icon.svg`. Needs Pillow; fetches the font once. |
@@ -48,7 +48,7 @@ python -m pytest tests/          # the pipeline: scraper, parse, tag and build s
 
 CI runs the same commands on every pull request (`.github/workflows/ci.yml`), and `next` takes no pull request until both of its jobs pass.
 
-The page tests boot the source in jsdom against `tests/sample-events.json` (558 synthetic events, deterministic); `tests/real-data.test.js` boots it once more against the real `data/2026/events.json`, because ranking questions are meaningless against synthetic rows. `docs/ARCHITECTURE.md` says how the suite is put together.
+The page tests boot the source in jsdom against `tests/sample-events.json` (558 synthetic events in the v2 shape, deterministic, which `python tools/sample_v2.py` makes from `tests/sample-events.v1.json`; CI checks it is fresh); `tests/real-data.test.js` boots it once more against the real `data/2026/events.v2.json`, because ranking questions are meaningless against synthetic rows. `docs/ARCHITECTURE.md` says how the suite is put together.
 
 ## Using it
 
@@ -84,7 +84,7 @@ The publishing lives in the [`dragoncon-planner-next`](https://github.com/Kilgor
 gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next
 ```
 
-`npm run build` writes the site into `dist/` - one `index.html` with the CSS and script inlined, the files from `public/`, and a copy of `data/` - and, given a channel, stamps it: `index.html` gets the channel and build id in two `<meta>` tags, which the page reads to show the **dev build** mark and to name the build in the device readout; `sw.js` gets a cache name of its own (`dc26-next-v4`), because the two sites share one origin and would otherwise delete each other's caches. The source carries empty stamps, so a build with no channel wears no mark and its `sw.js` is `public/sw.js` byte for byte; the mark is decided by the stamp, never by the address. `main` is still the 2026 one-file app and never runs a build. `dist/` is ignored by git.
+`npm run build` writes the site into `dist/` - one `index.html` with the CSS and script inlined, the files from `public/`, and `data/2026/events.v2.json`, the one data file the client reads - and, given a channel, stamps it: `index.html` gets the channel and build id in two `<meta>` tags, which the page reads to show the **dev build** mark and to name the build in the device readout; `sw.js` gets a cache name of its own (`dc26-next-v5`), because the two sites share one origin and would otherwise delete each other's caches. The source carries empty stamps, so a build with no channel wears no mark and its `sw.js` is `public/sw.js` byte for byte; the mark is decided by the stamp, never by the address. `main` is still the 2026 one-file app and never runs a build. `dist/` is ignored by git.
 
 One origin also means one localStorage: in an ordinary browser tab the next site reads the same picks and settings as the live one. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected. The simulated clock is the exception: its session key carries the channel, so a `?now=` opened on the next site does not follow you to the live site in the same tab.
 
@@ -119,7 +119,7 @@ python census_v2.py              # no model; the census of it; --check exits 1 i
 
 With `ANTHROPIC_API_KEY` set in the environment it calls the API; nothing reads a key from a file. Without it, it runs `claude -p` on your subscription: the prompt on stdin, from an empty directory of its own, with no tools, no MCP servers and no saved session, so that no CLAUDE.md or memory rides along. That is practical now - about 70 seconds for a request of 25 inputs.
 
-`tag_events.py`, the 2026 tagger, is retired: it wrote `tags: {fandoms, kind, topics, adult, guests}` into `events.json` and now refuses to. The client reads those v1 tags until it switches to `events.v2.json`. Fandom names there were normalised by `CANON` in that script, so the picker shows one "Marvel" rather than Marvel, MCU and Avengers.
+`tag_events.py`, the 2026 tagger, is retired: it wrote `tags: {fandoms, kind, topics, adult, guests}` into `events.json` and now refuses to. The live site on `main` still reads those v1 tags, whose fandom names `CANON` in that script normalised, so its picker shows one "Marvel" rather than Marvel, MCU and Avengers. The client on `next` reads `events.v2.json` instead (DECISIONS #39), where a fandom is a registry work, by id.
 
 ## Duplicates
 
@@ -139,4 +139,4 @@ Hosted by Core-apps at `https://app.core-apps.com/dragoncon26`. Day pages are `e
 
 Runs by hand only (Actions → Refresh schedule → Run workflow); the 3-hourly cron that ran it through con week was removed once the schedule was final, and a run now would overwrite `data/2026/events.json` with whatever the host serves. Before committing it refuses a scrape that returned nothing or fell more than 20% — a throttled run can't overwrite good data. If `main` moved while it was scraping it rebases and retries rather than dropping the refresh. Two refreshes never run at once: a second run waits for the first, because both would rewrite the schedule and the rebase can't resolve that.
 
-For next year: put the `schedule:` trigger and its con-week date guard back, point the scraper, the tagger, the worker (`DATA` and `SHELL` in `public/sw.js`) and `CON` (`src/time.js`; `DATA_URL` in `src/data.js` follows its year) at `data/2027/`, and the 2026 file stays where it is.
+For next year: put the `schedule:` trigger and its con-week date guard back, point the scraper, the tagger, the worker (`DATA` and `SHELL` in `public/sw.js`), the build's allowlist (`DATA_FILES` in `build/vite-dc.js`) and `CON` (`src/time.js`; `DATA_URL` in `src/data.js` follows its year) at `data/2027/`, and the 2026 file stays where it is.
