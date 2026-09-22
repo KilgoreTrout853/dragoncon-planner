@@ -2,8 +2,8 @@ import { defineConfig } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { dcBuild } from "./build/vite-dc.js";
 
-/* One inlined dist/index.html beside the files in public/ and a copy of data/
-   (DECISIONS #23). The same build is deployed at two subpaths, so every URL
+/* One inlined dist/index.html beside the files in public/ and a copy of the
+   one data file the client reads (DECISIONS #23, #39). The same build is deployed at two subpaths, so every URL
    in it is relative. */
 export default defineConfig({
   base: "./",

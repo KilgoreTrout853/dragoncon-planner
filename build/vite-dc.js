@@ -14,8 +14,11 @@
       metas and the channel into the worker's CHANNEL, exactly as build.py
       did. With no channel both stay empty and dist/sw.js is public/sw.js.
 
-   2. Copy data/ into dist/data/. The schedule is fetched at run time, and is
-      far too big to live in public/ twice.
+   2. Copy what the client reads from data/ into dist/data/, and nothing
+      else: DATA_FILES, an allowlist (DECISIONS #39). The schedule is fetched
+      at run time, and is far too big to live in public/ twice; the frozen v1
+      file, the tag cache and the registries are the pipeline's, never the
+      page's.
 
    Nothing here uses String.replace with file contents as the replacement
    text: the app contains "$&", which a replacement string would expand. */
@@ -25,6 +28,7 @@ import path from "node:path";
 
 const CHANNEL_RE = /^[a-z0-9-]*$/, BUILD_RE = /^[A-Za-z0-9._-]*$/;
 const VITE_CSS_MARKER = "/*$vite$:1*/";
+const DATA_FILES = ["data/2026/events.v2.json"];
 
 function gitShortSha(cwd) {
   try { return execFileSync("git", ["rev-parse", "--short", "HEAD"], {cwd, encoding: "utf8"}).trim(); }
@@ -90,7 +94,10 @@ export function dcBuild() {
       }
       fs.writeFileSync(pagePath, html);
 
-      fs.cpSync(path.join(root, "data"), path.join(outDir, "data"), {recursive: true});
+      for (const file of DATA_FILES) {
+        fs.mkdirSync(path.dirname(path.join(outDir, file)), {recursive: true});
+        fs.copyFileSync(path.join(root, file), path.join(outDir, file));
+      }
       console.log(`dc-build: channel=${channel || "(none)"} build=${build || "(none)"}`);
     },
   };

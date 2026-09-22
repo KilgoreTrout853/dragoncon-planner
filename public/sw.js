@@ -21,10 +21,10 @@
    CHANNEL there, so each site's worker names, and clears, only its own. */
 const CHANNEL = "";                        /* stamped by build.py: "next" on the next site */
 const CACHE_PREFIX = `dc26${CHANNEL ? "-" + CHANNEL : ""}-`;
-const CACHE = `${CACHE_PREFIX}v4`;
+const CACHE = `${CACHE_PREFIX}v5`;
 const HTML_TIMEOUT_MS = 3000;
-const DATA = "data/2026/events.json";
-const SHELL = ["./", "./index.html", "./data/2026/events.json", "./manifest.json", "./icon.svg",
+const DATA = "data/2026/events.v2.json";
+const SHELL = ["./", "./index.html", "./data/2026/events.v2.json", "./manifest.json", "./icon.svg",
                "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 const isFont = url =>
