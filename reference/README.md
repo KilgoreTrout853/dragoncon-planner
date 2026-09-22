@@ -10,7 +10,7 @@ Layout:
       shots/      screenshots of single levels, named <hotel>-<level>.png, for use as a drawing underlay
       dragoncon/  the con's own maps, if we ever get them
 
-Add to .gitignore:
+.gitignore carries these two lines:
 
     reference/*
     !reference/README.md

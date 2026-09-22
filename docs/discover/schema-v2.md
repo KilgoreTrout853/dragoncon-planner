@@ -579,7 +579,9 @@ As built in PR 4 (#34):
    marked UNSURE, the links worth a person's look. It never links, and CI
    holds it fresh, as it does `events.v2.json` (#35).
 6. **The client switch.** The search index, Explore, follows and filters
-   change shape, in a PR of their own. A golden query set exists before it.
+   change shape, in a PR of their own. It is plumbing and parity, not a
+   search redesign: v1's search behaviour carries across as it is (#36).
+7. **Search tuning.** By an eval harness (#36).
 
 ## Open
 

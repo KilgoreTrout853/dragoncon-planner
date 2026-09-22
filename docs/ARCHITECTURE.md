@@ -86,7 +86,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `requirements.txt` | Pinned pipeline dependencies, plus pytest. Python 3.13. |
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
-| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the two censuses, `census-2026.md` of v1's tags and `census-v2-2026.md` of the v2 file, which CI holds fresh; `parse-2026.md`, above; `registry-2026.md`, the record of the seed review, whose script is retired; and `schema-v2.md`, the design note for the registries and tags v2 (#31-#34), of which the pipeline half is built - the parse stage, the registries, the tag stage and `events.v2.json` - and the client switch is PR 6's. |
+| `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the two censuses, `census-2026.md` of v1's tags and `census-v2-2026.md` of the v2 file, which CI holds fresh; `parse-2026.md`, above; `registry-2026.md`, the record of the seed review, whose script is retired; `works-review-2.json` and `people-review-1.json`, the review records - what each review decided, applied by a one-off script outside the repo; and `schema-v2.md`, the design note for the registries and tags v2 (#31-#34), of which the pipeline half is built - the parse stage, the registries, the tag stage and `events.v2.json` - and the client switch is PR 6's. |
 | `docs/venues/` | The venues registry (DECISIONS #21, #27, #28): `registry.json`, hand-edited - every hotel × level where programming happens, its rooms as the schedule names them, which published floor plan covers the level, and the state of our own drawing; `README.md`, that checklist rendered, with the notes that do not fit a cell; `drawings/`, our schematics, one draft so far. Nothing reads it yet - the room census validates it against `events.json` when it lands. |
 | `reference/` | Local copies of other people's drawings, gitignored but for its README: the hotels' floor plans in `plans/`, at the paths `registry.json` records, and screenshots of single levels in `shots/`, used as an underlay to trace our own shapes against (#28). Never committed - none of it is ours. |
 
@@ -140,6 +140,11 @@ read the frozen file and never write it, in three stages:
    and the cache give `data/2026/events.v2.json`, the same bytes every run.
    Names resolve through the registry on every build, so an alias, a merge
    or a rename fixes events with no model call.
+
+**Curation** is off the build path: `draft_people.py` drafts people,
+`tools/review-people.html` reviews them, `census_v2.py` lists what is owed
+a reviewer, and each review's decisions are committed as a record in
+`docs/discover/`.
 
 ## The client: modules and their order
 

@@ -16,7 +16,7 @@ Format per entry: what we decided, why, and what it costs us.
 These were made during the 2026 build and never written down. Dates are
 approximate; the code is the record.
 
-### 1. One HTML file, no framework, no build step — Standing (2026, pre-con)
+### 1. One HTML file, no framework, no build step — Standing (2026, pre-con) — superseded on `next` by #23; `main` keeps it
 **Decided:** The app is a single `index.html` with inline CSS and JS, served
 as static files from GitHub Pages. No bundler, no framework, no npm runtime
 dependencies.
@@ -24,7 +24,7 @@ dependencies.
 phone's home screen. One person could hold the whole thing in their head.
 **Cost:** The file is now large and monolithic; every change touches one
 file, and the tests read it as a string. This is the constraint the 2027
-foundation work exists to relax (see #12).
+foundation work exists to relax (see #23 and #29).
 
 ### 2. The scraper is the schedule's source of truth — Standing (2026)
 **Decided:** `scraper.py` pulls the official Dragon Con app's web view
@@ -88,7 +88,7 @@ a third party.
 **Cost:** A match-by-content step with edge cases (renamed panel, moved
 room). Belongs to the 2027 pipeline work.
 
-### 8. Identity is anonymous-first — Decided, not built (2026-09-05)
+### 8. Identity is anonymous-first — Decided, not built (2026-09-05) — the email step amended by #25 (a six-digit code, not a magic link)
 **Decided:** Every device gets a key with no prompt. An optional email
 magic-link upgrade links devices for cross-device sync. Crews need only a
 display name. No passwords, no social graph.
@@ -196,7 +196,7 @@ cut takes from the bottom.
 **Cost:** Good ideas that fail the test do not get built. VISION.md is one
 more document that has to stay true.
 
-### 19. Dragon Con is a door kept open, not a design target — Decided (2026-09-17)
+### 19. Dragon Con is a door kept open, not a design target — Decided (2026-09-17) — timing set by #37
 **Decided:** The app is not designed for an official partnership. It stays
 official-ready in five ways: the schedule source behind one interface, no
 personal data by default, offline, accessible, scale by configuration.
@@ -341,7 +341,7 @@ an email-upgraded user recovers. VISION.md's "one that did not still keeps
 what it had" is qualified in this PR, and the install nudge is now a
 data-safety measure, not only a push enabler.
 
-### 26. CI on every PR; `next` becomes PR-only with required checks — Decided, not built (2026-09-17)
+### 26. CI on every PR; `next` becomes PR-only with required checks — Decided, not built (2026-09-17) — built: CI, the required checks, the `next` ruleset, the deploy repo's build command, Dependabot and `.gitattributes`; open: Pages from Actions (Delivery) and `scrape.yml`'s PR path (Pipeline shape)
 **Decided:** `.github/workflows/ci.yml` with two jobs matching the
 toolchain boundary: `client` (Node from `.nvmrc`, `npm ci` with cache,
 lint, test, build) and `pipeline` (Python, `requirements.txt`, pytest).
@@ -481,7 +481,7 @@ from below costs an indirection, and throws if it is asked for before
 to look for an architecture; ARCHITECTURE.md repeats it and has to be kept
 in step.
 
-### 30. Tentpoles order the 2027 work — Standing (2026-09-20)
+### 30. Tentpoles order the 2027 work — Standing (2026-09-20) — the order after Discover is #37's
 **Decided:** `docs/ROADMAP.md` names six tentpoles: pipeline shape,
 Discover, Places, identity and sync, delivery, where things live. Each
 opens with a design chat that ends in DECISIONS entries, a data contract
@@ -494,7 +494,7 @@ attention, not code throughput, is the limit.
 **Cost:** No feature-level plan exists until a tentpole opens. The
 checkpoint and freeze dates are still unset.
 
-### 31. Curated registries live in git, cross-year — Decided, not built (2026-09-20)
+### 31. Curated registries live in git, cross-year — Decided, not built (2026-09-20) — built: `registry.py` loads and validates all three on every run; works and people reviewed (`docs/discover/works-review-2.json`, `people-review-1.json`)
 **Decided:** #27's pattern, generalised. `data/registry/works.json`,
 `people.json` and `tracks.json` are hand-curated, validated by the pipeline
 on every run, and resolved to ids; the client sees only resolved data. They
@@ -517,7 +517,7 @@ because fame is not in a blurb.
 rename or merge keeps an alias, because follows are stored by id. An
 unreviewed work can be wrong until someone looks.
 
-### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's
+### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's; its golden-query gate replaced by #36
 **Decided:** Supersedes #3's tag shape and its keying by event id, when
 built. Parse what the source states; closed lists for what the model fills;
 every link says why.
@@ -667,3 +667,52 @@ effect on `events.v2.json`.
 files, `events.v2.json` and the census. The report can hold nothing
 volatile - no date, no timing, nothing of the machine that ran it - or it
 could never be fresh. `registry_report.py` is retired.
+
+### 36. The golden-query gate is replaced by a search-eval harness after the client switch — Decided, not built (2026-09-22)
+**Decided:** An eval harness after the client switch replaces the golden
+query set that #32 put before it.
+- PR 6, the client switch, is plumbing and parity: the client reads
+  `events.v2.json`, and v1's search behaviour (synonyms, prefix and typo
+  tolerance, the day, time, hotel, kind and other filter words it reads out
+  of a query) carries across as it is. It is not a search redesign.
+- Search is tuned after it, by a harness Claude Code builds and runs.
+  Queries are generated from the registries (every work, alias, term and
+  person), with mechanical variants (dropped spaces, typos, surnames alone,
+  nicknames) and intent-style queries by category. The app's real search
+  runs headlessly. A model judges relevance, cached like the tag stage,
+  with a different model or prompt from the tagger's. A report by category
+  comes out, rerun after each change.
+- The author approves a rubric of what good means and spot-checks a sample
+  of the judge's verdicts, and marks no results by hand.
+
+**Why:** Tuning needs the infrastructure first. `next` has no users until
+August 2027, so a regression in PR 6 hurts no one before the harness can
+catch it. Search analysis is model work; a person sets the standard.
+**Cost:** Model-built tags, model-written queries and a model judge share
+blind spots; the rubric and the sample check are the guard. Real users'
+searches are the missing input. Recording searches that return nothing,
+anonymously, in 2027 is a privacy question for Identity and sync.
+
+### 37. Pipeline shape follows Discover — Standing (2026-09-22)
+**Decided:** The tentpoles (#30) go in this order: Discover (PR 6), then
+Pipeline shape, whose design opens while PR 6 executes, then Identity and
+sync, then Delivery; Where things live last, as now.
+- Search tuning (#36) does not gate Pipeline shape; it runs once PR 6 has
+  landed, in a free execution slot.
+- Identity and sync is designed while Pipeline shape executes, so it slips
+  by one slot at most.
+- The Postgres mirror (#27) is the seam: Pipeline shape ends at writing
+  JSON, and the mirror is designed with Identity and sync's schema and
+  row-level security.
+- Places' data half (the room census, the venues file, room resolution) is
+  Pipeline shape's venue-resolution stage. The building view's drawings and
+  sketches continue on the side, in chat. Places PRs beyond what the
+  pipeline absorbs take a free review slot.
+- Outreach (#19) goes out when Pipeline shape's design opens.
+
+**Why:** Discover's stages are pipeline stages, so the design continues
+while they are fresh. The pipeline must run unattended through con weekend
+and can only be proven on 2027 data in August. Live and Tell me rest on it.
+**Cost:** Identity and sync, which carries Keep, Coordinate and Tell me and
+the most new technology, opens one slot later. Coordinate still has to land
+by the spring checkpoint for the building view to stay in.
