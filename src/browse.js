@@ -6,7 +6,7 @@ import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, now } from "./time.js";
 import { hotelShort } from "./venues.js";
-import { events, fandomCounts, hotelChips, isNoise, tracks } from "./data.js";
+import { events, hotelChips, isNoise, topWorks, tracks } from "./data.js";
 import { browseResults, index, KIND_LABELS, processTerm, SEARCH_PLACEHOLDER, suggestDocs, suggestionsFor } from "./search.js";
 import { chipHTML, rowHTML } from "./ui.js";
 import { chipRowsRestore, chipRowsSnapshot } from "./scroll.js";
@@ -59,12 +59,11 @@ function hiddenForQueryHTML(results) {
   if (!name) return "";
   /* Only for a person: a bare word like "photo" is already handled by the
      kind override, and we don't want this line on every search. */
-  const isPerson = suggestDocs.some(d => d.group === "people" && d.name.toLowerCase() === name.toLowerCase());
-  if (!isPerson) return "";
-  const lower = name.toLowerCase();
+  const person = suggestDocs.find(d => d.group === "people" && d.name.toLowerCase() === name.toLowerCase());
+  if (!person) return "";
   const shown = new Set(results.map(e => e.id));
   const hidden = events.filter(e => isNoise(e) && !shown.has(e.id)
-    && (e.speakers || []).some(p => (p.name || "").toLowerCase() === lower));
+    && (e.people || []).some(p => p.id === person.key));
   if (!hidden.length) return "";
   const word = hidden.length === 1 ? "session" : "sessions";
   return `<div class="hidden-note">${hidden.length} photo ${word} hidden &middot; <button data-act="show-hidden">show</button></div>`;
@@ -91,7 +90,9 @@ function renderBrowse() {
   const shown = results.slice(0, PAGE * b.page);
   const noiseCount = events.filter(e => isNoise(e) && (b.day === "All" || e._cd === b.day)).length;
   const hasTags = events.some(e => e.tags);
-  const fandoms = hasTags ? fandomCounts() : [];
+  /* The Fandom select holds works, by id: the reviewed ones with 3+ events,
+     their own and those of the works under them. */
+  const works = hasTags ? topWorks() : [];
   const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
 
   const dayChips = `${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}`;
@@ -108,7 +109,7 @@ function renderBrowse() {
       <div class="seg" role="group" aria-label="Type">
         ${["All", "panel", "gaming"].map(t => `<button data-chip="type" data-value="${t}" aria-pressed="${b.type === t}">${{All: "All", panel: "Panels", gaming: "Gaming"}[t]}</button>`).join("")}
       </div>
-      ${hasTags ? `<select class="track" id="fandom" aria-label="Fandom"><option value="All">Any fandom</option>${fandoms.map(([f, n]) => `<option value="${esc(f)}" ${b.fandom === f ? "selected" : ""}>${esc(f)} (${n})</option>`).join("")}</select>` : ""}
+      ${hasTags ? `<select class="track" id="fandom" aria-label="Fandom"><option value="All">Any fandom</option>${works.map(w => `<option value="${esc(w.id)}" ${b.work === w.id ? "selected" : ""}>${esc(w.name)} (${w.count})</option>`).join("")}</select>` : ""}
       <select class="track" id="track" aria-label="Track"><option value="All">All tracks</option>${tracks.map(t => `<option value="${esc(t)}" ${b.track === t ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
     </div>
     <label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label>

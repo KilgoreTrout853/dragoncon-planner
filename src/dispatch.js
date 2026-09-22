@@ -110,6 +110,8 @@ function onMainClick(e) {
       return;
     }
     if (a === "explore-past") { state.explore.showPast = !state.explore.showPast; render(); return; }
+    if (a === "explore-cast") { state.explore.showCast = !state.explore.showCast; render(); return; }
+    if (a === "explore-cast-noise") { state.explore.castNoise = true; render(); return; }
     if (a === "toggle-follow") {
       const pg = state.explore.page;
       if (pg) { toggleFollow(pg.kind, pg.key); render(); }
@@ -171,7 +173,7 @@ function onMainKeydown(e) {
 }
 function onMainChange(e) {
   if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }
-  if (e.target.id === "fandom") { state.browse.fandom = e.target.value; state.browse.page = 1; render(); }
+  if (e.target.id === "fandom") { state.browse.work = e.target.value; state.browse.page = 1; render(); }
   if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
 }
 

@@ -21,7 +21,7 @@ function downloadICS(mine, filename) {
     "BEGIN:STANDARD", "TZOFFSETFROM:-0400", "TZOFFSETTO:-0500", "TZNAME:EST", "DTSTART:19701101T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU", "END:STANDARD",
     "END:VTIMEZONE"];
   mine.forEach(ev => {
-    const who = (ev.speakers || []).map(p => p.name).join(", ");
+    const who = (ev.people || []).map(p => p.name).join(", ");
     const desc = [ev.description, who ? `With: ${who}` : "", ev.track ? `Track: ${ev.track}` : ""].filter(Boolean).join("\n");
     lines.push("BEGIN:VEVENT", `UID:dc26-${ev.id}@dragoncon-planner`, `DTSTAMP:${stamp}`,
       `DTSTART;TZID=America/New_York:${icsDate(ev._s)}`, `DTEND;TZID=America/New_York:${icsDate(ev._e)}`,
