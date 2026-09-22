@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { bootPage } from "../helpers/page.js";
 
 const SATURDAY = "2026-09-05T13:05";
-const BROWSE_DEFAULTS = { q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", fandom: "All",
+const BROWSE_DEFAULTS = { q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", work: "All",
   kind: "All", showHidden: false, showPast: false, noToday: false, hideNoise: true, page: 1 };
 
 describe("a page booted from ?now=", () => {

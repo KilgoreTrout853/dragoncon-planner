@@ -29,7 +29,7 @@ describe("Explore", () => {
       app.toggleFollow("track", track); handle.render();
       afterFollow = tiles() || [];
       handle.follows.set([]);
-      const screening = handle.events.find(e => app.NOISE_TRACKS.has(e.track) && !(e.speakers || []).length);
+      const screening = handle.events.find(e => app.NOISE_TRACKS.has(e.track) && !(e.people || []).length);
       handle.picks.set([screening.id]); handle.render();
       noise = !!el("suggested");
       handle.picks.set([]); handle.render();
@@ -61,8 +61,8 @@ describe("Explore", () => {
     let seen;
     beforeAll(() => { grid(); seen = [...view().querySelectorAll(".section-title")].map(t => t.textContent.replace(/\s+/g, " ").trim().split(" ")[0]); });
 
-    /* the fixture has no fandom with 3+ events, so that section is correctly
-       absent here; all five are checked against the real schedule */
+    /* the fixture's two celebrity events have nobody on them, so Guests is
+       correctly absent here; all five are checked against the real schedule */
     it("the sections that have content render [1011]", () => {
       expect(seen.length).toBeGreaterThanOrEqual(3);
     });
@@ -73,7 +73,8 @@ describe("Explore", () => {
       expect(seen).toEqual(ORDER.filter(o => seen.includes(o)));
     });
     it("an empty section is skipped rather than shown empty [1014]", () => {
-      expect(seen).not.toContain("Fandoms");
+      expect(app.getCatalogue().guest).toHaveLength(0);
+      expect(seen).not.toContain("Guests");
     });
     it("fandom tiles need 3+ events [1015]", () => {
       expect(app.getCatalogue().fandom.every(f => f.count >= 3)).toBe(true);
@@ -92,7 +93,7 @@ describe("Explore", () => {
       expect(counts).toEqual([...counts].sort((a, b) => b - a));
     });
     it("panelists run A to Z [1022]", () => {
-      const names = app.getCatalogue().panelist.map(p => p.key);
+      const names = app.getCatalogue().panelist.map(p => p.name);
       expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
     });
     it("guests and panelists together are everyone followable [1024]", () => {
@@ -261,10 +262,11 @@ describe("Explore", () => {
   });
 
   describe("the detail sheet offers a way through to a person", () => {
-    let seeAll;
+    let seeAll, ev;
     beforeAll(() => {
       state.tab = "browse"; handle.render();
-      handle.openSheet("event", handle.events.find(e => (e.speakers || []).length > 0).id);
+      ev = handle.events.find(e => (e.people || []).length > 0);
+      handle.openSheet("event", ev.id);
       seeAll = document.querySelector("#panel-event .see-all");
     });
     afterAll(() => { state.explore.page = null; app.setExploreHash(null); state.tab = "now"; handle.render(); });
@@ -273,7 +275,7 @@ describe("Explore", () => {
       expect(seeAll).toBeTruthy();
     });
     it("pointing at that person's page [1119]", () => {
-      expect(seeAll.dataset.explore).toMatch(/^person:/);
+      expect(seeAll.dataset.explore).toBe("person:" + ev.people[0].id);
     });
     it("and tapping it lands on the person page [1121]", () => {
       seeAll.click();

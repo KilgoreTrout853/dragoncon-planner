@@ -19,7 +19,7 @@ import { vi } from "vitest";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), "utf8");
-const FIXTURES = { sample: ["tests", "sample-events.json"], real: ["data", "2026", "events.json"] };
+const FIXTURES = { sample: ["tests", "sample-events.json"], real: ["data", "2026", "events.v2.json"] };
 const DEFAULT_NOW = "2026-09-05T13:05";            // the harness's Saturday afternoon
 
 /* index.html is Vite's entry template: its module script and its stylesheet

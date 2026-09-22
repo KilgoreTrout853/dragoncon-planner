@@ -48,8 +48,8 @@ describe("vite build", () => {
     expect(html).toContain('<meta name="dc-channel" content="next">');
     expect(html).toContain('<meta name="dc-build" content="abc1234">');
     expect(sw).toContain('const CHANNEL = "next";');
-    expect(sw.replaceAll("dc26${", "")).not.toContain("dc26-v4");      // the name is built from the prefix
-    expect(exists(r.out, "data", "2026", "events.json")).toBe(true);
+    expect(sw.replaceAll("dc26${", "")).not.toContain("dc26-v5");      // the name is built from the prefix
+    expect(exists(r.out, "data", "2026", "events.v2.json")).toBe(true);
     expect(exists(r.out, ".nojekyll")).toBe(true);
     for (const absent of ["tests", "src", "scraper.py", "README.md", "node_modules", "package.json"]) {
       expect(exists(r.out, absent), absent).toBe(false);
@@ -94,6 +94,13 @@ describe("vite build", () => {
     expect(html.slice(close + "</script>".length).replace(/\s+/g, "")).toBe("</body></html>");
     expect(fs.readdirSync(plain.out).sort()).toEqual([".nojekyll", "data", "icon-180.png", "icon-192.png", "icon-512.png",
       "icon.svg", "index.html", "manifest.json", "og-image.png", "sw.js"]);
+  });
+
+  it("copies from data/ the one file the client reads, and nothing else", SLOW, () => {
+    const listed = fs.readdirSync(path.join(plain.out, "data"), { recursive: true }).map(f => String(f).split(path.sep).join("/")).sort();
+    expect(listed).toEqual(["2026", "2026/events.v2.json"]);
+    expect(fs.readFileSync(path.join(plain.out, "data", "2026", "events.v2.json")))
+      .toEqual(fs.readFileSync(path.join(ROOT, "data", "2026", "events.v2.json")));
   });
 
   it("keeps the head's links to the public files relative", SLOW, () => {
@@ -149,9 +156,9 @@ describe("vite build", () => {
       expect(() => new Function(sw())).not.toThrow();
     });
     it.skip("sw.js parses: the catch arm of 1282; it runs only when sw.js fails to parse, and then 1282 has already failed [1283]", () => {});
-    it("the cache name is versioned (v4) under a prefix the build can stamp, and only that prefix is cleared [1290]", () => {
+    it("the cache name is versioned (v5) under a prefix the build can stamp, and only that prefix is cleared [1290]", () => {
       expect(sw()).toMatch(/const CHANNEL = "";/);
-      expect(sw()).toMatch(/const CACHE = `\$\{CACHE_PREFIX\}v4`;/);
+      expect(sw()).toMatch(/const CACHE = `\$\{CACHE_PREFIX\}v5`;/);
       expect(sw()).toMatch(/n\.startsWith\(CACHE_PREFIX\) && n !== CACHE/);
     });
     it("the worker precaches the icons [1307]", () => {
