@@ -42,7 +42,9 @@ For 2027 the scraper stops deriving `speakers` from the description's
 "Additional Panelists:" line, or uses `parse_stage.split_panelists` for it;
 the parse stage owns that parse.
 
-The 2027 scraper decodes these feeds correctly. 45 events of the frozen 2026
+The scraper decodes these feeds correctly; the source sends the text
+double-encoded, and the 2027 pipeline repairs it before whitespace is
+collapsed. 45 events of the frozen 2026
 file - 27 in Role-Playing Games (Campaign), 17 in Role-Playing Games
 (Non-Campaign) and 1 in Collectible Card Games - carry text that was UTF-8
 read as cp1252 ("â€“" for "–", "FaerÃ»n" for "Faerûn"), found by
