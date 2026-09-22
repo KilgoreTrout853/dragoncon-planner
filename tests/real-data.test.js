@@ -504,6 +504,77 @@ describe("against the real schedule", () => {
       });
     });
 
+    describe("what the index holds of a work, an axis and the audience", () => {
+      const text = e => [e.title, e.description, ...(e.tracks || []), ...(e.people || []).map(p => p.name)].join(" ").toLowerCase();
+      const found = (q, over = {}) => new Set(search(q, { hideNoise: false, noToday: true, ...over }).results.map(e => e.id));
+
+      it("a work's name is in the index of the events about the works under it", () => {
+        const lowerDecks = handle.events.filter(e => app.linksTo(e, "star-trek-lower-decks") && !/trek|starfleet|klingon/.test(text(e)));
+        expect(lowerDecks.length).toBeGreaterThan(0);
+        const hits = found("star trek");
+        expect(lowerDecks.filter(e => !hits.has(e.id)).map(e => e.title)).toEqual([]);
+      });
+      it("and so are the registry's other names for it: DCEU finds every DC Comics event", () => {
+        const dc = handle.events.filter(e => app.linksTo(e, "dc-comics"));
+        expect(dc.some(e => !text(e).includes("dceu"))).toBe(true);
+        const hits = found("dceu");
+        expect(dc.filter(e => !hits.has(e.id)).map(e => e.title)).toEqual([]);
+      });
+      it("an axis is indexed by its label: 'literature' finds books events whose text never says it", () => {
+        const books = handle.events.filter(e => (e.tags.medium || []).includes("books") && !text(e).includes("literature"));
+        expect(books.length).toBeGreaterThan(0);
+        const hits = found("literature");
+        expect(books.filter(e => !hits.has(e.id)).map(e => e.title)).toEqual([]);
+      });
+      it("an unreviewed work is searchable, and offered as a suggestion", () => {
+        const w = app.worksById.get("brandish");
+        expect(w.reviewed).toBe(false);
+        state.browse.hideNoise = false;
+        expect(app.suggestionsFor("brandi").topics.map(t => t.name)).toContain(w.name);
+      });
+      it("Kids is still a suggestion, as the topic it was", () => {
+        state.browse.hideNoise = false;
+        expect(app.suggestionsFor("kid").topics.map(t => t.name)).toContain("Kids");
+      });
+      it('"18+" finds the mature events and nothing else', () => {
+        const r = search("18+", { noToday: true, hideNoise: false });
+        expect(r.total).toBe(handle.events.filter(e => e.tags.audience === "mature").length);
+        expect(r.results.every(e => e.tags.audience === "mature")).toBe(true);
+      });
+      it('"kids" keeps the mature ones out, though the Kids Track has one', () => {
+        const kidsTrack = handle.events.filter(e => (e.tracks || []).includes("Kids Track"));
+        expect(kidsTrack.some(e => e.tags.audience === "mature")).toBe(true);
+        const r = search("kids", { noToday: true, hideNoise: false });
+        expect(r.total).toBe(kidsTrack.filter(e => e.tags.audience !== "mature").length);
+        expect(r.results.some(e => e.tags.audience === "mature")).toBe(false);
+      });
+      it("the sheet marks a mature event 18+, and no other", () => {
+        const mature = handle.events.find(e => e.tags.audience === "mature");
+        const other = handle.events.find(e => e.tags.audience === "all");
+        handle.openSheet("event", mature.id);
+        expect(document.querySelector("#panel-event .tag.adult")).toBeTruthy();
+        handle.openSheet("event", other.id);
+        expect(document.querySelector("#panel-event .tag.adult")).toBe(null);
+        handle.closeSheet();
+      });
+    });
+
+    describe("pages the tiles do not reach", () => {
+      afterAll(() => { state.explore.page = null; app.setExploreHash(null); });
+
+      it("an unreviewed work's page has no Follow button", () => {
+        app.openExplorePage("work", "brandish");
+        expect(document.querySelector("#view-explore .eh-name").textContent).toBe(app.worksById.get("brandish").name);
+        expect(document.querySelector("#view-explore .follow-btn")).toBe(null);
+      });
+      it("a work with only a cast shows its cast group, and no 'No events'", () => {
+        const w = handle.meta.works.find(x => x.reviewed && !app.workCounts.get(x.id) && handle.events.some(e => app.linksTo(e, x.id, ["credit"])));
+        app.openExplorePage("work", w.id);
+        expect(document.querySelector('#view-explore [data-act="explore-cast"]')).toBeTruthy();
+        expect(document.querySelector("#view-explore").textContent).not.toMatch(/No events/);
+      });
+    });
+
     it("a link to an unreviewed work, or by v1's names, lands on the grid; one by id opens its page", () => {
       const unreviewed = handle.meta.works.find(w => !w.reviewed && (app.workCounts.get(w.id) || 0) > 0);
       const open = target => {

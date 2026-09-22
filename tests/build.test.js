@@ -96,6 +96,14 @@ describe("vite build", () => {
       "icon.svg", "index.html", "manifest.json", "og-image.png", "sw.js"]);
   });
 
+  it("the worker's schedule and shell name files the build ships, the schedule among them", SLOW, () => {
+    const sw = read(plain.out, "sw.js");
+    expect(sw).toContain('const DATA = "data/2026/events.v2.json";');
+    const shell = [...sw.match(/const SHELL = \[([^\]]*)\]/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
+    expect(shell).toContain("./data/2026/events.v2.json");
+    shell.filter(p => p !== "./").forEach(p => expect(exists(plain.out, ...p.slice(2).split("/")), p).toBe(true));
+  });
+
   it("copies from data/ the one file the client reads, and nothing else", SLOW, () => {
     const listed = fs.readdirSync(path.join(plain.out, "data"), { recursive: true }).map(f => String(f).split(path.sep).join("/")).sort();
     expect(listed).toEqual(["2026", "2026/events.v2.json"]);

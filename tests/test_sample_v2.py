@@ -89,7 +89,12 @@ def test_a_work_rolls_up_and_the_block_is_every_linked_work_and_its_ancestors():
             assert reg.resolve_work(row["name"]) is None
 
 
-def test_people_carry_the_registry_s_ids():
+def test_every_topic_goes_to_a_value_of_its_closed_axis():
+    for topic, (axis, value) in sv.TOPIC_AXES.items():
+        assert value in registry.AXES[axis], topic
+
+
+def test_people_have_the_v2_shape_and_the_registry_s_person_is_among_them():
     doc = committed()
     people = [p for e in doc["events"] for p in e["people"]]
     assert people and all(set(p) == {"id", "name", "role", "src"} for p in people)

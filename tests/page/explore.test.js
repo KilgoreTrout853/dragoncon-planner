@@ -56,6 +56,21 @@ describe("Explore", () => {
     });
   });
 
+  describe("a starred event about a work suggests the works above it too", () => {
+    let tiles;
+    beforeAll(() => {
+      const andor = handle.events.find(e => ((e.tags || {}).works || []).some(w => w.id === "andor"));
+      handle.follows.set([]); handle.picks.set([andor.id]); state.tab = "explore"; state.explore.page = null; handle.render();
+      tiles = [...el("suggested").querySelectorAll(".tile")].map(t => ({ key: t.dataset.explore, name: t.querySelector(".tile-name").textContent }));
+      handle.picks.set([]); handle.render();
+    });
+
+    it("Andor, and Star Wars above it, each by name", () => {
+      expect(tiles).toContainEqual({ key: "work:andor", name: "Andor" });
+      expect(tiles).toContainEqual({ key: "work:star-wars", name: "Star Wars" });
+    });
+  });
+
   describe("step 2: the grid", () => {
     const ORDER = ["Tracks", "Fandoms", "Topics", "Guests", "Panelists"];
     let seen;

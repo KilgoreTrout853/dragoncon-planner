@@ -82,7 +82,7 @@ describe("follows", () => {
       const ids = under(work);
       expect(app.eventsFor({ kind: "work", key: work }).every(e => aboutOrTrack(e).some(w => ids.has(w.id)))).toBe(true);
     });
-    it("a work follow takes in the works under it, by about or track and never by a credit", () => {
+    it("a work follow takes in the works under it, by about or track", () => {
       const ids = under("star-wars");
       expect(ids.has("andor")).toBe(true);
       const found = app.eventsFor({ kind: "work", key: "star-wars" });
@@ -342,6 +342,37 @@ describe("follows", () => {
       it("and the hint is back [1235]", () => {
         expect(ex().querySelector(".hint")).toBeTruthy();
       });
+    });
+  });
+
+  describe("what the reader sees of a follow is a name, never an id", () => {
+    const texts = sel => [...document.querySelectorAll(sel)].map(n => n.textContent.replace(/\s+/g, " ").trim());
+    beforeAll(() => {
+      handle.follows.set([{ kind: "work", key: "rick-and-morty" }, { kind: "axis", key: "subject:space" }]);
+      state.tab = "explore"; state.explore.page = null; state.following.open = true; state.following.layout = "interest"; handle.render();
+    });
+    afterAll(() => { handle.follows.set([]); state.following.layout = "interest"; handle.render(); });
+
+    it("the Following chips", () => {
+      expect(texts("#following .fc-name")).toEqual(["Rick and Morty", "Space"]);
+      expect([...document.querySelectorAll("#following .fc-x")].map(b => b.getAttribute("aria-label"))).toEqual(["Unfollow Rick and Morty", "Unfollow Space"]);
+    });
+    it("the Following sections, by interest", () => {
+      expect(texts("#following .section-title").map(t => t.split(" Fandom")[0].split(" Topic")[0])).toEqual(["Rick and Morty", "Space"]);
+    });
+    it("the labels on each row, by time", () => {
+      state.following.layout = "time"; handle.render();
+      const labels = texts("#following .flabel");
+      expect(labels.length).toBeGreaterThan(0);
+      expect(labels.every(l => ["Rick and Morty", "Space"].includes(l))).toBe(true);
+    });
+    it("the tiles, and a work's page", () => {
+      expect(texts('#view-explore [data-explore^="work:"] .tile-name')).toEqual(expect.arrayContaining(["Star Wars", "Andor"]));
+      expect(texts("#view-explore .tile-name").some(n => /^[a-z0-9-]+$/.test(n) && n.includes("-"))).toBe(false);
+      app.openExplorePage("work", "star-wars");
+      expect(texts("#view-explore .eh-name")).toEqual(["Star Wars"]);
+      expect(texts("#view-explore .eh-kind")).toEqual(["Fandom"]);
+      app.closeExplorePage();
     });
   });
 });
