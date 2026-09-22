@@ -716,3 +716,34 @@ and can only be proven on 2027 data in August. Live and Tell me rest on it.
 **Cost:** Identity and sync, which carries Keep, Coordinate and Tell me and
 the most new technology, opens one slot later. Coordinate still has to land
 by the spring checkpoint for the building view to stay in.
+
+### 38. The v2 file carries a works block — Standing (2026-09-22)
+**Decided:** `events_v2.py` writes a top-level `works` into
+`events.v2.json`, before `events`; every top-level field of the frozen file
+but `events` is copied as it is. `docs/discover/schema-v2.md`, under The
+file, has the detail.
+- One row per work that any event's `tags.works` names, by any `via`, and
+  every ancestor of those; nothing else; sorted by id.
+- A row is `id`, `name`, `aliases`, `terms`, `reviewed`, then `parent` where
+  the registry has one. `aliases` and `terms` are always there, `[]` where
+  the registry holds none, and every value is the registry's as it stands.
+  No `type` or `family`.
+- Built from the merged events, not the registry, so every id in it has
+  resolved. An event's `tags.works` still lists only the work named.
+- 2027's pipeline writes the same shape into `data/2027/` (#33).
+- PR 6 is two: 6a, this block; 6b, the client switch, which earlier entries
+  call PR 6.
+
+**Why:** The client switch needs, for every work an event links, the name
+it shows, the parent chain, the aliases and terms that lead a searcher to
+it, and whether it is reviewed: an unreviewed work is searchable, never
+followable (#34). The client sees only resolved data, never a registry
+(#31). The block is resolved data: its rows are the works events reach once
+every name has resolved, and their ancestors - no other work, no person, no
+track.
+**Cost:** The file grows: by 61,637 bytes, 1.7%, at 661 rows when this was
+written, shipped in `dist/` unused until 6b. An edit to the name, aliases,
+terms, reviewed flag or parent of a work in the block now changes
+`events.v2.json` even where it changes no link, so a works review that only
+marks such works reviewed now rebuilds the file. The census report does not
+read the block.

@@ -103,9 +103,10 @@ it does require is that a term is not also a name or an alias somewhere,
 which would make one string both resolvable and not. The tagger is not
 shown terms, and a work it names that is a term is dropped by the build, not
 minted (#34). They reach the client inside the resolved data the pipeline writes,
-never by the client reading a registry, which is #31's rule; whether that is
-a field on each event or an index the pipeline builds beside them is the
-client switch's call (PR 6), and this note does not make it.
+never by the client reading a registry, which is #31's rule: the file's
+`works` block, beside the events, carries the terms of every work an event
+links and of its ancestors, with their names, aliases and parents (#38; The
+file, below).
 
 ### `people.json`
 
@@ -386,6 +387,34 @@ Two real titles:
   `{"mature": true, "min_age": 18}`.
 - `Sew Your Own Beret - $$ 12:45p-2:45p SOLD OUT` would carry
   `{"cost": "extra", "sold_out": true}`.
+
+### The file
+
+`events.v2.json` is one object, its keys in this order: `generated_at`,
+`changed_at`, `source`, `count`, `failures`, `works`, `events` (#38). All
+but `works` and `events` are the frozen file's, copied as they are, so
+`count` is still the scraped event count. `events` holds the events above.
+
+`works` is how the client reads a work, never from a registry (#31): one row
+per work that any event's `tags.works` names, by any `via`, and every
+ancestor of those, and nothing else, sorted by id. It is built from the
+merged events, not the registry, so every id in it has resolved. A row's
+keys are `id`, `name`, `aliases`, `terms`, `reviewed`, then `parent` where
+the registry has one; `aliases` and `terms` are always there, `[]` where the
+registry holds none, and every value is the registry's as it stands. A
+work's `type` and `family` are not carried. Two real rows:
+
+```json
+{"id": "firefly", "name": "Firefly", "aliases": ["Serenity"], "terms": ["Whedon"], "reviewed": true}
+{"id": "angel", "name": "Angel", "aliases": [], "terms": ["Whedon"], "reviewed": true, "parent": "buffy-the-vampire-slayer"}
+```
+
+An event's `tags.works` still lists only the work named; its ancestors are
+rows of the block, and the walk up `parent` is the reader's. `reviewed` is
+what lets the client keep an unreviewed work searchable and never followable
+(#34).
+
+For 2027 the pipeline writes the same shape into `data/2027/` (#33).
 
 ## The axes
 

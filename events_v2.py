@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""data/2026/events.v2.json: the frozen schedule with people, facets and tags v2 (DECISIONS #32-#34).
+"""data/2026/events.v2.json: the frozen schedule with people, facets and tags v2, and the works its events
+link (DECISIONS #32-#34, #38).
 
     python events_v2.py           # write data/2026/events.v2.json
     python events_v2.py --check   # exit 1 if a fresh build differs from the file on disk
@@ -10,23 +11,32 @@ data/2026/events.json for reading only (#13, #33).
 
 In this order: the parse stage's people and facets; every person's id through the registry, reviewed
 or not (resolution is spelling, and an id that changed on the day a person was approved would break
-a follow); each track through tracks.json; the cached answer by input key; then the merge, below. A
-cache miss is an error listing the titles, and so is a work name the registry cannot resolve - the
-fix for that is `tag_stage.py --mint-only`, not a change here - but a name that is a registry term is
-dropped and counted: a term leads a searcher to a work and is not a name for one.
+a follow); each track through tracks.json; the cached answer by input key; then the merge, and last the
+works block, both below. A cache miss is an error listing the titles, and so is a work name the
+registry cannot resolve - the fix for that is `tag_stage.py --mint-only`, not a change here - but a
+name that is a registry term is dropped and counted: a term leads a searcher to a work and is not a
+name for one.
 
 The merge:
 - works: what the event is about (a work and its ancestor both named: the descendant stays), then
   the works of its tracks (`via: track`), then the reviewed credits of its reviewed people
   (`via: credit:<person>`). One row per work, the strongest way first; among several credits, the
-  first person in event order. Only the work named is listed: the walk up to its parents is the
-  reader's, at read time.
+  first person in event order. Only the work named is listed on the event: its ancestors are rows of
+  the works block, and the walk up to them is the reader's, at read time.
 - axes: where any of the event's tracks decides an axis, the tracks' values are that axis (in
   tracks[] order, at most 2); otherwise the model's.
 - audience: mature where the parse, the model or a track says so; else kids where a track or the
   model says so; else all.
 - play: only on a gaming event, by its scraped type or its kind.
 - guests: the highest tier among the event's reviewed people; absent otherwise.
+
+The works block, the file's `works`, just before `events` (#38): one row per work that any merged event's
+tags.works names, by any via, and every ancestor of those; nothing else; sorted by id. A row is
+{id, name, aliases, terms, reviewed, parent}, in that order, with values as the registry holds them:
+aliases and terms always, [] where the registry holds none; parent only where it has one; no type or
+family. It is built from the merged events, not the registry, so every id in it has resolved. Every
+other top-level field is copied as it is, but a `works` the input already carries is dropped: the block
+is the build's.
 """
 
 import argparse
@@ -134,6 +144,23 @@ def guests_for(people, people_by_id):
     return next((t for t in TIERS if t in tiers), None)
 
 
+def works_block(events, works_by_id, parents):
+    """The file's `works`: every work the merged events link, by any via, and every ancestor of those, one
+    row each, sorted by id. Keys in one order; aliases and terms always, parent only where the registry
+    has one."""
+    linked = {w["id"] for e in events for w in e["tags"]["works"]}
+    ids = linked.union(*(ancestors(w, parents) for w in linked))
+    rows = []
+    for wid in sorted(ids):
+        entry = works_by_id[wid]
+        row = {"id": wid, "name": entry["name"], "aliases": list(entry.get("aliases") or []),
+               "terms": list(entry.get("terms") or []), "reviewed": entry["reviewed"]}
+        if entry.get("parent") is not None:
+            row["parent"] = entry["parent"]
+        rows.append(row)
+    return rows
+
+
 # ---------------------------------------------------------------------------
 # The build
 # ---------------------------------------------------------------------------
@@ -203,7 +230,17 @@ def build(data, reg, cache):
                         f"them, reviewed: false: " + ", ".join(f"{n!r} ({k})" for n, k in sorted(unresolved.items())))
     if problems:
         raise BuildError(problems)
-    doc = {k: (out if k == "events" else v) for k, v in data.items()}   # every top-level field as it is
+    block = works_block(out, reg.by_id("works"), parents)
+    linked = {w["id"] for e in out for w in e["tags"]["works"]}
+    stats["block"] = {"rows": len(block), "ancestors_only": sum(1 for r in block if r["id"] not in linked),
+                      "registry": len(reg.works)}
+    doc = {}
+    for k, v in data.items():       # every top-level field as it is, and the works block just before the events
+        if k == "works":
+            continue                # the block is the build's, never the input's
+        if k == "events":
+            doc["works"] = block
+        doc[k] = out if k == "events" else v
     return doc, stats
 
 
@@ -258,6 +295,9 @@ def main(argv=None):
     print(f"{args.out}: {events:,} events, {len(body):,} bytes", file=sys.stderr)
     print(f"  works: {stats['via']['about']:,} about on {stats['about_events']:,} events, "
           f"{stats['via']['track']:,} by track, {stats['via']['credit']:,} by credit", file=sys.stderr)
+    block = stats["block"]
+    print(f"  works block: {block['rows']:,} of the registry's {block['registry']:,} works, "
+          f"{block['ancestors_only']:,} of them ancestors only", file=sys.stderr)
     print("  works per event: " + ", ".join(f"{n}: {k:,}" for n, k in sorted(stats["works_per_event"].items())),
           file=sys.stderr)
     print("  audience: " + ", ".join(f"{a} {n:,}" for a, n in sorted(stats["audience"].items())), file=sys.stderr)
