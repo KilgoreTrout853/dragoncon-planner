@@ -58,7 +58,7 @@ cache, but a UI fix should still land when there is signal.
 **Cost:** The cache name (`dc26-v4`) is bumped by hand when `index.html` or
 `sw.js` changes. Forget the bump and users keep the old page.
 
-### 5. No GPS, no location inference — Standing (2026-09-04)
+### 5. No GPS, no location inference — Standing (2026-09-04) — leave-by half to be retired by #40; no-GPS stands
 **Decided:** The app never guesses where you are. "Leave by" is shown only
 when a pick is on now and the next pick is in a different hotel; otherwise
 just the start time and a walk estimate. Manual location chips, home base,
@@ -67,7 +67,7 @@ and GPS are all off the table.
 none.
 **Cost:** The Now tab can't warn you if you wandered off between picks.
 
-### 6. Leave-by uses a fixed 10-minute seating buffer; a con day ends at 5 AM — Standing (2026-09-01)
+### 6. Leave-by uses a fixed 10-minute seating buffer; a con day ends at 5 AM — Standing (2026-09-01) — the seating-time half to be retired by #40, the constant kept as the tight-connection slack; the 5 AM day boundary stands
 **Decided:** Walk estimate plus a constant 10 minutes to get seated. Events
 between midnight and 5 AM belong to the previous day.
 **Why:** Simple, predictable, matches how people actually talk about "Saturday
@@ -210,7 +210,7 @@ are good engineering regardless.
 **Cost:** If the partnership happens, some rework is certain. It is the
 rework worth doing then, not before.
 
-### 20. Notifications in 2027 are minimal: leave-by and pick-changed — Decided, not built (2026-09-17)
+### 20. Notifications in 2027 are minimal: leave-by and pick-changed — Decided, not built (2026-09-17) — leave-by replaced by starts-soon in #40; pick-changed stands
 **Decided:** Web Push for two events only: leave by (computed server-side
 from synced picks and the walk table) and your pick changed (from the
 pipeline's diff). Crew pings by push are deferred to the spring checkpoint.
@@ -369,7 +369,7 @@ PR with auto-merge on green, or run as a bypass actor — pipeline work,
 forced by this decision. The line-ending change is a one-time noisy
 commit.
 
-### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17)
+### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17) — by #40 the shared `leaveBy` module becomes the tight-connection helper; the buffer becomes the slack; the walk table's home unchanged
 **Decided:** #21's venues file (`data/2027/venues.json`, per-year as #13
 set for events) also holds hotel identity (keys as used in `events.json`,
 short names, groups), the walk matrix, the seating buffer from #6, and the
@@ -824,3 +824,38 @@ fandom, topic and person follows from the stored list, and one saved on the
 live site drops `next`'s work and axis follows. The worker's update notice
 keys on `generated_at`, which every rebuild of `events.v2.json` keeps
 (ROADMAP, Held).
+
+### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22)
+**Decided:** Leave-by is retired: no `leave by <time>` countdown on any
+screen, and no leave-by push.
+- The plan keeps what is true of the plan rather than the person: a walk
+  estimate on a row, and a tight-connection flag between consecutive
+  picks in two bands - can't make it, when the gap is shorter than the
+  walk, and tight, when it is shorter than the walk plus a small slack.
+  Both come from the venues file's walk table (#27), which stays.
+- The seating-time use of #6's buffer retires with leave-by. The constant
+  survives as the tight-connection slack, its home unchanged: the venues
+  file (#27). The code has both bands today, with the slack typed in
+  directly; the slack's value is unset until built.
+- Tell me is two pushes: your pick changed, from the pipeline's diff
+  (#20), and starts soon, when a pick of yours is about to begin. Neither
+  needs a location.
+- When a pick is cancelled or moved, the alternatives offered are events
+  in the same time slot only: the time it vacated.
+- Open under Where things live, unscheduled: crew status pings, whose
+  build order stays picks → presence → pings (#10), and when the install
+  nudge is shown - a standing line on Now, or at the moment it earns
+  itself.
+
+**Why:** A countdown assumes where the person is, which #5 forbids the app
+to know, and the hotels are close enough that the estimate is false
+precision. An alternative fills the hole the change left; a different
+slot is a different plan, and search already exists for that.
+**Cost:** The client still shows leave-by - on the Now tab's hero card, in
+the mini-bar and on the map's next-pick card - until Where things live
+reworks the Now tab, so this is a scheduled behaviour change, not a
+current one. Starts-soon is a new push type with its own timing rule: how
+many minutes before is unset. The walk table's server-side mirror in #27
+loses its only consumer until starts-soon or tight connections need it,
+so the mirror is kept as designed but no job reads it yet, and none
+applies the crowd factor.

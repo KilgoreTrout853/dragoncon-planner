@@ -96,6 +96,8 @@ row-level security, the crew permission model, and push sending (the
 scheduled job, the Edge Function). Rests on #8-#11, #20 and #25. It carries
 VISION's Keep, Coordinate and Tell me.
 
+Push sending is two types, pick-changed and starts-soon (#40).
+
 ### 5. Delivery — not opened
 
 How the app reaches a phone and stays current: `sw.js` and its cache version
@@ -107,6 +109,15 @@ of a push subscription, and Pages from Actions (#26).
 
 The UI's information architecture. There are five tabs today; For you,
 crews, a filter sheet and the building view need homes. No decisions yet.
+
+The Now tab, mini-bar and map's next-pick card drop the leave-by countdown
+and keep the walk estimate and tight bands (#40).
+
+Open here, unscheduled (#40):
+
+- Crew status pings. The build order stays picks → presence → pings (#10).
+- When the install nudge is shown: a standing line on Now, or at the
+  moment it earns itself.
 
 ## Held
 
