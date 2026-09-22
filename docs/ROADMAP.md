@@ -23,13 +23,20 @@ unset. There are no other dates.
 
 ## The tentpoles
 
-### 1. Pipeline shape — not opened
+### 1. Pipeline shape — not opened; next after PR 6 (#37)
 
 The stages, from fetch (behind #19's interface) through stable ids (#7),
 dedupe, venue resolution, parse and tag, the schedule diff (#20), to writing
-JSON and the Postgres mirror (#27). Also year rollover (#13), scrape cadence,
-failing loudly, and `scrape.yml`'s path onto a PR-only branch (#26). Only the
-fetch and id stages wait on outreach (#19).
+JSON. Also year rollover (#13), scrape cadence, failing loudly, and
+`scrape.yml`'s path onto a PR-only branch (#26). Only the fetch and id stages
+wait on outreach (#19).
+
+The Postgres mirror (#27) is the seam: Pipeline shape ends at writing JSON,
+and the mirror is designed with Identity and sync's schema and row-level
+security (#37).
+
+Venue resolution is Places' data half, which moves here (#37): the room
+census, the venues file and room resolution.
 
 For 2027 the scraper stops deriving `speakers` from the description's
 "Additional Panelists:" line, or uses `parse_stage.split_panelists` for it;
@@ -67,15 +74,20 @@ evidence is `docs/discover/census-2026.md`. The sequence:
    `events.v2.json` (DECISIONS #34).
 5. Census v2 - built: `census_v2.py` writes
    `docs/discover/census-v2-2026.md`, held fresh by CI (DECISIONS #35).
-6. The client switch, in a PR of its own, after a golden query set exists.
+6. The client switch, in a PR of its own: plumbing and parity (#36).
+7. Search tuning, by an eval harness (#36).
 
-### 3. Places — designed; two PRs held
+### 3. Places — designed; its data half is Pipeline shape's
 
 Where a room is: the venues file, room resolution, and the building view
-down to the level. Rests on #21, #27 and #28. Held: the room census, and the
-venues registry.
+down to the level. Rests on #21, #27 and #28. The venues registry is merged
+(`docs/venues/`). Only the room census is held, and it moves under Pipeline
+shape with the venues file and room resolution, as its venue-resolution
+stage (#37). The building view's drawings and sketches continue on the
+side, in chat; a Places PR beyond what the pipeline absorbs takes a free
+review slot.
 
-### 4. Identity and sync — not opened
+### 4. Identity and sync — not opened; designed while Pipeline shape executes (#37)
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
@@ -96,7 +108,7 @@ crews, a filter sheet and the building view need homes. No decisions yet.
 
 ## Held
 
-- The two Places PRs: the room census, and the venues registry.
+- The room census. Pipeline shape's venue-resolution stage (#37).
 - `scrape.yml`'s path onto a PR-only branch (#26). Pipeline shape.
-- Dragon Con outreach (#19). It gates the fetch and id stages of the
-  pipeline, and nothing else.
+- Dragon Con outreach (#19). It goes out when Pipeline shape's design opens
+  (#37). It gates the fetch and id stages of the pipeline, and nothing else.
