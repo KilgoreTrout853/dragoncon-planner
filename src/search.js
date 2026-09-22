@@ -152,7 +152,10 @@ function buildSuggestIndex() {
   events.forEach(e => {
     const quiet = isNoise(e);
     new Set((e.people || []).map(p => p.id)).forEach(id => bump(people, id, personName(id).trim(), quiet));
-    new Set([...workNamesOf(e), ...axisLabelsOf(e)]).forEach(t => bump(topics, t.trim(), t.trim(), quiet));
+    /* Kids was one of v1's topics, so it is a chip here as it was, though
+       audience is not an axis and stays out of the index's topics field. */
+    const kids = (e.tags || {}).audience === "kids" ? [axisLabel("audience:kids")] : [];
+    new Set([...workNamesOf(e), ...axisLabelsOf(e), ...kids]).forEach(t => bump(topics, t.trim(), t.trim(), quiet));
   });
   const doc = (group, prefix) => ([key, c]) => ({id: `${prefix}:${key}`, key, name: c.name, all: c.all, visible: c.visible, group});
   suggestDocs = [
