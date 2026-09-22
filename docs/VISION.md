@@ -22,8 +22,8 @@ people you came with.
   something. No account, no prompt, no signal needed after the first load.
 - *With a crew:* a link puts a few people together. Their picks show on
   yours; you can see who is going where.
-- *Installed:* on the home screen, the app can tell you when to leave and
-  when a pick moved, instead of waiting to be opened.
+- *Installed:* on the home screen, the app can tell you when a pick is
+  about to start and when one moved, instead of waiting to be opened.
 
 Every screen should make sense at the rung the person is on and make the
 next rung obvious without nagging.
@@ -53,9 +53,9 @@ with the people they came with. Otherwise it is out, however good it is.
 
 ### 1. Plan
 What 2026 did, sharpened. Search, star, follow, Now, Mine and Map stay.
-New: overlap detection ("you can't make both"), alternatives when a pick
-is cancelled or moved, and a real "For you" built from follows plus
-similarity computed in the pipeline.
+New: overlap detection ("you can't make both"), alternatives in the same
+time slot when a pick is cancelled or moved (#40), and a real "For you"
+built from follows plus similarity computed in the pipeline.
 
 ### 2. Coordinate
 DECISIONS #10, unchanged: crew picks on your timeline, who's going per
@@ -74,7 +74,8 @@ hour or two during the con instead of nightly; a change to your picks
 reaches you (Pillar 5) rather than waiting for the next open.
 
 ### 5. Tell me
-Push notifications, minimal (#20): **leave by** and **your pick changed**.
+Push notifications, minimal (#20, #40): **your pick changed** and **starts
+soon**, when a pick of yours is about to begin. Neither needs a location.
 Both are computed server-side from data sync already holds. Crew pings by
 push are a spring decision, not a 2027 commitment. On iPhone, push only
 reaches an installed app — which is why the top rung of the ladder is
@@ -117,7 +118,7 @@ Coordinate landing by the spring checkpoint. The animation is built last.
   (#25), which is why the install nudge earns its place twice.
 - It works in a hotel basement with no signal.
 - The pipeline runs unattended through con weekend.
-- A leave-by notification fires at the right minute for someone who is
+- A starts-soon notification fires at the right minute for someone who is
   not the author.
 
 ## What this is built to learn
