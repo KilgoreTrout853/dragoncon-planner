@@ -1,5 +1,5 @@
 import { loadJSON, saveJSON } from "./storage.js";
-import { axisKeys, events, linksTo, personName, tracks, worksById } from "./data.js";
+import { axisKeys, events, linksTo, personName, worksById } from "./data.js";
 
 /* ==================================================================
    Follows. A pick is one event; a follow is a standing interest - a
@@ -31,12 +31,13 @@ let follows = (loadJSON("dc26.follows", []) || []).filter(wellFormedFollow);
 const followId = f => `${f.kind}:${f.key}`;
 function saveFollows() { saveJSON("dc26.follows", follows.map(f => ({kind: f.kind, key: f.key}))); }
 function isFollowing(kind, key) { return follows.some(f => f.kind === kind && f.key === key); }
-/* Whether the loaded schedule offers this to follow: a track or a person it
-   has, an axis value some event carries, a work it names that a person has
-   reviewed. An unreviewed work is searchable, never followable (#34). */
+/* Whether the loaded schedule offers this to follow: a person it has, an axis
+   value some event carries, a work it names that a person has reviewed. An
+   unreviewed work is searchable, never followable (#34). A track is followed
+   by its name, as it always was. */
 function canFollow(kind, key) {
   switch (kind) {
-    case "track": return tracks.includes(key);
+    case "track": return typeof key === "string" && !!key;
     case "work": return (worksById.get(key) || {}).reviewed === true;
     case "axis": return axisKeys.has(key);
     case "person": return !!personName(key);
