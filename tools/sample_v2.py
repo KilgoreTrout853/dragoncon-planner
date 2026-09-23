@@ -9,6 +9,10 @@ tagged. The client reads events.v2.json since DECISIONS #39, so its tests boot a
 This is not events_v2.py - the sample has no cache entry, and five of its track names are not in
 tracks.json - but it builds what events_v2.py would, from the same pieces:
 
+- every event in the file's shape (events_v2.event_fields): its ten raw fields, its id, which is also
+  its source id, as a frozen year's are, the five place fields the venues step reads from its location
+  against data/2026/venues.json, track (the first of its tracks), cancelled by the parse step's rule,
+  people and facets;
 - people and facets on every event, from parse_stage, each person's id through the registry
   (events_v2.resolve_people);
 - on the five events v1 tagged: kind as it was; each fandom a work, via about, by the registry where
@@ -22,8 +26,9 @@ tracks.json - but it builds what events_v2.py would, from the same pieces:
 - the works block by events_v2.works_block.
 
 An event v1 left untagged stays untagged, unless it gets works here, and then its tags hold works only.
-The top-level fields are the v1 file's. No model, no network, no clock: the same input gives the same
-bytes.
+The top-level fields are the v1 file's, with no digest. The file is written as events_v2.dumps writes
+events.v2.json, a line break before each works row and each event. No model, no network, no clock: the
+same input gives the same bytes.
 """
 
 import argparse
@@ -38,9 +43,12 @@ sys.path.insert(0, ROOT)
 import events_v2 as v2  # noqa: E402
 import parse_stage as ps  # noqa: E402
 import registry  # noqa: E402
+import venues_stage  # noqa: E402
+from venues import load as load_venues  # noqa: E402
 
 V1 = os.path.join(ROOT, "tests", "sample-events.v1.json")
 OUT = os.path.join(ROOT, "tests", "sample-events.json")
+VENUES = os.path.join(ROOT, "data", "2026", "venues.json")   # the sample is 2026's shape, so 2026's venues file
 
 # schema-v2.md, From TOPICS to v2. Gaming has no single home and Kids is an audience, not an axis.
 TOPIC_AXES = {
@@ -76,14 +84,15 @@ def v2_tags(tags, about, tracks, parents):
     return out
 
 
-def build(data, reg):
+def build(data, reg, venues):
     works_by_id = dict(reg.by_id("works"))
     own = {}                                     # the fixture's own block rows, by id
     parents = {w["id"]: w.get("parent") for w in reg.works}
     tracks_by_id = reg.by_id("tracks")
-    parsed = ps.parse_all(data["events"])
+    placed = venues_stage.resolve(v2.frozen(data)[0], venues).rows   # each a raw row, its id its source id, placed
+    parsed = ps.parse_all(placed)
     out = []
-    for event, p in zip(data["events"], parsed):
+    for event, row, p in zip(data["events"], placed, parsed):
         tracks = [tracks_by_id[t] for t in (reg.resolve_track(n) for n in event.get("tracks") or []) if t]
         v1 = event.get("tags")
         about = []
@@ -105,15 +114,14 @@ def build(data, reg):
                     raise SystemExit(f"{name!r} no longer resolves in the registry: pick another name for the chain")
                 if wid not in about:
                     about.append(wid)
-        scraped = {k: v for k, v in event.items() if k != "tags"}
-        row = {**scraped, "people": v2.resolve_people(p["people"], reg), "facets": p["facets"]}
+        written = v2.event_fields(row, v2.resolve_people(p["people"], reg), p["facets"])
         if v1:
-            row["tags"] = v2_tags(v1, about, tracks, parents)
+            written["tags"] = v2_tags(v1, about, tracks, parents)
         else:
             works = v2.merge_works(about, tracks, [], {}, parents)
             if works:
-                row["tags"] = {"works": works}
-        out.append(row)
+                written["tags"] = {"works": works}
+        out.append(written)
     block = v2.works_block([e for e in out if "tags" in e], works_by_id, parents)
     doc = {k: v for k, v in data.items() if k not in ("events", "works")}
     doc["works"], doc["events"] = block, out
@@ -126,7 +134,7 @@ def main(argv=None):
     args = ap.parse_args(argv)
     with open(V1, "rb") as f:
         data = json.loads(f.read().decode("utf-8"))
-    body = v2.dumps(build(data, registry.load(os.path.join(ROOT, registry.DIR))))
+    body = v2.dumps(build(data, registry.load(os.path.join(ROOT, registry.DIR)), load_venues(VENUES)))
     if args.check:
         try:
             with open(OUT, "rb") as f:

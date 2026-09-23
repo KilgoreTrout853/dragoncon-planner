@@ -82,8 +82,7 @@ def run_mini(folder=None):
 # The key, moved here, and carry()
 # ---------------------------------------------------------------------------
 
-def test_dupe_key_and_norm_text_live_here_and_scraper_imports_them_back():
-    assert scraper.dupe_key is ids_stage.dupe_key and scraper.norm_text is ids_stage.norm_text
+def test_dupe_key_and_norm_text_live_here():
     # a raw row has no room, so the key reads its location; a 2026 event's room is read where it has one
     assert ids_stage.dupe_key(row("a1", title=" Quick &  Easy Board Games. ", location="Hyatt  A707 ")) == (
         "quick & easy board games", "2026-09-05T10:00", "hyatt a707")

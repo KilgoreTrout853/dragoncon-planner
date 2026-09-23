@@ -1,7 +1,78 @@
-"""Generate the v1 sample, tests/sample-events.v1.json (for UI testing only; not shipped). tools/sample_v2.py makes the page tests' v2 fixture, tests/sample-events.json, from it."""
+"""Generate the v1 sample, tests/sample-events.v1.json (for UI testing only; not shipped). tools/sample_v2.py makes the page tests' v2 fixture, tests/sample-events.json, from it.
+
+_dedupe and _merge_group are v1's: scraper.py's dedupe and merge_group, copied here verbatim when PR 6 of Pipeline shape
+moved the merge of a group to merge_stage.py, and kept only so that this script still reproduces the committed
+fixture."""
 import json, random, datetime as dt, os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-import scraper
+from ids_stage import dupe_key
+
+
+def _merge_group(group):
+    """One event from several. The smallest id survives, so the choice is
+    stable across refreshes and a starred pick keeps pointing at something."""
+    survivor = min(group, key=lambda e: e["id"])
+    out = dict(survivor)
+
+    # Union by name, first appearance wins - that copy's role is the one kept.
+    seen, speakers = set(), []
+    for e in group:
+        for p in e.get("speakers") or []:
+            name = (p or {}).get("name")
+            if name and name not in seen:
+                seen.add(name)
+                speakers.append(p)
+    out["speakers"] = speakers
+
+    tracks, seen_t = [], set()
+    for e in group:
+        for t in e.get("tracks") or []:
+            if t and t not in seen_t:
+                seen_t.add(t)
+                tracks.append(t)
+    out["tracks"] = tracks
+    out["track"] = tracks[0] if tracks else survivor.get("track")
+
+    # A panel listed in the gaming feed is still a panel.
+    out["type"] = "panel" if any(e.get("type") == "panel" for e in group) else survivor.get("type")
+
+    longest = max((e.get("description") or "" for e in group), key=len)
+    if longest:
+        out["description"] = longest
+
+    # The tagger keys on id; if the tagged copy isn't the survivor, its tags
+    # would be thrown away with it.
+    tags = next((e["tags"] for e in group if e.get("tags")), None)
+    if tags:
+        out["tags"] = tags
+
+    out["cancelled"] = any(bool(e.get("cancelled")) for e in group)
+    return out
+
+
+def _dedupe(events):
+    """Collapse same title + start + room. Returns (events, groups_merged)."""
+    groups, order = {}, []
+    for e in events:
+        k = dupe_key(e)
+        if k not in groups:
+            groups[k] = []
+            order.append(k)
+        groups[k].append(e)
+
+    out, merged, removed = [], 0, 0
+    for k in order:
+        g = groups[k]
+        if len(g) == 1:
+            out.append(g[0])
+        else:
+            out.append(_merge_group(g))
+            merged += 1
+            removed += len(g) - 1
+    out.sort(key=lambda e: (e["start"] or "9999", e["title"]))
+    return out, merged, removed
+
+
 random.seed(7)
 real = [
  ("Critters","Hilton 202","Video Room",90,"Alien creatures terrorize a small town while bounty hunters chase them. A blend of Horror, Comedy, and Sci-Fi mayhem.",[]),
@@ -59,7 +130,7 @@ add_tagged(4,16,0,"Rick & Morty: Wubba Lubba Dub Dub","Hilton Galleria 8","Anima
 add_tagged(6,13,0,"Video Game Cosplay Contest","Hyatt Centennial II-IV","Costuming",90,"Costumes from video game characters compete for prizes. Audience votes.",{"fandoms":["Video Games"],"kind":"contest","topics":["Costuming"],"adult":False,"guests":"fan"})
 add_tagged(5,14,30,"Ask a NASA Scientist: The Road to Mars","Hilton 209-211","Space",60,"Engineers from JPL talk about the next decade of crewed missions.",{"fandoms":[],"kind":"qa","topics":["Space","Science"],"adult":False,"guests":"celebrity"})
 add_tagged(5,23,30,"Late Night Puppet Slam","Hilton Salon","Puppetry",90,"Adults-only puppetry. 18+ only, ID required.",{"fandoms":[],"kind":"performance","topics":["Puppetry","Comedy"],"adult":True,"guests":"creator"})
-events, merged, removed = scraper.dedupe(events)
+events, merged, removed = _dedupe(events)
 if merged:
     print(f"merged {merged} duplicate groups ({removed} rows) so the fixture matches the scraper")
 now=dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")

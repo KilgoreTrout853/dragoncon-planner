@@ -1,10 +1,13 @@
-"""Tests for events_v2.py: the merge rules, the hard errors, the shape of the file, and that a build is
-the same bytes every time and never touches its input. Registries, cache and events are inline
-fixtures written to tmp_path, and nothing calls a model; the last test alone reads data/, to hold the
-committed events.v2.json to a fresh build of the committed inputs.
+"""Tests for events_v2.py: the works and axes merge, what the build tolerates and counts and what still stops it, the
+frozen and live front doors, the file's shape, its digest and its lines, and that a build is the same bytes every time
+and never touches its input. Registries, venues, seasons, ledgers, caches and events are inline fixtures written to
+tmp_path, and nothing calls a model; the last test alone reads data/, to hold the committed events.v2.json to a fresh
+build of the committed inputs.
 
 Run:  python -m pytest tests/
 """
+import copy
+import hashlib
 import json
 import os
 import subprocess
@@ -17,8 +20,12 @@ import pytest  # noqa: E402
 
 import draft_people as dp  # noqa: E402
 import events_v2 as v2  # noqa: E402
+import ids_stage  # noqa: E402
+import merge_stage  # noqa: E402
 import registry  # noqa: E402
 import tag_stage as ts  # noqa: E402
+import venues  # noqa: E402
+from season import load as load_season  # noqa: E402
 
 WORKS = [
     {"id": "castle", "name": "Castle", "aliases": [], "type": "franchise", "reviewed": True},
@@ -52,11 +59,33 @@ TRACKS = [
 ]
 
 
+def level(lid, name, order, rooms):
+    return {"id": lid, "name": name, "order": order, "rooms": list(rooms), "aliases": {}, "notes": []}
+
+
+def hotel(name, order, keys, levels=(), placeless=False):
+    return {"hotel": name, "name": name, "keys": list(keys), "short": name, "group": name, "var": name, "order": order,
+            "placeless": placeless, "display": "rest", "levels": list(levels), "unplaced": {}}
+
+
+VENUES_DATA = {"walk": {"Marriott|Courtland Grand": 10}, "same_venue_min": 5, "unknown_pair_min": 12, "slack_min": 10,
+               "hotels": [hotel("Marriott", 0, ["Marriott"], [level("atrium", "Atrium Level", 0, ["A", "A707"])]),
+                          hotel("Courtland Grand", 1, ["Courtland Grand", "Courtland"],
+                                [level("grand", "Grand Level", 0, ["Athens"])]),
+                          hotel("Streaming", 2, ["Streaming"], placeless=True),
+                          hotel("Other", 3, ["O", "Other"], placeless=True),
+                          hotel("Unknown", 4, [], placeless=True)]}
+VENUES = venues.check(VENUES_DATA)
+AT = "2026-09-07T12:50:19+00:00"
+PLACED = list(merge_stage.FIELDS) + ["id", "source_id", "hotel", "room", "level", "rooms", "place", "track",
+                                     "cancelled", "people", "facets"]
+
+
 def ev(title, description="", tracks=("Main Programming",), type="panel", speakers=(), id=None,
-       start="2026-09-05T11:30", tags=True):
+       start="2026-09-05T11:30", tags=True, location="Marriott A"):
     tracks = list(tracks)
     out = {"id": id or title.lower().replace(" ", "-"), "type": type, "title": title, "day": start[:10],
-           "start": start, "end": start, "duration_min": 60, "location": "Marriott A", "hotel": "Marriott",
+           "start": start, "end": start, "duration_min": 60, "location": location, "hotel": "Marriott",
            "room": "A", "description": description, "tracks": tracks, "track": tracks[0] if tracks else "",
            "speakers": [{"name": n, "role": r} for n, r in speakers], "cancelled": False}
     if tags:   # the v1 object, which the build replaces
@@ -88,15 +117,15 @@ def cache_for(pairs):
 
 
 def built_doc(tmp_path, pairs, **reg):
-    """The whole v2 document for [(event, answer)], and the build's counts."""
-    return v2.build({"generated_at": "2026-09-07T12:50:19+00:00", "events": [e for e, _ in pairs]},
-                    reg_with(tmp_path, **reg), cache_for(pairs))
+    """The whole v2 document for [(event, answer)], through the frozen front door, and the build's report."""
+    rows, top = v2.frozen({"generated_at": AT, "events": [e for e, _ in pairs]})
+    return v2.build(rows, top, reg_with(tmp_path, **reg), cache_for(pairs), VENUES)
 
 
 def built(tmp_path, pairs, **reg):
-    """The v2 events for [(event, answer)], and the build's counts."""
-    doc, stats = built_doc(tmp_path, pairs, **reg)
-    return doc["events"], stats
+    """The v2 events for [(event, answer)], and the build's report."""
+    doc, report = built_doc(tmp_path, pairs, **reg)
+    return doc["events"], report
 
 
 def tags(tmp_path, event, a, **reg):
@@ -140,9 +169,9 @@ def test_among_several_credits_the_first_person_in_event_order_wins(tmp_path):
 
 def test_a_work_named_by_a_registry_term_is_dropped_and_counted_not_an_error(tmp_path):
     event = ev("DDAL FR-DC-TDD-03: The Zephyr's Fold", tracks=["Main Programming"], type="gaming")
-    events, stats = built(tmp_path, [(event, answer(kind="gaming", works=["DDAL", "Dungeons & Dragons"]))])
+    events, report = built(tmp_path, [(event, answer(kind="gaming", works=["DDAL", "Dungeons & Dragons"]))])
     assert events[0]["tags"]["works"] == [{"id": "dungeons-and-dragons", "via": "about"}]
-    assert stats["terms"] == {"DDAL": 1}
+    assert report["terms"] == {"DDAL": 1} and report["unresolved_names"] == {}
 
 
 def test_a_term_made_an_alias_later_links_with_no_model_call(tmp_path):
@@ -176,8 +205,8 @@ def test_mature_beats_kids_beats_all(tmp_path):
 
 
 def test_a_kids_track_event_the_model_called_mature_is_listed(tmp_path):
-    events, stats = built(tmp_path, [(ev("Monster Mash", tracks=["Kids Track"]), answer(audience="mature"))])
-    assert events[0]["tags"]["audience"] == "mature" and stats["kids_track_mature"] == ["Monster Mash"]
+    events, report = built(tmp_path, [(ev("Monster Mash", tracks=["Kids Track"]), answer(audience="mature"))])
+    assert events[0]["tags"]["audience"] == "mature" and report["kids_track_mature"] == ["Monster Mash"]
 
 
 def test_play_is_kept_only_on_a_gaming_event(tmp_path):
@@ -211,33 +240,175 @@ def test_two_spellings_of_one_person_are_one_entry_and_the_first_stands(tmp_path
     assert [(p["id"], p["role"]) for p in people] == [("pat-henry", "Speaker")]
 
 
-# --- what stops a build --------------------------------------------------------
+# --- what the build tolerates, and counts --------------------------------------
 
-def test_a_cache_miss_is_an_error_listing_the_titles(tmp_path):
-    cached, missing = ev("Castle Cast"), ev("Firefly Reunion")
+def test_a_cache_miss_ships_the_event_untagged_and_counts_it(tmp_path):
+    cached, missing = ev("Castle Cast"), ev("Firefly Reunion", tracks=["Trek Track"])
+    rows, top = v2.frozen({"generated_at": AT, "events": [cached, missing]})
+    doc, report = v2.build(rows, top, reg_with(tmp_path), cache_for([(cached, answer(works=["Castle"]))]), VENUES)
+    got = {e["title"]: e for e in doc["events"]}
+    assert "tags" not in got["Firefly Reunion"], "an untagged event carries no tags key at all (#46)"
+    assert list(got["Firefly Reunion"]) == PLACED and got["Firefly Reunion"]["place"] == "exact"   # the rest is built
+    assert got["Castle Cast"]["tags"]["works"] == [{"id": "castle", "via": "about"}]
+    assert report["untagged"] == ["Firefly Reunion"]
+    # the block is the tagged events' works: the untagged event's track work, star-trek, is not in it
+    assert [w["id"] for w in doc["works"]] == ["castle"]
+
+
+def test_an_unresolved_work_name_drops_its_link_and_is_counted_by_links(tmp_path):
+    events, report = built(tmp_path, [(ev("Monk Q&A"), answer(works=["Monk", "Castle"])),
+                                      (ev("Monk Reunion"), answer(works=["Monk"]))])
+    assert [e["tags"]["works"] for e in events] == [[{"id": "castle", "via": "about"}], []]
+    assert report["unresolved_names"] == {"Monk": 2} and report["untagged"] == []
+
+
+def test_an_unknown_track_keeps_its_name_with_no_axes_and_no_work(tmp_path):
+    event = ev("Weaving Circle", tracks=["Underwater Basket Weaving", "Filk Music"])
+    events, report = built(tmp_path, [(event, answer(medium=["tv"], genre=["horror"]))])
+    got = events[0]
+    assert (got["tracks"], got["track"]) == (["Underwater Basket Weaving", "Filk Music"], "Underwater Basket Weaving")
+    # Filk Music decides the medium; the unknown track decides nothing, so the model's genre stands
+    assert (got["tags"]["medium"], got["tags"]["genre"], got["tags"]["works"]) == (["music"], ["horror"], [])
+    assert report["unknown_tracks"] == {"Underwater Basket Weaving": 1}
+
+
+def test_every_degradation_is_counted_in_one_build(tmp_path):
+    first, second = ev("Monk Q&A", tracks=["Nowhere"]), ev("Uncached", tracks=["Nowhere", "Elsewhere"])
+    rows, top = v2.frozen({"generated_at": AT, "events": [first, second]})
+    doc, report = v2.build(rows, top, reg_with(tmp_path), cache_for([(first, answer(works=["Monk"]))]), VENUES)
+    assert [e["title"] for e in doc["events"]] == ["Monk Q&A", "Uncached"]
+    assert (report["untagged"], report["unresolved_names"], report["unknown_tracks"]) == (
+        ["Uncached"], {"Monk": 1}, {"Elsewhere": 1, "Nowhere": 2})
+    assert (report["rooms_unresolved"], report["hotels_unknown"], report["places"]["exact"]) == (0, 0, 2)
+
+
+# --- what stops a build ----------------------------------------------------------
+
+def test_a_row_with_no_id_stops_the_build(tmp_path):
+    rows, top = v2.frozen({"generated_at": AT, "events": [ev("Castle Cast"), ev("Firefly Reunion")]})
+    del rows[1]["id"]
     with pytest.raises(v2.BuildError) as exc:
-        v2.build({"events": [cached, missing]}, reg_with(tmp_path), cache_for([(cached, answer())]))
-    assert "no cached answer" in str(exc.value) and "Firefly Reunion" in str(exc.value)
-    assert "Castle Cast" not in str(exc.value)
+        v2.build(rows, top, reg_with(tmp_path), {}, VENUES)
+    assert "1 row(s) with no id" in str(exc.value) and "firefly-reunion" in str(exc.value)
 
 
-def test_an_unresolved_work_name_is_an_error_naming_the_mint_command(tmp_path):
-    with pytest.raises(v2.BuildError) as exc:
-        built(tmp_path, [(ev("Monk Q&A"), answer(works=["Monk"]))])
-    assert "'Monk'" in str(exc.value) and "python tag_stage.py --mint-only" in str(exc.value)
+def test_a_registry_a_venues_file_or_a_cache_that_fails_to_load_stops_the_build(tmp_path):
+    args = frozen_folder(tmp_path)
+    season, folder, reg = load_season(args[1]), os.path.dirname(args[1]), args[3]
+    assert v2.build_season(season, folder, reg)[0]["events"]
+    for path, broken, prefix in [(tmp_path / "registry" / "works.json", "[]x", "the registries: "),
+                                 (tmp_path / "2026" / "venues.json", json.dumps({**VENUES_DATA, "extra": 1}),
+                                  "the venues file: "),
+                                 (tmp_path / "2026" / "tags.cache.jsonl", '{"not": "an entry"}\n', "the tag cache: ")]:
+        good = path.read_bytes()
+        path.write_text(broken, encoding="utf-8")
+        with pytest.raises(v2.BuildError) as exc:
+            v2.build_season(season, folder, reg)
+        assert prefix in str(exc.value), prefix
+        path.write_bytes(good)
 
 
-def test_an_unresolved_track_is_an_error(tmp_path):
-    with pytest.raises(v2.BuildError) as exc:
-        built(tmp_path, [(ev("A Panel", tracks=["Underwater Basket Weaving"]), answer())])
-    assert "'Underwater Basket Weaving'" in str(exc.value)
+# --- the frozen front door -----------------------------------------------------------
+
+def test_the_frozen_front_door_makes_each_event_a_raw_row_its_id_its_source_id(tmp_path):
+    cancelled = ev("CANCELLED: Trek Trivia", tracks=["Trek Track", "Filk Music"], location="Courtland Grand Athens")
+    data = {"generated_at": AT, "changed_at": "2026-09-06T00:00:00+00:00", "source": "fixture", "count": 2,
+            "failures": 0, "events": [cancelled, {**ev("Trek Trivia Night", tracks=[]), "cancelled": True}]}
+    before = copy.deepcopy(data)
+    rows, top = v2.frozen(data)
+    assert data == before
+    assert top == {k: data[k] for k in ("generated_at", "changed_at", "source", "count", "failures")}  # a count
+    assert [r["source_id"] for r in rows] == [r["id"] for r in rows] == ["cancelled:-trek-trivia", "trek-trivia-night"]
+    for r, e in zip(rows, data["events"]):
+        assert set(r) == {"source_id", "id", *merge_stage.FIELDS}      # v1's hotel, room, track, cancelled, tags gone
+        assert {k: r[k] for k in merge_stage.FIELDS} == {k: e[k] for k in merge_stage.FIELDS}
+    doc, _ = v2.build(rows, top, reg_with(tmp_path), cache_for([(e, answer()) for e in data["events"]]), VENUES)
+    first, second = doc["events"]
+    # the place is the venues step's reading of the location, not v1's hotel and room
+    assert {k: first[k] for k in v2.PLACE} == {"hotel": "Courtland Grand", "room": "Athens", "level": "grand",
+                                              "rooms": ["Athens"], "place": "exact"}
+    assert (first["track"], first["cancelled"]) == ("Trek Track", True)       # the rule reads the title
+    assert (second["track"], second["cancelled"]) == (None, False)            # no tracks; v1's flag is not read
+    assert (second["hotel"], second["room"], second["level"], second["place"]) == ("Marriott", "A", "atrium", "exact")
 
 
-def test_every_problem_is_listed_not_the_first(tmp_path):
-    first, second = ev("Monk Q&A", tracks=["Nowhere"]), ev("Uncached")
-    with pytest.raises(v2.BuildError) as exc:
-        v2.build({"events": [first, second]}, reg_with(tmp_path), cache_for([(first, answer(works=["Monk"]))]))
-    assert len(exc.value.problems) == 3
+def test_the_v1_tags_object_is_gone_and_the_keys_are_in_the_file_s_order(tmp_path):
+    play = {"format": "demo", "level": "beginner"}
+    events, _ = built(tmp_path, [
+        (ev("Castle Cast", speakers=[("Nathan Fillion", "Speaker")]), answer(kind="qa", works=["Castle"], medium=["tv"])),
+        (ev("Wingspan Demo", type="gaming", tags=False), answer(kind="gaming", play=play))])
+    assert [list(e) for e in events] == [PLACED + ["tags"]] * 2
+    assert events[0]["tags"] == {"kind": "qa", "works": [{"id": "castle", "via": "about"},
+                                                         {"id": "firefly", "via": "credit:nathan-fillion"}],
+                                 "medium": ["tv"], "genre": [], "craft": [], "subject": [], "audience": "all",
+                                 "guests": "celebrity"}
+    assert list(events[0]["tags"]) == ["kind", "works", "medium", "genre", "craft", "subject", "audience", "guests"]
+    assert list(events[1]["tags"]) == ["kind", "works", "medium", "genre", "craft", "subject", "audience", "play"]
+    assert not {"fandoms", "topics", "adult"} & set(events[0]["tags"])
+
+
+def test_every_top_level_field_is_copied_as_it_is_then_the_digest_the_works_and_the_events(tmp_path):
+    event = ev("A Panel")
+    data = {"generated_at": AT, "changed_at": "2026-09-06T00:00:00+00:00", "source": "fixture", "count": 1,
+            "failures": 0, "events": [event]}
+    doc, _ = v2.build(*v2.frozen(data), reg_with(tmp_path), cache_for([(event, answer())]), VENUES)
+    assert list(doc) == ["generated_at", "changed_at", "source", "count", "failures", "digest", "works", "events"]
+    assert all(doc[k] == data[k] for k in data if k != "events")
+
+
+def test_a_works_key_or_a_digest_in_the_input_gives_way_to_the_build_s(tmp_path):
+    event = ev("Trek Track Meetup", tracks=["Trek Track"])
+    block = [{"id": "star-trek", "name": "Star Trek", "aliases": [], "terms": [], "reviewed": True}]
+    # before events or after them, the input's works and digest are dropped; every other field keeps its place
+    for data, order in [({"works": ["not the block"], "generated_at": AT, "events": [event]},
+                         ["generated_at", "digest", "works", "events"]),
+                        ({"generated_at": AT, "events": [event], "works": ["not the block"], "failures": 0,
+                          "digest": "not ours"}, ["generated_at", "failures", "digest", "works", "events"])]:
+        assert not {"works", "digest", "events"} & set(v2.frozen(data)[1])
+        doc, _ = v2.build(*v2.frozen(data), reg_with(tmp_path), cache_for([(event, answer())]), VENUES)
+        assert list(doc) == order and doc["works"] == block and doc["digest"] != "not ours"
+
+
+# --- the digest and the lines ------------------------------------------------------
+
+def test_the_digest_is_the_works_and_the_events_as_the_file_writes_them(tmp_path):
+    doc, _ = built_doc(tmp_path, [ENDGAME, TREK_TRACK, FILLION], **BLOCK_REG)
+    text = v2.dumps(doc).decode("utf-8")
+    written = text[text.index('"works":'):-len("}\n")]     # the file's own text of the two lists
+    assert doc["digest"] == hashlib.sha256(("{" + written + "}").encode("utf-8")).hexdigest()
+    assert len(doc["digest"]) == 64 and set(doc["digest"]) <= set("0123456789abcdef")
+
+
+def test_the_digest_changes_if_and_only_if_the_works_or_the_events_do(tmp_path):
+    pairs = [ENDGAME, TREK_TRACK]
+    doc, _ = built_doc(tmp_path, pairs, **BLOCK_REG)
+    # the stamps, the source, the count and the failures are not in it
+    other = {"generated_at": "2027-01-01T00:00:00+00:00", "changed_at": "2027-01-02T00:00:00+00:00",
+             "source": "elsewhere", "count": 99, "failures": 3, "events": [e for e, _ in pairs]}
+    again, _ = v2.build(*v2.frozen(other), reg_with(tmp_path, **BLOCK_REG), cache_for(pairs), VENUES)
+    assert again["events"] == doc["events"] and again["digest"] == doc["digest"]
+    # an event changes: another digest
+    retitled = [(dict(ENDGAME[0], title="Endgame Rewatch, Again"), ENDGAME[1]), TREK_TRACK]
+    assert built_doc(tmp_path, retitled, **BLOCK_REG)[0]["digest"] != doc["digest"]
+    # a works row changes and no event does - an alias on an ancestor: another digest
+    works = [dict(w, aliases=["MCU", "Marvel Comics"]) if w["id"] == "marvel" else w for w in BLOCK_WORKS]
+    edited, _ = built_doc(tmp_path, pairs, works=works, people=BLOCK_PEOPLE, tracks=BLOCK_TRACKS)
+    assert edited["events"] == doc["events"] and edited["works"] != doc["works"] and edited["digest"] != doc["digest"]
+
+
+def test_the_file_is_compact_with_one_works_row_and_one_event_a_line(tmp_path):
+    doc, _ = built_doc(tmp_path, [ENDGAME, TREK_TRACK, FILLION], **BLOCK_REG)
+    body = v2.dumps(doc)
+    assert body.endswith(b"]}\n") and b"\r" not in body and json.loads(body) == doc
+    assert body.replace(b"\n", b"") == json.dumps(doc, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    lines = body.decode("utf-8").split("\n")
+    works, events = len(doc["works"]), len(doc["events"])
+    assert len(lines) == 1 + works + events + 1 and lines[-1] == ""
+    assert lines[0].startswith('{"generated_at":') and lines[0].endswith(',"works":[')
+    assert all(line.startswith('{"id":') for line in lines[1:1 + works])
+    assert lines[works].endswith('}],"events":[')
+    assert all(line.startswith('{"type":') for line in lines[1 + works:-1])
+    assert v2.dumps({"works": [], "events": []}) == b'{"works":[],"events":[]}\n'
 
 
 # --- the works block -----------------------------------------------------------
@@ -342,52 +513,136 @@ def test_a_row_holds_the_registry_values_in_one_key_order(tmp_path):
 
 
 def test_the_build_counts_the_block_and_its_ancestors_only(tmp_path):
-    _, stats = built_doc(tmp_path, [ENDGAME, TREK_TRACK], **BLOCK_REG)
-    assert stats["block"] == {"rows": 4, "ancestors_only": 2, "registry": len(BLOCK_WORKS)}
+    _, report = built_doc(tmp_path, [ENDGAME, TREK_TRACK], **BLOCK_REG)
+    assert report["block"] == {"rows": 4, "ancestors_only": 2, "registry": len(BLOCK_WORKS)}
 
 
-# --- the file ----------------------------------------------------------------
+# --- the live front door -------------------------------------------------------
 
-def test_the_v1_tags_object_is_gone_and_the_keys_are_in_schema_order(tmp_path):
-    play = {"format": "demo", "level": "beginner"}
-    events, _ = built(tmp_path, [
-        (ev("Castle Cast", speakers=[("Nathan Fillion", "Speaker")]), answer(kind="qa", works=["Castle"], medium=["tv"])),
-        (ev("Wingspan Demo", type="gaming", tags=False), answer(kind="gaming", play=play))])
-    scraped = ["id", "type", "title", "day", "start", "end", "duration_min", "location", "hotel", "room",
-               "description", "tracks", "track", "speakers", "cancelled"]
-    assert [list(e) for e in events] == [scraped + ["people", "facets", "tags"]] * 2
-    assert events[0]["tags"] == {"kind": "qa", "works": [{"id": "castle", "via": "about"},
-                                                         {"id": "firefly", "via": "credit:nathan-fillion"}],
-                                 "medium": ["tv"], "genre": [], "craft": [], "subject": [], "audience": "all",
-                                 "guests": "celebrity"}
-    assert list(events[0]["tags"]) == ["kind", "works", "medium", "genre", "craft", "subject", "audience", "guests"]
-    assert list(events[1]["tags"]) == ["kind", "works", "medium", "genre", "craft", "subject", "audience", "play"]
-    assert not {"fandoms", "topics", "adult"} & set(events[0]["tags"])
+SEASON_2026 = {"year": 2026, "slug": "dragoncon26", "source": "https://app.core-apps.com/dragoncon26",
+               "days": ["Sep  5"], "con": {"first": "2026-09-02", "last": "2026-09-07"}, "tz": "America/New_York",
+               "window": None, "frozen": True, "prompt_version": 1,
+               "thresholds": {"listings_floor": 0.8, "detail_failures": 0.2, "new_ids": 0.2, "requests_per_run": 40}}
+SEASON_2027 = {**SEASON_2026, "year": 2027, "slug": "dragoncon27", "source": "https://app.core-apps.com/dragoncon27",
+               "days": ["Sep  4"], "con": {"first": "2027-09-01", "last": "2027-09-06"},
+               "window": {"from": "2027-08-01", "to": "2027-09-07"}, "frozen": False}
+T1, T2 = "2027-08-01T10:00:00+00:00", "2027-08-02T10:00:00+00:00"
 
 
-def test_every_top_level_field_is_copied_as_it_is_and_works_comes_before_events(tmp_path):
-    event = ev("A Panel")
-    data = {"generated_at": "2026-09-07T12:50:19+00:00", "changed_at": "2026-09-06T00:00:00+00:00",
-            "source": "fixture", "count": 1, "failures": 0, "events": [event]}
-    doc, _ = v2.build(data, reg_with(tmp_path), cache_for([(event, answer())]))
-    assert list(doc) == ["generated_at", "changed_at", "source", "count", "failures", "works", "events"]
-    assert all(doc[k] == data[k] for k in data if k != "events")
+def raw(sid, title="Castle Cast", location="Marriott A", **flags):
+    """A raw row (#42), with `stale` or `removed` where given true."""
+    out = {"source_id": sid, "type": "panel", "title": title, "day": "2027-09-04", "start": "2027-09-04T11:30",
+           "end": "2027-09-04T12:30", "duration_min": 60, "location": location, "description": "",
+           "tracks": ["Main Programming"], "speakers": []}
+    return {**out, **{k: True for k, on in flags.items() if on}}
 
 
-def test_a_works_key_in_the_input_gives_way_to_the_block(tmp_path):
-    event = ev("Trek Track Meetup", tracks=["Trek Track"])
-    block = [{"id": "star-trek", "name": "Star Trek", "aliases": [], "terms": [], "reviewed": True}]
-    at = "2026-09-07T12:50:19+00:00"
-    # before events or after it, the input's works is dropped; a field after events stays after it
-    for data, order in [({"works": ["not the block"], "generated_at": at, "events": [event]},
-                         ["generated_at", "works", "events"]),
-                        ({"generated_at": at, "events": [event], "works": ["not the block"], "failures": 0},
-                         ["generated_at", "works", "events", "failures"])]:
-        doc, _ = v2.build(data, reg_with(tmp_path), cache_for([(event, answer())]))
-        assert list(doc) == order and doc["works"] == block
+def live_folder(tmp_path, fetched=lambda rows: rows, run=True):
+    """A live year after its second run. The first saw a1, b2, c3 and d4; by the second, b2 had moved into a1's room,
+    so b2's id merged into a1's; c3's listing was gone, carried removed; d4's page failed, carried stale; and e5's page
+    failed with no row to carry. The ledger is the ids stage's after both runs, the cache answers Castle Cast alone,
+    and last-run.json holds the second run's fetched_at and the first's changed_at. `fetched` makes source.json's rows
+    from the second run's: a fetch the ids stage has not yet seen. -> the season file's path."""
+    folder = tmp_path / "2027"
+    folder.mkdir(parents=True)
+    first = [raw("a1"), raw("b2", location="Marriott A707"), raw("c3", "Firefly Reunion"), raw("d4", "Trek Trivia")]
+    second = [raw("a1"), raw("b2"), raw("c3", "Firefly Reunion", removed=True), raw("d4", "Trek Trivia", stale=True)]
+    ledger = ids_stage.assign(first, {}, T1, SEASON_2027["thresholds"]).ledger
+    ledger = ids_stage.assign(second, ledger, T2, SEASON_2027["thresholds"]).ledger
+    (folder / "season.json").write_text(json.dumps(SEASON_2027), encoding="utf-8")
+    (folder / "venues.json").write_text(json.dumps(VENUES_DATA), encoding="utf-8")
+    source = {"source": SEASON_2027["source"], "failures": [{"source_id": "e5", "error": "404 Client Error"}],
+              "rows": fetched(second)}
+    (folder / "source.json").write_text(json.dumps(source), encoding="utf-8")
+    ids_stage.write_ledger(str(folder / "ids.jsonl"), ledger)
+    if run:
+        (folder / "last-run.json").write_text(json.dumps({"fetched_at": T2, "changed_at": T1}), encoding="utf-8")
+    castle = {**raw("a1"), "id": "a1"}
+    ts.write_cache(str(folder / "tags.cache.jsonl"), cache_for([(castle, answer(works=["Castle"]))]))
+    reg_with(tmp_path)
+    return folder / "season.json"
 
 
-def _write_inputs(tmp_path):
+def build_live(tmp_path, season):
+    return v2.build_season(load_season(str(season)), str(season.parent), str(tmp_path / "registry"))
+
+
+def test_a_live_year_builds_from_source_json_the_ledger_and_last_run(tmp_path):
+    doc, report = build_live(tmp_path, live_folder(tmp_path))
+    assert list(doc) == ["generated_at", "changed_at", "source", "count", "failures", "digest", "works", "events"]
+    assert (doc["generated_at"], doc["changed_at"], doc["source"]) == (T2, T1, SEASON_2027["source"])
+    assert doc["failures"] == [{"source_id": "e5", "error": "404 Client Error"}]
+    events = {e["id"]: e for e in doc["events"]}
+    assert list(events) == ["a1", "c3", "d4"] and doc["count"] == 3        # the removed event is counted
+    # a1 holds b2's row now, and carries b2's id in was; c3 is removed and d4 stale, each flag last
+    assert (events["a1"]["source_id"], events["a1"]["was"]) == ("a1", ["b2"])
+    assert list(events["a1"]) == PLACED + ["tags", "was"] and events["a1"]["tags"]["works"] == [
+        {"id": "castle", "via": "about"}]
+    assert list(events["c3"]) == PLACED + ["removed"] and events["c3"]["removed"] is True
+    assert list(events["d4"]) == PLACED + ["stale"] and events["d4"]["stale"] is True
+    assert report["untagged"] == ["Firefly Reunion", "Trek Trivia"]
+
+
+def test_an_event_s_flags_come_last_removed_or_stale_then_was(tmp_path):
+    # a row carries one flag at most (#42); was can join either
+    rows = [{**raw("a1", removed=True), "id": "a1"}, {**raw("c3", "Trek Trivia", stale=True), "id": "c3"}]
+    ledger = {"a1": {}, "b2": {"merged_into": "a1"}, "c3": {}, "d4": {"merged_into": "c3"}}
+    doc, _ = v2.build(rows, {"generated_at": T2}, reg_with(tmp_path), {}, VENUES, ledger)
+    assert [list(e)[len(PLACED):] for e in doc["events"]] == [["removed", "was"], ["stale", "was"]]
+    assert [e["was"] for e in doc["events"]] == [["b2"], ["d4"]]
+
+
+def test_a_live_year_whose_ledger_would_change_refuses_run_the_ids_stage_first(tmp_path):
+    # d4 retitled at the source: its line's key would move, with no new id
+    retitled = live_folder(tmp_path / "retitled", lambda rows: [
+        dict(r, title="Trek Trivia Night") if r["source_id"] == "d4" else r for r in rows])
+    with pytest.raises(v2.BuildError, match="run the ids stage first"):
+        build_live(tmp_path / "retitled", retitled)
+    # a listing no line holds: here, one new id of four lines, the ids stage's own ceiling refuses it first
+    added = live_folder(tmp_path / "added", lambda rows: rows + [raw("f6", "A Panel No Ledger Holds")])
+    with pytest.raises(v2.BuildError, match="the ids stage refuses these rows: 1 new id"):
+        build_live(tmp_path / "added", added)
+
+
+def test_a_live_year_needs_a_run(tmp_path):
+    season = live_folder(tmp_path, run=False)
+    with pytest.raises(v2.BuildError, match="a live year needs a run"):
+        build_live(tmp_path, season)
+
+
+def test_a_live_year_refuses_another_source_s_rows_and_a_run_with_no_stamps(tmp_path):
+    season = live_folder(tmp_path)
+    source = json.loads((season.parent / "source.json").read_text(encoding="utf-8"))
+    (season.parent / "source.json").write_text(json.dumps({**source, "source": "https://example.test/other"}),
+                                               encoding="utf-8")
+    with pytest.raises(v2.BuildError, match="not the season's"):
+        build_live(tmp_path, season)
+    (season.parent / "source.json").write_text(json.dumps(source), encoding="utf-8")
+    (season.parent / "last-run.json").write_text(json.dumps({"fetched_at": T2}), encoding="utf-8")
+    with pytest.raises(v2.BuildError, match="holds no fetched_at and changed_at"):
+        build_live(tmp_path, season)
+
+
+def test_a_live_year_is_checked_here_and_written_only_outside_its_folder(tmp_path, capsys):
+    season = live_folder(tmp_path)
+    args = ["--season", str(season), "--registry", str(tmp_path / "registry")]
+    with pytest.raises(SystemExit) as exc:
+        v2.main(args)
+    assert "the orchestrator's to write" in str(exc.value.code) and not (season.parent / "events.v2.json").exists()
+    assert v2.main(args + ["--check"]) == 1                                # nothing there yet, and nothing written
+    assert "the orchestrator writes it" in capsys.readouterr().err and not (season.parent / "events.v2.json").exists()
+    copy_path = tmp_path / "look" / "events.v2.json"
+    copy_path.parent.mkdir()
+    assert v2.main(args + ["--out", str(copy_path)]) == 0 and copy_path.exists()
+    (season.parent / "events.v2.json").write_bytes(copy_path.read_bytes())   # as the orchestrator would write it
+    assert v2.main(args + ["--check"]) == 0
+
+
+# --- the command -----------------------------------------------------------------
+
+def frozen_folder(tmp_path):
+    """A frozen year's folder - season.json, the raw events.json, venues.json and the tag cache - and the registry
+    beside it. -> main()'s arguments."""
     pairs = [(ev("Castle Cast", "Bring your questions! Additional Panelists: Jim Wert(Moderator)",
                  speakers=[("Nathan Fillion", "Speaker"), ("Seamus Dever", "Speaker")]),
               answer(kind="qa", works=["Castle"], medium=["tv"])),
@@ -398,17 +653,19 @@ def _write_inputs(tmp_path):
              (ev("Sew a Beret - $$ 3:00-5:00p", "Bring fabric.", start="2026-09-05T15:00", id="beret-2"),
               answer(kind="workshop", craft=["costuming"]))]
     reg_with(tmp_path)
-    source = tmp_path / "events.json"
-    source.write_text(json.dumps({"generated_at": "2026-09-07T12:50:19+00:00", "events": [e for e, _ in pairs]}),
-                      encoding="utf-8")
-    ts.write_cache(str(tmp_path / "tags.cache.jsonl"), cache_for(pairs))
-    return ["--events", str(source), "--registry", str(tmp_path / "registry"),
-            "--cache", str(tmp_path / "tags.cache.jsonl")]
+    folder = tmp_path / "2026"
+    folder.mkdir()
+    (folder / "season.json").write_text(json.dumps(SEASON_2026), encoding="utf-8")
+    (folder / "venues.json").write_text(json.dumps(VENUES_DATA), encoding="utf-8")
+    (folder / "events.json").write_text(json.dumps({"generated_at": AT, "events": [e for e, _ in pairs]}),
+                                        encoding="utf-8")
+    ts.write_cache(str(folder / "tags.cache.jsonl"), cache_for(pairs))
+    return ["--season", str(folder / "season.json"), "--registry", str(tmp_path / "registry")]
 
 
 def test_two_hash_seeds_give_the_same_bytes_and_the_input_is_untouched(tmp_path):
-    args = _write_inputs(tmp_path)
-    source = tmp_path / "events.json"
+    args = frozen_folder(tmp_path)
+    source = tmp_path / "2026" / "events.json"
     before = source.read_bytes()
     written = []
     for seed in ("0", "1"):
@@ -425,34 +682,34 @@ def test_two_hash_seeds_give_the_same_bytes_and_the_input_is_untouched(tmp_path)
 
 
 def test_check_is_1_for_a_stale_file_and_0_for_a_fresh_one(tmp_path):
-    args = _write_inputs(tmp_path)
-    out = str(tmp_path / "events.v2.json")
-    assert v2.main(args + ["--out", out, "--check"]) == 1           # absent
-    assert v2.main(args + ["--out", out]) == 0
-    assert v2.main(args + ["--out", out, "--check"]) == 0
+    args = frozen_folder(tmp_path)
+    out = tmp_path / "2026" / "events.v2.json"                            # beside the season, by default
+    assert v2.main(args + ["--check"]) == 1 and not out.exists()          # absent
+    assert v2.main(args) == 0
+    assert v2.main(args + ["--check"]) == 0
     with open(out, "ab") as f:
         f.write(b" ")
-    assert v2.main(args + ["--out", out, "--check"]) == 1
+    assert v2.main(args + ["--check"]) == 1
 
 
 def test_the_build_never_writes_over_its_input(tmp_path):
-    args = _write_inputs(tmp_path)
-    before = (tmp_path / "events.json").read_bytes()
-    with pytest.raises(SystemExit):
-        v2.main(args + ["--out", str(tmp_path / "events.json")])
-    assert (tmp_path / "events.json").read_bytes() == before
+    args = frozen_folder(tmp_path)
+    folder = tmp_path / "2026"
+    for name in ("events.json", "season.json", "venues.json", "tags.cache.jsonl"):
+        before = (folder / name).read_bytes()
+        with pytest.raises(SystemExit):
+            v2.main(args + ["--out", str(folder / name)])
+        assert (folder / name).read_bytes() == before, name
 
 
 # --- the committed file --------------------------------------------------------
 
 def test_the_committed_events_v2_is_a_fresh_build():
-    """data/2026/events.v2.json is exactly what the frozen schedule, the committed registries and the
-    committed tag cache build today, with no model: an edit to any of them with no rebuild after it
-    fails here, in CI's pipeline job, rather than shipping a stale file."""
-    with open(os.path.join(ROOT, ts.EVENTS), "rb") as f:
-        data = json.loads(f.read().decode("utf-8"))
-    doc, _ = v2.build(data, registry.load(os.path.join(ROOT, registry.DIR)),
-                      ts.load_cache(os.path.join(ROOT, ts.CACHE)))
+    """data/2026/events.v2.json is exactly what the frozen schedule, the committed registries, venues file and tag cache
+    build today, with no model: an edit to any of them with no rebuild after it fails here, in CI's pipeline job,
+    rather than shipping a stale file."""
+    path = os.path.join(ROOT, v2.SEASON)
+    doc, _ = v2.build_season(load_season(path), os.path.dirname(path), os.path.join(ROOT, registry.DIR))
     with open(os.path.join(ROOT, v2.OUT), "rb") as f:
         committed = f.read()
     assert v2.dumps(doc) == committed, "stale: run `python events_v2.py` and commit the result"

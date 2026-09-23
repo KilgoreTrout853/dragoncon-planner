@@ -2,8 +2,10 @@
 """The parse stage of tags v2 (DECISIONS #32): what the schedule states, read without a model.
 
 Two things are parsed out of an event and added beside it, `people` and `facets`
-(`docs/discover/schema-v2.md`). Nothing here calls a model, asks the network or writes under
-`data/`: the frozen 2026 file is the input and stays frozen (#13, #33).
+(`docs/discover/schema-v2.md`), and a third is read for the build: `cancelled`, by `is_cancelled`,
+from the title and the description (#42; scraper.py's until PR 6 of Pipeline shape). Nothing here
+calls a model, asks the network or writes under `data/`: the frozen 2026 file is the input and
+stays frozen (#13, #33).
 
     python parse_stage.py --out PATH   # the events with people and facets added, for inspection
     python parse_stage.py              # parse everything and print one line of counts
@@ -335,6 +337,30 @@ def parse_event(event, repeats=frozenset()):
 def parse_all(events):
     repeats = repeat_keys(events)
     return [parse_event(e, repeats) for e in events]
+
+
+# ---------------------------------------------------------------------------
+# Cancelled: the parse step's reading of the title and description (#42), moved here from scraper.py in PR 6
+# ---------------------------------------------------------------------------
+
+# A cancelled event says so up front: "CANCELLED: ..." leading or trailing the
+# title, in brackets, or a description that opens with it. Anywhere else the
+# word is just a word. Matching it anywhere struck through a panel about TV
+# cancellations, a table read of a show "canceled in 1983", and the Doctor Who
+# wilderness years, none of which was cancelled.
+TITLE_CANCELLED_RE = re.compile(r"^\W*cancel+ed\b|\bcancel+ed\W*$|[(\[]\s*cancel+ed\s*[)\]]", re.IGNORECASE)
+DESC_CANCELLED_RE = re.compile(
+    r"^\W*(?:(?:this|the)\s+(?:event|panel|session|program|game|signing)\s+(?:has\s+been\s+|is\s+|was\s+)?)?cancel+ed\b",
+    re.IGNORECASE)
+
+
+def _clean(s):
+    return re.sub(r"\s+", " ", s or "").strip()
+
+
+def is_cancelled(title, description):
+    """An event's `cancelled` (#42): the build reads the merged event's title and description with it."""
+    return bool(TITLE_CANCELLED_RE.search(_clean(title))) or bool(DESC_CANCELLED_RE.search(_clean(description)))
 
 
 # ---------------------------------------------------------------------------

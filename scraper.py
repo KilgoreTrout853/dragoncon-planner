@@ -43,7 +43,6 @@ from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from ids_stage import dupe_key, norm_text  # the ids stage's since PR 4; dedupe() reads them
 from season import SeasonError, load as load_season
 
 # "Events" module (panels etc.) has no type param; "Gaming Events" is type=Entertainment.
@@ -246,26 +245,14 @@ def parse_time_range(time_text):
     return None, None
 
 
-# Kept for their readers; the fetch no longer calls them (#42). The cancelled
-# rule and the panelist line are the parse step's (PR 6), which pins its own
-# copy of extract_panelists against this one. The hotel and room split is the
-# venues stage's, venues_stage.py (#45).
+# Kept for its reader; the fetch no longer calls it (#42). The panelist line
+# is the parse step's, which pins its own copy of extract_panelists against
+# this one (tests/test_parse_stage.py). The cancelled rule is the parse
+# step's too, parse_stage.is_cancelled, since PR 6; the hotel and room split
+# is the venues stage's, venues_stage.py (#45); and the merge of a group is
+# merge_stage.py's.
 
 PANELIST_RE = re.compile(r"Additional Panelists?\s*:\s*(.+)$", re.IGNORECASE | re.DOTALL)
-
-# A cancelled event says so up front: "CANCELLED: ..." leading or trailing the
-# title, in brackets, or a description that opens with it. Anywhere else the
-# word is just a word. Matching it anywhere struck through a panel about TV
-# cancellations, a table read of a show "canceled in 1983", and the Doctor Who
-# wilderness years, none of which was cancelled.
-TITLE_CANCELLED_RE = re.compile(r"^\W*cancel+ed\b|\bcancel+ed\W*$|[(\[]\s*cancel+ed\s*[)\]]", re.IGNORECASE)
-DESC_CANCELLED_RE = re.compile(
-    r"^\W*(?:(?:this|the)\s+(?:event|panel|session|program|game|signing)\s+(?:has\s+been\s+|is\s+|was\s+)?)?cancel+ed\b",
-    re.IGNORECASE)
-
-
-def is_cancelled(title, description):
-    return bool(TITLE_CANCELLED_RE.search(clean(title))) or bool(DESC_CANCELLED_RE.search(clean(description)))
 
 
 def extract_panelists(description):
@@ -471,85 +458,6 @@ def carried(row, flag):
     """A row of the previous file, carried with one flag, `stale` or `removed`: its fields as they were, frozen at
     last sight, and any flag it had dropped (#42)."""
     return {**{k: row[k] for k in ROW_FIELDS}, flag: True}
-
-
-# ---------------------------------------------------------------------------
-# Duplicates
-#
-# The same event is often listed twice: once in the panel feed and once in
-# gaming, or cross-listed under two tracks, and the two copies rarely agree -
-# one carries the speakers, the other doesn't. They are the same room at the
-# same minute, so they collapse into one row.
-#
-# The fetch no longer collapses them: source.json holds one row per listing
-# (#42), and the ids stage groups them (#43). dupe_key and norm_text moved to
-# ids_stage.py with it and are imported above; dedupe and merge_group stay for
-# tests/make_sample.py's v1 sample.
-# ---------------------------------------------------------------------------
-
-def merge_group(group):
-    """One event from several. The smallest id survives, so the choice is
-    stable across refreshes and a starred pick keeps pointing at something."""
-    survivor = min(group, key=lambda e: e["id"])
-    out = dict(survivor)
-
-    # Union by name, first appearance wins - that copy's role is the one kept.
-    seen, speakers = set(), []
-    for e in group:
-        for p in e.get("speakers") or []:
-            name = (p or {}).get("name")
-            if name and name not in seen:
-                seen.add(name)
-                speakers.append(p)
-    out["speakers"] = speakers
-
-    tracks, seen_t = [], set()
-    for e in group:
-        for t in e.get("tracks") or []:
-            if t and t not in seen_t:
-                seen_t.add(t)
-                tracks.append(t)
-    out["tracks"] = tracks
-    out["track"] = tracks[0] if tracks else survivor.get("track")
-
-    # A panel listed in the gaming feed is still a panel.
-    out["type"] = "panel" if any(e.get("type") == "panel" for e in group) else survivor.get("type")
-
-    longest = max((e.get("description") or "" for e in group), key=len)
-    if longest:
-        out["description"] = longest
-
-    # The tagger keys on id; if the tagged copy isn't the survivor, its tags
-    # would be thrown away with it.
-    tags = next((e["tags"] for e in group if e.get("tags")), None)
-    if tags:
-        out["tags"] = tags
-
-    out["cancelled"] = any(bool(e.get("cancelled")) for e in group)
-    return out
-
-
-def dedupe(events):
-    """Collapse same title + start + room. Returns (events, groups_merged)."""
-    groups, order = {}, []
-    for e in events:
-        k = dupe_key(e)
-        if k not in groups:
-            groups[k] = []
-            order.append(k)
-        groups[k].append(e)
-
-    out, merged, removed = [], 0, 0
-    for k in order:
-        g = groups[k]
-        if len(g) == 1:
-            out.append(g[0])
-        else:
-            out.append(merge_group(g))
-            merged += 1
-            removed += len(g) - 1
-    out.sort(key=lambda e: (e["start"] or "9999", e["title"]))
-    return out, merged, removed
 
 
 # ---------------------------------------------------------------------------

@@ -329,6 +329,40 @@ def test_part_n_stays_in_a_repeat_key_so_a_series_is_not_a_recurrence():
     assert ps.repeat_keys(events) == frozenset()
 
 
+# --- cancelled: only when the event says so up front (with the rule, from tests/test_parse.py in PR 6) ---
+
+def test_cancelled_when_the_title_or_opening_line_says_so():
+    assert ps.is_cancelled("CANCELLED: Trek Trivia", "") is True
+    assert ps.is_cancelled("Canceled - Trek Trivia", "") is True
+    assert ps.is_cancelled("Trek Trivia (Cancelled)", "") is True
+    assert ps.is_cancelled("Trek Trivia - CANCELLED", "") is True
+    assert ps.is_cancelled("Trek Trivia", "This event has been cancelled.") is True
+    assert ps.is_cancelled("Trek Trivia", "CANCELLED: the guest could not travel.") is True
+
+
+def test_a_panel_about_cancellations_is_not_cancelled():
+    # All three were struck through by the old anywhere-in-the-text match.
+    assert ps.is_cancelled(
+        "Hopes, Dreams, & Cancellations: The MSFM Festivus Panel",
+        "'Reboot incoming!' CANCELLED. 'A new & reimagined' CANCELLED. How many times have we heard it?") is False
+    assert ps.is_cancelled(
+        "Classic TV Table Read: Manimal",
+        "we shouldn't devote valuable schedule space to a silly show canceled in 1983") is False
+    assert ps.is_cancelled(
+        "Doctor Who: Into the Wilderness Years?",
+        "So, the 2026 Doctor Who Christmas special has been cancelled, and the show has been put on hiatus") is False
+
+
+def test_the_narrow_cancelled_rule_reads_the_page_s_title_and_description():
+    # cancelled is the parse step's reading of the title and description (#42): the raw row carries none, which
+    # tests/test_parse.py's raw-row test holds. The title and description of its detail page:
+    title = "Pluribus: A Perfect World?"
+    description = "A world where becoming part of something greater may be the ultimate reward...or the end."
+    assert ps.is_cancelled(title, description) is False
+    assert ps.is_cancelled(title, "A show canceled in 1983, revisited with love.") is False
+    assert ps.is_cancelled("CANCELLED: " + title, "A show canceled in 1983, revisited with love.") is True
+
+
 # --- the whole stage -------------------------------------------------------
 
 def test_parse_event_adds_two_keys_and_changes_nothing_else():

@@ -583,8 +583,8 @@ def test_rewriting_the_committed_works_json_changes_no_line():
 def test_neither_tag_stage_nor_events_v2_imports_the_pilot_or_the_census():
     """tools/tag_pilot.py string-matches work names against event text to choose test events, and
     census_v2.py matches text to choose the rows it lists. Only a model's answer may link an event to a
-    work, so nothing on the tag or build path may import either."""
-    for name in ("tag_stage.py", "events_v2.py"):
+    work, so nothing on the tag or build path may import either - the merge, which both will call, included."""
+    for name in ("tag_stage.py", "events_v2.py", "merge_stage.py"):
         tree = ast.parse(open(os.path.join(ROOT, name), encoding="utf-8").read())
         imported = {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names} | \
                    {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
