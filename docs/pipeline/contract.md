@@ -33,8 +33,8 @@ added to by the tag stage's mint, whose rows now carry
 
 2026 is frozen (#46). Its raw file is `data/2026/events.json` (#13), which
 nothing writes, and it has no `source.json`, `ids.jsonl`, `changes.jsonl`
-or `last-run.json`. PR 2 writes its `season.json` and `venues.json`, and
-PR 6 rebuilds its `events.v2.json` in the 2027 shape (ROADMAP). No ids stage
+or `last-run.json`. PR 2 wrote its `season.json` and `venues.json`, and
+PR 6 rebuilt its `events.v2.json` in the 2027 shape (ROADMAP). No ids stage
 runs for it: its ids are its source ids (The ledger).
 
 ## The raw row: `source.json`
@@ -102,20 +102,23 @@ object, which the run summary reads (#44; PR 8):
 | `seconds` | How long the fetch took. |
 
 What left the row (#42): `hotel` and `room` are the venues step's (#45);
-`track` is build's, the first of the sorted `tracks`; and `cancelled` is
+`track` is build's, the first of the merged `tracks`; and `cancelled` is
 the parse step's reading of the title and description, under the same
-name on the v2 event. 2026's `events.json` differs in shape by design: it
-is merged, split and tagged.
+name on the v2 event - `parse_stage.is_cancelled`, the rule `scraper.py`
+held until PR 6, moved as it was. 2026's `events.json` differs in shape by
+design: it is merged, split and tagged.
 
 ## The merge
 
-The one place a group of rows becomes an event (#44): a pure function of
-`source.json` and `ids.jsonl`, which the tag stage and build both call.
-The ledger says which rows are one event - the rows whose `source_id` is
-in one line's `source_ids` (#43) - and the merge makes them one.
-Existence is the group's and content a row's. The group's rows sort by
-source id, in string order, which is the fix the history report proposes
-(section 6); then:
+The one place a group of rows becomes an event (#44): `merge_stage.py`'s
+`merge(rows, ledger)`, built by PR 6, a pure function of `source.json` and
+`ids.jsonl`, which build calls and the tag stage will (PR 7). The ledger
+says which rows are one event - the rows whose `source_id` is in one
+line's `source_ids` (#43), the rows the ids stage hands on each carrying
+that line's `id` - and the merge makes them one. The events come in the
+order of each id's first row. Existence is the group's and content a
+row's. The group's rows sort by source id, in string order, which is the
+fix the history report proposes (section 6); then:
 
 - The event is removed only if every row in it is removed.
 - The supplying row is the smallest not removed, or the smallest of all
@@ -129,13 +132,22 @@ source id, in string order, which is the fix the history report proposes
   `source_id`.
 - `tracks` and `speakers` are the unions of the rows not removed - of
   every row only when every row is removed - taken in that order, so a
-  group gives the same lists on every run.
+  group gives the same lists on every run: each row's list in turn, less
+  the entries a row before it already has. A speaker is its whole
+  `{name, role}` entry, so a person a listing names in two roles stays
+  twice, as one 2026 event does; the parse step's `people` still holds one
+  entry an id.
 - `description` is the longest of those same rows, a tie going to the
   first in that order.
+- `was` is the ids merged into this one, directly or through another id
+  merged into it - the ledger's `merged_into` lines, followed to the id
+  that survived - sorted, and only where there are any: A merged into B
+  and B later into C puts both on C's event, where a pick on A lands.
 
 So the James Callis sessions, whose vanished source ids sort before the
 ones they came back under (history section 5), read live, from their new
-listings.
+listings. A frozen year's rows are groups of one, and the merge gives each
+back as it was.
 
 The tag stage's input is the merged title, type, tracks and description,
 read as `tag_stage.tagger_input` reads an event (#34). Build calls the
@@ -233,36 +245,41 @@ UNSURE by its title.
 
 ## The v2 file: `events.v2.json`
 
-#38's shape - `generated_at`, `changed_at`, `source`, `count`, `failures`,
-`works`, `events` - plus `digest` (#42). Compact, with a line break before
-each event.
+#38's shape plus `digest` (#42), its keys in this order: `generated_at`,
+`changed_at`, `source`, `count`, `failures`, `digest`, `works`, `events`.
+Compact UTF-8, with a line break before each works row and each event, LF
+line ends, and one after the last (PR 6).
 
 | key | what it holds |
 |---|---|
 | `generated_at` | `last-run.json`'s `fetched_at`: the schedule is as of that fetch, and a `--from` run keeps it (#42, #44). |
 | `changed_at` | `last-run.json`'s `changed_at`: the stamp of the last run that moved the digest, set by the diff (#47). A retag moves it with no line in the change log. |
 | `source` | `season.json`'s base URL. |
-| `count` | The length of `events`. |
+| `count` | The length of `events`, the removed events among them. |
 | `failures` | `source.json`'s list. |
-| `digest` | The sha256 of the canonical JSON of `{works, events}`, made as the tag cache's key is (#34): no timestamps, no failures. The worker's input for a new-schedule notice (ROADMAP, Held). |
+| `digest` | The sha256 of the works and the events written exactly as the file writes them: `{"works":[...],"events":[...]}` in the file's one serialisation, compact, a line break before each row - so it can be recomputed from the file's own text - with no timestamps and no failures. Not a canonical sorted-key JSON, which #42's body names (its header note). The worker's input for a new-schedule notice (ROADMAP, Held). |
 | `works` | #38's block. |
 
-An event is the merged row's fields, then these, each from its owner:
+An event's keys run in this order: the ten fields of its merged row
+(`type` to `speakers`); `id`, `source_id`, `hotel`, `room`, `level`,
+`rooms`, `place`, `track`, `cancelled`, `people`, `facets` and `tags`; and
+last `removed` or `stale`, then `was`, each only where set. An event the tag
+stage could not answer has no `tags` key. Each from its owner:
 
 | key | owner | what it holds |
 |---|---|---|
 | `id` | the ids stage (#43) | Ours. |
 | `source_id` | the merge (#44) | The supplying row's: the source's id, which the client uses for any link out to the source. |
-| `stale` | the merge (#44) | The supplying row's: `true` where it was carried because its detail page failed (#42). |
-| `removed` | the merge (#44) | `true` when every row of the event is carried as removed, its fields frozen at last sight (#42). It clears when a listing returns. Kept all season; the client filters it out everywhere but Mine and Now. |
-| `was` | the ids stage (#43) | The ids merged into this event, from the ledger's `merged_into` lines. The client's pick reconciliation re-points a pick whose id is absent but in an event's `was`. |
 | `hotel`, `room` | the venues step (#45) | The hotel, and the room shown: the location less its hotel's key, or the whole location at a hotel whose `display` is `location` (the Mart). |
-| `level` | the venues step (#45) | The level's id, where one is known. |
+| `level` | the venues step (#45) | The level's id, where one is known; else `null`. |
 | `rooms` | the venues step (#45) | Room ids: the room strings as `venues.json` writes them, scoped to the hotel. |
 | `place` | the venues step (#45) | How the place was found: `exact` \| `rule` \| `alias` \| `level` \| `hotel` \| `none`. |
-| `track` | build (#42) | The first of the sorted `tracks`. |
-| `cancelled` | the parse step (#42) | Its reading of the title and description. |
+| `track` | build (#42) | The first of the merged `tracks`, or `null` where there are none. |
+| `cancelled` | the parse step (#42) | Its reading of the title and description, `parse_stage.is_cancelled`. |
 | `people`, `facets`, `tags` | the parse step and build | As `docs/discover/schema-v2.md` has them. An event the tag stage could not answer carries no `tags`: untagged is a state, counted, and the client handles the absence (#46). |
+| `removed` | the merge (#44) | `true` when every row of the event is carried as removed, its fields frozen at last sight (#42). It clears when a listing returns. Kept all season; the client filters it out everywhere but Mine and Now. |
+| `stale` | the merge (#44) | The supplying row's: `true` where it was carried because its detail page failed (#42). A row carries one flag at most, so an event carries `removed` or `stale`, never both. |
+| `was` | the ids stage (#43), through the merge | The ids merged into this event, directly or through another merged id, from the ledger's `merged_into` lines (The merge). The client's pick reconciliation re-points a pick whose id is absent but in an event's `was`. |
 
 The five place fields by `place`, as the venues step (below, under
 `venues.json`) sets them:
@@ -283,7 +300,47 @@ function of committed inputs, and never reads its own previous output
 2026's file is rebuilt in this shape (ROADMAP, PR 6), so the client reads
 one shape. Its `id` and `source_id` are both the frozen file's `id` (#13),
 and its place fields come from `data/2026/venues.json`, read by the same
-venues step from each frozen event's `location`.
+venues step from each frozen event's `location`. A frozen year's
+top-level fields are its raw file's, copied as they are - `failures` stays
+a count, 0 for 2026 - with the digest added; its events carry no
+`removed`, `stale` or `was`.
+
+### The build, as built
+
+`events_v2.py` (PR 6). `build(rows, top, reg, cache, venues, ledger=None)`
+takes rows that carry our ids, the top-level fields to write, the
+registries, the cache, the venues file and, for a live year, the ledger,
+and returns the file and a report.
+
+- **The front doors.** `python events_v2.py --season <season.json>`,
+  2026's by default: for a frozen year, the explicit command its derived
+  file is rebuilt by (#46). A frozen season reads `events.json` beside it:
+  each event becomes a raw row whose `id` is its `source_id`, v1's
+  `hotel`, `room`, `track`, `cancelled` and `tags` dropped and its
+  `location` kept. A live season reads `source.json`, `ids.jsonl` and
+  `last-run.json` beside it. `ids_stage.assign()` with the committed ledger
+  and the season's thresholds must leave the ledger as it is, or the build
+  refuses - run the ids stage first. A fatal rule of the ids stage refuses
+  it as well, and so does a missing `last-run.json`, since a live year
+  needs a run. A live year's file is the orchestrator's to write (#42,
+  #44): `--check` checks it, `--out` outside the year's folder writes a
+  copy to look at, and nothing else writes it.
+- **Tolerance** (#44). A cache miss ships the event untagged, with no
+  `tags` key (#46); a work name the registry cannot resolve drops that
+  link; a track `tracks.json` lacks keeps its name, with no axes and no
+  track work. A name that is a registry term is dropped, as before. What
+  stops a build is ours to fix before any run, as `BuildError`: a
+  registry, the venues file or the cache that fails to load, the raw file
+  unreadable, a row with no id, and a live year's refusals.
+- **The report.** `untagged`, the titles of the events with no cached
+  answer; `unresolved_names`, each name and the links it dropped;
+  `unknown_tracks`, each track and its events; `terms`, the registry terms
+  dropped; the venues step's `places`, `rooms_unresolved` and
+  `hotels_unknown`; and what the merge of tags counted. These are the run
+  summary's build counters (`last-run.json`, below): events untagged, work
+  names unresolved - the links dropped - and tracks unknown, the tracks.
+- **The file**: as above. `dumps()` writes it, and the digest is taken of
+  that writer's text of the works and the events.
 
 ## The change log: `changes.jsonl`
 
@@ -475,7 +532,7 @@ On 2026's build the tag and track counters - events untagged, work names
 unresolved, tracks unknown - are held at zero by a CI test (#44): on a
 frozen year they are pipeline faults. The venue counters - hotels unknown,
 rooms unresolved - are curation state, reported and never held; PR 6
-builds the test that way.
+built the test that way, `tests/test_zero_hold.py`.
 
 ## The stages
 
@@ -489,7 +546,7 @@ and handed down: a run that fetches records it as `fetched_at`, and a
 | fetch | `season.json`; the previous `source.json` | `source.json` | a day list that fails; no listings; listings under 80% of the previous file's, its removed rows aside; over 20% of the detail fetches failed; every detail page parsing to an empty title | a failed detail page; a listing gone; a repaired text |
 | ids | `source.json`; `ids.jsonl`; `season.json` | `ids.jsonl` | the ledger absent or a line of it malformed; a removed row no line holds; a source id in two lines' `source_ids`; new ids above `new_ids` × the lines before the run, skipped when the ledger was empty | an UNSURE match candidate or merge |
 | tag | the merge; the cache; the registries; `season.json` | the cache; `works.json`, by mint | a registry failing validation | the model unreachable, rate-limited or malformed after one retry; a mint that fails |
-| build | the merge; `venues.json`; the registries; the cache; `season.json`; the run's `fetched_at`, or `last-run.json`'s after `--from` | `events.v2.json`, in memory | `venues.json` or a registry failing validation; any exception; its two builds in memory differing | a hotel unknown; a room unresolved; a cache miss; a work name unresolved; a track unknown |
+| build | the merge; `venues.json`; the registries; the cache; `season.json`; the run's `fetched_at`, or `last-run.json`'s after `--from` | `events.v2.json`, in memory | `venues.json`, a registry or the cache failing to load; a row with no id; the rows' ids not the ledger's, or no `last-run.json`, in a live year (The build, as built); any exception; its two builds in memory differing | a hotel unknown; a room unresolved; a cache miss; a work name unresolved; a track unknown |
 | diff | the previous and the new `events.v2.json`; `ids.jsonl`; the previous `source.json`, for a code cause | the change lines and `changed_at`, in memory | the previous `events.v2.json` unreadable, unless it is absent and the ledger empty | - |
 
 After the diff the orchestrator writes `events.v2.json`, `changes.jsonl`
@@ -501,11 +558,11 @@ commit - only when a committed file's bytes change, its own stamp aside
 
 | | a frozen year: 2026 | a live year: 2027 |
 |---|---|---|
-| `events.v2.json` | Rebuilt from the raw file, the registries, the cache, `season.json` and `venues.json`: equal to the committed file (#34, #46). | Rebuilt from `source.json`, `ids.jsonl`, the registries, `venues.json`, the cache and `season.json`, its two stamps read from `last-run.json`, not from the file it checks: equal to it, byte for byte (#42). |
+| `events.v2.json` | Rebuilt from the raw file, the registries, the cache, `season.json` and `venues.json`: equal to the committed file (#34, #46) - by pytest, and by the pipeline job's `python events_v2.py --season data/2026/season.json --check`. | Rebuilt from `source.json`, `ids.jsonl`, the registries, `venues.json`, the cache and `season.json`, its two stamps read from `last-run.json`, not from the file it checks: equal to it, byte for byte (#42). |
 | census v2 | Rendered afresh: equal to the committed report (#35). | Not held; run on demand (#46). |
 | `venues.json` | Loads and validates (#45). | Loads and validates (#45). |
 | `changes.jsonl` | - | `last-run.json`'s `changes_logged` against the log's last stamp; every id the log names in `events.v2.json`, removed or not, or a `merged` line's id; each commit's log beginning with the last commit's (#47). |
-| the counters | The tag and track counters held at zero on 2026's build; the venue counters reported, never held (#44). | - |
+| the counters | The tag and track counters held at zero on 2026's build, by `tests/test_zero_hold.py`; the venue counters reported, never held (#44). | - |
 | writes | The raw file refused; the derived files rebuilt by an explicit command, never by a run (#46). | A run's, when it commits (#44). |
 
 The fixture tests of #47 - every kind, the attribution, append-only, the
@@ -524,8 +581,10 @@ What CI cannot check:
 
 ## Open
 
-- The key order in each file; whether a key that holds nothing - `false`,
-  an empty list - is written; and the names the entries do not give: the
-  SHA's key in a change line and `last-run.json`'s counters. Each is the
-  writing PR's; PR 2 settled them for `season.json` and `venues.json`, PR 3
-  for `source.json` and PR 4 for `ids.jsonl`, above.
+- ~~The key order in each file, and whether a key that holds nothing -
+  `false`, an empty list - is written.~~ Settled by each writing PR: PR 2
+  for `season.json` and `venues.json`, PR 3 for `source.json`, PR 4 for
+  `ids.jsonl` and PR 6 for `events.v2.json`, above; `changes.jsonl` and
+  `last-run.json` settle theirs with the PRs that write them.
+- The names the entries do not give: the SHA's key in a change line and
+  `last-run.json`'s counters (PRs 7 and 8).

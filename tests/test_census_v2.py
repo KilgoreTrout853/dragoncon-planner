@@ -20,6 +20,7 @@ import events_v2 as v2  # noqa: E402
 import registry  # noqa: E402
 import tag_events  # noqa: E402
 import tag_stage as ts  # noqa: E402
+import venues  # noqa: E402
 
 # --- the pure parts ---------------------------------------------------------------
 
@@ -179,6 +180,19 @@ SIDECAR = {"minted": ["castle", "codex-alera", "the-dresden-files"],
                         {"id": "galactic-empire", "by": "review", "name": "Galactic Empire", "events": []}]}
 
 
+def hotel(name, order, keys, rooms=()):
+    """A venues.json hotel (#45): placed, on one level, where it has rooms; placeless where it has none."""
+    levels = [{"id": "l1", "name": "Level 1", "order": 0, "rooms": list(rooms), "aliases": {}, "notes": []}]
+    return {"hotel": name, "name": name, "keys": list(keys), "short": name, "group": name, "var": name, "order": order,
+            "placeless": not rooms, "display": "rest", "levels": levels if rooms else [], "unplaced": {}}
+
+
+# The venues file the build reads: the fixture's one location, and the two hotels the split falls back to.
+VENUES = {"walk": {}, "same_venue_min": 5, "unknown_pair_min": 12, "slack_min": 10,
+          "hotels": [hotel("Marriott", 0, ["Marriott"], ["A"]), hotel("Other", 1, ["O", "Other"]),
+                     hotel("Unknown", 2, [])]}
+
+
 def ev(title, start, description="", tracks=("Main Programming",), type="panel", speakers=(), v1=None):
     tracks = list(tracks)
     out = {"id": f"{title}|{start}", "type": type, "title": title, "day": start[:10], "start": start, "end": start,
@@ -248,6 +262,7 @@ def write_fixture(tmp_path, pairs=PAIRS):
     dp.write_json(str(d / "people.json"), [dp.in_order(p, dp.PERSON_KEYS) for p in PEOPLE])
     dp.write_json(str(d / "tracks.json"), TRACKS)
     dp.write_json(str(tmp_path / "people.draft.json"), SIDECAR)
+    dp.write_json(str(tmp_path / "venues.json"), VENUES)
     data = {"generated_at": "2026-09-07T12:50:19+00:00", "source": "fixture", "count": len(pairs),
             "events": [e for e, _ in pairs]}
     (tmp_path / "events.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
@@ -256,11 +271,12 @@ def write_fixture(tmp_path, pairs=PAIRS):
         inp = ts.tagger_input(e)
         cache[ts.input_key(inp)] = {"key": ts.input_key(inp), "title": inp["title"], "model": "m", "answer": a}
     ts.write_cache(str(tmp_path / "tags.cache.jsonl"), cache)
-    doc, _ = v2.build(data, registry.load(str(d)), ts.load_cache(str(tmp_path / "tags.cache.jsonl")))
+    doc, _ = v2.build(*v2.frozen(data), registry.load(str(d)), ts.load_cache(str(tmp_path / "tags.cache.jsonl")),
+                      venues.load(str(tmp_path / "venues.json")))
     (tmp_path / "events.v2.json").write_bytes(v2.dumps(doc))
     return ["--events", str(tmp_path / "events.json"), "--v2", str(tmp_path / "events.v2.json"),
             "--cache", str(tmp_path / "tags.cache.jsonl"), "--registry", str(d),
-            "--sidecar", str(tmp_path / "people.draft.json")]
+            "--sidecar", str(tmp_path / "people.draft.json"), "--venues", str(tmp_path / "venues.json")]
 
 
 def fixture_text(tmp_path):
@@ -335,8 +351,9 @@ def test_two_hash_seeds_give_the_same_bytes(tmp_path):
                        capture_output=True, env={**os.environ, "PYTHONHASHSEED": seed})
         written.append(out.read_bytes())
     assert written[0] == written[1]
-    sources = dict(zip(["events", "v2", "cache", "registry", "sidecar"], args[1::2]))
-    census = cv.load(sources["events"], sources["v2"], sources["cache"], sources["registry"], sources["sidecar"])
+    sources = dict(zip(["events", "v2", "cache", "registry", "sidecar", "venues"], args[1::2]))
+    census = cv.load(sources["events"], sources["v2"], sources["cache"], sources["registry"], sources["sidecar"],
+                     sources["venues"])
     assert written[0] == cv.render(census, sources).encode("utf-8")
 
 
@@ -370,7 +387,7 @@ def test_it_will_not_write_under_data(tmp_path):
 def real_args():
     return ["--events", os.path.join(ROOT, cv.EVENTS), "--v2", os.path.join(ROOT, cv.EVENTS_V2),
             "--cache", os.path.join(ROOT, cv.CACHE), "--registry", os.path.join(ROOT, registry.DIR),
-            "--sidecar", os.path.join(ROOT, cv.SIDECAR)]
+            "--sidecar", os.path.join(ROOT, cv.SIDECAR), "--venues", os.path.join(ROOT, cv.VENUES)]
 
 
 def test_a_full_run_reaches_no_model_no_process_and_no_network(tmp_path, monkeypatch):
@@ -416,7 +433,8 @@ def test_a_real_run_leaves_every_file_under_data_as_it_was(tmp_path):
 def test_the_committed_census_is_a_fresh_render():
     """docs/discover/census-v2-2026.md is exactly what the committed data renders today: an edit to a registry or the
     cache with no re-render after it fails here, in CI's pipeline job, beside the events.v2.json check."""
-    census = cv.load(*(os.path.join(ROOT, p) for p in (cv.EVENTS, cv.EVENTS_V2, cv.CACHE, registry.DIR, cv.SIDECAR)))
+    census = cv.load(*(os.path.join(ROOT, p) for p in (cv.EVENTS, cv.EVENTS_V2, cv.CACHE, registry.DIR, cv.SIDECAR,
+                                                        cv.VENUES)))
     with open(os.path.join(ROOT, cv.OUT), "rb") as f:
         committed = f.read()
     assert cv.render(census).encode("utf-8") == committed, "stale: run `python census_v2.py` and commit the result"

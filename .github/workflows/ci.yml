@@ -45,3 +45,5 @@ jobs:
 
       - run: pip install -r requirements.txt
       - run: python -m pytest tests/
+      # The frozen year's derived file is a fresh build of its committed inputs (DECISIONS #42, #46).
+      - run: python events_v2.py --season data/2026/season.json --check

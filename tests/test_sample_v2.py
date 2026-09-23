@@ -1,7 +1,7 @@
 """Tests for tools/sample_v2.py: the page tests' fixture, tests/sample-events.json, is the v2 shape the client
 reads (DECISIONS #39), made from the v1 sample, tests/sample-events.v1.json. The committed fixture is held to a
-fresh build, as data/2026/events.v2.json is, so an edit to the v1 sample, the registries or the tool with no
-rebuild after it fails here, in CI's pipeline job. No model, no network.
+fresh build, as data/2026/events.v2.json is, so an edit to the v1 sample, the registries, 2026's venues file or the
+tool with no rebuild after it fails here, in CI's pipeline job. No model, no network.
 
 Run:  python -m pytest tests/
 """
@@ -14,9 +14,14 @@ import sys
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, ROOT)
 
+import merge_stage  # noqa: E402
 import registry  # noqa: E402
+import venues  # noqa: E402
+import venues_stage  # noqa: E402
 
 TOOL = os.path.join(ROOT, "tools", "sample_v2.py")
+PLACED = list(merge_stage.FIELDS) + ["id", "source_id", "hotel", "room", "level", "rooms", "place", "track",
+                                     "cancelled", "people", "facets"]
 spec = importlib.util.spec_from_file_location("sample_v2", TOOL)
 sv = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sv)
@@ -44,9 +49,16 @@ def test_the_file_has_the_v2_shape_and_the_v1_sample_s_events():
     assert list(doc) == ["generated_at", "changed_at", "source", "count", "failures", "works", "events"]
     assert all(doc[k] == old[k] for k in old if k != "events")
     assert [e["id"] for e in doc["events"]] == [e["id"] for e in old["events"]]
-    for e, o in zip(doc["events"], old["events"]):
-        assert {k: v for k, v in e.items() if k not in ("people", "facets", "tags")} == {k: v for k, v in o.items() if k != "tags"}
-        assert list(e)[-3:] == ["people", "facets", "tags"] if "tags" in e else list(e)[-2:] == ["people", "facets"]
+    placed = venues_stage.resolve(old["events"], venues.load(sv.VENUES)).rows
+    for e, o, p in zip(doc["events"], old["events"], placed):
+        # the file's order; the ten raw fields as the v1 sample has them, and its id, which is also the source id
+        assert list(e) == PLACED + (["tags"] if "tags" in e else [])
+        assert {k: e[k] for k in merge_stage.FIELDS} == {k: o[k] for k in merge_stage.FIELDS}
+        assert e["id"] == e["source_id"] == o["id"]
+        # the place is the venues step's reading of the location, as events_v2.py's is; track and cancelled as v1's
+        assert {k: e[k] for k in ("hotel", "room", "level", "rooms", "place")} == \
+            {k: p[k] for k in ("hotel", "room", "level", "rooms", "place")}
+        assert (e["track"], e["cancelled"]) == (o["track"], o["cancelled"])
         assert not {"fandoms", "topics", "adult"} & set(e.get("tags") or {})
 
 

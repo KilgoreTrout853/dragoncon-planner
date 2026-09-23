@@ -16,7 +16,7 @@ A record, not held fresh by CI: a shallow checkout has no history, and the histo
 facts; UNSURE marks a match that needs a person's judgment, and the one fix it proposes is applied to nothing.
 The standard library, `git` and `gh`, and `ids_stage` for its two functions; deterministic - two runs write the
 same bytes, and the only times in it are the commits' and the runs' own. The report names the key `scraper.dupe_key`,
-as it was when the report was written; scraper.py still imports it for dedupe().
+as it was when the report was written; it is `ids_stage.dupe_key`, and scraper.py has not used it since PR 6.
 """
 
 import argparse

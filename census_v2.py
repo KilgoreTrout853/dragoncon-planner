@@ -37,12 +37,14 @@ import events_v2 as v2
 import registry
 import tag_stage as ts
 from tag_census import code, counted, first, histogram, n, pct, ranked, table  # the markdown helpers, not a copy
+from venues import load as load_venues
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EVENTS = ts.EVENTS
 EVENTS_V2 = v2.OUT
 CACHE = ts.CACHE
 SIDECAR = dp.SIDECAR
+VENUES = os.path.join("data", "2026", "venues.json")   # the build reads it: the place fields (#45)
 OUT = os.path.join("docs", "discover", "census-v2-2026.md")
 YEAR = 2026                           # the year the report is of: the files above are its
 PILOT = os.path.join(HERE, "tools", "tag_pilot.py")
@@ -254,13 +256,13 @@ class Census:
         return "never drafted"
 
 
-def load(events=EVENTS, events_v2=EVENTS_V2, cache=CACHE, registry_dir=registry.DIR, sidecar=SIDECAR):
-    """A Census of the inputs. Raises Stale unless events.v2.json on disk is what they build today, and
-    events_v2.BuildError where they build nothing."""
+def load(events=EVENTS, events_v2=EVENTS_V2, cache=CACHE, registry_dir=registry.DIR, sidecar=SIDECAR, venues=VENUES):
+    """A Census of the inputs. Raises Stale unless events.v2.json on disk is what they build today, through the
+    frozen year's front door, and events_v2.BuildError where they build nothing."""
     data = read_json(events)
     reg = registry.load(registry_dir)
     answers = ts.load_cache(cache)
-    doc, stats = v2.build(data, reg, answers)
+    doc, stats = v2.build(*v2.frozen(data), reg, answers, load_venues(venues))
     try:
         with open(events_v2, "rb") as f:
             on_disk = f.read()
@@ -999,7 +1001,8 @@ def observations(f):
 def render(c, sources=None):
     """The report as text: LF, one newline at the end. `sources` names the inputs in the header; by default, the
     paths as the defaults spell them."""
-    s = sources or {"events": EVENTS, "v2": EVENTS_V2, "cache": CACHE, "registry": registry.DIR, "sidecar": SIDECAR}
+    s = sources or {"events": EVENTS, "v2": EVENTS_V2, "cache": CACHE, "registry": registry.DIR, "sidecar": SIDECAR,
+                    "venues": VENUES}
     s = {k: shown(v) for k, v in s.items()}
     facts, body = {}, []
     for section in (coverage, works_section, axes_section, kinds_section, audience_section, play_section,
@@ -1007,9 +1010,10 @@ def render(c, sources=None):
         body += section(c, facts) + [""]
     head = ["# Tag census v2 - the 2026 schedule", "",
             f"Written by `census_v2.py` from `{s['v2']}` (`generated_at` {c.doc.get('generated_at')}, source "
-            f"{c.doc.get('source')}), which it first builds afresh from `{s['events']}`, `{s['registry'].rstrip('/')}/` "
-            f"and `{s['cache']}`, and stops unless the two are the same; beside them, the drafter's sidecar, "
-            f"`{s['sidecar']}`. Do not edit it by hand; run the script again. CI fails when it is stale (DECISIONS #35).",
+            f"{c.doc.get('source')}), which it first builds afresh from `{s['events']}`, "
+            f"`{s['registry'].rstrip('/')}/`, `{s['venues']}` and `{s['cache']}`, and stops unless the two are "
+            f"the same; beside them, the drafter's sidecar, `{s['sidecar']}`. Do not edit it by hand; run the script "
+            f"again. CI fails when it is stale (DECISIONS #35).",
             "",
             "It states facts and recommends nothing. `UNSURE` marks a candidate that needs a person's judgment, and "
             "nothing here resolves one. Lists run by count, descending, then by name; a list with no counts runs by "
@@ -1043,6 +1047,7 @@ def main(argv=None):
     ap.add_argument("--cache", default=CACHE)
     ap.add_argument("--registry", default=registry.DIR, help="the directory of works.json, people.json and tracks.json")
     ap.add_argument("--sidecar", default=SIDECAR)
+    ap.add_argument("--venues", default=VENUES, help="the venues file the build reads")
     ap.add_argument("--out", default=OUT)
     ap.add_argument("--check", action="store_true", help="exit 1 if --out is not a fresh render; write nothing")
     args = ap.parse_args(argv)
@@ -1050,12 +1055,12 @@ def main(argv=None):
         print("census_v2.py writes nothing under data/ (DECISIONS #13, #33)", file=sys.stderr)
         return 1
     try:
-        census = load(args.events, args.v2, args.cache, args.registry, args.sidecar)
+        census = load(args.events, args.v2, args.cache, args.registry, args.sidecar, args.venues)
     except (Stale, v2.BuildError) as exc:
         print(exc, file=sys.stderr)
         return 1
     body = render(census, {"events": args.events, "v2": args.v2, "cache": args.cache, "registry": args.registry,
-                           "sidecar": args.sidecar}).encode("utf-8")
+                           "sidecar": args.sidecar, "venues": args.venues}).encode("utf-8")
     if args.check:
         try:
             with open(args.out, "rb") as f:

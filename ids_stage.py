@@ -34,9 +34,10 @@ thresholds["new_ids"] x the lines before the run, skipped when the ledger was em
 The report's UNSURE pairs - a line gone this run against an id new this run, agreeing on two of the key's three
 parts - read the location with a space, a comma and a hyphen alike (`folded`); the match and dupe_key never do.
 
-dupe_key and norm_text live here, as the 2026 dedupe had them; scraper.py imports them back for dedupe(). A frozen
-year has no ledger and no ids stage (#46). Standard library; nothing here reads the network or the clock, and there
-is no command: PR 8's orchestrator runs it after the fetch, and tools/replay_2026.py over the 2026 history.
+dupe_key and norm_text live here, as the 2026 dedupe had them; tests/make_sample.py imports dupe_key for its copy of
+that dedupe, and tools/schedule_history.py both. A frozen year has no ledger and no ids stage (#46). Standard library;
+nothing here reads the network or the clock, and there is no command: PR 8's orchestrator runs it after the fetch, and
+tools/replay_2026.py over the 2026 history.
 """
 
 import json
@@ -257,7 +258,7 @@ def differing(a, b):
 
 def share(fraction, n):
     """`fraction` of `n`, exact to the fraction as the season file writes it: as scraper.share, which this module
-    cannot import - scraper imports it."""
+    does not import - it is standard library, and scraper.py is not."""
     return Decimal(str(fraction)) * n
 
 

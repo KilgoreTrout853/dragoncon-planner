@@ -181,9 +181,12 @@ All 35 Filk Music events carry the topic Music today (section 10).
 ## The v2 event
 
 The scraped fields are unchanged, and `speakers` stays as scraped. Three
-things are added or change shape: `people`, `facets` and `tags`. The example
-is a real event from the frozen file, with the v2 fields as this design
-would fill them.
+things are added or change shape: `people`, `facets` and `tags`. Since
+Pipeline shape's PR 6 the build also reads `hotel` and `room` from the
+location again, adds `source_id`, `level`, `rooms` and `place`, and writes
+an event's keys in a new order, all under The file, below; the examples
+keep the shape they were drawn in. The example is a real event from the
+frozen file, with the v2 fields as this design would fill them.
 
 ```json
 {
@@ -391,9 +394,21 @@ Two real titles:
 ### The file
 
 `events.v2.json` is one object, its keys in this order: `generated_at`,
-`changed_at`, `source`, `count`, `failures`, `works`, `events` (#38). All
-but `works` and `events` are the frozen file's, copied as they are, so
-`count` is still the scraped event count. `events` holds the events above.
+`changed_at`, `source`, `count`, `failures`, `digest`, `works`, `events`
+(#38, #42). The first five are the frozen file's, copied as they are, so
+`count` is still the scraped event count and `failures` a count. `digest`
+is the sha256 of the works and the events written exactly as the file
+writes them, which is compact, with a line break before each works row and
+each event (`docs/pipeline/contract.md`, The v2 file). `events` holds the
+events above, since Pipeline shape's PR 6 each with its keys in this order:
+the scraped fields - `type`, `title`, `day`, `start`, `end`,
+`duration_min`, `location`, `description`, `tracks`, `speakers` - then
+`id` and `source_id`, both the frozen file's id; the venues step's place
+(#45), read from `location` against `data/2026/venues.json`: `hotel`,
+`room`, `level`, `rooms` (room ids) and `place`, how it was found;
+`track`, the first of `tracks`, or null; `cancelled`, the parse step's
+reading; and `people`, `facets` and `tags`. An event with no cached answer
+has no `tags`.
 
 `works` is how the client reads a work, never from a registry (#31): one row
 per work that any event's `tags.works` names, by any `via`, and every
@@ -585,7 +600,9 @@ As built in PR 4 (#34):
   merge or a rename fixes events with no model call. Only `tag_stage.py`
   turns a name into an id, by minting a `works.json` row, `reviewed: false`,
   placed under a parent by one request; `events_v2.py` never writes a
-  registry, and a name it cannot resolve stops it.
+  registry. A name it cannot resolve stopped it until Pipeline shape's PR 6
+  made the build tolerant (#44): now the link drops, and the name is counted
+  in the build's report, held at zero on 2026 by `tests/test_zero_hold.py`.
 - **`dist/`** carried `events.v2.json` and the cache in its copy of
   `data/`, unused, until the client switch made the copy an allowlist of
   what the client reads: `events.v2.json` alone, which `sw.js` precaches
