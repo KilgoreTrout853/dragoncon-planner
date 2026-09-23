@@ -84,8 +84,9 @@ source id, in string order, which is the fix the history report proposes
 - The event is removed only if every row in it is removed.
 - The supplying row is the smallest not removed, or the smallest of all
   when every row is removed. It supplies every scalar field, `source_id`
-  and `stale` among them, but one: `type` is `panel` if any row's is, as
-  2026's `merge_group` had it.
+  and `stale` among them, but one: `type` is `panel` if any row not
+  removed is `panel`, reading every row only when every row is removed,
+  as 2026's `merge_group` put panel over gaming.
 - `source_id` is the supplying row's, so it moves with that row: when the
   supplying row is removed and another is not, the event's `source_id`
   becomes the next row's. #43's match is not the only change to a
@@ -230,12 +231,16 @@ split, the grammar, the Mart - are #45's. Every field is written, and
 their `order`; a hotel's fields and a level's, in the order below.
 
 - **A hotel:** `hotel`, the value the schedule's hotel field holds;
-  `name`; its `keys` (the prefixes the source writes, matched longest
-  first); `short`, `group`, `var` and `order`, as the client's
-  `src/venues.js` has them until PR 9; `placeless` (Streaming, Other and
-  Unknown); `display`, whether the room shown is the rest of the location
-  or the whole of it (`location` for AmericasMart, else `rest`); its
-  `levels`; and `unplaced`, each room with no known level and its note.
+  `name`; its `keys`, below; `short`, `group`, `var` and `order`, as the
+  client's `src/venues.js` has them until PR 9; `placeless` (Streaming,
+  Other and Unknown); `display`, whether the room shown is the rest of
+  the location or the whole of it (`location` for AmericasMart, else
+  `rest`); its `levels`; and `unplaced`, each room with no known level
+  and its note.
+- **Keys:** the prefixes the source writes, matched longest first.
+  Hardy Ivy Park's one key is `Hardy`: the source writes
+  `Hardy - Terraces`, so its venue token is `Hardy`, and the rest is the
+  room - in `Hardy Ivy Structure`, the room is `Ivy Structure`.
 - **A level:** `id`, unique within its hotel; `name`; `order`; and its
   `rooms`, `aliases` and `notes`.
 - **A room:** its id is its string as `venues.json` writes it, unique
