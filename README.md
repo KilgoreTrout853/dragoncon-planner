@@ -11,7 +11,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `data/2026/events.json` | The final 2026 schedule, frozen after the con: 3,459 events, scraped Sep 7 12:50 UTC. |
 | `scraper.py` | The fetch stage: pulls every listing (panels + gaming) from the web version of the official app, for the year its `season.json` names, and writes that year's `source.json`, one raw row per listing. Takes ~20 minutes. The frozen `data/2026/events.json` was written by the 2026 scraper, which also merged duplicates. |
 | `tag_events.py` | The 2026 tagger, retired: its tags (fandoms, kind, topics, guests, 18+) are in the frozen `events.json`, which the live site on `main` still reads. The client on `next` reads tags v2, from `events.v2.json`. |
-| `tag_stage.py`, `events_v2.py` | Tags v2: a model's answers about each event, cached, and the schedule with them built into `data/2026/events.v2.json`. See Tagging. |
+| `tag_stage.py`, `tag_key.py`, `events_v2.py` | Tags v2: a model's answers about each event, cached, and the schedule with them built into `data/2026/events.v2.json`. See Tagging. |
 | `parse_stage.py`, `registry.py` and `data/registry/`, `draft_people.py`, `census_v2.py`, `tools/` | The rest of the Discover pipeline, and the tools a person runs beside it. `docs/ARCHITECTURE.md`'s repo map says what each one is. |
 | `index.html`, `src/` | The planner: the page's markup, the script as ES modules under `src/` (`main.js` is the entry and `boot.js` starts the app) and `src/styles.css`. Vite builds them into one inlined `dist/index.html`, which reads `data/2026/events.v2.json`. |
 | `public/sw.js` | Service worker: keeps the app opening and rendering with no signal. |
@@ -105,18 +105,22 @@ Bump `CACHE` in `public/sw.js` when the built page or the worker changes in a wa
 
 The 2026 schedule is frozen, so tags v2 are written beside it rather than into it, by two scripts.
 
-`tag_stage.py` asks a model what each event is about - its kind, the works it is about, four closed axes, the audience and, on a gaming event, how it is played - once for each distinct input, and caches the answer in `data/2026/tags.cache.jsonl`. The input is what the model is sent: the title without its price, clock time or SOLD OUT, the scraped type and tracks, and the description without its "Additional Panelists:" line. A second run sends nothing. A work name the registry does not know becomes a `data/registry/works.json` row, unreviewed, placed under a parent by one more request.
+`tag_stage.py` asks a model what each event is about - its kind, the works it is about, four closed axes, the audience and, on a gaming event, how it is played - once for each distinct input a season, and caches the answer in the `tags.cache.jsonl` beside the season file, `data/<year>/`. The input is what the model is sent: the title without its price, clock time or SOLD OUT, the scraped type and tracks, and the description without its "Additional Panelists:" line; the key it is cached under is a hash of that and the year's `prompt_version`, from its `season.json` (`tag_key.py`). It reads a year's events as the build does, through its front door and the merge. A run sends at most the season's `requests_per_run` requests, 40, and an input past the cap waits for a later run; `--requests` lifts it for a hand run. A second run sends nothing. A work name the registry does not know becomes a `data/registry/works.json` row, unreviewed, carrying `minted: {year, run}`, placed under a parent by one more request. `seed` copies another year's answers to the inputs a season shares with it. 2026 is frozen: the tag stage reads it with `--dry-run` only.
 
 `events_v2.py` builds `data/2026/events.v2.json` from the frozen schedule, the venues file, the registries and the cache, with no model. CI checks that the committed file is a fresh build.
 
 `census_v2.py` writes `docs/discover/census-v2-2026.md`, the census of that file: what it holds, the works and people still to review, and the links worth a look. CI checks that it is fresh too, so an edit to a registry or the cache is followed by `python events_v2.py` and then `python census_v2.py`, and both files are committed.
 
 ```bash
-python tag_stage.py --dry-run    # what would be sent, and how big; calls nothing
-python tag_stage.py --workers 3  # asks about every uncached input, then mints the new works
+python tag_stage.py --dry-run                                        # 2026: what would be sent, and how big; calls nothing
+python tag_stage.py --season data/2027/season.json --workers 3       # every uncached input, up to the cap; then mints
+python tag_stage.py --season data/2027/season.json --requests 200    # a season's first full tag, past the cap
+python tag_stage.py seed --season data/2027/season.json --from 2026  # 2026's answers to the inputs 2027 shares
 python events_v2.py              # no model; --check exits 1 if the committed file is stale
 python census_v2.py              # no model; the census of it; --check exits 1 if the report is stale
 ```
+
+A live year's tag stage needs the year's `source.json`, ledger and `last-run.json`, which a pipeline run leaves (PR 8), so a season starts with a run to the ids stage, then `seed`, then a hand tag with `--requests` set high.
 
 With `ANTHROPIC_API_KEY` set in the environment it calls the API; nothing reads a key from a file. Without it, it runs `claude -p` on your subscription: the prompt on stdin, from an empty directory of its own, with no tools, no MCP servers and no saved session, so that no CLAUDE.md or memory rides along. That is practical now - about 70 seconds for a request of 25 inputs.
 
