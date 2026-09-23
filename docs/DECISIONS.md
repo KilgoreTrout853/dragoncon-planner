@@ -569,7 +569,7 @@ frozen file; CI has no model access; reproducibility.
 `data/` into `dist/`, so the v2 file ships unused until the switch unless
 the copy excludes it; decide in the PR that first writes it.
 
-### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21) — its PR 6 items built by #39: the allowlist into `dist/`, and no follow of an unreviewed work; its three build stops (a cache miss, an unresolved name, an unknown track) to become counted degradations, 2026's held at zero by a CI test (#44); `PROMPT_VERSION` to be per year, in `season.json`, and a minted row to record its year and run (#46)
+### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21) — its PR 6 items built by #39: the allowlist into `dist/`, and no follow of an unreviewed work; its three build stops (a cache miss, an unresolved name, an unknown track) to become counted degradations, 2026's held at zero by a CI test (#44); `PROMPT_VERSION` to be per year, in `season.json`, and a minted row to record its year and run (#46); the three stops built as counted degradations by Pipeline shape's PR 6, 2026's held at zero by `tests/test_zero_hold.py`
 **Decided:** `tag_stage.py` asks the model and `events_v2.py` builds
 (#32, #33); `docs/discover/schema-v2.md` has the detail.
 - **The input and its key.** The model is sent an event's title without its
@@ -880,7 +880,7 @@ so the design starts from them.
 33m 00s (median 22m 32s: `docs/pipeline/history-2026.md`, section 8) and
 the encoding repair (#44) stay ours.
 
-### 42. The 2027 contract — Decided, not built (2026-09-22)
+### 42. The 2027 contract — Decided, not built (2026-09-22) — `events.v2.json` built by PR 6, 2026's rebuilt in its shape: the digest is the sha256 of the works and the events written exactly as the file writes them, one serialisation, not a canonical sorted-key JSON; a line break before each works row too; a frozen year's `failures` stays a count (`contract.md`, The v2 file)
 **Decided:** A year's pipeline files live in `data/<year>/`, one writer
 each; `docs/pipeline/contract.md` has the detail.
 - `season.json` (by hand, #44), `venues.json` (by hand, #45),
@@ -988,7 +988,7 @@ arrived at the same starts, under new titles, new source ids and the room
 written `Hilton-Salon` (section 4, v6 → v7). Precision over recall.
 **Cost:** The Salon pair's picks break. A rule that fires once a con.
 
-### 44. The run — Decided, not built (2026-09-22) — a room placed at its level is by design, not a degradation, and the zero hold on 2026's build covers the tag and track counters alone, the venue counters reported, never held (`contract.md`, `last-run.json`)
+### 44. The run — Decided, not built (2026-09-22) — a room placed at its level is by design, not a degradation, and the zero hold on 2026's build covers the tag and track counters alone, the venue counters reported, never held (`contract.md`, `last-run.json`); the build tolerates, built by PR 6: a cache miss ships the event untagged, an unresolved work name drops its link and a track `tracks.json` lacks keeps its name with no axes, each counted in the build's report, and `tests/test_zero_hold.py` is the zero hold (`contract.md`, The build, as built)
 **Decided:** `pipeline.py run --year <year>` runs five stages in order:
 fetch writes `source.json`, ids `ids.jsonl` and tag the cache; build makes
 `events.v2.json`, and the diff its change lines and `changed_at`; and the
@@ -1092,7 +1092,7 @@ have no reading - 1,015 of those at the Mart.
 curate are the strings no rule reaches, by events (census section 4). A
 copy a year.
 
-### 46. Tagging live (builds #34) — Decided, not built (2026-09-22)
+### 46. Tagging live (builds #34) — Decided, not built (2026-09-22) — untagged built by PR 6: an event with no cached answer carries no `tags` key, and the build's report lists it (`contract.md`, The v2 file)
 **Decided:** `PROMPT_VERSION` is per year, in `season.json`: 2026 is
 pinned at 1, and a season takes no bump.
 - `tag seed --from <year>` copies the cache lines whose keys are

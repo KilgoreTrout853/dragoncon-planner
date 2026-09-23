@@ -107,7 +107,7 @@ The 2026 schedule is frozen, so tags v2 are written beside it rather than into i
 
 `tag_stage.py` asks a model what each event is about - its kind, the works it is about, four closed axes, the audience and, on a gaming event, how it is played - once for each distinct input, and caches the answer in `data/2026/tags.cache.jsonl`. The input is what the model is sent: the title without its price, clock time or SOLD OUT, the scraped type and tracks, and the description without its "Additional Panelists:" line. A second run sends nothing. A work name the registry does not know becomes a `data/registry/works.json` row, unreviewed, placed under a parent by one more request.
 
-`events_v2.py` builds `data/2026/events.v2.json` from the frozen schedule, the registries and the cache, with no model. CI checks that the committed file is a fresh build.
+`events_v2.py` builds `data/2026/events.v2.json` from the frozen schedule, the venues file, the registries and the cache, with no model. CI checks that the committed file is a fresh build.
 
 `census_v2.py` writes `docs/discover/census-v2-2026.md`, the census of that file: what it holds, the works and people still to review, and the links worth a look. CI checks that it is fresh too, so an edit to a registry or the cache is followed by `python events_v2.py` and then `python census_v2.py`, and both files are committed.
 

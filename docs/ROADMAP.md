@@ -58,7 +58,12 @@ seam a feed would plug into (#41). The sequence:
 6. Build: the merge with sorted unions, `cancelled` read by the parse
    step, tolerance, the digest, one event a line, `removed`, `stale`, the
    place fields, untagged events. 2026's `events.v2.json` is rebuilt in
-   the new shape, so the client reads one shape.
+   the new shape, so the client reads one shape - built: `merge_stage.py`;
+   `events_v2.py`'s two front doors, frozen and live, and its tolerance,
+   counted in its report and held at zero on 2026 by
+   `tests/test_zero_hold.py`; `cancelled` by `parse_stage.is_cancelled`;
+   the digest, and one works row and one event a line; 2026's file
+   rebuilt, 164 of its rooms read anew by the venues step.
 7. Tag and diff.
 8. The orchestrator, the run summary and the workflow, proven by a
    dispatch run against the 2026 source with `--limit` into a scratch
