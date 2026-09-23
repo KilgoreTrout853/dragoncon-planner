@@ -224,8 +224,8 @@ def assign(rows, ledger, stamp, thresholds):
             holder[sid] = i
     fresh = len(report.new) + len(report.leavers)
     if before and fresh > share(thresholds["new_ids"], before):
-        raise IdsError(f"{fresh} new ids, above new_ids {thresholds['new_ids']} of the {before} lines before the run "
-                       f"({share(thresholds['new_ids'], before)})")
+        raise IdsError(f"{fresh} new id{'' if fresh == 1 else 's'}, above new_ids {thresholds['new_ids']} of the "
+                       f"{before} lines before the run ({share(thresholds['new_ids'], before)})")
 
     # UNSURE: a line gone this run against an id new this run, two of the three parts agreeing.
     newcomers = sorted(report.new + [x["id"] for x in report.leavers])
