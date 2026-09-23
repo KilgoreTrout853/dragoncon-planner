@@ -45,7 +45,12 @@ seam a feed would plug into (#41). The sequence:
    failed day list among them; the repair, ftfy's `fix_encoding`, before
    whitespace is collapsed; the year from `season.json`; the v1 writer
    deleted.
-4. Ids, and the replay harness, with its report (#43).
+4. Ids, and the replay harness, with its report (#43) - built:
+   `ids_stage.py`, its rules as `contract.md` has them, the ledger's file
+   and `data/2027/ids.jsonl`, empty; `scraper.carry()`, the fetch's
+   carrying on its own; `tools/replay_2026.py` and `replay-2026.md`: ours
+   differ from the frozen file's ids on the two James Callis sessions
+   alone, and the Salon pair is UNSURE by its title.
 5. The venues step (#45).
 6. Build: the merge with sorted unions, `cancelled` read by the parse
    step, tolerance, the digest, one event a line, `removed`, `stale`, the
