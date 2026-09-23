@@ -1,6 +1,6 @@
 # Tag census v2 - the 2026 schedule
 
-Written by `census_v2.py` from `data/2026/events.v2.json` (`generated_at` 2026-09-07T12:50:19+00:00, source https://app.core-apps.com/dragoncon26), which it first builds afresh from `data/2026/events.json`, `data/registry/` and `data/2026/tags.cache.jsonl`, and stops unless the two are the same; beside them, the drafter's sidecar, `data/registry/people.draft.json`. Do not edit it by hand; run the script again. CI fails when it is stale (DECISIONS #35).
+Written by `census_v2.py` from `data/2026/events.v2.json` (`generated_at` 2026-09-07T12:50:19+00:00, source https://app.core-apps.com/dragoncon26), which it first builds afresh from `data/2026/events.json`, `data/registry/`, `data/2026/venues.json` and `data/2026/tags.cache.jsonl`, and stops unless the two are the same; beside them, the drafter's sidecar, `data/registry/people.draft.json`. Do not edit it by hand; run the script again. CI fails when it is stale (DECISIONS #35).
 
 It states facts and recommends nothing. `UNSURE` marks a candidate that needs a person's judgment, and nothing here resolves one. Lists run by count, descending, then by name; a list with no counts runs by name. Event titles and the names of works and people are in code spans, so that their punctuation shows as written.
 
