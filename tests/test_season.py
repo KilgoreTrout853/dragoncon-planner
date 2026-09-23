@@ -1,7 +1,7 @@
 """Tests for season.py: one failing fixture per rule, and the committed files.
 
 The fixtures are inline. The last test loads both committed years, data/2026/season.json and data/2027/season.json,
-so that CI checks every later edit to them.
+so that CI checks every later edit to them, and holds 2026's source and day strings to the frozen schedule.
 
 Run:  python -m pytest tests/
 """
@@ -17,7 +17,6 @@ sys.path.insert(0, ROOT)
 import pytest  # noqa: E402
 
 import season  # noqa: E402
-from scraper import BASE, DAYS  # noqa: E402
 
 GOOD = {"year": 2027, "slug": "dragoncon27", "source": "https://app.core-apps.com/dragoncon27",
         "days": ["Sep  1", "Sep  2", "Sep  3"], "con": {"first": "2027-09-01", "last": "2027-09-06"},
@@ -129,8 +128,13 @@ def test_the_committed_seasons_are_valid():
     """Both years, so that CI checks every later edit to them."""
     s26 = season.load(os.path.join(ROOT, "data", "2026", "season.json"))
     s27 = season.load(os.path.join(ROOT, "data", "2027", "season.json"))
-    # 2026's source and days are the scraper's, which reads no season file until PR 3
-    assert (s26["source"], s26["days"]) == (BASE, DAYS) and BASE.endswith("/" + s26["slug"])
+    # 2026's source is the frozen schedule's, and its day strings are the frozen events' days as the source writes
+    # them - "Sep  2", two spaces before one digit - which the fetch reads from this file (PR 3)
+    with open(os.path.join(ROOT, "data", "2026", "events.json"), "rb") as f:
+        frozen = json.loads(f.read().decode("utf-8"))
+    days = sorted({dt.date.fromisoformat(e["day"]) for e in frozen["events"]})
+    assert s26["source"] == frozen["source"] and s26["source"].endswith("/" + s26["slug"])
+    assert s26["days"] == [f"{d:%b} {d.day:>2}" for d in days]
     assert (s26["frozen"], s26["window"], s27["frozen"]) == (True, None, False)
     for s in (s26, s27):
         # the source's first day is the first day of the client's CON, which starts at the first listed event

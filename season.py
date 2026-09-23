@@ -16,9 +16,10 @@ Hand-edited, one a year: what the pipeline needs to know of a con that its sched
     from season import load
     s = load("data/2027/season.json")   # the validated file; raises SeasonError listing every problem, not the first
 
-Nothing reads the file yet but its tests: the pipeline reads it from PR 3's fetch on. Nothing reads `frozen` yet
-either. Every field is required, and a key the file does not know is a problem, because a typo in a hand-edited file
-would otherwise do nothing, silently. Standard library; nothing here writes a file or prints.
+The fetch reads it (scraper.py, PR 3): the source, the day strings, the year and the two fetch thresholds, and
+`frozen`, which keeps the fetch from writing into a frozen year's folder. Every field is required, and a key the file
+does not know is a problem, because a typo in a hand-edited file would otherwise do nothing, silently. Standard
+library; nothing here writes a file or prints.
 """
 
 import datetime as dt

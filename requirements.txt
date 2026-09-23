@@ -1,8 +1,11 @@
 # What scraper.py, tag_events.py and tests/ import beyond the standard
 # library, pinned to the versions the pipeline was developed against
-# (pip show, 2026-09-17, Python 3.13), plus pytest to run tests/.
-# make_icons.py also needs Pillow; it is a one-off and not part of CI.
+# (pip show, 2026-09-17, Python 3.13; ftfy and wcwidth 2026-09-22), plus
+# pytest to run tests/. make_icons.py also needs Pillow; it is a one-off and
+# not part of CI.
 requests==2.32.5          # scraper.py, tag_events.py
 beautifulsoup4==4.14.2    # scraper.py (bs4, with the stdlib html.parser)
 urllib3==2.5.0            # scraper.py imports urllib3.util.retry directly
+ftfy==6.3.1               # scraper.py: fix_encoding, the fetch's text repair (DECISIONS #44)
+wcwidth==0.8.4            # ftfy's one dependency
 pytest==9.1.1             # python -m pytest tests/
