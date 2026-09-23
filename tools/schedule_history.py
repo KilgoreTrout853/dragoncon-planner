@@ -9,13 +9,14 @@ Evidence for Pipeline shape (ROADMAP tentpole 1; DECISIONS #7, #20, #26, #37): h
 wrote changed from commit to commit while the con ran. It walks every commit on the ref whose first-parent line
 touched the 2026 schedule, following the file back to `events.json` at the repo root, where it lived until the
 archive merge moved it (#13); reads each version with `git show`; and diffs each against the one before, by id
-and by content, with `scraper.dupe_key` and `scraper.norm_text` - the rule dedupe uses. With `gh` authenticated
+and by content, with `ids_stage.dupe_key` and `ids_stage.norm_text` - the rule dedupe uses. With `gh` authenticated
 it adds scrape.yml's runs, which the commits cannot show: a run that fails, or never starts, leaves no commit.
 
 A record, not held fresh by CI: a shallow checkout has no history, and the history will not change. It states
 facts; UNSURE marks a match that needs a person's judgment, and the one fix it proposes is applied to nothing.
-The standard library, `git` and `gh`, and `scraper` for its two functions; deterministic - two runs write the
-same bytes, and the only times in it are the commits' and the runs' own.
+The standard library, `git` and `gh`, and `ids_stage` for its two functions; deterministic - two runs write the
+same bytes, and the only times in it are the commits' and the runs' own. The report names the key `scraper.dupe_key`,
+as it was when the report was written; scraper.py still imports it for dedupe().
 """
 
 import argparse
@@ -31,7 +32,7 @@ from collections import Counter, defaultdict
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
 
-import scraper  # noqa: E402  (dupe_key and norm_text, nothing else)
+import ids_stage  # noqa: E402  (dupe_key and norm_text, nothing else)
 
 SCHEDULE = "data/2026/events.json"
 SCRAPER = "scraper.py"
@@ -95,7 +96,7 @@ def reordered(a, b):
 
 def slot_of(e):
     """When and where: the start, and the room half of dupe_key."""
-    return e.get("start"), scraper.norm_text(e.get("room") or e.get("location"))
+    return e.get("start"), ids_stage.norm_text(e.get("room") or e.get("location"))
 
 
 def diff(prev, new):
@@ -105,8 +106,8 @@ def diff(prev, new):
     gained or lost a member."""
     p = {e["id"]: e for e in prev}
     c = {e["id"]: e for e in new}
-    pk = {i: scraper.dupe_key(e) for i, e in p.items()}
-    ck = {i: scraper.dupe_key(e) for i, e in c.items()}
+    pk = {i: ids_stage.dupe_key(e) for i, e in p.items()}
+    ck = {i: ids_stage.dupe_key(e) for i, e in c.items()}
     added = sorted(set(c) - set(p))
     removed = sorted(set(p) - set(c))
     common = sorted(set(p) & set(c))
@@ -157,7 +158,7 @@ def diff(prev, new):
         if bins[r][0] != "gone":
             continue
         for a in added:
-            if a in taken or scraper.norm_text(p[r].get("title")) != scraper.norm_text(c[a].get("title")):
+            if a in taken or ids_stage.norm_text(p[r].get("title")) != ids_stage.norm_text(c[a].get("title")):
                 continue
             same_start, same_room = slot_of(p[r])[0] == slot_of(c[a])[0], slot_of(p[r])[1] == slot_of(c[a])[1]
             loose.append(("new start" if same_room else "new room" if same_start else "both", r, a))
@@ -203,7 +204,7 @@ def returns_by_key(versions):
     held = defaultdict(dict)
     for v, events in enumerate(versions):
         for e in events:
-            held[scraper.dupe_key(e)].setdefault(v, []).append(e["id"])
+            held[ids_stage.dupe_key(e)].setdefault(v, []).append(e["id"])
     out = []
     for key in sorted(held, key=repr):
         vs = sorted(held[key])
@@ -219,7 +220,7 @@ def last_groups(versions):
     for v in range(len(versions) - 1, -1, -1):
         groups = defaultdict(list)
         for e in versions[v]:
-            groups[scraper.dupe_key(e)].append(e["id"])
+            groups[ids_stage.dupe_key(e)].append(e["id"])
         multi = {k: sorted(ids) for k, ids in groups.items() if len(ids) > 1}
         if multi:
             return v, multi
