@@ -78,7 +78,7 @@ night."
 
 ## Off-season 2026 → 2027
 
-### 7. Events get stable first-seen ids that survive re-scrapes — Decided, not built (2026-09-05)
+### 7. Events get stable first-seen ids that survive re-scrapes — Decided, not built (2026-09-05) — to be built by #43
 **Decided:** The pipeline will assign its own id the first time it sees an
 event and keep it across every later scrape, matching by content when the
 source id changes. The pipeline owns schedule truth; the client never
@@ -167,7 +167,7 @@ hostname.
 live site's cache and a test clock would follow you to the live link.
 **Cost:** Two deploy paths to keep working. See ARCHITECTURE.md → Deploy.
 
-### 16. The repo's default branch is `next` for the off-season — Standing (2026-09-10)
+### 16. The repo's default branch is `next` for the off-season — Standing (2026-09-10) — for 2027 the scrape lands by pull request, and the default flips to `main` for the con (#48)
 **Decided:** GitHub default branch switched from `main` to `next` so the
 design Project's GitHub sync (which has no branch picker) reads `next`, and
 so new PRs target `next` by default.
@@ -196,7 +196,7 @@ cut takes from the bottom.
 **Cost:** Good ideas that fail the test do not get built. VISION.md is one
 more document that has to stay true.
 
-### 19. Dragon Con is a door kept open, not a design target — Decided (2026-09-17) — timing set by #37
+### 19. Dragon Con is a door kept open, not a design target — Decided (2026-09-17) — timing set by #37; deferred, no date, by #41
 **Decided:** The app is not designed for an official partnership. It stays
 official-ready in five ways: the schedule source behind one interface, no
 personal data by default, offline, accessible, scale by configuration.
@@ -210,7 +210,7 @@ are good engineering regardless.
 **Cost:** If the partnership happens, some rework is certain. It is the
 rework worth doing then, not before.
 
-### 20. Notifications in 2027 are minimal: leave-by and pick-changed — Decided, not built (2026-09-17) — leave-by replaced by starts-soon in #40; pick-changed stands
+### 20. Notifications in 2027 are minimal: leave-by and pick-changed — Decided, not built (2026-09-17) — leave-by replaced by starts-soon in #40; pick-changed stands; the pipeline's diff to be built by #47
 **Decided:** Web Push for two events only: leave by (computed server-side
 from synced picks and the walk table) and your pick changed (from the
 pipeline's diff). Crew pings by push are deferred to the spring checkpoint.
@@ -222,7 +222,7 @@ makes the top rung of the ladder real.
 buffer (#6) have to live somewhere both the client and the job can read,
 which is a step-3a question. Uninstalled iPhone users get nothing.
 
-### 21. Venues are pipeline-owned data; the building view is a stretch goal — Decided, not built (2026-09-17) — drawing half superseded by #28; the venues file stands via #27
+### 21. Venues are pipeline-owned data; the building view is a stretch goal — Decided, not built (2026-09-17) — drawing half superseded by #28; the venues file stands via #27; the file and room resolution to be built by #45
 **Decided:** A venues dataset (hotel → level → rooms, with aliases for the
 room strings the scraper produces and a one-line "how to get there") is
 owned by the pipeline, which resolves every event's room against it and
@@ -341,7 +341,7 @@ an email-upgraded user recovers. VISION.md's "one that did not still keeps
 what it had" is qualified in this PR, and the install nudge is now a
 data-safety measure, not only a push enabler.
 
-### 26. CI on every PR; `next` becomes PR-only with required checks — Decided, not built (2026-09-17) — built: CI, the required checks, the `next` ruleset, the deploy repo's build command, Dependabot and `.gitattributes`; open: Pages from Actions (Delivery) and `scrape.yml`'s PR path (Pipeline shape)
+### 26. CI on every PR; `next` becomes PR-only with required checks — Decided, not built (2026-09-17) — built: CI, the required checks, the `next` ruleset, the deploy repo's build command, Dependabot and `.gitattributes`; open: Pages from Actions (Delivery); `scrape.yml`'s PR path decided by #48
 **Decided:** `.github/workflows/ci.yml` with two jobs matching the
 toolchain boundary: `client` (Node from `.nvmrc`, `npm ci` with cache,
 lint, test, build) and `pipeline` (Python, `requirements.txt`, pytest).
@@ -369,7 +369,7 @@ PR with auto-merge on green, or run as a bypass actor — pipeline work,
 forced by this decision. The line-ending change is a one-time noisy
 commit.
 
-### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17) — by #40 the shared `leaveBy` module becomes the tight-connection helper; the buffer becomes the slack; the walk table's home unchanged
+### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17) — by #40 the shared `leaveBy` module becomes the tight-connection helper; the buffer becomes the slack; the walk table's home unchanged; an unknown hotel to degrade to Other rather than fail the run (#44); the file to be built by #45
 **Decided:** #21's venues file (`data/2027/venues.json`, per-year as #13
 set for events) also holds hotel identity (keys as used in `events.json`,
 short names, groups), the walk matrix, the seating buffer from #6, and the
@@ -396,7 +396,7 @@ so a build-time import is the right cadence.
 file forward each year. One Vite config line to import from outside
 `src/`. Supersedes #6's "one constant" — the buffer becomes data.
 
-### 28. The building view goes to the room: a top-down level view, floor plans as reference — Decided, not built (2026-09-18)
+### 28. The building view goes to the room: a top-down level view, floor plans as reference — Decided, not built (2026-09-18) — its room resolution to be built by #45, which moves each level's drawing out of the venues file into `data/2027/drawings/`
 **Decided:** Supersedes the drawing half of #21; the venues file (#21, #27)
 stays pipeline-owned and still ships first. The building view gains a third
 layer: tap a level in a hotel's stack and it drops to a top-down view of that
@@ -569,7 +569,7 @@ frozen file; CI has no model access; reproducibility.
 `data/` into `dist/`, so the v2 file ships unused until the switch unless
 the copy excludes it; decide in the PR that first writes it.
 
-### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21) — its PR 6 items built by #39: the allowlist into `dist/`, and no follow of an unreviewed work
+### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21) — its PR 6 items built by #39: the allowlist into `dist/`, and no follow of an unreviewed work; its three build stops (a cache miss, an unresolved name, an unknown track) to become counted degradations, 2026's held at zero by a CI test (#44); `PROMPT_VERSION` to be per year, in `season.json`, and a minted row to record its year and run (#46)
 **Decided:** `tag_stage.py` asks the model and `events_v2.py` builds
 (#32, #33); `docs/discover/schema-v2.md` has the detail.
 - **The input and its key.** The model is sent an event's title without its
@@ -645,7 +645,7 @@ an alias. `dist/` carries `events.v2.json` and the cache unused until PR 6.
 A full run is about a hundred requests: about 41 minutes on Claude Code with
 three workers.
 
-### 35. Census v2 is a living report, held fresh by CI — Standing (2026-09-21)
+### 35. Census v2 is a living report, held fresh by CI — Standing (2026-09-21) — to count the works in a year's works block, not the registry, and for a live year to run on demand, not held by CI (#46)
 **Decided:** `census_v2.py` writes `docs/discover/census-v2-2026.md`: the
 questions of `census-2026.md` asked of `events.v2.json`, and the lists the
 v2 design owes a reviewer - the unreviewed works that events link, the
@@ -693,7 +693,7 @@ blind spots; the rubric and the sample check are the guard. Real users'
 searches are the missing input. Recording searches that return nothing,
 anonymously, in 2027 is a privacy question for Identity and sync.
 
-### 37. Pipeline shape follows Discover — Standing (2026-09-22)
+### 37. Pipeline shape follows Discover — Standing (2026-09-22) — outreach deferred by #41
 **Decided:** The tentpoles (#30) go in this order: Discover (PR 6), then
 Pipeline shape, whose design opens while PR 6 executes, then Identity and
 sync, then Delivery; Where things live last, as now.
@@ -825,7 +825,7 @@ live site drops `next`'s work and axis follows. The worker's update notice
 keys on `generated_at`, which every rebuild of `events.v2.json` keeps
 (ROADMAP, Held).
 
-### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22)
+### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later
 **Decided:** Leave-by is retired: no `leave by <time>` countdown on any
 screen, and no leave-by push.
 - The plan keeps what is true of the plan rather than the person: a walk
@@ -859,3 +859,338 @@ many minutes before is unset. The walk table's server-side mirror in #27
 loses its only consumer until starts-soon or tight connections need it,
 so the mirror is kept as designed but no job reads it yet, and none
 applies the crowd factor.
+
+### 41. Outreach deferred; the raw row is the seam — Decided, not built (2026-09-22)
+**Decided:** The 2027 pipeline is scraper-first. Outreach to Dragon Con
+(#19) is deferred, with no date. What lets a feed in later is data, not a
+framework:
+- `scraper.fetch(season, previous)` returns `(rows, failures)`, the rows
+  in #42's raw shape. A feed adapter would be a second module with the
+  same function.
+- `source_id` is a field apart from `id`, so a feed with stable ids leaves
+  #43's matching idle.
+- The venue aliases (#45) and the tag cache, keyed by text (#34), do not
+  care which source a row came from.
+- The workflow's fetch is one command (#48).
+
+**Why:** #19's own reason: guessing at a partner's requirements builds for
+users the app will never have. The scrape's limits are the fixed reality,
+so the design starts from them.
+**Cost:** One boundary and one field. Rate limits, runs of 20m 42s to
+33m 00s (median 22m 32s: `docs/pipeline/history-2026.md`, section 8) and
+the encoding repair (#44) stay ours.
+
+### 42. The 2027 contract — Decided, not built (2026-09-22)
+**Decided:** A year's pipeline files live in `data/<year>/`, one writer
+each; `docs/pipeline/contract.md` has the detail.
+- `season.json` (by hand, #44), `venues.json` (by hand, #45),
+  `source.json` (fetch), `ids.jsonl` (the ids stage, #43),
+  `tags.cache.jsonl` (the tag stage, #46), `events.v2.json` (build; its
+  `changed_at`, the diff), `changes.jsonl` (the diff, #47) and
+  `last-run.json` (the orchestrator, #44). `data/registry/` is unchanged:
+  cross-year, and still added to by the tag stage's mint.
+- **`source.json`** is the fetch's output: one row per listing, keyed by
+  `source_id`, before any dedupe, its shape normalised and its content
+  not. A row is `source_id`, ten fields - `type`, `title`, `day`, `start`,
+  `end`, `duration_min`, `location`, `description`, `tracks`, `speakers` -
+  and `stale`. `location` is verbatim, with no hotel or room split (#45).
+  `speakers` is the detail page's Speakers section only, never derived
+  from the description; the parse stage owns the "Additional Panelists:"
+  line. `track` and `cancelled` were ours all along: `track` is build's,
+  the first of the sorted `tracks`, and `cancelled` is the parse stage's
+  reading of the title and description, its name on the v2 event
+  unchanged. `failures` is a list of `{source_id, error}`, and a row whose
+  detail fetch failed is carried from the previous file with
+  `stale: true`. The file carries no timestamp of its own.
+- **`events.v2.json`** is #38's shape plus `digest`, the sha256 of the
+  canonical `{works, events}` - no timestamps, no failures - and on each
+  event `id` (ours, #43), `source_id`, `stale`, `removed: true` for an
+  event the source dropped, kept all season, and #45's place fields.
+  `generated_at` is the stamp of the last run that committed; `changed_at`
+  moves only when the digest does (#47).
+- Both files are compact, with a line break before each event object.
+- The year is `--year` on the pipeline and `DC_YEAR` at the client build.
+  There is no pointer file.
+
+**Why:** History section 3: the two biggest diffs of 2026 were our code,
+not the source - the dedupe (v4 → v5: 192 removed, 117 changed) and the
+fixes to descriptions and the cancelled flag (v8 → v9: 306 changed). Only
+a raw record lets a fix re-derive what came before, and CI has no source.
+**Enforced by:** a fresh build from `source.json`, `ids.jsonl`, the
+registries, `venues.json`, the cache and `season.json`, its two stamps
+taken from the committed file, equals the committed `events.v2.json` byte
+for byte.
+**Cost:** Two files of about 3 MB each in every scrape commit. The client
+must filter removed events out everywhere but Mine and Now. 2026's
+`events.json` and 2027's `source.json` differ in shape, by design.
+
+### 43. Stable ids (builds #7) — Decided, not built (2026-09-22)
+**Decided:** An event's id is its source id at first sight, forever. The
+ids stage keeps it in a ledger, and every source id resolves through it.
+- **Groups.** The ids stage groups rows on `dupe_key`: the normalised
+  title, the start and the normalised location. A group takes the id a
+  member already has, and at first sight the smallest source id. Every
+  member's source id maps to it.
+- **A copy that leaves a group** but stays at the source is a new event
+  under its own source id, unless that is the group's id: then its id is
+  the source id with the suffix `.1`, the one case an id is not a bare
+  source id. The group keeps its id in every case.
+- **Two ids in one group.** Where two events that already have ids
+  collide on a dupe key after a change, the smaller id survives, in string
+  order, as the dedupe's `min()` compares. The other line gets
+  `merged_into` and `gone_since`; its event is removed as a dropped one is
+  (#42), and its picks break as a removed event's do. The run summary
+  lists the merge UNSURE. 2026 never showed it; it is written down so that
+  nothing improvises.
+- **One matching rule.** A source id that vanished and one that appeared,
+  in the same run or any later run of the season, are one event if and
+  only if their dupe keys are equal: the id stays, and `source_id`
+  updates. Nothing looser. A looser candidate goes in the run summary,
+  UNSURE.
+- **The ledger,** `ids.jsonl`: one line per id, sorted - `id`,
+  `source_ids` (the source ids that map to it now), `left` (the source ids
+  that once mapped to it, each with the id it went to), `dupe_key` at last
+  sight, `first_seen`, `gone_since`, and `merged_into` where set; no
+  `last_seen`. A source id maps to at most one current id, and resolution
+  reads `source_ids` alone. Only the ids stage writes the ledger, and no
+  line is deleted in season.
+- Cancelled, removed and merged events keep their ids; only the match
+  changes a `source_id`. The client uses `source_id` for any link out to
+  the source.
+- **Fatal:** the ledger absent (it exists, empty, from the season's first
+  commit); a source id in two lines' `source_ids`; more than 20% new ids
+  in one run after the first.
+- **Verification:** a replay of the 34 committed 2026 versions, written as
+  a report under `docs/pipeline/`. The two James Callis sessions keep
+  their ids across the gap; the Tom Welling, Onesie Wednesday and Mothman
+  Trail listings keep theirs; the Salon pair is new; each of the 192
+  collapses resolves to one id; nothing else moves.
+
+**Why:** History sections 4 and 5. In 29 scrapes no removed id's content
+came back under an id added in the same pair (section 5). The Callis
+sessions are the one case the rule serves: gone after v1, back in v9
+under new source ids with the same content (section 5). The Salon pair is
+the one it refuses: two Hilton listings in the Salon left in v7 as two
+arrived at the same starts, under new titles, new source ids and the room
+written `Hilton-Salon` (section 4, v6 → v7). Precision over recall.
+**Cost:** The Salon pair's picks break. A rule that fires once a con.
+
+### 44. The run — Decided, not built (2026-09-22)
+**Decided:** `pipeline.py run --year <year>` runs five stages in order,
+each the owner of its files: fetch `source.json`, ids `ids.jsonl`, tag the
+cache, build `events.v2.json`, and the diff `changes.jsonl` and
+`changed_at`.
+- **The merge** of a group - the sorted unions, the longest description -
+  is one pure function of `source.json` and `ids.jsonl`, and tag and build
+  both call it: the tag stage's input is the merged title, type, tracks
+  and description. Venues (#45) and parse are pure steps inside build,
+  after the merge and before resolution.
+- Files pass between the stages, `--from <stage>` starts at any of the
+  five, and a run is idempotent after fetch. One stamp a run, taken at
+  fetch and handed down. Text is repaired inside fetch, before whitespace
+  is collapsed. Build runs twice in memory and compares; a mismatch is
+  fatal.
+- A run commits only when a committed file's bytes change, its own stamp
+  aside. A run with no change leaves the tree clean and reports through
+  the job summary.
+- **The principle:** degradations are enumerated, and anything else is
+  fatal. A fatal run commits nothing and fails the workflow. A degraded run
+  commits, and every degradation is a named counter.
+- **Fatal.** Fetch: no listings; listings under 80% of the previous
+  `source.json`'s; over 20% of the detail fetches failed; every detail
+  page parsing to an empty title. Ids: #43's three. `venues.json` or a
+  registry failing validation. Build: any exception; its two builds
+  differing. The diff: the previous `events.v2.json` unreadable, unless it
+  is absent and the ledger empty.
+- **Degraded.** A failed detail page: carried, stale, named. A repaired
+  text. An UNSURE match candidate or merge (#43). A hotel no key matches:
+  Other, with the unknown-pair walk. A room not resolved: its level, then
+  its hotel (#28). The model unreachable, rate-limited or malformed after
+  one retry: those events ship untagged, as a cache miss does. A mint that
+  fails: its links drop for this run, as an unresolved work name's do. A
+  track `tracks.json` lacks: no track axes.
+- `last-run.json` holds the summary of the last run that committed, and a
+  counter above zero becomes a workflow warning.
+- `season.json` holds the year, the source's slug and base URL, its day
+  strings, the con's first and last day, the time zone, the cron window,
+  `PROMPT_VERSION` and `frozen` (#46), the thresholds and the request cap.
+- The workflow runs Python 3.13 from `requirements.txt`, as CI does.
+
+**Why:** The pipeline runs unattended through con weekend. History section
+2, under Failures: in v14 a failed detail page dropped an event - a Tom
+Welling session, back in v15 (section 5) - and only the run's log named
+it.
+**Cost:** The thresholds are set by feel, to be tuned in August. With the
+build tolerant, the test that holds 2026's counters at zero is the
+off-season guard.
+
+### 45. Venue resolution (builds #21, #27, #28) — Decided, not built (2026-09-22)
+**Decided:** `data/2027/venues.json` holds runtime data only, curated by
+hand, one copy a year (#27):
+- Per hotel: its keys (the prefixes the source writes), `short`, `group`,
+  `order`, and `placeless` (Streaming, Other).
+- The walk: the matrix verbatim from `src/venues.js`, `same_venue_min` 5,
+  `unknown_pair_min` 12, and `slack_min`, #40's name for the buffer, which
+  starts at today's 10 - data, tuned later.
+- Levels, with their rooms, their aliases (an exact string, case-folded
+  and whitespace-collapsed, to room ids) and their notes.
+- Drawings live under `data/2027/drawings/`, one file per hotel level,
+  keyed by level and room ids. The resolver never reads them.
+- **The hotel and room split leaves the scraper.** Build's venues step
+  matches the hotel keys longest first and splits at a space, a comma or a
+  hyphen - the census's Courtland and hyphen cases (section 6). It sets
+  `hotel`, `room` (for display), `level`, `rooms` (ids: the room strings as
+  `venues.json` writes them, scoped to the hotel) and `place` = `exact` |
+  `rule` | `alias` | `level` | `hotel` | `none`. The ids stage groups on
+  title, start and location, before any split.
+- **The grammar:** the census's eight combined-string rules (section 2),
+  plus doubled, a leading "The", a trailing note (the longest room name as
+  a prefix), partitions, hotel only and floor only. A reading counts only
+  if every room it names is on one level; else the level, if they agree;
+  else nothing. A numeral style is an alias, never a rule. Aliases beat the
+  grammar.
+- **The Mart:** levels by building and floor - Building 3's floors 1 and
+  2, the Mart2 room floor, three vendor-hall floors - and rooms 203A-E and
+  204J. Three Mart rules in code: `Mart Building 3, Floor <n>` is that
+  level; `Mart2 Vendor Hall Floor <n> …` is that vendor-hall level, level
+  only, with the rest - the vendor and booth - kept as the display room;
+  `Mart2 <room> …` is that room, with the rest a note.
+- `docs/venues/`: the README checklist stays, edited by hand;
+  `registry.json` is retired at migration by a one-off script; and
+  `tools/room_census.py` is retargeted at `venues.json`, as the off-season
+  coverage report. The migration writes `data/2026/venues.json` too,
+  identical to 2027's.
+- **Validation, fatal:** hotel keys unique across hotels; level ids and
+  room ids unique within a hotel; every alias naming rooms on its level;
+  every walk pair among hotels that are not placeless present, or the
+  default used and listed; the slack present.
+
+**Why:** The room census, `docs/venues/census-2026.md`, sections 0 and 1:
+26.9% of the 2026 events match a registry room exactly, 21.0% take a
+combined-string rule alone and 10.9% one of the other shapes, and 41.2%
+have no reading - 1,015 of those at the Mart.
+**Enforced by:** CI loads the committed file and validates it.
+**Cost:** A 2026 scraper behaviour changes on purpose. The aliases to
+curate are the strings no rule reaches, by events (census section 4). A
+copy a year.
+
+### 46. Tagging live (builds #34) — Decided, not built (2026-09-22)
+**Decided:** `PROMPT_VERSION` is per year, in `season.json`: 2026 is
+pinned at 1, and a season takes no bump.
+- `tag seed --from <year>` copies the cache lines whose keys are
+  identical, when the versions match.
+- On Actions the tag stage calls the API, with `ANTHROPIC_API_KEY` a
+  repository secret and a spend cap set in the console; `claude -p` is for
+  local runs only. The model is named by full id in code and recorded on
+  every cache line.
+- Only uncached inputs are sent, and `season.json` caps the requests a run
+  makes, 40 by default. A season's first full tag is run by hand, before
+  the cron.
+- **Untagged is a state:** an event with no tags, counted. The client must
+  handle the absence: a grep in the 2027 client switch.
+- **Mint as now,** and a minted row gains `minted: {year, run}`, which the
+  census reads and resolution ignores. An unreviewed work is searchable,
+  never followable, all season. Works are reviewed weekly in August, each
+  review a `works-review-N.json` and a data PR; none during the con, one
+  after it.
+- **People:** the drafter runs by hand, weekly in August, with its fix
+  (PR #28) in. An unreviewed person gives no tier.
+- **`frozen`** in `season.json` means the year's raw file is write-refused
+  and no run targets the year; its derived files are rebuilt only by an
+  explicit command, never by a run, and CI holds them fresh. That is how
+  2026's `events.v2.json` is rebuilt in the new shape, and its census
+  recounted (ROADMAP, PRs 2 and 6). `data/2026/season.json` is frozen,
+  with `PROMPT_VERSION` 1. A live year's `events.v2.json` must equal a
+  fresh build (#42); its census is not held by CI and runs on demand.
+  `tag_events.py`'s hard-coded refusal becomes the flag.
+- **Census v2 counts a year's works block** - the works that year's file
+  links, and their ancestors - never the whole registry: a count across
+  the registry is not a fact about one year. A mint adds rows and edits
+  none, so a 2027 mint leaves 2026's derived files as they were; a
+  person's registry edit that touches a shared work already rebuilds 2026
+  in the same PR (#38).
+- A track `tracks.json` lacks degrades (#44), and is listed as owed.
+- `anthropic_key.txt` is deleted and its key revoked, by hand, beside PR 2
+  (ROADMAP, Checklist).
+
+**Why:** #34's Cost: a retag is not neutral, and the cache, not the model,
+is what keeps an event's tags stable.
+**Cost:** A description edited at the source is a new input: the event is
+tagged again and can change works. The request cap is a guess, to be tuned
+in August.
+
+### 47. The change log (builds #20 as narrowed by #40) — Decided, not built (2026-09-22)
+**Decided:** `changes.jsonl` is append-only, one line per change to an
+event: the run's stamp, the code's SHA, the event's id, the kind, from and
+to, and the cause, sorted by run, id and kind.
+- **Kinds:** `added`, `removed`, `restored`, `cancelled`, `uncancelled`,
+  `time` (`start`, `end`), `place` (`hotel`, `room`), `title`, `people`
+  (sets of ids), `tracks` (sets) and `description` (no from or to). Never
+  tags, and never an order alone.
+- **Cause:** `source` | `code`. When the run's SHA differs from the
+  previous run's, the diff stage builds the previous `source.json` with the
+  new code, in memory - writing nothing, a cache miss left untagged - and
+  splits the diff exactly; otherwise every line is `source`.
+- `changed_at` is set here, and follows the digest (#42): tags are never
+  logged, so a retag moves it with no line.
+- A stale carry-forward and a change of group membership make no line.
+  The first run records every event as `added`.
+- **Consumers:** the mirror and the push job (Identity and sync). A
+  windowed copy for the client is Delivery's.
+
+**Why:** History section 3: of the three biggest diffs, by rows added,
+removed or changed, two were ours - the dedupe (v4 → v5) and the
+description and cancelled-flag fixes (v8 → v9) - and one was the
+source's (v1 → v2). The three `cancelled` flags v9 flipped were a parser
+change (section 5), and this attributes such a change to code. A push for
+our own bug fix is the failure.
+**Enforced by:** fixture tests for every kind, the attribution,
+append-only and the order. On the committed files, `last-run.json`
+records `changes_logged`: above zero, the log's last stamp equals the
+run's; at zero, it is earlier. Every id the log names is in
+`events.v2.json`, removed or not, and each commit's log begins with the
+last commit's, byte for byte.
+**Cost:** A typo fixed at the source makes a description line. Thousands
+of lines a season.
+
+### 48. Cadence and landing (builds #26) — Decided, not built (2026-09-22)
+**Decided:** A run lands by pull request: it commits to a branch, opens a
+pull request to the target and enables auto-merge; CI runs; the pull
+request merges, and the branch is deleted.
+- **The credential:** a fine-grained personal access token for this
+  repository (contents and pull requests, write), expiring the month after
+  the con, held as a secret: `GITHUB_TOKEN` cannot trigger CI. Not a bypass
+  actor, which would land untested with nothing to review; not a data
+  branch, because mints live with the code.
+- **Supersede:** the next run closes an open bot pull request and branches
+  afresh from the target.
+- **Branches.** In August the default is `next`, pull requests go to
+  `next`, and the dev site shows them. At the freeze `next` merges to
+  `main`, the default flips to `main`, and pull requests go to `main`.
+  After the con `main` merges back into `next` as a merge commit, so the
+  season's history survives, and the default flips back. The target is a
+  workflow variable, which the freeze PR flips.
+- **Settings, by hand** (ROADMAP, Checklist): "Allow auto-merge" turned on;
+  `client` and `pipeline` required on the `main` ruleset before the
+  freeze; and the `next` ruleset allowing merge commits beside squash, for
+  the merge back. Feature pull requests still squash (#26).
+- **The cron** is hourly, `17 * * * *`. A season-window guard exits 0
+  outside the window; the concurrency group absorbs an overlap; 403
+  pushback fails a run through the 20% rule (#44), and the cron is one
+  line to relax. Held as a fallback: a listing-only pre-check.
+- **The workflow:** checkout, Python 3.13 and `requirements.txt`, the model
+  secret, `pipeline.py run --year 2027`, and one commit-and-PR step. The
+  summary is rendered as the job summary, the pull request's body and the
+  commit's body, and the degradation counters as warning annotations. A
+  fatal run fails the job and commits nothing. `workflow_dispatch` takes a
+  force input, which runs past the season window and nothing else: nothing
+  overrides a fatal rule. Commits are authored by schedule-bot and pushed
+  with the token.
+
+**Why:** History section 8: 18 of 47 cron slots never started, the runs
+that did were created 9m 36s to 2h 54m after their slot, and three runs
+failed in the step that commits and pushes. #26's gate: `next` and `main`
+take pull requests only.
+**Cost:** A few tens of pull requests a week; an hourly run with no change
+costs nothing, since it commits nothing (#44). About a minute of CI a run.
+A token to rotate every year.
