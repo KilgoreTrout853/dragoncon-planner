@@ -1,26 +1,30 @@
 #!/usr/bin/env python3
-"""The tag stage of tags v2 (DECISIONS #32, #34): what an event is about, asked of a model once per
-distinct input, and the answers cached.
+"""The tag stage of tags v2 (DECISIONS #32, #34, #46): what an event is about, asked of a model once per
+distinct input a season, and the answers cached.
 
-    python tag_stage.py --dry-run      # the inputs, the requests, the prompt sizes; calls nothing
-    python tag_stage.py                # ask about every uncached input, then mint the new works
-    python tag_stage.py --mint-only    # mint what the cache names and the registry lacks; no model
+    python tag_stage.py --dry-run                                  # 2026, frozen: what would be sent; calls nothing
+    python tag_stage.py --season data/2027/season.json             # every uncached input, up to the cap; then mint
+    python tag_stage.py --season data/2027/season.json --mint-only # mint what the cache names; no model
+    python tag_stage.py seed --season data/2027/season.json --from 2026   # 2026's answers to the inputs 2027 shares
 
-What the model is sent about an event, and nothing else (`tagger_input`): the title without its
-price mark, clock time, SOLD OUT or CANCELLED; the scraped type and tracks; and the description
-without its "Additional Panelists:" line. No people: a panel with a different moderator is the same
-input, and a guest's name cannot pull their other shows into what an event is about. The cache key
-is a hash of that input and PROMPT_VERSION, and nothing else - not the prompt text, not the works
-list, not tracks.json, not the model - so an input is tagged once, and PROMPT_VERSION is bumped by
-hand to tag everything again.
+A season's events come through the build's front door and the merge (events_v2.season_rows, merge_stage.merge): a
+frozen year's events.json, a live year's source.json and ledger, with the build's refusals - run the ids stage first;
+a live year needs a run. The inputs are the merged events' that are not removed (#44). What the model is sent about an
+event, the key its answer is cached under - a hash of that input and the season's prompt_version, and nothing else -
+and the cache's file are tag_key.py's. The cache is tags.cache.jsonl beside the season file.
 
-The cache, data/2026/tags.cache.jsonl, holds what the model said, held to the closed lists: one
-entry a line, sorted by key, rewritten after every request, so a crash or a rate limit resumes where
-it stopped and a second run sends nothing. It holds names, never ids: a work is {"name", "evidence",
-"type", "family"}, and events_v2.py resolves each name through the registry on every run, so an
-alias, a merge or a rename fixes events with no model call. Nothing the model wrote becomes an id
-except through mint, here: a cached name the registry cannot resolve becomes a works.json row,
-`reviewed: false`, placed under a parent by one more request, and the file is written once.
+Only uncached inputs are sent, and a run sends at most the season's thresholds.requests_per_run requests (#46), the
+retry's among them; --requests overrides the cap for a hand run, such as a season's first full tag. An input past the
+cap stays uncached until a later run. Each answer, held to the closed lists, is cached after every request, so a crash
+or a rate limit resumes where it stopped and a second run sends nothing. The cache holds names, never ids: a work is
+{"name", "evidence", "type", "family"}, and events_v2.py resolves each name through the registry on every run, so an
+alias, a merge or a rename fixes events with no model call. Nothing the model wrote becomes an id except through mint,
+here: a cached name the registry cannot resolve becomes a works.json row, `reviewed: false`, placed under a parent by
+one more request - outside the cap - and carrying `minted: {year, run}`, the season's year and last-run.json's
+fetched_at; the file is written once. `seed` copies another year's cache lines whose keys this season's inputs share,
+as they are, and nothing when the two years' prompt_version differ.
+
+A frozen season (#46) is read with --dry-run and nothing else: no request, no cache write, no mint.
 
 Transports are tag_events.py's: the Anthropic API when ANTHROPIC_API_KEY is set in the environment,
 otherwise `claude -p` on the subscription, run with no tools, no MCP servers, no saved session and no
@@ -29,7 +33,6 @@ environment and nowhere else.
 """
 
 import argparse
-import hashlib
 import json
 import os
 import shutil
@@ -40,18 +43,20 @@ import threading
 import time
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
 
 import draft_people as dp
+import events_v2
+import merge_stage
 import parse_stage as ps
 import registry
+from season import SeasonError, load as load_season
 from tag_events import KINDS, call_api, call_claude_code, claude_code_command, parse_json_array
 import tag_events
+from tag_key import DESCRIPTION_CAP, input_key, load_cache, tagger_input, write_cache
 
-EVENTS = os.path.join("data", "2026", "events.json")
-CACHE = os.path.join("data", "2026", "tags.cache.jsonl")
-PROMPT_VERSION = 1   # bumped by hand to tag every input again; the prompt text is not in the key
+SEASON = os.path.join("data", "2026", "season.json")   # the default --season, as events_v2.py's: frozen
 PER_REQUEST = 25
-DESCRIPTION_CAP = 2000
 MAX_WORKS = 3
 API_MODEL = "claude-sonnet-5"
 # A full id on Claude Code too, never an alias: an alias moves with the CLI, and here `sonnet` is
@@ -64,12 +69,6 @@ AUDIENCES = ("kids", "all", "mature")
 # play, and most format and level flips between two runs were organized-play/campaign and any/experienced.
 PLAY_FORMATS = ("demo", "learn-to-play", "organized-play", "tournament", "open-play", "one-shot")
 PLAY_LEVELS = ("beginner", "any")
-# What strip_facets can leave at either end of a title: "Matt Dinniman - Signing - SOLD OUT"
-# comes out "Matt Dinniman - Signing -".
-SEPARATORS = " -–—:,/|"
-CACHE_FIELDS = ("key", "title", "model", "answer")
-ANSWER_FIELDS = ("kind", "works") + AXIS_NAMES + ("audience", "play")
-WORK_FIELDS = ("name", "evidence", "type", "family")
 STOP_AFTER_FAILURES = 3   # requests in a row; a rate limit fails every request after it
 CHARS_PER_TOKEN = 4       # for the dry run's estimate only
 # Likewise: Claude Code's own count of claude-sonnet-5's output in the pilot, which includes its
@@ -78,46 +77,31 @@ TOKENS_PER_ANSWER = 310
 
 
 # ---------------------------------------------------------------------------
-# What the tagger is sent, and the key
+# A season's events, and their inputs
 # ---------------------------------------------------------------------------
 
-def clean_title(title):
-    """The title the tagger is sent. parse_stage.strip_facets takes out a price mark, SOLD OUT, a
-    clock time and CANCELLED; whitespace is collapsed; and the separators that leaves at either end
-    go, so that "X - SOLD OUT" and "X" are one input. Case is kept. strip_facets is unchanged: its
-    output is also the repeat key's, which folds the separators away by itself."""
-    return " ".join(ps.strip_facets(title or "").split()).strip(SEPARATORS)
-
-
-def tagger_input(event):
-    """Everything the model is told about an event: {title, type, tracks, description}."""
-    description = ps.strip_panelists(event.get("description") or "").strip()
-    return {"title": clean_title(event.get("title")), "type": event.get("type") or "",
-            "tracks": [str(t) for t in event.get("tracks") or []],
-            "description": description[:DESCRIPTION_CAP]}
+def season_events(season, folder):
+    """(events, stamp): a season's merged events that are not removed - what tagger_input reads (#44) - through the
+    build's front door (events_v2.season_rows) and the merge (merge_stage.merge); and the run's stamp, last-run.json's
+    fetched_at, which a minted row records, or None for a frozen year, which has no run. `season` is season.load()'s
+    and `folder` the folder it is in. A live year refuses as the build does, with events_v2.BuildError: source.json
+    absent or another source's, no last-run.json - a live year needs a run - or a ledger the rows would change - run
+    the ids stage first."""
+    rows, top, ledger = events_v2.season_rows(season, folder)
+    events = [e for e in merge_stage.merge(rows, ledger) if not e.get("removed")]
+    return events, None if season["frozen"] else top["generated_at"]
 
 
 def over_cap(event):
     return len(ps.strip_panelists(event.get("description") or "").strip()) > DESCRIPTION_CAP
 
 
-def canonical(obj):
-    return json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-
-
-def input_key(inp, version=None):
-    """sha256 of the canonical JSON of {"v": PROMPT_VERSION, "input": inp}. The version is read
-    when called, so a test can move it."""
-    doc = {"v": PROMPT_VERSION if version is None else version, "input": inp}
-    return hashlib.sha256(canonical(doc).encode("utf-8")).hexdigest()
-
-
-def distinct_inputs(events):
-    """({key: input}, [key of each event, in event order])."""
+def distinct_inputs(events, version):
+    """({key: input}, [key of each event, in event order]). `version` is the season's prompt_version (#46)."""
     inputs, keys = {}, []
     for e in events:
         inp = tagger_input(e)
-        key = input_key(inp)
+        key = input_key(inp, version)
         inputs.setdefault(key, inp)
         keys.append(key)
     return inputs, keys
@@ -379,47 +363,28 @@ def validate(row, inp, tally, key=None):
 
 
 # ---------------------------------------------------------------------------
-# The cache
+# Seed: another year's answers, for the inputs this year shares
 # ---------------------------------------------------------------------------
 
-def in_order(answer):
-    """An answer with its fields, and each work's, in the cache's fixed order."""
-    out = {k: answer[k] for k in ANSWER_FIELDS}
-    out["works"] = [{k: w[k] for k in WORK_FIELDS if k in w} for w in answer["works"]]
-    return out
+@dataclass
+class SeedResult:
+    """What seed() did with the inputs the target year needs: `copied` from the source year's cache, `present` in the
+    target's already, and `skipped`, in neither - left for the tag stage. The three sum to the target's inputs."""
+    copied: int
+    present: int
+    skipped: int
 
 
-def cache_line(entry):
-    return json.dumps({"key": entry["key"], "title": entry["title"], "model": entry["model"],
-                       "answer": in_order(entry["answer"])}, ensure_ascii=False)
-
-
-def load_cache(path):
-    """{key: entry}. An absent file is an empty cache; a line that is not an entry is an error, not
-    something to skip: the file is committed, and a bad line is a bad merge."""
-    if not os.path.exists(path):
-        return {}
-    out = {}
-    with open(path, encoding="utf-8") as f:
-        for n, line in enumerate(f, 1):
-            if not line.strip():
-                continue
-            entry = json.loads(line)
-            if not isinstance(entry, dict) or tuple(entry) != CACHE_FIELDS:
-                raise ValueError(f"{path}:{n}: not a cache entry {CACHE_FIELDS}")
-            out[entry["key"]] = entry
-    return out
-
-
-def write_cache(path, cache):
-    """Every entry, one a line, sorted by key, LF. Written beside the file and moved over it, so an
-    interrupted write leaves the last good cache in place."""
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8", newline="\n") as f:
-        for key in sorted(cache):
-            f.write(cache_line(cache[key]) + "\n")
-    os.replace(tmp, path)
+def seed(keys, target, source):
+    """Add to `target` ({key: entry}, the target year's cache) each entry of `source` whose key is one of `keys` - the
+    target's inputs, keyed under its prompt_version - and not in `target`, as it is (#46) -> SeedResult. A source keyed
+    under another prompt_version shares no key: the caller passes {} for it then, and reads nothing."""
+    keys = set(keys)
+    present = [k for k in keys if k in target]
+    copied = [k for k in keys if k not in target and k in source]
+    for k in copied:
+        target[k] = source[k]
+    return SeedResult(copied=len(copied), present=len(present), skipped=len(keys) - len(present) - len(copied))
 
 
 # ---------------------------------------------------------------------------
@@ -458,26 +423,28 @@ def ask(batch, guide, transport, model):
     return rows, info
 
 
-def run_requests(todo, guide, transport, model, cache, save, tally, requests, *, per_request=PER_REQUEST,
-                 workers=1, log=None, label="request"):
-    """Ask about every (key, input) in `todo`, `per_request` to a request, caching each accepted
-    answer and saving after every request. Returns (the keys not answered, stopped): a request that
-    fails leaves all its keys unanswered, and STOP_AFTER_FAILURES failures in a row stop the run."""
+def run_requests(batches, guide, transport, model, cache, save, tally, requests, *, workers=1, log=None,
+                 label="request"):
+    """Send each batch of [(key, input)] as one request, caching each accepted answer and saving after
+    every request. -> ({key: answered | unanswered | failed | stopped}, whether the run stopped). A key
+    the reply leaves out, or whose row validation rejects, is unanswered; a request that fails leaves
+    its keys failed; STOP_AFTER_FAILURES failures in a row stop the run, and a batch not yet sent by
+    then is stopped. `requests` gains an entry for every request sent."""
     log = log or (lambda msg: None)
-    batches = batches_of(todo, per_request)
     lock = threading.Lock()
-    state = {"missing": [], "failures": 0, "stopped": False, "done": 0}
+    state = {"failures": 0, "stopped": False}
+    outcome = {}
 
     def one(n, batch):
         if state["stopped"]:
             with lock:
-                state["missing"] += [k for k, _ in batch]
+                outcome.update((k, "stopped") for k, _ in batch)
             return
         try:
             rows, info = ask(batch, guide, transport, model)
         except Exception as exc:  # noqa: BLE001 - a transport or a reply we cannot read
             with lock:
-                state["missing"] += [k for k, _ in batch]
+                outcome.update((k, "failed") for k, _ in batch)
                 state["failures"] += 1
                 state["stopped"] = state["failures"] >= STOP_AFTER_FAILURES
                 requests.append({"label": label, "n": n, "inputs": len(batch), "error": str(exc)[:300]})
@@ -489,18 +456,18 @@ def run_requests(todo, guide, transport, model, cache, save, tally, requests, *,
                 row = rows.get(key)
                 if row is None:
                     missing += 1
-                    state["missing"].append(key)
+                    outcome[key] = "unanswered"
                     continue
                 answer = validate(row, inp, tally, key)
                 if answer is None:
                     rejected += 1
-                    state["missing"].append(key)
+                    outcome[key] = "unanswered"
                     continue
                 cache[key] = {"key": key, "title": inp["title"], "model": info["model"], "answer": answer}
+                outcome[key] = "answered"
                 answered += 1
             save(cache)
             state["failures"] = 0
-            state["done"] += 1
             requests.append({"label": label, "n": n, **info, "answered": answered, "rejected": rejected,
                              "missing": missing})
             log(f"  {label} {n}/{len(batches)}: {answered} answered, {rejected} rejected, {missing} missing, "
@@ -512,21 +479,65 @@ def run_requests(todo, guide, transport, model, cache, save, tally, requests, *,
     else:
         for n, batch in enumerate(batches, 1):
             one(n, batch)
-    return state["missing"], state["stopped"]
+    return outcome, state["stopped"]
 
 
-def tag(todo, guide, transport, model, cache, save, *, per_request=PER_REQUEST, workers=1, log=None):
-    """Ask about `todo` (sorted), then once more about whatever was missing or rejected. Returns
-    (the keys still unanswered, the tally, the requests, stopped)."""
-    tally, requests = new_tally(), []
-    missing, stopped = run_requests(todo, guide, transport, model, cache, save, tally, requests,
-                                    per_request=per_request, workers=workers, log=log)
-    if missing and not stopped:
-        by_key = dict(todo)
-        again = sorted(((k, by_key[k]) for k in dict.fromkeys(missing)), key=request_order)
-        missing, stopped = run_requests(again, guide, transport, model, cache, save, tally, requests,
-                                        per_request=per_request, workers=workers, log=log, label="retry")
-    return sorted(set(missing)), tally, requests, stopped
+@dataclass
+class TagResult:
+    """What a run of the tag stage did, for the run summary (#44, #46; PR 8). Every input asked about - uncached, and
+    named by --only where it is given - is answered, or left uncached one way: capped, stopped, failed or unanswered.
+    tag() fills the counts; the mint pass, mint(), fills minted - their count is its length - mint_failed and
+    parents_requests."""
+    model: str                  # the model asked for, by full id; each cache line records the one that answered
+    inputs: int = 0             # the season's distinct inputs, its removed events aside
+    cached_before: int = 0      # of those, with an answer in the cache before the run
+    cached_after: int = 0       # and after it
+    requests: int = 0           # the requests sent, the retry's among them: at most the cap
+    sent: int = 0               # the inputs sent in a request
+    capped: int = 0             # not sent: the cap was reached (#46)
+    stopped: int = 0            # not sent: STOP_AFTER_FAILURES requests in a row failed
+    failed: int = 0             # sent, and the transport failed the last request that held them
+    unanswered: int = 0         # sent, and no reply held a valid row for them, the retry's where the cap left room
+    uncached: dict = field(default_factory=dict)      # key -> capped | stopped | failed | unanswered, sorted by key
+    minted: list = field(default_factory=list)        # the work ids the mint added to works.json, sorted
+    mint_failed: list = field(default_factory=list)   # the work ids a failed parents request left unwritten, sorted
+    parents_requests: int = 0   # the mint's requests for parents, outside the cap
+    tally: dict = field(default_factory=new_tally)    # what validation set aside
+    log: list = field(default_factory=list)           # one entry a request sent, the retry's among them
+
+
+def to_ask(inputs, cache, only=None):
+    """[(key, input)]: the inputs `cache` lacks - of those `only` names, where it is given - in request order."""
+    wanted = set(inputs) if only is None else set(inputs) & set(only)
+    return sorted(((k, inputs[k]) for k in wanted if k not in cache), key=request_order)
+
+
+def tag(inputs, cache, guide, transport, model, save, *, cap, only=None, per_request=PER_REQUEST, workers=1,
+        log=None):
+    """Ask about the inputs of `inputs` ({key: input}, the season's) that `cache` lacks - of those `only` names, where
+    it is given - `per_request` to a request in request order, then once more about those failed or unanswered,
+    unless the run stopped: at most `cap` requests in all, the retry's among them (#46). -> TagResult, the mint's
+    fields empty. A batch past the cap is capped and one a stop leaves unsent stopped; an input the retry cannot reach,
+    for the cap or a stop, keeps its first way, failed or unanswered."""
+    result = TagResult(model=model, inputs=len(inputs), cached_before=sum(1 for k in inputs if k in cache))
+    batches = batches_of(to_ask(inputs, cache, only), per_request)
+    outcome, stopped = run_requests(batches[:cap], guide, transport, model, cache, save, result.tally, result.log,
+                                    workers=workers, log=log)
+    result.sent = sum(1 for way in outcome.values() if way != "stopped")
+    outcome.update((k, "capped") for batch in batches[cap:] for k, _ in batch)
+    again = sorted(((k, inputs[k]) for k, way in outcome.items() if way in ("failed", "unanswered")), key=request_order)
+    room = cap - len(result.log)
+    if again and not stopped and room > 0:
+        second, _ = run_requests(batches_of(again, per_request)[:room], guide, transport, model, cache, save,
+                                 result.tally, result.log, workers=workers, log=log, label="retry")
+        outcome.update((k, way) for k, way in second.items() if way != "stopped")
+    result.requests = len(result.log)
+    result.uncached = {k: way for k, way in sorted(outcome.items()) if way != "answered"}
+    ways = Counter(result.uncached.values())
+    result.capped, result.stopped, result.failed, result.unanswered = (
+        ways["capped"], ways["stopped"], ways["failed"], ways["unanswered"])
+    result.cached_after = sum(1 for k in inputs if k in cache)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -540,15 +551,16 @@ def _winner(counter):
     return ranked[0][0], len(ranked) > 1 and ranked[1][1] == ranked[0][1]
 
 
-def mint_plan(events, cache, reg):
+def mint_plan(events, cache, reg, version):
     """What mint would add, calling nothing and writing nothing: every work name in the cache
-    entries the current events use that the registry cannot resolve, one new work per
-    registry.resolve_key - so "The X" and "X" are one work - id = registry.work_slug of the most
-    used spelling, `reviewed: false`, type and family the most common in the answers.
+    entries the current events use - their keys under `version`, the season's prompt_version - that
+    the registry cannot resolve, one new work per registry.resolve_key - so "The X" and "X" are one
+    work - id = registry.work_slug of the most used spelling, `reviewed: false`, type and family the
+    most common in the answers.
 
     Not minted, and reported: a name that is a registry term (build drops it), and a slug that is
-    already an id (build fails on it until a person adds an alias)."""
-    counts = Counter(input_key(tagger_input(e)) for e in events)
+    already an id (build drops its links until a person adds an alias)."""
+    counts = Counter(input_key(tagger_input(e), version) for e in events)
     groups, terms = {}, {}
     for key in sorted(counts):
         entry = cache.get(key)
@@ -655,13 +667,48 @@ def write_works(directory, reg, new):
     """works.json with the new rows added, sorted by id and in the registry's key order - written
     the way draft_people writes it, so the diff is the added rows - once the registry, new rows
     and all, has been shown to load."""
-    rows = [dp.in_order(w, dp.WORK_KEYS) for w in sorted(list(reg.works) + list(new), key=lambda w: w["id"])]
+    rows = [dp.in_order(w, registry.WORK_KEYS) for w in sorted(list(reg.works) + list(new), key=lambda w: w["id"])]
     with tempfile.TemporaryDirectory() as tmp:
         dp.write_json(os.path.join(tmp, "works.json"), rows)
         for name in ("people.json", "tracks.json"):
             shutil.copy(os.path.join(directory, name), tmp)
         registry.load(tmp)
     dp.write_json(os.path.join(directory, "works.json"), rows)
+
+
+def mint(result, events, cache, reg, version, directory, transport, model, *, minted, parents=True, log=None):
+    """The mint pass (#34, #46): mint_plan; then the new works' parents, one request for each
+    draft_people.PARENTS_PER_REQUEST of them - outside the cap, counted in result.parents_requests -
+    unless `parents` is false; then works.json in `directory` written once, each new row carrying
+    `minted` ({year, run}) after `reviewed`, and no other row changed. A failed parents request
+    writes nothing: the planned ids go to result.mint_failed, and their links drop for this run, as
+    an unresolved name's do (#44). -> the plan, for the report, with the parents found, and
+    parents_failed where the request failed."""
+    log = log or (lambda msg: None)
+    plan = mint_plan(events, cache, reg, version)
+    placed = {}
+    if plan["works"] and parents:
+        def counted(prompt, m, meta):
+            result.parents_requests += 1
+            return transport(prompt, m, meta)
+        try:
+            placed = place_parents(plan["works"], reg, counted, model)
+        except Exception as exc:  # noqa: BLE001
+            log(f"the parents request failed ({str(exc)[:200]}): works.json is not written. "
+                f"Run again, or pass --no-parents to mint with no parents.")
+            plan["parents_failed"] = str(exc)[:300]
+            plan["parents"] = {}
+            result.mint_failed = sorted(w["id"] for w in plan["works"])
+            return plan
+    if plan["works"]:
+        for w in plan["works"]:
+            if w["id"] in placed:
+                w["parent"] = placed[w["id"]]
+            w["minted"] = dict(minted)
+        write_works(directory, reg, plan["works"])
+        result.minted = sorted(w["id"] for w in plan["works"])
+    plan["parents"] = placed
+    return plan
 
 
 # ---------------------------------------------------------------------------
@@ -672,24 +719,22 @@ def err(msg=""):
     print(msg, file=sys.stderr, flush=True)
 
 
-def read_events(path):
-    with open(path, "rb") as f:   # read-only: the 2026 schedule is frozen (#13, #33)
-        return json.loads(f.read().decode("utf-8"))["events"]
-
-
-def dry_run(events, inputs, todo, guide, label, model, per_request, cached):
+def dry_run(events, inputs, todo, guide, label, model, per_request, cached, cap):
     batches = batches_of(todo, per_request)
-    sizes = [len(build_prompt(b, guide)[0]) for b in batches]
+    going = batches[:cap]
+    sizes = [len(build_prompt(b, guide)[0]) for b in going]
     rules = len(build_prompt([], guide)[0]) - len(guide)
     over = sum(1 for e in events if over_cap(e))
+    capped = sum(len(b) for b in batches[cap:])
     err(f"{len(events):,} events, {len(inputs):,} distinct inputs, {over} description(s) over "
         f"{DESCRIPTION_CAP:,} characters")
     err(f"{cached:,} cached, {len(todo):,} to send in {len(batches)} request(s) of up to "
-        f"{per_request}, via {label} ({model})")
+        f"{per_request}, via {label} ({model}); the cap is {cap} request(s): {len(going)} would go, "
+        f"{capped:,} input(s) capped")
     if sizes:
         err(f"prompt characters: longest {max(sizes):,}, mean {sum(sizes) // len(sizes):,} "
             f"(the rules {rules:,}, the works guide {len(guide):,}, the events the rest)")
-        tin, tout = sum(sizes) // CHARS_PER_TOKEN, len(todo) * TOKENS_PER_ANSWER
+        tin, tout = sum(sizes) // CHARS_PER_TOKEN, sum(len(b) for b in going) * TOKENS_PER_ANSWER
         err(f"tokens, estimated: ~{tin:,} in at {CHARS_PER_TOKEN} characters a token, ~{tout:,} out at "
             f"~{TOKENS_PER_ANSWER} an answer")
     if label == "Claude Code":
@@ -697,7 +742,7 @@ def dry_run(events, inputs, todo, guide, label, model, per_request, cached):
         err(f"  the prompt on stdin, run in {tag_events.ISOLATED_DIR} (empty); Claude Code adds about "
             f"6,100 tokens of its own context to each request")
     return {"events": len(events), "inputs": len(inputs), "over_cap": over, "to_send": len(todo),
-            "requests": len(batches), "prompt_chars": sizes}
+            "cap": cap, "requests": len(going), "capped": capped, "prompt_chars": sizes}
 
 
 def report_mint(plan, wrote):
@@ -718,13 +763,85 @@ def report_mint(plan, wrote):
         f"{len(plan['terms'])} term name(s), {len(plan['defaulted'])} defaulted field(s)")
 
 
+def refuse_frozen(path, what):
+    """The refusal for a frozen season (#46), which names the flag."""
+    sys.exit(f"{path} is frozen (`frozen: true`, DECISIONS #46): {what}; the tag stage runs on a frozen year with "
+             "--dry-run only.")
+
+
+def refused(path, exc):
+    """The build's front door refusing a season, as the tag stage reports it: events_v2.BuildError's problems."""
+    return (f"{path}: the build's front door refuses it, and the tag stage reads a season through it:\n  "
+            + "\n  ".join(exc.problems))
+
+
+def seed_main(argv):
+    """python tag_stage.py seed --season <season.json> --from <year>: copy the source year's cache lines whose keys the
+    season's inputs share, as they are, and nothing when the two years' prompt_version differ (#46). The source is
+    <year>/season.json beside the season's folder, and its cache is beside that. Refused: a frozen season; one with no
+    source.json, or that its front door refuses; a source season that does not load, or with no cache."""
+    ap = argparse.ArgumentParser(prog="tag_stage.py seed", description=seed_main.__doc__)
+    ap.add_argument("--season", required=True, help="the year to seed: its season.json")
+    ap.add_argument("--from", dest="source", type=int, required=True, help="the year whose answers are copied")
+    args = ap.parse_args(argv)
+    try:
+        season = load_season(args.season)
+    except SeasonError as exc:
+        err(str(exc))
+        return 1
+    if season["frozen"]:
+        refuse_frozen(args.season, "nothing is seeded into it")
+    here, folder = os.path.dirname(args.season), os.path.dirname(os.path.abspath(args.season))
+    if not os.path.exists(os.path.join(folder, "source.json")):
+        sys.exit(f"{os.path.join(here, 'source.json')} is absent: seed reads the season's merged events, from its "
+                 "source.json and ledger, so a run's fetch and ids stage come first")
+    source_path = os.path.join(os.path.dirname(folder), str(args.source), "season.json")
+    try:
+        source = load_season(source_path)
+    except SeasonError as exc:
+        err(str(exc))
+        return 1
+    try:
+        events, _ = season_events(season, folder)
+    except events_v2.BuildError as exc:
+        err(refused(args.season, exc))
+        return 1
+    version = season["prompt_version"]
+    keys = distinct_inputs(events, version)[0]
+    cache_path = os.path.join(here, "tags.cache.jsonl")
+    target = load_cache(cache_path)
+    if source["prompt_version"] != version:
+        result = seed(keys, target, {})
+        err(f"prompt_version differs - {args.source}'s is {source['prompt_version']}, {season['year']}'s {version} "
+            f"(DECISIONS #46): no key can match, and nothing is copied")
+    else:
+        source_cache = os.path.join(os.path.dirname(source_path), "tags.cache.jsonl")
+        if not os.path.exists(source_cache):
+            sys.exit(f"{source_cache} is absent: {args.source} has no answers to copy")
+        result = seed(keys, target, load_cache(source_cache))
+        if result.copied:
+            write_cache(cache_path, target)
+    err(f"seed {season['year']} from {args.source}: {result.copied:,} copied, {result.present:,} already present, "
+        f"{result.skipped:,} skipped, of the {len(keys):,} inputs of {season['year']}")
+    return 0
+
+
 def main(argv=None):
+    """The tag stage by hand; `seed` as the first argument is seed_main's. The exit code is a hand run's: 1 where an
+    input failed, was stopped or went unanswered, or the parents request failed; 0 otherwise, inputs past the cap among
+    them, since a later run takes them. The orchestrator (PR 8) calls tag() and mint() and reads the TagResult, so its
+    own table of the fatal and the degraded (#44) decides, not this exit code."""
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv[:1] == ["seed"]:
+        return seed_main(argv[1:])
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--events", default=EVENTS)
+    ap.add_argument("--season", default=SEASON, help="the year's season.json; default 2026's, which is frozen")
     ap.add_argument("--registry", default=registry.DIR)
-    ap.add_argument("--cache", default=CACHE)
+    ap.add_argument("--cache", help="the tag cache; default: tags.cache.jsonl beside the season file")
     ap.add_argument("--model", default=None, help="an API model id, or a Claude Code alias or id")
     ap.add_argument("--per-request", type=int, default=PER_REQUEST)
+    ap.add_argument("--requests", type=int, help="the most requests this run sends, the retry's among them; "
+                    "default: the season's thresholds.requests_per_run (#46)")
     ap.add_argument("--workers", type=int, default=1, help="requests in flight at once")
     ap.add_argument("--only", help="a file of event ids, one a line: ask only about the inputs they use")
     ap.add_argument("--dry-run", action="store_true", help="build every prompt, call nothing, write nothing")
@@ -733,72 +850,94 @@ def main(argv=None):
     ap.add_argument("--no-parents", action="store_true", help="mint without asking for parents")
     ap.add_argument("--report", help="write the run report here, as JSON (not committed)")
     args = ap.parse_args(argv)
-
-    events = read_events(args.events)
-    reg = registry.load(args.registry)
-    inputs, keys = distinct_inputs(events)
-    cache = load_cache(args.cache)
+    if args.requests is not None and args.requests < 1:
+        ap.error("--requests takes a whole number of requests, 1 or more")
+    try:
+        season = load_season(args.season)
+    except SeasonError as exc:
+        err(str(exc))
+        return 1
+    if season["frozen"] and not args.dry_run:
+        refuse_frozen(args.season, "no request, no cache write, no mint")
+    try:
+        events, stamp = season_events(season, os.path.dirname(os.path.abspath(args.season)))
+    except events_v2.BuildError as exc:
+        err(refused(args.season, exc))
+        return 1
+    try:
+        reg = registry.load(args.registry)
+    except registry.RegistryError as exc:
+        err(str(exc))
+        return 1
+    version = season["prompt_version"]
+    cache_path = args.cache or os.path.join(os.path.dirname(args.season), "tags.cache.jsonl")
+    inputs, keys = distinct_inputs(events, version)
+    cache = load_cache(cache_path)
+    cap = args.requests or season["thresholds"]["requests_per_run"]
     label, transport, model = pick_transport(args.model)
     report = {"transport": label, "model": model, "events": len(events), "inputs": len(inputs)}
+    only = None
+    if args.only:
+        with open(args.only, encoding="utf-8") as f:
+            ids = {line.strip() for line in f if line.strip()}
+        only = {k for e, k in zip(events, keys) if e.get("id") in ids}
 
+    if args.dry_run:   # writes nothing but the --report, --mint-only or not
+        if args.mint_only:
+            report["mint"] = mint_plan(events, cache, reg, version)
+            report_mint(report["mint"], wrote=False)
+        else:
+            guide = works_guide(reg.works)
+            report["dry_run"] = dry_run(events, inputs, to_ask(inputs, cache, only), guide, label, model,
+                                        args.per_request, sum(1 for k in inputs if k in cache), cap)
+        if args.report:
+            dp.write_json(args.report, report)
+        return 0
+
+    cached = sum(1 for k in inputs if k in cache)
+    result = TagResult(model=model, inputs=len(inputs), cached_before=cached, cached_after=cached)
     if not args.mint_only:
-        wanted = set(inputs)
-        if args.only:
-            with open(args.only, encoding="utf-8") as f:
-                ids = {line.strip() for line in f if line.strip()}
-            wanted = {k for e, k in zip(events, keys) if e.get("id") in ids}
-        todo = sorted(((k, inputs[k]) for k in wanted if k not in cache), key=request_order)
-        guide = works_guide(reg.works)
-        if args.dry_run:
-            report["dry_run"] = dry_run(events, inputs, todo, guide, label, model, args.per_request,
-                                        sum(1 for k in inputs if k in cache))
-            if args.report:
-                dp.write_json(args.report, report)
-            return 0
-        err(f"{len(inputs):,} distinct inputs, {sum(1 for k in inputs if k in cache):,} cached, {len(todo):,} to send "
-            f"via {label} ({model})" + (f"; --only asks about {len(wanted):,}" if args.only else ""))
-        missing, tally, requests, stopped = tag(todo, guide, transport, model, cache,
-                                                lambda c: write_cache(args.cache, c),
-                                                per_request=args.per_request, workers=args.workers, log=err)
-        report.update({"sent": len(todo), "requests": requests, "unanswered":
-                       [{"key": k, "title": inputs[k]["title"]} for k in missing],
-                       "stopped": stopped, "tally": tally})
-        err(f"tagged: {len(todo) - len(missing):,} of {len(todo):,}; evidence dropped "
-            f"{len(tally['evidence_dropped'])} link(s), works over the cap {len(tally['works_over_cap'])}, "
-            f"kind rejected {len(tally['kind_rejected'])} time(s)")
-        for k in missing:
-            err(f"  unanswered: {inputs[k]['title']}")
-        if stopped:
+        err(f"{len(inputs):,} distinct inputs, {cached:,} cached, {len(to_ask(inputs, cache, only)):,} to send via "
+            f"{label} ({model}), at most {cap} request(s) of {args.per_request}"
+            + (f"; --only asks about {len(only):,}" if only is not None else ""))
+        result = tag(inputs, cache, works_guide(reg.works), transport, model, lambda c: write_cache(cache_path, c),
+                     cap=cap, only=only, per_request=args.per_request, workers=args.workers, log=err)
+        report.update({"sent": result.sent, "requests": result.log, "unanswered":
+                       [{"key": k, "title": inputs[k]["title"], "why": way}
+                        for k, way in result.uncached.items() if way != "capped"],
+                       "capped": result.capped, "stopped": result.stopped, "tally": result.tally})
+        err(f"tagged: {result.cached_after - result.cached_before:,} of the {result.sent:,} sent, in "
+            f"{result.requests} request(s); capped {result.capped:,}, stopped {result.stopped:,}, failed "
+            f"{result.failed:,}, unanswered {result.unanswered:,}; evidence dropped "
+            f"{len(result.tally['evidence_dropped'])} link(s), works over {MAX_WORKS} "
+            f"{len(result.tally['works_over_cap'])}, kind rejected {len(result.tally['kind_rejected'])} time(s)")
+        for k, way in result.uncached.items():
+            if way != "capped":
+                err(f"  {way}: {inputs[k]['title']}")
+        if result.stopped:
             err(f"stopped after {STOP_AFTER_FAILURES} failed requests in a row; the cache holds every answer "
                 f"so far, and running again resumes")
+        if result.capped:
+            err(f"capped: {result.capped:,} input(s) wait for a later run, or for --requests")
 
     status = 0
     if not args.no_mint:
-        plan = mint_plan(events, cache, reg)
-        placed = {}
-        if plan["works"] and not (args.mint_only or args.no_parents):
-            try:
-                placed = place_parents(plan["works"], reg, transport, model)
-            except Exception as exc:  # noqa: BLE001
-                err(f"the parents request failed ({str(exc)[:200]}): works.json is not written. "
-                    f"Run again, or pass --no-parents to mint with no parents.")
-                plan["parents_failed"] = str(exc)[:300]
-                status = 1
-        if status == 0 and plan["works"]:
-            for w in plan["works"]:
-                if w["id"] in placed:
-                    w["parent"] = placed[w["id"]]
-            write_works(args.registry, reg, plan["works"])
-        plan["parents"] = placed
-        report_mint(plan, wrote=status == 0)
-        if args.mint_only and plan["works"]:
-            err(f"--mint-only: {len(plan['works'])} work(s) minted with no parent asked")
-        elif plan["works"] and status == 0:
-            err(f"parents: {len(placed)} of {len(plan['works'])} placed; the rest stay top-level")
+        minted = {"year": season["year"], "run": stamp}
+        plan = mint(result, events, cache, reg, version, args.registry, transport, model, minted=minted,
+                    parents=not (args.mint_only or args.no_parents), log=err)
+        report_mint(plan, wrote="parents_failed" not in plan)
+        if "parents_failed" in plan:
+            status = 1
+        elif plan["works"]:
+            err(f"--mint-only: {len(plan['works'])} work(s) minted with no parent asked" if args.mint_only else
+                f"parents: {len(plan['parents'])} of {len(plan['works'])} placed, in {result.parents_requests} "
+                f"request(s) outside the cap; the rest stay top-level")
+            err(f"each carries minted {json.dumps(minted)}")
         report["mint"] = plan
+    report["result"] = {k: v for k, v in vars(result).items() if k not in ("uncached", "tally", "log")}
     if args.report:
         dp.write_json(args.report, report)
-    if not args.mint_only and report.get("unanswered"):
+    if result.failed or result.stopped or result.unanswered:
         status = 1
     return status
 

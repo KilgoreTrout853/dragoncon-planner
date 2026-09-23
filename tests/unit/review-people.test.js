@@ -157,6 +157,16 @@ describe("exported", () => {
     const out = R.exported(R.approve(fixture(), "ada-quill", { tier: "celebrity", drop: ["the-rookie"] }));
     expect(out.works.map(w => w.id)).toEqual(["firefly", "some-podcast"]);
   });
+
+  it("keeps the minted record the tag stage wrote on a row, after reviewed", () => {
+    const minted = { year: 2027, run: "2027-08-02T10:00:00+00:00" };
+    const state = R.load([person("ada-quill", "Ada Quill", "celebrity", ["the-rookie"])],
+      [{ ...work("the-rookie", "The Rookie"), minted }], {});
+    const out = R.exported(R.approve(state, "ada-quill", { tier: "celebrity" }));
+    expect(Object.keys(out.works[0])).toEqual(["id", "name", "aliases", "type", "reviewed", "minted"]);
+    expect(R.toJson(out.works)).toBe('[\n  {"id": "the-rookie", "name": "The Rookie", "aliases": [], ' +
+      '"type": "franchise", "reviewed": true, "minted": {"year": 2027, "run": "2027-08-02T10:00:00+00:00"}}\n]\n');
+  });
 });
 
 describe("toJson", () => {

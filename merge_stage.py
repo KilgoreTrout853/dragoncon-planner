@@ -23,7 +23,8 @@ The group's rows sort by source id, in string order - the fix history-2026.md pr
 
 A frozen year's rows are groups of one, and the merge is the identity on them: each comes back as it was. Pure: the
 inputs are not changed, and nothing it returns is one of their objects. Standard library, and nothing of ours is
-imported: build calls it (events_v2.py), and the tag stage will (PR 7), so neither imports the other for it.
+imported: build calls it (events_v2.py), and so does the tag stage (tag_stage.py), on the rows the build's front door
+reads, so both read one merge.
 """
 
 import copy

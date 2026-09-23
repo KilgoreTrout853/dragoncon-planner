@@ -11,6 +11,11 @@ It reads data/ and writes nothing there, nor anywhere in the repo.
     python tools/tag_pilot.py sample DIR        # DIR/ids.txt and DIR/sample.json
     python tag_stage.py --only DIR/ids.txt --cache DIR/RUN.jsonl --report DIR/RUN.json --no-mint --model M
     python tools/tag_pilot.py compare DIR RUN RUN ...     # DIR/report.md; the first RUN is the reference
+
+The runs were made against 2026 before it was frozen. The tag stage now runs on a frozen year with --dry-run only
+(DECISIONS #46), so a future pilot copies the season file and its events into a temp folder with `frozen` false - the
+events as the live front door reads them, source.json, ids.jsonl and last-run.json (tools/replay_2026.py's to_raw makes
+a committed event a raw row) - and adds `--season` naming that copy to the tag stage's command above.
 """
 
 import argparse
@@ -26,9 +31,12 @@ sys.path.insert(0, ROOT)
 import events_v2 as v2  # noqa: E402
 import parse_stage as ps  # noqa: E402
 import registry  # noqa: E402
+import tag_key  # noqa: E402
 import tag_stage as ts  # noqa: E402
+from season import load as load_season  # noqa: E402
 
-EVENTS = os.path.join(ROOT, ts.EVENTS)
+EVENTS = os.path.join(ROOT, "data", "2026", "events.json")
+SEASON = os.path.join(ROOT, "data", "2026", "season.json")   # its prompt_version is the cache keys' `v` (#46)
 REGISTRY = os.path.join(ROOT, registry.DIR)
 TARGET = 150
 
@@ -96,19 +104,20 @@ def word_in(word, text):
 
 
 def load():
+    """(the 2026 events, the registries, 2026's prompt_version)."""
     with open(EVENTS, "rb") as f:
         events = json.loads(f.read().decode("utf-8"))["events"]
-    return events, registry.load(REGISTRY)
+    return events, registry.load(REGISTRY), load_season(SEASON)["prompt_version"]
 
 
 # ---------------------------------------------------------------------------
 # sample
 # ---------------------------------------------------------------------------
 
-def sample(events):
+def sample(events, version):
     """[(key, stratum, note)], about TARGET distinct inputs, the same every run: within a stratum the
     order is the key's, a hash, so the pick is spread and repeatable."""
-    inputs, keys = ts.distinct_inputs(events)
+    inputs, keys = ts.distinct_inputs(events, version)
     first = {}
     for e, k in zip(events, keys):
         first.setdefault(k, e)
@@ -168,8 +177,8 @@ def round_robin(candidates, inputs):
 
 
 def cmd_sample(out_dir):
-    events, _ = load()
-    chosen, inputs, first = sample(events)
+    events, _, version = load()
+    chosen, inputs, first = sample(events, version)
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, "ids.txt"), "w", encoding="utf-8", newline="\n") as f:
         f.writelines(first[k]["id"] + "\n" for k, _, _ in chosen)
@@ -241,18 +250,18 @@ def table(head, rows):
 
 
 def cmd_compare(out_dir, runs, pairs, out_file=None):
-    events, reg = load()
+    events, reg, version = load()
     with open(os.path.join(out_dir, "sample.json"), encoding="utf-8") as f:
         sample_rows = json.load(f)
     strata = {r["key"]: (r["stratum"], r["note"]) for r in sample_rows}
     inputs = {r["key"]: {k: r[k] for k in ("title", "type", "tracks", "description")} for r in sample_rows}
-    caches = {r: ts.load_cache(os.path.join(out_dir, f"{r}.jsonl")) for r in runs}
+    caches = {r: tag_key.load_cache(os.path.join(out_dir, f"{r}.jsonl")) for r in runs}
     reports = {}
     for r in runs:
         with open(os.path.join(out_dir, f"{r}.json"), encoding="utf-8") as f:
             reports[r] = json.load(f)
     ref = runs[0]
-    keys_of = [ts.input_key(ts.tagger_input(e)) for e in events]
+    keys_of = [tag_key.input_key(tag_key.tagger_input(e), version) for e in events]
     sample_events = [(e, k) for e, k in zip(events, keys_of) if k in strata]
     L = [f"# Tag stage pilot: {len(sample_rows)} inputs, {len(runs)} runs", ""]
 
@@ -379,7 +388,7 @@ def cmd_compare(out_dir, runs, pairs, out_file=None):
     L += ["Inputs / events with 0, 1, 2 and 3 works.", ""] + table(["run", "0", "1", "2", "3"], rows) + [""]
 
     # --- mint -------------------------------------------------------------------------------------
-    everything, _ = ts.distinct_inputs(events)
+    everything, _ = ts.distinct_inputs(events, version)
     population = Counter(inp["type"] for inp in everything.values())
     L += ["## What would be minted", "",
           "A rough scale for a full run: the share of sampled inputs, by scraped type, that name a work the "
@@ -400,7 +409,7 @@ def cmd_compare(out_dir, runs, pairs, out_file=None):
     L += table(["run", "gaming inputs naming a new work", "panel inputs naming a new work",
                 "inputs naming one, scaled to the schedule"], rows) + [""]
     for r in runs:
-        plan = ts.mint_plan(events, caches[r], reg)
+        plan = ts.mint_plan(events, caches[r], reg, version)
         L += [f"### {r}: {len(plan['works'])} new works, {len(plan['collisions'])} collisions, "
               f"{len(plan['terms'])} term names", ""]
         if plan["defaulted"]:

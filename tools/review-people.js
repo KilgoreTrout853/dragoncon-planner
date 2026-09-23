@@ -117,8 +117,10 @@
   }
 
   /** The three files as the loader expects them: sorted by id, and the keys in the registry's own
-   *  order so a diff shows the review and nothing else. */
-  const WORK_KEYS = ["id", "name", "aliases", "type", "family", "parent", "terms", "reviewed"];
+   *  order so a diff shows the review and nothing else. WORK_KEYS is registry.py's, copied - a
+   *  classic script imports nothing - and tests/test_registry.py holds the two equal; `minted`, the
+   *  tag stage's record on a row it minted, is kept as it is. */
+  const WORK_KEYS = ["id", "name", "aliases", "type", "family", "parent", "terms", "reviewed", "minted"];
   const PERSON_KEYS = ["id", "name", "aliases", "tier", "credits", "reviewed"];
 
   function pick(row, keys) {

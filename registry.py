@@ -11,10 +11,15 @@ the old name as an alias, because follows are stored by id.
     reg.resolve_work("d&d")           # -> "dungeons-and-dragons"
 
 The four closed axis lists are `AXES`, here and nowhere else: `tracks.json` is validated against
-them and the tagger (PR 4) imports them. Standard library, plus `parse_stage` for its folding.
-Report code is `census_v2.py`; nothing here writes a file or prints.
+them and the tagger (PR 4) imports them. `WORK_KEYS` is the keys a work may have, in the order
+they are written: `draft_people.py` and the tag stage's mint write works.json in it, the review
+page (`tools/review-people.js`) keeps a copy that a test holds equal, and a key outside it is a
+problem. A row the tag stage mints carries `minted: {year, run}` (#46), which resolution ignores.
+Standard library, plus `parse_stage` for its folding. Report code is `census_v2.py`; nothing here
+writes a file or prints.
 """
 
+import datetime as dt
 import json
 import os
 import re
@@ -34,6 +39,9 @@ AXES = {
                 "fitness", "food", "community", "fandom-culture"),
 }
 MAX_AXIS_VALUES = 2
+# A work's keys, in the order works.json writes them; `minted` only on a row the tag stage minted (#46).
+WORK_KEYS = ("id", "name", "aliases", "type", "family", "parent", "terms", "reviewed", "minted")
+MINTED_KEYS = ("year", "run")
 WORK_TYPES = ("franchise", "game")
 GAME_FAMILIES = ("rpg", "ccg", "board", "miniatures", "video")
 TIERS = ("celebrity", "creator")
@@ -218,7 +226,36 @@ def _works(works, work_ids):
             out.append(f"{here}: parent {parent!r} is not a work")
         if "terms" in e and not _is_str_list(e["terms"]):
             out.append(f"{here}: terms is not a list of strings")
+        if "minted" in e:
+            out += _minted(here, e["minted"])
+        for key in e:
+            if key not in WORK_KEYS:
+                out.append(f"{here}: {key!r} is not a key a work has ({', '.join(WORK_KEYS)})")
     return out + _cycles(works)
+
+
+def _minted(here, minted):
+    """`minted: {year, run}` (#46): exactly those two keys, the season's year a whole number and the run's stamp an ISO
+    date and time with its offset, as last-run.json's fetched_at is written."""
+    if not isinstance(minted, dict) or set(minted) != set(MINTED_KEYS):
+        return [f"{here}: minted {minted!r} is not {{year, run}}"]
+    out = []
+    year, run = minted["year"], minted["run"]
+    if not isinstance(year, int) or isinstance(year, bool):
+        out.append(f"{here}: minted.year {year!r} is not a whole number")
+    if not _stamp(run):
+        out.append(f"{here}: minted.run {run!r} is not an ISO date and time with its offset")
+    return out
+
+
+def _stamp(value):
+    """True for an ISO 8601 date and time with a UTC offset: 2027-08-02T10:00:00+00:00."""
+    if not isinstance(value, str) or "T" not in value:
+        return False
+    try:
+        return dt.datetime.fromisoformat(value).tzinfo is not None
+    except ValueError:
+        return False
 
 
 def _cycles(works):
