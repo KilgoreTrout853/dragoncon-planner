@@ -1137,7 +1137,7 @@ is what keeps an event's tags stable.
 tagged again and can change works. The request cap is a guess, to be tuned
 in August.
 
-### 47. The change log (builds #20 as narrowed by #40) — Decided, not built (2026-09-22)
+### 47. The change log (builds #20 as narrowed by #40) — Decided, not built (2026-09-22) — built by PR 7b: `diff_stage.py`, the attribution built by the caller (`events_v2.attribution()`) from the snapshot of the previous files, one cause per id and kind, `source` winning where the code and the source both changed it; `merged` read from the survivors' `was`, the diff reading no ledger, and the snapshot's fatal rule the orchestrator's; `people` and `tracks` compared as sets, `from` and `to` sorted; the prefix check PR 8's workflow step; the attribution sees the build's code and data, not the fetch's, and `last-run.json`'s `fetch_code_changed` is PR 8's (`contract.md`, The diff, as built)
 **Decided:** `changes.jsonl` is append-only, one line per change to an
 event: the run's stamp, the code's SHA, the event's id, the kind, from and
 to, and the cause, sorted by run, id and kind.

@@ -19,8 +19,8 @@ pointer file.
 |---|---|---|---|
 | `season.json` | a person | every stage; the workflow's season-window guard | The year's settings, below. |
 | `venues.json` | a person | build's venues step; the client, imported at its build (#27) | Hotels, levels, rooms, aliases and the walk, below. |
-| `source.json` | fetch | the merge, for tag and build; fetch's next run, for the rows it carries; the diff, for a code cause | The raw rows and the failures, below. |
-| `ids.jsonl` | the ids stage | the merge; the ids stage's next run; the diff | The ledger, below. |
+| `source.json` | fetch | the merge, for tag and build; fetch's next run, for the rows it carries; the attribution build, for a code cause (The diff, as built) | The raw rows and the failures, below. |
+| `ids.jsonl` | the ids stage | the merge; the ids stage's next run; the attribution build, for a code cause | The ledger, below. |
 | `tags.cache.jsonl` | the tag stage | build; the tag stage's next run; another year's seed | One answer per input, as names (#34). |
 | `events.v2.json` | the orchestrator, after the diff: build's file, with the diff's `changed_at` | the client; the diff; census v2, on demand | The v2 file, below. |
 | `changes.jsonl` | the orchestrator, after the diff: the diff's lines | the mirror and the push job (Identity and sync); a windowed copy for the client (Delivery) | The change log, below. |
@@ -421,6 +421,20 @@ and returns the file and a report.
   names unresolved - the links dropped - and tracks unknown, the tracks.
 - **The file**: as above. `dumps()` writes it, and the digest is taken of
   that writer's text of the works and the events.
+- **Attribution** (PR 7b), `attribution(rows, ledger, reg, cache, venues,
+  *, version, thresholds, stamp)`: the previous run's rows through the
+  current code, for the diff's causes (The diff, as built). `rows` and
+  `ledger` are the previous `source.json` and `ids.jsonl` from the
+  orchestrator's snapshot, `stamp` that run's `fetched_at`, and `version`
+  and `thresholds` the season's. It runs the ids stage, the merge and the
+  build as a live year's build does, writing nothing, a cache miss
+  untagged, and returns the digest, the works and the events. The ids
+  stage leaves the ledger as it is under unchanged code - it is idempotent
+  on its own output - but where the current code regroups the previous
+  rows, the build uses the ledger the ids stage returns, in memory, and
+  refuses nothing, unlike the live front door: a regrouping the current
+  code makes is a code-caused change, and reads as one. A fatal rule of
+  the ids stage refuses it, as `BuildError`.
 
 ## The change log: `changes.jsonl`
 
@@ -433,11 +447,11 @@ the event's `id`, the `kind`, `from` and `to`, and the `cause`.
 | `added`, `removed`, `restored` | - |
 | `cancelled`, `uncancelled` | - |
 | `merged` | `to`: the survivor's id; the line's `id` is the id merged away (#43) |
-| `time` | `start` and `end` |
-| `place` | `hotel` and `room` |
-| `title` | the title |
-| `people` | the set of person ids |
-| `tracks` | the set of track names |
+| `time` | `{start, end}` |
+| `place` | `{hotel, room}` |
+| `title` | the titles |
+| `people` | the sorted person ids: the sets are compared |
+| `tracks` | the sorted track names: the sets are compared |
 | `description` | none: the line says only that it changed |
 
 There is no line for tags, for an order alone, for a stale carry-forward
@@ -445,11 +459,84 @@ or for a change of group membership; two ids merging make a `merged` line,
 under the id merged away. The first run records every event as `added`.
 
 `cause` is `source` or `code`. When the run's SHA differs from the previous
-run's, the diff builds the previous `source.json` with the new code, in
-memory - writing nothing, and leaving a cache miss untagged - and splits
-the diff exactly; otherwise every line is `source`. The three `cancelled`
-flags a parser change flipped in 2026's v9 (history section 5) are the
-kind of change it now calls `code`.
+run's, the orchestrator builds the previous `source.json` and `ids.jsonl`
+with the new code, in memory - writing nothing, and leaving a cache miss
+untagged - and hands the diff that document, and each line takes one
+cause, `source` winning where the code and the source both changed its
+kind; otherwise every line is `source`. The three `cancelled` flags a
+parser change flipped in 2026's v9 (history section 5) are the kind of
+change it now calls `code`.
+
+### The diff, as built
+
+`diff_stage.py` (PR 7b). `diff(previous, current, *, stamp, sha,
+attribution=None)` takes the previous and this run's documents as
+`events_v2.build()` returns them - `previous` None on a season's first
+run - and returns the lines, `changed_at`, `changes_logged` and the lines
+counted by kind and by cause. It is pure: no file, no git and no clock;
+the stamp and the sha are arguments. It reads no ledger.
+
+- **The kinds, exactly.** One line per id and kind. `added` is an id
+  `previous` does not hold, and its only line, even where `current` carries
+  it removed. `removed` and `restored` are the `removed` flag's two ways,
+  and `cancelled` and `uncancelled` the `cancelled` flag's; none carries
+  `from` or `to`. `time` is `start` or `end` changed, `from` and `to`
+  `{start, end}`; `place` is `hotel` or `room` changed, `from` and `to`
+  `{hotel, room}` - `level`, `rooms` and `place` alone make no line;
+  `title` carries the two titles; `people` compares the sets of person ids,
+  `from` and `to` the sorted ids; `tracks` compares the sets of tracks,
+  `from` and `to` sorted. `events.v2.json` keeps the merge's order of the
+  tracks, and the log compares sets, so an order alone is no change.
+  `description` carries neither.
+- **merged** is read from the survivors' `was`: an id `previous` holds and
+  `current` does not, which a current event's `was` names, is merged into
+  that event, `to` its id. `was` names every id merged into its event all
+  season, directly or through another; an id `previous` never held was
+  logged in the run it left, and is not logged again.
+- **The cause.** The caller builds the attribution document: the previous
+  run's rows through the current code, `events_v2.attribution()` (The
+  build, as built), from the orchestrator's snapshot of the previous
+  `source.json` and `ids.jsonl`. A line is `source` where the attribution
+  and `current` differ on its kind, and `code` where they agree - an event
+  the attribution lacks differs on every kind, and a merged id agrees only
+  where the attribution merges it into the same survivor. One cause per id
+  and kind: where the code and the source both changed a kind, the line is
+  `source`, its `from` and `to` the whole change, previous to current. With
+  no attribution - the SHA unchanged - every line is `source`.
+- **What attribution cannot see.** It sees the build's code and data - the
+  registries, the venues file, the cache and the version - and not the
+  fetch's. A change to the fetch's parsing or its repair reaches the raw
+  rows themselves, so the previous rows, rebuilt, still read the old way,
+  and the change reads as `source`: 2026's v8 → v9 descriptions (303) and
+  v4 → v5's seven mojibake titles were such changes. `last-run.json`'s
+  `fetch_code_changed` (PR 8's, below) marks such a run.
+- **The line** is `{run, sha, id, kind, from, to, cause}`, in that order:
+  `from` and `to` only for `time`, `place`, `title`, `people` and `tracks`,
+  and `to` alone for `merged`. The lines sort by run, id and kind, in string
+  order. `render(lines)` writes them as `changes.jsonl` holds them: one
+  compact JSON object a line, UTF-8, LF after each; the orchestrator
+  appends the text.
+- **`changed_at`** is the run's stamp where `current`'s digest differs from
+  `previous`'s, or `previous` is None, and `previous`'s `changed_at`
+  otherwise. A digest can move with no line - a retag, a works-block edit,
+  or, in a live year, a source that reorders an event's tracks, since a
+  group of one keeps the source's order - and `changed_at` moves with it:
+  harmless. `changes_logged` is the count of lines.
+- **Fatal**, as `DiffError` naming the ids: an id `previous` holds that
+  `current` does not and that no current event's `was` names. The ledger
+  deletes no line in season (#43), so an event leaves the file by a merge
+  or not at all: the input is corrupt, which is not a degradation (#44).
+  Reading the snapshot is the orchestrator's, and so is its fatal rule:
+  the previous `events.v2.json` unreadable, unless it is absent and the
+  ledger empty.
+- **The check** on a live year's committed files, `tests/test_changes_log.py`,
+  skipped until its first run commits: the log's last stamp equals
+  `last-run.json`'s `changed_at` when `changes_logged` is above zero, and is
+  no later when it is zero; every id the log names is in `events.v2.json`,
+  removed or not, or is a `merged` line's id; the lines sort. The prefix
+  check - each commit's log beginning with the last commit's, byte for
+  byte - is PR 8's workflow step, where the old bytes exist: CI's checkout
+  is shallow.
 
 ## `season.json`
 
@@ -615,6 +702,16 @@ frozen year they are pipeline faults. The venue counters - hotels unknown,
 rooms unresolved - are curation state, reported and never held; PR 6
 built the test that way, `tests/test_zero_hold.py`.
 
+**`fetch_code_changed`** (PR 8's). The attribution sees the build's code
+and data, not the fetch's (The diff, as built). So the orchestrator's one
+git call becomes two - `git rev-parse HEAD`, the run's SHA, and
+`git diff --name-only` against the SHA `last-run.json` records of the run
+before - and `last-run.json` gains `fetch_code_changed: true` when
+`scraper.py`, `tag_key.py` or `requirements.txt` changed between the two
+runs. That run's lines still read as the diff finds them; the push job
+reads the flag and suppresses that run. Identity and sync's design gets
+the same sentence when it opens.
+
 ## The stages
 
 Five stages, in this order (#44). `--from <stage>` starts at any of them,
@@ -628,7 +725,7 @@ and handed down: a run that fetches records it as `fetched_at`, and a
 | ids | `source.json`; `ids.jsonl`; `season.json` | `ids.jsonl` | the ledger absent or a line of it malformed; a removed row no line holds; a source id in two lines' `source_ids`; new ids above `new_ids` × the lines before the run, skipped when the ledger was empty | an UNSURE match candidate or merge |
 | tag | the build's front door and the merge; the cache; the registries; `season.json` | the cache; `works.json`, by mint | a registry failing validation; the rows' ids not the ledger's, or no `last-run.json`, in a live year (The tag stage, as built) | the model unreachable, rate-limited or malformed after one retry; a mint that fails; inputs past the request cap, left for a later run |
 | build | the merge; `venues.json`; the registries; the cache; `season.json`; the run's `fetched_at`, or `last-run.json`'s after `--from` | `events.v2.json`, in memory | `venues.json`, a registry or the cache failing to load; a row with no id; the rows' ids not the ledger's, or no `last-run.json`, in a live year (The build, as built); any exception; its two builds in memory differing | a hotel unknown; a room unresolved; a cache miss; a work name unresolved; a track unknown |
-| diff | the previous and the new `events.v2.json`; `ids.jsonl`; the previous `source.json`, for a code cause | the change lines and `changed_at`, in memory | the previous `events.v2.json` unreadable, unless it is absent and the ledger empty | - |
+| diff | the previous `events.v2.json`, from the orchestrator's snapshot, and the new one; for a code cause, the attribution document the orchestrator builds from the snapshot's `source.json` and `ids.jsonl` (The diff, as built) - no ledger | the change lines and `changed_at`, in memory | an event that leaves the file by no merge; reading the snapshot is the orchestrator's, with its rule: the previous `events.v2.json` unreadable, unless it is absent and the ledger empty | - |
 
 After the diff the orchestrator writes `events.v2.json`, `changes.jsonl`
 and `last-run.json` together, so no file has two writers, and makes the
@@ -642,7 +739,7 @@ commit - only when a committed file's bytes change, its own stamp aside
 | `events.v2.json` | Rebuilt from the raw file, the registries, the cache, `season.json` and `venues.json`: equal to the committed file (#34, #46) - by pytest, and by the pipeline job's `python events_v2.py --season data/2026/season.json --check`. | Rebuilt from `source.json`, `ids.jsonl`, the registries, `venues.json`, the cache and `season.json`, its two stamps read from `last-run.json`, not from the file it checks: equal to it, byte for byte (#42). |
 | census v2 | Rendered afresh: equal to the committed report (#35). | Not held; run on demand (#46). |
 | `venues.json` | Loads and validates (#45). | Loads and validates (#45). |
-| `changes.jsonl` | - | `last-run.json`'s `changes_logged` against the log's last stamp; every id the log names in `events.v2.json`, removed or not, or a `merged` line's id; each commit's log beginning with the last commit's (#47). |
+| `changes.jsonl` | - | `last-run.json`'s `changes_logged` against the log's last stamp; every id the log names in `events.v2.json`, removed or not, or a `merged` line's id; the lines sorted (`tests/test_changes_log.py`, skipped until the first run commits; #47). Each commit's log beginning with the last commit's is PR 8's workflow step, where the old bytes exist: CI's checkout is shallow. |
 | the counters | The tag and track counters held at zero on 2026's build, by `tests/test_zero_hold.py`; the venue counters reported, never held (#44). | - |
 | the tag cache | Every event's key, read through the front door and the merge, in the committed cache (`tests/test_tag_stage.py`). | - |
 | writes | The raw file refused, and the tag stage run with `--dry-run` only; the derived files rebuilt by an explicit command, never by a run (#46). | A run's, when it commits (#44). |
@@ -668,6 +765,7 @@ What CI cannot check:
   for `season.json` and `venues.json`, PR 3 for `source.json`, PR 4 for
   `ids.jsonl` and PR 6 for `events.v2.json`, above; `changes.jsonl` and
   `last-run.json` settle theirs with the PRs that write them.
-- The names the entries do not give: the SHA's key in a change line and
-  `last-run.json`'s counters (PRs 7b and 8), which read the tag stage's
-  result (The tag stage, as built) among the stages'.
+- The names the entries do not give: ~~the SHA's key in a change line~~ -
+  `sha`, PR 7b (The diff, as built) - and `last-run.json`'s counters
+  (PR 8), which read the tag stage's result (The tag stage, as built) and
+  the diff's among the stages'.
