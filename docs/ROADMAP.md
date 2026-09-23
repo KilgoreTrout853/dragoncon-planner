@@ -23,45 +23,59 @@ unset. There are no other dates.
 
 ## The tentpoles
 
-### 1. Pipeline shape — not opened; next after PR 6 (#37)
+### 1. Pipeline shape — designed (#41-#48); executing
 
-The stages, from fetch (behind #19's interface) through stable ids (#7),
-dedupe, venue resolution, parse and tag, the schedule diff (#20), to writing
-JSON. Also year rollover (#13), scrape cadence, failing loudly, and
-`scrape.yml`'s path onto a PR-only branch (#26). Only the fetch and id stages
-wait on outreach (#19).
+The design is DECISIONS #41-#48 and `docs/pipeline/contract.md`, the data
+contract; the evidence is `docs/pipeline/history-2026.md` and
+`docs/venues/census-2026.md`. Outreach is deferred, and the raw row is the
+seam a feed would plug into (#41). The sequence:
+
+1. Docs: DECISIONS #41-#48, the contract, this file.
+2. `season.json` and `venues.json`, for 2027 and for 2026 (frozen,
+   `PROMPT_VERSION` 1): the migration from `docs/venues/registry.json`,
+   which retires; the Mart's levels; the walk table; the loader and its CI
+   test; the room census retargeted at `venues.json`. Beside it, as
+   Discover housekeeping, census v2 counts a year's works block, not the
+   registry (#46).
+3. Fetch: `fetch()`, the raw row, `location` verbatim, failures named,
+   `stale`, the repair, `season.json` read. Testable against the live 2026
+   source with `--limit`.
+4. Ids, and the replay harness, with its report (#43).
+5. The venues step (#45).
+6. Build: the merge with sorted unions, `cancelled` read by the parse
+   step, tolerance, the digest, one event a line, `removed`, `stale`, the
+   place fields, untagged events. 2026's `events.v2.json` is rebuilt in
+   the new shape, so the client reads one shape.
+7. Tag and diff.
+8. The orchestrator, the run summary and the workflow, proven by a
+   dispatch run against the 2026 source with `--limit` into a scratch
+   branch.
+9. The 2027 client switch, after a design pass of its own; its pick
+   reconciliation reads `was` (#43).
+
+Identity and sync opens in design once PR 2 is running (#37).
 
 The Postgres mirror (#27) is the seam: Pipeline shape ends at writing JSON,
 and the mirror is designed with Identity and sync's schema and row-level
 security (#37).
 
-Venue resolution is Places' data half, which moves here (#37): the room
-census, the venues file and room resolution.
+Venue resolution is Places' data half, which moved here (#37): the room
+census is done (PR #33), and the venues file and room resolution are #45.
 
-For 2027 the scraper stops deriving `speakers` from the description's
-"Additional Panelists:" line, or uses `parse_stage.split_panelists` for it;
-the parse stage owns that parse.
+The raw row's `speakers` is the detail page's Speakers section only, never
+derived from the description; the parse stage owns the "Additional
+Panelists:" line (#42).
 
 The scraper decodes these feeds correctly; the source sends the text
-double-encoded, and the 2027 pipeline repairs it before whitespace is
-collapsed. 45 events of the frozen 2026
+double-encoded, and the 2027 pipeline repairs it inside fetch, before
+whitespace is collapsed (#44). 45 events of the frozen 2026
 file - 27 in Role-Playing Games (Campaign), 17 in Role-Playing Games
 (Non-Campaign) and 1 in Collectible Card Games - carry text that was UTF-8
 read as cp1252 ("â€“" for "–", "FaerÃ»n" for "Faerûn"), found by
 `draft_people.looks_double_encoded`. The frozen file keeps them as scraped,
 and so does `events.v2.json`, which copies the scraped fields as they are.
 
-How works the tagger mints during a live scrape season get reviewed is an
-open question for this tentpole: 2026's were reviewed in one pass after the
-con (`docs/discover/works-review-2.json`). `tag_stage.py` keeps no record of
-what it minted: a minted row is `reviewed: false` and nothing more, so census
-v2 can only infer that the tagger made it.
-
-`PROMPT_VERSION` is one global and the cache is per year, so a bump for 2027
-makes every 2026 key miss and fails the 2026 build, unless the version
-becomes per year.
-
-### 2. Discover — in design and execution
+### 2. Discover — built (PRs 1-6); search tuning (#36) held until the first pass of the whole app
 
 What an event is about, who is on it, and how a reader finds it: the
 registries, tags v2, and the derived file. Rests on #22 and #31-#33, and
@@ -79,17 +93,17 @@ evidence is `docs/discover/census-2026.md`. The sequence:
 6. The client switch - built, in two: the works block in `events.v2.json`
    (DECISIONS #38), and the client reading it, plumbing and parity (#36,
    #39).
-7. Search tuning, by an eval harness (#36) - next.
+7. Search tuning, by an eval harness (#36) - held until the first pass of
+   the whole app (Held).
 
 ### 3. Places — designed; its data half is Pipeline shape's
 
 Where a room is: the venues file, room resolution, and the building view
 down to the level. Rests on #21, #27 and #28. The venues registry is merged
-(`docs/venues/`). Only the room census is held, and it moves under Pipeline
-shape with the venues file and room resolution, as its venue-resolution
-stage (#37). The building view's drawings and sketches continue on the
-side, in chat; a Places PR beyond what the pipeline absorbs takes a free
-review slot.
+(`docs/venues/`), and the room census is done (PR #33); the venues file
+and room resolution are Pipeline shape's venue resolution (#37, #45). The
+building view's drawings and sketches continue on the side, in chat; a
+Places PR beyond what the pipeline absorbs takes a free review slot.
 
 ### 4. Identity and sync — not opened; designed while Pipeline shape executes (#37)
 
@@ -123,12 +137,44 @@ Open here, unscheduled (#40):
 
 ## Held
 
-- The room census. Pipeline shape's venue-resolution stage (#37).
-- `scrape.yml`'s path onto a PR-only branch (#26). Pipeline shape.
-- Dragon Con outreach (#19). It goes out when Pipeline shape's design opens
-  (#37). It gates the fetch and id stages of the pipeline, and nothing else.
+- The room census: done (PR #33, `docs/venues/census-2026.md`).
+- `scrape.yml`'s path onto a PR-only branch (#26): decided by #48.
+- Dragon Con outreach (#19): deferred, with no date (#41).
 - The worker's new-schedule notice. `sw.js` tells the page of a new schedule
   only when `generated_at` moves, and every rebuild of `events.v2.json` -
-  after a registry or a cache edit - keeps it (#39). The fix is a deterministic content
-  digest the build writes - nothing volatile (#35) - or the HTTP ETag:
-  Delivery's call, with an input from Pipeline shape.
+  after a registry or a cache edit - keeps it (#39). Pipeline shape's input
+  is the file's `digest`, with nothing volatile in it (#42); whether the
+  worker reads that or the HTTP ETag is still Delivery's call.
+- Search tuning by the eval harness (#36): held until the first pass of the
+  whole app. The call postdates #37, which ran it once PR 6 had landed.
+
+## Flags
+
+- The freeze date is tied to the source's posting date for the 2027
+  schedule.
+- Curation gaps (#45): the Westin's current, post-renovation floor plan
+  (`docs/venues/README.md`); the Marriott's Atrium and Marquis note
+  entries, and the Courtland Grand's room list (room census, section 5).
+- The listing-only pre-check, held as a fallback against 403 pushback
+  (#48).
+- Census v2's 45 double-encoded events are 51 with the six lone "Â" events
+  PR #33's encoding probe found: Discover housekeeping in `census_v2.py`.
+
+## Checklist
+
+Steps taken by hand, beside the PRs rather than in them:
+
+- Beside PR 2: `anthropic_key.txt` deleted from the working copy, and its
+  key revoked (#46).
+- Before PR 8's dispatch run: `ANTHROPIC_API_KEY` as a repository secret,
+  with a spend cap in the console (#46); the fine-grained token as a
+  secret, expiring the month after the con (#48); "Allow auto-merge"
+  turned on (#48).
+- Before the freeze: `client` and `pipeline` required on the `main`
+  ruleset (#48).
+- At the freeze: `next` merges to `main`, the default branch flips to
+  `main`, and the freeze PR flips the scrape's target (#48).
+- After the con: the `next` ruleset allows merge commits beside squash,
+  `main` merges back into `next` as a merge commit, and the default branch
+  and the target flip back (#48).
+- Every year: a new token (#48).
