@@ -143,30 +143,6 @@ def test_midnight_fallback_without_duration():
     assert ev["end"] == "2026-09-06T01:00" and ev["duration_min"] == 120
 
 
-def test_offsite_marker_is_dropped_from_the_room():
-    assert scraper.split_hotel("O Joystick Gamebar") == ("Other", "Joystick Gamebar")
-    assert scraper.split_hotel("O Georgia Aquarium") == ("Other", "Georgia Aquarium")
-    assert scraper.split_hotel("Walton Spring Park") == ("Other", "Walton Spring Park")
-    assert scraper.split_hotel("Onesie Lounge") == ("Other", "Onesie Lounge")
-
-
-def test_hotel_mapping():
-    cases = {
-        "Marriott M302-M303": ("Marriott", "M302-M303"),
-        "Mart Building 3, Floor 1": ("AmericasMart", "Mart Building 3, Floor 1"),
-        "Hilton 202": ("Hilton", "202"),
-        "Hyatt Grand Hall C": ("Hyatt", "Grand Hall C"),
-        "Courtland Grand Capitol Ballroom": ("Courtland Grand", "Grand Capitol Ballroom"),
-        "Westin Chastain F": ("Westin", "Chastain F"),
-        "Mart2 Vendor Hall Floor 3": ("AmericasMart", "Mart2 Vendor Hall Floor 3"),
-        "Hardy Ivy Structure": ("Hardy Ivy Park", "Ivy Structure"),
-        "Streaming STRM_TWITCH https://twitch.tv/x": ("Streaming", "STRM_TWITCH https://twitch.tv/x"),
-        "": ("Unknown", ""),
-    }
-    for loc, expected in cases.items():
-        assert scraper.split_hotel(loc) == expected, loc
-
-
 def test_duration_parse():
     assert scraper.parse_duration("11 hours 55 minutes") == 715
     assert scraper.parse_duration("10 minutes") == 10

@@ -19,7 +19,7 @@ within a hotel; an alias is written folded - case-folded, single spaces - and na
 minute values are present; `order` is distinct among the hotels and among a hotel's levels; and no object holds a key
 the file does not know, because a typo in a hand-edited file would otherwise do nothing, silently.
 
-Helpers only. The hotel and room split and the reading of a room string are PR 5's venues step, not this file's.
+Helpers only. The hotel and room split and the reading of a room string are the venues stage's, venues_stage.py.
 Standard library; nothing here writes a file or prints.
 """
 

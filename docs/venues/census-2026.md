@@ -1,413 +1,405 @@
-# Room census - the 2026 schedule against the venues file
+# Room census - the 2026 schedule read by the venues stage
 
 Written by `tools/room_census.py` from `data/2026/events.json` (`generated_at` 2026-09-07T12:50:19+00:00) and `data/2026/venues.json`. Do not edit it by hand; run the script again.
 
-A record, not held fresh by CI: an edit to the venues file leaves it stale until the script runs again. It states facts and changes nothing. A room string matches a room of the venues file exactly, case-folded, or an alias of the file names it - a confirmed mapping - or neither; every other reading here is a proposal, `UNSURE`, and applied to nothing - the venues file and the scraper are as they were. The combined-string rules and the other shapes are counted apart. Lists run by count, descending, then by string; room strings are in code spans, so that their spacing and punctuation show.
+A record, not held fresh by CI: an edit to the venues file leaves it stale until the script runs again. Every location of the schedule is read by the venues stage, `venues_stage.py` (DECISIONS #45), as build will read it - its split, then an alias, an exact room, the grammar's rules, a level, the hotel alone, or no place at a placeless hotel - and this report has no reading of its own. Section 4 is the curation worklist; an alias added to the venues file moves a string out of it. Lists run by events, descending, then by string; room strings are in code spans, so that their spacing and punctuation show, and a bare key's empty room string shows as (hotel only).
 
 ## 0. Headline
 
-1. Events: 3,459, at 9 hotel values; distinct (hotel, room) strings: 180.
-2. An exact match to a room of the venues file: 34 strings, 929 events (26.9%). Through an alias: 0 strings, 0 events (0.0%).
-3. A combined-string rule alone, UNSURE: 31 strings, 728 events (21.0%). One of the other shapes, UNSURE: 37 strings, 376 events (10.9%).
-4. No reading: 78 strings, 1,426 events (41.2%).
-5. Hotels in the schedule and not in the venues file: none. In the venues file with no rooms: Hardy Ivy Park (36 events), Streaming (62 events), Other (25 events), Unknown (0 events).
-6. The Courtland prefix: 151 of 151 Courtland Grand events, 9 of 9 strings (section 6).
-7. Rooms of the venues file: 219, and 13 notes on its levels. Matched exactly: 34. Through an alias: 0. Named only by a proposal: 73. Neither: 112.
-8. `split_hotel(location)` gives the stored hotel and room for 3,459 of 3,459 events.
+1. Events: 3,459, at 9 hotels; distinct readings of a room string: 177.
+2. By place: `exact` 970 (28.0%), 38 strings; `alias` 0 (0.0%), 0 strings; `rule` 693 (20.0%), 54 strings; `level` 981 (28.4%), 20 strings; `hotel` 730 (21.1%), 53 strings; `none` 85 (2.5%), 12 strings.
+3. The run's venue counters on this schedule: rooms unresolved 686 - the strings read at the hotel alone (section 4); hotels unknown 5 - the locations no key begins. Not counted: 44 events at an unplaced room of the venues file, read at its hotel, and the 981 events placed at a level, by design.
+4. Split again: 2 events of a placeless hotel, read at a placed one (section 4).
+5. Alias hits: 0 events, in 0 strings.
+6. Rooms of the venues file: 218 on levels, and 1 unplaced room. Reached by a reading: 103; by none: 115 (section 5).
 
 ## 1. Hotels
 
-Events by how their room string reads: `exact`, an exact match to a room of the venues file; `alias`, an alias of the file, a confirmed mapping; `combined`, a combined-string rule alone; `shape`, one of the other shapes, alone or with a combined rule; `none`, no reading. `combined` and `shape` are proposals, UNSURE.
+Events by place, per hotel as the stage reads it: `exact`, a room of the venues file; `alias`, an alias of the file; `rule`, a rule of the grammar; `level`, a level and no room; `hotel`, the hotel alone; `none`, a placeless hotel. `strings` counts distinct readings.
 
-| hotel | in the venues file | levels | rooms | events | strings | exact | alias | combined | shape | none |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| AmericasMart | yes | 6 | 6 | 1,033 | 43 | 0 | 0 | 18 | 0 | 1,015 |
-| Hilton | yes | 6 | 69 | 739 | 37 | 378 | 0 | 210 | 28 | 123 |
-| Marriott | yes | 4 | 34 | 606 | 20 | 343 | 0 | 114 | 60 | 89 |
-| Hyatt | yes | 6 | 54 | 498 | 36 | 194 | 0 | 217 | 55 | 32 |
-| Westin | yes | 8 | 54 | 309 | 19 | 14 | 0 | 169 | 81 | 45 |
-| Courtland Grand | yes | 1 | 2 | 151 | 9 | 0 | 0 | 0 | 151 | 0 |
-| Streaming | yes | 0 | 0 | 62 | 4 | 0 | 0 | 0 | 0 | 62 |
-| Hardy Ivy Park | yes | 0 | 0 | 36 | 2 | 0 | 0 | 0 | 0 | 36 |
-| Other | yes | 0 | 0 | 25 | 10 | 0 | 0 | 0 | 1 | 24 |
+| hotel | levels | rooms | events | strings | exact | alias | rule | level | hotel | none |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Marriott | 4 | 34 | 607 | 20 | 343 | 0 | 119 | 0 | 145 | 0 |
+| Hyatt | 6 | 54 | 499 | 36 | 195 | 0 | 268 | 0 | 36 | 0 |
+| Hilton | 6 | 68 | 739 | 36 | 334 | 0 | 210 | 0 | 195 | 0 |
+| Courtland Grand | 1 | 2 | 151 | 9 | 52 | 0 | 0 | 0 | 99 | 0 |
+| Westin | 8 | 54 | 309 | 19 | 14 | 0 | 56 | 20 | 219 | 0 |
+| AmericasMart | 6 | 6 | 1,033 | 43 | 32 | 0 | 40 | 961 | 0 | 0 |
+| Hardy Ivy Park | 0 | 0 | 36 | 2 | 0 | 0 | 0 | 0 | 36 | 0 |
+| Streaming | 0 | 0 | 62 | 4 | 0 | 0 | 0 | 0 | 0 | 62 |
+| Other | 0 | 0 | 23 | 8 | 0 | 0 | 0 | 0 | 0 | 23 |
 
-- Hotels of the venues file with no events: Unknown. `Unknown`, the scraper's hotel for an empty location: 0 events.
+- Hotels of the venues file with no events: Unknown.
 
-## 2. The readings
+## 2. The rules
 
-Every reading is UNSURE. A string takes each rewrite that fits it - the Courtland prefix, a doubled string, a hotel prefix, a leading "The", in that order - and then one reading: an exact match, a combined-string rule, partitions, the hotel alone, a floor alone, or a room and a trailing note. Last, a room the venues file lacks is tried with its number written the other way (numeral style). A string counts under each rule it takes; the example is the rule's most frequent string. An alias is read before all of these, and is no proposal.
+Each rule of the grammar, in the order the stage tries it, with the strings and events it read: a string read by a chain of rules - a rewrite and then a rule - counts under each. The example is the rule's most frequent string.
 
-| rule | kind | example | strings | events |
-| --- | --- | --- | ---: | ---: |
-| numeric run | combined string | `212-214` (Hilton) | 12 | 292 |
-| roman run | combined string | `Centennial II-IV` (Hyatt) | 4 | 58 |
-| letter run | combined string | `Augusta E-H` (Westin) | 8 | 111 |
-| number run | combined string | `Galleria 2-3` (Hilton) | 7 | 144 |
-| letters together | combined string | `Hanover AB` (Hyatt) | 6 | 169 |
-| number and letters | combined string | `Mart2 203BC` (AmericasMart) | 1 | 18 |
-| slash list | combined string | `Savannah Ballroom B/C` (Westin) | 1 | 1 |
-| word pair | combined string | `International North-South` (Hyatt) | 1 | 5 |
-| Courtland prefix | other shape | `Grand Athens` (Courtland Grand) | 9 | 151 |
-| doubled | other shape | `Hanover C-E Hanover C-E` (Hyatt) | 2 | 3 |
-| hotel prefix | other shape | `H-Piedmont` (Hyatt) | 5 | 44 |
-| leading The | other shape | `The Learning Center` (Hyatt) | 1 | 17 |
-| partitions | other shape | `Atrium Ballroom` (Marriott) | 6 | 100 |
-| hotel only | other shape | `Hyatt` (Hyatt) | 3 | 5 |
-| floor only | other shape | `14th Floor` (Westin) | 5 | 27 |
-| trailing note | other shape | `Grand CG-Grand Ballroom A-F Hallway Table near Grand section B` (Courtland Grand) | 8 | 8 |
-| numeral style | other shape | `Augusta 1-2` (Westin) | 2 | 36 |
+| rule | example | strings | events |
+| --- | --- | ---: | ---: |
+| re-split | `Lobby` (Hyatt) | 2 | 2 |
+| mart building | `Building 3, Floor 2` (AmericasMart) | 2 | 845 |
+| mart vendor hall | `Vendor Hall Floor 1 The Missing Volume booth 1300` (AmericasMart) | 16 | 116 |
+| mart room | `203E BERNINA/Atlanta Sewing Center - 3300` (AmericasMart) | 21 | 22 |
+| numeric run | `212-214` (Hilton) | 9 | 241 |
+| roman run | `Centennial II-IV` (Hyatt) | 3 | 57 |
+| letter run | `Hanover C-E` (Hyatt) | 2 | 16 |
+| number run | `Galleria 2-3` (Hilton) | 2 | 65 |
+| letters together | `Hanover AB` (Hyatt) | 5 | 141 |
+| number and letters | `203BC` (AmericasMart) | 1 | 18 |
+| slash list | - | 0 | 0 |
+| word pair | `International North-South` (Hyatt) | 1 | 5 |
+| doubled | `Hanover C-E Hanover C-E` (Hyatt) | 1 | 2 |
+| leading The | `The Learning Center` (Hyatt) | 1 | 17 |
+| hotel initials | `H-Piedmont` (Hyatt) | 1 | 28 |
+| partitions | `Atrium Ballroom` (Marriott) | 3 | 79 |
+| hotel only | (hotel only) (Hyatt) | 2 | 4 |
+| floor only | `14th Floor` (Westin) | 2 | 20 |
+| trailing note | `Grand Hall C Black Phoenix Alchemy - Vendors - Booth 1419` (Hyatt) | 4 | 4 |
 
 ## 3. Room strings, hotel by hotel
 
-`exact` is the level of an exact match to a room of the venues file. `reading` is a proposal, UNSURE - but an alias's, which the file confirms: the rules a string took and the rooms it names. `in the venues file` counts those rooms in the file, and where they are; for a string with no reading, whether a note on one of the hotel's levels names it.
+The room string the stage read - the location less its hotel's key - with its place, its level and its rooms, and the rules that read it, or, at the hotel alone with none, why: an unplaced room, or no reading. The Mart shows its whole location as its room; the string here is what was read.
 
-### AmericasMart - 1,033 events, 43 strings
+### Marriott - 607 events, 20 strings
 
-| string | events | exact | reading | in the venues file |
-| --- | ---: | --- | --- | --- |
-| `Mart Building 3, Floor 2` | 463 | - | - | - |
-| `Mart Building 3, Floor 1` | 382 | - | - | - |
-| `Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300` | 62 | - | - | - |
-| `Mart2 203BC` | 18 | - | number and letters → `Mart2 203B`, `Mart2 203C` | 0 of 2 |
-| `Mart2 204J` | 18 | - | - | - |
-| `Mart2 Vendor Hall Floor 3 Sidestreet Book Market - booth 3201` | 18 | - | - | - |
-| `Mart2 203A` | 13 | - | - | - |
-| `Mart2 Vendor Hall Floor 3 Aethon Books booth 3500` | 12 | - | - | - |
-| `Mart2 Vendor Hall Floor 2 The Marigolden Bookshelf - booth 2506` | 10 | - | - | - |
-| `Mart2 Vendor Hall Floor 2 Scorched Design - booth 2105` | 3 | - | - | - |
-| `Mart2 203E BERNINA/Atlanta Sewing Center - 3300` | 2 | - | - | - |
-| `Mart2 203D` | 1 | - | - | - |
-| `Mart2 203D AllTru2U - booth #2626` | 1 | - | - | - |
-| `Mart2 203D ArtCarp - James Farmer - booth # 1718` | 1 | - | - | - |
-| `Mart2 203D ArtCarp - booth # 1718` | 1 | - | - | - |
-| `Mart2 203D Bats in the Belfry Goods/ Nightwing Brooms Table-E` | 1 | - | - | - |
-| `Mart2 203D Black Phoenix Alchemy Lab - booth 1417/1419` | 1 | - | - | - |
-| `Mart2 203D By Quiltoni booth #3230` | 1 | - | - | - |
-| `Mart2 203D Cut/Sew booth # 2720` | 1 | - | - | - |
-| `Mart2 203D Maddy with Cut/Sew - booth # 2720` | 1 | - | - | - |
-| `Mart2 203D Paperbones - Table # B75` | 1 | - | - | - |
-| `Mart2 203D The Evergreen Burrow - booth # 2627` | 1 | - | - | - |
-| `Mart2 203D by STL Ocarina - booth #2404` | 1 | - | - | - |
-| `Mart2 203E By BERNINA-booth 3300, Oliso-booth 3307` | 1 | - | - | - |
-| `Mart2 203E By Bernina booth-3300/Atlanta Sewing Center` | 1 | - | - | - |
-| `Mart2 203E Room By BERNINA - 3300 & Oliso-3307` | 1 | - | - | - |
-| `Mart2 203E Room by BERNINA/Atlanta Sewing Center- 3300` | 1 | - | - | - |
-| `Mart2 203E Room by Bernina booth 3300/ Oliso-3307` | 1 | - | - | - |
-| `Mart2 203E Room by Bernina booth 3300/Atlanta Sewing Center` | 1 | - | - | - |
-| `Mart2 203E Room by Bernina booth 3300/Oliso-booth 3307` | 1 | - | - | - |
-| `Mart2 203E Room by: BERNINA/Atlanta Sewing Center - 3300` | 1 | - | - | - |
-| `Mart2 203E Room by:BERNINA/Atlanta Sewing Center -Booth: 3300` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 1 The MIssing Volume booth 1300` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 1 The Missing Volume - booth 1300` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 1 The Missing Volume Booth 1300` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 1 The Missing Voume booth 1300` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 2 J&J Collectables - Booth #2529` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 2 J&J Collectables - booth # 2529` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 2 J&J Collectibles - booth #2529` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 2 J&J Collectibles booth 2529` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 2 Scorched Design - Booth 2105` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 2 The Marigolden Bookshelf - Booth 2506` | 1 | - | - | - |
-| `Mart2 Vendor Hall Floor 3 Sidestreet Book Market - book 3201` | 1 | - | - | - |
+| string | events | place | level | rooms | rules |
+| --- | ---: | --- | --- | --- | --- |
+| `International Hall South` | 318 | exact | international | `International Hall South` | - |
+| `L401-L403` | 35 | rule | lobby | `L401`, `L402`, `L403` | numeric run |
+| `Atrium Ballroom` | 32 | rule | atrium | `Atrium Ballroom A`, `Atrium Ballroom B`, `Atrium Ballroom C`, `Atrium Ballroom D` | partitions |
+| `M103-M105` | 31 | hotel | - | - | no reading |
+| `M302-M303` | 29 | rule | marquis | `M302`, `M303` | numeric run |
+| `A706` | 26 | hotel | - | - | no reading |
+| `A707` | 25 | hotel | - | - | no reading |
+| `M301` | 25 | exact | marquis | `M301` | - |
+| `Imperial Ballroom` | 22 | rule | marquis | `Imperial Ballroom A`, `Imperial Ballroom B` | partitions |
+| `A704` | 21 | hotel | - | - | no reading |
+| `A601-A602` | 19 | hotel | - | - | no reading |
+| `A703` | 10 | hotel | - | - | no reading |
+| `A708` | 5 | hotel | - | - | no reading |
+| `10th` | 3 | hotel | - | - | no reading |
+| `Imperial Ballroom` | 1 | rule | marquis | `Imperial Ballroom A`, `Imperial Ballroom B` | re-split + partitions |
+| `Marquis` | 1 | hotel | - | - | no reading |
+| `Marquis Foyer` | 1 | hotel | - | - | no reading |
+| `Marquis Foyer Near Salon D doors` | 1 | hotel | - | - | no reading |
+| `Skyline South- 10th Floor` | 1 | hotel | - | - | no reading |
+| `Walk of Fame` | 1 | hotel | - | - | no reading |
 
-### Hilton - 739 events, 37 strings
+### Hyatt - 499 events, 36 strings
 
-| string | events | exact | reading | in the venues file |
-| --- | ---: | --- | --- | --- |
-| `202` | 45 | Level 2 (`l2`) | - | - |
-| `Steps B` | 44 | unplaced | - | - |
-| `203` | 43 | Level 2 (`l2`) | - | - |
-| `Galleria 5` | 41 | Galleria (`galleria`) | - | - |
-| `Steps A` | 37 | - | - | - |
-| `Galleria 6` | 36 | Galleria (`galleria`) | - | - |
-| `212-214` | 35 | - | numeric run → `212`, `213`, `214` | 3 of 3: Level 2 (`l2`) |
-| `Galleria 2-3` | 33 | - | number run → `Galleria 2`, `Galleria 3` | 2 of 2: Galleria (`galleria`) |
-| `313-314` | 32 | - | numeric run → `313`, `314` | 2 of 2: Level 3 (`l3`) |
-| `209-211` | 31 | - | numeric run → `209`, `210`, `211` | 3 of 3: Level 2 (`l2`) |
-| `Steps E` | 31 | - | - | - |
-| `Galleria 7` | 30 | Galleria (`galleria`) | - | - |
-| `Crystal Ballroom` | 29 | - | - | - |
-| `302-304` | 28 | - | numeric run → `302`, `303`, `304` | 3 of 3: Level 3 (`l3`) |
-| `Galleria 1` | 27 | Galleria (`galleria`) | - | - |
-| `204-207` | 26 | - | numeric run → `204`, `205`, `206`, `207` | 4 of 4: Level 2 (`l2`) |
-| `Galleria 4` | 26 | Galleria (`galleria`) | - | - |
-| `309-312` | 21 | - | numeric run → `309`, `310`, `311`, `312` | 4 of 4: Level 3 (`l3`) |
-| `Grand East` | 21 | Level 2 (`l2`) | - | - |
-| `Steps G` | 20 | - | - | - |
-| `Grand West` | 19 | Level 2 (`l2`) | - | - |
-| `Salon` | 19 | - | partitions → `Salon East`, `Salon West` | 2 of 2: Level 2 (`l2`) |
-| `Galleria 8` | 18 | Galleria (`galleria`) | - | - |
-| `301` | 7 | Level 3 (`l3`) | - | - |
-| `307` | 7 | Level 3 (`l3`) | - | - |
-| `306` | 6 | Level 3 (`l3`) | - | - |
-| `3rd floor outside deck` | 6 | - | - | - |
-| `404-405` | 4 | - | numeric run → `404`, `405` | 2 of 2: Level 4 (`l4`) |
-| `305` | 3 | Level 3 (`l3`) | - | - |
-| `308` | 3 | Level 3 (`l3`) | - | - |
-| `5th` | 3 | - | floor only: floor 5, no room | no level named for it |
-| `315` | 2 | Level 3 (`l3`) | - | - |
-| `Hilton-Salon` | 2 | - | hotel prefix + partitions → `Salon East`, `Salon West` | 2 of 2: Level 2 (`l2`) |
-| `12th` | 1 | - | floor only: floor 12, no room | no level named for it |
-| `212-214 Hilton, 3rd floor outdoor deck` | 1 | - | trailing note + numeric run → `212`, `213`, `214` | 3 of 3: Level 2 (`l2`) |
-| `Crystal Ballroom Crystal Ballroom` | 1 | - | doubled → `Crystal Ballroom` | 0 of 1 |
-| `Galleria 2-3 Hallway Just outside Galleria 2-3` | 1 | - | trailing note + number run → `Galleria 2`, `Galleria 3` | 2 of 2: Galleria (`galleria`) |
+| string | events | place | level | rooms | rules |
+| --- | ---: | --- | --- | --- | --- |
+| `Hanover AB` | 31 | rule | exhibit | `Hanover A`, `Hanover B` | letters together |
+| `Concourse` | 30 | hotel | - | - | no reading |
+| `Embassy EF` | 30 | rule | tower-ll2 | `Embassy E`, `Embassy F` | letters together |
+| `Hanover FG` | 30 | rule | exhibit | `Hanover F`, `Hanover G` | letters together |
+| `Centennial II-IV` | 29 | rule | ballroom | `Centennial II`, `Centennial III`, `Centennial IV` | roman run |
+| `H-Piedmont` | 28 | rule | acc | `Piedmont` | hotel initials |
+| `Embassy CD` | 26 | rule | tower-ll2 | `Embassy C`, `Embassy D` | letters together |
+| `Regency VI-VII` | 26 | rule | ballroom | `Regency VI`, `Regency VII` | roman run |
+| `Inman` | 25 | exact | acc | `Inman` | - |
+| `Embassy AB` | 24 | rule | tower-ll2 | `Embassy A`, `Embassy B` | letters together |
+| `Centennial I` | 20 | exact | ballroom | `Centennial I` | - |
+| `International North` | 17 | exact | tower-ll1 | `International North` | - |
+| `Spring` | 17 | exact | acc | `Spring` | - |
+| `The Learning Center` | 17 | rule | ballroom | `Learning Center` | leading The |
+| `Grand Hall C` | 15 | exact | exhibit | `Grand Hall C` | - |
+| `International South` | 15 | exact | tower-ll1 | `International South` | - |
+| `Marietta` | 15 | exact | acc | `Marietta` | - |
+| `Hanover C-E` | 14 | rule | exhibit | `Hanover C`, `Hanover D`, `Hanover E` | letter run |
+| `Embassy G` | 13 | exact | tower-ll2 | `Embassy G` | - |
+| `Regency V` | 13 | exact | ballroom | `Regency V` | - |
+| `Grand Hall D` | 12 | exact | exhibit | `Grand Hall D` | - |
+| `Roswell` | 10 | exact | acc | `Roswell` | - |
+| `Techwood` | 10 | exact | acc | `Techwood` | - |
+| `Kennesaw` | 9 | exact | acc | `Kennesaw` | - |
+| `International North-South` | 5 | rule | tower-ll1 | `International North`, `International South` | word pair |
+| `Vinings` | 4 | exact | acc | `Vinings` | - |
+| (hotel only) | 3 | hotel | - | - | hotel only |
+| `Centennial I-IV` | 2 | rule | ballroom | `Centennial I`, `Centennial II`, `Centennial III`, `Centennial IV` | roman run |
+| `Hanover C-E Hanover C-E` | 2 | rule | exhibit | `Hanover C`, `Hanover D`, `Hanover E` | doubled + letter run |
+| `Centennial II-IV Table outside the room` | 1 | hotel | - | - | no reading |
+| `Grand Hall C Black Phoenix Alchemy - Vendors - Booth 1419` | 1 | rule | exhibit | `Grand Hall C` | trailing note |
+| `Grand Hall D Poole Booth 111 for more info!!` | 1 | rule | exhibit | `Grand Hall D` | trailing note |
+| `Grand Hall D Poole booth 111 for more information` | 1 | rule | exhibit | `Grand Hall D` | trailing note |
+| `Grand Hall D Sponsored By Copic` | 1 | rule | exhibit | `Grand Hall D` | trailing note |
+| `Grand Hall Main Floor` | 1 | hotel | - | - | no reading |
+| `Lobby` | 1 | hotel | - | - | re-split |
 
-### Marriott - 606 events, 20 strings
+### Hilton - 739 events, 36 strings
 
-| string | events | exact | reading | in the venues file |
-| --- | ---: | --- | --- | --- |
-| `International Hall South` | 318 | International Level (`international`) | - | - |
-| `L401-L403` | 35 | - | numeric run → `L401`, `L402`, `L403` | 3 of 3: Lobby Level (`lobby`) |
-| `Atrium Ballroom` | 32 | - | partitions → `Atrium Ballroom A`, `Atrium Ballroom B`, `Atrium Ballroom C`, `Atrium Ballroom D` | 4 of 4: Atrium Level (`atrium`) |
-| `M103-M105` | 31 | - | numeric run → `M103`, `M104`, `M105` | 0 of 3 |
-| `M302-M303` | 29 | - | numeric run → `M302`, `M303` | 2 of 2: Marquis Level (`marquis`) |
-| `A706` | 26 | - | - | - |
-| `A707` | 25 | - | - | named in the note `A601-A602 … A707 (confirm the runs)` |
-| `M301` | 25 | Marquis Level (`marquis`) | - | - |
-| `Imperial Ballroom` | 22 | - | partitions → `Imperial Ballroom A`, `Imperial Ballroom B` | 2 of 2: Marquis Level (`marquis`) |
-| `A704` | 21 | - | - | - |
-| `A601-A602` | 19 | - | numeric run → `A601`, `A602` | 0 of 2; `A601`, `A602` are named in the note `A601-A602 … A707 (confirm the runs)` |
-| `A703` | 8 | - | - | - |
-| `A708` | 5 | - | - | - |
-| `10th` | 3 | - | floor only: floor 10, no room | no level named for it |
-| `Marriott-A703` | 2 | - | hotel prefix → `A703` | 0 of 1 |
-| `Marquis` | 1 | - | partitions → `Marquis Ballroom A`, `Marquis Ballroom B`, `Marquis Ballroom C`, `Marquis Ballroom D` | 4 of 4: Marquis Level (`marquis`) |
-| `Marquis Foyer` | 1 | - | - | - |
-| `Marquis Foyer Near Salon D doors` | 1 | - | - | - |
-| `Skyline South- 10th Floor` | 1 | - | - | - |
-| `Walk of Fame` | 1 | - | - | - |
-
-### Hyatt - 498 events, 36 strings
-
-| string | events | exact | reading | in the venues file |
-| --- | ---: | --- | --- | --- |
-| `Hanover AB` | 31 | - | letters together → `Hanover A`, `Hanover B` | 2 of 2: Exhibit Level (LL2) (`exhibit`) |
-| `Concourse` | 30 | - | - | - |
-| `Embassy EF` | 30 | - | letters together → `Embassy E`, `Embassy F` | 2 of 2: International Tower · LL2 (`tower-ll2`) |
-| `Hanover FG` | 30 | - | letters together → `Hanover F`, `Hanover G` | 2 of 2: Exhibit Level (LL2) (`exhibit`) |
-| `Centennial II-IV` | 29 | - | roman run → `Centennial II`, `Centennial III`, `Centennial IV` | 3 of 3: Ballroom Level (LL1) (`ballroom`) |
-| `H-Piedmont` | 28 | - | hotel prefix → `Piedmont` | 1 of 1: Atlanta Conference Center (LL3) (`acc`) |
-| `Embassy CD` | 26 | - | letters together → `Embassy C`, `Embassy D` | 2 of 2: International Tower · LL2 (`tower-ll2`) |
-| `Regency VI-VII` | 26 | - | roman run → `Regency VI`, `Regency VII` | 2 of 2: Ballroom Level (LL1) (`ballroom`) |
-| `Inman` | 25 | Atlanta Conference Center (LL3) (`acc`) | - | - |
-| `Embassy AB` | 24 | - | letters together → `Embassy A`, `Embassy B` | 2 of 2: International Tower · LL2 (`tower-ll2`) |
-| `Centennial I` | 20 | Ballroom Level (LL1) (`ballroom`) | - | - |
-| `International North` | 17 | International Tower · LL1 (`tower-ll1`) | - | - |
-| `Spring` | 17 | Atlanta Conference Center (LL3) (`acc`) | - | - |
-| `The Learning Center` | 17 | - | leading The → `Learning Center` | 1 of 1: Ballroom Level (LL1) (`ballroom`) |
-| `Grand Hall C` | 15 | Exhibit Level (LL2) (`exhibit`) | - | - |
-| `International South` | 15 | International Tower · LL1 (`tower-ll1`) | - | - |
-| `Marietta` | 15 | Atlanta Conference Center (LL3) (`acc`) | - | - |
-| `Hanover C-E` | 14 | - | letter run → `Hanover C`, `Hanover D`, `Hanover E` | 3 of 3: Exhibit Level (LL2) (`exhibit`) |
-| `Embassy G` | 13 | International Tower · LL2 (`tower-ll2`) | - | - |
-| `Regency V` | 13 | Ballroom Level (LL1) (`ballroom`) | - | - |
-| `Grand Hall D` | 11 | Exhibit Level (LL2) (`exhibit`) | - | - |
-| `Roswell` | 10 | Atlanta Conference Center (LL3) (`acc`) | - | - |
-| `Techwood` | 10 | Atlanta Conference Center (LL3) (`acc`) | - | - |
-| `Kennesaw` | 9 | Atlanta Conference Center (LL3) (`acc`) | - | - |
-| `International North-South` | 5 | - | word pair → `International North`, `International South` | 2 of 2: International Tower · LL1 (`tower-ll1`) |
-| `Vinings` | 4 | Atlanta Conference Center (LL3) (`acc`) | - | - |
-| `Hyatt` | 3 | - | hotel only: the hotel, no room | the hotel |
-| `Centennial I-IV` | 2 | - | roman run → `Centennial I`, `Centennial II`, `Centennial III`, `Centennial IV` | 4 of 4: Ballroom Level (LL1) (`ballroom`) |
-| `Hanover C-E Hanover C-E` | 2 | - | doubled + letter run → `Hanover C`, `Hanover D`, `Hanover E` | 3 of 3: Exhibit Level (LL2) (`exhibit`) |
-| `Centennial II-IV Table outside the room` | 1 | - | trailing note + roman run → `Centennial II`, `Centennial III`, `Centennial IV` | 3 of 3: Ballroom Level (LL1) (`ballroom`) |
-| `Grand Hall C Black Phoenix Alchemy - Vendors - Booth 1419` | 1 | - | trailing note → `Grand Hall C` | 1 of 1: Exhibit Level (LL2) (`exhibit`) |
-| `Grand Hall D Poole Booth 111 for more info!!` | 1 | - | trailing note → `Grand Hall D` | 1 of 1: Exhibit Level (LL2) (`exhibit`) |
-| `Grand Hall D Poole booth 111 for more information` | 1 | - | trailing note → `Grand Hall D` | 1 of 1: Exhibit Level (LL2) (`exhibit`) |
-| `Grand Hall D Sponsored By Copic` | 1 | - | trailing note → `Grand Hall D` | 1 of 1: Exhibit Level (LL2) (`exhibit`) |
-| `Grand Hall Main Floor` | 1 | - | - | - |
-| `Hall D` | 1 | - | - | - |
-
-### Westin - 309 events, 19 strings
-
-| string | events | exact | reading | in the venues file |
-| --- | ---: | --- | --- | --- |
-| `Chastain 1-2` | 32 | - | number run → `Chastain 1`, `Chastain 2` | 2 of 2: Chastain (level unknown) (`chastain`) |
-| `Augusta E-H` | 28 | - | letter run → `Augusta E`, `Augusta F`, `Augusta G`, `Augusta H` | 0 of 4 |
-| `Chastain DE` | 28 | - | letters together → `Chastain D`, `Chastain E` | 0 of 2 |
-| `Peachtree 1-2` | 25 | - | number run → `Peachtree 1`, `Peachtree 2` | 0 of 2 |
-| `Peachtree Ballroom` | 24 | - | partitions → `Peachtree Ballroom A`, `Peachtree Ballroom B`, `Peachtree Ballroom C`, `Peachtree Ballroom D`, `Peachtree Ballroom E`, `Peachtree Ballroom F` | 6 of 6: Eighth Floor (`f8`) |
-| `Chastain F` | 21 | - | - | - |
-| `Augusta 1-2` | 20 | - | number run + numeral style → `Augusta I`, `Augusta II` | 2 of 2: Seventh Floor (`f7`) |
-| `Augusta A-B` | 20 | - | letter run → `Augusta A`, `Augusta B` | 0 of 2 |
-| `Chastain H-I-J` | 20 | - | letter run → `Chastain H`, `Chastain I`, `Chastain J` | 0 of 3 |
-| `Augusta 3` | 16 | - | numeral style → `Augusta III` | 1 of 1: Seventh Floor (`f7`) |
-| `Augusta C-D` | 15 | - | letter run → `Augusta C`, `Augusta D` | 0 of 2 |
-| `Chastain G` | 14 | - | - | - |
-| `Overlook` | 14 | Sixth Floor (`f6`) | - | - |
-| `14th Floor` | 12 | - | floor only: floor 14, no room | Fourteenth Floor (`f14`) |
-| `12th Floor` | 8 | - | floor only: floor 12, no room | Twelfth Floor (`f12`) |
-| `Augusta C` | 5 | - | - | - |
-| `Augusta D` | 5 | - | - | - |
-| `Savannah Ballroom B/C` | 1 | - | slash list → `Savannah Ballroom B`, `Savannah Ballroom C` | 0 of 2 |
-| `Westin` | 1 | - | hotel only: the hotel, no room | the hotel |
+| string | events | place | level | rooms | rules |
+| --- | ---: | --- | --- | --- | --- |
+| `202` | 45 | exact | l2 | `202` | - |
+| `Steps B` | 44 | hotel | - | - | unplaced |
+| `203` | 43 | exact | l2 | `203` | - |
+| `Galleria 5` | 41 | exact | galleria | `Galleria 5` | - |
+| `Steps A` | 37 | hotel | - | - | no reading |
+| `Galleria 6` | 36 | exact | galleria | `Galleria 6` | - |
+| `212-214` | 35 | rule | l2 | `212`, `213`, `214` | numeric run |
+| `Galleria 2-3` | 33 | rule | galleria | `Galleria 2`, `Galleria 3` | number run |
+| `313-314` | 32 | rule | l3 | `313`, `314` | numeric run |
+| `209-211` | 31 | rule | l2 | `209`, `210`, `211` | numeric run |
+| `Steps E` | 31 | hotel | - | - | no reading |
+| `Galleria 7` | 30 | exact | galleria | `Galleria 7` | - |
+| `Crystal Ballroom` | 29 | hotel | - | - | no reading |
+| `302-304` | 28 | rule | l3 | `302`, `303`, `304` | numeric run |
+| `Galleria 1` | 27 | exact | galleria | `Galleria 1` | - |
+| `204-207` | 26 | rule | l2 | `204`, `205`, `206`, `207` | numeric run |
+| `Galleria 4` | 26 | exact | galleria | `Galleria 4` | - |
+| `309-312` | 21 | rule | l3 | `309`, `310`, `311`, `312` | numeric run |
+| `Grand East` | 21 | exact | l2 | `Grand East` | - |
+| `Salon` | 21 | hotel | - | - | no reading |
+| `Steps G` | 20 | hotel | - | - | no reading |
+| `Grand West` | 19 | exact | l2 | `Grand West` | - |
+| `Galleria 8` | 18 | exact | galleria | `Galleria 8` | - |
+| `301` | 7 | exact | l3 | `301` | - |
+| `307` | 7 | exact | l3 | `307` | - |
+| `306` | 6 | exact | l3 | `306` | - |
+| `3rd floor outside deck` | 6 | hotel | - | - | no reading |
+| `404-405` | 4 | rule | l4 | `404`, `405` | numeric run |
+| `305` | 3 | exact | l3 | `305` | - |
+| `308` | 3 | exact | l3 | `308` | - |
+| `5th` | 3 | hotel | - | - | no reading |
+| `315` | 2 | exact | l3 | `315` | - |
+| `12th` | 1 | hotel | - | - | no reading |
+| `212-214 Hilton, 3rd floor outdoor deck` | 1 | hotel | - | - | no reading |
+| `Crystal Ballroom Crystal Ballroom` | 1 | hotel | - | - | no reading |
+| `Galleria 2-3 Hallway Just outside Galleria 2-3` | 1 | hotel | - | - | no reading |
 
 ### Courtland Grand - 151 events, 9 strings
 
-| string | events | exact | reading | in the venues file |
-| --- | ---: | --- | --- | --- |
-| `Grand Athens` | 35 | - | Courtland prefix → `Athens` | 1 of 1: levels unknown (`unknown`) |
-| `Grand Macon` | 30 | - | Courtland prefix → `Macon` | 0 of 1 |
-| `Grand Augusta` | 23 | - | Courtland prefix → `Augusta` | 0 of 1 |
-| `Grand Atlanta 1-2` | 19 | - | Courtland prefix + number run → `Atlanta 1`, `Atlanta 2` | 0 of 2 |
-| `Grand Capitol Ballroom` | 17 | - | Courtland prefix → `Capitol Ballroom` | 1 of 1: levels unknown (`unknown`) |
-| `Grand Atlanta 3-4` | 14 | - | Courtland prefix + number run → `Atlanta 3`, `Atlanta 4` | 0 of 2 |
-| `Grand CG-Grand Ballroom A-F` | 11 | - | Courtland prefix + hotel prefix + letter run → `Grand Ballroom A`, `Grand Ballroom B`, `Grand Ballroom C`, `Grand Ballroom D`, `Grand Ballroom E`, `Grand Ballroom F` | 0 of 6 |
-| `Grand CG-Grand Ballroom A-F Hallway Table near Grand section B` | 1 | - | Courtland prefix + hotel prefix + trailing note + letter run → `Grand Ballroom A`, `Grand Ballroom B`, `Grand Ballroom C`, `Grand Ballroom D`, `Grand Ballroom E`, `Grand Ballroom F` | 0 of 6 |
-| `Grand Pool and Courtyard` | 1 | - | Courtland prefix → `Pool and Courtyard` | 0 of 1 |
+| string | events | place | level | rooms | rules |
+| --- | ---: | --- | --- | --- | --- |
+| `Athens` | 35 | exact | unknown | `Athens` | - |
+| `Macon` | 30 | hotel | - | - | no reading |
+| `Augusta` | 23 | hotel | - | - | no reading |
+| `Atlanta 1-2` | 19 | hotel | - | - | no reading |
+| `Capitol Ballroom` | 17 | exact | unknown | `Capitol Ballroom` | - |
+| `Atlanta 3-4` | 14 | hotel | - | - | no reading |
+| `CG-Grand Ballroom A-F` | 11 | hotel | - | - | no reading |
+| `CG-Grand Ballroom A-F Hallway Table near Grand section B` | 1 | hotel | - | - | no reading |
+| `Pool and Courtyard` | 1 | hotel | - | - | no reading |
 
-### Streaming - 62 events, 4 strings
+### Westin - 309 events, 19 strings
 
-In the venues file with no rooms: it has no levels.
+| string | events | place | level | rooms | rules |
+| --- | ---: | --- | --- | --- | --- |
+| `Chastain 1-2` | 32 | rule | chastain | `Chastain 1`, `Chastain 2` | number run |
+| `Augusta E-H` | 28 | hotel | - | - | no reading |
+| `Chastain DE` | 28 | hotel | - | - | no reading |
+| `Peachtree 1-2` | 25 | hotel | - | - | no reading |
+| `Peachtree Ballroom` | 24 | rule | f8 | `Peachtree Ballroom A`, `Peachtree Ballroom B`, `Peachtree Ballroom C`, `Peachtree Ballroom D`, `Peachtree Ballroom E`, `Peachtree Ballroom F` | partitions |
+| `Chastain F` | 21 | hotel | - | - | no reading |
+| `Augusta 1-2` | 20 | hotel | - | - | no reading |
+| `Augusta A-B` | 20 | hotel | - | - | no reading |
+| `Chastain H-I-J` | 20 | hotel | - | - | no reading |
+| `Augusta 3` | 16 | hotel | - | - | no reading |
+| `Augusta C-D` | 15 | hotel | - | - | no reading |
+| `Chastain G` | 14 | hotel | - | - | no reading |
+| `Overlook` | 14 | exact | f6 | `Overlook` | - |
+| `14th Floor` | 12 | level | f14 | - | floor only |
+| `12th Floor` | 8 | level | f12 | - | floor only |
+| `Augusta C` | 5 | hotel | - | - | no reading |
+| `Augusta D` | 5 | hotel | - | - | no reading |
+| (hotel only) | 1 | hotel | - | - | hotel only |
+| `Savannah Ballroom B/C` | 1 | hotel | - | - | no reading |
 
-| string | events | exact | reading | in the venues file |
-| --- | ---: | --- | --- | --- |
-| `STRM_TWITCH https://www.twitch.tv/dcdigitalmedia` | 29 | - | - | - |
-| `STRM_TWITCH https://www.twitch.tv/dcdigitalmedia2` | 25 | - | - | - |
-| `STRM_FBL https://www.facebook.com/DCUrbanFantasy` | 7 | - | - | - |
-| `STRM_FBL` | 1 | - | - | - |
+### AmericasMart - 1,033 events, 43 strings
+
+| string | events | place | level | rooms | rules |
+| --- | ---: | --- | --- | --- | --- |
+| `Building 3, Floor 2` | 463 | level | b3f2 | - | mart building |
+| `Building 3, Floor 1` | 382 | level | b3f1 | - | mart building |
+| `Vendor Hall Floor 1 The Missing Volume booth 1300` | 62 | level | b2-vendor-f1 | - | mart vendor hall |
+| `203BC` | 18 | rule | b2-rooms | `203B`, `203C` | number and letters |
+| `204J` | 18 | exact | b2-rooms | `204J` | - |
+| `Vendor Hall Floor 3 Sidestreet Book Market - booth 3201` | 18 | level | b2-vendor-f3 | - | mart vendor hall |
+| `203A` | 13 | exact | b2-rooms | `203A` | - |
+| `Vendor Hall Floor 3 Aethon Books booth 3500` | 12 | level | b2-vendor-f3 | - | mart vendor hall |
+| `Vendor Hall Floor 2 The Marigolden Bookshelf - booth 2506` | 10 | level | b2-vendor-f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 Scorched Design - booth 2105` | 3 | level | b2-vendor-f2 | - | mart vendor hall |
+| `203E BERNINA/Atlanta Sewing Center - 3300` | 2 | rule | b2-rooms | `203E` | mart room |
+| `203D` | 1 | exact | b2-rooms | `203D` | - |
+| `203D AllTru2U - booth #2626` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203D ArtCarp - James Farmer - booth # 1718` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203D ArtCarp - booth # 1718` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203D Bats in the Belfry Goods/ Nightwing Brooms Table-E` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203D Black Phoenix Alchemy Lab - booth 1417/1419` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203D By Quiltoni booth #3230` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203D Cut/Sew booth # 2720` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203D Maddy with Cut/Sew - booth # 2720` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203D Paperbones - Table # B75` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203D The Evergreen Burrow - booth # 2627` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203D by STL Ocarina - booth #2404` | 1 | rule | b2-rooms | `203D` | mart room |
+| `203E By BERNINA-booth 3300, Oliso-booth 3307` | 1 | rule | b2-rooms | `203E` | mart room |
+| `203E By Bernina booth-3300/Atlanta Sewing Center` | 1 | rule | b2-rooms | `203E` | mart room |
+| `203E Room By BERNINA - 3300 & Oliso-3307` | 1 | rule | b2-rooms | `203E` | mart room |
+| `203E Room by BERNINA/Atlanta Sewing Center- 3300` | 1 | rule | b2-rooms | `203E` | mart room |
+| `203E Room by Bernina booth 3300/ Oliso-3307` | 1 | rule | b2-rooms | `203E` | mart room |
+| `203E Room by Bernina booth 3300/Atlanta Sewing Center` | 1 | rule | b2-rooms | `203E` | mart room |
+| `203E Room by Bernina booth 3300/Oliso-booth 3307` | 1 | rule | b2-rooms | `203E` | mart room |
+| `203E Room by: BERNINA/Atlanta Sewing Center - 3300` | 1 | rule | b2-rooms | `203E` | mart room |
+| `203E Room by:BERNINA/Atlanta Sewing Center -Booth: 3300` | 1 | rule | b2-rooms | `203E` | mart room |
+| `Vendor Hall Floor 1 The MIssing Volume booth 1300` | 1 | level | b2-vendor-f1 | - | mart vendor hall |
+| `Vendor Hall Floor 1 The Missing Volume - booth 1300` | 1 | level | b2-vendor-f1 | - | mart vendor hall |
+| `Vendor Hall Floor 1 The Missing Volume Booth 1300` | 1 | level | b2-vendor-f1 | - | mart vendor hall |
+| `Vendor Hall Floor 1 The Missing Voume booth 1300` | 1 | level | b2-vendor-f1 | - | mart vendor hall |
+| `Vendor Hall Floor 2 J&J Collectables - Booth #2529` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 J&J Collectables - booth # 2529` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 J&J Collectibles - booth #2529` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 J&J Collectibles booth 2529` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 Scorched Design - Booth 2105` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 The Marigolden Bookshelf - Booth 2506` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
+| `Vendor Hall Floor 3 Sidestreet Book Market - book 3201` | 1 | level | b2-vendor-f3 | - | mart vendor hall |
 
 ### Hardy Ivy Park - 36 events, 2 strings
 
-In the venues file with no rooms: it has no levels.
+| string | events | place | level | rooms | rules |
+| --- | ---: | --- | --- | --- | --- |
+| `Ivy Structure` | 35 | hotel | - | - | no reading |
+| `Terraces` | 1 | hotel | - | - | no reading |
 
-| string | events | exact | reading | in the venues file |
-| --- | ---: | --- | --- | --- |
-| `Ivy Structure` | 35 | - | - | - |
-| `- Terraces` | 1 | - | - | - |
+### Streaming - 62 events, 4 strings
 
-### Other - 25 events, 10 strings
+| string | events | place | level | rooms | rules |
+| --- | ---: | --- | --- | --- | --- |
+| `STRM_TWITCH https://www.twitch.tv/dcdigitalmedia` | 29 | none | - | - | - |
+| `STRM_TWITCH https://www.twitch.tv/dcdigitalmedia2` | 25 | none | - | - | - |
+| `STRM_FBL https://www.facebook.com/DCUrbanFantasy` | 7 | none | - | - | - |
+| `STRM_FBL` | 1 | none | - | - | - |
 
-In the venues file with no rooms: it has no levels.
+### Other - 23 events, 8 strings
 
-| string | events | exact | reading | in the venues file |
-| --- | ---: | --- | --- | --- |
-| `Joystick Gamebar` | 10 | - | - | - |
-| `Walton Spring Park` | 3 | - | - | - |
-| `Georgia Aquarium` | 2 | - | - | - |
-| `Offsite Center for Puppetry Arts` | 2 | - | - | - |
-| `Parade` | 2 | - | - | - |
-| `Peachtree Plaza` | 2 | - | - | - |
-| `200 Peachtree Whitehall Ballroom` | 1 | - | - | - |
-| `Other` | 1 | - | hotel only: the hotel, no room | the hotel |
-| `Other Hyatt Lobby` | 1 | - | - | - |
-| `Other Marriott, Imperial Ballroom` | 1 | - | - | - |
+| string | events | place | level | rooms | rules |
+| --- | ---: | --- | --- | --- | --- |
+| `Joystick Gamebar` | 10 | none | - | - | - |
+| `Walton Spring Park` | 3 | none | - | - | - |
+| `Georgia Aquarium` | 2 | none | - | - | - |
+| `Offsite Center for Puppetry Arts` | 2 | none | - | - | - |
+| `Parade` | 2 | none | - | - | - |
+| `Peachtree Plaza` | 2 | none | - | - | - |
+| (hotel only) | 1 | none | - | - | - |
+| `200 Peachtree Whitehall Ballroom` | 1 | none | - | - | - |
 
-## 4. Strings no rule reaches
+## 4. The worklist
 
-78 strings, 1,426 events: no exact match, no alias, and no reading in section 2.
+### Read at the hotel alone - rooms unresolved, 686
 
-| hotel | string | events | a note names it |
+No reading, or the hotel alone: counted by the run as rooms unresolved. An alias, a room or a key in the venues file is what moves one.
+
+| hotel | string | events | why |
 | --- | --- | ---: | --- |
-| AmericasMart | `Mart Building 3, Floor 2` | 463 | - |
-| AmericasMart | `Mart Building 3, Floor 1` | 382 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300` | 62 | - |
-| Hilton | `Steps A` | 37 | - |
-| Hardy Ivy Park | `Ivy Structure` | 35 | - |
-| Hilton | `Steps E` | 31 | - |
-| Hyatt | `Concourse` | 30 | - |
-| Hilton | `Crystal Ballroom` | 29 | - |
-| Streaming | `STRM_TWITCH https://www.twitch.tv/dcdigitalmedia` | 29 | - |
-| Marriott | `A706` | 26 | - |
-| Marriott | `A707` | 25 | `A601-A602 … A707 (confirm the runs)` |
-| Streaming | `STRM_TWITCH https://www.twitch.tv/dcdigitalmedia2` | 25 | - |
-| Marriott | `A704` | 21 | - |
-| Westin | `Chastain F` | 21 | - |
-| Hilton | `Steps G` | 20 | - |
-| AmericasMart | `Mart2 204J` | 18 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 3 Sidestreet Book Market - booth 3201` | 18 | - |
-| Westin | `Chastain G` | 14 | - |
-| AmericasMart | `Mart2 203A` | 13 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 3 Aethon Books booth 3500` | 12 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 2 The Marigolden Bookshelf - booth 2506` | 10 | - |
-| Other | `Joystick Gamebar` | 10 | - |
-| Marriott | `A703` | 8 | - |
-| Streaming | `STRM_FBL https://www.facebook.com/DCUrbanFantasy` | 7 | - |
-| Hilton | `3rd floor outside deck` | 6 | - |
-| Marriott | `A708` | 5 | - |
-| Westin | `Augusta C` | 5 | - |
-| Westin | `Augusta D` | 5 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 2 Scorched Design - booth 2105` | 3 | - |
-| Other | `Walton Spring Park` | 3 | - |
-| AmericasMart | `Mart2 203E BERNINA/Atlanta Sewing Center - 3300` | 2 | - |
-| Other | `Georgia Aquarium` | 2 | - |
-| Other | `Offsite Center for Puppetry Arts` | 2 | - |
-| Other | `Parade` | 2 | - |
-| Other | `Peachtree Plaza` | 2 | - |
-| AmericasMart | `Mart2 203D` | 1 | - |
-| AmericasMart | `Mart2 203D AllTru2U - booth #2626` | 1 | - |
-| AmericasMart | `Mart2 203D ArtCarp - James Farmer - booth # 1718` | 1 | - |
-| AmericasMart | `Mart2 203D ArtCarp - booth # 1718` | 1 | - |
-| AmericasMart | `Mart2 203D Bats in the Belfry Goods/ Nightwing Brooms Table-E` | 1 | - |
-| AmericasMart | `Mart2 203D Black Phoenix Alchemy Lab - booth 1417/1419` | 1 | - |
-| AmericasMart | `Mart2 203D By Quiltoni booth #3230` | 1 | - |
-| AmericasMart | `Mart2 203D Cut/Sew booth # 2720` | 1 | - |
-| AmericasMart | `Mart2 203D Maddy with Cut/Sew - booth # 2720` | 1 | - |
-| AmericasMart | `Mart2 203D Paperbones - Table # B75` | 1 | - |
-| AmericasMart | `Mart2 203D The Evergreen Burrow - booth # 2627` | 1 | - |
-| AmericasMart | `Mart2 203D by STL Ocarina - booth #2404` | 1 | - |
-| AmericasMart | `Mart2 203E By BERNINA-booth 3300, Oliso-booth 3307` | 1 | - |
-| AmericasMart | `Mart2 203E By Bernina booth-3300/Atlanta Sewing Center` | 1 | - |
-| AmericasMart | `Mart2 203E Room By BERNINA - 3300 & Oliso-3307` | 1 | - |
-| AmericasMart | `Mart2 203E Room by BERNINA/Atlanta Sewing Center- 3300` | 1 | - |
-| AmericasMart | `Mart2 203E Room by Bernina booth 3300/ Oliso-3307` | 1 | - |
-| AmericasMart | `Mart2 203E Room by Bernina booth 3300/Atlanta Sewing Center` | 1 | - |
-| AmericasMart | `Mart2 203E Room by Bernina booth 3300/Oliso-booth 3307` | 1 | - |
-| AmericasMart | `Mart2 203E Room by: BERNINA/Atlanta Sewing Center - 3300` | 1 | - |
-| AmericasMart | `Mart2 203E Room by:BERNINA/Atlanta Sewing Center -Booth: 3300` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 1 The MIssing Volume booth 1300` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 1 The Missing Volume - booth 1300` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 1 The Missing Volume Booth 1300` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 1 The Missing Voume booth 1300` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 2 J&J Collectables - Booth #2529` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 2 J&J Collectables - booth # 2529` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 2 J&J Collectibles - booth #2529` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 2 J&J Collectibles booth 2529` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 2 Scorched Design - Booth 2105` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 2 The Marigolden Bookshelf - Booth 2506` | 1 | - |
-| AmericasMart | `Mart2 Vendor Hall Floor 3 Sidestreet Book Market - book 3201` | 1 | - |
-| Hardy Ivy Park | `- Terraces` | 1 | - |
-| Hyatt | `Grand Hall Main Floor` | 1 | - |
-| Hyatt | `Hall D` | 1 | - |
-| Marriott | `Marquis Foyer` | 1 | - |
-| Marriott | `Marquis Foyer Near Salon D doors` | 1 | - |
-| Marriott | `Skyline South- 10th Floor` | 1 | - |
-| Marriott | `Walk of Fame` | 1 | - |
-| Other | `200 Peachtree Whitehall Ballroom` | 1 | - |
-| Other | `Other Hyatt Lobby` | 1 | - |
-| Other | `Other Marriott, Imperial Ballroom` | 1 | - |
-| Streaming | `STRM_FBL` | 1 | - |
+| Hilton | `Steps A` | 37 | no reading |
+| Hardy Ivy Park | `Ivy Structure` | 35 | no reading |
+| Hilton | `Steps E` | 31 | no reading |
+| Marriott | `M103-M105` | 31 | no reading |
+| Courtland Grand | `Macon` | 30 | no reading |
+| Hyatt | `Concourse` | 30 | no reading |
+| Hilton | `Crystal Ballroom` | 29 | no reading |
+| Westin | `Augusta E-H` | 28 | no reading |
+| Westin | `Chastain DE` | 28 | no reading |
+| Marriott | `A706` | 26 | no reading |
+| Marriott | `A707` | 25 | no reading |
+| Westin | `Peachtree 1-2` | 25 | no reading |
+| Courtland Grand | `Augusta` | 23 | no reading |
+| Hilton | `Salon` | 21 | no reading |
+| Marriott | `A704` | 21 | no reading |
+| Westin | `Chastain F` | 21 | no reading |
+| Hilton | `Steps G` | 20 | no reading |
+| Westin | `Augusta 1-2` | 20 | no reading |
+| Westin | `Augusta A-B` | 20 | no reading |
+| Westin | `Chastain H-I-J` | 20 | no reading |
+| Courtland Grand | `Atlanta 1-2` | 19 | no reading |
+| Marriott | `A601-A602` | 19 | no reading |
+| Westin | `Augusta 3` | 16 | no reading |
+| Westin | `Augusta C-D` | 15 | no reading |
+| Courtland Grand | `Atlanta 3-4` | 14 | no reading |
+| Westin | `Chastain G` | 14 | no reading |
+| Courtland Grand | `CG-Grand Ballroom A-F` | 11 | no reading |
+| Marriott | `A703` | 10 | no reading |
+| Hilton | `3rd floor outside deck` | 6 | no reading |
+| Marriott | `A708` | 5 | no reading |
+| Westin | `Augusta C` | 5 | no reading |
+| Westin | `Augusta D` | 5 | no reading |
+| Hilton | `5th` | 3 | no reading |
+| Hyatt | (hotel only) | 3 | hotel only |
+| Marriott | `10th` | 3 | no reading |
+| Courtland Grand | `CG-Grand Ballroom A-F Hallway Table near Grand section B` | 1 | no reading |
+| Courtland Grand | `Pool and Courtyard` | 1 | no reading |
+| Hardy Ivy Park | `Terraces` | 1 | no reading |
+| Hilton | `12th` | 1 | no reading |
+| Hilton | `212-214 Hilton, 3rd floor outdoor deck` | 1 | no reading |
+| Hilton | `Crystal Ballroom Crystal Ballroom` | 1 | no reading |
+| Hilton | `Galleria 2-3 Hallway Just outside Galleria 2-3` | 1 | no reading |
+| Hyatt | `Centennial II-IV Table outside the room` | 1 | no reading |
+| Hyatt | `Grand Hall Main Floor` | 1 | no reading |
+| Hyatt | `Lobby` | 1 | no reading |
+| Marriott | `Marquis` | 1 | no reading |
+| Marriott | `Marquis Foyer` | 1 | no reading |
+| Marriott | `Marquis Foyer Near Salon D doors` | 1 | no reading |
+| Marriott | `Skyline South- 10th Floor` | 1 | no reading |
+| Marriott | `Walk of Fame` | 1 | no reading |
+| Westin | (hotel only) | 1 | hotel only |
+| Westin | `Savannah Ballroom B/C` | 1 | no reading |
 
-## 5. Rooms of the venues file not seen
+### Unplaced rooms, read at their hotel
 
-Per level, the rooms no string matches exactly or through an alias: those a proposal names (UNSURE), and those nothing names. The notes on the levels are listed after.
+Rooms the venues file knows but places on no level: read at their hotel, and not counted as unresolved.
 
-| hotel | level | rooms | matched exactly or by an alias | named only by a proposal (UNSURE) | named by nothing |
-| --- | --- | ---: | ---: | --- | --- |
-| Marriott | International Level (`international`) | 15 | 1 | - | `International 1`, `International 2`, `International 3`, `International 4`, `International 5`, `International 6`, `International 7`, `International 8`, `International 9`, `International 10`, `International A`, `International B`, `International C`, `International Hall North` |
-| Marriott | Marquis Level (`marquis`) | 9 | 1 | `Marquis Ballroom A`, `Marquis Ballroom B`, `Marquis Ballroom C`, `Marquis Ballroom D`, `Imperial Ballroom A`, `Imperial Ballroom B`, `M302`, `M303` | - |
-| Marriott | Lobby Level (`lobby`) | 6 | 0 | `L401`, `L402`, `L403` | `L404`, `L405`, `L406` |
-| Marriott | Atrium Level (`atrium`) | 4 | 0 | `Atrium Ballroom A`, `Atrium Ballroom B`, `Atrium Ballroom C`, `Atrium Ballroom D` | - |
-| Hyatt | Atlanta Conference Center (LL3) (`acc`) | 20 | 7 | `Piedmont` | `Auburn`, `Baker`, `Courtland`, `Dunwoody`, `Edgewood`, `Fairlie`, `Greenbriar`, `Harris`, `Heritage Boardroom`, `Lenox`, `University`, `Williams` |
-| Hyatt | Exhibit Level (LL2) (`exhibit`) | 16 | 2 | `Hanover A`, `Hanover B`, `Hanover C`, `Hanover D`, `Hanover E`, `Hanover F`, `Hanover G` | `Grand Hall A`, `Grand Hall B`, `Chicago A`, `Chicago B`, `Chicago C`, `Chicago D`, `Chicago E` |
-| Hyatt | Ballroom Level (LL1) (`ballroom`) | 8 | 2 | `Centennial II`, `Centennial III`, `Centennial IV`, `Regency VI`, `Regency VII`, `Learning Center` | - |
-| Hyatt | International Tower · LL2 (`tower-ll2`) | 8 | 1 | `Embassy A`, `Embassy B`, `Embassy C`, `Embassy D`, `Embassy E`, `Embassy F` | `Embassy H` |
-| Hyatt | International Tower · LL1 (`tower-ll1`) | 2 | 2 | - | - |
-| Hilton | Galleria (`galleria`) | 8 | 6 | `Galleria 2`, `Galleria 3` | - |
-| Hilton | Level 1 (`l1`) | 6 | 0 | - | `Crystal A`, `Crystal B`, `Crystal C`, `Crystal D`, `Crystal E`, `Crystal F` |
-| Hilton | Level 2 (`l2`) | 32 | 4 | `204`, `205`, `206`, `207`, `209`, `210`, `211`, `212`, `213`, `214`, `Salon East`, `Salon West` | `201`, `208`, `215`, `216`, `217`, `218`, `219`, `220`, `221`, `222`, `223`, `224`, `Grand Ballroom A`, `Grand Ballroom B`, `Grand Ballroom C`, `Grand Ballroom D` |
-| Hilton | Level 3 (`l3`) | 15 | 6 | `302`, `303`, `304`, `309`, `310`, `311`, `312`, `313`, `314` | - |
-| Hilton | Level 4 (`l4`) | 7 | 0 | `404`, `405` | `401`, `402`, `403`, `406`, `407` |
-| Hilton | unplaced | 1 | 1 | - | - |
-| Courtland Grand | levels unknown (`unknown`) | 2 | 0 | `Capitol Ballroom`, `Athens` | - |
-| Westin | Chastain (level unknown) (`chastain`) | 2 | 0 | `Chastain 1`, `Chastain 2` | - |
-| Westin | Sixth Floor (`f6`) | 14 | 1 | - | `International`, `International Boardroom`, `American`, `Vinings I`, `Vinings II`, `A`, `B`, `C`, `D`, `E`, `F`, `G`, `H` |
-| Westin | Seventh Floor (`f7`) | 9 | 0 | `Augusta I`, `Augusta II`, `Augusta III` | `Atlanta Ballroom A`, `Atlanta Ballroom B`, `Atlanta Ballroom C`, `Atlanta Ballroom D`, `Atlanta Ballroom E`, `Atlanta Ballroom F` |
-| Westin | Eighth Floor (`f8`) | 8 | 0 | `Peachtree Ballroom A`, `Peachtree Ballroom B`, `Peachtree Ballroom C`, `Peachtree Ballroom D`, `Peachtree Ballroom E`, `Peachtree Ballroom F` | `Roswell I`, `Roswell II` |
-| Westin | Ninth Floor (`f9`) | 2 | 0 | - | `Peachtree G`, `Peachtree H` |
-| Westin | Tenth Floor (`f10`) | 3 | 0 | - | `Plaza Ballroom A`, `Plaza Ballroom B`, `Plaza Ballroom C` |
-| Westin | Twelfth Floor (`f12`) | 8 | 0 | - | `1201`, `1202`, `1203`, `1204`, `1205`, `1206`, `1207`, `1208` |
-| Westin | Fourteenth Floor (`f14`) | 8 | 0 | - | `1401`, `1402`, `1403`, `1404`, `1405`, `1406`, `1407`, `1408` |
-| AmericasMart | Building 2, meeting rooms (`b2-rooms`) | 6 | 0 | - | `203A`, `203B`, `203C`, `203D`, `203E`, `204J` |
+| hotel | string | events |
+| --- | --- | ---: |
+| Hilton | `Steps B` | 44 |
+
+### Locations no key begins - hotels unknown, 5
+
+Placed at Other, no place. Where a placed hotel's name holds the string, it is a candidate key of that hotel.
+
+| location | events | note |
+| --- | ---: | --- |
+| `Walton Spring Park` | 3 | - |
+| `Peachtree Plaza` | 2 | a candidate Westin key |
+
+### Placeless locations split again
+
+A placeless hotel's room string that begins with a placed hotel's key - its own key again aside - read at that hotel: the source's habit of writing a hotel inside an offsite location.
+
+| location | read at | string | place | events |
+| --- | --- | --- | ---: | ---: |
+| `O Other Hyatt Lobby` | Hyatt | `Lobby` | hotel | 1 |
+| `O Other Marriott, Imperial Ballroom` | Marriott | `Imperial Ballroom` | rule | 1 |
+
+## 5. Rooms of the venues file no string reaches
+
+Per level, the rooms a reading names - exactly, by an alias or by a rule - and those none names. The notes on the levels, and the unplaced rooms, are listed after.
+
+| hotel | level | rooms | reached | not reached |
+| --- | --- | ---: | ---: | --- |
+| Marriott | International Level (`international`) | 15 | 1 | `International 1`, `International 2`, `International 3`, `International 4`, `International 5`, `International 6`, `International 7`, `International 8`, `International 9`, `International 10`, `International A`, `International B`, `International C`, `International Hall North` |
+| Marriott | Marquis Level (`marquis`) | 9 | 5 | `Marquis Ballroom A`, `Marquis Ballroom B`, `Marquis Ballroom C`, `Marquis Ballroom D` |
+| Marriott | Lobby Level (`lobby`) | 6 | 3 | `L404`, `L405`, `L406` |
+| Marriott | Atrium Level (`atrium`) | 4 | 4 | - |
+| Hyatt | Atlanta Conference Center (LL3) (`acc`) | 20 | 8 | `Auburn`, `Baker`, `Courtland`, `Dunwoody`, `Edgewood`, `Fairlie`, `Greenbriar`, `Harris`, `Heritage Boardroom`, `Lenox`, `University`, `Williams` |
+| Hyatt | Exhibit Level (LL2) (`exhibit`) | 16 | 9 | `Grand Hall A`, `Grand Hall B`, `Chicago A`, `Chicago B`, `Chicago C`, `Chicago D`, `Chicago E` |
+| Hyatt | Ballroom Level (LL1) (`ballroom`) | 8 | 8 | - |
+| Hyatt | International Tower · LL2 (`tower-ll2`) | 8 | 7 | `Embassy H` |
+| Hyatt | International Tower · LL1 (`tower-ll1`) | 2 | 2 | - |
+| Hilton | Galleria (`galleria`) | 8 | 8 | - |
+| Hilton | Level 1 (`l1`) | 6 | 0 | `Crystal A`, `Crystal B`, `Crystal C`, `Crystal D`, `Crystal E`, `Crystal F` |
+| Hilton | Level 2 (`l2`) | 32 | 14 | `201`, `208`, `215`, `216`, `217`, `218`, `219`, `220`, `221`, `222`, `223`, `224`, `Grand Ballroom A`, `Grand Ballroom B`, `Grand Ballroom C`, `Grand Ballroom D`, `Salon East`, `Salon West` |
+| Hilton | Level 3 (`l3`) | 15 | 15 | - |
+| Hilton | Level 4 (`l4`) | 7 | 2 | `401`, `402`, `403`, `406`, `407` |
+| Courtland Grand | levels unknown (`unknown`) | 2 | 2 | - |
+| Westin | Chastain (level unknown) (`chastain`) | 2 | 2 | - |
+| Westin | Sixth Floor (`f6`) | 14 | 1 | `International`, `International Boardroom`, `American`, `Vinings I`, `Vinings II`, `A`, `B`, `C`, `D`, `E`, `F`, `G`, `H` |
+| Westin | Seventh Floor (`f7`) | 9 | 0 | `Augusta I`, `Augusta II`, `Augusta III`, `Atlanta Ballroom A`, `Atlanta Ballroom B`, `Atlanta Ballroom C`, `Atlanta Ballroom D`, `Atlanta Ballroom E`, `Atlanta Ballroom F` |
+| Westin | Eighth Floor (`f8`) | 8 | 6 | `Roswell I`, `Roswell II` |
+| Westin | Ninth Floor (`f9`) | 2 | 0 | `Peachtree G`, `Peachtree H` |
+| Westin | Tenth Floor (`f10`) | 3 | 0 | `Plaza Ballroom A`, `Plaza Ballroom B`, `Plaza Ballroom C` |
+| Westin | Twelfth Floor (`f12`) | 8 | 0 | `1201`, `1202`, `1203`, `1204`, `1205`, `1206`, `1207`, `1208` |
+| Westin | Fourteenth Floor (`f14`) | 8 | 0 | `1401`, `1402`, `1403`, `1404`, `1405`, `1406`, `1407`, `1408` |
+| AmericasMart | Building 2, meeting rooms (`b2-rooms`) | 6 | 6 | - |
 
 Notes on the levels:
 
@@ -425,142 +417,6 @@ Notes on the levels:
 - Courtland Grand, levels unknown (`unknown`): `(55 meeting rooms in two towers; list unknown)`
 - Westin, Chastain (level unknown) (`chastain`): `Chastain A … J (confirm)`
 
-## 6. `split_hotel`: the Courtland prefix and hyphenated locations
+Unplaced rooms:
 
-`split_hotel` takes the location's first word - up to a space or a comma - as the hotel, and the rest as the room.
-
-The Courtland prefix: 151 of the 151 Courtland Grand events have a location that begins "Courtland Grand ". The first word matches `courtland`, only that word is cut, and the room keeps "Grand ": `split_hotel('Courtland Grand Macon')` is `('Courtland Grand', 'Grand Macon')`.
-
-With "Grand " cut, UNSURE:
-
-| string | events | cut | then |
-| --- | ---: | --- | --- |
-| `Grand Athens` | 35 | `Athens` | an exact match |
-| `Grand Macon` | 30 | `Macon` | no reading |
-| `Grand Augusta` | 23 | `Augusta` | no reading |
-| `Grand Atlanta 1-2` | 19 | `Atlanta 1-2` | number run |
-| `Grand Capitol Ballroom` | 17 | `Capitol Ballroom` | an exact match |
-| `Grand Atlanta 3-4` | 14 | `Atlanta 3-4` | number run |
-| `Grand CG-Grand Ballroom A-F` | 11 | `CG-Grand Ballroom A-F` | hotel prefix + letter run |
-| `Grand CG-Grand Ballroom A-F Hallway Table near Grand section B` | 1 | `CG-Grand Ballroom A-F Hallway Table near Grand section B` | hotel prefix + trailing note + letter run |
-| `Grand Pool and Courtyard` | 1 | `Pool and Courtyard` | no reading |
-
-Hyphenated locations: 5 events at a hotel `split_hotel` recognised have a location whose first word joins the hotel to what follows with a hyphen. With nothing after that word the room is the whole location; with words after it, the word after the hyphen is lost:
-
-- `Hilton-Salon` (2): `('Hilton', 'Hilton-Salon')`
-- `Marriott-A703` (2): `('Marriott', 'Marriott-A703')`
-- `Hyatt-Grand Hall D` (1): `('Hyatt', 'Hall D')`
-
-The 2027 fix, proposed and applied to nothing: match the venue's name as the source writes it, longest first, and cut all of it - "Courtland Grand" before "Courtland" - splitting at a hyphen as well as at a space or a comma. "Courtland Grand Athens" would give ("Courtland Grand", "Athens"), "Hilton-Salon" ("Hilton", "Salon") and "Hyatt-Grand Hall D" ("Hyatt", "Grand Hall D"). The frozen file keeps the rooms it has (DECISIONS #13).
-
-## 7. Strings that reach each level
-
-Each level with the strings that reach it: by an exact match, through an alias, and by a proposal (UNSURE). A string whose rooms land on two levels is listed under both. Nothing here is written to the venues file.
-
-### Marriott - International Level (`international`)
-
-- By an exact match: `International Hall South` (318).
-- By a proposal, UNSURE: none.
-
-### Marriott - Marquis Level (`marquis`)
-
-- By an exact match: `M301` (25).
-- By a proposal, UNSURE: `M302-M303` (29), `Imperial Ballroom` (22), `Marquis` (1).
-
-### Marriott - Lobby Level (`lobby`)
-
-- By an exact match: none.
-- By a proposal, UNSURE: `L401-L403` (35).
-
-### Marriott - Atrium Level (`atrium`)
-
-- By an exact match: none.
-- By a proposal, UNSURE: `Atrium Ballroom` (32).
-
-### Hyatt - Atlanta Conference Center (LL3) (`acc`)
-
-- By an exact match: `Inman` (25), `Spring` (17), `Marietta` (15), `Roswell` (10), `Techwood` (10), `Kennesaw` (9), `Vinings` (4).
-- By a proposal, UNSURE: `H-Piedmont` (28).
-
-### Hyatt - Exhibit Level (LL2) (`exhibit`)
-
-- By an exact match: `Grand Hall C` (15), `Grand Hall D` (11).
-- By a proposal, UNSURE: `Hanover AB` (31), `Hanover FG` (30), `Hanover C-E` (14), `Hanover C-E Hanover C-E` (2), `Grand Hall C Black Phoenix Alchemy - Vendors - Booth 1419` (1), `Grand Hall D Poole Booth 111 for more info!!` (1), `Grand Hall D Poole booth 111 for more information` (1), `Grand Hall D Sponsored By Copic` (1).
-
-### Hyatt - Ballroom Level (LL1) (`ballroom`)
-
-- By an exact match: `Centennial I` (20), `Regency V` (13).
-- By a proposal, UNSURE: `Centennial II-IV` (29), `Regency VI-VII` (26), `The Learning Center` (17), `Centennial I-IV` (2), `Centennial II-IV Table outside the room` (1).
-
-### Hyatt - International Tower · LL2 (`tower-ll2`)
-
-- By an exact match: `Embassy G` (13).
-- By a proposal, UNSURE: `Embassy EF` (30), `Embassy CD` (26), `Embassy AB` (24).
-
-### Hyatt - International Tower · LL1 (`tower-ll1`)
-
-- By an exact match: `International North` (17), `International South` (15).
-- By a proposal, UNSURE: `International North-South` (5).
-
-### Hilton - Galleria (`galleria`)
-
-- By an exact match: `Galleria 5` (41), `Galleria 6` (36), `Galleria 7` (30), `Galleria 1` (27), `Galleria 4` (26), `Galleria 8` (18).
-- By a proposal, UNSURE: `Galleria 2-3` (33), `Galleria 2-3 Hallway Just outside Galleria 2-3` (1).
-
-### Hilton - Level 2 (`l2`)
-
-- By an exact match: `202` (45), `203` (43), `Grand East` (21), `Grand West` (19).
-- By a proposal, UNSURE: `212-214` (35), `209-211` (31), `204-207` (26), `Salon` (19), `Hilton-Salon` (2), `212-214 Hilton, 3rd floor outdoor deck` (1).
-
-### Hilton - Level 3 (`l3`)
-
-- By an exact match: `301` (7), `307` (7), `306` (6), `305` (3), `308` (3), `315` (2).
-- By a proposal, UNSURE: `313-314` (32), `302-304` (28), `309-312` (21).
-
-### Hilton - Level 4 (`l4`)
-
-- By an exact match: none.
-- By a proposal, UNSURE: `404-405` (4).
-
-### Courtland Grand - levels unknown (`unknown`)
-
-- By an exact match: none.
-- By a proposal, UNSURE: `Grand Athens` (35), `Grand Capitol Ballroom` (17).
-
-### Westin - Chastain (level unknown) (`chastain`)
-
-- By an exact match: none.
-- By a proposal, UNSURE: `Chastain 1-2` (32).
-
-### Westin - Sixth Floor (`f6`)
-
-- By an exact match: `Overlook` (14).
-- By a proposal, UNSURE: none.
-
-### Westin - Seventh Floor (`f7`)
-
-- By an exact match: none.
-- By a proposal, UNSURE: `Augusta 1-2` (20), `Augusta 3` (16).
-
-### Westin - Eighth Floor (`f8`)
-
-- By an exact match: none.
-- By a proposal, UNSURE: `Peachtree Ballroom` (24).
-
-### Westin - Twelfth Floor (`f12`)
-
-- By an exact match: none.
-- By a proposal, UNSURE: `12th Floor` (8).
-
-### Westin - Fourteenth Floor (`f14`)
-
-- By an exact match: none.
-- By a proposal, UNSURE: `14th Floor` (12).
-
-## 8. Strings the dedupe reads as one room
-
-Distinct strings at one hotel that `norm_text` - the dedupe's rule: case, spacing and trailing punctuation - makes one: 3 groups.
-
-- AmericasMart: `Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300` (62), `Mart2 Vendor Hall Floor 1 The MIssing Volume booth 1300` (1), `Mart2 Vendor Hall Floor 1 The Missing Volume Booth 1300` (1)
-- AmericasMart: `Mart2 Vendor Hall Floor 2 Scorched Design - booth 2105` (3), `Mart2 Vendor Hall Floor 2 Scorched Design - Booth 2105` (1)
-- AmericasMart: `Mart2 Vendor Hall Floor 2 The Marigolden Bookshelf - booth 2506` (10), `Mart2 Vendor Hall Floor 2 The Marigolden Bookshelf - Booth 2506` (1)
+- Hilton: `Steps B` - a Dragon Con name, not the hotel's; level unknown
