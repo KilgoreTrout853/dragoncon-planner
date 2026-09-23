@@ -53,22 +53,6 @@ HEADERS = {"User-Agent": "dragoncon-planner/1.0 (personal schedule tool; polite,
 ROW_FIELDS = ("source_id", "type", "title", "day", "start", "end", "duration_min", "location", "description",
               "tracks", "speakers")
 
-# Location strings start with the venue name. Map the first token to a canonical hotel.
-HOTEL_PREFIXES = [
-    ("marriott", "Marriott"),
-    ("hyatt", "Hyatt"),
-    ("hilton", "Hilton"),
-    ("courtland", "Courtland Grand"),
-    ("sheraton", "Courtland Grand"),
-    ("westin", "Westin"),
-    ("mart", "AmericasMart"),
-    ("americasmart", "AmericasMart"),
-    ("hardy", "Hardy Ivy Park"),
-    ("streaming", "Streaming"),
-    ("virtual", "Streaming"),
-    ("online", "Streaming"),
-]
-
 
 # ---------------------------------------------------------------------------
 # HTTP
@@ -262,24 +246,10 @@ def parse_time_range(time_text):
     return None, None
 
 
-# Kept for their readers; the fetch no longer calls them (#42). The hotel and
-# room split is the room census's until build's venues step (#45, PR 5), and
-# the cancelled rule and the panelist line are the parse step's (PR 6), which
-# pins its own copy of extract_panelists against this one.
-
-def split_hotel(location):
-    loc = clean(location)
-    first = re.split(r"[\s,]", loc, maxsplit=1)[0].lower().rstrip("0123456789") if loc else ""
-    for prefix, hotel in HOTEL_PREFIXES:
-        if first.startswith(prefix):
-            room = loc[len(re.split(r"[\s,]", loc, maxsplit=1)[0]):].strip(" ,")
-            # Keep building numbers like "Mart2" / "Mart Building 3" readable.
-            if hotel == "AmericasMart":
-                room = clean(loc)
-            return hotel, room or loc
-    # Offsite venues carry a leading "O " marker: "O Joystick Gamebar".
-    return ("Other" if loc else "Unknown"), re.sub(r"^O\s+", "", loc)
-
+# Kept for their readers; the fetch no longer calls them (#42). The cancelled
+# rule and the panelist line are the parse step's (PR 6), which pins its own
+# copy of extract_panelists against this one. The hotel and room split is the
+# venues stage's, venues_stage.py (#45).
 
 PANELIST_RE = re.compile(r"Additional Panelists?\s*:\s*(.+)$", re.IGNORECASE | re.DOTALL)
 

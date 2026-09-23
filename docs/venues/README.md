@@ -5,8 +5,9 @@ local copy of it is, and the state of our own drawing (DECISIONS #28). The hotel
 (gitignored); this file records what we have and where.
 
 Room, alias and note truth is `data/<year>/venues.json` (DECISIONS #45): the levels, their rooms, their aliases and
-their notes are data there, and this file does not repeat them. `tools/room_census.py` reads `data/2026/venues.json`
-and writes `docs/venues/census-2026.md`, what those rooms reach in the 2026 schedule.
+their notes are data there, and this file does not repeat them. `tools/room_census.py` reads the 2026 schedule through
+the venues step (`venues_stage.py`) against `data/2026/venues.json`, and writes `docs/venues/census-2026.md`: where every
+event lands, and the worklist of strings the file cannot place yet.
 
 | Hotel | Level | Plan | Dims | Local copy | Our drawing |
 |---|---|---|---|---|---|
@@ -60,6 +61,15 @@ and writes `docs/venues/census-2026.md`, what those rooms reach in the 2026 sche
 - **Courtland Grand · levels unknown** — no plan found in a quick search; the hotel's sales office is the likely source
 - **AmericasMart** — several buildings, each with floors; Dragon Con's exhibitor map is the real source. Not searched yet.
 - **Hardy Ivy Park** — outdoor; no levels, no plan needed
+
+## Adding an alias
+
+An alias reads a room string the grammar cannot - a numeral style (`Augusta 1-2` for Augusta I and II), a name the
+source uses (`Crystal Ballroom`), a room's halves (`Salon`) - and it beats every rule. Add it to the level whose rooms it
+names in `data/<year>/venues.json`: the key is the string as the source writes it after the hotel's key, folded to lower
+case with single spaces, and the value lists those rooms' ids, every one on that level, or `venues.py` refuses the file.
+Then `python tools/room_census.py` shows the string gone from the worklist, and the change goes in as a data PR of its
+own.
 
 ## How this file is kept
 

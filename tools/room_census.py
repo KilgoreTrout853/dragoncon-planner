@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""The 2026 schedule's rooms against the venues file: docs/venues/census-2026.md.
+"""The venues stage's coverage of the 2026 schedule: docs/venues/census-2026.md.
 
     python tools/room_census.py            # write docs/venues/census-2026.md
     python tools/room_census.py --events F --venues V --out O
 
-The off-season coverage report for venue resolution (DECISIONS #45; ROADMAP tentpole 1): every room string the frozen
-schedule holds, hotel by hotel, and what data/2026/venues.json makes of it. A string matches a room of the venues file
-exactly, case-folded, or an alias of the file names it - a confirmed mapping - or neither. For the rest the census
-proposes readings - the combined strings ("Regency VI-VII", "209-211") and every other shape the resolver will meet -
-each UNSURE, counted apart, and applied to nothing. The hotel split is still scraper.split_hotel's, until PR 5 builds
-the venues step. It reads the frozen schedule and the venues file and writes neither (DECISIONS #13; the venues file is
-hand-edited).
+The off-season coverage report of venue resolution (DECISIONS #45; ROADMAP tentpole 1): every location of the frozen
+schedule read by the venues stage (venues_stage.py) against data/2026/venues.json, as build will read it. Per hotel,
+each room string with its place kind, level and rooms and the rules that read it; the curation worklist, by events -
+the strings read at the hotel alone, the unplaced rooms, the locations no key begins, and the placeless locations split
+again; the rooms of the venues file no string reaches; and the rules' firings. It has no grammar of its own: every
+reading is the stage's. It reads the frozen schedule's locations and the venues file, and writes neither (DECISIONS
+#13; the venues file is hand-edited).
 
 A record, not held fresh by CI: its preface names the venues file it read, and an edit to that file leaves it stale
-until the script runs again. `scraper` for `split_hotel`, `ids_stage` for `norm_text`, `venues` for the loader, and
-the standard library; deterministic - two runs write the same bytes.
+until the script runs again. `venues_stage` for the reading, `venues` for the loader, and the standard library;
+deterministic - two runs write the same bytes.
 """
 
 import argparse
@@ -28,305 +28,34 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
 
 import venues as venues_file  # noqa: E402
-from ids_stage import norm_text  # noqa: E402
-from scraper import split_hotel  # noqa: E402  (nothing else from the scraper)
+import venues_stage  # noqa: E402
 
 EVENTS = "data/2026/events.json"
 VENUES = "data/2026/venues.json"
 OUT = "docs/venues/census-2026.md"
-UNPLACED = "unplaced"
-SPAN = 20  # the longest run a rule reads: "209-211" is three rooms; "1-40" is not a room string
-ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI",
-         "XVII", "XVIII", "XIX", "XX"]
-ORDINALS = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth",
-            "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth",
-            "nineteenth", "twentieth"]
+BARE = "(hotel only)"  # how a bare key's empty room string is shown
 
 
 # ---------------------------------------------------------------------------
-# The venues file
-# ---------------------------------------------------------------------------
-
-def venue_rooms(hotels):
-    """{hotel: {case-folded room: (level id, level name, the room as written)}}. A hotel's unplaced rooms sit on a
-    level of their own, "unplaced"."""
-    out = {}
-    for h in hotels:
-        rooms = out.setdefault(h["hotel"], {})
-        for lv in h["levels"]:
-            for r in lv["rooms"]:
-                rooms.setdefault(r.casefold(), (lv["id"], lv["name"], r))
-        for r in sorted(h["unplaced"]):
-            rooms.setdefault(r.casefold(), (UNPLACED, UNPLACED, r))
-    return out
-
-
-def levels_of(hotels):
-    """{hotel: [(level id, level name)]}, in the file's order."""
-    return {h["hotel"]: [(lv["id"], lv["name"]) for lv in h["levels"]] for h in hotels}
-
-
-def notes_of(hotels):
-    """{hotel: [(level id, level name, note)]}: every note on the hotel's levels, in the file's order."""
-    return {h["hotel"]: [(lv["id"], lv["name"], note) for lv in h["levels"] for note in lv["notes"]] for h in hotels}
-
-
-def aliases_of(hotels):
-    """{hotel: {alias: (level id, level name, [room ids])}}. An alias is written folded (venues.py)."""
-    return {h["hotel"]: {a: (lv["id"], lv["name"], list(rooms)) for lv in h["levels"]
-                         for a, rooms in sorted(lv["aliases"].items())} for h in hotels}
-
-
-def note_naming(part, notes):
-    """The note on one of the hotel's levels that names this room as a whole word, if one does."""
-    rx = re.compile(r"(?<!\w)" + re.escape(part) + r"(?!\w)", re.I)
-    return next((note for note in sorted(n[2] for n in notes) if rx.search(note)), None)
-
-
-# ---------------------------------------------------------------------------
-# Readings. A combined-string rule turns one string into its rooms; the other shapes rewrite a string, or read it
-# as something that is not one room. Every reading is UNSURE, and none is applied to anything - but an alias's, which
-# the venues file confirms.
-# ---------------------------------------------------------------------------
-
-def _ascending(letters):
-    return all(a < b for a, b in zip(letters, letters[1:]))
-
-
-# The name before a run: one to three words, each starting with a letter. A longer lead-in is a sentence with a
-# run in it ("Galleria 2-3 Hallway Just outside Galleria 2-3"), which the trailing-note reading takes instead.
-NAME = r"([A-Za-z][\w'&.]*(?:\s[A-Za-z][\w'&.]*){0,2})"
-
-
-def numeric_run(s):
-    """"209-211", "A601-A602": numbers, with one prefix letter the same on both ends or none."""
-    m = re.fullmatch(r"([A-Za-z]?)(\d+)\s*-\s*\1(\d+)", s)
-    if not m or len(m.group(2)) != len(m.group(3)):
-        return None
-    a, b = int(m.group(2)), int(m.group(3))
-    return [f"{m.group(1)}{x:0{len(m.group(2))}d}" for x in range(a, b + 1)] if a < b <= a + SPAN else None
-
-
-def roman_run(s):
-    """"Regency VI-VII", "Centennial II-IV": a name, then a run of roman numerals."""
-    m = re.fullmatch(NAME + r"\s+([IVX]+)\s*-\s*([IVX]+)", s)
-    if not m or m.group(2) not in ROMAN or m.group(3) not in ROMAN:
-        return None
-    a, b = ROMAN.index(m.group(2)), ROMAN.index(m.group(3))
-    return [f"{m.group(1)} {ROMAN[x]}" for x in range(a, b + 1)] if a < b else None
-
-
-def letter_run(s):
-    """"Hanover C-E", "Chastain H-I-J": a name, then capital letters joined by hyphens - two ends a range, more a
-    list."""
-    m = re.fullmatch(NAME + r"\s+([A-Z](?:\s*-\s*[A-Z])+)", s)
-    if not m:
-        return None
-    letters = [x.strip() for x in m.group(2).split("-")]
-    if len(letters) == 2:
-        if not letters[0] < letters[1]:
-            return None
-        letters = [chr(x) for x in range(ord(letters[0]), ord(letters[1]) + 1)]
-    return [f"{m.group(1)} {x}" for x in letters] if _ascending(letters) else None
-
-
-def number_run(s):
-    """"Galleria 2-3", "Chastain 1-2": a name, then a run of numbers."""
-    m = re.fullmatch(NAME + r"\s+(\d+)\s*-\s*(\d+)", s)
-    if not m:
-        return None
-    a, b = int(m.group(2)), int(m.group(3))
-    return [f"{m.group(1)} {x}" for x in range(a, b + 1)] if a < b <= a + SPAN else None
-
-
-def letters_together(s):
-    """"Embassy AB", "Hanover FG": a name, then capital letters run together, in order, one room each."""
-    m = re.fullmatch(NAME + r"\s+([A-Z]{2,})", s)
-    return [f"{m.group(1)} {x}" for x in m.group(2)] if m and _ascending(m.group(2)) else None
-
-
-def number_letters(s):
-    """"Mart2 203BC": a room number, then letters run together, in order, one room each ("203B", "203C")."""
-    m = re.fullmatch(r"(?:" + NAME + r"\s)?(\d+)([A-Z]{2,})", s)
-    lead = f"{m.group(1)} " if m and m.group(1) else ""
-    return [f"{lead}{m.group(2)}{x}" for x in m.group(3)] if m and _ascending(m.group(3)) else None
-
-
-def slash_list(s):
-    """"Savannah Ballroom B/C": a name, then letters or numbers split by slashes."""
-    m = re.fullmatch(NAME + r"\s+([A-Z0-9]+(?:/[A-Z0-9]+)+)", s)
-    return [f"{m.group(1)} {x}" for x in m.group(2).split("/")] if m else None
-
-
-def word_pair(s):
-    """"International North-South": a name, then two words joined by a hyphen, one room each."""
-    m = re.fullmatch(NAME + r"\s+([A-Z][a-z]+)-([A-Z][a-z]+)", s)
-    return [f"{m.group(1)} {m.group(2)}", f"{m.group(1)} {m.group(3)}"] if m else None
-
-
-COMBINED = [("numeric run", numeric_run), ("roman run", roman_run), ("letter run", letter_run),
-            ("number run", number_run), ("letters together", letters_together), ("number and letters", number_letters),
-            ("slash list", slash_list), ("word pair", word_pair)]
-
-
-def initials(hotel):
-    return "".join(w[0] for w in hotel.split())
-
-
-def courtland_prefix(s, hotel):
-    """"Grand Athens" at the Courtland Grand is Athens: split_hotel cut only the hotel's first word (section 6)."""
-    return s[len("Grand "):] if hotel == "Courtland Grand" and s.startswith("Grand ") else None
-
-
-def doubled(s, hotel):
-    """"Crystal Ballroom Crystal Ballroom": one string, twice."""
-    m = re.fullmatch(r"(.+?)\s+\1", s)
-    return m.group(1) if m else None
-
-
-def hotel_prefix(s, hotel):
-    """"Hilton-Salon", "Marriott-A703", "H-Piedmont": the hotel's name or initials and a hyphen, then the room."""
-    m = re.fullmatch(r"([A-Za-z]+)-(\S.*)", s)
-    return m.group(2) if m and m.group(1).casefold() in (hotel.casefold(), initials(hotel).casefold()) else None
-
-
-def leading_the(s, hotel):
-    """"The Learning Center": the room's name after a leading "The"."""
-    m = re.fullmatch(r"The\s+(.+)", s)
-    return m.group(1) if m else None
-
-
-REWRITES = [("Courtland prefix", courtland_prefix), ("doubled", doubled), ("hotel prefix", hotel_prefix),
-            ("leading The", leading_the)]
-
-
-def partitions(s, rooms):
-    """A bare name that begins two or more rooms of the venues file, as whole words: "Atrium Ballroom" is Atrium
-    Ballroom A, B, C and D."""
-    key = s.casefold() + " "
-    hits = [entry[2] for folded, entry in sorted(rooms.items()) if folded.startswith(key)]
-    return hits if len(hits) >= 2 else None
-
-
-def floor_only(s, levels):
-    """"14th Floor", "5th": a floor and no room. (floor number, the level named for it or None)."""
-    m = re.fullmatch(r"(\d{1,2})(?:st|nd|rd|th)(?:\s+floor)?", s, re.I)
-    if not m or not 1 <= int(m.group(1)) <= len(ORDINALS):
-        return None
-    k = int(m.group(1))
-    names = {f"{ORDINALS[k - 1]} floor", f"level {k}"}
-    return k, next((lid for lid, name in levels if name.casefold() in names), None)
-
-
-def trailing_note(s, rooms):
-    """"Grand Hall D Poole Booth 111 for more info!!": a room - the longest leading run of whole words that is a
-    room of the venues file, or that a combined rule reads - then words about it. (rule names, rooms), or None."""
-    words = s.split()
-    for k in range(len(words) - 1, 0, -1):
-        head = " ".join(words[:k]).rstrip(",;:-")
-        if head.casefold() in rooms:
-            return ["trailing note"], [head]
-        for name, rule in COMBINED:
-            parts = rule(head)
-            if parts:
-                return ["trailing note", name], parts
-    return None
-
-
-def numeral_swap(room):
-    """"Augusta 3" with its number as a roman numeral: "Augusta III". One way only - a lone I after a name is as
-    often a letter ("Chastain H-I-J") as a numeral."""
-    m = re.fullmatch(r"(.*\S)\s+(\d+)", room)
-    return f"{m.group(1)} {ROMAN[int(m.group(2)) - 1]}" if m and 1 <= int(m.group(2)) <= len(ROMAN) else None
-
-
-def resolve(s, hotel, rooms, levels, aliases=None):
-    """How the census reads one room string: {"chain": the rules, in order; "parts": the rooms it names; "floor",
-    "level": a floor with no room; "hotel_only": the hotel and no room}. No chain, and the string as its one part,
-    is an exact match or no reading at all. An alias of the venues file - the string folded, as venues.py writes
-    one - is read before any rule, and its chain is ["alias"]: #45's aliases beat the grammar."""
-    folded = venues_file.folded(s)
-    if s.casefold() not in rooms and folded in (aliases or {}):
-        return {"chain": ["alias"], "parts": list(aliases[folded][2]), "floor": None, "level": None,
-                "hotel_only": False}
-    chain, cur = [], s
-    for name, rewrite in REWRITES:
-        new = rewrite(cur, hotel)
-        if new:
-            chain.append(name)
-            cur = new
-    out = {"chain": chain, "parts": [cur], "floor": None, "level": None, "hotel_only": False}
-    if cur.casefold() not in rooms:
-        for name, rule in COMBINED:
-            parts = rule(cur)
-            if parts:
-                out = {**out, "chain": chain + [name], "parts": parts}
-                break
-        else:
-            parts = partitions(cur, rooms)
-            floor = floor_only(cur, levels)
-            note = trailing_note(cur, rooms)
-            if parts:
-                out = {**out, "chain": chain + ["partitions"], "parts": parts}
-            elif cur.casefold() == hotel.casefold():
-                return {**out, "chain": chain + ["hotel only"], "parts": [], "hotel_only": True}
-            elif floor:
-                return {**out, "chain": chain + ["floor only"], "parts": [], "floor": floor[0], "level": floor[1]}
-            elif note:
-                out = {**out, "chain": chain + note[0], "parts": note[1]}
-    swapped = [numeral_swap(p) if p.casefold() not in rooms and (numeral_swap(p) or "").casefold() in rooms else p
-               for p in out["parts"]]
-    if swapped != out["parts"]:
-        out = {**out, "chain": out["chain"] + ["numeral style"], "parts": swapped}
-    return out
-
-
-SHAPES = [name for name, _ in REWRITES] + ["partitions", "hotel only", "floor only", "trailing note", "numeral style"]
-COMBINED_NAMES = [name for name, _ in COMBINED]
-
-
-def kind(reading, exact):
-    """exact; alias, a confirmed mapping of the venues file; combined, a combined-string rule alone; shape, one of the
-    other shapes, alone or with a combined rule; or none."""
-    if exact and not reading["chain"]:
-        return "exact"
-    if reading["chain"] == ["alias"]:
-        return "alias"
-    if not reading["chain"]:
-        return "none"
-    return "shape" if any(r in SHAPES for r in reading["chain"]) else "combined"
-
-
-# ---------------------------------------------------------------------------
-# The census
+# The census: the stage's reading of every location
 # ---------------------------------------------------------------------------
 
 def census(data, v):
-    """Every (hotel, room string) in the schedule with its count, its exact match, its reading and the rooms the
-    reading names, and how many events split_hotel still splits as stored."""
-    events = data["events"]
-    hotels = v.hotels()
-    rooms, levels, notes, aliases = venue_rooms(hotels), levels_of(hotels), notes_of(hotels), aliases_of(hotels)
-    counts = Counter((e.get("hotel") or "", e.get("room") or "") for e in events)
-    strings = []
-    for (hotel, s), count in sorted(counts.items(), key=lambda kv: (kv[0][0], -kv[1], kv[0][1])):
-        hr = rooms.get(hotel, {})
-        reading = resolve(s, hotel, hr, levels.get(hotel, []), aliases.get(hotel, {}))
-        strings.append({"hotel": hotel, "string": s, "events": count, "exact": hr.get(s.casefold()),
-                        "reading": reading, "hits": [(p, hr.get(p.casefold())) for p in reading["parts"]],
-                        "kind": kind(reading, hr.get(s.casefold()))})
-    return {"events": events, "strings": strings, "hotels": hotels, "rooms": rooms, "levels": levels, "notes": notes,
-            "aliases": aliases,
-            "split_ok": sum(1 for e in events if split_hotel(e.get("location")) == (e.get("hotel"), e.get("room")))}
+    """Every event's Place, the stage's report of them, and each distinct reading with its count."""
+    resolver = venues_stage.Resolver(v)
+    seen = [(e.get("location"), resolver.place(e.get("location"))) for e in data["events"]]
+    counts = Counter(p for _, p in seen)
+    strings = [{"place": p, "events": k} for p, k in sorted(counts.items(), key=lambda pk: (
+        pk[0].hotel, -pk[1], pk[0].string, pk[0].rules))]
+    return {"events": data["events"], "seen": seen, "strings": strings, "hotels": resolver.hotels,
+            "report": venues_stage.report(seen, resolver)}
 
 
-def reached_levels(item):
-    """The levels a string's rooms land on, in first-seen order: [(level id, level name)]."""
-    out = []
-    for _, hit in item["hits"]:
-        if hit and (hit[0], hit[1]) not in out:
-            out.append((hit[0], hit[1]))
-    return out
+def candidate_key(s, hotels):
+    """A placed hotel whose name holds a location no key begins, as whole words: "Peachtree Plaza" is in "The Westin
+    Peachtree Plaza", a candidate key for the Westin. None where no hotel's does."""
+    rx = re.compile(r"(?<!\w)" + re.escape(s.casefold()) + r"(?!\w)")
+    return next((h["hotel"] for h in hotels if not h["placeless"] and s and rx.search(h["name"].casefold())), None)
 
 
 # ---------------------------------------------------------------------------
@@ -342,8 +71,10 @@ def pct(a, b):
 
 
 def code(s):
-    """A code span that keeps the string's own spacing, so "Galleria  5" shows its two spaces."""
+    """A code span that keeps the string's own spacing; the empty room string of a bare key is shown as such."""
     s = str(s).replace("\n", " ")
+    if not s:
+        return BARE
     return f"`` {s} ``" if "`" in s else f"`{s}`"
 
 
@@ -360,272 +91,146 @@ def many(count, one, more=None):
     return f"{n(count)} {one if count == 1 else more or one + 's'}"
 
 
-def listed(items):
-    return ", ".join(f"{code(s['string'])} ({n(s['events'])})" for s in items) or "none"
-
-
-def level_label(lid, name):
-    return "unplaced" if lid == UNPLACED else f"{name} (`{lid}`)"
-
-
-def reading_text(item):
-    r = item["reading"]
-    if not r["chain"]:
-        return ""
-    head = " + ".join(r["chain"])
-    if r["hotel_only"]:
-        return f"{head}: the hotel, no room"
-    if r["floor"] is not None:
-        return f"{head}: floor {r['floor']}, no room"
-    return f"{head} → {', '.join(code(p) for p in r['parts'])}"
-
-
-def venue_text(item, notes, levels):
-    """What the venues file holds of a string's reading - or, for a string with none, whether a note on one of the
-    hotel's levels names it."""
-    r = item["reading"]
-    if not r["chain"]:
-        if item["exact"]:
-            return ""
-        note = note_naming(item["string"], notes)
-        return f"named in the note {code(note)}" if note else ""
-    if r["hotel_only"]:
-        return "the hotel"
-    if r["floor"] is not None:
-        return level_label(r["level"], dict(levels)[r["level"]]) if r["level"] else "no level named for it"
-    found = sum(1 for _, h in item["hits"] if h)
-    text = f"{n(found)} of {n(len(item['hits']))}"
-    where = reached_levels(item)
-    if where:
-        text += ": " + ", ".join(level_label(*x) for x in where)
-    by_note = defaultdict(list)
-    for p, h in item["hits"]:
-        note = None if h else note_naming(p, notes)
-        if note:
-            by_note[note].append(p)
-    named = [f"{', '.join(code(p) for p in ps)} {'is' if len(ps) == 1 else 'are'} named in the note {code(x)}"
-             for x, ps in by_note.items()]
-    return text + (f"; {'; '.join(named)}" if named else "")
+def rooms_text(p):
+    return ", ".join(code(r) for r in p.rooms)
 
 
 def render(data, v, events_path=EVENTS, venues_path=VENUES):
     c = census(data, v)
-    strings, rooms, levels, notes = c["strings"], c["rooms"], c["levels"], c["notes"]
-    in_file = [h["hotel"] for h in c["hotels"]]
+    rep, strings, hotels = c["report"], c["strings"], c["hotels"]
+    total = len(c["events"])
+    kinds = venues_stage.KINDS
     by_hotel = defaultdict(list)
     for s in strings:
-        by_hotel[s["hotel"]].append(s)
-    hotel_events = Counter(e.get("hotel") or "" for e in c["events"])
-    hotels = sorted(hotel_events, key=lambda h: (-hotel_events[h], h))
-    total = len(c["events"])
-    kinds, kind_events = Counter(), Counter()
+        by_hotel[s["place"].hotel].append(s)
+    in_file = [h["hotel"] for h in hotels]
+    shown = [h for h in in_file if h in rep.hotels]
+    kind_strings = Counter(s["place"].place for s in strings)
+    reached = defaultdict(set)
     for s in strings:
-        kinds[s["kind"]] += 1
-        kind_events[s["kind"]] += s["events"]
-    file_rooms = [(h, e) for h, hr in rooms.items() for e in hr.values()]
-    all_notes = [(h, x) for h, xs in notes.items() for x in xs]
-    exact_hit = {(s["hotel"], s["exact"][2]) for s in strings if s["exact"]}
-    alias_hit = {(s["hotel"], h[2]) for s in strings if s["kind"] == "alias" for _, h in s["hits"] if h}
-    rule_hit = {(s["hotel"], h[2]) for s in strings if s["kind"] in ("combined", "shape") for _, h in s["hits"] if h}
-    absent = [h for h in hotels if h not in in_file]
-    empty = [h for h in in_file if not rooms.get(h)]
-    courtland = by_hotel.get("Courtland Grand", [])
-    prefixed = [s for s in courtland if s["string"].startswith("Grand ")]
+        reached[s["place"].hotel].update(s["place"].rooms)
+    file_rooms = [(h["hotel"], lv, r) for h in hotels for lv in h["levels"] for r in lv["rooms"]]
+    reached_rooms = [x for x in file_rooms if x[2] in reached[x[0]]]
+    unplaced_events = sum(x["events"] for x in rep.unplaced)
+    level_events = rep.places["level"]
 
-    out = ["# Room census - the 2026 schedule against the venues file", "",
+    out = ["# Room census - the 2026 schedule read by the venues stage", "",
            f"Written by `tools/room_census.py` from `{events_path}` (`generated_at` {data.get('generated_at')}) and "
            f"`{venues_path}`. Do not edit it by hand; run the script again.", "",
            "A record, not held fresh by CI: an edit to the venues file leaves it stale until the script runs again. "
-           "It states facts and changes nothing. A room string matches a room of the venues file exactly, "
-           "case-folded, or an alias of the file names it - a confirmed mapping - or neither; every other reading "
-           "here is a proposal, `UNSURE`, and applied to nothing - the venues file and the scraper are as they were. "
-           "The combined-string rules and the other shapes are counted apart. Lists run by count, descending, then by "
-           "string; room strings are in code spans, so that their spacing and punctuation show.", ""]
+           "Every location of the schedule is read by the venues stage, `venues_stage.py` (DECISIONS #45), as build "
+           "will read it - its split, then an alias, an exact room, the grammar's rules, a level, the hotel alone, "
+           "or no place at a placeless hotel - and this report has no reading of its own. Section 4 is the curation "
+           "worklist; an alias added to the venues file moves a string out of it. Lists run by events, descending, "
+           "then by string; room strings are in code spans, so that their spacing and punctuation show, and a bare "
+           f"key's empty room string shows as {BARE}.", ""]
 
-    head = [f"Events: {n(total)}, at {many(len(hotels), 'hotel value')}; distinct (hotel, room) strings: "
+    head = [f"Events: {n(total)}, at {many(len(rep.hotels), 'hotel')}; distinct readings of a room string: "
             f"{n(len(strings))}.",
-            f"An exact match to a room of the venues file: {many(kinds['exact'], 'string')}, "
-            f"{n(kind_events['exact'])} events ({pct(kind_events['exact'], total)}). Through an alias: "
-            f"{many(kinds['alias'], 'string')}, {n(kind_events['alias'])} events "
-            f"({pct(kind_events['alias'], total)}).",
-            f"A combined-string rule alone, UNSURE: {many(kinds['combined'], 'string')}, "
-            f"{n(kind_events['combined'])} events ({pct(kind_events['combined'], total)}). One of the other shapes, "
-            f"UNSURE: {many(kinds['shape'], 'string')}, {n(kind_events['shape'])} events "
-            f"({pct(kind_events['shape'], total)}).",
-            f"No reading: {many(kinds['none'], 'string')}, {n(kind_events['none'])} events "
-            f"({pct(kind_events['none'], total)}).",
-            "Hotels in the schedule and not in the venues file: "
-            + (", ".join(f"{h} ({many(hotel_events[h], 'event')})" for h in absent) or "none")
-            + ". In the venues file with no rooms: "
-            + (", ".join(f"{h} ({many(hotel_events.get(h, 0), 'event')})" for h in empty) or "none")
-            + "."
-            + ("" if "Unknown" in absent or "Unknown" in empty
-               else f" `Unknown`: {n(hotel_events.get('Unknown', 0))} events."),
-            f"The Courtland prefix: {n(sum(s['events'] for s in prefixed))} of "
-            f"{n(sum(s['events'] for s in courtland))} Courtland Grand events, {n(len(prefixed))} of "
-            f"{n(len(courtland))} strings (section 6).",
-            f"Rooms of the venues file: {n(len(file_rooms))}, and {many(len(all_notes), 'note')} on its levels. "
-            f"Matched exactly: {n(len(exact_hit))}. Through an alias: {n(len(alias_hit - exact_hit))}. Named only by "
-            f"a proposal: {n(len(rule_hit - exact_hit - alias_hit))}. Neither: "
-            f"{n(len(file_rooms) - len(exact_hit | alias_hit | rule_hit))}.",
-            f"`split_hotel(location)` gives the stored hotel and room for {n(c['split_ok'])} of {n(total)} events."]
+            "By place: " + "; ".join(f"`{k}` {n(rep.places[k])} ({pct(rep.places[k], total)}), "
+                                     f"{many(kind_strings[k], 'string')}" for k in kinds) + ".",
+            f"The run's venue counters on this schedule: rooms unresolved {n(rep.rooms_unresolved)} - the strings "
+            f"read at the hotel alone (section 4); hotels unknown {n(rep.hotels_unknown)} - the locations no key "
+            f"begins. Not counted: {many(unplaced_events, 'event')} at an unplaced room of the venues file, read at "
+            f"its hotel, and the {many(level_events, 'event')} placed at a level, by design.",
+            f"Split again: {many(sum(x['events'] for x in rep.resplit), 'event')} of a placeless hotel, read at a "
+            "placed one (section 4).",
+            f"Alias hits: {many(sum(x['events'] for x in rep.aliases), 'event')}, in "
+            f"{many(len(rep.aliases), 'string')}.",
+            f"Rooms of the venues file: {n(len(file_rooms))} on levels, and "
+            f"{many(sum(len(h['unplaced']) for h in hotels), 'unplaced room')}. Reached by a reading: "
+            f"{n(len(reached_rooms))}; by none: {n(len(file_rooms) - len(reached_rooms))} (section 5)."]
     out += ["## 0. Headline", ""] + [f"{k}. {x}" for k, x in enumerate(head, start=1)] + [""]
 
     # 1. Hotels
     rows = []
-    for h in hotels:
-        k = Counter()
-        for s in by_hotel[h]:
-            k[s["kind"]] += s["events"]
-        rows.append([h, "yes" if h in in_file else "no", n(len(levels[h])) if h in levels else "",
-                     n(len(rooms[h])) if h in rooms else "", n(hotel_events[h]), n(len(by_hotel[h])),
-                     n(k["exact"]), n(k["alias"]), n(k["combined"]), n(k["shape"]), n(k["none"])])
+    for h in shown:
+        hd = next(x for x in hotels if x["hotel"] == h)
+        rows.append([h, n(len(hd["levels"])), n(sum(len(lv["rooms"]) for lv in hd["levels"])),
+                     n(sum(rep.hotels[h].values())), n(len(by_hotel[h]))] + [n(rep.hotels[h][k]) for k in kinds])
     out += ["## 1. Hotels", "",
-            "Events by how their room string reads: `exact`, an exact match to a room of the venues file; `alias`, an "
-            "alias of the file, a confirmed mapping; `combined`, a combined-string rule alone; `shape`, one of the "
-            "other shapes, alone or with a combined rule; `none`, no reading. `combined` and `shape` are proposals, "
-            "UNSURE.", ""]
-    out += table(["hotel", "in the venues file", "levels", "rooms", "events", "strings", "exact", "alias", "combined",
-                  "shape", "none"], rows, "llrrrrrrrrr")
-    unused = [h for h in in_file if h not in hotel_events]
-    out += [f"- Hotels of the venues file with no events: {', '.join(unused) or 'none'}. `Unknown`, the scraper's "
-            f"hotel for an empty location: {n(hotel_events.get('Unknown', 0))} events.", ""]
+            "Events by place, per hotel as the stage reads it: `exact`, a room of the venues file; `alias`, an alias "
+            "of the file; `rule`, a rule of the grammar; `level`, a level and no room; `hotel`, the hotel alone; "
+            "`none`, a placeless hotel. `strings` counts distinct readings.", ""]
+    out += table(["hotel", "levels", "rooms", "events", "strings"] + list(kinds), rows, "l" + "r" * (4 + len(kinds)))
+    unused = [h for h in in_file if h not in rep.hotels]
+    out += [f"- Hotels of the venues file with no events: {', '.join(unused) or 'none'}.", ""]
 
-    # 2. The readings
-    use = defaultdict(lambda: [0, 0, None])
-    for s in sorted(strings, key=lambda s: (-s["events"], s["hotel"], s["string"])):
-        for r in s["reading"]["chain"]:
-            use[r][0] += 1
-            use[r][1] += s["events"]
-            use[r][2] = use[r][2] or s
+    # 2. The rules
+    use = defaultdict(lambda: None)
+    for s in sorted(strings, key=lambda s: (-s["events"], s["place"].hotel, s["place"].string)):
+        for r in s["place"].rules:
+            use[r] = use[r] or s
     rows = []
-    for name in COMBINED_NAMES + SHAPES:
-        cnt, ev, ex = use.get(name, [0, 0, None])
-        rows.append([name, "combined string" if name in COMBINED_NAMES else "other shape",
-                     f"{code(ex['string'])} ({ex['hotel']})" if ex else "", n(cnt), n(ev)])
-    out += ["## 2. The readings", "",
-            "Every reading is UNSURE. A string takes each rewrite that fits it - the Courtland prefix, a doubled "
-            "string, a hotel prefix, a leading \"The\", in that order - and then one reading: an exact match, a "
-            "combined-string rule, partitions, the hotel alone, a floor alone, or a room and a trailing note. Last, "
-            "a room the venues file lacks is tried with its number written the other way (numeral style). A string "
-            "counts under each rule it takes; the example is the rule's most frequent string. An alias is read "
-            "before all of these, and is no proposal.", ""]
-    out += table(["rule", "kind", "example", "strings", "events"], rows, "lllrr")
+    for name in venues_stage.RULES:
+        fired = rep.rules.get(name, {"strings": 0, "events": 0})
+        ex = use[name]
+        rows.append([name, f"{code(ex['place'].string)} ({ex['place'].hotel})" if ex else "", n(fired["strings"]),
+                     n(fired["events"])])
+    out += ["## 2. The rules", "",
+            "Each rule of the grammar, in the order the stage tries it, with the strings and events it read: a string "
+            "read by a chain of rules - a rewrite and then a rule - counts under each. The example is the rule's most "
+            "frequent string.", ""]
+    out += table(["rule", "example", "strings", "events"], rows, "llrr")
 
     # 3. Hotel by hotel
     out += ["## 3. Room strings, hotel by hotel", "",
-            "`exact` is the level of an exact match to a room of the venues file. `reading` is a proposal, UNSURE - "
-            "but an alias's, which the file confirms: the rules a string took and the rooms it names. `in the venues "
-            "file` counts those rooms in the file, and where they are; for a string with no reading, whether a note "
-            "on one of the hotel's levels names it.", ""]
-    for h in hotels:
+            "The room string the stage read - the location less its hotel's key - with its place, its level and its "
+            "rooms, and the rules that read it, or, at the hotel alone with none, why: an unplaced room, or no "
+            "reading. The Mart shows its whole location as its room; the string here is what was read.", ""]
+    for h in shown:
         ss = by_hotel[h]
-        out += [f"### {h} - {many(hotel_events[h], 'event')}, {many(len(ss), 'string')}", ""]
-        if h not in in_file:
-            out += ["Not in the venues file.", ""]
-        elif not rooms.get(h):
-            out += ["In the venues file with no rooms: " + ("its levels list none." if levels.get(h)
-                                                            else "it has no levels."), ""]
-        rows = [[code(s["string"]), n(s["events"]), level_label(s["exact"][0], s["exact"][1]) if s["exact"] else "",
-                 reading_text(s), venue_text(s, notes.get(h, []), levels.get(h, []))] for s in ss]
-        out += table(["string", "events", "exact", "reading", "in the venues file"], rows, "lrlll")
+        out += [f"### {h} - {many(sum(s['events'] for s in ss), 'event')}, {many(len(ss), 'string')}", ""]
+        out += table(["string", "events", "place", "level", "rooms", "rules"],
+                     [[code(s["place"].string), n(s["events"]), s["place"].place, s["place"].level or "",
+                       rooms_text(s["place"]), " + ".join(s["place"].rules) or s["place"].why] for s in ss], "lrllll")
 
-    # 4. No reading
-    none = sorted((s for s in strings if s["kind"] == "none"), key=lambda s: (-s["events"], s["hotel"], s["string"]))
-    out += ["## 4. Strings no rule reaches", "",
-            f"{many(len(none), 'string')}, {many(sum(s['events'] for s in none), 'event')}: no exact match, no alias, "
-            "and no reading in section 2.", ""]
-    out += table(["hotel", "string", "events", "a note names it"],
-                 [[s["hotel"], code(s["string"]), n(s["events"]),
-                   code(note_naming(s["string"], notes.get(s["hotel"], [])))
-                   if note_naming(s["string"], notes.get(s["hotel"], [])) else ""] for s in none], "llrl")
-
-    # 5. Rooms not seen
-    out += ["## 5. Rooms of the venues file not seen", "",
-            "Per level, the rooms no string matches exactly or through an alias: those a proposal names (UNSURE), and "
-            "those nothing names. The notes on the levels are listed after.", ""]
+    # 4. The worklist
+    out += ["## 4. The worklist", "",
+            f"### Read at the hotel alone - rooms unresolved, {n(rep.rooms_unresolved)}", "",
+            "No reading, or the hotel alone: counted by the run as rooms unresolved. An alias, a room or a key in the "
+            "venues file is what moves one.", ""]
+    out += table(["hotel", "string", "events", "why"],
+                 [[x["hotel"], code(x["string"]), n(x["events"]), x["why"]] for x in rep.unresolved], "llrl")
+    out += ["### Unplaced rooms, read at their hotel", "",
+            "Rooms the venues file knows but places on no level: read at their hotel, and not counted as unresolved.",
+            ""]
+    out += table(["hotel", "string", "events"], [[x["hotel"], code(x["string"]), n(x["events"])]
+                                                  for x in rep.unplaced], "llr") if rep.unplaced else ["None.", ""]
+    out += [f"### Locations no key begins - hotels unknown, {n(rep.hotels_unknown)}", "",
+            "Placed at Other, no place. Where a placed hotel's name holds the string, it is a candidate key of that "
+            "hotel.", ""]
+    out += table(["location", "events", "note"],
+                 [[code(x["string"]), n(x["events"]),
+                   f"a candidate {candidate_key(x['string'], hotels)} key" if candidate_key(x["string"], hotels)
+                   else ""] for x in rep.unknown], "lrl") if rep.unknown else ["None.", ""]
+    out += ["### Placeless locations split again", "",
+            "A placeless hotel's room string that begins with a placed hotel's key - its own key again aside - read "
+            "at that hotel: the source's habit of writing a hotel inside an offsite location.", ""]
     rows = []
-    for hd in c["hotels"]:
-        h = hd["hotel"]
-        for lid, name in levels.get(h, []) + ([(UNPLACED, UNPLACED)] if hd["unplaced"] else []):
-            entries = [e[2] for e in rooms.get(h, {}).values() if e[0] == lid]
-            if not entries:
-                continue
-            unseen = [r for r in entries if (h, r) not in exact_hit and (h, r) not in alias_hit]
-            rows.append([h, level_label(lid, name), n(len(entries)), n(len(entries) - len(unseen)),
-                         ", ".join(code(r) for r in unseen if (h, r) in rule_hit),
-                         ", ".join(code(r) for r in unseen if (h, r) not in rule_hit)])
-    out += table(["hotel", "level", "rooms", "matched exactly or by an alias", "named only by a proposal (UNSURE)",
-                  "named by nothing"], rows, "llrrll")
-    out += ["Notes on the levels:", ""]
-    out += [f"- {h}, {level_label(lid, name)}: {code(x)}" for h, (lid, name, x) in all_notes] + [""]
+    for x in rep.resplit:
+        p = next(q for loc, q in c["seen"] if (loc or "").strip() == x["location"])
+        rows.append([code(x["location"]), x["hotel"], code(x["string"]), p.place, n(x["events"])])
+    out += table(["location", "read at", "string", "place", "events"], rows, "lllrr") if rows else ["None.", ""]
 
-    # 6. split_hotel
-    ct = [e for e in c["events"] if e.get("hotel") == "Courtland Grand"]
-    whole = [e for e in ct if (e.get("location") or "").startswith("Courtland Grand ")]
-    hyph = Counter(e.get("location") for e in c["events"]
-                   if "-" in re.split(r"[\s,]", e.get("location") or "", maxsplit=1)[0]
-                   and e.get("hotel") not in ("Other", "Unknown"))
-    out += ["## 6. `split_hotel`: the Courtland prefix and hyphenated locations", "",
-            "`split_hotel` takes the location's first word - up to a space or a comma - as the hotel, and the rest "
-            "as the room.", "",
-            f"The Courtland prefix: {n(len(whole))} of the {n(len(ct))} Courtland Grand events have a location that "
-            "begins \"Courtland Grand \". The first word matches `courtland`, only that word is cut, and the room "
-            "keeps \"Grand \""
-            + (f": `split_hotel({whole[0]['location']!r})` is `{split_hotel(whole[0]['location'])!r}`." if whole
-               else "."), "",
-            "With \"Grand \" cut, UNSURE:", ""]
+    # 5. Rooms not reached
+    out += ["## 5. Rooms of the venues file no string reaches", "",
+            "Per level, the rooms a reading names - exactly, by an alias or by a rule - and those none names. The "
+            "notes on the levels, and the unplaced rooms, are listed after.", ""]
     rows = []
-    for s in courtland:
-        if not s["string"].startswith("Grand "):
-            rows.append([code(s["string"]), n(s["events"]), "", ""])
-            continue
-        cut = s["string"][len("Grand "):]
-        r = resolve(cut, "Courtland Grand", rooms.get("Courtland Grand", {}), levels.get("Courtland Grand", []),
-                    c["aliases"].get("Courtland Grand", {}))
-        exact = not r["chain"] and cut.casefold() in rooms.get("Courtland Grand", {})
-        rows.append([code(s["string"]), n(s["events"]), code(cut),
-                     "an exact match" if exact else " + ".join(r["chain"]) if r["chain"] else "no reading"])
-    out += table(["string", "events", "cut", "then"], rows, "lrll")
-    out += [f"Hyphenated locations: {many(sum(hyph.values()), 'event')} at a hotel `split_hotel` recognised have a "
-            "location whose first word joins the hotel to what follows with a hyphen. With nothing after that word "
-            "the room is the whole location; with words after it, the word after the hyphen is lost:", ""]
-    out += [f"- {code(loc)} ({n(k)}): `{split_hotel(loc)!r}`" for loc, k in sorted(hyph.items(),
-                                                                                   key=lambda kv: (-kv[1], kv[0]))]
-    out += ["", "The 2027 fix, proposed and applied to nothing: match the venue's name as the source writes it, "
-            "longest first, and cut all of it - \"Courtland Grand\" before \"Courtland\" - splitting at a hyphen as "
-            "well as at a space or a comma. \"Courtland Grand Athens\" would give (\"Courtland Grand\", \"Athens\"), "
-            "\"Hilton-Salon\" (\"Hilton\", \"Salon\") and \"Hyatt-Grand Hall D\" (\"Hyatt\", \"Grand Hall D\"). The "
-            "frozen file keeps the rooms it has (DECISIONS #13).", ""]
-
-    # 7. The strings that reach each level
-    out += ["## 7. Strings that reach each level", "",
-            "Each level with the strings that reach it: by an exact match, through an alias, and by a proposal "
-            "(UNSURE). A string whose rooms land on two levels is listed under both. Nothing here is written to the "
-            "venues file.", ""]
-    for hd in c["hotels"]:
-        h = hd["hotel"]
-        for lid, name in levels.get(h, []):
-            ex = [s for s in by_hotel.get(h, []) if s["kind"] == "exact" and s["exact"][0] == lid]
-            al = [s for s in by_hotel.get(h, []) if s["kind"] == "alias" and lid in [x[0] for x in reached_levels(s)]]
-            prop = [s for s in by_hotel.get(h, []) if s["kind"] in ("combined", "shape")
-                    and (lid in [x[0] for x in reached_levels(s)] or s["reading"]["level"] == lid)]
-            if not (ex or al or prop):
+    for h in hotels:
+        for lv in h["levels"]:
+            if not lv["rooms"]:
                 continue
-            out += [f"### {h} - {name} (`{lid}`)", "", f"- By an exact match: {listed(ex)}."]
-            if al:
-                out.append(f"- Through an alias: {listed(al)}.")
-            out += [f"- By a proposal, UNSURE: {listed(prop)}.", ""]
-
-    # 8. norm_text
-    groups = defaultdict(list)
-    for s in strings:
-        groups[(s["hotel"], norm_text(s["string"]))].append(s)
-    folded = sorted((k, v) for k, v in groups.items() if len(v) > 1)
-    out += ["## 8. Strings the dedupe reads as one room", "",
-            "Distinct strings at one hotel that `norm_text` - the dedupe's rule: case, spacing and trailing "
-            f"punctuation - makes one: {many(len(folded), 'group')}.", ""]
-    out += [f"- {h}: {listed(v)}" for (h, _), v in folded]
+            missed = [r for r in lv["rooms"] if r not in reached[h["hotel"]]]
+            rows.append([h["hotel"], f"{lv['name']} (`{lv['id']}`)", n(len(lv["rooms"])),
+                         n(len(lv["rooms"]) - len(missed)), ", ".join(code(r) for r in missed)])
+    out += table(["hotel", "level", "rooms", "reached", "not reached"], rows, "llrrl")
+    notes = [f"- {h['hotel']}, {lv['name']} (`{lv['id']}`): {code(x)}" for h in hotels for lv in h["levels"]
+             for x in lv["notes"]]
+    unplaced = [f"- {h['hotel']}: {code(r)} - {note}" for h in hotels for r, note in sorted(h["unplaced"].items())]
+    out += ["Notes on the levels:", ""] + (notes or ["None."]) + [""]
+    out += ["Unplaced rooms:", ""] + (unplaced or ["None."]) + [""]
     text = "\n".join(out)
     while "\n\n\n" in text:
         text = text.replace("\n\n\n", "\n\n")

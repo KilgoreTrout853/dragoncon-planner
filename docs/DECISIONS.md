@@ -988,7 +988,7 @@ arrived at the same starts, under new titles, new source ids and the room
 written `Hilton-Salon` (section 4, v6 → v7). Precision over recall.
 **Cost:** The Salon pair's picks break. A rule that fires once a con.
 
-### 44. The run — Decided, not built (2026-09-22)
+### 44. The run — Decided, not built (2026-09-22) — a room placed at its level is by design, not a degradation, and the zero hold on 2026's build covers the tag and track counters alone, the venue counters reported, never held (`contract.md`, `last-run.json`)
 **Decided:** `pipeline.py run --year <year>` runs five stages in order:
 fetch writes `source.json`, ids `ids.jsonl` and tag the cache; build makes
 `events.v2.json`, and the diff its change lines and `changed_at`; and the
@@ -1042,7 +1042,7 @@ it.
 build tolerant, the test that holds 2026's counters at zero is the
 off-season guard.
 
-### 45. Venue resolution (builds #21, #27, #28) — Decided, not built (2026-09-22)
+### 45. Venue resolution (builds #21, #27, #28) — Decided, not built (2026-09-22) — built by PR 5: `venues_stage.py`, the split, the grammar and the report as `contract.md` has them
 **Decided:** `data/2027/venues.json` holds runtime data only, curated by
 hand, one copy a year (#27):
 - Per hotel: its keys (the prefixes the source writes), `short`, `group`,
