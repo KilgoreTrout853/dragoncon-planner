@@ -19,7 +19,8 @@ and last-run.json gives generated_at (its fetched_at) and changed_at, and its ab
 needs a run. The top-level fields are then generated_at, changed_at, the season's source, count (every event, the
 removed ones among them), source.json's failures and the digest. A live year's file is the orchestrator's to write,
 with changes.jsonl and last-run.json (#42, #44), so main() checks it, and writes only to an --out outside the year's
-folder. season_rows() is both doors, and the tag stage reads a season through it too (#44, #46).
+folder. season_rows() is both doors, and the tag stage reads a season through it too (#44, #46). attribution() builds
+the previous run's rows with the current code, writing nothing, for the diff's causes (#47; diff_stage.py).
 
 build(), in order: the merge (merge_stage.py); the venues step (venues_stage.py); the parse step - people, facets and
 cancelled; the cached answer, by the input key (tag_key.py) under the season's prompt_version (#46); the works and axes
@@ -383,6 +384,23 @@ def season_rows(season, folder):
         rows, top = frozen(_read(os.path.join(folder, "events.json")))
         return rows, top, None
     return live(folder, season)
+
+
+def attribution(rows, ledger, reg, cache, venues, *, version, thresholds, stamp):
+    """The previous run's rows through the current code (#47): the document the diff reads its causes from, built as
+    build() builds a live year - the ids stage on `rows` with `ledger`, then the merge and the build - with nothing
+    written. `rows` and `ledger` are the previous run's source.json rows and ids.jsonl, from the orchestrator's
+    snapshot; `stamp` is that run's fetched_at, and `version` and `thresholds` the season's. The ids stage leaves the
+    ledger as it is, unless the current code regroups the previous rows: then the build uses the ledger it returns, in
+    memory and never written, and never refuses as live() does - a regrouping the current code makes is a code-caused
+    change, and reads as one. A cache miss ships untagged, as in any build. -> the document: digest, works and events,
+    its other top-level fields left to the caller. BuildError where the ids stage refuses the rows."""
+    try:
+        result = ids_stage.assign(rows, ledger, stamp, thresholds)
+    except ids_stage.IdsError as exc:
+        raise BuildError([f"the ids stage refuses the previous rows: {exc}"]) from None
+    doc, _ = build(result.rows, {}, reg, cache, venues, result.ledger, version=version)
+    return doc
 
 
 def build_season(season, folder, registry_dir=registry.DIR, cache=None):
