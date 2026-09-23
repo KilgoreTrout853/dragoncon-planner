@@ -13,8 +13,8 @@ the venues step. It reads the frozen schedule and the venues file and writes nei
 hand-edited).
 
 A record, not held fresh by CI: its preface names the venues file it read, and an edit to that file leaves it stale
-until the script runs again. `scraper` for `split_hotel` and `norm_text`, `venues` for the loader, and the standard
-library; deterministic - two runs write the same bytes.
+until the script runs again. `scraper` for `split_hotel`, `ids_stage` for `norm_text`, `venues` for the loader, and
+the standard library; deterministic - two runs write the same bytes.
 """
 
 import argparse
@@ -28,7 +28,8 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
 
 import venues as venues_file  # noqa: E402
-from scraper import norm_text, split_hotel  # noqa: E402  (nothing else from the scraper)
+from ids_stage import norm_text  # noqa: E402
+from scraper import split_hotel  # noqa: E402  (nothing else from the scraper)
 
 EVENTS = "data/2026/events.json"
 VENUES = "data/2026/venues.json"

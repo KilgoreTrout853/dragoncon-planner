@@ -34,7 +34,8 @@ added to by the tag stage's mint, whose rows now carry
 2026 is frozen (#46). Its raw file is `data/2026/events.json` (#13), which
 nothing writes, and it has no `source.json`, `ids.jsonl`, `changes.jsonl`
 or `last-run.json`. PR 2 writes its `season.json` and `venues.json`, and
-PR 6 rebuilds its `events.v2.json` in the 2027 shape (ROADMAP).
+PR 6 rebuilds its `events.v2.json` in the 2027 shape (ROADMAP). No ids stage
+runs for it: its ids are its source ids (The ledger).
 
 ## The raw row: `source.json`
 
@@ -72,6 +73,10 @@ lists is carried the same way, with `removed: true`, for the rest of the
 season or until it returns. A row carries one flag at most: a removed
 listing that returns is fetched fresh, or is stale when its page fails,
 and a stale row whose listing goes is removed.
+`scraper.carry(listed, previous)` is that carrying on its own: the
+listings a run holds, each with its fresh row or `None` where its page
+failed, against the previous file's rows. `fetch()` calls it, and so does
+the replay of 2026 (The ledger).
 
 **The repair** is ftfy's `fix_encoding` and no other ftfy transform (#44).
 It runs on the page's text before whitespace is collapsed: the title (the
@@ -138,23 +143,93 @@ merge first.
 
 ## The ledger: `ids.jsonl`
 
-One line per id, sorted by id (#43). Only the ids stage writes it, and no
-line is deleted in season. It exists, empty, from the season's first
-commit.
+The ids stage's file (#43), written by `ids_stage.py`. Only the ids stage
+writes it, and no line is deleted in season. It exists, empty, from the
+season's first commit. One line per id, sorted by id in string order,
+compact UTF-8 with LF line ends and a line break after each line, so an
+empty ledger is an empty file. A line's keys are written in the order
+below; `left`, `gone_since` and `merged_into` only where set.
 
 | key | what it holds |
 |---|---|
-| `id` | The event's id: its source id at first sight, forever. A copy that leaves the group whose id is its own source id takes `<source_id>.<n>`, with n counting up from 1: the one id that is not a bare source id. |
-| `source_ids` | The source ids that map to this id now, listed this run or not. A source id is in one line's `source_ids` at most, and resolution reads these alone. |
-| `left` | The source ids that once mapped here and now map to another id, each with the id it went to. |
-| `dupe_key` | The normalised title, the start and the normalised location, at last sight. |
-| `first_seen` | The stamp of the run that first saw the id. |
-| `gone_since` | The stamp of the run since which none of its source ids is listed, or since it was merged into another id. |
-| `merged_into` | Where two ids collided on a dupe key: the id that survived. The survivor's event lists this line's id in its `was`. |
+| `id` | The event's id: its source id at first sight, forever. A group that leaves a line in a split takes its smallest source id, or `<source_id>.<n>` where that is already an id - the line it left, or one merged away - with n counting up from 1: the one id that is not a bare source id. |
+| `source_ids` | The source ids that map to this id now, their rows listed this run or removed, sorted. A source id is in one line's `source_ids` at most, and resolution reads these alone. |
+| `left` | An append-only record of the moves out of this line, in the order they were made: each `{source_id, to}`, a source id and the id it went to, in a merge or a split. A source id that later comes back keeps its entry. |
+| `key` | The group's key at last sight, `[title, start, location]` as `dupe_key` makes it: the normalised title, the start and the normalised location. |
+| `first_seen` | The stamp of the run that made the line. |
+| `gone_since` | The stamp of the first run in which every source id of the line sat on a removed row, or in which it was merged into another id. It clears when a source id is live again. |
+| `merged_into` | Where two ids collided on a key: the id that survived. The survivor's event lists this line's id in its `was`. |
 
-There is no `last_seen`. The rules that write a line - a group's id, a
-copy that leaves, two ids that collide, the one match - are #43's, and so
-are the ids stage's fatal conditions.
+There is no `last_seen`.
+
+**The rules**, a to f. `ids_stage.assign(rows, ledger, stamp, thresholds)`
+applies them in this order, every run, and returns the rows each carrying
+its id, the groups, the new ledger and a report:
+
+- **a. Groups.** The live rows - not removed; a stale row is live - group
+  by `dupe_key`. A removed row never groups by key: it stays with the line
+  its source id maps to.
+- **b. A group's id** is the id its members map to, and every member's
+  source id maps to it. Where they map to two or more ids, the smallest
+  survives, in string order: the others' lines get `merged_into`, and
+  their source ids move to the survivor's `source_ids`, each move recorded
+  in the losing line's `left`.
+- **c. The match.** A group with no id whose key equals a gone line's key -
+  every source id of that line on a removed row, and the line not merged
+  away - takes that line's id, in the same run or any later one. This is
+  the one matching rule, and nothing looser. Where two gone lines hold the
+  key, the smaller id takes it.
+- **d. New.** Otherwise the group is new, and its id is its smallest
+  source id.
+- **e. A split** - two or more groups claiming one id - is decided by
+  membership: the larger group keeps the id; on a tie, the group whose key
+  equals the line's `key` at last sight; on a tie again, the group with the
+  smaller smallest source id. Each other group leaves under a new id, as
+  `id` above has it, and its source ids move to its new line, recorded in
+  the old line's `left`.
+- **f. Keys and gone.** A line's `key` becomes its group's whenever a live
+  group holds it. A line is gone when every source id in its `source_ids`
+  sits on a removed row; `gone_since` is the stamp of the first such run,
+  and clears when a source id is live again. `first_seen` is the stamp of
+  the run that made the line.
+
+**The key in a split.** Membership comes first, so the side of a split
+that keeps the id is the larger one, even where it is the side whose key
+moved: of three copies, two renamed together keep the id, and the one that
+stayed leaves. The key at last sight only breaks a tie: where a group of
+two splits one and one, the copy still at the line's key keeps the id, and
+the one that moved leaves - as `<source_id>.1` where its source id was the
+line's id.
+
+**Fatal**, as `IdsError`, and nothing is written: the ledger absent, or a
+line of it malformed, its line number in the message; a removed row whose
+source id no line holds; a source id in two lines' `source_ids` after
+assignment; new ids - the new groups' and the leavers' - above `new_ids` ×
+the lines before the run, skipped when the ledger was empty.
+
+**The report**: the new ids, the matches by rule c, the merges, the
+leavers, the lines gone this run and the lines returned - gone before it
+and live after, by whichever rule - and UNSURE: each pair of a line gone
+this run, not merged away, and an id new this run whose keys agree on two
+of their three parts, with the part that differs. For UNSURE only,
+locations are compared after the fold the venues stage applies at a key
+boundary - space, comma and hyphen read alike - so the Salon pair (history
+section 4, v6 → v7: `Hilton Salon`, then `Hilton-Salon`) shows with the
+title as its one differing part; the match itself stays exact on the raw
+key. The ids stage reads no hotel keys, so it reads the three alike
+wherever they fall in a location, and a pair whose keys agree on all three
+parts that way differs in the location's separators alone.
+
+**A frozen year** has no ledger and no ids stage: nothing writes its
+`ids.jsonl`, and PR 6's build sets each event's `id` to its `source_id`,
+the frozen file's `id` (#13, #46).
+
+**The replay.** `tools/replay_2026.py` runs the stage over the 34
+committed 2026 versions, each converted to raw rows and carried as the
+fetch carries them, and `replay-2026.md`, beside this file, is the result
+(#43): ours differ from the frozen file's ids on the two James Callis
+sessions alone, matched across their gap, and the Salon pair is new,
+UNSURE by its title.
 
 ## The v2 file: `events.v2.json`
 
@@ -249,8 +324,9 @@ By hand, one a year (#44, #46). Every key is written, in this order, and
 - `thresholds`: `listings_floor`, the listings floor, 80% of the previous
   `source.json`'s, its removed rows aside (#44); `detail_failures`, the
   ceiling on failed detail fetches, 20% (#44); `new_ids`, the ceiling on
-  new ids in a run after the first, 20% (#43); and `requests_per_run`, the
-  request cap, 40 requests a run by default (#46).
+  new ids, 20%: a run with new ids above `new_ids` × the lines before the
+  run is fatal, skipped when the ledger was empty (#43); and
+  `requests_per_run`, the request cap, 40 requests a run by default (#46).
 
 Dates are ISO, and a span's first day is not after its last. The three
 fractions are in (0, 1], and the cap is a positive whole number.
@@ -334,7 +410,7 @@ and handed down: a run that fetches records it as `fetched_at`, and a
 | stage | reads | writes | fatal | degraded |
 |---|---|---|---|---|
 | fetch | `season.json`; the previous `source.json` | `source.json` | a day list that fails; no listings; listings under 80% of the previous file's, its removed rows aside; over 20% of the detail fetches failed; every detail page parsing to an empty title | a failed detail page; a listing gone; a repaired text |
-| ids | `source.json`; `ids.jsonl`; `season.json` | `ids.jsonl` | the ledger absent; a source id in two lines' `source_ids`; over 20% new ids in a run after the first | an UNSURE match candidate or merge |
+| ids | `source.json`; `ids.jsonl`; `season.json` | `ids.jsonl` | the ledger absent or a line of it malformed; a removed row no line holds; a source id in two lines' `source_ids`; new ids above `new_ids` × the lines before the run, skipped when the ledger was empty | an UNSURE match candidate or merge |
 | tag | the merge; the cache; the registries; `season.json` | the cache; `works.json`, by mint | a registry failing validation | the model unreachable, rate-limited or malformed after one retry; a mint that fails |
 | build | the merge; `venues.json`; the registries; the cache; `season.json`; the run's `fetched_at`, or `last-run.json`'s after `--from` | `events.v2.json`, in memory | `venues.json` or a registry failing validation; any exception; its two builds in memory differing | a hotel unknown; a room unresolved; a cache miss; a work name unresolved; a track unknown |
 | diff | the previous and the new `events.v2.json`; `ids.jsonl`; the previous `source.json`, for a code cause | the change lines and `changed_at`, in memory | the previous `events.v2.json` unreadable, unless it is absent and the ledger empty | - |
@@ -364,8 +440,8 @@ What CI cannot check:
   repair meet the source only in a run.
 - The model. CI has no key (#33): whether an answer is right.
 - The ledger's history. `ids.jsonl` records every match a season made, and
-  nothing CI holds can re-derive it; the replay of 2026 is its check
-  (#43).
+  nothing CI holds can re-derive it; the replay of 2026, `replay-2026.md`,
+  is its check (#43).
 - A past line's cause, which needed that run's code (#47).
 - The curation: whether an alias, a room or a walk time is true.
 
@@ -373,6 +449,6 @@ What CI cannot check:
 
 - The key order in each file; whether a key that holds nothing - `false`,
   an empty list - is written; and the names the entries do not give: the
-  SHA's key in a change line, the entries of `left` and `last-run.json`'s
-  counters. Each is the writing PR's; PR 2 settled them for `season.json`
-  and `venues.json`, and PR 3 for `source.json`, above.
+  SHA's key in a change line and `last-run.json`'s counters. Each is the
+  writing PR's; PR 2 settled them for `season.json` and `venues.json`, PR 3
+  for `source.json` and PR 4 for `ids.jsonl`, above.

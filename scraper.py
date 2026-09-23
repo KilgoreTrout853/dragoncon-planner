@@ -43,6 +43,7 @@ from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from ids_stage import dupe_key, norm_text  # the ids stage's since PR 4; dedupe() reads them
 from season import SeasonError, load as load_season
 
 # "Events" module (panels etc.) has no type param; "Gaming Events" is type=Entertainment.
@@ -383,7 +384,7 @@ def fetch(season, previous, *, workers=3, limit=0, delay=0.15):
     true`, or, where `previous` has no row for it, is named in `failures` alone. A row of `previous` whose listing
     this run lacks is carried with `removed: true`, its fields frozen at last sight. A row carries one flag at most:
     a removed row listed again is fetched fresh, or is stale when its page fails, and a stale row whose listing goes
-    is removed.
+    is removed. carry() does the carrying.
 
     `limit` takes the first N listings in the order the day lists give them, and the run is as if the source listed
     only those.
@@ -460,19 +461,13 @@ def fetch(season, previous, *, workers=3, limit=0, delay=0.15):
                          "changed")
 
     # 3. Carried from the previous file: a failed page's row, stale; a listing gone, removed.
-    listed = set(ids)
-    rows = dict(fresh)
-    stale = [sid for sid in failed if sid in previous]
-    gone = [sid for sid in previous if sid not in listed]
-    for sid in stale:
-        rows[sid] = carry(previous[sid], "stale")
-    for sid in gone:
-        rows[sid] = carry(previous[sid], "removed")
+    rows = carry({sid: fresh.get(sid) for sid in ids}, previous)
     return FetchResult(
-        rows=[rows[sid] for sid in sorted(rows)],
+        rows=rows,
         failures=[{"source_id": sid, "error": failed[sid]} for sid in sorted(failed)],
         repaired=repaired, listings=len(ids), fetched=len(fresh),
-        carried_stale=len(stale), carried_removed=len(gone),
+        carried_stale=sum(1 for row in rows if row.get("stale")),
+        carried_removed=sum(1 for row in rows if row.get("removed")),
         seconds=time.monotonic() - started)
 
 
@@ -482,7 +477,27 @@ def share(fraction, n):
     return Decimal(str(fraction)) * n
 
 
-def carry(row, flag):
+def carry(listed, previous):
+    """This run's rows (#42), carried from the previous file where they must be -> the rows, sorted by source_id.
+
+    `listed` maps each source id this run lists to its fresh row, or to None where its detail page failed; `previous`
+    is the previous file's rows by source_id. A fresh row is kept as it is. A failed listing is carried from
+    `previous` with `stale: true`, or, with no row there, left out: fetch() names it in `failures` alone. A row of
+    `previous` that this run does not list is carried with `removed: true`. A carried row keeps its fields frozen at
+    last sight and drops any flag it had, so a row carries one flag at most. fetch() calls it, and the replay of 2026
+    (tools/replay_2026.py) calls it on each committed version.
+    """
+    rows = {sid: row for sid, row in listed.items() if row is not None}
+    for sid, row in listed.items():
+        if row is None and sid in previous:
+            rows[sid] = carried(previous[sid], "stale")
+    for sid in previous:
+        if sid not in listed:
+            rows[sid] = carried(previous[sid], "removed")
+    return [rows[sid] for sid in sorted(rows)]
+
+
+def carried(row, flag):
     """A row of the previous file, carried with one flag, `stale` or `removed`: its fields as they were, frozen at
     last sight, and any flag it had dropped (#42)."""
     return {**{k: row[k] for k in ROW_FIELDS}, flag: True}
@@ -497,19 +512,10 @@ def carry(row, flag):
 # same minute, so they collapse into one row.
 #
 # The fetch no longer collapses them: source.json holds one row per listing
-# (#42). These stay for their readers until PRs 4-6 (ROADMAP): dupe_key and
-# norm_text for the ids stage and the history and room tools, dedupe and
-# merge_group for tests/make_sample.py's v1 sample.
+# (#42), and the ids stage groups them (#43). dupe_key and norm_text moved to
+# ids_stage.py with it and are imported above; dedupe and merge_group stay for
+# tests/make_sample.py's v1 sample.
 # ---------------------------------------------------------------------------
-
-def norm_text(s):
-    """Lowercase, collapse whitespace, drop trailing punctuation."""
-    return re.sub(r"\s+", " ", str(s or "")).strip().lower().rstrip(".,;:!?-–— ")
-
-
-def dupe_key(e):
-    return (norm_text(e.get("title")), e.get("start"), norm_text(e.get("room") or e.get("location")))
-
 
 def merge_group(group):
     """One event from several. The smallest id survives, so the choice is
