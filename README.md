@@ -9,7 +9,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | File | What it does |
 |---|---|
 | `data/2026/events.json` | The final 2026 schedule, frozen after the con: 3,459 events, scraped Sep 7 12:50 UTC. |
-| `scraper.py` | Pulls every event (panels + gaming) from the web version of the official app, merges duplicates, and writes `data/2026/events.json`. Takes ~20 minutes. |
+| `scraper.py` | The fetch stage: pulls every listing (panels + gaming) from the web version of the official app, for the year its `season.json` names, and writes that year's `source.json`, one raw row per listing. Takes ~20 minutes. The frozen `data/2026/events.json` was written by the 2026 scraper, which also merged duplicates. |
 | `tag_events.py` | The 2026 tagger, retired: its tags (fandoms, kind, topics, guests, 18+) are in the frozen `events.json`, which the live site on `main` still reads. The client on `next` reads tags v2, from `events.v2.json`. |
 | `tag_stage.py`, `events_v2.py` | Tags v2: a model's answers about each event, cached, and the schedule with them built into `data/2026/events.v2.json`. See Tagging. |
 | `parse_stage.py`, `registry.py` and `data/registry/`, `draft_people.py`, `census_v2.py`, `tools/` | The rest of the Discover pipeline, and the tools a person runs beside it. `docs/ARCHITECTURE.md`'s repo map says what each one is. |
@@ -17,7 +17,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `public/sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `public/manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `public/icon.svg`. Needs Pillow; fetches the font once. |
-| `.github/workflows/scrape.yml` | Runs the scraper and commits fresh data. By hand only now that the con is over. |
+| `.github/workflows/scrape.yml` | The 2026 refresh, by hand only. It fails at its Scrape step now that the scraper is the fetch stage, until the 2027 workflow replaces it. |
 | `vite.config.js`, `build/vite-dc.js` | The build. With `DC_CHANNEL=next` it stamps the output as a dev build, for the `next` branch's site. |
 | `tests/` | The pipeline's tests (pytest) and the client's (Vitest): units, rules over the source, the page in jsdom, the real schedule, the build. Not optional — run them before you push. |
 | `docs/` | `ARCHITECTURE.md`, what the system is; `DECISIONS.md`, what was decided and why; `VISION.md` and `ROADMAP.md`, what 2027 is for and in what order; `discover/`, the Discover design, its censuses and its review records; `venues/`, the floor-plan checklist and the room census; `SPLIT-MANIFEST.md`, the record of the module split. |
@@ -25,9 +25,10 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 ## Running it locally
 
 ```bash
-pip install -r requirements.txt  # requests, beautifulsoup4, urllib3, pytest - pinned
-python scraper.py --limit 30     # smoke test against the live site, ~30 seconds
-python scraper.py                # full scrape: 3,459 events in 2026, after merging duplicates
+pip install -r requirements.txt  # requests, beautifulsoup4, urllib3, ftfy, pytest - pinned
+python scraper.py --season data/2026/season.json --limit 30 --out /tmp/source.json
+                                 # smoke test against the live 2026 site; 2026 is frozen, so --out is outside data/2026/
+python scraper.py --season data/2027/season.json   # the 2027 fetch, into data/2027/source.json
 
 npm ci                           # Node version in .nvmrc
 npm run dev                      # the app, unbuilt, at http://localhost:5173
@@ -123,7 +124,7 @@ With `ANTHROPIC_API_KEY` set in the environment it calls the API; nothing reads 
 
 ## Duplicates
 
-The same event is often listed twice — once in the panel feed and once in gaming, or cross-listed under two tracks — and the copies disagree, one carrying the speakers and the other not. `scraper.py` groups by normalised title, start and room and merges each group: smallest id survives (so existing picks keep pointing at something), speakers and tracks union, panel beats gaming, longest description wins, tags follow whichever copy had them. That's 146 groups and 192 rows on a typical scrape.
+The same event is often listed twice — once in the panel feed and once in gaming, or cross-listed under two tracks — and the copies disagree, one carrying the speakers and the other not. In 2026 `scraper.py` grouped by normalised title, start and room and merged each group: smallest id survives (so existing picks keep pointing at something), speakers and tracks union, panel beats gaming, longest description wins, tags follow whichever copy had them. That was 146 groups and 192 rows on a typical scrape. The fetch no longer merges: `source.json` keeps every listing, and the 2027 pipeline's ids stage and merge take the groups over (DECISIONS #43, #44).
 
 ## Walk times
 
@@ -136,6 +137,8 @@ Hosted by Core-apps at `https://app.core-apps.com/dragoncon26`. Day pages are `e
 **The host signals rate limiting with `403`, not `429`.** That has to stay in the retry `status_forcelist` in `make_session()`; without it the first throttle turns every remaining fetch into an instant failure — it once cost 3,285 of 3,577 events.
 
 ## The refresh workflow
+
+It fails at its Scrape step now: the scraper is the fetch stage, which takes `--season` and needs ftfy, and the workflow gives it neither. The 2027 workflow replaces it (DECISIONS #48). What follows is how it ran in 2026.
 
 Runs by hand only (Actions → Refresh schedule → Run workflow); the 3-hourly cron that ran it through con week was removed once the schedule was final, and a run now would overwrite `data/2026/events.json` with whatever the host serves. Before committing it refuses a scrape that returned nothing or fell more than 20% — a throttled run can't overwrite good data. If `main` moved while it was scraping it rebases and retries rather than dropping the refresh. Two refreshes never run at once: a second run waits for the first, because both would rewrite the schedule and the rebase can't resolve that.
 

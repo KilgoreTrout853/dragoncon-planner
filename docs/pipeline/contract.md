@@ -41,8 +41,13 @@ PR 6 rebuilds its `events.v2.json` in the 2027 shape (ROADMAP).
 The fetch's output (#41, #42): one row for every listing the source
 serves, before any dedupe, and for every listing it has served this
 season and serves no longer. The shape is normalised and the content is
-not. The file carries no timestamp of its own, and is compact, with a
-line break before each row.
+not. The file is `{"source", "failures", "rows"}`, in that order: `source`
+is `season.json`'s base URL, `failures` is below, and `rows` are sorted by
+`source_id`, in string order. It carries no timestamp of its own, and is
+compact UTF-8 with LF line ends, a line break before each row and one
+after the last. A row's keys are written in the order below; `tracks` and
+`speakers` are always written, `[]` where empty, and `stale` and `removed`
+only where true.
 
 | field | what it holds |
 |---|---|
@@ -60,10 +65,36 @@ line break before each row.
 | `removed` | `true` on a row carried from the previous file because the source no longer lists it, its fields frozen at last sight. It clears if the listing returns (#42). |
 
 `failures` lists `{source_id, error}`, one per listing whose detail page
-failed. A failed listing with a row in the previous file is carried with
-`stale: true`; one without is named here and nowhere else. A listing the
-source no longer lists is carried the same way, with `removed: true`, for
-the rest of the season or until it returns.
+failed, sorted by `source_id`, `error` the exception's text. A failed
+listing with a row in the previous file is carried with `stale: true`; one
+without is named here and nowhere else. A listing the source no longer
+lists is carried the same way, with `removed: true`, for the rest of the
+season or until it returns. A row carries one flag at most: a removed
+listing that returns is fetched fresh, or is stale when its page fails,
+and a stale row whose listing goes is removed.
+
+**The repair** is ftfy's `fix_encoding` and no other ftfy transform (#44).
+It runs on the page's text before whitespace is collapsed: the title (the
+day list's too, which a row takes where its page has none), the location,
+each paragraph of the description, each track and each speaker's name. The
+source sends some text that was UTF-8 read as cp1252 ("â€“" for "–"), and
+some with an "Â" before a no-break space; where that space ends a line,
+collapsing strips it, and the "Â" left behind is past repair. Text with
+nothing wrong with it passes through as it is, so a clean listing's tagger
+input, and its cache key (#34), are unchanged; ftfy's other fixes - curly
+quotes, normalisation, HTML entities - would change clean text.
+
+**The fetch's result.** `scraper.fetch(season, previous)` returns one
+object, which the run summary reads (#44; PR 8):
+
+| field | what it holds |
+|---|---|
+| `rows`, `failures` | As the file holds them. |
+| `repaired` | The strings on this run's fetched rows that the repair changed: a title, a location, a description (once, however many of its paragraphs), each track and each speaker's name. |
+| `listings` | The listings this run: every day list's, or the first `--limit` of them in page order. |
+| `fetched` | The detail pages fetched and parsed into a row: `listings` less the failures. |
+| `carried_stale`, `carried_removed` | The rows carried from the previous file with each flag. |
+| `seconds` | How long the fetch took. |
 
 What left the row (#42): `hotel` and `room` are the venues step's (#45);
 `track` is build's, the first of the sorted `tracks`; and `cancelled` is
@@ -211,8 +242,10 @@ By hand, one a year (#44, #46). Every key is written, in this order, and
   zone, a string;
 - `window`, `{from, to}`: the cron window, outside which the workflow's
   guard exits 0 (#48); `null` in a frozen year;
-- `frozen` (#46), which nothing reads yet; and `prompt_version`,
-  `PROMPT_VERSION` (2026: 1), which a season never bumps (#46);
+- `frozen` (#46), which the fetch reads: it writes nothing into a frozen
+  year's folder, and a probe of the source points `--out` outside it; and
+  `prompt_version`, `PROMPT_VERSION` (2026: 1), which a season never bumps
+  (#46);
 - `thresholds`: `listings_floor`, the listings floor, 80% of the previous
   `source.json`'s, its removed rows aside (#44); `detail_failures`, the
   ceiling on failed detail fetches, 20% (#44); `new_ids`, the ceiling on
@@ -300,7 +333,7 @@ and handed down: a run that fetches records it as `fetched_at`, and a
 
 | stage | reads | writes | fatal | degraded |
 |---|---|---|---|---|
-| fetch | `season.json`; the previous `source.json` | `source.json` | no listings; listings under 80% of the previous file's, its removed rows aside; over 20% of the detail fetches failed; every detail page parsing to an empty title | a failed detail page; a listing gone; a repaired text |
+| fetch | `season.json`; the previous `source.json` | `source.json` | a day list that fails; no listings; listings under 80% of the previous file's, its removed rows aside; over 20% of the detail fetches failed; every detail page parsing to an empty title | a failed detail page; a listing gone; a repaired text |
 | ids | `source.json`; `ids.jsonl`; `season.json` | `ids.jsonl` | the ledger absent; a source id in two lines' `source_ids`; over 20% new ids in a run after the first | an UNSURE match candidate or merge |
 | tag | the merge; the cache; the registries; `season.json` | the cache; `works.json`, by mint | a registry failing validation | the model unreachable, rate-limited or malformed after one retry; a mint that fails |
 | build | the merge; `venues.json`; the registries; the cache; `season.json`; the run's `fetched_at`, or `last-run.json`'s after `--from` | `events.v2.json`, in memory | `venues.json` or a registry failing validation; any exception; its two builds in memory differing | a hotel unknown; a room unresolved; a cache miss; a work name unresolved; a track unknown |
@@ -340,6 +373,6 @@ What CI cannot check:
 
 - The key order in each file; whether a key that holds nothing - `false`,
   an empty list - is written; and the names the entries do not give: the
-  top level of `source.json`, the SHA's key in a change line, the entries
-  of `left` and `last-run.json`'s counters. Each is the writing PR's; PR 2
-  settled them for `season.json` and `venues.json`, above.
+  SHA's key in a change line, the entries of `left` and `last-run.json`'s
+  counters. Each is the writing PR's; PR 2 settled them for `season.json`
+  and `venues.json`, and PR 3 for `source.json`, above.

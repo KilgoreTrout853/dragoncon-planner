@@ -40,7 +40,11 @@ seam a feed would plug into (#41). The sequence:
    registry (#46).
 3. Fetch: `fetch()`, the raw row, `location` verbatim, failures named,
    `stale`, the repair, `season.json` read. Testable against the live 2026
-   source with `--limit`.
+   source with `--limit` - built: `scraper.fetch()` and its result object;
+   `source.json`, with `stale` and `removed` carried; the fatal rules, a
+   failed day list among them; the repair, ftfy's `fix_encoding`, before
+   whitespace is collapsed; the year from `season.json`; the v1 writer
+   deleted.
 4. Ids, and the replay harness, with its report (#43).
 5. The venues step (#45).
 6. Build: the merge with sorted unions, `cancelled` read by the parse
@@ -68,8 +72,8 @@ derived from the description; the parse stage owns the "Additional
 Panelists:" line (#42).
 
 The scraper decodes these feeds correctly; the source sends the text
-double-encoded, and the 2027 pipeline repairs it inside fetch, before
-whitespace is collapsed (#44). 45 events of the frozen 2026
+double-encoded, and the fetch repairs it, with ftfy's `fix_encoding`,
+before whitespace is collapsed (#44, PR 3). 45 events of the frozen 2026
 file - 27 in Role-Playing Games (Campaign), 17 in Role-Playing Games
 (Non-Campaign) and 1 in Collectible Card Games - carry text that was UTF-8
 read as cp1252 ("â€“" for "–", "FaerÃ»n" for "Faerûn"), found by
