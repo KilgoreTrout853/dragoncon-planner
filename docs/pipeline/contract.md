@@ -256,13 +256,23 @@ An event is the merged row's fields, then these, each from its owner:
 | `stale` | the merge (#44) | The supplying row's: `true` where it was carried because its detail page failed (#42). |
 | `removed` | the merge (#44) | `true` when every row of the event is carried as removed, its fields frozen at last sight (#42). It clears when a listing returns. Kept all season; the client filters it out everywhere but Mine and Now. |
 | `was` | the ids stage (#43) | The ids merged into this event, from the ledger's `merged_into` lines. The client's pick reconciliation re-points a pick whose id is absent but in an event's `was`. |
-| `hotel`, `room` | the venues step (#45) | The hotel, and the room as the location writes it, for display. |
+| `hotel`, `room` | the venues step (#45) | The hotel, and the room shown: the location less its hotel's key, or the whole location at a hotel whose `display` is `location` (the Mart). |
 | `level` | the venues step (#45) | The level's id, where one is known. |
 | `rooms` | the venues step (#45) | Room ids: the room strings as `venues.json` writes them, scoped to the hotel. |
 | `place` | the venues step (#45) | How the place was found: `exact` \| `rule` \| `alias` \| `level` \| `hotel` \| `none`. |
 | `track` | build (#42) | The first of the sorted `tracks`. |
 | `cancelled` | the parse step (#42) | Its reading of the title and description. |
 | `people`, `facets`, `tags` | the parse step and build | As `docs/discover/schema-v2.md` has them. An event the tag stage could not answer carries no `tags`: untagged is a state, counted, and the client handles the absence (#46). |
+
+The five place fields by `place`, as the venues step (below, under
+`venues.json`) sets them:
+
+| `place` | `hotel` | `room` | `level` | `rooms` |
+|---|---|---|---|---|
+| `exact`, `alias`, `rule` | the hotel | the room shown | the level | the rooms, as `venues.json` writes them |
+| `level` | the hotel | the room shown | the level | `[]` |
+| `hotel` | the hotel | the room shown; `""` for a bare key | `null` | `[]` |
+| `none` | Streaming, Other or Unknown | the room shown; `""` for an empty location | `null` | `[]` |
 
 Inside build, in order: the merge; the venues step (#45); the parse step,
 for `people`, `facets` and `cancelled`; resolution, through the registries
@@ -272,7 +282,8 @@ function of committed inputs, and never reads its own previous output
 
 2026's file is rebuilt in this shape (ROADMAP, PR 6), so the client reads
 one shape. Its `id` and `source_id` are both the frozen file's `id` (#13),
-and its place fields come from `data/2026/venues.json`.
+and its place fields come from `data/2026/venues.json`, read by the same
+venues step from each frozen event's `location`.
 
 ## The change log: `changes.jsonl`
 
@@ -334,7 +345,8 @@ fractions are in (0, 1], and the cap is a positive whole number.
 ## `venues.json`
 
 By hand, one a year, runtime data only (#45). The resolver's rules - the
-split, the grammar, the Mart - are #45's. Every field is written, and
+split, the grammar, the Mart - are #45's, built as the venues step, below.
+Every field is written, and
 `venues.py` refuses one it does not know. At the top, in this order:
 `walk`, `same_venue_min`, `unknown_pair_min`, `slack_min` and `hotels`, in
 their `order`; a hotel's fields and a level's, in the order below.
@@ -374,6 +386,67 @@ numbers.
 The drawings are not in it: they live under `data/2027/drawings/`, one file
 per hotel level (#45).
 
+**The venues step**, `venues_stage.py` (#45), reads each row's `location`
+into the five place fields and a report. Build calls it (PR 6), on raw
+rows and on a frozen year's rows alike; it is pure.
+
+- **The split.** The location's leading tokens are matched against every
+  hotel's keys, longest key first, whole tokens only and without regard to
+  case, and the room string is the rest, after a space, a comma or a
+  hyphen; a bare key leaves it empty. No key: Other, the whole location the
+  room string, counted as hotels unknown. Empty: Unknown.
+- **The reading**, the first that holds winning:
+  - a. `alias` - the room string, folded, is an alias of one of the
+    hotel's levels: its rooms, on that level.
+  - b. `exact` - the room string, case-folded, is a room on one of its
+    levels. One of the hotel's unplaced rooms reads `hotel`: the file knows
+    it but not where it is, so it is listed apart and not counted as
+    unresolved.
+  - c. `rule` - a rule of the grammar names rooms that all exist on one
+    level. A rule whose rooms are missing, or span two levels, fails, and
+    the next is tried.
+  - d. `level` - a rule names a level and no room: the Mart's building
+    floors and vendor halls, a floor alone. Or, once every rule has failed,
+    the rooms the first failed rule did find all sit on one level.
+  - e. `hotel` - no reading, or the hotel alone: a bare key, or the hotel's
+    own name again. Counted as rooms unresolved, and listed.
+  - f. `none` - a placeless hotel: Streaming, Other, Unknown. First its room
+    string, less a repeat of its own key
+    (`O Other Marriott, Imperial Ballroom`), is split once more against the
+    placed hotels' keys, and a match is read at that hotel, as the rule
+    `re-split`.
+- **The grammar**, in the order it is tried:
+  - the three Mart rules: `Building <n>, Floor <m>`, that level;
+    `Vendor Hall Floor <n> …`, that vendor-hall level; `20xY …`, that
+    Building 2 room, the rest a note;
+  - the census's eight combined-string rules: numeric run, roman run, letter
+    run, number run, letters together, number and letters, slash list, word
+    pair;
+  - three rewrites, each read again: doubled; a leading "The"; and the
+    hotel's own initials and a hyphen (`H-Piedmont` at the Hyatt, `CG-` at
+    the Courtland Grand), nothing else stripping;
+  - partitions: the common prefix of two or more rooms on one level, each
+    the prefix and a letter, a number or a roman numeral (`Atrium Ballroom`
+    is its A to D; `Salon`, whose halves are East and West, waits for an
+    alias);
+  - the hotel alone;
+  - a floor alone, `Nth Floor` or `Floor N`, read as the level named
+    `<Ordinal> Floor` or `Level N`;
+  - a trailing note: the longest leading run of whole words that is a room.
+
+  Each rule is a function of the string alone, but partitions, which reads
+  the level's rooms; the step checks every other rule's rooms and levels
+  against the file. A numeral style is an alias, never a rule, and an alias
+  beats the grammar.
+- **The report:** events by place kind, in total and per hotel; the
+  worklist - the strings read at the hotel alone, with why, by events; the
+  unplaced rooms; the locations no key begins; the re-split locations; the
+  alias hits; and each rule's firings. Its two counters are the run
+  summary's venue counters (PR 8): rooms unresolved, the worklist's events,
+  and hotels unknown, the no-key locations'. A room placed at its level is
+  placed by design, and counts in neither. `tools/room_census.py` renders
+  the report over the 2026 schedule as `docs/venues/census-2026.md`.
+
 ## `last-run.json`
 
 The orchestrator's, written with each commit; a run with no change writes
@@ -391,14 +464,18 @@ degradation #44 enumerates:
 | texts repaired | Texts the repair changed (fetch). |
 | UNSURE matches | Candidates looser than #43's one rule, and merges of two ids (the ids stage). |
 | hotels unknown | Locations no hotel key matches, placed at Other with the unknown-pair walk (build). |
-| rooms unresolved | Rooms placed at their level, or at their hotel (#28; build). |
+| rooms unresolved | Rooms read at the hotel alone - no reading, or a bare key: the venues step's worklist - but not an unplaced room of the file, and not a room placed at its level, which is by design (build). |
 | events untagged | The model unreachable, rate-limited or malformed after one retry (tag), and cache misses (build). |
 | mints failed | A mint that failed: its links drop for this run (tag). |
 | work names unresolved | Links dropped for this run (build). |
 | tracks unknown | Tracks `tracks.json` lacks: no track axes, and listed as owed (build, #46). |
 
 A counter above zero becomes a warning annotation on the workflow (#48).
-The same counts on 2026's build are held at zero by a CI test (#44).
+On 2026's build the tag and track counters - events untagged, work names
+unresolved, tracks unknown - are held at zero by a CI test (#44): on a
+frozen year they are pipeline faults. The venue counters - hotels unknown,
+rooms unresolved - are curation state, reported and never held; PR 6
+builds the test that way.
 
 ## The stages
 
@@ -428,7 +505,7 @@ commit - only when a committed file's bytes change, its own stamp aside
 | census v2 | Rendered afresh: equal to the committed report (#35). | Not held; run on demand (#46). |
 | `venues.json` | Loads and validates (#45). | Loads and validates (#45). |
 | `changes.jsonl` | - | `last-run.json`'s `changes_logged` against the log's last stamp; every id the log names in `events.v2.json`, removed or not, or a `merged` line's id; each commit's log beginning with the last commit's (#47). |
-| the counters | Held at zero on 2026's build (#44). | - |
+| the counters | The tag and track counters held at zero on 2026's build; the venue counters reported, never held (#44). | - |
 | writes | The raw file refused; the derived files rebuilt by an explicit command, never by a run (#46). | A run's, when it commits (#44). |
 
 The fixture tests of #47 - every kind, the attribution, append-only, the

@@ -51,7 +51,10 @@ seam a feed would plug into (#41). The sequence:
    carrying on its own; `tools/replay_2026.py` and `replay-2026.md`: ours
    differ from the frozen file's ids on the two James Callis sessions
    alone, and the Salon pair is UNSURE by its title.
-5. The venues step (#45).
+5. The venues step (#45) - built: `venues_stage.py`, the hotel split out
+   of the scraper and the resolver - aliases, exact rooms, the grammar,
+   the Mart - with its report; the room census retargeted at it, as the
+   curation worklist.
 6. Build: the merge with sorted unions, `cancelled` read by the parse
    step, tolerance, the digest, one event a line, `removed`, `stale`, the
    place fields, untagged events. 2026's `events.v2.json` is rebuilt in
