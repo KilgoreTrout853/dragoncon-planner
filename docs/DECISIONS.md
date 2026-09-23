@@ -908,7 +908,8 @@ each; `docs/pipeline/contract.md` has the detail.
 - **`events.v2.json`** is #38's shape plus `digest`, the sha256 of the
   canonical `{works, events}` - no timestamps, no failures - and on each
   event `id` (ours, #43), `source_id`, `stale`, `removed: true` for an
-  event the source dropped, kept all season, and #45's place fields.
+  event the source dropped, kept all season, `was` for the ids merged
+  into it (#43), and #45's place fields.
   `generated_at` is `last-run.json`'s `fetched_at`: the schedule is as of
   that fetch, and a `--from` run keeps it. `changed_at` is
   `last-run.json`'s, and moves only when the digest does (#47). `source`
@@ -946,9 +947,13 @@ ids stage keeps it in a ledger, and every source id resolves through it.
 - **Two ids in one group.** Where two events that already have ids
   collide on a dupe key after a change, the smaller id survives, in string
   order, as the dedupe's `min()` compares. The other line gets
-  `merged_into` and `gone_since`; its event is removed as a dropped one is
-  (#42), and its picks break as a removed event's do. The run summary
-  lists the merge UNSURE. 2026 never showed it; it is written down so that
+  `merged_into` and `gone_since`, and its event leaves the file. The
+  survivor carries `was`, the ids merged into it, from the ledger's
+  `merged_into` lines, and the client's pick reconciliation re-points a
+  pick whose id is absent but in an event's `was`: a collision is an exact
+  dupe-key match, so this is certain in a way the looser matches are not.
+  The change log records it as `merged` (#47), and the run summary lists
+  the merge UNSURE. 2026 never showed it; it is written down so that
   nothing improvises.
 - **One matching rule.** A source id that vanished and one that appeared,
   in the same run or any later run of the season, are one event if and
@@ -1137,17 +1142,19 @@ in August.
 event: the run's stamp, the code's SHA, the event's id, the kind, from and
 to, and the cause, sorted by run, id and kind.
 - **Kinds:** `added`, `removed`, `restored`, `cancelled`, `uncancelled`,
-  `time` (`start`, `end`), `place` (`hotel`, `room`), `title`, `people`
-  (sets of ids), `tracks` (sets) and `description` (no from or to). Never
-  tags, and never an order alone.
+  `merged` (`to`: the survivor's id, #43), `time` (`start`, `end`),
+  `place` (`hotel`, `room`), `title`, `people` (sets of ids), `tracks`
+  (sets) and `description` (no from or to). Never tags, and never an
+  order alone.
 - **Cause:** `source` | `code`. When the run's SHA differs from the
   previous run's, the diff stage builds the previous `source.json` with the
   new code, in memory - writing nothing, a cache miss left untagged - and
   splits the diff exactly; otherwise every line is `source`.
 - `changed_at` is set here, to the run's stamp, and follows the digest
   (#42): tags are never logged, so a retag moves it with no line.
-- A stale carry-forward and a change of group membership make no line.
-  The first run records every event as `added`.
+- A stale carry-forward and a change of group membership make no line;
+  two ids merging make a `merged` line, under the id merged away. The
+  first run records every event as `added`.
 - **Consumers:** the mirror and the push job (Identity and sync). A
   windowed copy for the client is Delivery's.
 
@@ -1162,8 +1169,8 @@ append-only and the order. On the committed files, `last-run.json`
 records `changes_logged`: above zero, the log's last stamp equals
 `last-run.json`'s `changed_at`, since a run that logs a line has moved
 the digest; at zero, it is no later. Every id the log names is in
-`events.v2.json`, removed or not, and each commit's log begins with the
-last commit's, byte for byte.
+`events.v2.json`, removed or not, or is a `merged` line's id; and each
+commit's log begins with the last commit's, byte for byte.
 **Cost:** A typo fixed at the source makes a description line. Thousands
 of lines a season.
 

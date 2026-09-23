@@ -76,14 +76,23 @@ is merged, split and tagged.
 The one place a group of rows becomes an event (#44): a pure function of
 `source.json` and `ids.jsonl`, which the tag stage and build both call.
 The ledger says which rows are one event - the rows whose `source_id` is
-in one line's `source_ids` (#43) - and the merge makes them one. The
-group's rows sort by source id, in string order, which is the fix the
-history report proposes (section 6); then:
+in one line's `source_ids` (#43) - and the merge makes them one.
+Existence is the group's and content a row's. The group's rows sort by
+source id, in string order, which is the fix the history report proposes
+(section 6); then:
 
-- The smallest supplies every scalar field.
+- The event is removed only if every row in it is removed.
+- The supplying row is the smallest not removed, or the smallest of all
+  when every row is removed. It supplies every scalar field, `source_id`
+  and `stale` among them, but one: `type` is `panel` if any row's is, as
+  2026's `merge_group` had it.
 - `tracks` and `speakers` are the unions, taken in that order, so a group
   gives the same lists on every run.
 - `description` is the longest, a tie going to the first in that order.
+
+So the James Callis sessions, whose vanished source ids sort before the
+ones they came back under (history section 5), read live, from their new
+listings.
 
 The tag stage's input is the merged title, type, tracks and description,
 read as `tag_stage.tagger_input` reads an event (#34). Build calls the
@@ -103,7 +112,7 @@ commit.
 | `dupe_key` | The normalised title, the start and the normalised location, at last sight. |
 | `first_seen` | The stamp of the run that first saw the id. |
 | `gone_since` | The stamp of the run since which none of its source ids is listed, or since it was merged into another id. |
-| `merged_into` | Where two ids collided on a dupe key: the id that survived. |
+| `merged_into` | Where two ids collided on a dupe key: the id that survived. The survivor's event lists this line's id in its `was`. |
 
 There is no `last_seen`. The rules that write a line - a group's id, a
 copy that leaves, two ids that collide, the one match - are #43's, and so
@@ -130,9 +139,10 @@ An event is the merged row's fields, then these, each from its owner:
 | key | owner | what it holds |
 |---|---|---|
 | `id` | the ids stage (#43) | Ours. |
-| `source_id` | the ids stage (#43) | The source's id. The client uses it for any link out to the source. |
-| `stale` | fetch (#42) | `true` where the event's row was carried because its detail page failed. |
-| `removed` | fetch (#42); the ids stage (#43) | `true` on an event whose listing the source no longer lists, its row carried with its fields frozen at last sight, or on an id merged into another (#43). It clears if the listing returns. Kept all season; the client filters it out everywhere but Mine and Now. |
+| `source_id` | the merge (#44) | The supplying row's: the source's id, which the client uses for any link out to the source. |
+| `stale` | the merge (#44) | The supplying row's: `true` where it was carried because its detail page failed (#42). |
+| `removed` | the merge (#44) | `true` when every row of the event is carried as removed, its fields frozen at last sight (#42). It clears when a listing returns. Kept all season; the client filters it out everywhere but Mine and Now. |
+| `was` | the ids stage (#43) | The ids merged into this event, from the ledger's `merged_into` lines. The client's pick reconciliation re-points a pick whose id is absent but in an event's `was`. |
 | `hotel`, `room` | the venues step (#45) | The hotel, and the room as the location writes it, for display. |
 | `level` | the venues step (#45) | The level's id, where one is known. |
 | `rooms` | the venues step (#45) | Room ids: the room strings as `venues.json` writes them, scoped to the hotel. |
@@ -161,6 +171,7 @@ the event's `id`, the `kind`, `from` and `to`, and the `cause`.
 |---|---|
 | `added`, `removed`, `restored` | - |
 | `cancelled`, `uncancelled` | - |
+| `merged` | `to`: the survivor's id; the line's `id` is the id merged away (#43) |
 | `time` | `start` and `end` |
 | `place` | `hotel` and `room` |
 | `title` | the title |
@@ -169,8 +180,8 @@ the event's `id`, the `kind`, `from` and `to`, and the `cause`.
 | `description` | none: the line says only that it changed |
 
 There is no line for tags, for an order alone, for a stale carry-forward
-or for a change of group membership. The first run records every event as
-`added`.
+or for a change of group membership; two ids merging make a `merged` line,
+under the id merged away. The first run records every event as `added`.
 
 `cause` is `source` or `code`. When the run's SHA differs from the previous
 run's, the diff builds the previous `source.json` with the new code, in
@@ -276,7 +287,7 @@ commit - only when a committed file's bytes change, its own stamp aside
 | `events.v2.json` | Rebuilt from the raw file, the registries, the cache, `season.json` and `venues.json`: equal to the committed file (#34, #46). | Rebuilt from `source.json`, `ids.jsonl`, the registries, `venues.json`, the cache and `season.json`, its two stamps read from `last-run.json`, not from the file it checks: equal to it, byte for byte (#42). |
 | census v2 | Rendered afresh: equal to the committed report (#35). | Not held; run on demand (#46). |
 | `venues.json` | Loads and validates (#45). | Loads and validates (#45). |
-| `changes.jsonl` | - | `last-run.json`'s `changes_logged` against the log's last stamp; every id the log names in `events.v2.json`; each commit's log beginning with the last commit's (#47). |
+| `changes.jsonl` | - | `last-run.json`'s `changes_logged` against the log's last stamp; every id the log names in `events.v2.json`, removed or not, or a `merged` line's id; each commit's log beginning with the last commit's (#47). |
 | the counters | Held at zero on 2026's build (#44). | - |
 | writes | The raw file refused; the derived files rebuilt by an explicit command, never by a run (#46). | A run's, when it commits (#44). |
 
@@ -301,14 +312,3 @@ What CI cannot check:
   top level of `source.json`, the SHA's key in a change line, the entries
   of `left`, the fields of `season.json` and `last-run.json`'s counters.
   Each is the writing PR's.
-- A group whose rows are partly carried as removed. The smallest row
-  supplies every scalar, `removed` among them, so a group whose smallest
-  row is carried as removed reads as removed, with that row's frozen
-  fields, while another of its rows is still listed: a copy that left a
-  dedupe group, or the James Callis sessions once #43's match joins their
-  vanished source ids, which sort first, to the ones they came back under
-  (history section 5).
-- A merged-away id (#43). Its source ids move to the survivor, so no row
-  is left to carry its fields as a removed listing's row carries them; yet
-  #43 removes its event as a dropped one's, and #47 wants every id the log
-  names in `events.v2.json`.

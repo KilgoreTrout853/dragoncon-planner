@@ -50,7 +50,8 @@ seam a feed would plug into (#41). The sequence:
 8. The orchestrator, the run summary and the workflow, proven by a
    dispatch run against the 2026 source with `--limit` into a scratch
    branch.
-9. The 2027 client switch, after a design pass of its own.
+9. The 2027 client switch, after a design pass of its own; its pick
+   reconciliation reads `was` (#43).
 
 Identity and sync opens in design once PR 2 is running (#37).
 
