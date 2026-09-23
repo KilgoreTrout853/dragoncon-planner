@@ -20,7 +20,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `.github/workflows/scrape.yml` | Runs the scraper and commits fresh data. By hand only now that the con is over. |
 | `vite.config.js`, `build/vite-dc.js` | The build. With `DC_CHANNEL=next` it stamps the output as a dev build, for the `next` branch's site. |
 | `tests/` | The pipeline's tests (pytest) and the client's (Vitest): units, rules over the source, the page in jsdom, the real schedule, the build. Not optional — run them before you push. |
-| `docs/` | `ARCHITECTURE.md`, what the system is; `DECISIONS.md`, what was decided and why; `VISION.md` and `ROADMAP.md`, what 2027 is for and in what order; `discover/`, the Discover design, its censuses and its review records; `venues/`, the venues registry; `SPLIT-MANIFEST.md`, the record of the module split. |
+| `docs/` | `ARCHITECTURE.md`, what the system is; `DECISIONS.md`, what was decided and why; `VISION.md` and `ROADMAP.md`, what 2027 is for and in what order; `discover/`, the Discover design, its censuses and its review records; `venues/`, the floor-plan checklist and the room census; `SPLIT-MANIFEST.md`, the record of the module split. |
 
 ## Running it locally
 
@@ -127,7 +127,7 @@ The same event is often listed twice — once in the panel feed and once in gami
 
 ## Walk times
 
-Estimates in minutes, before the crowd factor, in the `WALK` table in `src/venues.js`. Edit them if you know better — especially Westin and Courtland Grand, the far ends.
+Estimates in minutes, before the crowd factor, in the `WALK` table in `src/venues.js`, and again as `walk` in `data/2027/venues.json`, which a test holds equal to it until the client reads the file. Edit both if you know better — especially Westin and Courtland Grand, the far ends.
 
 ## If the scraper breaks
 

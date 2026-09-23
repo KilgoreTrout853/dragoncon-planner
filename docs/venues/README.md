@@ -1,57 +1,70 @@
-# Venues registry — floor-plan checklist
+# Venues — the floor-plan checklist
 
-Rendered from `registry.json` (version 2026-09-18). Every hotel × level where programming happens, and whether we hold a plan for it.
-The hotels' drawings stay in `reference/` (gitignored); this file records what we have and where.
+Kept by hand. Every hotel × level where programming happens: which published floor plan covers the level, where our
+local copy of it is, and the state of our own drawing (DECISIONS #28). The hotels' drawings stay in `reference/`
+(gitignored); this file records what we have and where.
 
-| Hotel | Level | Rooms (per plan) | Seen in 2026 | Plan | Dims | Our drawing |
-|---|---|---|---|---|---|---|
-| Hyatt | International Tower · LL1 | 2 | — | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | none |
-| Hyatt | International Tower · LL2 | 8 | Embassy AB | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | none |
-| Hyatt | Lobby Level | ? | — | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | none |
-| Hyatt | Ballroom Level (LL1) | 8 | Regency V, Regency VI-VII, Centennial II-IV | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | none |
-| Hyatt | Exhibit Level (LL2) | 16 | — | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | none |
-| Hyatt | Atlanta Conference Center (LL3) | 20 | Kennesaw | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | none |
-| Marriott | Atrium Level | 5 | Atrium Ballroom, A601-A602, A703, A707 | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | none |
-| Marriott | Lobby Level | 6 | — | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | none |
-| Marriott | Marquis Level | 12 | M103-M105, M301, M302-M303, M303-M304 | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | none |
-| Marriott | International Level | 15 | — | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | none |
-| Hilton | Level 4 | 7 | — | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | none |
-| Hilton | Level 3 | 15 | 313-314 | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | none |
-| Hilton | Level 2 | 32 | 202, 203, 209-211, 212-214, Salon, Grand East | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | draft |
-| Hilton | Lobby | ? | — | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | none |
-| Hilton | Level 1 | 6 | Crystal Ballroom | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | none |
-| Hilton | Galleria | 8 | Galleria 1, Galleria 5, Galleria 6, Galleria 8 | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | none |
-| Westin | Fourteenth Floor | 8 | — | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | none |
-| Westin | Twelfth Floor | 8 | — | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | none |
-| Westin | Tenth Floor | 3 | — | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | none |
-| Westin | Ninth Floor | 2 | — | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | none |
-| Westin | Eighth Floor | 8 | — | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | none |
-| Westin | Seventh Floor | 9 | — | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | none |
-| Westin | Sixth Floor | 14 | — | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | none |
-| Westin | Chastain (level unknown) | 3 | — | unknown | no | none |
-| Courtland Grand | levels unknown | 3 | Grand Athens, Grand Capitol Ballroom, Grand Atlanta 3-4 | none | no | none |
-| AmericasMart | buildings 1-3, floors unknown | ? | — | unknown | no | none |
-| Hardy Ivy Park | — | — | — | n/a | — | — |
+Room, alias and note truth is `data/<year>/venues.json` (DECISIONS #45): the levels, their rooms, their aliases and
+their notes are data there, and this file does not repeat them. `tools/room_census.py` reads `data/2026/venues.json`
+and writes `docs/venues/census-2026.md`, what those rooms reach in the 2026 schedule.
+
+| Hotel | Level | Plan | Dims | Local copy | Our drawing |
+|---|---|---|---|---|---|
+| Marriott | Atrium Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | none |
+| Marriott | Lobby Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | none |
+| Marriott | Marquis Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | none |
+| Marriott | International Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | none |
+| Hyatt | International Tower · LL1 | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | none |
+| Hyatt | International Tower · LL2 | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | none |
+| Hyatt | Lobby Level | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | none |
+| Hyatt | Ballroom Level (LL1) | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | none |
+| Hyatt | Exhibit Level (LL2) | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | none |
+| Hyatt | Atlanta Conference Center (LL3) | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | none |
+| Hilton | Level 4 | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | none |
+| Hilton | Level 3 | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | none |
+| Hilton | Level 2 | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | draft |
+| Hilton | Lobby | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | none |
+| Hilton | Level 1 | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | none |
+| Hilton | Galleria | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | none |
+| Courtland Grand | levels unknown | none | no | — | none |
+| Westin | Fourteenth Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | none |
+| Westin | Twelfth Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | none |
+| Westin | Tenth Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | none |
+| Westin | Ninth Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | none |
+| Westin | Eighth Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | none |
+| Westin | Seventh Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | none |
+| Westin | Sixth Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | none |
+| Westin | Chastain (level unknown) | unknown | no | — | none |
+| AmericasMart | Building 2, Vendor Hall Floor 3 | unknown | no | — | none |
+| AmericasMart | Building 2, Vendor Hall Floor 2 | unknown | no | — | none |
+| AmericasMart | Building 2, Vendor Hall Floor 1 | unknown | no | — | none |
+| AmericasMart | Building 2, meeting rooms | unknown | no | — | none |
+| AmericasMart | Building 3, Floor 2 | unknown | no | — | none |
+| AmericasMart | Building 3, Floor 1 | unknown | no | — | none |
+| Hardy Ivy Park | — | n/a | — | — | — |
+
+## The plans
+
+- **Marriott** — AOM 2017 level map (image only) + NAQT all-in-one map + NFB prose walk-through; dimensions per room on
+  thevendry.co. All levels on one sheet.
+- **Hyatt** — Hotel's official floor-plan PDF (2012 rev.), conference-hosted copy. One page per level; confirm.
+- **Hilton** — Hotel's 2024 group sales playbook (floor plans + capacity charts). Floor plans follow the capacity
+  charts; confirm page numbers.
+- **Westin** — Pre-renovation hotel floor-plan PDF (floors 6-10, 12, 14); the Chastain level is not in it. One page per
+  floor.
 
 ## Notes
 
-- **Hyatt · Lobby Level** — registration and the atrium; no programming rooms known
-- **Hyatt · International Tower · LL2** — two levels below the lobby, in the International Tower; reached from the ACC
-- **Marriott · Marquis Level** — room codes carry the level: M = Marquis
-- **Marriott · Lobby Level** — L = Lobby
-- **Marriott · Atrium Level** — A = Atrium
-- **Hilton · Galleria** — directly under the lobby; Galleria 1-8 are the hotel's own partitions
-- **Hilton · Lobby** — escalators up to Level 2
 - **Hilton · Level 2** — our draft drawing: docs/venues/drawings/hilton-second-floor.svg — sizes true, placement unverified
-- **Hilton** unplaced rooms: Steps B — a Dragon Con name, not the hotel's; level unknown
 - **Westin · Chastain (level unknown)** — post-renovation rooms; not in the old PDF — find the current plan
 - **Courtland Grand · levels unknown** — no plan found in a quick search; the hotel's sales office is the likely source
-- **Courtland Grand** — the scraper leaves a spurious "Grand " on every Courtland room ("Grand Athens" is the Athens room) — a normaliser rule for the census
-- **AmericasMart · buildings 1-3, floors unknown** — several buildings, each with floors; Dragon Con's exhibitor map is the real source. Not searched yet.
+- **AmericasMart** — several buildings, each with floors; Dragon Con's exhibitor map is the real source. Not searched yet.
 - **Hardy Ivy Park** — outdoor; no levels, no plan needed
 
-## How this file is maintained
+## How this file is kept
 
-- `registry.json` is the truth; edit it, then re-render this file (the room census will own the rendering).
-- `seen_2026` is partial until `room_census.py` runs; the census replaces it and reports every schedule room that maps to no level here.
-- A plan's `local` path names the copy in `reference/plans/`; record the retrieval date in the file name if the source changes.
+- By hand. A plan found, a copy saved or a drawing begun is an edit to its row here.
+- A room, an alias or a level's note is an edit to `data/<year>/venues.json`, which `venues.py` validates; after one,
+  `python tools/room_census.py` shows what the rooms reach.
+- A plan's local copy names the file in `reference/plans/`; record the retrieval date in the file name if the source
+  changes.

@@ -44,6 +44,7 @@ EVENTS_V2 = v2.OUT
 CACHE = ts.CACHE
 SIDECAR = dp.SIDECAR
 OUT = os.path.join("docs", "discover", "census-v2-2026.md")
+YEAR = 2026                           # the year the report is of: the files above are its
 PILOT = os.path.join(HERE, "tools", "tag_pilot.py")
 DATA = os.path.join(HERE, "data")
 
@@ -115,6 +116,19 @@ def fandom_class(fid, linked_ids, parents):
     if any(w in v2.ancestors(fid, parents) for w in linked_ids):
         return "less specific"
     return "lost"
+
+
+def minted_after(work, year):
+    """True where the tag stage minted the work in a year later than `year` (#46's `minted: {year, run}`). A work with
+    no `minted` field counts for every year."""
+    m = work.get("minted")
+    return isinstance(m, dict) and isinstance(m.get("year"), int) and not isinstance(m["year"], bool) and m["year"] > year
+
+
+def band_names(works, year):
+    """Every work's name and aliases the band marker matches against titles, sorted: a work minted in a later year
+    left out, and every other work kept, whether an event links it or not (links_section)."""
+    return sorted({x for w in works if not minted_after(w, year) for x in [w["name"]] + list(w.get("aliases") or [])})
 
 
 def work_source(wid, minted, named):
@@ -405,7 +419,10 @@ def everyday(c, per_work):
 def unreviewed(c, f, per_work):
     named = {wid for entry in c.cache.values() for w in entry["answer"]["works"]
              for wid in [c.reg.resolve_work(w["name"])] if wid}
-    ids = sorted(w["id"] for w in c.reg.works if w.get("reviewed") is not True)
+    # Over the works block - the works the year's events link and their ancestors (#38) - never the whole registry:
+    # a count across the registry is no fact about one year, and another year's mint would move it (#46).
+    block = c.doc["works"]
+    ids = sorted(w["id"] for w in block if w.get("reviewed") is not True)
     source = {wid: work_source(wid, c.minted, named) for wid in ids}
     event_works = [set(linked(e)) for e in c.events]
     rows, all_linked = [], set()
@@ -415,7 +432,7 @@ def unreviewed(c, f, per_work):
         all_linked |= hit
         rows.append((s, len(mine), len(hit), sum(1 for ws in event_works if hit & ws)))
     events = sum(1 for ws in event_works if all_linked & ws)
-    f.update(works_total=len(c.reg.works), unreviewed=len(ids), unreviewed_linked=len(all_linked),
+    f.update(works_total=len(block), unreviewed=len(ids), unreviewed_linked=len(all_linked),
              unreviewed_events=events, sources={s: (k, h, e) for s, k, h, e in rows})
     appendix = []
     for wid in sorted(all_linked, key=lambda w: (-per_work[w], w)):
@@ -426,8 +443,9 @@ def unreviewed(c, f, per_work):
                          n(per_work[wid]), ", ".join(code(t) for t in titles[:3]) + (" ..." if len(titles) > 3 else "")))
     f["appendix_a"] = grid(["id", "name", "source", "type", "parent", "events", "titles, up to 3"], appendix, {"events"})
     out = ["### Unreviewed works", "",
-           f"- {n(len(ids))} of the {n(len(c.reg.works))} works are `reviewed: false`, and events link "
-           f"{n(len(all_linked))} of them, on {n(events)} events.",
+           f"- {n(len(ids))} of the {n(len(block))} works in the block are `reviewed: false`, and events link "
+           f"{n(len(all_linked))} of them, on {n(events)} events. The block is `events.v2.json`'s works: those the "
+           "year's events link, and their ancestors (#38).",
            "- By where they came from: the drafter, when the sidecar's `minted` holds the id; the tagger, when a cached "
            "answer names it otherwise - `tag_stage.py` keeps no record of what it mints, so this is inferred; other, "
            "neither.", ""]
@@ -766,7 +784,10 @@ def links_section(c, f):
         band_rows.append((sum(1 for e in music if wid in about(e)), sum(kinds.values()), wid, kinds))
     band_rows.sort(key=lambda r: (-r[0], -r[1], r[2]))
     bare = by_title(e for e in music if kind(e) == "performance" and not about(e))
-    names = [(name, ts.folded(name)) for name in sorted({x for xs in c.names.values() for x in xs})]
+    # Every work's name and aliases, whether an event links it or not - the list is for a work no event links - but
+    # not a work minted in a later year. The tag stage's mint in another season is the one writer that touches
+    # works.json with no person re-rendering this report in the same PR, so the report must not move with it (#46).
+    names = [(name, ts.folded(name)) for name in band_names(c.reg.works, YEAR)]
     marked = [(e, [name for name, folded in names if holds(ts.folded(e["title"]), folded)]) for e in bare]
     f.update(resume=len(rows), resume_inputs=len(flagged), band_bare=len(bare),
              band_marked=sum(1 for _, hits in marked if hits))
@@ -858,15 +879,18 @@ def text_section(c, f):
                        or dp.looks_double_encoded(e.get("description") or ""))
     cached_names = sorted({w["name"] for line in c.lines for w in line["answer"]["works"]})
     cached_evidence = sorted({w["evidence"] for line in c.lines for w in line["answer"]["works"]})
-    model = [("`works.json` names", sorted({w["name"] for w in c.reg.works})), ("cached work names", cached_names),
-             ("cached evidence", cached_evidence)]
-    model_hits = [s for _, strings in model for s in strings if dp.looks_double_encoded(s)]
+    # The block's work names and aliases (#38), not the registry's: another year's mint must leave the report as it is.
+    block_names = sorted({w["name"] for w in c.doc["works"]})
+    model = [("work names", block_names, " in the block"), ("cached work names", cached_names, ""),
+             ("cached evidence", cached_evidence, "")]
+    model_hits = [s for _, strings, _ in model for s in strings if dp.looks_double_encoded(s)]
     places = [("titles", sorted({e["title"] for e in c.events})),
               ("descriptions", sorted({e.get("description") or "" for e in c.events})),
               ("people's names on events", sorted({p["name"] for e in c.events for p in e["people"]})),
               ("`people.json` names and aliases",
                sorted({x for p in c.reg.people for x in [p["name"]] + list(p.get("aliases") or [])})),
-              ("`works.json` names and aliases", sorted({x for xs in c.names.values() for x in xs})),
+              ("work names and aliases in the block",
+               sorted({x for w in c.doc["works"] for x in [w["name"]] + list(w.get("aliases") or [])})),
               ("cached work names", cached_names), ("cached evidence", cached_evidence),
               ("the sidecar's strings", sorted(set(all_strings(c.sidecar))))]
     found = []
@@ -891,7 +915,7 @@ def text_section(c, f):
     out += ["", "### What the model returned", "",
             "Strings the model wrote that look double-encoded, as a transport that decoded its reply wrongly would "
             "leave them: " + "; ".join(f"{label} {n(sum(1 for s in strings if dp.looks_double_encoded(s)))} of "
-                                       f"{n(len(strings))}" for label, strings in model) + "."]
+                                       f"{n(len(strings))}{where}" for label, strings, where in model) + "."]
     out += [f"  - {code(s)}" for s in model_hits]
     out += ["", "### Two characters", "",
             "U+2018 is a left single quote, which `parse_stage.fold` does not fold and `tag_stage.folded` does. U+FFFD "
@@ -920,9 +944,9 @@ def headline(f):
             f"2. Works linked: {n(f['linked_works'])}, by {n(f['links'])} links - `about` {n(via['about'][1])} on "
             f"{n(via['about'][2])} events, `track` {n(via['track'][1])}, `credit` {n(via['credit'][1])}. Events with "
             f"no work and no axis value: {n(f['bare'])} ({pct(f['bare'], total)}).",
-            f"3. Unreviewed works: {n(f['unreviewed'])} of {n(f['works_total'])} - the drafter's {n(src['drafter'][0])}, "
-            f"the tagger's {n(src['tagger'][0])}, other {n(src['other'][0])}. Linked by events: "
-            f"{n(f['unreviewed_linked'])}, on {n(f['unreviewed_events'])} events (Appendix A).",
+            f"3. Unreviewed works: {n(f['unreviewed'])} of {n(f['works_total'])} in the block - the drafter's "
+            f"{n(src['drafter'][0])}, the tagger's {n(src['tagger'][0])}, other {n(src['other'][0])}. Linked by "
+            f"events: {n(f['unreviewed_linked'])}, on {n(f['unreviewed_events'])} events (Appendix A).",
             f"4. Kind: of the {n(f['v1_tagged'])} events v1 tagged, {n(f['kind_kept'])} keep their kind; the pairs "
             f"that differ: {n(f['kind_pairs'])}, over {n(f['kind_changed'])} events. The largest kind: "
             f"`{f['top_kind'][0]}` ({n(f['top_kind'][1])}). Events that say wrestl*: {n(f['wrestling'])}, each UNSURE.",

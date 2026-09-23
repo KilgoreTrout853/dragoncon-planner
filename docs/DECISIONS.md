@@ -933,7 +933,7 @@ committed `events.v2.json` byte for byte.
 must filter removed events out everywhere but Mine and Now. 2026's
 `events.json` and 2027's `source.json` differ in shape, by design.
 
-### 43. Stable ids (builds #7) — Decided, not built (2026-09-22)
+### 43. Stable ids (builds #7) — Decided, not built (2026-09-22) — an event's `source_id` is its supplying row's, so it also moves when that row is removed and another is not (`docs/pipeline/contract.md`, The merge)
 **Decided:** An event's id is its source id at first sight, forever. The
 ids stage keeps it in a ledger, and every source id resolves through it.
 - **Groups.** The ids stage groups rows on `dupe_key`: the normalised
