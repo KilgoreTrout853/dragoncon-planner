@@ -860,7 +860,7 @@ loses its only consumer until starts-soon or tight connections need it,
 so the mirror is kept as designed but no job reads it yet, and none
 applies the crowd factor.
 
-### 41. Outreach deferred; the raw row is the seam — Decided, not built (2026-09-22)
+### 41. Outreach deferred; the raw row is the seam — Decided, not built (2026-09-22) — fetch built by PR 3; returns a result object, `contract.md` names its fields
 **Decided:** The 2027 pipeline is scraper-first. Outreach to Dragon Con
 (#19) is deferred, with no date. What lets a feed in later is data, not a
 framework:

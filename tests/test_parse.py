@@ -89,7 +89,7 @@ def test_day_list():
     items = scraper.parse_day_list(DAY_HTML)
     assert len(items) == 2
     assert items[0] == {"id": "6ecc75745a676d39f230055623a5ae38", "title": "Critters",
-                        "time_text": "12:00 AM — 1:30 AM"}
+                        "time_text": "12:00 AM — 1:30 AM", "repaired": 0}
     assert items[1]["time_text"] == "11:00 PM — 1:00 AM"
 
 
@@ -103,36 +103,43 @@ def test_detail_with_speakers():
     assert d["speakers"] == [{"name": "Kevin Bachelder", "role": "Moderator"},
                              {"name": "Jane Doe", "role": "Speaker"}]
     assert d["tracks"] == ["American Sci-fi and Fantasy Media"]
+    assert d["repaired"] == 0                   # clean text: the repair changes nothing
 
 
 def test_build_event_basic():
     items = scraper.parse_day_list(DAY_HTML)
-    ev = scraper.build_event(items[0], scraper.parse_detail(DETAIL_WITH_SPEAKERS), "panel")
+    ev = scraper.build_event(items[0], scraper.parse_detail(DETAIL_WITH_SPEAKERS), "panel", 2026)
+    # the raw row (#42): no hotel, room, track or cancelled - they are later stages'
+    assert list(ev) == ["source_id", "type", "title", "day", "start", "end", "duration_min", "location",
+                        "description", "tracks", "speakers"]
+    assert ev["source_id"] == "6ecc75745a676d39f230055623a5ae38" and ev["type"] == "panel"
+    assert ev["title"] == "Pluribus: A Perfect World?"
     assert ev["day"] == "2026-09-04"
     assert ev["start"] == "2026-09-04T11:30"
     assert ev["end"] == "2026-09-04T12:30"
     assert ev["duration_min"] == 60
-    assert ev["hotel"] == "Marriott" and ev["room"] == "M302-M303"
-    assert ev["track"] == "American Sci-fi and Fantasy Media"
-    assert ev["cancelled"] is False
+    assert ev["location"] == "Marriott M302-M303"    # verbatim: the split is build's venues step (#45)
+    assert ev["tracks"] == ["American Sci-fi and Fantasy Media"]
+    assert ev["speakers"] == [{"name": "Kevin Bachelder", "role": "Moderator"}, {"name": "Jane Doe", "role": "Speaker"}]
 
 
-def test_build_event_midnight_and_panelists():
+def test_build_event_crosses_midnight_and_leaves_the_panelist_line_alone():
     items = scraper.parse_day_list(DAY_HTML)
-    ev = scraper.build_event(items[1], scraper.parse_detail(DETAIL_PANELISTS_TEXT), "gaming")
+    ev = scraper.build_event(items[1], scraper.parse_detail(DETAIL_PANELISTS_TEXT), "gaming", 2026)
     assert ev["start"] == "2026-09-05T23:00"
     assert ev["end"] == "2026-09-06T01:00"
-    assert ev["hotel"] == "AmericasMart"
-    assert ev["room"] == "Mart Building 3, Floor 1"
-    assert [s["name"] for s in ev["speakers"]] == ["Brian Kvito", "James Wallace", "Gracie Palmer"]
-    assert [s["role"] for s in ev["speakers"]] == ["Panelist", "Moderator", "Virtual"]
+    assert ev["location"] == "Mart Building 3, Floor 1"
+    # speakers is the Speakers section alone, and this page has none; the line is the parse step's (#42)
+    assert ev["speakers"] == []
+    assert ev["description"].endswith(
+        "Additional Panelists: Brian Kvito, James Wallace(Moderator), Gracie Palmer (Virtual)")
 
 
 def test_midnight_fallback_without_duration():
     items = scraper.parse_day_list(DAY_HTML)
     detail = scraper.parse_detail(DETAIL_PANELISTS_TEXT)
     detail["duration_text"] = ""
-    ev = scraper.build_event(items[1], detail, "gaming")
+    ev = scraper.build_event(items[1], detail, "gaming", 2026)
     assert ev["end"] == "2026-09-06T01:00" and ev["duration_min"] == 120
 
 
@@ -145,6 +152,8 @@ def test_offsite_marker_is_dropped_from_the_room():
 
 def test_hotel_mapping():
     cases = {
+        "Marriott M302-M303": ("Marriott", "M302-M303"),
+        "Mart Building 3, Floor 1": ("AmericasMart", "Mart Building 3, Floor 1"),
         "Hilton 202": ("Hilton", "202"),
         "Hyatt Grand Hall C": ("Hyatt", "Grand Hall C"),
         "Courtland Grand Capitol Ballroom": ("Courtland Grand", "Grand Capitol Ballroom"),
@@ -342,32 +351,35 @@ def test_a_panel_about_cancellations_is_not_cancelled():
         "So, the 2026 Doctor Who Christmas special has been cancelled, and the show has been put on hiatus") is False
 
 
-def test_build_event_uses_the_narrow_cancelled_rule():
+def test_the_narrow_cancelled_rule_reads_the_page_s_title_and_description():
+    # cancelled is the parse step's reading of the title and description now (#42): the row carries none
     items = scraper.parse_day_list(DAY_HTML)
     detail = scraper.parse_detail(DETAIL_WITH_SPEAKERS)
-    detail["description"] = "A show canceled in 1983, revisited with love."
-    assert scraper.build_event(items[0], detail, "panel")["cancelled"] is False
-    detail["title"] = "CANCELLED: " + detail["title"]
-    assert scraper.build_event(items[0], detail, "panel")["cancelled"] is True
+    assert "cancelled" not in scraper.build_event(items[0], detail, "panel", 2026)
+    assert scraper.is_cancelled(detail["title"], detail["description"]) is False
+    assert scraper.is_cancelled(detail["title"], "A show canceled in 1983, revisited with love.") is False
+    assert scraper.is_cancelled("CANCELLED: " + detail["title"], "A show canceled in 1983, revisited with love.") is True
 
 
 # ---------------------------------------------------------------------------
-# Start time: the page gives no year, so the parse supplies scraper.YEAR
+# Start time: the page gives no year, so the parse takes the season's
 # ---------------------------------------------------------------------------
 
 def test_parse_start_reads_all_three_date_shapes():
     want = dt.datetime(2026, 9, 5, 11, 30)
-    assert scraper.parse_start("Saturday, Sep  5 11:30 AM") == want   # as the page has it
-    assert scraper.parse_start("Sat, Sep 5 11:30 AM") == want
-    assert scraper.parse_start("Sep 5 11:30 AM") == want
-    assert scraper.parse_start("Monday, Sep  7 12:00 AM") == dt.datetime(2026, 9, 7, 0, 0)
-    assert scraper.parse_start("Sunday, Sep  6 12:15 PM") == dt.datetime(2026, 9, 6, 12, 15)
+    assert scraper.parse_start("Saturday, Sep  5 11:30 AM", 2026) == want   # as the page has it
+    assert scraper.parse_start("Sat, Sep 5 11:30 AM", 2026) == want
+    assert scraper.parse_start("Sep 5 11:30 AM", 2026) == want
+    assert scraper.parse_start("Monday, Sep  7 12:00 AM", 2026) == dt.datetime(2026, 9, 7, 0, 0)
+    assert scraper.parse_start("Sunday, Sep  6 12:15 PM", 2026) == dt.datetime(2026, 9, 6, 12, 15)
     # The weekday name is read but never checked against the date.
-    assert scraper.parse_start("Friday, Sep  5 11:30 AM") == want
+    assert scraper.parse_start("Friday, Sep  5 11:30 AM", 2026) == want
+    # The year is the season's, not the scraper's.
+    assert scraper.parse_start("Wednesday, Sep  1 11:30 AM", 2027) == dt.datetime(2027, 9, 1, 11, 30)
 
 
 def test_parse_start_returns_none_for_what_it_cannot_read():
     for txt in ("", None, "TBA", "Saturday", "Sep 5", "11:30 AM", "Sep 31 1:00 PM",
                 "Saturday, Sep 5 11:30", "Saturday, Sep 5 2026 11:30 AM",
                 "Saturday, Sep 5 11:30 AM 2026", "2026 Sep 5 11:30 AM"):
-        assert scraper.parse_start(txt) is None, txt
+        assert scraper.parse_start(txt, 2026) is None, txt

@@ -17,7 +17,7 @@ backend.
 
 ```
 app.core-apps.com/dragoncon26          (official schedule, HTML)
-        │  scraper.py  (fetch, parse, dedupe, carry tags over)
+        │  scraper.py, as it ran in 2026  (fetch, parse, dedupe, carry tags over)
         ▼
 data/2026/events.json  (frozen; its v1 tags are tag_events.py's, now retired)
         │  tags v2, reading it and never writing it:
@@ -54,9 +54,9 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `data/2026/tags.cache.jsonl` | The tag stage's answers, one a line, sorted by the hash of what the model was sent (DECISIONS #34): names, never ids. `tag_stage.py` alone writes it; a line corrected by hand says `"model": "hand"`. |
 | `data/2026/events.v2.json` | The frozen schedule with `people`, `facets` and tags v2, built by `events_v2.py` from the frozen file, the registries and the cache. Before the events, a `works` block (DECISIONS #38): every work an event links and every ancestor of those, sorted by id, each row the registry's `id`, `name`, `aliases`, `terms`, `reviewed` and, where it has one, `parent` - what the client reads a work by, never a registry. The other top-level fields are the frozen file's. The file the client reads (DECISIONS #39), and the only one the build copies from `data/`. |
 | `data/registry/` | The three curated registries `registry.py` owns, below, and `people.draft.json`, the drafter's sidecar - `known_for`, confidence, the event titles, the minted work ids and the rejections, which the loader ignores. `works.json` also holds the works the tag stage minted, `reviewed: false`, which the sidecar does not list, so the review page never prunes them. Cross-year, unlike `data/2026/`, because a work or a person outlasts a con. The client never reads them (#31) - what it needs of a work is in `events.v2.json`'s block - and the build does not copy them into `dist/`. |
-| `data/2026/season.json`, `data/2027/season.json` | A year's settings, by hand (`docs/pipeline/contract.md`; DECISIONS #44, #46, #48): the source's slug, base URL and day strings, the con's first and last day, the time zone, the cron window - `null` in 2026, which is `frozen` - the prompt version and the run's thresholds. `season.py` validates them; nothing else reads them yet. |
+| `data/2026/season.json`, `data/2027/season.json` | A year's settings, by hand (`docs/pipeline/contract.md`; DECISIONS #44, #46, #48): the source's slug, base URL and day strings, the con's first and last day, the time zone, the cron window - `null` in 2026, which is `frozen` - the prompt version and the run's thresholds. `season.py` validates them, and the fetch (`scraper.py`) reads one: the source, the day strings, the year, the listings floor and the failure ceiling, and `frozen`. |
 | `data/2026/venues.json`, `data/2027/venues.json` | The venues file (DECISIONS #45), by hand, one copy a year: per hotel its keys, short name, group, colour variable, order, whether it is placeless and how its room is shown; its levels, with their rooms, aliases and notes; its rooms of no known level; and the walk matrix with its three minute values. The two are identical, migrated from the retired `docs/venues/registry.json` and `src/venues.js`'s constants by a one-off script outside the repo. `venues.py` validates both, and `tools/room_census.py` reads 2026's. The client keeps its own walk and hotel constants in `src/venues.js` until PR 9; `tests/rules/venues-data.test.js` holds the two copies equal. |
-| `scraper.py` | Scrape → normalise → dedupe → write `events.json`. |
+| `scraper.py` | The fetch stage (DECISIONS #41, #42, #44): `python scraper.py --season data/<year>/season.json` writes the year's `source.json`, one raw row per listing, the text repaired before whitespace is collapsed; `fetch()` returns the rows, the failures and the run summary's counts. It no longer splits the hotel, dedupes, carries tags or writes `events.json`; `split_hotel`, `is_cancelled`, `extract_panelists`, `dupe_key`, `norm_text`, `dedupe` and `merge_group` stay as functions for their readers until PRs 4-6. See The data pipeline. |
 | `tag_events.py` | The 2026 tagger, retired: its `main()` refuses to write the frozen file. It keeps `KINDS`, `TOPICS`, `CANON`, `parse_json_array` and the two transports, which the census, the drafter and the tag stage import. `call_claude_code` sends the prompt on stdin; with `isolated=True`, the tag stage's call, it runs `claude -p` with no tools, no MCP servers and no saved session, from an empty directory of its own, and reports the model that answered. |
 | `tag_stage.py` | The tag stage of tags v2 (DECISIONS #34): each distinct input - the title without its price or clock marks, type, tracks and the description without its panelist line - is asked of `claude-sonnet-5` once, 25 to a request, and the answer, held to the closed lists, is cached in `data/2026/tags.cache.jsonl` after every request. Then mint: every cached work name the registry cannot resolve becomes a `works.json` row, `reviewed: false`, placed under a parent by one request, the file written once. `--dry-run` calls nothing; `--mint-only` mints with no model. |
 | `events_v2.py` | Builds `data/2026/events.v2.json` with no model: the parse stage's people and facets, every person's id through the registry, tracks through `tracks.json`, the cached answer by key, and the merge - works about > track > credit, a track's axes over the model's, mature > kids > all, play on gaming, guests from reviewed tiers; then the works block, from the merged events: each linked work and its ancestors. A cache miss, an unresolved work name or track stops it; a name that is a registry term is dropped and counted. `--check` exits 1 if the file on disk is stale. |
@@ -65,7 +65,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `parse_stage.py` | The parse stage of tags v2 (DECISIONS #32): `people` and `facets` read out of an event with no model. Pure functions and the standard library; it owns the facet patterns, the title key, the "Additional Panelists:" splitter, `strip_panelists` (the description the tagger is sent) and `person_slug`. `--out PATH` writes the parsed events for inspection; it writes nothing under `data/` and nothing it writes is committed (#13, #33). |
 | `parse_report.py` | What `parse_stage.py` reads out of the frozen schedule, written to `docs/discover/parse-2026.md`: per facet the count beside the census's figure for the same wording, the people, and four UNSURE lists. Imports `parse_stage` and the census's markdown helpers. Two runs give the same bytes. Nothing runs it but a person. |
 | `registry.py` | The curated registries (DECISIONS #31): `works.json`, `people.json` and `tracks.json`, cross-year and hand-edited. `load()` validates all three and raises one error listing every problem; `resolve_work` / `resolve_track` / `resolve_person` turn a name or an alias into an id, and `is_term` says whether a name is a term, which never resolves. It owns `AXES`, the four closed axis lists, which the tag stage imports. Standard library, plus `parse_stage` for its folding. |
-| `season.py` | Loads and validates a `season.json`: every field present and no other, dates ISO, a span's first day not after its last, the three fractions in (0, 1] and the request cap a positive whole number; one error lists every problem. Standard library. Nothing reads a season yet but its tests. |
+| `season.py` | Loads and validates a `season.json`: every field present and no other, dates ISO, a span's first day not after its last, the three fractions in (0, 1] and the request cap a positive whole number; one error lists every problem. Standard library. The fetch reads a season through it. |
 | `venues.py` | Loads and validates a `venues.json` (DECISIONS #45): every field present and no other, hotel keys whole tokens and unique across hotels, level and room ids unique within a hotel, each alias written folded and naming rooms of its level, each walk pair two hotels of the file, whole minutes; one error lists every problem, and a pair of placed hotels with no walk time is a warning, the default used. Helpers only: the hotels in order, and the level a room is on. The split and the reading of a room string are PR 5's venues step. Standard library. |
 | `draft_people.py` | Drafts people into `people.json` with a model, for review (DECISIONS #31): everyone on a `guests: celebrity` event, skipped when the registry already resolves the name or the sidecar records a rejection, so a second run calls nothing. Reuses `tag_events.py`'s two transports; Opus by full id, `claude-opus-5`, on the API and on Claude Code alike (see Sharp edges). `--parents` is a second, narrow pass that gives each work it minted a parent from the registry. Nothing it writes is reviewed. |
 | `tools/` | Tools a person runs, not part of the build and never copied into `dist/`. `review-people.html` + `review-people.js` are pages opened from disk - no server, no network - and the review for `draft_people.py`'s output: one card a person, tier and credit controls, and an export of the three files formatted as the drafter writes them. The state changes are pure functions in the `.js`, which is a classic script - no import, no export - because a browser refuses an ES module over `file://`. `tag_pilot.py` is the tag stage's pilot: `sample` picks about 150 inputs, and `compare` reports how runs of the tag stage into scratch caches agree. It string-matches work names against event text to choose test events, which the tag stage must never do, so nothing on the tag or build path imports it. `sample_v2.py` makes `tests/sample-events.json`, the page tests' v2 fixture, from the v1 sample: people and facets from the parse stage, the five tagged events' fandoms as works and topics as axes, one parent chain for a roll-up, and the works block. `schedule_history.py` walks every commit on `main` that touched the 2026 schedule, diffs each version against the one before by id and by the dedupe's key, adds scrape.yml's runs where `gh` can list them, and writes `docs/pipeline/history-2026.md`. `room_census.py` reads the frozen schedule's room strings against `data/2026/venues.json` and writes `docs/venues/census-2026.md`, the off-season coverage report (#45); every reading beyond an exact match or an alias is a proposal, UNSURE, applied to nothing, and it writes neither input. Neither report is held fresh by CI. |
@@ -77,7 +77,8 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/real-data.test.js` | Vitest: search quality and Explore against the real `data/2026/events.v2.json`. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, and a smoke that boots the built page. The only test that executes `dist/`. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record. |
-| `tests/test_parse.py` | Scraper parsing and dedupe unit tests. |
+| `tests/test_parse.py` | Scraper parsing - the day list, the detail page, the raw row - and the functions kept for later stages: the hotel split, the cancelled rule, dedupe. |
+| `tests/test_fetch.py` | The fetch stage on a fake source, with no network: the rows and their order, a failed page carried stale or named alone, a listing gone carried removed and every move between the two flags, each fatal rule at its boundary, `--limit`, the file's bytes, the repair before whitespace is collapsed and a clean page untouched by it, and `main()`'s frozen refusal and its `--previous`. |
 | `tests/test_tag_census.py` | The census's pure functions and its repeatability, on an inline fixture; it never reads `data/`. |
 | `tests/test_parse_stage.py` | The parse stage's splitter, slug, roles, people and facets, on inline fixtures built from real lines and titles; it never reads `data/`. It pins the copy of `scraper.extract_panelists` that `parse_stage` keeps. |
 | `tests/test_draft_people.py` | The drafter with the model mocked: candidates, the skip, credit resolution, the cap, the parents pass, and the transport's encoding. |
@@ -88,11 +89,11 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/test_census_v2.py` | The census's pure parts on inline fixtures - the fandom classes, the resume rule, the band marker, which input field varied, where an unreviewed work came from - a fixture rendered under two hash seeds, what stops it and `--check`, a real run that reaches no model, no process and no network and leaves `data/` as it was, and the committed report compared byte for byte with a fresh render, so a data PR with no re-render fails CI. |
 | `tests/test_schedule_history.py` | The history tool's pure parts on inline fixtures - classing commits, the diff and its order-only split, where a removed id's content went, same-title matches, renames against dedupe groups, returns by id and by key, the New York window, the cron's slots, runs joined to commits - and a render under two hash seeds. It reads no `data/`, runs no git and calls no gh. |
 | `tests/test_room_census.py` | The room census's exact match, its alias, each combined-string rule and each other shape on the strings that showed them, the chains they make, and a render of an inline schedule and venues file under two hash seeds that leaves both inputs as they were. It reads neither `data/` nor `docs/venues/`. |
-| `tests/test_season.py` | One failing fixture per `season.json` rule, and a load of both committed files: 2026's source and day strings are the scraper's, and each year's first day string is its `con.first`. |
+| `tests/test_season.py` | One failing fixture per `season.json` rule, and a load of both committed files: 2026's source is the frozen schedule's and its day strings are the frozen events' days, and each year's first day string is its `con.first`. |
 | `tests/test_venues.py` | One failing fixture per `venues.json` rule, the warning and the two helpers, and a load of both committed files, 2026's holding every hotel `events.json` names, so CI checks every later edit. |
 | `tests/test_tag_events.py` | What the retired tagger still does: refuse the frozen file, and carry a prompt to `claude -p` on stdin, isolated for the tag stage. |
 | `tests/sample-events.json`, `tests/sample-events.v1.json`, `tests/make_sample.py` | 558 synthetic events: in the v2 shape, the fixture for the page tests and the build smoke, which `tools/sample_v2.py` makes from the v1 sample; and the seeded script that generates the v1 sample (it imports `scraper`). |
-| `.github/workflows/scrape.yml` | Manual-trigger scrape (workflow_dispatch). Refuses a scrape with 0 events or a >20% drop; commits and pushes events.json to the branch it was run from. |
+| `.github/workflows/scrape.yml` | Manual-trigger scrape (workflow_dispatch), from before the fetch stage: it installs requests and beautifulsoup4 alone and runs `python scraper.py --workers 4`, with no `--season`, so a run fails at its Scrape step until PR 8's workflow replaces it (DECISIONS #48). |
 | `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client` and `pipeline`. |
 | `.github/dependabot.yml` | Monthly update PRs for GitHub Actions only. |
 | `package.json`, `.nvmrc`, `eslint.config.js`, `vitest.config.js` | Client tooling: scripts `dev`, `build`, `preview`, `lint`, `test`; Node 24; three ESLint rules; Vitest, with jsdom as its default environment. |
@@ -100,15 +101,54 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
 | `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the two censuses, `census-2026.md` of v1's tags and `census-v2-2026.md` of the v2 file, which CI holds fresh; `parse-2026.md`, above; `registry-2026.md`, the record of the seed review, whose script is retired; `works-review-2.json` and `people-review-1.json`, the review records - what each review decided, applied by a one-off script outside the repo; and `schema-v2.md`, the design note for the registries and tags v2 (#31-#34, #38, #39), built: the pipeline half - the parse stage, the registries, the tag stage and `events.v2.json` - and the client switch. |
-| `docs/pipeline/` | Pipeline shape (ROADMAP tentpole 1): `contract.md`, the design note for DECISIONS #41-#48 - the 2027 pipeline's files, with their writers and readers, the raw row, the ledger, the change log and the stages - decided, and built so far for `season.json` and `venues.json` (ROADMAP, PR 2); and its evidence, `history-2026.md`, how the 2026 schedule changed from commit to commit on `main` and how scrape.yml ran, written by `tools/schedule_history.py`. The history is a record, not held fresh by CI: a shallow checkout has no history, and the history will not change. |
+| `docs/pipeline/` | Pipeline shape (ROADMAP tentpole 1): `contract.md`, the design note for DECISIONS #41-#48 - the 2027 pipeline's files, with their writers and readers, the raw row, the ledger, the change log and the stages - decided, and built so far for `season.json` and `venues.json` (ROADMAP, PR 2) and `source.json`, the fetch (PR 3); and its evidence, `history-2026.md`, how the 2026 schedule changed from commit to commit on `main` and how scrape.yml ran, written by `tools/schedule_history.py`. The history is a record, not held fresh by CI: a shallow checkout has no history, and the history will not change. |
 | `docs/venues/` | The venues curation (DECISIONS #21, #27, #28, #45): `README.md`, the floor-plan checklist, kept by hand - every hotel × level where programming happens, which published floor plan covers the level, our local copy of it and the state of our own drawing, with the notes on plans and drawings; `drawings/`, our schematics, one draft so far; and `census-2026.md`, the room census - every room string of the frozen schedule against `data/2026/venues.json`, written by `tools/room_census.py`. The rooms, aliases and level notes are the venues file's; `registry.json` is retired (#45). The census is a record, not held fresh by CI: an edit to the venues file leaves it stale until the script runs again. |
 | `reference/` | Local copies of other people's drawings, gitignored but for its README: the hotels' floor plans in `plans/`, at the paths `docs/venues/README.md` records, and screenshots of single levels in `shots/`, used as an underlay to trace our own shapes against (#28). Never committed - none of it is ours. |
 
 ## The data pipeline
 
-`scraper.py` fetches 12 day-list pages (6 days × panels and gaming), then
-every event detail page in parallel with polite retries (403 is treated as
-rate-limiting). Each event becomes:
+**The fetch stage**, `scraper.py` (DECISIONS #41, #42, #44;
+`docs/pipeline/contract.md`), is the first stage of the 2027 pipeline and
+the only one built. `python scraper.py --season data/<year>/season.json`
+takes the source's base URL, its day strings and the year from the season
+file, fetches the day lists (each day × panels and gaming), then every
+listing's detail page in parallel with polite retries (403 is treated as
+rate-limiting), and writes the year's `source.json`,
+`{source, failures, rows}`: one raw row per listing, before any dedupe,
+sorted by source id.
+
+```
+source_id, type (panel|gaming), title, day, start, end, duration_min,
+location, description, tracks[], speakers[]; stale or removed, where true
+```
+
+- `location` is the page's Location cell verbatim, with no hotel or room
+  split (#45), and `speakers` is the page's Speakers section alone, `[]`
+  where it has none.
+- The text is repaired before any whitespace is collapsed, by ftfy's
+  `fix_encoding` and no other ftfy transform: the source sends some text
+  double-encoded ("â€“" for "–"), and some with an "Â" before a no-break
+  space, which collapsing would strand at a line's end.
+- A listing whose detail page failed is carried from the previous file with
+  `stale: true`, or, with no row there to carry, named in `failures` alone;
+  a listing the source no longer lists is carried with `removed: true`, its
+  fields frozen. A row carries one flag at most.
+- Fatal, writing nothing and exiting 1: a day list that fails; no listings;
+  listings under `thresholds.listings_floor` of the previous file's rows
+  not removed; failed detail pages over `thresholds.detail_failures` of the
+  listings; every page parsing to an empty title. `main()` also refuses a
+  `--previous` that is missing, malformed or another source's, and a frozen
+  season (#46) unless `--out` points outside its folder.
+- `fetch()` returns one result object: the rows, the failures and the
+  counts the run summary will read, which `contract.md` names.
+
+It no longer splits the hotel and room, sets `track` or `cancelled`,
+derives speakers from the description, carries tags over, dedupes or
+writes `events.json`. Nothing reads `source.json` yet: the ids stage is
+PR 4 (ROADMAP).
+
+**The frozen 2026 file** was written by the scraper as it ran through the
+con. Each event became:
 
 ```
 id, type (panel|gaming), title, day, start, end, duration_min,
@@ -565,9 +605,12 @@ them by their job ids: renaming either one un-gates the branch.
 
 ## Sharp edges to know
 
-- The scrape workflow pushes to the branch chosen in the Run workflow
-  dropdown (default: the default branch, currently `next`), and its
-  rebase-on-retry hard-codes `main`. Both branches are PR-only, and the
+- The scrape workflow fails at its Scrape step until PR 8's workflow
+  replaces it (DECISIONS #48): it installs requests and beautifulsoup4
+  alone, where the fetch stage also needs ftfy, and runs
+  `python scraper.py` with no `--season`. Behind that, it pushes to the
+  branch chosen in the Run workflow dropdown (default: the default branch,
+  currently `next`), and its rebase-on-retry hard-codes `main`. Both branches are PR-only, and the
   workflow's token is not the admin the `next` ruleset lets through, so a
   run that has anything to commit fails at its push (DECISIONS #26). The
   2027 pipeline needs a path onto a branch before the cron returns. It also
