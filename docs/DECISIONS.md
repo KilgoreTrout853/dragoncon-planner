@@ -569,7 +569,7 @@ frozen file; CI has no model access; reproducibility.
 `data/` into `dist/`, so the v2 file ships unused until the switch unless
 the copy excludes it; decide in the PR that first writes it.
 
-### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21) — its PR 6 items built by #39: the allowlist into `dist/`, and no follow of an unreviewed work; its three build stops (a cache miss, an unresolved name, an unknown track) to become counted degradations, 2026's held at zero by a CI test (#44); `PROMPT_VERSION` to be per year, in `season.json`, and a minted row to record its year and run (#46); the three stops built as counted degradations by Pipeline shape's PR 6, 2026's held at zero by `tests/test_zero_hold.py`
+### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21) — its PR 6 items built by #39: the allowlist into `dist/`, and no follow of an unreviewed work; its three build stops (a cache miss, an unresolved name, an unknown track) to become counted degradations, 2026's held at zero by a CI test (#44); `PROMPT_VERSION` to be per year, in `season.json`, and a minted row to record its year and run (#46); the three stops built as counted degradations by Pipeline shape's PR 6, 2026's held at zero by `tests/test_zero_hold.py`; `PROMPT_VERSION` per year, `season.json`'s `prompt_version`, and a minted row's year and run built by Pipeline shape's PR 7a (`contract.md`, The tag stage, as built)
 **Decided:** `tag_stage.py` asks the model and `events_v2.py` builds
 (#32, #33); `docs/discover/schema-v2.md` has the detail.
 - **The input and its key.** The model is sent an event's title without its
@@ -1092,7 +1092,7 @@ have no reading - 1,015 of those at the Mart.
 curate are the strings no rule reaches, by events (census section 4). A
 copy a year.
 
-### 46. Tagging live (builds #34) — Decided, not built (2026-09-22) — untagged built by PR 6: an event with no cached answer carries no `tags` key, and the build's report lists it (`contract.md`, The v2 file)
+### 46. Tagging live (builds #34) — Decided, not built (2026-09-22) — untagged built by PR 6: an event with no cached answer carries no `tags` key, and the build's report lists it (`contract.md`, The v2 file); the tag stage built by PR 7a: a season read through the build's front door and the merge, `prompt_version` from `season.json`, seed, the request cap, the frozen refusal and `minted` (`contract.md`, The tag stage, as built); the frozen flag is the tag stage's, and `tag_events.py` keeps its path check as legacy
 **Decided:** `PROMPT_VERSION` is per year, in `season.json`: 2026 is
 pinned at 1, and a season takes no bump.
 - `tag seed --from <year>` copies the cache lines whose keys are

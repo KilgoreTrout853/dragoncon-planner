@@ -22,6 +22,8 @@ def test_2026_builds_with_nothing_untagged_unresolved_or_unknown():
     _, report = v2.build_season(load_season(path), os.path.dirname(path), os.path.join(ROOT, registry.DIR))
     print(f"2026's venue counters, reported and not held: rooms unresolved {report['rooms_unresolved']:,}, "
           f"hotels unknown {report['hotels_unknown']:,}; places {report['places']}")
-    assert report["untagged"] == [], f"events untagged - run `python tag_stage.py`: {report['untagged'][:20]}"
-    assert report["unresolved_names"] == {}, f"work names unresolved - run `{v2.MINT}`: {report['unresolved_names']}"
+    # 2026 is frozen, and the tag stage runs on it with --dry-run only (#46): what fixes these is a person's edit
+    assert report["untagged"] == [], f"events untagged - a hand line in the cache (#34): {report['untagged'][:20]}"
+    assert report["unresolved_names"] == {}, \
+        f"work names unresolved - an alias in works.json: {report['unresolved_names']}"
     assert report["unknown_tracks"] == {}, f"tracks unknown - add them to tracks.json: {report['unknown_tracks']}"

@@ -19,6 +19,7 @@ import draft_people as dp  # noqa: E402
 import events_v2 as v2  # noqa: E402
 import registry  # noqa: E402
 import tag_events  # noqa: E402
+import tag_key  # noqa: E402
 import tag_stage as ts  # noqa: E402
 import venues  # noqa: E402
 
@@ -253,30 +254,41 @@ PAIRS = [
 ]
 
 
+# The season file the census reads for its prompt_version. Not 1, so that a census keying the cache by anything but
+# the season's version finds no answer, and the fixture's report says so.
+SEASON = {"year": 2026, "slug": "dragoncon26", "source": "https://app.core-apps.com/dragoncon26", "days": ["Sep  5"],
+          "con": {"first": "2026-09-02", "last": "2026-09-07"}, "tz": "America/New_York", "window": None,
+          "frozen": True, "prompt_version": 3,
+          "thresholds": {"listings_floor": 0.8, "detail_failures": 0.2, "new_ids": 0.2, "requests_per_run": 40}}
+SOURCES = ["events", "v2", "cache", "registry", "sidecar", "venues", "season"]   # write_fixture's arguments, in order
+
+
 def write_fixture(tmp_path, pairs=PAIRS):
     """The inputs census_v2 reads, as the pipeline writes them, and events.v2.json built from them. Returns the
-    command-line arguments naming them."""
+    command-line arguments naming them, in SOURCES order."""
     d = tmp_path / "registry"
     d.mkdir(exist_ok=True)
-    dp.write_json(str(d / "works.json"), [dp.in_order(w, dp.WORK_KEYS) for w in WORKS])
+    dp.write_json(str(d / "works.json"), [dp.in_order(w, registry.WORK_KEYS) for w in WORKS])
     dp.write_json(str(d / "people.json"), [dp.in_order(p, dp.PERSON_KEYS) for p in PEOPLE])
     dp.write_json(str(d / "tracks.json"), TRACKS)
     dp.write_json(str(tmp_path / "people.draft.json"), SIDECAR)
     dp.write_json(str(tmp_path / "venues.json"), VENUES)
+    (tmp_path / "season.json").write_text(json.dumps(SEASON), encoding="utf-8")
     data = {"generated_at": "2026-09-07T12:50:19+00:00", "source": "fixture", "count": len(pairs),
             "events": [e for e, _ in pairs]}
     (tmp_path / "events.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     cache = {}
     for e, a in pairs:
-        inp = ts.tagger_input(e)
-        cache[ts.input_key(inp)] = {"key": ts.input_key(inp), "title": inp["title"], "model": "m", "answer": a}
-    ts.write_cache(str(tmp_path / "tags.cache.jsonl"), cache)
-    doc, _ = v2.build(*v2.frozen(data), registry.load(str(d)), ts.load_cache(str(tmp_path / "tags.cache.jsonl")),
-                      venues.load(str(tmp_path / "venues.json")))
+        key = tag_key.input_key(tag_key.tagger_input(e), SEASON["prompt_version"])
+        cache[key] = {"key": key, "title": tag_key.tagger_input(e)["title"], "model": "m", "answer": a}
+    tag_key.write_cache(str(tmp_path / "tags.cache.jsonl"), cache)
+    doc, _ = v2.build(*v2.frozen(data), registry.load(str(d)), tag_key.load_cache(str(tmp_path / "tags.cache.jsonl")),
+                      venues.load(str(tmp_path / "venues.json")), version=SEASON["prompt_version"])
     (tmp_path / "events.v2.json").write_bytes(v2.dumps(doc))
     return ["--events", str(tmp_path / "events.json"), "--v2", str(tmp_path / "events.v2.json"),
             "--cache", str(tmp_path / "tags.cache.jsonl"), "--registry", str(d),
-            "--sidecar", str(tmp_path / "people.draft.json"), "--venues", str(tmp_path / "venues.json")]
+            "--sidecar", str(tmp_path / "people.draft.json"), "--venues", str(tmp_path / "venues.json"),
+            "--season", str(tmp_path / "season.json")]
 
 
 def fixture_text(tmp_path):
@@ -351,9 +363,8 @@ def test_two_hash_seeds_give_the_same_bytes(tmp_path):
                        capture_output=True, env={**os.environ, "PYTHONHASHSEED": seed})
         written.append(out.read_bytes())
     assert written[0] == written[1]
-    sources = dict(zip(["events", "v2", "cache", "registry", "sidecar", "venues"], args[1::2]))
-    census = cv.load(sources["events"], sources["v2"], sources["cache"], sources["registry"], sources["sidecar"],
-                     sources["venues"])
+    sources = dict(zip(SOURCES, args[1::2]))
+    census = cv.load(*(sources[k] for k in SOURCES))
     assert written[0] == cv.render(census, sources).encode("utf-8")
 
 
@@ -387,7 +398,8 @@ def test_it_will_not_write_under_data(tmp_path):
 def real_args():
     return ["--events", os.path.join(ROOT, cv.EVENTS), "--v2", os.path.join(ROOT, cv.EVENTS_V2),
             "--cache", os.path.join(ROOT, cv.CACHE), "--registry", os.path.join(ROOT, registry.DIR),
-            "--sidecar", os.path.join(ROOT, cv.SIDECAR), "--venues", os.path.join(ROOT, cv.VENUES)]
+            "--sidecar", os.path.join(ROOT, cv.SIDECAR), "--venues", os.path.join(ROOT, cv.VENUES),
+            "--season", os.path.join(ROOT, cv.SEASON)]
 
 
 def test_a_full_run_reaches_no_model_no_process_and_no_network(tmp_path, monkeypatch):
@@ -434,7 +446,7 @@ def test_the_committed_census_is_a_fresh_render():
     """docs/discover/census-v2-2026.md is exactly what the committed data renders today: an edit to a registry or the
     cache with no re-render after it fails here, in CI's pipeline job, beside the events.v2.json check."""
     census = cv.load(*(os.path.join(ROOT, p) for p in (cv.EVENTS, cv.EVENTS_V2, cv.CACHE, registry.DIR, cv.SIDECAR,
-                                                        cv.VENUES)))
+                                                        cv.VENUES, cv.SEASON)))
     with open(os.path.join(ROOT, cv.OUT), "rb") as f:
         committed = f.read()
     assert cv.render(census).encode("utf-8") == committed, "stale: run `python census_v2.py` and commit the result"

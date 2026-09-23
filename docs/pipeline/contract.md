@@ -21,7 +21,7 @@ pointer file.
 | `venues.json` | a person | build's venues step; the client, imported at its build (#27) | Hotels, levels, rooms, aliases and the walk, below. |
 | `source.json` | fetch | the merge, for tag and build; fetch's next run, for the rows it carries; the diff, for a code cause | The raw rows and the failures, below. |
 | `ids.jsonl` | the ids stage | the merge; the ids stage's next run; the diff | The ledger, below. |
-| `tags.cache.jsonl` | the tag stage | build; the tag stage's next run | One answer per input, as names (#34). |
+| `tags.cache.jsonl` | the tag stage | build; the tag stage's next run; another year's seed | One answer per input, as names (#34). |
 | `events.v2.json` | the orchestrator, after the diff: build's file, with the diff's `changed_at` | the client; the diff; census v2, on demand | The v2 file, below. |
 | `changes.jsonl` | the orchestrator, after the diff: the diff's lines | the mirror and the push job (Identity and sync); a windowed copy for the client (Delivery) | The change log, below. |
 | `last-run.json` | the orchestrator, after the diff | build, for `fetched_at` after `--from`; CI, for the stamps and `changes_logged` | The stamps and the summary of the last run that committed, below. |
@@ -112,7 +112,7 @@ design: it is merged, split and tagged.
 
 The one place a group of rows becomes an event (#44): `merge_stage.py`'s
 `merge(rows, ledger)`, built by PR 6, a pure function of `source.json` and
-`ids.jsonl`, which build calls and the tag stage will (PR 7). The ledger
+`ids.jsonl`, which build and the tag stage call (PR 7a). The ledger
 says which rows are one event - the rows whose `source_id` is in one
 line's `source_ids` (#43), the rows the ids stage hands on each carrying
 that line's `id` - and the merge makes them one. The events come in the
@@ -149,9 +149,9 @@ ones they came back under (history section 5), read live, from their new
 listings. A frozen year's rows are groups of one, and the merge gives each
 back as it was.
 
-The tag stage's input is the merged title, type, tracks and description,
-read as `tag_stage.tagger_input` reads an event (#34). Build calls the
-merge first.
+The tag stage's input is the merged title, type, tracks and description of
+each event not removed, read as `tag_key.tagger_input` reads an event
+(#34). Build and the tag stage call the merge first.
 
 ## The ledger: `ids.jsonl`
 
@@ -242,6 +242,86 @@ fetch carries them, and `replay-2026.md`, beside this file, is the result
 (#43): ours differ from the frozen file's ids on the two James Callis
 sessions alone, matched across their gap, and the Salon pair is new,
 UNSURE by its title.
+
+## The cache: `tags.cache.jsonl`
+
+The tag stage's file (#34, #46), one a year, beside `season.json`: one
+answer an input, `{key, title, model, answer}` a line in that order,
+sorted by key, LF, no timestamps - names, never ids. The key is the sha256
+of the canonical JSON of `{"v": prompt_version, "input": ...}`, where
+`prompt_version` is the year's `season.json`'s: a season takes no bump, so
+an input is asked once a season. A line corrected by hand says
+`"model": "hand"` (#34). `tag_key.py` holds what the tag stage sends about
+an event (`tagger_input`), the key (`input_key`) and the file's reader and
+writer, and imports neither stage: the build reads the cache through it,
+and the tag stage imports the build.
+
+### The tag stage, as built
+
+`tag_stage.py` (PR 7a). `--season` names the year, 2026's by default, and
+the cache is the one beside it; `--cache` names another, as a pilot's
+scratch runs do.
+
+- **The input.** A season's events come through the build's front door,
+  `events_v2.season_rows()` - a frozen year's `events.json` by `frozen()`,
+  a live year's `source.json`, `ids.jsonl` and `last-run.json` by `live()`,
+  with its refusals: run the ids stage first; a live year needs a run -
+  and the merge, `merge_stage.merge()`. The inputs are the merged events'
+  that are not removed. Read so, 2026's 3,459 events give the 2,580 keys
+  they gave before, every one in the cache (`tests/test_tag_stage.py`).
+- **The cap.** Only uncached inputs are sent, 25 to a request in (first
+  track, title) order, and a run sends at most
+  `thresholds.requests_per_run` requests, the retry's among them;
+  `--requests N` overrides the cap for a hand run. The mint's parents
+  requests are outside it. Every input asked about ends one way: answered;
+  capped, not sent, for the cap; stopped, not sent, after
+  `STOP_AFTER_FAILURES` requests failed in a row; failed, sent in a request
+  the transport failed; or unanswered, sent, with no reply holding a valid
+  row for it. An input the retry cannot reach, for the cap or a stop, keeps
+  its first way.
+- **The result.** `tag()` returns a `TagResult`, which the run summary
+  reads (#44; PR 8): the model asked for; the season's inputs, and how many
+  were cached before and after; the requests and the inputs sent; and the
+  capped, stopped, failed and unanswered. `mint()` adds `minted`, the work
+  ids it added - their count its length - `mint_failed`, those a failed
+  parents request left unwritten, and `parents_requests`. A hand run exits
+  1 on a failed, stopped or unanswered input or a failed parents request,
+  and 0 with inputs capped alone, since a later run takes them; the
+  orchestrator reads the result, and its own table of the fatal and the
+  degraded (#44) decides.
+- **Seed.** `tag_stage.py seed --season <season> --from <year>` reads the
+  season's merged events through the same front door, keys them under its
+  `prompt_version`, and copies the source year's cache lines whose keys
+  match - `<year>/season.json` beside the season's folder, and the cache
+  beside that - as they are, so a hand line stays a hand line. It copies
+  nothing when the two years' `prompt_version` differ, and then reads
+  nothing of the source. It reports copied, already present, and skipped -
+  the season's keys that neither cache holds, left for the tag stage - and
+  the three sum to the season's inputs. It writes the season's cache only
+  when it copies. Refused: a frozen season; one with no `source.json`, or
+  one its front door refuses; a source season that does not load, or has
+  no cache.
+- **Frozen.** A season with `frozen: true` runs with `--dry-run` only, the
+  report of what would be sent: no request, no cache write, no mint -
+  `--dry-run --mint-only` included, which reports what it would mint. The
+  refusal names the flag. The frozen flag is the tag stage's;
+  `tag_events.py` keeps its path check as legacy.
+- **`minted`.** Every row the mint adds to `works.json` carries
+  `minted: {"year": <the season's year>, "run": <last-run.json's fetched_at>}`,
+  after `reviewed` in the row's key order, and no other row gains it. A
+  live year with no `last-run.json` cannot mint: its front door refuses.
+  `registry.py` holds `WORK_KEYS`, the one list of a work's keys in their
+  order, which the drafter and the mint write in and the review page keeps
+  a copy of, held equal by a test; it refuses any other key, and checks
+  `minted`: exactly `year`, a whole number, and `run`, an ISO date and time
+  with its offset. Resolution ignores it (#46), census v2's band marker
+  leaves out a work minted in a later year, and the works block of
+  `events.v2.json` never carries it.
+- **The season-start sequence.** #46's "a season's first full tag is run
+  by hand, before the cron" becomes a sequence PR 8 owns: a dispatch run
+  to the ids stage, which must leave `source.json`, `ids.jsonl` and
+  `last-run.json`, the front door's inputs; then `seed --from` the year
+  before; then a hand tag with `--requests` set high.
 
 ## The v2 file: `events.v2.json`
 
@@ -387,14 +467,15 @@ By hand, one a year (#44, #46). Every key is written, in this order, and
   guard exits 0 (#48); `null` in a frozen year;
 - `frozen` (#46), which the fetch reads: it writes nothing into a frozen
   year's folder, and a probe of the source points `--out` outside it; and
-  `prompt_version`, `PROMPT_VERSION` (2026: 1), which a season never bumps
-  (#46);
+  `prompt_version`, `PROMPT_VERSION` (2026: 1), the `v` of the tag stage's
+  key, which a season never bumps (#46);
 - `thresholds`: `listings_floor`, the listings floor, 80% of the previous
   `source.json`'s, its removed rows aside (#44); `detail_failures`, the
   ceiling on failed detail fetches, 20% (#44); `new_ids`, the ceiling on
   new ids, 20%: a run with new ids above `new_ids` × the lines before the
   run is fatal, skipped when the ledger was empty (#43); and
-  `requests_per_run`, the request cap, 40 requests a run by default (#46).
+  `requests_per_run`, the tag stage's request cap, 40 requests a run by
+  default, which `--requests` overrides for a hand run (#46).
 
 Dates are ISO, and a span's first day is not after its last. The three
 fractions are in (0, 1], and the cap is a positive whole number.
@@ -545,7 +626,7 @@ and handed down: a run that fetches records it as `fetched_at`, and a
 |---|---|---|---|---|
 | fetch | `season.json`; the previous `source.json` | `source.json` | a day list that fails; no listings; listings under 80% of the previous file's, its removed rows aside; over 20% of the detail fetches failed; every detail page parsing to an empty title | a failed detail page; a listing gone; a repaired text |
 | ids | `source.json`; `ids.jsonl`; `season.json` | `ids.jsonl` | the ledger absent or a line of it malformed; a removed row no line holds; a source id in two lines' `source_ids`; new ids above `new_ids` × the lines before the run, skipped when the ledger was empty | an UNSURE match candidate or merge |
-| tag | the merge; the cache; the registries; `season.json` | the cache; `works.json`, by mint | a registry failing validation | the model unreachable, rate-limited or malformed after one retry; a mint that fails |
+| tag | the build's front door and the merge; the cache; the registries; `season.json` | the cache; `works.json`, by mint | a registry failing validation; the rows' ids not the ledger's, or no `last-run.json`, in a live year (The tag stage, as built) | the model unreachable, rate-limited or malformed after one retry; a mint that fails; inputs past the request cap, left for a later run |
 | build | the merge; `venues.json`; the registries; the cache; `season.json`; the run's `fetched_at`, or `last-run.json`'s after `--from` | `events.v2.json`, in memory | `venues.json`, a registry or the cache failing to load; a row with no id; the rows' ids not the ledger's, or no `last-run.json`, in a live year (The build, as built); any exception; its two builds in memory differing | a hotel unknown; a room unresolved; a cache miss; a work name unresolved; a track unknown |
 | diff | the previous and the new `events.v2.json`; `ids.jsonl`; the previous `source.json`, for a code cause | the change lines and `changed_at`, in memory | the previous `events.v2.json` unreadable, unless it is absent and the ledger empty | - |
 
@@ -563,7 +644,8 @@ commit - only when a committed file's bytes change, its own stamp aside
 | `venues.json` | Loads and validates (#45). | Loads and validates (#45). |
 | `changes.jsonl` | - | `last-run.json`'s `changes_logged` against the log's last stamp; every id the log names in `events.v2.json`, removed or not, or a `merged` line's id; each commit's log beginning with the last commit's (#47). |
 | the counters | The tag and track counters held at zero on 2026's build, by `tests/test_zero_hold.py`; the venue counters reported, never held (#44). | - |
-| writes | The raw file refused; the derived files rebuilt by an explicit command, never by a run (#46). | A run's, when it commits (#44). |
+| the tag cache | Every event's key, read through the front door and the merge, in the committed cache (`tests/test_tag_stage.py`). | - |
+| writes | The raw file refused, and the tag stage run with `--dry-run` only; the derived files rebuilt by an explicit command, never by a run (#46). | A run's, when it commits (#44). |
 
 The fixture tests of #47 - every kind, the attribution, append-only, the
 order - run whatever the year.
@@ -587,4 +669,5 @@ What CI cannot check:
   `ids.jsonl` and PR 6 for `events.v2.json`, above; `changes.jsonl` and
   `last-run.json` settle theirs with the PRs that write them.
 - The names the entries do not give: the SHA's key in a change line and
-  `last-run.json`'s counters (PRs 7 and 8).
+  `last-run.json`'s counters (PRs 7b and 8), which read the tag stage's
+  result (The tag stage, as built) among the stages'.

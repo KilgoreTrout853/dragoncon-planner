@@ -274,13 +274,13 @@ def damaged(people, works, notes):
     return sorted(out)
 
 
-WORK_KEYS = ("id", "name", "aliases", "type", "family", "parent", "terms", "reviewed")
-PERSON_KEYS = ("id", "name", "aliases", "tier", "credits", "reviewed")
+PERSON_KEYS = ("id", "name", "aliases", "tier", "credits", "reviewed")   # a work's are registry.WORK_KEYS
 
 
 def in_order(row, keys):
     """One entry with its keys in the registry's own order, so setting a field late - a parent, on
-    the second pass - does not leave it after `reviewed` and rewrite the line for every reader."""
+    the second pass - does not leave it after `reviewed` and rewrite the line for every reader. A
+    key not in `keys` is not written."""
     return {k: row[k] for k in keys if k in row}
 
 
@@ -371,7 +371,7 @@ def main():
     write_json(os.path.join(args.registry, "people.json"),
                [in_order(p, PERSON_KEYS) for p in people])
     write_json(os.path.join(args.registry, "works.json"),
-               [in_order(w, WORK_KEYS) for w in works])
+               [in_order(w, registry.WORK_KEYS) for w in works])
     write_json(args.sidecar, sidecar)
 
     hurt = damaged(people, works, notes)
@@ -419,7 +419,7 @@ def parents_pass(reg, args, transport, model):
         by_id[wid]["parent"] = parent
     works = sorted(reg.works, key=lambda w: w["id"])
     write_json(os.path.join(args.registry, "works.json"),
-               [in_order(w, WORK_KEYS) for w in works])
+               [in_order(w, registry.WORK_KEYS) for w in works])
     print(f"placed {len(found)} of {len(todo)}; {len(todo) - len(found)} stay top-level",
           file=sys.stderr)
 

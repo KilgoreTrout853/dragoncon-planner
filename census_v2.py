@@ -35,14 +35,17 @@ from collections import Counter, defaultdict
 import draft_people as dp
 import events_v2 as v2
 import registry
+import tag_key
 import tag_stage as ts
+from season import SeasonError, load as load_season
 from tag_census import code, counted, first, histogram, n, pct, ranked, table  # the markdown helpers, not a copy
 from venues import load as load_venues
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-EVENTS = ts.EVENTS
+EVENTS = os.path.join("data", "2026", "events.json")
+SEASON = os.path.join("data", "2026", "season.json")   # the build reads its prompt_version, the cache keys' `v` (#46)
 EVENTS_V2 = v2.OUT
-CACHE = ts.CACHE
+CACHE = os.path.join("data", "2026", "tags.cache.jsonl")
 SIDECAR = dp.SIDECAR
 VENUES = os.path.join("data", "2026", "venues.json")   # the build reads it: the place fields (#45)
 OUT = os.path.join("docs", "discover", "census-v2-2026.md")
@@ -135,7 +138,8 @@ def band_names(works, year):
 
 def work_source(wid, minted, named):
     """Where an unreviewed work came from: "drafter" when the drafter's sidecar minted it, else "tagger" when a
-    cached answer names it, else "other". tag_stage.py keeps no record of what it mints, so "tagger" is inferred."""
+    cached answer names it, else "other". A row tag_stage.py minted before PR 7a carries no record of it, so "tagger"
+    is inferred; one it has minted since carries `minted` (#46)."""
     if wid in minted:
         return "drafter"
     return "tagger" if wid in named else "other"
@@ -222,18 +226,19 @@ def shown(path):
 
 class Census:
     """Everything the sections read, loaded once: the v1 events; the v2 events built from them, the same bytes as the
-    file on disk, and the build's counts; the registries; the cache as a dict and as lines; and the sidecar."""
+    file on disk, and the build's counts; the registries; the cache as a dict and as lines, and the season's
+    prompt_version, which its keys hold; and the sidecar."""
 
-    def __init__(self, data, doc, stats, reg, cache, lines, sidecar):
+    def __init__(self, data, doc, stats, reg, cache, lines, sidecar, version):
         self.data, self.doc, self.stats, self.reg, self.cache, self.lines = data, doc, stats, reg, cache, lines
         self.sidecar = sidecar
         self.v1, self.events = data["events"], doc["events"]
-        self.keys = [ts.input_key(ts.tagger_input(e)) for e in self.v1]
+        self.keys = [tag_key.input_key(tag_key.tagger_input(e), version) for e in self.v1]
         self.per_key = Counter(self.keys)
         self.inputs, self.first = {}, {}
         for i, (e, k) in enumerate(zip(self.v1, self.keys)):
             if k not in self.inputs:
-                self.inputs[k], self.first[k] = ts.tagger_input(e), i
+                self.inputs[k], self.first[k] = tag_key.tagger_input(e), i
         self.works, self.people, self.tracks = reg.by_id("works"), reg.by_id("people"), reg.by_id("tracks")
         self.parents = {w["id"]: w.get("parent") for w in reg.works}
         self.names = {w["id"]: [w["name"]] + list(w.get("aliases") or []) for w in reg.works}
@@ -256,13 +261,16 @@ class Census:
         return "never drafted"
 
 
-def load(events=EVENTS, events_v2=EVENTS_V2, cache=CACHE, registry_dir=registry.DIR, sidecar=SIDECAR, venues=VENUES):
+def load(events=EVENTS, events_v2=EVENTS_V2, cache=CACHE, registry_dir=registry.DIR, sidecar=SIDECAR, venues=VENUES,
+         season=SEASON):
     """A Census of the inputs. Raises Stale unless events.v2.json on disk is what they build today, through the
-    frozen year's front door, and events_v2.BuildError where they build nothing."""
+    frozen year's front door with the season's prompt_version (#46); events_v2.BuildError where they build nothing,
+    and season.SeasonError where the season file does not load."""
     data = read_json(events)
     reg = registry.load(registry_dir)
-    answers = ts.load_cache(cache)
-    doc, stats = v2.build(*v2.frozen(data), reg, answers, load_venues(venues))
+    answers = tag_key.load_cache(cache)
+    version = load_season(season)["prompt_version"]
+    doc, stats = v2.build(*v2.frozen(data), reg, answers, load_venues(venues), version=version)
     try:
         with open(events_v2, "rb") as f:
             on_disk = f.read()
@@ -270,7 +278,7 @@ def load(events=EVENTS, events_v2=EVENTS_V2, cache=CACHE, registry_dir=registry.
         on_disk = None
     if on_disk != v2.dumps(doc):
         raise Stale(f"{shown(events_v2)} is not a fresh build of its inputs: run `python events_v2.py` first")
-    return Census(data, doc, stats, reg, answers, read_lines(cache), read_json(sidecar))
+    return Census(data, doc, stats, reg, answers, read_lines(cache), read_json(sidecar), version)
 
 
 # ---------------------------------------------------------------------------
@@ -449,8 +457,8 @@ def unreviewed(c, f, per_work):
            f"{n(len(all_linked))} of them, on {n(events)} events. The block is `events.v2.json`'s works: those the "
            "year's events link, and their ancestors (#38).",
            "- By where they came from: the drafter, when the sidecar's `minted` holds the id; the tagger, when a cached "
-           "answer names it otherwise - `tag_stage.py` keeps no record of what it mints, so this is inferred; other, "
-           "neither.", ""]
+           "answer names it otherwise - inferred, since a row `tag_stage.py` minted before PR 7a carries no record of "
+           "it, and only one minted since carries `minted` (#46); other, neither.", ""]
     out += table(["source", "works", "linked", "on events"],
                  [(s, n(k), n(h), n(e)) for s, k, h, e in rows] + [("all", n(len(ids)), n(len(all_linked)), n(events))])
     return out + [f"Linked by events: {n(len(all_linked))}, listed in Appendix A. Linked by none: "
@@ -928,7 +936,7 @@ def text_section(c, f):
                   for place, strings in places])
     out += [f"- {label} in {where}" for label, where in found] or ["- none"]
     return out + ["", "### Descriptions over the cap", "",
-                  f"- Events whose description, without its panelist line, runs past the {n(ts.DESCRIPTION_CAP)} "
+                  f"- Events whose description, without its panelist line, runs past the {n(tag_key.DESCRIPTION_CAP)} "
                   f"characters the tagger is sent: {n(over)}."]
 
 
@@ -1002,7 +1010,7 @@ def render(c, sources=None):
     """The report as text: LF, one newline at the end. `sources` names the inputs in the header; by default, the
     paths as the defaults spell them."""
     s = sources or {"events": EVENTS, "v2": EVENTS_V2, "cache": CACHE, "registry": registry.DIR, "sidecar": SIDECAR,
-                    "venues": VENUES}
+                    "venues": VENUES, "season": SEASON}
     s = {k: shown(v) for k, v in s.items()}
     facts, body = {}, []
     for section in (coverage, works_section, axes_section, kinds_section, audience_section, play_section,
@@ -1010,7 +1018,7 @@ def render(c, sources=None):
         body += section(c, facts) + [""]
     head = ["# Tag census v2 - the 2026 schedule", "",
             f"Written by `census_v2.py` from `{s['v2']}` (`generated_at` {c.doc.get('generated_at')}, source "
-            f"{c.doc.get('source')}), which it first builds afresh from `{s['events']}`, "
+            f"{c.doc.get('source')}), which it first builds afresh from `{s['events']}`, `{s['season']}`, "
             f"`{s['registry'].rstrip('/')}/`, `{s['venues']}` and `{s['cache']}`, and stops unless the two are "
             f"the same; beside them, the drafter's sidecar, `{s['sidecar']}`. Do not edit it by hand; run the script "
             f"again. CI fails when it is stale (DECISIONS #35).",
@@ -1020,9 +1028,9 @@ def render(c, sources=None):
             "name. Event titles and the names of works and people are in code spans, so that their punctuation shows "
             "as written.", "",
             "It asks the questions of `census-2026.md` of the v2 file where they survive. Not asked again: v1's "
-            f"section 8, descriptions, since the tagger is now sent {n(ts.DESCRIPTION_CAP)} characters and section 12 "
-            "counts the descriptions past them; and v1's section 9, facets in titles, which the parse stage reads "
-            "(`parse-2026.md`).", "",
+            f"section 8, descriptions, since the tagger is now sent {n(tag_key.DESCRIPTION_CAP)} characters and "
+            "section 12 counts the descriptions past them; and v1's section 9, facets in titles, which the parse "
+            "stage reads (`parse-2026.md`).", "",
             "It never links: only the tagger links an event to a work (#34). Where a list here comes of matching text, "
             "every row is UNSURE, and the fix it names is a person's: a `\"model\": \"hand\"` line in the cache.", ""]
     tail = ["## Appendix A. Unreviewed works that events link", ""] + facts["appendix_a"]
@@ -1048,6 +1056,7 @@ def main(argv=None):
     ap.add_argument("--registry", default=registry.DIR, help="the directory of works.json, people.json and tracks.json")
     ap.add_argument("--sidecar", default=SIDECAR)
     ap.add_argument("--venues", default=VENUES, help="the venues file the build reads")
+    ap.add_argument("--season", default=SEASON, help="the season file, whose prompt_version the cache's keys hold")
     ap.add_argument("--out", default=OUT)
     ap.add_argument("--check", action="store_true", help="exit 1 if --out is not a fresh render; write nothing")
     args = ap.parse_args(argv)
@@ -1055,12 +1064,12 @@ def main(argv=None):
         print("census_v2.py writes nothing under data/ (DECISIONS #13, #33)", file=sys.stderr)
         return 1
     try:
-        census = load(args.events, args.v2, args.cache, args.registry, args.sidecar, args.venues)
-    except (Stale, v2.BuildError) as exc:
+        census = load(args.events, args.v2, args.cache, args.registry, args.sidecar, args.venues, args.season)
+    except (Stale, v2.BuildError, SeasonError) as exc:
         print(exc, file=sys.stderr)
         return 1
     body = render(census, {"events": args.events, "v2": args.v2, "cache": args.cache, "registry": args.registry,
-                           "sidecar": args.sidecar, "venues": args.venues}).encode("utf-8")
+                           "sidecar": args.sidecar, "venues": args.venues, "season": args.season}).encode("utf-8")
     if args.check:
         try:
             with open(args.out, "rb") as f:

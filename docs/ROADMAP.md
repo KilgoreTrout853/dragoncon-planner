@@ -64,10 +64,17 @@ seam a feed would plug into (#41). The sequence:
    `tests/test_zero_hold.py`; `cancelled` by `parse_stage.is_cancelled`;
    the digest, and one works row and one event a line; 2026's file
    rebuilt, 164 of its rooms read anew by the venues step.
-7. Tag and diff.
+7. Tag and diff, in two. 7a, the tag stage - built: `tag_key.py`, the
+   input and its key and the cache's file, a leaf both the tag stage and
+   the build import; a season read through the build's front door and the
+   merge; `prompt_version` from `season.json`; `seed`; the request cap and
+   `--requests`; the result the run summary reads; the frozen refusal; and
+   `minted` on a minted row. 7b, the diff.
 8. The orchestrator, the run summary and the workflow, proven by a
    dispatch run against the 2026 source with `--limit` into a scratch
-   branch.
+   branch; and the season-start sequence it owns: a dispatch run to the
+   ids stage, then `seed`, then a hand tag with `--requests` set high
+   (`contract.md`, The tag stage, as built).
 9. The 2027 client switch, after a design pass of its own; its pick
    reconciliation reads `was` (#43).
 

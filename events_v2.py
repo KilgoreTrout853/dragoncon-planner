@@ -19,20 +19,21 @@ and last-run.json gives generated_at (its fetched_at) and changed_at, and its ab
 needs a run. The top-level fields are then generated_at, changed_at, the season's source, count (every event, the
 removed ones among them), source.json's failures and the digest. A live year's file is the orchestrator's to write,
 with changes.jsonl and last-run.json (#42, #44), so main() checks it, and writes only to an --out outside the year's
-folder.
+folder. season_rows() is both doors, and the tag stage reads a season through it too (#44, #46).
 
 build(), in order: the merge (merge_stage.py); the venues step (venues_stage.py); the parse step - people, facets and
-cancelled; the cached answer, by the input key; the works and axes merge, below; the works block; the digest. An
-event is the ten raw fields, then id, source_id, hotel, room, level, rooms, place, track (the first of its tracks, or
-null), cancelled, people, facets and tags, and last removed, stale and was, each only where set.
+cancelled; the cached answer, by the input key (tag_key.py) under the season's prompt_version (#46); the works and axes
+merge, below; the works block; the digest. An event is the ten raw fields, then id, source_id, hotel, room, level,
+rooms, place, track (the first of its tracks, or null), cancelled, people, facets and tags, and last removed, stale and
+was, each only where set.
 
 Tolerance (#44). A cache miss ships the event untagged, with no tags key at all (#46); a work name the registry cannot
 resolve drops that link; a track tracks.json lacks keeps its name, with no axes and no track work. Each is counted in
 the report with its names - untagged, unresolved_names, unknown_tracks - and tests/test_zero_hold.py holds all three at
 zero on 2026. A name that is a registry term is dropped and counted too (terms): a term leads a searcher to a work and
-is not a name for one. The fix for an unresolved name is `tag_stage.py --mint-only`, not a change here. What stops a
-build is ours to fix before any run, as BuildError: a registry, a venues file or a cache that fails to load, a row
-with no id, and a live year's refusals.
+is not a name for one. The fix for an unresolved name is `tag_stage.py --season <season> --mint-only`, not a change
+here. What stops a build is ours to fix before any run, as BuildError: a registry, a venues file or a cache that fails
+to load, a row with no id, and a live year's refusals.
 
 The works and axes merge:
 - works: what the event is about (a work and its ancestor both named: the descendant stays), then the works of its
@@ -70,13 +71,13 @@ import parse_stage as ps
 import registry
 import venues_stage
 from season import SeasonError, load as load_season
-from tag_stage import AXIS_NAMES, input_key, load_cache, tagger_input
+from tag_key import input_key, load_cache, tagger_input
 from venues import VenuesError, load as load_venues
 
 SEASON = os.path.join("data", "2026", "season.json")
 OUT = os.path.join("data", "2026", "events.v2.json")
 TIERS = ("celebrity", "creator")   # highest first
-MINT = "python tag_stage.py --mint-only"
+TAG = "python tag_stage.py --season {season}"   # the hints name the season file: the default, 2026's, is frozen
 DROPPED = ("hotel", "room", "track", "cancelled", "tags")   # a frozen event's v1 fields: each is a stage's here
 PLACE = ("hotel", "room", "level", "rooms", "place")        # the venues step's (#45)
 FLAGS = ("removed", "stale", "was")                         # the merge's, each only where set
@@ -145,7 +146,7 @@ def merge_works(about, tracks, people, people_by_id, parents):
 
 def merge_axes(answer, tracks):
     out = {}
-    for axis in AXIS_NAMES:
+    for axis in registry.AXES:
         deciding = [t for t in tracks if axis in (t.get("axes") or {})]
         if deciding:
             values = []
@@ -208,12 +209,13 @@ def event_fields(event, people, facets):
 # The build
 # ---------------------------------------------------------------------------
 
-def build(rows, top, reg, cache, venues, ledger=None):
+def build(rows, top, reg, cache, venues, ledger=None, *, version):
     """(the v2 document, the report) for a year's raw rows (#42), each carrying our id (#43).
 
     `top` is the top-level fields written before the digest; `reg` is registry.load()'s, `cache`
-    tag_stage.load_cache()'s, `venues` venues.load()'s, and `ledger` ids_stage.read_ledger()'s - a frozen year has
-    none. Raises BuildError for a row with no id; every other gap is counted in the report and the build goes on.
+    tag_key.load_cache()'s, `venues` venues.load()'s, and `ledger` ids_stage.read_ledger()'s - a frozen year has
+    none. `version` is the season's prompt_version, which the cache's keys hold (#46). Raises BuildError for a row
+    with no id; every other gap is counted in the report and the build goes on.
 
     The report: untagged (the titles of the events with no cached answer, in file order), unresolved_names ({name:
     links dropped}) and unknown_tracks ({name: events}); terms (registry terms named as works and dropped); the venues
@@ -241,7 +243,7 @@ def build(rows, top, reg, cache, venues, ledger=None):
                 unknown[name] += 1          # the name stays on the event; no axes, no track work
         people = resolve_people(p["people"], reg)
         row = event_fields(event, people, p["facets"])
-        entry = cache.get(input_key(tagger_input(event)))
+        entry = cache.get(input_key(tagger_input(event), version))
         if entry is None:
             untagged.append(event["title"] or event["id"])   # untagged is a state: no tags key (#46)
         else:
@@ -372,11 +374,22 @@ def _read(path):
         raise BuildError([f"{path} is not JSON ({exc})"]) from None
 
 
+def season_rows(season, folder):
+    """(rows, top, ledger): a season's raw rows, each carrying our id, through its front door - a frozen year's
+    events.json by frozen(), with no ledger, and a live year's source.json, ids.jsonl and last-run.json by live(),
+    with its refusals. `season` is season.load()'s and `folder` the folder it is in. The build reads a season this way,
+    and so does the tag stage, which merges the rows as the build does (#44)."""
+    if season["frozen"]:
+        rows, top = frozen(_read(os.path.join(folder, "events.json")))
+        return rows, top, None
+    return live(folder, season)
+
+
 def build_season(season, folder, registry_dir=registry.DIR, cache=None):
     """(doc, report): a season's file as a fresh build makes it, through its front door. `season` is season.load()'s
-    and `folder` the folder it is in; `cache` is the tag cache's path, tags.cache.jsonl there by default. BuildError
-    where the registries, the venues file, the cache or the year's raw file fails to load, or a live year's front
-    door refuses."""
+    and `folder` the folder it is in; `cache` is the tag cache's path, tags.cache.jsonl there by default, whose keys
+    hold the season's prompt_version (#46). BuildError where the registries, the venues file, the cache or the year's
+    raw file fails to load, or a live year's front door refuses."""
     try:
         reg = registry.load(registry_dir)
     except registry.RegistryError as exc:
@@ -389,11 +402,8 @@ def build_season(season, folder, registry_dir=registry.DIR, cache=None):
         answers = load_cache(cache or os.path.join(folder, "tags.cache.jsonl"))
     except ValueError as exc:
         raise BuildError([f"the tag cache: {exc}"]) from None
-    if season["frozen"]:
-        rows, top = frozen(_read(os.path.join(folder, "events.json")))
-        return build(rows, top, reg, answers, venues)
-    rows, top, ledger = live(folder, season)
-    return build(rows, top, reg, answers, venues, ledger)
+    rows, top, ledger = season_rows(season, folder)
+    return build(rows, top, reg, answers, venues, ledger, version=season["prompt_version"])
 
 
 def same_file(a, b):
@@ -412,17 +422,19 @@ def inside(path, folder):
         return False
 
 
-def degradations(report):
-    """The run summary's build counters (contract.md, `last-run.json`), one line, the names after it."""
+def degradations(report, season):
+    """The run summary's build counters (contract.md, `last-run.json`), one line, the names after it. `season` is the
+    season file's path, which the hints name."""
+    tag = TAG.format(season=season)
     lines = ["  places: " + ", ".join(f"{k} {n:,}" for k, n in report["places"].items())
              + f"; rooms unresolved {report['rooms_unresolved']:,}, hotels unknown {report['hotels_unknown']:,}",
              f"  events untagged {len(report['untagged']):,}, work names unresolved "
              f"{sum(report['unresolved_names'].values()):,}, tracks unknown {len(report['unknown_tracks']):,}"]
     if report["untagged"]:
-        lines.append("  untagged - run `python tag_stage.py`: " + "; ".join(report["untagged"][:50])
+        lines.append(f"  untagged - run `{tag}`: " + "; ".join(report["untagged"][:50])
                      + (" ..." if len(report["untagged"]) > 50 else ""))
     if report["unresolved_names"]:
-        lines.append(f"  work names unresolved - run `{MINT}`: "
+        lines.append(f"  work names unresolved - run `{tag} --mint-only`: "
                      + ", ".join(f"{n!r} ({k})" for n, k in report["unresolved_names"].items()))
     if report["unknown_tracks"]:
         lines.append("  tracks unknown - owed to tracks.json: "
@@ -476,7 +488,7 @@ def main(argv=None):
             print(f"{out} is not a fresh build: {fix}", file=sys.stderr)
             return 1
         print(f"{out} is a fresh build ({len(body):,} bytes, digest {doc['digest'][:12]})", file=sys.stderr)
-        for line in degradations(report):
+        for line in degradations(report, args.season):
             print(line, file=sys.stderr)
         return 0
 
@@ -497,7 +509,7 @@ def main(argv=None):
     print(f"  guests: {sum(n for g, n in report['guests'].items() if g != '-'):,} events "
           f"({', '.join(f'{g} {n:,}' for g, n in sorted(report['guests'].items()) if g != '-') or 'none'}); "
           f"play on {report['play']:,}", file=sys.stderr)
-    for line in degradations(report):
+    for line in degradations(report, args.season):
         print(line, file=sys.stderr)
     if report["terms"]:
         print(f"  registry terms named as works, dropped: {sum(report['terms'].values())} - "

@@ -19,7 +19,7 @@ import pytest  # noqa: E402
 import requests  # noqa: E402
 
 import scraper  # noqa: E402
-import tag_stage  # noqa: E402
+import tag_key  # noqa: E402
 
 BASE = "https://example.test/dc"
 SEASON = {"year": 2026, "slug": "dc", "source": BASE, "days": ["Sep  5", "Sep  6"],
@@ -341,7 +341,7 @@ def test_a_clean_page_reads_the_same_with_the_repair_and_without(serve, monkeypa
     monkeypatch.setattr(scraper, "repair", lambda text: text)
     unrepaired = run()
     assert repaired.repaired == 0 and repaired.rows == unrepaired.rows
-    assert tag_stage.tagger_input(repaired.rows[0]) == tag_stage.tagger_input(unrepaired.rows[0])
+    assert tag_key.tagger_input(repaired.rows[0]) == tag_key.tagger_input(unrepaired.rows[0])
     assert chr(0x201C) in repaired.rows[0]["description"]      # no quote uncurled
 
 

@@ -7,6 +7,7 @@ Run:  python -m pytest tests/
 """
 import json
 import os
+import re
 import sys
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
@@ -108,6 +109,40 @@ def test_reviewed_is_a_bool(tmp_path):
 
 def test_a_parent_must_exist(tmp_path):
     assert "is not a work" in only(tmp_path, works=[{**WORK, "parent": "whedonverse"}])
+
+
+def test_a_work_has_only_the_keys_works_json_writes(tmp_path):
+    assert "'reviwed' is not a key a work has" in only(tmp_path, works=[{**WORK, "reviwed": True}])
+    assert registry.WORK_KEYS == ("id", "name", "aliases", "type", "family", "parent", "terms", "reviewed", "minted")
+
+
+def test_minted_is_the_year_and_the_run_s_stamp_and_nothing_else(tmp_path):
+    """A row the tag stage mints records the season's year and the run's fetched_at (#46)."""
+    good = {**WORK, "minted": {"year": 2027, "run": "2027-08-02T10:00:00+00:00"}}
+    assert registry.load(write(tmp_path, works=[good])).works[0]["minted"]["year"] == 2027
+    assert registry.load(write(tmp_path, works=[{**WORK, "minted": {"run": "2027-08-02T10:00:00Z",
+                                                                     "year": 2027}}])).works
+    for minted, why in [({"year": 2027}, "is not {year, run}"),
+                        ({"year": 2027, "run": "2027-08-02T10:00:00+00:00", "by": "tag"}, "is not {year, run}"),
+                        ("2027", "is not {year, run}"),
+                        ({"year": "2027", "run": "2027-08-02T10:00:00+00:00"}, "minted.year '2027' is not a whole"),
+                        ({"year": True, "run": "2027-08-02T10:00:00+00:00"}, "minted.year True is not a whole"),
+                        ({"year": 2027, "run": "2027-08-02"}, "is not an ISO date and time with its offset"),
+                        ({"year": 2027, "run": "2027-08-02T10:00:00"}, "is not an ISO date and time with its offset"),
+                        ({"year": 2027, "run": "2027-08-02 10:00:00+00:00"}, "is not an ISO date and time with its"),
+                        ({"year": 2027, "run": "yesterday"}, "is not an ISO date and time with its offset"),
+                        ({"year": 2027, "run": None}, "is not an ISO date and time with its offset")]:
+        assert why in only(tmp_path, works=[{**WORK, "minted": minted}]), minted
+
+
+def test_the_drafter_and_the_review_page_write_the_registry_s_work_keys():
+    """One WORK_KEYS, registry.py's (#46): the drafter and the mint write works.json in it, and the review page - a
+    classic script, which imports nothing - keeps a copy, held equal here, so none of them drops `minted`."""
+    import draft_people as dp
+    assert not hasattr(dp, "WORK_KEYS")
+    with open(os.path.join(ROOT, "tools", "review-people.js"), encoding="utf-8") as f:
+        page = re.search(r"const WORK_KEYS = (\[[^\]]*\]);", f.read())
+    assert page and json.loads(page.group(1)) == list(registry.WORK_KEYS)
 
 
 def test_a_parent_cycle_is_found(tmp_path):

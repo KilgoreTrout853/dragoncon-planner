@@ -72,7 +72,7 @@ ABOUT_BY_TITLE = ("Andor",)
 
 def v2_tags(tags, about, tracks, parents):
     """v2 tags for an event v1 tagged."""
-    axes = {a: [] for a in v2.AXIS_NAMES}
+    axes = {a: [] for a in registry.AXES}
     for topic in tags.get("topics") or []:
         home = TOPIC_AXES.get(topic)
         if home and home[1] not in axes[home[0]] and len(axes[home[0]]) < registry.MAX_AXIS_VALUES:
