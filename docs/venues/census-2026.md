@@ -1,41 +1,41 @@
-# Room census - the 2026 schedule against the venues registry
+# Room census - the 2026 schedule against the venues file
 
-Written by `tools/room_census.py` from `data/2026/events.json` (`generated_at` 2026-09-07T12:50:19+00:00) and `docs/venues/registry.json` (version 2026-09-18). Do not edit it by hand; run the script again.
+Written by `tools/room_census.py` from `data/2026/events.json` (`generated_at` 2026-09-07T12:50:19+00:00) and `data/2026/venues.json`. Do not edit it by hand; run the script again.
 
-A record, not held fresh by CI: an edit to the registry leaves it stale until the script runs again. It states facts and changes nothing. A room string matches a registry room exactly, case-folded, or it does not; every other reading here is a proposal, `UNSURE`, and applied to nothing - the registry, its `seen_2026` and the scraper are as they were. The combined-string rules and the other shapes are counted apart. Lists run by count, descending, then by string; room strings are in code spans, so that their spacing and punctuation show.
+A record, not held fresh by CI: an edit to the venues file leaves it stale until the script runs again. It states facts and changes nothing. A room string matches a room of the venues file exactly, case-folded, or an alias of the file names it - a confirmed mapping - or neither; every other reading here is a proposal, `UNSURE`, and applied to nothing - the venues file and the scraper are as they were. The combined-string rules and the other shapes are counted apart. Lists run by count, descending, then by string; room strings are in code spans, so that their spacing and punctuation show.
 
 ## 0. Headline
 
 1. Events: 3,459, at 9 hotel values; distinct (hotel, room) strings: 180.
-2. An exact registry match: 34 strings, 929 events (26.9%).
+2. An exact match to a room of the venues file: 34 strings, 929 events (26.9%). Through an alias: 0 strings, 0 events (0.0%).
 3. A combined-string rule alone, UNSURE: 31 strings, 728 events (21.0%). One of the other shapes, UNSURE: 37 strings, 376 events (10.9%).
 4. No reading: 78 strings, 1,426 events (41.2%).
-5. Hotels in the file and not in the registry: Streaming (62 events), Other (25 events). In the registry with no rooms: AmericasMart (1,033 events), Hardy Ivy Park (36 events). `Unknown`: 0 events.
+5. Hotels in the schedule and not in the venues file: none. In the venues file with no rooms: Hardy Ivy Park (36 events), Streaming (62 events), Other (25 events), Unknown (0 events).
 6. The Courtland prefix: 151 of 151 Courtland Grand events, 9 of 9 strings (section 6).
-7. Registry rooms: 213, besides 6 entries that hold a note. Matched exactly: 34. Named only by a proposal: 73. Neither: 106.
+7. Rooms of the venues file: 219, and 13 notes on its levels. Matched exactly: 34. Through an alias: 0. Named only by a proposal: 73. Neither: 112.
 8. `split_hotel(location)` gives the stored hotel and room for 3,459 of 3,459 events.
 
 ## 1. Hotels
 
-Events by how their room string reads: `exact`, an exact registry match; `combined`, a combined-string rule alone; `shape`, one of the other shapes, alone or with a combined rule; `none`, no reading. `combined` and `shape` are proposals, UNSURE.
+Events by how their room string reads: `exact`, an exact match to a room of the venues file; `alias`, an alias of the file, a confirmed mapping; `combined`, a combined-string rule alone; `shape`, one of the other shapes, alone or with a combined rule; `none`, no reading. `combined` and `shape` are proposals, UNSURE.
 
-| hotel | in the registry | levels | rooms | events | strings | exact | combined | shape | none |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| AmericasMart | yes | 1 | 0 | 1,033 | 43 | 0 | 18 | 0 | 1,015 |
-| Hilton | yes | 6 | 69 | 739 | 37 | 378 | 210 | 28 | 123 |
-| Marriott | yes | 4 | 34 | 606 | 20 | 343 | 114 | 60 | 89 |
-| Hyatt | yes | 6 | 54 | 498 | 36 | 194 | 217 | 55 | 32 |
-| Westin | yes | 8 | 54 | 309 | 19 | 14 | 169 | 81 | 45 |
-| Courtland Grand | yes | 1 | 2 | 151 | 9 | 0 | 0 | 151 | 0 |
-| Streaming | no | - | - | 62 | 4 | 0 | 0 | 0 | 62 |
-| Hardy Ivy Park | yes | 0 | 0 | 36 | 2 | 0 | 0 | 0 | 36 |
-| Other | no | - | - | 25 | 10 | 0 | 0 | 1 | 24 |
+| hotel | in the venues file | levels | rooms | events | strings | exact | alias | combined | shape | none |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| AmericasMart | yes | 6 | 6 | 1,033 | 43 | 0 | 0 | 18 | 0 | 1,015 |
+| Hilton | yes | 6 | 69 | 739 | 37 | 378 | 0 | 210 | 28 | 123 |
+| Marriott | yes | 4 | 34 | 606 | 20 | 343 | 0 | 114 | 60 | 89 |
+| Hyatt | yes | 6 | 54 | 498 | 36 | 194 | 0 | 217 | 55 | 32 |
+| Westin | yes | 8 | 54 | 309 | 19 | 14 | 0 | 169 | 81 | 45 |
+| Courtland Grand | yes | 1 | 2 | 151 | 9 | 0 | 0 | 0 | 151 | 0 |
+| Streaming | yes | 0 | 0 | 62 | 4 | 0 | 0 | 0 | 0 | 62 |
+| Hardy Ivy Park | yes | 0 | 0 | 36 | 2 | 0 | 0 | 0 | 0 | 36 |
+| Other | yes | 0 | 0 | 25 | 10 | 0 | 0 | 0 | 1 | 24 |
 
-- Registry hotels with no events: none. `Unknown`, the scraper's hotel for an empty location: 0 events.
+- Hotels of the venues file with no events: Unknown. `Unknown`, the scraper's hotel for an empty location: 0 events.
 
 ## 2. The readings
 
-Every reading is UNSURE. A string takes each rewrite that fits it - the Courtland prefix, a doubled string, a hotel prefix, a leading "The", in that order - and then one reading: an exact match, a combined-string rule, partitions, the hotel alone, a floor alone, or a room and a trailing note. Last, a room the registry lacks is tried with its number written the other way (numeral style). A string counts under each rule it takes; the example is the rule's most frequent string.
+Every reading is UNSURE. A string takes each rewrite that fits it - the Courtland prefix, a doubled string, a hotel prefix, a leading "The", in that order - and then one reading: an exact match, a combined-string rule, partitions, the hotel alone, a floor alone, or a room and a trailing note. Last, a room the venues file lacks is tried with its number written the other way (numeral style). A string counts under each rule it takes; the example is the rule's most frequent string. An alias is read before all of these, and is no proposal.
 
 | rule | kind | example | strings | events |
 | --- | --- | --- | ---: | ---: |
@@ -59,13 +59,11 @@ Every reading is UNSURE. A string takes each rewrite that fits it - the Courtlan
 
 ## 3. Room strings, hotel by hotel
 
-`exact` is the level of an exact registry match. `reading` is a proposal, UNSURE: the rules a string took and the rooms it names. `in the registry` counts those rooms in the registry, and where they are; for a string with no reading, whether a registry entry that holds a note names it.
+`exact` is the level of an exact match to a room of the venues file. `reading` is a proposal, UNSURE - but an alias's, which the file confirms: the rules a string took and the rooms it names. `in the venues file` counts those rooms in the file, and where they are; for a string with no reading, whether a note on one of the hotel's levels names it.
 
 ### AmericasMart - 1,033 events, 43 strings
 
-In the registry with no rooms: its one level lists none.
-
-| string | events | exact | reading (UNSURE) | in the registry |
+| string | events | exact | reading | in the venues file |
 | --- | ---: | --- | --- | --- |
 | `Mart Building 3, Floor 2` | 463 | - | - | - |
 | `Mart Building 3, Floor 1` | 382 | - | - | - |
@@ -113,7 +111,7 @@ In the registry with no rooms: its one level lists none.
 
 ### Hilton - 739 events, 37 strings
 
-| string | events | exact | reading (UNSURE) | in the registry |
+| string | events | exact | reading | in the venues file |
 | --- | ---: | --- | --- | --- |
 | `202` | 45 | Level 2 (`l2`) | - | - |
 | `Steps B` | 44 | unplaced | - | - |
@@ -155,7 +153,7 @@ In the registry with no rooms: its one level lists none.
 
 ### Marriott - 606 events, 20 strings
 
-| string | events | exact | reading (UNSURE) | in the registry |
+| string | events | exact | reading | in the venues file |
 | --- | ---: | --- | --- | --- |
 | `International Hall South` | 318 | International Level (`international`) | - | - |
 | `L401-L403` | 35 | - | numeric run → `L401`, `L402`, `L403` | 3 of 3: Lobby Level (`lobby`) |
@@ -180,7 +178,7 @@ In the registry with no rooms: its one level lists none.
 
 ### Hyatt - 498 events, 36 strings
 
-| string | events | exact | reading (UNSURE) | in the registry |
+| string | events | exact | reading | in the venues file |
 | --- | ---: | --- | --- | --- |
 | `Hanover AB` | 31 | - | letters together → `Hanover A`, `Hanover B` | 2 of 2: Exhibit Level (LL2) (`exhibit`) |
 | `Concourse` | 30 | - | - | - |
@@ -221,7 +219,7 @@ In the registry with no rooms: its one level lists none.
 
 ### Westin - 309 events, 19 strings
 
-| string | events | exact | reading (UNSURE) | in the registry |
+| string | events | exact | reading | in the venues file |
 | --- | ---: | --- | --- | --- |
 | `Chastain 1-2` | 32 | - | number run → `Chastain 1`, `Chastain 2` | 2 of 2: Chastain (level unknown) (`chastain`) |
 | `Augusta E-H` | 28 | - | letter run → `Augusta E`, `Augusta F`, `Augusta G`, `Augusta H` | 0 of 4 |
@@ -245,7 +243,7 @@ In the registry with no rooms: its one level lists none.
 
 ### Courtland Grand - 151 events, 9 strings
 
-| string | events | exact | reading (UNSURE) | in the registry |
+| string | events | exact | reading | in the venues file |
 | --- | ---: | --- | --- | --- |
 | `Grand Athens` | 35 | - | Courtland prefix → `Athens` | 1 of 1: levels unknown (`unknown`) |
 | `Grand Macon` | 30 | - | Courtland prefix → `Macon` | 0 of 1 |
@@ -259,9 +257,9 @@ In the registry with no rooms: its one level lists none.
 
 ### Streaming - 62 events, 4 strings
 
-Not in the registry.
+In the venues file with no rooms: it has no levels.
 
-| string | events | exact | reading (UNSURE) | in the registry |
+| string | events | exact | reading | in the venues file |
 | --- | ---: | --- | --- | --- |
 | `STRM_TWITCH https://www.twitch.tv/dcdigitalmedia` | 29 | - | - | - |
 | `STRM_TWITCH https://www.twitch.tv/dcdigitalmedia2` | 25 | - | - | - |
@@ -270,18 +268,18 @@ Not in the registry.
 
 ### Hardy Ivy Park - 36 events, 2 strings
 
-In the registry with no rooms: it has no levels.
+In the venues file with no rooms: it has no levels.
 
-| string | events | exact | reading (UNSURE) | in the registry |
+| string | events | exact | reading | in the venues file |
 | --- | ---: | --- | --- | --- |
 | `Ivy Structure` | 35 | - | - | - |
 | `- Terraces` | 1 | - | - | - |
 
 ### Other - 25 events, 10 strings
 
-Not in the registry.
+In the venues file with no rooms: it has no levels.
 
-| string | events | exact | reading (UNSURE) | in the registry |
+| string | events | exact | reading | in the venues file |
 | --- | ---: | --- | --- | --- |
 | `Joystick Gamebar` | 10 | - | - | - |
 | `Walton Spring Park` | 3 | - | - | - |
@@ -296,9 +294,9 @@ Not in the registry.
 
 ## 4. Strings no rule reaches
 
-78 strings, 1,426 events: no exact match, and no reading in section 2.
+78 strings, 1,426 events: no exact match, no alias, and no reading in section 2.
 
-| hotel | string | events | a registry note names it |
+| hotel | string | events | a note names it |
 | --- | --- | ---: | --- |
 | AmericasMart | `Mart Building 3, Floor 2` | 463 | - |
 | AmericasMart | `Mart Building 3, Floor 1` | 382 | - |
@@ -379,27 +377,28 @@ Not in the registry.
 | Other | `Other Marriott, Imperial Ballroom` | 1 | - |
 | Streaming | `STRM_FBL` | 1 | - |
 
-## 5. Registry rooms not seen
+## 5. Rooms of the venues file not seen
 
-Per level, the rooms no string matches exactly: those a proposal names (UNSURE), and those nothing names. The registry's entries that hold a note are listed after; no string matches them.
+Per level, the rooms no string matches exactly or through an alias: those a proposal names (UNSURE), and those nothing names. The notes on the levels are listed after.
 
-| hotel | level | rooms | matched exactly | named only by a proposal (UNSURE) | named by nothing |
+| hotel | level | rooms | matched exactly or by an alias | named only by a proposal (UNSURE) | named by nothing |
 | --- | --- | ---: | ---: | --- | --- |
+| Marriott | International Level (`international`) | 15 | 1 | - | `International 1`, `International 2`, `International 3`, `International 4`, `International 5`, `International 6`, `International 7`, `International 8`, `International 9`, `International 10`, `International A`, `International B`, `International C`, `International Hall North` |
+| Marriott | Marquis Level (`marquis`) | 9 | 1 | `Marquis Ballroom A`, `Marquis Ballroom B`, `Marquis Ballroom C`, `Marquis Ballroom D`, `Imperial Ballroom A`, `Imperial Ballroom B`, `M302`, `M303` | - |
+| Marriott | Lobby Level (`lobby`) | 6 | 0 | `L401`, `L402`, `L403` | `L404`, `L405`, `L406` |
+| Marriott | Atrium Level (`atrium`) | 4 | 0 | `Atrium Ballroom A`, `Atrium Ballroom B`, `Atrium Ballroom C`, `Atrium Ballroom D` | - |
 | Hyatt | Atlanta Conference Center (LL3) (`acc`) | 20 | 7 | `Piedmont` | `Auburn`, `Baker`, `Courtland`, `Dunwoody`, `Edgewood`, `Fairlie`, `Greenbriar`, `Harris`, `Heritage Boardroom`, `Lenox`, `University`, `Williams` |
 | Hyatt | Exhibit Level (LL2) (`exhibit`) | 16 | 2 | `Hanover A`, `Hanover B`, `Hanover C`, `Hanover D`, `Hanover E`, `Hanover F`, `Hanover G` | `Grand Hall A`, `Grand Hall B`, `Chicago A`, `Chicago B`, `Chicago C`, `Chicago D`, `Chicago E` |
 | Hyatt | Ballroom Level (LL1) (`ballroom`) | 8 | 2 | `Centennial II`, `Centennial III`, `Centennial IV`, `Regency VI`, `Regency VII`, `Learning Center` | - |
 | Hyatt | International Tower · LL2 (`tower-ll2`) | 8 | 1 | `Embassy A`, `Embassy B`, `Embassy C`, `Embassy D`, `Embassy E`, `Embassy F` | `Embassy H` |
 | Hyatt | International Tower · LL1 (`tower-ll1`) | 2 | 2 | - | - |
-| Marriott | International Level (`international`) | 15 | 1 | - | `International 1`, `International 2`, `International 3`, `International 4`, `International 5`, `International 6`, `International 7`, `International 8`, `International 9`, `International 10`, `International A`, `International B`, `International C`, `International Hall North` |
-| Marriott | Marquis Level (`marquis`) | 9 | 1 | `Marquis Ballroom A`, `Marquis Ballroom B`, `Marquis Ballroom C`, `Marquis Ballroom D`, `Imperial Ballroom A`, `Imperial Ballroom B`, `M302`, `M303` | - |
-| Marriott | Lobby Level (`lobby`) | 6 | 0 | `L401`, `L402`, `L403` | `L404`, `L405`, `L406` |
-| Marriott | Atrium Level (`atrium`) | 4 | 0 | `Atrium Ballroom A`, `Atrium Ballroom B`, `Atrium Ballroom C`, `Atrium Ballroom D` | - |
 | Hilton | Galleria (`galleria`) | 8 | 6 | `Galleria 2`, `Galleria 3` | - |
 | Hilton | Level 1 (`l1`) | 6 | 0 | - | `Crystal A`, `Crystal B`, `Crystal C`, `Crystal D`, `Crystal E`, `Crystal F` |
 | Hilton | Level 2 (`l2`) | 32 | 4 | `204`, `205`, `206`, `207`, `209`, `210`, `211`, `212`, `213`, `214`, `Salon East`, `Salon West` | `201`, `208`, `215`, `216`, `217`, `218`, `219`, `220`, `221`, `222`, `223`, `224`, `Grand Ballroom A`, `Grand Ballroom B`, `Grand Ballroom C`, `Grand Ballroom D` |
 | Hilton | Level 3 (`l3`) | 15 | 6 | `302`, `303`, `304`, `309`, `310`, `311`, `312`, `313`, `314` | - |
 | Hilton | Level 4 (`l4`) | 7 | 0 | `404`, `405` | `401`, `402`, `403`, `406`, `407` |
 | Hilton | unplaced | 1 | 1 | - | - |
+| Courtland Grand | levels unknown (`unknown`) | 2 | 0 | `Capitol Ballroom`, `Athens` | - |
 | Westin | Chastain (level unknown) (`chastain`) | 2 | 0 | `Chastain 1`, `Chastain 2` | - |
 | Westin | Sixth Floor (`f6`) | 14 | 1 | - | `International`, `International Boardroom`, `American`, `Vinings I`, `Vinings II`, `A`, `B`, `C`, `D`, `E`, `F`, `G`, `H` |
 | Westin | Seventh Floor (`f7`) | 9 | 0 | `Augusta I`, `Augusta II`, `Augusta III` | `Atlanta Ballroom A`, `Atlanta Ballroom B`, `Atlanta Ballroom C`, `Atlanta Ballroom D`, `Atlanta Ballroom E`, `Atlanta Ballroom F` |
@@ -408,16 +407,23 @@ Per level, the rooms no string matches exactly: those a proposal names (UNSURE),
 | Westin | Tenth Floor (`f10`) | 3 | 0 | - | `Plaza Ballroom A`, `Plaza Ballroom B`, `Plaza Ballroom C` |
 | Westin | Twelfth Floor (`f12`) | 8 | 0 | - | `1201`, `1202`, `1203`, `1204`, `1205`, `1206`, `1207`, `1208` |
 | Westin | Fourteenth Floor (`f14`) | 8 | 0 | - | `1401`, `1402`, `1403`, `1404`, `1405`, `1406`, `1407`, `1408` |
-| Courtland Grand | levels unknown (`unknown`) | 2 | 0 | `Capitol Ballroom`, `Athens` | - |
+| AmericasMart | Building 2, meeting rooms (`b2-rooms`) | 6 | 0 | - | `203A`, `203B`, `203C`, `203D`, `203E`, `204J` |
 
-Entries that hold a note:
+Notes on the levels:
 
+- Marriott, Marquis Level (`marquis`): `room codes carry the level: M = Marquis`
 - Marriott, Marquis Level (`marquis`): `M101-M109 (confirm the run)`
 - Marriott, Marquis Level (`marquis`): `M2xx (confirm)`
 - Marriott, Marquis Level (`marquis`): `M304 (confirm the run)`
+- Marriott, Lobby Level (`lobby`): `L = Lobby`
+- Marriott, Atrium Level (`atrium`): `A = Atrium`
 - Marriott, Atrium Level (`atrium`): `A601-A602 … A707 (confirm the runs)`
-- Westin, Chastain (level unknown) (`chastain`): `Chastain A … J (confirm)`
+- Hyatt, Lobby Level (`lobby`): `registration and the atrium; no programming rooms known`
+- Hyatt, International Tower · LL2 (`tower-ll2`): `two levels below the lobby, in the International Tower; reached from the ACC`
+- Hilton, Galleria (`galleria`): `directly under the lobby; Galleria 1-8 are the hotel's own partitions`
+- Hilton, Lobby (`lobby`): `escalators up to Level 2`
 - Courtland Grand, levels unknown (`unknown`): `(55 meeting rooms in two towers; list unknown)`
+- Westin, Chastain (level unknown) (`chastain`): `Chastain A … J (confirm)`
 
 ## 6. `split_hotel`: the Courtland prefix and hyphenated locations
 
@@ -447,139 +453,109 @@ Hyphenated locations: 5 events at a hotel `split_hotel` recognised have a locati
 
 The 2027 fix, proposed and applied to nothing: match the venue's name as the source writes it, longest first, and cut all of it - "Courtland Grand" before "Courtland" - splitting at a hyphen as well as at a space or a comma. "Courtland Grand Athens" would give ("Courtland Grand", "Athens"), "Hilton-Salon" ("Hilton", "Salon") and "Hyatt-Grand Hall D" ("Hyatt", "Grand Hall D"). The frozen file keeps the rooms it has (DECISIONS #13).
 
-## 7. `seen_2026`, level by level
+## 7. Strings that reach each level
 
-What each level's `seen_2026` would become if it held the strings that reach the level: by an exact match, and by a proposal (UNSURE), with today's list beside them. A string whose rooms land on two levels is listed under both. Nothing here is written to the registry.
-
-### Hyatt - Atlanta Conference Center (LL3) (`acc`)
-
-- Today: `Kennesaw`.
-- By an exact match: `Inman` (25), `Spring` (17), `Marietta` (15), `Roswell` (10), `Techwood` (10), `Kennesaw` (9), `Vinings` (4).
-- By a proposal, UNSURE: `H-Piedmont` (28).
-
-### Hyatt - Exhibit Level (LL2) (`exhibit`)
-
-- Today: none.
-- By an exact match: `Grand Hall C` (15), `Grand Hall D` (11).
-- By a proposal, UNSURE: `Hanover AB` (31), `Hanover FG` (30), `Hanover C-E` (14), `Hanover C-E Hanover C-E` (2), `Grand Hall C Black Phoenix Alchemy - Vendors - Booth 1419` (1), `Grand Hall D Poole Booth 111 for more info!!` (1), `Grand Hall D Poole booth 111 for more information` (1), `Grand Hall D Sponsored By Copic` (1).
-
-### Hyatt - Ballroom Level (LL1) (`ballroom`)
-
-- Today: `Regency V`, `Regency VI-VII`, `Centennial II-IV`.
-- By an exact match: `Centennial I` (20), `Regency V` (13).
-- By a proposal, UNSURE: `Centennial II-IV` (29), `Regency VI-VII` (26), `The Learning Center` (17), `Centennial I-IV` (2), `Centennial II-IV Table outside the room` (1).
-
-### Hyatt - International Tower · LL2 (`tower-ll2`)
-
-- Today: `Embassy AB`.
-- By an exact match: `Embassy G` (13).
-- By a proposal, UNSURE: `Embassy EF` (30), `Embassy CD` (26), `Embassy AB` (24).
-
-### Hyatt - International Tower · LL1 (`tower-ll1`)
-
-- Today: none.
-- By an exact match: `International North` (17), `International South` (15).
-- By a proposal, UNSURE: `International North-South` (5).
+Each level with the strings that reach it: by an exact match, through an alias, and by a proposal (UNSURE). A string whose rooms land on two levels is listed under both. Nothing here is written to the venues file.
 
 ### Marriott - International Level (`international`)
 
-- Today: none.
 - By an exact match: `International Hall South` (318).
 - By a proposal, UNSURE: none.
 
 ### Marriott - Marquis Level (`marquis`)
 
-- Today: `M103-M105`, `M301`, `M302-M303`, `M303-M304`.
 - By an exact match: `M301` (25).
 - By a proposal, UNSURE: `M302-M303` (29), `Imperial Ballroom` (22), `Marquis` (1).
-- Today's, reached by nothing here: `M103-M105`, `M303-M304` (not in the file).
 
 ### Marriott - Lobby Level (`lobby`)
 
-- Today: none.
 - By an exact match: none.
 - By a proposal, UNSURE: `L401-L403` (35).
 
 ### Marriott - Atrium Level (`atrium`)
 
-- Today: `Atrium Ballroom`, `A601-A602`, `A703`, `A707`.
 - By an exact match: none.
 - By a proposal, UNSURE: `Atrium Ballroom` (32).
-- Today's, reached by nothing here: `A601-A602`, `A703`, `A707`.
+
+### Hyatt - Atlanta Conference Center (LL3) (`acc`)
+
+- By an exact match: `Inman` (25), `Spring` (17), `Marietta` (15), `Roswell` (10), `Techwood` (10), `Kennesaw` (9), `Vinings` (4).
+- By a proposal, UNSURE: `H-Piedmont` (28).
+
+### Hyatt - Exhibit Level (LL2) (`exhibit`)
+
+- By an exact match: `Grand Hall C` (15), `Grand Hall D` (11).
+- By a proposal, UNSURE: `Hanover AB` (31), `Hanover FG` (30), `Hanover C-E` (14), `Hanover C-E Hanover C-E` (2), `Grand Hall C Black Phoenix Alchemy - Vendors - Booth 1419` (1), `Grand Hall D Poole Booth 111 for more info!!` (1), `Grand Hall D Poole booth 111 for more information` (1), `Grand Hall D Sponsored By Copic` (1).
+
+### Hyatt - Ballroom Level (LL1) (`ballroom`)
+
+- By an exact match: `Centennial I` (20), `Regency V` (13).
+- By a proposal, UNSURE: `Centennial II-IV` (29), `Regency VI-VII` (26), `The Learning Center` (17), `Centennial I-IV` (2), `Centennial II-IV Table outside the room` (1).
+
+### Hyatt - International Tower · LL2 (`tower-ll2`)
+
+- By an exact match: `Embassy G` (13).
+- By a proposal, UNSURE: `Embassy EF` (30), `Embassy CD` (26), `Embassy AB` (24).
+
+### Hyatt - International Tower · LL1 (`tower-ll1`)
+
+- By an exact match: `International North` (17), `International South` (15).
+- By a proposal, UNSURE: `International North-South` (5).
 
 ### Hilton - Galleria (`galleria`)
 
-- Today: `Galleria 1`, `Galleria 5`, `Galleria 6`, `Galleria 8`.
 - By an exact match: `Galleria 5` (41), `Galleria 6` (36), `Galleria 7` (30), `Galleria 1` (27), `Galleria 4` (26), `Galleria 8` (18).
 - By a proposal, UNSURE: `Galleria 2-3` (33), `Galleria 2-3 Hallway Just outside Galleria 2-3` (1).
 
-### Hilton - Level 1 (`l1`)
-
-- Today: `Crystal Ballroom`.
-- By an exact match: none.
-- By a proposal, UNSURE: none.
-- Today's, reached by nothing here: `Crystal Ballroom`.
-
 ### Hilton - Level 2 (`l2`)
 
-- Today: `202`, `203`, `209-211`, `212-214`, `Salon`, `Grand East`.
 - By an exact match: `202` (45), `203` (43), `Grand East` (21), `Grand West` (19).
 - By a proposal, UNSURE: `212-214` (35), `209-211` (31), `204-207` (26), `Salon` (19), `Hilton-Salon` (2), `212-214 Hilton, 3rd floor outdoor deck` (1).
 
 ### Hilton - Level 3 (`l3`)
 
-- Today: `313-314`.
 - By an exact match: `301` (7), `307` (7), `306` (6), `305` (3), `308` (3), `315` (2).
 - By a proposal, UNSURE: `313-314` (32), `302-304` (28), `309-312` (21).
 
 ### Hilton - Level 4 (`l4`)
 
-- Today: none.
 - By an exact match: none.
 - By a proposal, UNSURE: `404-405` (4).
 
+### Courtland Grand - levels unknown (`unknown`)
+
+- By an exact match: none.
+- By a proposal, UNSURE: `Grand Athens` (35), `Grand Capitol Ballroom` (17).
+
 ### Westin - Chastain (level unknown) (`chastain`)
 
-- Today: none.
 - By an exact match: none.
 - By a proposal, UNSURE: `Chastain 1-2` (32).
 
 ### Westin - Sixth Floor (`f6`)
 
-- Today: none.
 - By an exact match: `Overlook` (14).
 - By a proposal, UNSURE: none.
 
 ### Westin - Seventh Floor (`f7`)
 
-- Today: none.
 - By an exact match: none.
 - By a proposal, UNSURE: `Augusta 1-2` (20), `Augusta 3` (16).
 
 ### Westin - Eighth Floor (`f8`)
 
-- Today: none.
 - By an exact match: none.
 - By a proposal, UNSURE: `Peachtree Ballroom` (24).
 
 ### Westin - Twelfth Floor (`f12`)
 
-- Today: none.
 - By an exact match: none.
 - By a proposal, UNSURE: `12th Floor` (8).
 
 ### Westin - Fourteenth Floor (`f14`)
 
-- Today: none.
 - By an exact match: none.
 - By a proposal, UNSURE: `14th Floor` (12).
-
-### Courtland Grand - levels unknown (`unknown`)
-
-- Today: `Grand Athens`, `Grand Capitol Ballroom`, `Grand Atlanta 3-4`.
-- By an exact match: none.
-- By a proposal, UNSURE: `Grand Athens` (35), `Grand Capitol Ballroom` (17).
-- Today's, reached by nothing here: `Grand Atlanta 3-4`.
 
 ## 8. Strings the dedupe reads as one room
 

@@ -84,11 +84,18 @@ source id, in string order, which is the fix the history report proposes
 - The event is removed only if every row in it is removed.
 - The supplying row is the smallest not removed, or the smallest of all
   when every row is removed. It supplies every scalar field, `source_id`
-  and `stale` among them, but one: `type` is `panel` if any row's is, as
-  2026's `merge_group` had it.
-- `tracks` and `speakers` are the unions, taken in that order, so a group
-  gives the same lists on every run.
-- `description` is the longest, a tie going to the first in that order.
+  and `stale` among them, but one: `type` is `panel` if any row not
+  removed is `panel`, reading every row only when every row is removed,
+  as 2026's `merge_group` put panel over gaming.
+- `source_id` is the supplying row's, so it moves with that row: when the
+  supplying row is removed and another is not, the event's `source_id`
+  becomes the next row's. #43's match is not the only change to a
+  `source_id`.
+- `tracks` and `speakers` are the unions of the rows not removed - of
+  every row only when every row is removed - taken in that order, so a
+  group gives the same lists on every run.
+- `description` is the longest of those same rows, a tie going to the
+  first in that order.
 
 So the James Callis sessions, whose vanished source ids sort before the
 ones they came back under (history section 5), read live, from their new
@@ -192,31 +199,50 @@ kind of change it now calls `code`.
 
 ## `season.json`
 
-By hand, one a year (#44, #46):
+By hand, one a year (#44, #46). Every key is written, in this order, and
+`season.py` refuses a file with a key missing or a key it does not know:
 
-- the year;
-- the source: its slug (2026: `dragoncon26`) and its base URL;
-- the source's day strings (2026: `Sep  2` to `Sep  7`, two spaces before
-  a one-digit day);
-- the con's first and last day, and the time zone;
-- the cron window, outside which the workflow's guard exits 0 (#48);
-- `PROMPT_VERSION` (2026: 1), which a season never bumps, and `frozen`
-  (#46);
-- the thresholds: the listings floor, 80% of the previous `source.json`'s,
-  its removed rows aside (#44); the ceiling on failed detail fetches, 20%
-  (#44); the ceiling on new ids in a run after the first, 20% (#43);
-- the request cap, 40 requests a run by default (#46).
+- `year`;
+- the source: `slug` (2026: `dragoncon26`) and `source`, its base URL;
+- `days`, the source's day strings (2026: `Sep  2` to `Sep  7`, two
+  spaces before a one-digit day);
+- `con`, `{first, last}`: the con's first and last day, as the client's
+  `CON` has them (2026: `2026-09-02` to `2026-09-07`); and `tz`, the time
+  zone, a string;
+- `window`, `{from, to}`: the cron window, outside which the workflow's
+  guard exits 0 (#48); `null` in a frozen year;
+- `frozen` (#46), which nothing reads yet; and `prompt_version`,
+  `PROMPT_VERSION` (2026: 1), which a season never bumps (#46);
+- `thresholds`: `listings_floor`, the listings floor, 80% of the previous
+  `source.json`'s, its removed rows aside (#44); `detail_failures`, the
+  ceiling on failed detail fetches, 20% (#44); `new_ids`, the ceiling on
+  new ids in a run after the first, 20% (#43); and `requests_per_run`, the
+  request cap, 40 requests a run by default (#46).
+
+Dates are ISO, and a span's first day is not after its last. The three
+fractions are in (0, 1], and the cap is a positive whole number.
 
 ## `venues.json`
 
 By hand, one a year, runtime data only (#45). The resolver's rules - the
-split, the grammar, the Mart - are #45's.
+split, the grammar, the Mart - are #45's. Every field is written, and
+`venues.py` refuses one it does not know. At the top, in this order:
+`walk`, `same_venue_min`, `unknown_pair_min`, `slack_min` and `hotels`, in
+their `order`; a hotel's fields and a level's, in the order below.
 
-- **A hotel:** its keys (the prefixes the source writes, matched longest
-  first), `short`, `group`, `order`, `placeless` (Streaming and Other),
-  and its levels.
-- **A level:** an id unique within its hotel, its rooms, its aliases and
-  its notes.
+- **A hotel:** `hotel`, the value the schedule's hotel field holds;
+  `name`; its `keys`, below; `short`, `group`, `var` and `order`, as the
+  client's `src/venues.js` has them until PR 9; `placeless` (Streaming,
+  Other and Unknown); `display`, whether the room shown is the rest of
+  the location or the whole of it (`location` for AmericasMart, else
+  `rest`); its `levels`; and `unplaced`, each room with no known level
+  and its note.
+- **Keys:** the prefixes the source writes, matched longest first.
+  Hardy Ivy Park's one key is `Hardy`: the source writes
+  `Hardy - Terraces`, so its venue token is `Hardy`, and the rest is the
+  room - in `Hardy Ivy Structure`, the room is `Ivy Structure`.
+- **A level:** `id`, unique within its hotel; `name`; `order`; and its
+  `rooms`, `aliases` and `notes`.
 - **A room:** its id is its string as `venues.json` writes it, unique
   within the hotel.
 - **An alias:** an exact string, case-folded and whitespace-collapsed, to
@@ -230,6 +256,11 @@ Validation, fatal: hotel keys unique across hotels; level ids and room ids
 unique within a hotel; every alias naming rooms on its level; every walk
 pair among hotels that are not placeless present, or the default used and
 listed; the slack present. CI loads the committed file and validates it.
+`venues.py` also refuses, as fatal: a hotel key that is not whole tokens
+(single spaces, no comma, no hyphen); an alias not written folded; an
+`order` taken twice among the hotels or among a hotel's levels; a walk
+pair that is not two hotels of the file; and minutes that are not whole
+numbers.
 
 The drawings are not in it: they live under `data/2027/drawings/`, one file
 per hotel level (#45).
@@ -310,5 +341,5 @@ What CI cannot check:
 - The key order in each file; whether a key that holds nothing - `false`,
   an empty list - is written; and the names the entries do not give: the
   top level of `source.json`, the SHA's key in a change line, the entries
-  of `left`, the fields of `season.json` and `last-run.json`'s counters.
-  Each is the writing PR's.
+  of `left` and `last-run.json`'s counters. Each is the writing PR's; PR 2
+  settled them for `season.json` and `venues.json`, above.

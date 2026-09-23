@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-"""The 2026 schedule's rooms against the venues registry: docs/venues/census-2026.md.
+"""The 2026 schedule's rooms against the venues file: docs/venues/census-2026.md.
 
     python tools/room_census.py            # write docs/venues/census-2026.md
-    python tools/room_census.py --events F --registry R --out O
+    python tools/room_census.py --events F --venues V --out O
 
-Evidence for the venue-resolution stage of Pipeline shape (ROADMAP tentpole 1; DECISIONS #21, #27, #28, #37):
-every room string the frozen schedule holds, hotel by hotel, and what docs/venues/registry.json makes of it. A
-string matches a registry room exactly, case-folded, or it does not. For the rest the census proposes readings -
-the combined strings ("Regency VI-VII", "209-211") and every other shape the resolver will meet - each UNSURE,
-counted apart, and applied to nothing. It reads the frozen schedule and the registry and writes neither
-(DECISIONS #13; the registry is hand-edited).
+The off-season coverage report for venue resolution (DECISIONS #45; ROADMAP tentpole 1): every room string the frozen
+schedule holds, hotel by hotel, and what data/2026/venues.json makes of it. A string matches a room of the venues file
+exactly, case-folded, or an alias of the file names it - a confirmed mapping - or neither. For the rest the census
+proposes readings - the combined strings ("Regency VI-VII", "209-211") and every other shape the resolver will meet -
+each UNSURE, counted apart, and applied to nothing. The hotel split is still scraper.split_hotel's, until PR 5 builds
+the venues step. It reads the frozen schedule and the venues file and writes neither (DECISIONS #13; the venues file is
+hand-edited).
 
-A record, not held fresh by CI: its preface names the registry version it read, and a registry edit leaves it
-stale until the script runs again. `scraper` for `split_hotel` and `norm_text`, and the standard library;
-deterministic - two runs write the same bytes.
+A record, not held fresh by CI: its preface names the venues file it read, and an edit to that file leaves it stale
+until the script runs again. `scraper` for `split_hotel` and `norm_text`, `venues` for the loader, and the standard
+library; deterministic - two runs write the same bytes.
 """
 
 import argparse
@@ -26,13 +27,13 @@ from collections import Counter, defaultdict
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
 
+import venues as venues_file  # noqa: E402
 from scraper import norm_text, split_hotel  # noqa: E402  (nothing else from the scraper)
 
 EVENTS = "data/2026/events.json"
-REGISTRY = "docs/venues/registry.json"
+VENUES = "data/2026/venues.json"
 OUT = "docs/venues/census-2026.md"
 UNPLACED = "unplaced"
-ELLIPSIS = chr(0x2026)
 SPAN = 20  # the longest run a rule reads: "209-211" is three rooms; "1-40" is not a room string
 ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI",
          "XVII", "XVIII", "XIX", "XX"]
@@ -42,42 +43,49 @@ ORDINALS = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "
 
 
 # ---------------------------------------------------------------------------
-# The registry
+# The venues file
 # ---------------------------------------------------------------------------
 
-def registry_rooms(reg):
+def venue_rooms(hotels):
     """{hotel: {case-folded room: (level id, level name, the room as written)}}. A hotel's unplaced rooms sit on a
     level of their own, "unplaced"."""
     out = {}
-    for h in reg["hotels"]:
+    for h in hotels:
         rooms = out.setdefault(h["hotel"], {})
-        for lv in h.get("levels", []):
-            for r in lv.get("rooms", []):
+        for lv in h["levels"]:
+            for r in lv["rooms"]:
                 rooms.setdefault(r.casefold(), (lv["id"], lv["name"], r))
-        for r in h.get("unplaced", []):
+        for r in sorted(h["unplaced"]):
             rooms.setdefault(r.casefold(), (UNPLACED, UNPLACED, r))
     return out
 
 
-def levels_of(reg):
-    """{hotel: [(level id, level name)]}, in the registry's order."""
-    return {h["hotel"]: [(lv["id"], lv["name"]) for lv in h.get("levels", [])] for h in reg["hotels"]}
+def levels_of(hotels):
+    """{hotel: [(level id, level name)]}, in the file's order."""
+    return {h["hotel"]: [(lv["id"], lv["name"]) for lv in h["levels"]] for h in hotels}
 
 
-def is_note(room):
-    """A registry room entry that holds a note rather than one room: a parenthesis or an ellipsis."""
-    return "(" in room or ELLIPSIS in room
+def notes_of(hotels):
+    """{hotel: [(level id, level name, note)]}: every note on the hotel's levels, in the file's order."""
+    return {h["hotel"]: [(lv["id"], lv["name"], note) for lv in h["levels"] for note in lv["notes"]] for h in hotels}
 
 
-def note_naming(part, rooms):
-    """The registry entry holding a note that names this room as a whole word, if one does."""
+def aliases_of(hotels):
+    """{hotel: {alias: (level id, level name, [room ids])}}. An alias is written folded (venues.py)."""
+    return {h["hotel"]: {a: (lv["id"], lv["name"], list(rooms)) for lv in h["levels"]
+                         for a, rooms in sorted(lv["aliases"].items())} for h in hotels}
+
+
+def note_naming(part, notes):
+    """The note on one of the hotel's levels that names this room as a whole word, if one does."""
     rx = re.compile(r"(?<!\w)" + re.escape(part) + r"(?!\w)", re.I)
-    return next((e[2] for _, e in sorted(rooms.items()) if is_note(e[2]) and rx.search(e[2])), None)
+    return next((note for note in sorted(n[2] for n in notes) if rx.search(note)), None)
 
 
 # ---------------------------------------------------------------------------
 # Readings. A combined-string rule turns one string into its rooms; the other shapes rewrite a string, or read it
-# as something that is not one room. Every reading is UNSURE, and none is applied to anything.
+# as something that is not one room. Every reading is UNSURE, and none is applied to anything - but an alias's, which
+# the venues file confirms.
 # ---------------------------------------------------------------------------
 
 def _ascending(letters):
@@ -192,15 +200,15 @@ REWRITES = [("Courtland prefix", courtland_prefix), ("doubled", doubled), ("hote
 
 
 def partitions(s, rooms):
-    """A bare name that begins two or more registry rooms, as whole words: "Atrium Ballroom" is Atrium Ballroom A,
-    B, C and D."""
+    """A bare name that begins two or more rooms of the venues file, as whole words: "Atrium Ballroom" is Atrium
+    Ballroom A, B, C and D."""
     key = s.casefold() + " "
-    hits = [entry[2] for folded, entry in sorted(rooms.items()) if folded.startswith(key) and not is_note(entry[2])]
+    hits = [entry[2] for folded, entry in sorted(rooms.items()) if folded.startswith(key)]
     return hits if len(hits) >= 2 else None
 
 
 def floor_only(s, levels):
-    """"14th Floor", "5th": a floor and no room. (floor number, the registry level named for it or None)."""
+    """"14th Floor", "5th": a floor and no room. (floor number, the level named for it or None)."""
     m = re.fullmatch(r"(\d{1,2})(?:st|nd|rd|th)(?:\s+floor)?", s, re.I)
     if not m or not 1 <= int(m.group(1)) <= len(ORDINALS):
         return None
@@ -211,7 +219,7 @@ def floor_only(s, levels):
 
 def trailing_note(s, rooms):
     """"Grand Hall D Poole Booth 111 for more info!!": a room - the longest leading run of whole words that is a
-    registry room, or that a combined rule reads - then words about it. (rule names, rooms), or None."""
+    room of the venues file, or that a combined rule reads - then words about it. (rule names, rooms), or None."""
     words = s.split()
     for k in range(len(words) - 1, 0, -1):
         head = " ".join(words[:k]).rstrip(",;:-")
@@ -231,10 +239,15 @@ def numeral_swap(room):
     return f"{m.group(1)} {ROMAN[int(m.group(2)) - 1]}" if m and 1 <= int(m.group(2)) <= len(ROMAN) else None
 
 
-def resolve(s, hotel, rooms, levels):
+def resolve(s, hotel, rooms, levels, aliases=None):
     """How the census reads one room string: {"chain": the rules, in order; "parts": the rooms it names; "floor",
     "level": a floor with no room; "hotel_only": the hotel and no room}. No chain, and the string as its one part,
-    is an exact match or no reading at all."""
+    is an exact match or no reading at all. An alias of the venues file - the string folded, as venues.py writes
+    one - is read before any rule, and its chain is ["alias"]: #45's aliases beat the grammar."""
+    folded = venues_file.folded(s)
+    if s.casefold() not in rooms and folded in (aliases or {}):
+        return {"chain": ["alias"], "parts": list(aliases[folded][2]), "floor": None, "level": None,
+                "hotel_only": False}
     chain, cur = [], s
     for name, rewrite in REWRITES:
         new = rewrite(cur, hotel)
@@ -272,10 +285,12 @@ COMBINED_NAMES = [name for name, _ in COMBINED]
 
 
 def kind(reading, exact):
-    """exact; combined, a combined-string rule alone; shape, one of the other shapes, alone or with a combined
-    rule; or none."""
+    """exact; alias, a confirmed mapping of the venues file; combined, a combined-string rule alone; shape, one of the
+    other shapes, alone or with a combined rule; or none."""
     if exact and not reading["chain"]:
         return "exact"
+    if reading["chain"] == ["alias"]:
+        return "alias"
     if not reading["chain"]:
         return "none"
     return "shape" if any(r in SHAPES for r in reading["chain"]) else "combined"
@@ -285,20 +300,22 @@ def kind(reading, exact):
 # The census
 # ---------------------------------------------------------------------------
 
-def census(data, reg):
+def census(data, v):
     """Every (hotel, room string) in the schedule with its count, its exact match, its reading and the rooms the
     reading names, and how many events split_hotel still splits as stored."""
     events = data["events"]
-    rooms, levels = registry_rooms(reg), levels_of(reg)
+    hotels = v.hotels()
+    rooms, levels, notes, aliases = venue_rooms(hotels), levels_of(hotels), notes_of(hotels), aliases_of(hotels)
     counts = Counter((e.get("hotel") or "", e.get("room") or "") for e in events)
     strings = []
     for (hotel, s), count in sorted(counts.items(), key=lambda kv: (kv[0][0], -kv[1], kv[0][1])):
         hr = rooms.get(hotel, {})
-        reading = resolve(s, hotel, hr, levels.get(hotel, []))
+        reading = resolve(s, hotel, hr, levels.get(hotel, []), aliases.get(hotel, {}))
         strings.append({"hotel": hotel, "string": s, "events": count, "exact": hr.get(s.casefold()),
                         "reading": reading, "hits": [(p, hr.get(p.casefold())) for p in reading["parts"]],
                         "kind": kind(reading, hr.get(s.casefold()))})
-    return {"events": events, "strings": strings, "rooms": rooms, "levels": levels,
+    return {"events": events, "strings": strings, "hotels": hotels, "rooms": rooms, "levels": levels, "notes": notes,
+            "aliases": aliases,
             "split_ok": sum(1 for e in events if split_hotel(e.get("location")) == (e.get("hotel"), e.get("room")))}
 
 
@@ -362,14 +379,14 @@ def reading_text(item):
     return f"{head} → {', '.join(code(p) for p in r['parts'])}"
 
 
-def registry_text(item, rooms, levels):
-    """What the registry holds of a string's reading - or, for a string with none, whether a registry note names
-    it."""
+def venue_text(item, notes, levels):
+    """What the venues file holds of a string's reading - or, for a string with none, whether a note on one of the
+    hotel's levels names it."""
     r = item["reading"]
     if not r["chain"]:
         if item["exact"]:
             return ""
-        note = note_naming(item["string"], rooms)
+        note = note_naming(item["string"], notes)
         return f"named in the note {code(note)}" if note else ""
     if r["hotel_only"]:
         return "the hotel"
@@ -382,7 +399,7 @@ def registry_text(item, rooms, levels):
         text += ": " + ", ".join(level_label(*x) for x in where)
     by_note = defaultdict(list)
     for p, h in item["hits"]:
-        note = None if h else note_naming(p, rooms)
+        note = None if h else note_naming(p, notes)
         if note:
             by_note[note].append(p)
     named = [f"{', '.join(code(p) for p in ps)} {'is' if len(ps) == 1 else 'are'} named in the note {code(x)}"
@@ -390,10 +407,10 @@ def registry_text(item, rooms, levels):
     return text + (f"; {'; '.join(named)}" if named else "")
 
 
-def render(data, reg, events_path=EVENTS, registry_path=REGISTRY):
-    c = census(data, reg)
-    strings, rooms, levels = c["strings"], c["rooms"], c["levels"]
-    in_reg = [h["hotel"] for h in reg["hotels"]]
+def render(data, v, events_path=EVENTS, venues_path=VENUES):
+    c = census(data, v)
+    strings, rooms, levels, notes = c["strings"], c["rooms"], c["levels"], c["notes"]
+    in_file = [h["hotel"] for h in c["hotels"]]
     by_hotel = defaultdict(list)
     for s in strings:
         by_hotel[s["hotel"]].append(s)
@@ -404,46 +421,52 @@ def render(data, reg, events_path=EVENTS, registry_path=REGISTRY):
     for s in strings:
         kinds[s["kind"]] += 1
         kind_events[s["kind"]] += s["events"]
-    reg_rooms = [(h, e) for h, hr in rooms.items() for e in hr.values() if not is_note(e[2])]
-    note_rooms = [(h, e) for h, hr in rooms.items() for e in hr.values() if is_note(e[2])]
+    file_rooms = [(h, e) for h, hr in rooms.items() for e in hr.values()]
+    all_notes = [(h, x) for h, xs in notes.items() for x in xs]
     exact_hit = {(s["hotel"], s["exact"][2]) for s in strings if s["exact"]}
+    alias_hit = {(s["hotel"], h[2]) for s in strings if s["kind"] == "alias" for _, h in s["hits"] if h}
     rule_hit = {(s["hotel"], h[2]) for s in strings if s["kind"] in ("combined", "shape") for _, h in s["hits"] if h}
-    absent = [h for h in hotels if h not in in_reg]
-    empty = [h for h in in_reg if not rooms.get(h)]
+    absent = [h for h in hotels if h not in in_file]
+    empty = [h for h in in_file if not rooms.get(h)]
     courtland = by_hotel.get("Courtland Grand", [])
     prefixed = [s for s in courtland if s["string"].startswith("Grand ")]
 
-    out = ["# Room census - the 2026 schedule against the venues registry", "",
+    out = ["# Room census - the 2026 schedule against the venues file", "",
            f"Written by `tools/room_census.py` from `{events_path}` (`generated_at` {data.get('generated_at')}) and "
-           f"`{registry_path}` (version {reg.get('version')}). Do not edit it by hand; run the script again.", "",
-           "A record, not held fresh by CI: an edit to the registry leaves it stale until the script runs again. It "
-           "states facts and changes nothing. A room string matches a registry room exactly, case-folded, or it "
-           "does not; every other reading here is a proposal, `UNSURE`, and applied to nothing - the registry, its "
-           "`seen_2026` and the scraper are as they were. The combined-string rules and the other shapes are counted "
-           "apart. Lists run by count, descending, then by string; room strings are in code spans, so that their "
-           "spacing and punctuation show.", ""]
+           f"`{venues_path}`. Do not edit it by hand; run the script again.", "",
+           "A record, not held fresh by CI: an edit to the venues file leaves it stale until the script runs again. "
+           "It states facts and changes nothing. A room string matches a room of the venues file exactly, "
+           "case-folded, or an alias of the file names it - a confirmed mapping - or neither; every other reading "
+           "here is a proposal, `UNSURE`, and applied to nothing - the venues file and the scraper are as they were. "
+           "The combined-string rules and the other shapes are counted apart. Lists run by count, descending, then by "
+           "string; room strings are in code spans, so that their spacing and punctuation show.", ""]
 
     head = [f"Events: {n(total)}, at {many(len(hotels), 'hotel value')}; distinct (hotel, room) strings: "
             f"{n(len(strings))}.",
-            f"An exact registry match: {many(kinds['exact'], 'string')}, {n(kind_events['exact'])} events "
-            f"({pct(kind_events['exact'], total)}).",
+            f"An exact match to a room of the venues file: {many(kinds['exact'], 'string')}, "
+            f"{n(kind_events['exact'])} events ({pct(kind_events['exact'], total)}). Through an alias: "
+            f"{many(kinds['alias'], 'string')}, {n(kind_events['alias'])} events "
+            f"({pct(kind_events['alias'], total)}).",
             f"A combined-string rule alone, UNSURE: {many(kinds['combined'], 'string')}, "
             f"{n(kind_events['combined'])} events ({pct(kind_events['combined'], total)}). One of the other shapes, "
             f"UNSURE: {many(kinds['shape'], 'string')}, {n(kind_events['shape'])} events "
             f"({pct(kind_events['shape'], total)}).",
             f"No reading: {many(kinds['none'], 'string')}, {n(kind_events['none'])} events "
             f"({pct(kind_events['none'], total)}).",
-            "Hotels in the file and not in the registry: "
+            "Hotels in the schedule and not in the venues file: "
             + (", ".join(f"{h} ({many(hotel_events[h], 'event')})" for h in absent) or "none")
-            + ". In the registry with no rooms: "
+            + ". In the venues file with no rooms: "
             + (", ".join(f"{h} ({many(hotel_events.get(h, 0), 'event')})" for h in empty) or "none")
-            + f". `Unknown`: {n(hotel_events.get('Unknown', 0))} events.",
+            + "."
+            + ("" if "Unknown" in absent or "Unknown" in empty
+               else f" `Unknown`: {n(hotel_events.get('Unknown', 0))} events."),
             f"The Courtland prefix: {n(sum(s['events'] for s in prefixed))} of "
             f"{n(sum(s['events'] for s in courtland))} Courtland Grand events, {n(len(prefixed))} of "
             f"{n(len(courtland))} strings (section 6).",
-            f"Registry rooms: {n(len(reg_rooms))}, besides {many(len(note_rooms), 'entry', 'entries')} that hold a "
-            f"note. Matched exactly: {n(len(exact_hit))}. Named only by a proposal: {n(len(rule_hit - exact_hit))}. "
-            f"Neither: {n(len(reg_rooms) - len(exact_hit | rule_hit))}.",
+            f"Rooms of the venues file: {n(len(file_rooms))}, and {many(len(all_notes), 'note')} on its levels. "
+            f"Matched exactly: {n(len(exact_hit))}. Through an alias: {n(len(alias_hit - exact_hit))}. Named only by "
+            f"a proposal: {n(len(rule_hit - exact_hit - alias_hit))}. Neither: "
+            f"{n(len(file_rooms) - len(exact_hit | alias_hit | rule_hit))}.",
             f"`split_hotel(location)` gives the stored hotel and room for {n(c['split_ok'])} of {n(total)} events."]
     out += ["## 0. Headline", ""] + [f"{k}. {x}" for k, x in enumerate(head, start=1)] + [""]
 
@@ -453,19 +476,19 @@ def render(data, reg, events_path=EVENTS, registry_path=REGISTRY):
         k = Counter()
         for s in by_hotel[h]:
             k[s["kind"]] += s["events"]
-        rows.append([h, "yes" if h in in_reg else "no", n(len(levels[h])) if h in levels else "",
-                     n(sum(1 for e in rooms[h].values() if not is_note(e[2]))) if h in rooms else "",
-                     n(hotel_events[h]), n(len(by_hotel[h])), n(k["exact"]), n(k["combined"]), n(k["shape"]),
-                     n(k["none"])])
+        rows.append([h, "yes" if h in in_file else "no", n(len(levels[h])) if h in levels else "",
+                     n(len(rooms[h])) if h in rooms else "", n(hotel_events[h]), n(len(by_hotel[h])),
+                     n(k["exact"]), n(k["alias"]), n(k["combined"]), n(k["shape"]), n(k["none"])])
     out += ["## 1. Hotels", "",
-            "Events by how their room string reads: `exact`, an exact registry match; `combined`, a combined-string "
-            "rule alone; `shape`, one of the other shapes, alone or with a combined rule; `none`, no reading. "
-            "`combined` and `shape` are proposals, UNSURE.", ""]
-    out += table(["hotel", "in the registry", "levels", "rooms", "events", "strings", "exact", "combined", "shape",
-                  "none"], rows, "llrrrrrrrr")
-    unused = [h for h in in_reg if h not in hotel_events]
-    out += [f"- Registry hotels with no events: {', '.join(unused) or 'none'}. `Unknown`, the scraper's hotel for "
-            f"an empty location: {n(hotel_events.get('Unknown', 0))} events.", ""]
+            "Events by how their room string reads: `exact`, an exact match to a room of the venues file; `alias`, an "
+            "alias of the file, a confirmed mapping; `combined`, a combined-string rule alone; `shape`, one of the "
+            "other shapes, alone or with a combined rule; `none`, no reading. `combined` and `shape` are proposals, "
+            "UNSURE.", ""]
+    out += table(["hotel", "in the venues file", "levels", "rooms", "events", "strings", "exact", "alias", "combined",
+                  "shape", "none"], rows, "llrrrrrrrrr")
+    unused = [h for h in in_file if h not in hotel_events]
+    out += [f"- Hotels of the venues file with no events: {', '.join(unused) or 'none'}. `Unknown`, the scraper's "
+            f"hotel for an empty location: {n(hotel_events.get('Unknown', 0))} events.", ""]
 
     # 2. The readings
     use = defaultdict(lambda: [0, 0, None])
@@ -483,56 +506,58 @@ def render(data, reg, events_path=EVENTS, registry_path=REGISTRY):
             "Every reading is UNSURE. A string takes each rewrite that fits it - the Courtland prefix, a doubled "
             "string, a hotel prefix, a leading \"The\", in that order - and then one reading: an exact match, a "
             "combined-string rule, partitions, the hotel alone, a floor alone, or a room and a trailing note. Last, "
-            "a room the registry lacks is tried with its number written the other way (numeral style). A string "
-            "counts under each rule it takes; the example is the rule's most frequent string.", ""]
+            "a room the venues file lacks is tried with its number written the other way (numeral style). A string "
+            "counts under each rule it takes; the example is the rule's most frequent string. An alias is read "
+            "before all of these, and is no proposal.", ""]
     out += table(["rule", "kind", "example", "strings", "events"], rows, "lllrr")
 
     # 3. Hotel by hotel
     out += ["## 3. Room strings, hotel by hotel", "",
-            "`exact` is the level of an exact registry match. `reading` is a proposal, UNSURE: the rules a string "
-            "took and the rooms it names. `in the registry` counts those rooms in the registry, and where they are; "
-            "for a string with no reading, whether a registry entry that holds a note names it.", ""]
+            "`exact` is the level of an exact match to a room of the venues file. `reading` is a proposal, UNSURE - "
+            "but an alias's, which the file confirms: the rules a string took and the rooms it names. `in the venues "
+            "file` counts those rooms in the file, and where they are; for a string with no reading, whether a note "
+            "on one of the hotel's levels names it.", ""]
     for h in hotels:
         ss = by_hotel[h]
         out += [f"### {h} - {many(hotel_events[h], 'event')}, {many(len(ss), 'string')}", ""]
-        if h not in in_reg:
-            out += ["Not in the registry.", ""]
+        if h not in in_file:
+            out += ["Not in the venues file.", ""]
         elif not rooms.get(h):
-            out += ["In the registry with no rooms: " + ("its one level lists none." if levels.get(h)
-                                                         else "it has no levels."), ""]
+            out += ["In the venues file with no rooms: " + ("its levels list none." if levels.get(h)
+                                                            else "it has no levels."), ""]
         rows = [[code(s["string"]), n(s["events"]), level_label(s["exact"][0], s["exact"][1]) if s["exact"] else "",
-                 reading_text(s), registry_text(s, rooms.get(h, {}), levels.get(h, []))] for s in ss]
-        out += table(["string", "events", "exact", "reading (UNSURE)", "in the registry"], rows, "lrlll")
+                 reading_text(s), venue_text(s, notes.get(h, []), levels.get(h, []))] for s in ss]
+        out += table(["string", "events", "exact", "reading", "in the venues file"], rows, "lrlll")
 
     # 4. No reading
     none = sorted((s for s in strings if s["kind"] == "none"), key=lambda s: (-s["events"], s["hotel"], s["string"]))
     out += ["## 4. Strings no rule reaches", "",
-            f"{many(len(none), 'string')}, {many(sum(s['events'] for s in none), 'event')}: no exact match, and no "
-            "reading in section 2.", ""]
-    out += table(["hotel", "string", "events", "a registry note names it"],
+            f"{many(len(none), 'string')}, {many(sum(s['events'] for s in none), 'event')}: no exact match, no alias, "
+            "and no reading in section 2.", ""]
+    out += table(["hotel", "string", "events", "a note names it"],
                  [[s["hotel"], code(s["string"]), n(s["events"]),
-                   code(note_naming(s["string"], rooms.get(s["hotel"], {})))
-                   if note_naming(s["string"], rooms.get(s["hotel"], {})) else ""] for s in none], "llrl")
+                   code(note_naming(s["string"], notes.get(s["hotel"], [])))
+                   if note_naming(s["string"], notes.get(s["hotel"], [])) else ""] for s in none], "llrl")
 
-    # 5. Registry rooms not seen
-    out += ["## 5. Registry rooms not seen", "",
-            "Per level, the rooms no string matches exactly: those a proposal names (UNSURE), and those nothing "
-            "names. The registry's entries that hold a note are listed after; no string matches them.", ""]
+    # 5. Rooms not seen
+    out += ["## 5. Rooms of the venues file not seen", "",
+            "Per level, the rooms no string matches exactly or through an alias: those a proposal names (UNSURE), and "
+            "those nothing names. The notes on the levels are listed after.", ""]
     rows = []
-    for hd in reg["hotels"]:
+    for hd in c["hotels"]:
         h = hd["hotel"]
-        for lid, name in levels.get(h, []) + ([(UNPLACED, UNPLACED)] if hd.get("unplaced") else []):
-            entries = [e[2] for e in rooms.get(h, {}).values() if e[0] == lid and not is_note(e[2])]
+        for lid, name in levels.get(h, []) + ([(UNPLACED, UNPLACED)] if hd["unplaced"] else []):
+            entries = [e[2] for e in rooms.get(h, {}).values() if e[0] == lid]
             if not entries:
                 continue
-            unseen = [r for r in entries if (h, r) not in exact_hit]
+            unseen = [r for r in entries if (h, r) not in exact_hit and (h, r) not in alias_hit]
             rows.append([h, level_label(lid, name), n(len(entries)), n(len(entries) - len(unseen)),
                          ", ".join(code(r) for r in unseen if (h, r) in rule_hit),
                          ", ".join(code(r) for r in unseen if (h, r) not in rule_hit)])
-    out += table(["hotel", "level", "rooms", "matched exactly", "named only by a proposal (UNSURE)",
+    out += table(["hotel", "level", "rooms", "matched exactly or by an alias", "named only by a proposal (UNSURE)",
                   "named by nothing"], rows, "llrrll")
-    out += ["Entries that hold a note:", ""]
-    out += [f"- {h}, {level_label(e[0], e[1])}: {code(e[2])}" for h, e in note_rooms] + [""]
+    out += ["Notes on the levels:", ""]
+    out += [f"- {h}, {level_label(lid, name)}: {code(x)}" for h, (lid, name, x) in all_notes] + [""]
 
     # 6. split_hotel
     ct = [e for e in c["events"] if e.get("hotel") == "Courtland Grand"]
@@ -555,7 +580,8 @@ def render(data, reg, events_path=EVENTS, registry_path=REGISTRY):
             rows.append([code(s["string"]), n(s["events"]), "", ""])
             continue
         cut = s["string"][len("Grand "):]
-        r = resolve(cut, "Courtland Grand", rooms.get("Courtland Grand", {}), levels.get("Courtland Grand", []))
+        r = resolve(cut, "Courtland Grand", rooms.get("Courtland Grand", {}), levels.get("Courtland Grand", []),
+                    c["aliases"].get("Courtland Grand", {}))
         exact = not r["chain"] and cut.casefold() in rooms.get("Courtland Grand", {})
         rows.append([code(s["string"]), n(s["events"]), code(cut),
                      "an exact match" if exact else " + ".join(r["chain"]) if r["chain"] else "no reading"])
@@ -571,31 +597,24 @@ def render(data, reg, events_path=EVENTS, registry_path=REGISTRY):
             "\"Hilton-Salon\" (\"Hilton\", \"Salon\") and \"Hyatt-Grand Hall D\" (\"Hyatt\", \"Grand Hall D\"). The "
             "frozen file keeps the rooms it has (DECISIONS #13).", ""]
 
-    # 7. seen_2026
-    out += ["## 7. `seen_2026`, level by level", "",
-            "What each level's `seen_2026` would become if it held the strings that reach the level: by an exact "
-            "match, and by a proposal (UNSURE), with today's list beside them. A string whose rooms land on two "
-            "levels is listed under both. Nothing here is written to the registry.", ""]
-    file_strings = {(s["hotel"], s["string"]) for s in strings}
-    for hd in reg["hotels"]:
+    # 7. The strings that reach each level
+    out += ["## 7. Strings that reach each level", "",
+            "Each level with the strings that reach it: by an exact match, through an alias, and by a proposal "
+            "(UNSURE). A string whose rooms land on two levels is listed under both. Nothing here is written to the "
+            "venues file.", ""]
+    for hd in c["hotels"]:
         h = hd["hotel"]
-        for lv in hd.get("levels", []):
-            lid, today = lv["id"], lv.get("seen_2026", [])
+        for lid, name in levels.get(h, []):
             ex = [s for s in by_hotel.get(h, []) if s["kind"] == "exact" and s["exact"][0] == lid]
+            al = [s for s in by_hotel.get(h, []) if s["kind"] == "alias" and lid in [x[0] for x in reached_levels(s)]]
             prop = [s for s in by_hotel.get(h, []) if s["kind"] in ("combined", "shape")
                     and (lid in [x[0] for x in reached_levels(s)] or s["reading"]["level"] == lid)]
-            if not (today or ex or prop):
+            if not (ex or al or prop):
                 continue
-            reached = {s["string"] for s in ex + prop}
-            out += [f"### {h} - {lv['name']} (`{lid}`)", "",
-                    f"- Today: {', '.join(code(x) for x in today) or 'none'}.",
-                    f"- By an exact match: {listed(ex)}.",
-                    f"- By a proposal, UNSURE: {listed(prop)}."]
-            gone = [x for x in today if x not in reached]
-            if gone:
-                out.append("- Today's, reached by nothing here: " + ", ".join(
-                    code(x) + ("" if (h, x) in file_strings else " (not in the file)") for x in gone) + ".")
-            out.append("")
+            out += [f"### {h} - {name} (`{lid}`)", "", f"- By an exact match: {listed(ex)}."]
+            if al:
+                out.append(f"- Through an alias: {listed(al)}.")
+            out += [f"- By a proposal, UNSURE: {listed(prop)}.", ""]
 
     # 8. norm_text
     groups = defaultdict(list)
@@ -615,17 +634,16 @@ def render(data, reg, events_path=EVENTS, registry_path=REGISTRY):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--events", default=os.path.join(ROOT, EVENTS))
-    ap.add_argument("--registry", default=os.path.join(ROOT, REGISTRY))
+    ap.add_argument("--venues", default=os.path.join(ROOT, VENUES))
     ap.add_argument("--out", default=os.path.join(ROOT, OUT))
     args = ap.parse_args(argv)
     with open(args.events, "rb") as f:
         data = json.loads(f.read().decode("utf-8"))
-    with open(args.registry, "rb") as f:
-        reg = json.loads(f.read().decode("utf-8"))
+    v = venues_file.load(args.venues)
     root = os.path.abspath(ROOT)
     shown = lambda p: (os.path.relpath(os.path.abspath(p), root).replace(os.sep, "/")
                        if os.path.abspath(p).startswith(root + os.sep) else os.path.basename(p))
-    text = render(data, reg, shown(args.events), shown(args.registry))
+    text = render(data, v, shown(args.events), shown(args.venues))
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)

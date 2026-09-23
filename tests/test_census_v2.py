@@ -122,6 +122,19 @@ def test_which_built_tags_differ_and_credits_guests_and_order_do_not_count():
     assert cv.differing([base, {**base, "works": [], "genre": ["fantasy"]}]) == ["about", "genre"]
 
 
+def test_the_band_marker_leaves_out_a_work_minted_in_a_later_year():
+    """A 2027 mint must leave the 2026 report as it is (#46); a work no event links still counts, which is what the
+    list is for."""
+    works = [{"id": "eurovision", "name": "Eurovision", "aliases": []},
+             {"id": "the-yetis", "name": "The Yetis", "aliases": ["Yetis"],
+              "minted": {"year": 2027, "run": "2027-08-01T10:17Z"}},
+             {"id": "the-owls", "name": "The Owls", "aliases": [], "minted": {"year": 2026, "run": "2026-09-01T00:17Z"}}]
+    assert cv.band_names(works, 2026) == ["Eurovision", "The Owls"]
+    assert cv.band_names(works, 2027) == ["Eurovision", "The Owls", "The Yetis", "Yetis"]
+    assert not cv.minted_after({"minted": {"year": True}}, 2026) and not cv.minted_after({"minted": 2027}, 2026)
+    assert cv.YEAR == 2026
+
+
 def test_an_unreviewed_work_came_from_the_drafter_the_tagger_or_elsewhere():
     minted, named = {"castle", "the-boys"}, {"the-boys", "brandish"}
     assert cv.work_source("the-boys", minted, named) == "drafter"     # the sidecar decides, whoever names it
@@ -291,8 +304,15 @@ def test_the_fixture_renders_every_section_and_what_it_should_list(tmp_path):
     assert "- UNSURE: Filk Music - `craft`: performance, on 1 of its 1 events (100.0%)" in text
     assert "### Bands (a): works linked from music events: 0\n\nEvery work an event" in text
     assert "and every event that links it `about`, by kind.\n\n- none\n" in text
-    # sources of the unreviewed works: the drafter's three, the tagger's one, and one from neither
-    assert "| drafter | 3 | 3 | 2 |" in text and "| tagger | 1 | 1 | 2 |" in text and "| other | 1 | 0 | 0 |" in text
+    # sources of the unreviewed works in the block: the drafter's three and the tagger's one. Eurovision, from
+    # neither, is linked by no event and is no ancestor, so it is not in the block, and a count over the registry
+    # would not be a fact about the year
+    assert "| drafter | 3 | 3 | 2 |" in text and "| tagger | 1 | 1 | 2 |" in text and "| other | 0 | 0 | 0 |" in text
+    assert "| all | 4 | 4 | 4 |" in text and "Linked by none: 0," in text
+    assert "3. Unreviewed works: 4 of 8 in the block - the drafter's 3, the tagger's 1, other 0. Linked by events: " \
+           "4, on 4 events (Appendix A)." in text
+    assert "work names 0 of 8 in the block; cached work names" in text
+    assert "| work names and aliases in the block | 11 | 0 | 0 |" in text    # 8 names and 3 aliases
     # people: the drafted celebrity, and who is on qa, photo and signing events without an entry
     assert "| `nathan-fillion` | `Nathan Fillion` | celebrity | high | 1 | 1 | 0 | 0 | 0 | `firefly` (reviewed), " \
            "`castle` (unreviewed) |" in text

@@ -32,9 +32,10 @@ seam a feed would plug into (#41). The sequence:
 
 1. Docs: DECISIONS #41-#48, the contract, this file.
 2. `season.json` and `venues.json`, for 2027 and for 2026 (frozen,
-   `PROMPT_VERSION` 1): the migration from `docs/venues/registry.json`,
-   which retires; the Mart's levels; the walk table; the loader and its CI
-   test; the room census retargeted at `venues.json`. Beside it, as
+   `PROMPT_VERSION` 1) - built: the migration from
+   `docs/venues/registry.json`, which is retired; the Mart's levels; the
+   walk table; the loaders, `season.py` and `venues.py`, and their CI
+   tests; the room census retargeted at `venues.json`. Beside it, as
    Discover housekeeping, census v2 counts a year's works block, not the
    registry (#46).
 3. Fetch: `fetch()`, the raw row, `location` verbatim, failures named,
@@ -99,11 +100,12 @@ evidence is `docs/discover/census-2026.md`. The sequence:
 ### 3. Places — designed; its data half is Pipeline shape's
 
 Where a room is: the venues file, room resolution, and the building view
-down to the level. Rests on #21, #27 and #28. The venues registry is merged
-(`docs/venues/`), and the room census is done (PR #33); the venues file
-and room resolution are Pipeline shape's venue resolution (#37, #45). The
-building view's drawings and sketches continue on the side, in chat; a
-Places PR beyond what the pipeline absorbs takes a free review slot.
+down to the level. Rests on #21, #27 and #28. The venues registry is
+retired into the venues file, `data/<year>/venues.json` (Pipeline shape's
+PR 2), and the room census is done (PR #33); room resolution is Pipeline
+shape's venue resolution (#37, #45). The building view's drawings and
+sketches continue on the side, in chat; a Places PR beyond what the
+pipeline absorbs takes a free review slot.
 
 ### 4. Identity and sync — not opened; designed while Pipeline shape executes (#37)
 

@@ -1,0 +1,12 @@
+{
+  "year": 2027,
+  "slug": "dragoncon27",
+  "source": "https://app.core-apps.com/dragoncon27",
+  "days": ["Sep  1", "Sep  2", "Sep  3", "Sep  4", "Sep  5", "Sep  6"],
+  "con": {"first": "2027-09-01", "last": "2027-09-06"},
+  "tz": "America/New_York",
+  "window": {"from": "2027-08-01", "to": "2027-09-07"},
+  "frozen": false,
+  "prompt_version": 1,
+  "thresholds": {"listings_floor": 0.8, "detail_failures": 0.2, "new_ids": 0.2, "requests_per_run": 40}
+}

@@ -12,7 +12,7 @@ It never links: only the tagger links an event to a work (#34). Where a list her
 
 1. Events: 3,459 in `events.v2.json`, a fresh build. Every event has exactly one cache line: 2,580 lines for 2,580 distinct inputs.
 2. Works linked: 654, by 3,366 links - `about` 1,669 on 1,594 events, `track` 30, `credit` 1,667. Events with no work and no axis value: 48 (1.4%).
-3. Unreviewed works: 97 of 699 - the drafter's 42, the tagger's 55, other 0. Linked by events: 64, on 239 events (Appendix A).
+3. Unreviewed works: 65 of 661 in the block - the drafter's 10, the tagger's 55, other 0. Linked by events: 64, on 239 events (Appendix A).
 4. Kind: of the 3,449 events v1 tagged, 3,147 keep their kind; the pairs that differ: 42, over 312 events. The largest kind: `panel` (1,086). Events that say wrestl*: 5, each UNSURE.
 5. Audience: `all` 3,266, `mature` 105, `kids` 88. Events where v1's `adult` and v2's `mature` disagree: 9.
 6. Play: on 868 of 931 gaming events; on other events: 0.
@@ -181,17 +181,17 @@ The 30 works of `tools/tag_pilot.py`'s `EVERYDAY`: registry works whose name, or
 
 ### Unreviewed works
 
-- 97 of the 699 works are `reviewed: false`, and events link 64 of them, on 239 events.
+- 65 of the 661 works in the block are `reviewed: false`, and events link 64 of them, on 239 events. The block is `events.v2.json`'s works: those the year's events link, and their ancestors (#38).
 - By where they came from: the drafter, when the sidecar's `minted` holds the id; the tagger, when a cached answer names it otherwise - `tag_stage.py` keeps no record of what it mints, so this is inferred; other, neither.
 
 | source | works | linked | on events |
 | --- | ---: | ---: | ---: |
-| drafter | 42 | 9 | 10 |
+| drafter | 10 | 9 | 10 |
 | tagger | 55 | 55 | 229 |
 | other | 0 | 0 | 0 |
-| all | 97 | 64 | 239 |
+| all | 65 | 64 | 239 |
 
-Linked by events: 64, listed in Appendix A. Linked by none: 33, counted here and not listed.
+Linked by events: 64, listed in Appendix A. Linked by none: 1, counted here and not listed.
 
 ## 3. Axes
 
@@ -1106,7 +1106,7 @@ Text that was UTF-8 read as cp1252 before it reached the frozen file, by `draft_
 
 ### What the model returned
 
-Strings the model wrote that look double-encoded, as a transport that decoded its reply wrongly would leave them: `works.json` names 0 of 699; cached work names 0 of 551; cached evidence 0 of 848.
+Strings the model wrote that look double-encoded, as a transport that decoded its reply wrongly would leave them: work names 0 of 661 in the block; cached work names 0 of 551; cached evidence 0 of 848.
 
 ### Two characters
 
@@ -1118,7 +1118,7 @@ U+2018 is a left single quote, which `parse_stage.fold` does not fold and `tag_s
 | descriptions | 2,189 | 1 | 0 |
 | people's names on events | 1,811 | 0 | 0 |
 | `people.json` names and aliases | 141 | 0 | 0 |
-| `works.json` names and aliases | 759 | 0 | 0 |
+| work names and aliases in the block | 720 | 0 | 0 |
 | cached work names | 551 | 0 | 0 |
 | cached evidence | 848 | 0 | 0 |
 | the sidecar's strings | 1,104 | 0 | 0 |
