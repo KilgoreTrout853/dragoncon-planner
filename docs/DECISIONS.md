@@ -693,7 +693,7 @@ blind spots; the rubric and the sample check are the guard. Real users'
 searches are the missing input. Recording searches that return nothing,
 anonymously, in 2027 is a privacy question for Identity and sync.
 
-### 37. Pipeline shape follows Discover — Standing (2026-09-22) — outreach deferred by #41
+### 37. Pipeline shape follows Discover — Standing (2026-09-22) — outreach deferred by #41; search tuning held until the first pass of the whole app (ROADMAP, Held, 2026-09-22)
 **Decided:** The tentpoles (#30) go in this order: Discover (PR 6), then
 Pipeline shape, whose design opens while PR 6 executes, then Identity and
 sync, then Delivery; Where things live last, as now.
@@ -885,29 +885,37 @@ the encoding repair (#44) stay ours.
 each; `docs/pipeline/contract.md` has the detail.
 - `season.json` (by hand, #44), `venues.json` (by hand, #45),
   `source.json` (fetch), `ids.jsonl` (the ids stage, #43),
-  `tags.cache.jsonl` (the tag stage, #46), `events.v2.json` (build; its
-  `changed_at`, the diff), `changes.jsonl` (the diff, #47) and
-  `last-run.json` (the orchestrator, #44). `data/registry/` is unchanged:
+  `tags.cache.jsonl` (the tag stage, #46), and `events.v2.json`,
+  `changes.jsonl` and `last-run.json`, which the orchestrator writes
+  together after the diff (#44, #47). `data/registry/` is unchanged:
   cross-year, and still added to by the tag stage's mint.
 - **`source.json`** is the fetch's output: one row per listing, keyed by
   `source_id`, before any dedupe, its shape normalised and its content
   not. A row is `source_id`, ten fields - `type`, `title`, `day`, `start`,
   `end`, `duration_min`, `location`, `description`, `tracks`, `speakers` -
-  and `stale`. `location` is verbatim, with no hotel or room split (#45).
-  `speakers` is the detail page's Speakers section only, never derived
-  from the description; the parse stage owns the "Additional Panelists:"
-  line. `track` and `cancelled` were ours all along: `track` is build's,
-  the first of the sorted `tracks`, and `cancelled` is the parse stage's
-  reading of the title and description, its name on the v2 event
-  unchanged. `failures` is a list of `{source_id, error}`, and a row whose
-  detail fetch failed is carried from the previous file with
-  `stale: true`. The file carries no timestamp of its own.
+  `stale` and `removed`. `location` is verbatim, with no hotel or room
+  split (#45). `speakers` is the detail page's Speakers section only,
+  never derived from the description; the parse stage owns the
+  "Additional Panelists:" line. `track` and `cancelled` were ours all
+  along: `track` is build's, the first of the sorted `tracks`, and
+  `cancelled` is the parse stage's reading of the title and description,
+  its name on the v2 event unchanged. `failures` is a list of
+  `{source_id, error}`, and a row whose detail fetch failed is carried
+  from the previous file with `stale: true`. A listing the source no
+  longer lists is carried forward the same way, with `removed: true` and
+  its fields frozen at last sight; the flag clears if the listing
+  returns. The file carries no timestamp of its own.
 - **`events.v2.json`** is #38's shape plus `digest`, the sha256 of the
   canonical `{works, events}` - no timestamps, no failures - and on each
   event `id` (ours, #43), `source_id`, `stale`, `removed: true` for an
   event the source dropped, kept all season, and #45's place fields.
-  `generated_at` is the stamp of the last run that committed; `changed_at`
-  moves only when the digest does (#47).
+  `generated_at` is `last-run.json`'s `fetched_at`: the schedule is as of
+  that fetch, and a `--from` run keeps it. `changed_at` is
+  `last-run.json`'s, and moves only when the digest does (#47). `source`
+  is `season.json`'s base URL, `count` the length of `events`, and
+  `failures` `source.json`'s list.
+- The build is a pure function of committed inputs, and never reads its
+  own previous output.
 - Both files are compact, with a line break before each event object.
 - The year is `--year` on the pipeline and `DC_YEAR` at the client build.
   There is no pointer file.
@@ -918,8 +926,8 @@ fixes to descriptions and the cancelled flag (v8 → v9: 306 changed). Only
 a raw record lets a fix re-derive what came before, and CI has no source.
 **Enforced by:** a fresh build from `source.json`, `ids.jsonl`, the
 registries, `venues.json`, the cache and `season.json`, its two stamps
-taken from the committed file, equals the committed `events.v2.json` byte
-for byte.
+read from `last-run.json`, not from the file it checks, equals the
+committed `events.v2.json` byte for byte.
 **Cost:** Two files of about 3 MB each in every scrape commit. The client
 must filter removed events out everywhere but Mine and Now. 2026's
 `events.json` and 2027's `source.json` differ in shape, by design.
@@ -933,8 +941,8 @@ ids stage keeps it in a ledger, and every source id resolves through it.
   member's source id maps to it.
 - **A copy that leaves a group** but stays at the source is a new event
   under its own source id, unless that is the group's id: then its id is
-  the source id with the suffix `.1`, the one case an id is not a bare
-  source id. The group keeps its id in every case.
+  `<source_id>.<n>`, with n counting up from 1 - the one case an id is not
+  a bare source id. The group keeps its id in every case.
 - **Two ids in one group.** Where two events that already have ids
   collide on a dupe key after a change, the smaller id survives, in string
   order, as the dedupe's `min()` compares. The other line gets
@@ -976,20 +984,23 @@ written `Hilton-Salon` (section 4, v6 → v7). Precision over recall.
 **Cost:** The Salon pair's picks break. A rule that fires once a con.
 
 ### 44. The run — Decided, not built (2026-09-22)
-**Decided:** `pipeline.py run --year <year>` runs five stages in order,
-each the owner of its files: fetch `source.json`, ids `ids.jsonl`, tag the
-cache, build `events.v2.json`, and the diff `changes.jsonl` and
-`changed_at`.
+**Decided:** `pipeline.py run --year <year>` runs five stages in order:
+fetch writes `source.json`, ids `ids.jsonl` and tag the cache; build makes
+`events.v2.json`, and the diff its change lines and `changed_at`; and the
+orchestrator writes those with `last-run.json`, together, after the diff,
+so no file has two writers.
 - **The merge** of a group - the sorted unions, the longest description -
   is one pure function of `source.json` and `ids.jsonl`, and tag and build
   both call it: the tag stage's input is the merged title, type, tracks
   and description. Venues (#45) and parse are pure steps inside build,
   after the merge and before resolution.
-- Files pass between the stages, `--from <stage>` starts at any of the
-  five, and a run is idempotent after fetch. One stamp a run, taken at
-  fetch and handed down. Text is repaired inside fetch, before whitespace
-  is collapsed. Build runs twice in memory and compares; a mismatch is
-  fatal.
+- `--from <stage>` starts at any of the five, and a run is idempotent
+  after fetch. One stamp a run, taken as it starts and handed down. A run
+  that fetches records its stamp in `last-run.json` as `fetched_at`, which
+  becomes `events.v2.json`'s `generated_at`; a `--from` run keeps the last
+  `fetched_at`. `last-run.json`'s `changed_at` is the diff's (#47). Text
+  is repaired inside fetch, before whitespace is collapsed. Build runs
+  twice in memory and compares; a mismatch is fatal.
 - A run commits only when a committed file's bytes change, its own stamp
   aside. A run with no change leaves the tree clean and reports through
   the job summary.
@@ -997,20 +1008,22 @@ cache, build `events.v2.json`, and the diff `changes.jsonl` and
   fatal. A fatal run commits nothing and fails the workflow. A degraded run
   commits, and every degradation is a named counter.
 - **Fatal.** Fetch: no listings; listings under 80% of the previous
-  `source.json`'s; over 20% of the detail fetches failed; every detail
-  page parsing to an empty title. Ids: #43's three. `venues.json` or a
-  registry failing validation. Build: any exception; its two builds
-  differing. The diff: the previous `events.v2.json` unreadable, unless it
-  is absent and the ledger empty.
-- **Degraded.** A failed detail page: carried, stale, named. A repaired
-  text. An UNSURE match candidate or merge (#43). A hotel no key matches:
-  Other, with the unknown-pair walk. A room not resolved: its level, then
-  its hotel (#28). The model unreachable, rate-limited or malformed after
-  one retry: those events ship untagged, as a cache miss does. A mint that
-  fails: its links drop for this run, as an unresolved work name's do. A
-  track `tracks.json` lacks: no track axes.
-- `last-run.json` holds the summary of the last run that committed, and a
-  counter above zero becomes a workflow warning.
+  `source.json`'s, its removed rows aside; over 20% of the detail fetches
+  failed; every detail page parsing to an empty title. Ids: #43's three.
+  `venues.json` or a registry failing validation. Build: any exception;
+  its two builds differing. The diff: the previous `events.v2.json`
+  unreadable, unless it is absent and the ledger empty.
+- **Degraded.** A failed detail page: carried, stale, named. A listing
+  gone: carried, removed, counted. A repaired text. An UNSURE match
+  candidate or merge (#43). A hotel no key matches: Other, with the
+  unknown-pair walk. A room not resolved: its level, then its hotel (#28).
+  The model unreachable, rate-limited or malformed after one retry: those
+  events ship untagged, as a cache miss does. A mint that fails: its links
+  drop for this run, as an unresolved work name's do. A track
+  `tracks.json` lacks: no track axes.
+- `last-run.json` holds `fetched_at`, `changed_at` and the summary of the
+  last run that committed; a counter above zero becomes a workflow
+  warning.
 - `season.json` holds the year, the source's slug and base URL, its day
   strings, the con's first and last day, the time zone, the cron window,
   `PROMPT_VERSION` and `frozen` (#46), the thresholds and the request cap.
@@ -1131,8 +1144,8 @@ to, and the cause, sorted by run, id and kind.
   previous run's, the diff stage builds the previous `source.json` with the
   new code, in memory - writing nothing, a cache miss left untagged - and
   splits the diff exactly; otherwise every line is `source`.
-- `changed_at` is set here, and follows the digest (#42): tags are never
-  logged, so a retag moves it with no line.
+- `changed_at` is set here, to the run's stamp, and follows the digest
+  (#42): tags are never logged, so a retag moves it with no line.
 - A stale carry-forward and a change of group membership make no line.
   The first run records every event as `added`.
 - **Consumers:** the mirror and the push job (Identity and sync). A
@@ -1146,8 +1159,9 @@ change (section 5), and this attributes such a change to code. A push for
 our own bug fix is the failure.
 **Enforced by:** fixture tests for every kind, the attribution,
 append-only and the order. On the committed files, `last-run.json`
-records `changes_logged`: above zero, the log's last stamp equals the
-run's; at zero, it is earlier. Every id the log names is in
+records `changes_logged`: above zero, the log's last stamp equals
+`last-run.json`'s `changed_at`, since a run that logs a line has moved
+the digest; at zero, it is no later. Every id the log names is in
 `events.v2.json`, removed or not, and each commit's log begins with the
 last commit's, byte for byte.
 **Cost:** A typo fixed at the source makes a description line. Thousands
