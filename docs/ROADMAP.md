@@ -23,7 +23,7 @@ unset. There are no other dates.
 
 ## The tentpoles
 
-### 1. Pipeline shape — designed (#41-#48); executing
+### 1. Pipeline shape — built (#41-#49); closed
 
 The design is DECISIONS #41-#48 and `docs/pipeline/contract.md`, the data
 contract; the evidence is `docs/pipeline/history-2026.md` and
@@ -88,7 +88,32 @@ seam a feed would plug into (#41). The sequence:
    whose runs finish a first tag in about three (`contract.md`, The run,
    as built).
 9. The 2027 client switch, after a design pass of its own; its pick
-   reconciliation reads `was` (#43).
+   reconciliation reads `was` (#43) - built (#49): `DC_YEAR` at the
+   build, the season and venues files as modules, storage and caches keyed
+   by the year, removed events in Mine alone, `was` in the pick
+   reconciliation, untagged events read through one helper, and the
+   worker on the digest.
+
+Pipeline shape is closed. What it leaves, carried:
+
+- The alias worklist: the room strings the venues step reads at the hotel
+  alone, 686 of 2026's events (`docs/venues/census-2026.md`, section 4),
+  each an alias or a room to curate (#45).
+- Curation gaps (#45): the Westin's current, post-renovation floor plan
+  (`docs/venues/README.md`); the Marriott's Atrium and Marquis note
+  entries, and the Courtland Grand's room list (room census, section 5).
+- Census v2's 45 double-encoded events are 51 with the six lone "Â"
+  events PR #33's encoding probe found: Discover housekeeping in
+  `census_v2.py`.
+- Brandish: census v2's Appendix A opens with it, 44 events, unreviewed -
+  searchable, never followable - until a works review (#34, #46).
+- The attribution runs on almost every run (PR #49): each landed run moves
+  the target's head, so the next run's SHA differs from the last one's. A
+  hash of the build's code instead of the SHA would skip it, if the cost
+  ever matters.
+- `CON`'s 18:00 and 19:00 are 2026's observed bounds, the first listed
+  start and the last end; they move into `season.json` once 2027's
+  schedule shows its own (#49).
 
 Identity and sync opens in design once PR 2 is running (#37).
 
@@ -178,11 +203,8 @@ Open here, unscheduled (#40):
 - The room census: done (PR #33, `docs/venues/census-2026.md`).
 - `scrape.yml`'s path onto a PR-only branch (#26): decided by #48.
 - Dragon Con outreach (#19): deferred, with no date (#41).
-- The worker's new-schedule notice. `sw.js` tells the page of a new schedule
-  only when `generated_at` moves, and every rebuild of `events.v2.json` -
-  after a registry or a cache edit - keeps it (#39). Pipeline shape's input
-  is the file's `digest`, with nothing volatile in it (#42); whether the
-  worker reads that or the HTTP ETag is still Delivery's call.
+- The worker's new-schedule notice: done by #49, on the file's `digest`,
+  `generated_at` deciding only for a copy without one.
 - Search tuning by the eval harness (#36): held until the first pass of the
   whole app. The call postdates #37, which ran it once PR 6 had landed.
 
@@ -190,13 +212,8 @@ Open here, unscheduled (#40):
 
 - The freeze date is tied to the source's posting date for the 2027
   schedule.
-- Curation gaps (#45): the Westin's current, post-renovation floor plan
-  (`docs/venues/README.md`); the Marriott's Atrium and Marquis note
-  entries, and the Courtland Grand's room list (room census, section 5).
 - The listing-only pre-check, held as a fallback against 403 pushback
   (#48).
-- Census v2's 45 double-encoded events are 51 with the six lone "Â" events
-  PR #33's encoding probe found: Discover housekeeping in `census_v2.py`.
 
 ## Checklist
 
@@ -209,10 +226,18 @@ Steps taken by hand, beside the PRs rather than in them:
   secret, `SCHEDULE_BOT_TOKEN`, expiring the month after the con (#48);
   "Allow auto-merge" turned on (#48); and `SCRAPE_TARGET` = `next`, a
   repository variable.
+- At the season start, once the first run past the ids stage has written
+  `data/2027/events.v2.json`: `DC_YEAR=2027` on `next`, in the next site's
+  build - the `dragoncon-planner-next` repository's workflow (#49).
+- Before the 2027 client ships: the icons and the preview image redrawn
+  for 2027. `public/icon.svg`, the `icon-*.png` files and `og-image.png`
+  draw DC26 and Dragon Con 2026, which the build's stamp does not reach
+  (`make_icons.py`; #49).
 - Before the freeze: `client` and `pipeline` required on the `main`
   ruleset (#48).
 - At the freeze: `next` merges to `main`, the default branch flips to
-  `main`, and `SCRAPE_TARGET` flips to `main`, by hand (#48; PR 8).
+  `main`, and `SCRAPE_TARGET` flips to `main`, by hand (#48; PR 8); and
+  `DC_YEAR=2027` on `main`, in the build that publishes it (#49).
 - After the con: the `next` ruleset allows merge commits beside squash,
   `main` merges back into `next` as a merge commit, and the default branch
   and `SCRAPE_TARGET` flip back to `next` (#48).

@@ -28,7 +28,7 @@ data/2026/events.json  (frozen; its v1 tags are tag_events.py's, now retired)
         │  events_v2.py    no model: the merge, the venues step, the parse, the cache
         ▼
 data/2026/events.v2.json  (places, people, facets, tags v2, the works block, the digest)
-        │  fetched by the page; cached by sw.js
+        │  fetched by the page, for the year DC_YEAR names at the build; cached by sw.js
         ▼
 index.html + src/  ──vite build──►  dist/index.html  (the whole client, inlined)
         │                                   └──►  localStorage (picks, settings)
@@ -46,17 +46,17 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/dispatch.js`, `shell.js`, `loading.js`, `sheet.js` | The four modules above the views: the handlers that span modules; `render()` and what is on screen whatever the tab; loading, freshness and offline; the bottom sheet. |
 | `src/now.js`, `browse.js`, `explore.js`, `map.js`, `mine.js` | The five views, one per tab (`browse` is the Search tab). |
 | `src/scroll.js`, `bus.js` | The scroller and the header's measurement; how a module below the shell asks for a redraw. |
-| `src/util.js`, `storage.js`, `platform.js`, `build.js`, `state.js`, `time.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The fourteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
+| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `state.js`, `time.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The fifteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
-| `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own plugin (`dcBuild`) for the HTML fix-ups, the channel stamp and the `data/` copy. |
-| `dist/` | Build output, not in git: `index.html` with the CSS and script inlined, the files from `public/`, and the one file from `data/` the client reads. |
+| `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own two plugins: `dcYear`, the year `DC_YEAR` names - its define and its two data modules, in the dev server, the build and Vitest alike - and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy (DECISIONS #49). |
+| `dist/` | Build output, not in git: `index.html` with the CSS and script inlined, the files from `public/`, and the one file from `data/` the client reads, the year's `events.v2.json`. |
 | `data/2026/events.json` | The frozen 2026 schedule: 3,459 events, 2.7 MB. Read by tags v2, which never write it, and by the live site's one-file app on `main`; the client on `next` reads `events.v2.json` (DECISIONS #39). |
 | `data/2026/tags.cache.jsonl` | The tag stage's answers, one a line, sorted by the hash of what the model was sent and the year's `prompt_version` (DECISIONS #34, #46): names, never ids. Frozen with its year: the tag stage reads 2026 with `--dry-run` only and writes it no more, and a line corrected by hand says `"model": "hand"`. |
-| `data/2026/events.v2.json` | The frozen schedule in the 2027 shape (DECISIONS #42; `docs/pipeline/contract.md`, The v2 file), built by `events_v2.py` from the frozen file, `data/2026/venues.json`, the registries and the cache: each event's ten raw fields, its `id` and `source_id` - both the frozen file's id - the venues step's `hotel`, `room`, `level`, `rooms` and `place`, `track`, `cancelled`, `people`, `facets` and tags v2. Before the events, a `works` block (DECISIONS #38): every work an event links and every ancestor of those, sorted by id, each row the registry's `id`, `name`, `aliases`, `terms`, `reviewed` and, where it has one, `parent` - what the client reads a work by, never a registry. The other top-level fields are the frozen file's, and `digest`, the sha256 of the works and the events as the file writes them, one row a line. The file the client reads (DECISIONS #39), and the only one the build copies from `data/`. |
+| `data/2026/events.v2.json` | The frozen schedule in the 2027 shape (DECISIONS #42; `docs/pipeline/contract.md`, The v2 file), built by `events_v2.py` from the frozen file, `data/2026/venues.json`, the registries and the cache: each event's ten raw fields, its `id` and `source_id` - both the frozen file's id - the venues step's `hotel`, `room`, `level`, `rooms` and `place`, `track`, `cancelled`, `people`, `facets` and tags v2. Before the events, a `works` block (DECISIONS #38): every work an event links and every ancestor of those, sorted by id, each row the registry's `id`, `name`, `aliases`, `terms`, `reviewed` and, where it has one, `parent` - what the client reads a work by, never a registry. The other top-level fields are the frozen file's, and `digest`, the sha256 of the works and the events as the file writes them, one row a line. The file the client reads (DECISIONS #39) for 2026, the year the build names by default (#49), and the only one the build copies from `data/` for it. |
 | `data/registry/` | The three curated registries `registry.py` owns, below, and `people.draft.json`, the drafter's sidecar - `known_for`, confidence, the event titles, the minted work ids and the rejections, which the loader ignores. `works.json` also holds the works the tag stage minted, `reviewed: false`, which the sidecar does not list, so the review page never prunes them; a row minted since PR 7a carries `minted: {year, run}` (DECISIONS #46), which the review page keeps. Cross-year, unlike `data/2026/`, because a work or a person outlasts a con. The client never reads them (#31) - what it needs of a work is in `events.v2.json`'s block - and the build does not copy them into `dist/`. |
-| `data/2026/season.json`, `data/2027/season.json` | A year's settings, by hand (`docs/pipeline/contract.md`; DECISIONS #44, #46, #48): the source's slug, base URL and day strings, the con's first and last day, the time zone, the cron window - `null` in 2026, which is `frozen` - the prompt version and the run's thresholds. `season.py` validates them. The fetch (`scraper.py`) reads one: the source, the day strings, the year, the listings floor and the failure ceiling, and `frozen`. The tag stage reads `frozen`, `prompt_version` - the `v` of its cache's keys - the request cap and the year, and the build and census v2 `prompt_version` too. |
-| `data/2026/venues.json`, `data/2027/venues.json` | The venues file (DECISIONS #45), by hand, one copy a year: per hotel its keys, short name, group, colour variable, order, whether it is placeless and how its room is shown; its levels, with their rooms, aliases and notes; its rooms of no known level; and the walk matrix with its three minute values. The two are identical, migrated from the retired `docs/venues/registry.json` and `src/venues.js`'s constants by a one-off script outside the repo. `venues.py` validates both; the build reads a year's (`events_v2.py`, and `tools/sample_v2.py` for the page tests' fixture), and `tools/room_census.py` reads 2026's, so an edit to 2026's is followed by `python events_v2.py` and `python tools/sample_v2.py`, or CI fails. The client keeps its own walk and hotel constants in `src/venues.js` until PR 9; `tests/rules/venues-data.test.js` holds the two copies equal. |
+| `data/2026/season.json`, `data/2027/season.json` | A year's settings, by hand (`docs/pipeline/contract.md`; DECISIONS #44, #46, #48): the source's slug, base URL and day strings, the con's first and last day, the time zone, the cron window - `null` in 2026, which is `frozen` - the prompt version and the run's thresholds. `season.py` validates them. The fetch (`scraper.py`) reads one: the source, the day strings, the year, the listings floor and the failure ceiling, and `frozen`. The tag stage reads `frozen`, `prompt_version` - the `v` of its cache's keys - the request cap and the year, and the build and census v2 `prompt_version` too. The client imports its year's at build, as `virtual:season` (DECISIONS #49): the year, and the con's days `CON` takes. |
+| `data/2026/venues.json`, `data/2027/venues.json` | The venues file (DECISIONS #45), by hand, one copy a year: per hotel its keys, short name, group, colour variable, order, whether it is placeless and how its room is shown; its levels, with their rooms, aliases and notes; its rooms of no known level; and the walk matrix with its three minute values. The two are identical, migrated from the retired `docs/venues/registry.json` and `src/venues.js`'s constants by a one-off script outside the repo. `venues.py` validates both; the build reads a year's (`events_v2.py`, and `tools/sample_v2.py` for the page tests' fixture), and `tools/room_census.py` reads 2026's, so an edit to 2026's is followed by `python events_v2.py` and `python tools/sample_v2.py`, or CI fails. The client imports its year's at build, as `virtual:venues` (DECISIONS #49): the hotels' order, short names, groups and colours, the walk and its three minute values; the constants `src/venues.js` held are gone. |
 | `data/2027/ids.jsonl` | The ids stage's ledger (DECISIONS #43; `contract.md`, The ledger): one line per id, sorted, each with its source ids, the moves out of it, its key at last sight and its stamps. Committed empty: it exists from the season's first commit, and its absence is fatal. 2026, frozen, has none: its ids are its source ids. |
 | `scraper.py` | The fetch stage (DECISIONS #41, #42, #44): `python scraper.py --season data/<year>/season.json` writes the year's `source.json`, one raw row per listing, the text repaired before whitespace is collapsed; `fetch()` returns the rows, the failures and the run summary's counts, and `carry()` is its carrying of the previous file's rows on its own, which the 2026 replay calls too; `parse_source()` and `source_text()` are the file's reading and writing, which the orchestrator calls. It no longer splits the hotel, dedupes, carries tags or writes `events.json`: the hotel and room split is `venues_stage.py`'s, the cancelled rule `parse_stage.py`'s and the merge of a group `merge_stage.py`'s; v1's `dedupe` and `merge_group` live on in `tests/make_sample.py`, to reproduce the committed fixture, and `extract_panelists` stays for the parse stage's copy of it, which a test pins. See The data pipeline. |
 | `ids_stage.py` | The ids stage (DECISIONS #43; `docs/pipeline/contract.md`, The ledger): `assign(rows, ledger, stamp, thresholds)` gives every raw row our id - the live rows grouped by `dupe_key`, a group keeping the id its members map to, the smaller surviving a collision, a gone line's id taken only on an exactly equal key, a split decided by membership, then key - and returns the rows with their ids, the groups, the new ledger and a report, UNSURE pairs among it; `read_ledger` and `write_ledger` read and write `ids.jsonl`. Fatal as `IdsError`. It owns `dupe_key` and `norm_text`, which the history tool and `tests/make_sample.py`'s copy of v1's dedupe import. Standard library, and no command: the orchestrator runs it after the fetch, and so do the replay, the build's live front door - which checks that the committed ledger already holds the rows' ids - and the tests. `parse_ledger` and `ledger_text` are the reader's and the writer's halves, which the orchestrator calls. |
@@ -81,9 +81,10 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
 | `tests/unit/` | Vitest: pure exports, imported by name from the module that holds them, with no page. |
-| `tests/rules/` | Vitest: rules over the text of `src/styles.css` and of every module under `src/`, and over the module graph (`imports.test.js`); and `venues-data.test.js`, `data/2027/venues.json`'s walk and hotel constants against `src/venues.js`'s, which PR 9 deletes with the constants. |
-| `tests/real-data.test.js` | Vitest: search quality and Explore against the real `data/2026/events.v2.json`. |
-| `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, and a smoke that boots the built page. The only test that executes `dist/`. |
+| `tests/rules/` | Vitest: rules over the text of `src/styles.css` and of every module under `src/`, and over the module graph (`imports.test.js`). |
+| `tests/real-data.test.js` | Vitest: search quality and Explore against the real schedule of the year under test, `data/2026/events.v2.json`. |
+| `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, and smokes that boot the built pages. The only test that executes `dist/`. |
+| `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record. |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
 | `tests/test_fetch.py` | The fetch stage on a fake source, with no network: the rows and their order, a failed page carried stale or named alone, a listing gone carried removed and every move between the two flags, each fatal rule at its boundary, `--limit`, the file's bytes, the repair before whitespace is collapsed and a clean page untouched by it, and `main()`'s frozen refusal and its `--previous`. |
@@ -113,7 +114,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `.github/workflows/scrape.yml` | The 2027 pipeline's workflow (DECISIONS #48; `contract.md`, The run, as built): hourly at `17 * * * *` inside the season window, and by `workflow_dispatch` with `force`, `to`, `limit`, `requests`, `season` and `target`. It checks the target out - the `SCRAPE_TARGET` repository variable - with the bot's token, runs `pipeline.py`, writes the summary to the job summary, and lands a run that changed a file by pull request: a `schedule/<stamp>` branch, the bot's older pull requests closed as superseded, auto-merge on, and CI the gate. |
 | `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client` and `pipeline`. |
 | `.github/dependabot.yml` | Monthly update PRs for GitHub Actions only. |
-| `package.json`, `.nvmrc`, `eslint.config.js`, `vitest.config.js` | Client tooling: scripts `dev`, `build`, `preview`, `lint`, `test`; Node 24; three ESLint rules; Vitest, with jsdom as its default environment. |
+| `package.json`, `.nvmrc`, `eslint.config.js`, `vitest.config.js` | Client tooling: scripts `dev`, `build`, `preview`, `lint`, `test`; Node 24; three ESLint rules; Vitest, with jsdom as its default environment and the year's two data modules resolved as the build resolves them. |
 | `requirements.txt` | Every package the pipeline and its tests import, and every package those need, each pinned; `colorama` and `tzdata` by a marker, for Windows alone. Python 3.13, for CI and the scrape workflow alike. |
 | `.gitattributes` | Text files are LF in the index and on checkout. |
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
@@ -347,15 +348,15 @@ a reviewer, and each review's decisions are committed as a record in
 
 ## The client: modules and their order
 
-One program in twenty-six modules under `src/`, and `main.js`, the entry.
+One program in twenty-seven modules under `src/`, and `main.js`, the entry.
 The markup it drives is in `index.html` and the CSS in `src/styles.css`.
 
 The modules stand in one order, which is the array `ORDER` in
 `tests/rules/imports.test.js`, with `boot.js` as the root above it:
 
 ```
-util  storage  platform  build  state  time  venues  data  picks  follows
-ics  leave  search  ui                                 the fourteen leaves
+season  util  storage  platform  build  state  time  venues  data  picks
+follows  ics  leave  search  ui                        the fifteen leaves
 scroll  bus
 now  browse  explore  map  mine                        the five views
 sheet  loading  shell  dispatch
@@ -363,19 +364,26 @@ sheet  loading  shell  dispatch
 ```
 
 A module imports only npm packages and the modules before it, reading left
-to right and down; `boot.js` imports any of them, and only `main.js` imports
+to right and down, and `season` and `venues` each the year's data file it
+owns; `boot.js` imports any of them, and only `main.js` imports
 `boot.js`. So there is no cycle, and nothing below can import what is above
 it.
 
-**The leaves** need nothing from the modules after them. `util`: formatting
+**The leaves** need nothing from the modules after them. `season`: the year
+the build is for, `YEAR`, the `YY` every storage key carries, and that
+year's season file, inlined at build as `virtual:season` (DECISIONS #49).
+`util`: formatting
 and date helpers. `storage`: `loadJSON()`, `saveJSON()` and their session
 twins. `platform`: `IS_IOS`, `isStandalone()`. `build`: the stamp `BUILD`,
 the dev-build mark, the device readout. `state`: `settings` and `state`.
-`time`: `now()`, the override, `CON`, `conPhase()`, `conDayKey()`,
-`effectiveNow()`. `venues`: hotel identity, the `WALK` table, the seating
-buffer, `walkMin()`, `placeHTML()`. `data`: `DATA_URL`, the schedule as the
-app holds it (`events`, `byId`, `meta`), the file's works block as
-`worksById`, and `replaceSchedule()`; `linksTo()`, which says whether an
+`time`: `now()`, the override, `CON` - the season file's days - and the
+days' names, `conPhase()`, `conDayKey()`, `effectiveNow()`. `venues`: hotel
+identity, the `WALK` table, the slack, `walkMin()`, `placeHTML()`, all from
+the year's venues file, inlined at build as `virtual:venues`. `data`:
+`DATA_URL`, the schedule as the app holds it (`events`, `byId`, `meta`) -
+`byId` holds the removed events too, `events` never - the file's works
+block as `worksById`, and `replaceSchedule()`; `tagsOf()`, the one read of
+an event's tags, which an untagged event has none of; `linksTo()`, which says whether an
 event is about a work or anything under it, the rolled-up counts and
 `topWorks()` it agrees with, and a person's display name. `data` is the only
 module that walks a work's parent. `picks` and `follows`: what the reader starred and follows -
@@ -490,22 +498,27 @@ Mine also carries the pick-count badge, hidden at zero. Rendering is a
 single `render()` that redraws the active view from `state`.
 
 **Time.** One `now()` function. A `?now=<ISO>` query parameter sets a
-simulated clock, mirrored to `sessionStorage` (`dc26.timeOverride`, or
-`dc26.timeOverride.<channel>` on a stamped build) so it survives navigation
-but not a new tab. `isSimulated()` shows a chip. `conPhase()` returns
+simulated clock, mirrored to `sessionStorage` (`dc<yy>.timeOverride`, or
+`dc<yy>.timeOverride.<channel>` on a stamped build) so it survives navigation
+but not a new tab. `isSimulated()` shows a chip. `CON` spans the season
+file's days, from 18:00 on the first to 19:00 on the last - 2026's observed
+bounds, until a season file holds its own. `conPhase()` returns
 `before | live | ended` from `now()` and drives the pre-con banner, the
 live Now tab, and archive mode. All of it is in `src/time.js`, the one file
 ESLint lets read the clock: a bare `new Date()` or `Date.now()` anywhere
 else under `src/` fails `npm run lint`.
 
-**Picks.** A `Set` of event ids, persisted as `dc26.picks`. On load,
+**Picks.** A `Set` of event ids, persisted as `dc<yy>.picks`. On load,
 `reconcilePicks()` compares each pick against a stored snapshot: a pick
-whose event vanished is dropped and reported; one whose time or room moved
-is reported and re-snapshotted. The report (`dc26.pickNews`) shows on Now
-and Mine until dismissed.
+whose id was merged into another event - it is in that event's `was` -
+moves to it; one whose event vanished otherwise is dropped; one whose
+event the source dropped stays a pick, and its snapshot remembers that it
+was told; one whose time or room moved is re-snapshotted. Each is reported
+once (DECISIONS #49). The report (`dc<yy>.pickNews`) shows on Now and Mine
+until dismissed.
 
 **Now tab.** Hero card for the current pick with a leave-by line when the
-next pick is in another hotel (walk estimate + 10 min), then the rest of the
+next pick is in another hotel (walk estimate + the slack, 10 min), then the rest of the
 day's picks, then "On now" and upcoming groups. A minute tick re-renders
 only what changed. Until the app is installed the tab opens with the install
 nudge; after the con it is the record of the reader's picks.
@@ -515,7 +528,10 @@ Search, Explore and Mine. Not on Now or Map, which say the same thing
 themselves, and not once the con is over.
 
 **Mine.** Timeline view by default (con day ends 5 AM), list view as an
-option. Export to `.ics`, remove all.
+option. Export to `.ics`, remove all. A pick on an event the source
+dropped is drawn here and nowhere else, where its time puts it, struck and
+marked "Removed from the schedule", with no gap line or walk link to or
+from it; the export leaves it out (DECISIONS #49).
 
 **Map.** Schematic SVG of the host hotels, Peachtree and Courtland streets,
 and the three skybridges. Per-hotel pick-count pills for the selected day; a
@@ -538,18 +554,20 @@ runs once per animation frame.
 **The sheet.** One bottom sheet, three panels: Settings, an event's detail, a
 hotel's picks for the day. Swipe down to dismiss.
 
-**Stored keys.** Everything is `localStorage` but the last row.
+**Stored keys.** Everything is `localStorage` but the last row, and every
+key carries the build's year, `<yy>` its last two digits (DECISIONS #49):
+a build for a new year starts with none of the last one's.
 
 | Key | Read in | Written in | What |
 |---|---|---|---|
-| `dc26.picks`, `dc26.pickInfo`, `dc26.pickNews` | `picks` | `picks` | Starred event ids; what each looked like when starred; the report of what changed |
-| `dc26.follows` | `follows` | `follows` | What the reader follows: `{kind, key}`, a track by name, a work, an axis value or a person by id; kept by its shape as it is read (DECISIONS #39) |
-| `dc26.settings` | `state` | `sheet` | Crowd factor, the default noise filter |
-| `dc26.mineView`, `dc26.followingLayout`, `dc26.followingOpen` | `state` | `dispatch` | Timeline or list; the Following feed's layout, and whether it is folded |
-| `dc26.bigtext` | `boot` | `shell` | Larger text. Its own key, so nothing that resets settings shrinks it; all sizes outside the map SVG are in `rem` |
-| `dc26.archiveNoticeDismissed` | `shell` | `dispatch` | The year whose "has ended" notice was dismissed |
-| `dc26.nudgeSnoozedUntil` | `now` | `dispatch` | When the install nudge may show again |
-| `dc26.timeOverride[.<channel>]` (`sessionStorage`) | `time` | `time` | The simulated clock |
+| `dc<yy>.picks`, `dc<yy>.pickInfo`, `dc<yy>.pickNews` | `picks` | `picks` | Starred event ids; what each looked like when starred; the report of what changed |
+| `dc<yy>.follows` | `follows` | `follows` | What the reader follows: `{kind, key}`, a track by name, a work, an axis value or a person by id; kept by its shape as it is read (DECISIONS #39) |
+| `dc<yy>.settings` | `state` | `sheet` | Crowd factor, the default noise filter |
+| `dc<yy>.mineView`, `dc<yy>.followingLayout`, `dc<yy>.followingOpen` | `state` | `dispatch` | Timeline or list; the Following feed's layout, and whether it is folded |
+| `dc<yy>.bigtext` | `boot` | `shell` | Larger text. Its own key, so nothing that resets settings shrinks it; all sizes outside the map SVG are in `rem` |
+| `dc<yy>.archiveNoticeDismissed` | `shell` | `dispatch` | The year whose "has ended" notice was dismissed |
+| `dc<yy>.nudgeSnoozedUntil` | `now` | `dispatch` | When the install nudge may show again |
+| `dc<yy>.timeOverride[.<channel>]` (`sessionStorage`) | `time` | `time` | The simulated clock |
 
 ## Offline
 
@@ -558,12 +576,14 @@ hotel's picks for the day. Swipe down to dismiss.
 | Request | Strategy | Why |
 |---|---|---|
 | `index.html` | Network-first, 3 s timeout, fall back to cache; late responses still cached | A fix should land when there's signal; a slow tower must not block launch |
-| `events.v2.json` | Cache-first; revalidate in the background; notify the page only if `generated_at` changed | Megabytes on con wifi are the thing that makes the app feel broken |
+| `events.v2.json` | Cache-first; revalidate in the background; notify the page only if its `digest` changed - `generated_at`, for a copy without one | Megabytes on con wifi are the thing that makes the app feel broken |
 | Fonts | Cache-first forever (opaque responses allowed) | Never change; a missing font is a visibly broken page |
 
-Cache name is `dc26-v5` (or `dc26-<channel>-v5` on a stamped build). Bump
-the version when the built page or `sw.js` changes; older caches under the
-same prefix are deleted on activate. Install precaches the shell
+Cache name is `dc<yy>-v6` (or `dc<yy>-<channel>-v6` on a stamped build),
+`<yy>` the stamped year's last two digits. Bump the version when the built
+page or `sw.js` changes; this site's other caches, of any year, are deleted
+on activate, matched by the whole name, so the live site's worker and the
+next site's leave each other's alone. Install precaches the shell
 individually so one failed fetch doesn't fail the install.
 
 ## Build and deploy
@@ -581,11 +601,19 @@ On `next` the client is built (DECISIONS #23). `npm run build` runs Vite
   `safari16.4`. The script and the CSS are minified, by Vite's defaults,
   and there is no source map.
 - everything in `public/`, verbatim, and from `data/` only what the client
-  reads: `data/2026/events.v2.json`, an allowlist (DECISIONS #39). The frozen
-  v1 file, the tag cache and the registries are the pipeline's and stay
-  behind.
+  reads: `data/<year>/events.v2.json` for the year `DC_YEAR` names, 2026
+  where it is unset, an allowlist (DECISIONS #39, #49). The frozen v1 file,
+  the tag cache and the registries are the pipeline's and stay behind.
 
-`build/vite-dc.js` (`dcBuild`) runs last, in `closeBundle`. Vite emits the
+`build/vite-dc.js` holds two plugins. `dcYear` runs first, in the dev
+server and Vitest as in the build: it reads `DC_YEAR` - four digits, 2026
+where it is unset, or the build fails before it starts - defines
+`__DC_YEAR__`, which `src/season.js` reads, and resolves `virtual:season`
+and `virtual:venues` to the year's `season.json` and `venues.json`, which
+Vite inlines like any JSON import. It refuses a year whose two files are
+missing, or whose `season.json` names another year (DECISIONS #49).
+
+`dcBuild` runs last, in `closeBundle`. Vite emits the
 entry as `<script type="module" crossorigin>` in `<head>`; `dcBuild` moves
 it to the end of `<body>` as a bare, classic `<script>`, because the app
 reads the DOM as it is imported, and because the build smoke runs the page
@@ -594,8 +622,13 @@ makes the inlined style a bare `<style>` holding `src/styles.css`,
 minified. When `DC_CHANNEL` is set it stamps the channel into
 `<meta name="dc-channel">` and the worker's `CHANNEL`, and `DC_BUILD`
 (default: short commit sha) into `<meta name="dc-build">`; a bad channel
-string fails the build before it starts. With no channel both stamps stay
-empty and `dist/sw.js` is byte-identical to `public/sw.js`. Then it copies
+string fails the build before it starts. For a year that is not 2026 it
+stamps the worker's `YEAR`, and the year into the page's name - `Dragon Con
+<year>` and `DC<yy>` in its title, its head's tags and the brand on Now -
+and the manifest's; the icons draw the year in pixels, which no stamp
+reaches. With no channel and the default year both stamps stay empty, and
+`dist/sw.js` and `dist/manifest.json` are `public/`'s byte for byte. A year
+with no `events.v2.json` fails the build before it starts. Then it copies
 the allowlist into `dist/data/`.
 
 `npm run dev` serves the unbuilt modules for development. It runs the app
@@ -630,7 +663,7 @@ pip install -r requirements.txt
 python -m pytest tests/       # every tests/test_*.py: the pipeline's tests
 ```
 
-The client is tested by Vitest (DECISIONS #24), in four kinds of file.
+The client is tested by Vitest (DECISIONS #24), in five kinds of file.
 
 **Page tests** (`tests/page/`, one file per part of the app, and
 `tests/real-data.test.js`) run the source, in the test's own realm. There
@@ -643,7 +676,9 @@ but the entry, fresh (`vi.resetModules()`, `import.meta.glob`; importing
 `main.js` would boot the page), merges their exports into one `app` - a
 getter per export, so an exported `let` stays live, and a throw if two
 modules export one name - and calls `boot({events, reload})` with a fixture:
-`tests/sample-events.json`, or the real schedule for `real-data`. A test
+`tests/sample-events.json`, the real schedule of the year under test for
+`real-data`, or a test's own copy of the sample, changed where it needs a
+schedule the sample lacks - a removed event, a `was`, a digest. A test
 drives the page through the DOM, through the handle `boot()` returned, and
 through `app`, wherever a name lives. The window outlives the modules, so
 the helper records every listener and interval `boot()` registers and
@@ -660,20 +695,27 @@ a MutationObserver where the claim is that nothing was redrawn.
 **Unit tests** (`tests/unit/`) import pure exports by name, from the module
 that holds them, with no page. They still run in jsdom, because a module
 they reach may read the document as it is imported: `time.js` imports
-`build.js`, which looks for the stamps.
+`build.js`, which looks for the stamps. `year-files.test.js` hands the
+client another year's season file and a venues file of other values, by
+`vi.mock` of the two data modules, so that what the client derives is
+seen to follow the files.
 
 **Rules** (`tests/rules/`) are regexes over the text of `src/styles.css` and
 of every module under `src/`, read one after another: declarations a page
 in jsdom cannot show, since jsdom computes no layout. Two source rules
 remain: [1240], the signature of `togglePick()`, which goes when Playwright
 arrives, and [1728], no inline pixel font size, which stays a rule; ESLint
-took the others. `imports.test.js` reads the module graph instead: only
-`main.js` imports `boot.js`, a module imports only npm packages and the
-modules before it in the order, every file under `src/` has a place in it,
+took the others. Two more hold the build's year (DECISIONS #49): no `dc26`
+in `src/`, and no date written into a string under `src/`. `imports.test.js` reads the module graph instead: only
+`main.js` imports `boot.js`, a module imports only npm packages, the year's
+data file it owns and the modules before it in the order, every file under `src/` has a place in it,
 and only the root imports `dispatch.js`.
 
 **`tests/build.test.js`** runs the real `vite build` into temp folders: a
 stamped build, an unstamped one, the default build id, a refused channel,
+the years it refuses, a build for 2027 in a temporary copy of the project
+with a stand-in schedule - its schedule copied, its worker and its name
+stamped, the page booted to fetch, key and read its days by 2027 -
 the shape of the output (one classic `<script>` at the end of the body,
 one `<style>`, no separate assets, relative links in the head, the one file
 copied from `data/`), and checks
@@ -681,6 +723,12 @@ of `sw.js`, the manifest, the icons and the head. It ends with the one test
 that executes `dist/`: the built page in a JSDOM of its own, `fetch` stubbed
 to serve the sample fixture, asserting that the first screen renders, a
 search returns rows and no uncaught error fired.
+
+**`tests/worker.test.js`** runs `public/sw.js` in Node against fakes of
+`self`, `caches`, `fetch` and the worker's clients (DECISIONS #49): the
+digest rule and its fallback, what the stamps name, and which caches
+activate clears. It is not a browser, and does not stand in for
+Playwright (#24).
 
 jsdom is Vitest's default environment; the files that only read text or run
 the build opt out with a `// @vitest-environment node` docblock.
@@ -708,7 +756,8 @@ the scroller; and nothing reads `location.host`, `hostname` or `origin`,
 because the stamp decides the channel, never the address (#15). A later
 config object replaces an earlier one's options for a rule, so the config
 gives the page's selectors for all of `src/` and gives them again, with the
-clock's, for every file but `time.js`.
+clock's, for every file but `time.js`. One more object declares
+`__DC_YEAR__`, the build's define, a global for `src/season.js` alone.
 
 The Python test files are plain pytest modules; running one directly with
 `python tests/test_parse.py` executes nothing.
@@ -795,13 +844,18 @@ them by their job ids: renaming either one un-gates the branch.
   tests run real modules and do not show it.
 - `sw.js` cache version is bumped by hand. Any change to `public/sw.js`,
   a comment included, is a new worker for every installed client.
-- The worker tells the page of a new schedule only when `generated_at`
-  moves, and `events.v2.json` copies `generated_at` from the frozen file: a
-  rebuild after a registry or cache edit changes the bytes and keeps the
-  stamp, so an installed client takes it in quietly on its next revalidation
-  and says nothing (ROADMAP, Held). The file's `digest` does move with the
-  works and the events (DECISIONS #42); whether the worker reads it is
-  Delivery's call.
+- The worker tells the page of a new schedule when the file's `digest`
+  moves, which it does with every rebuild of the works or the events and
+  with nothing else (DECISIONS #42, #49): a rebuild after a registry or
+  cache edit keeps `generated_at` and moves the digest. A copy with no
+  digest - one saved before the file had one - is judged by
+  `generated_at`.
+- The client is built for one year. A build for a year with no
+  `data/<year>/events.v2.json` fails before it starts, so `DC_YEAR=2027`
+  waits for the season's first run past the ids stage. It is set where
+  each site is built - for `next`, the deploy repository's workflow
+  (ROADMAP, Checklist) - and every storage key and cache name carries the
+  year, so the switch starts each reader with nothing of 2026's.
 - The page makes one third-party request at run time: Google Fonts, for
   Barlow Semi Condensed (`index.html`). The worker caches it.
 - No backend, no accounts, no sync: picks live on one device.

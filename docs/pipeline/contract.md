@@ -347,7 +347,7 @@ line ends, and one after the last (PR 6).
 | `source` | `season.json`'s base URL. |
 | `count` | The length of `events`, the removed events among them. |
 | `failures` | `source.json`'s list. |
-| `digest` | The sha256 of the works and the events written exactly as the file writes them: `{"works":[...],"events":[...]}` in the file's one serialisation, compact, a line break before each row - so it can be recomputed from the file's own text - with no timestamps and no failures. Not a canonical sorted-key JSON, which #42's body names (its header note). The worker's input for a new-schedule notice (ROADMAP, Held). |
+| `digest` | The sha256 of the works and the events written exactly as the file writes them: `{"works":[...],"events":[...]}` in the file's one serialisation, compact, a line break before each row - so it can be recomputed from the file's own text - with no timestamps and no failures. Not a canonical sorted-key JSON, which #42's body names (its header note). The worker's input for a new-schedule notice, `generated_at` deciding only where a copy has none (#49). |
 | `works` | #38's block. |
 
 An event's keys run in this order: the ten fields of its merged row
@@ -367,9 +367,9 @@ stage could not answer has no `tags` key. Each from its owner:
 | `track` | build (#42) | The first of the merged `tracks`, or `null` where there are none. |
 | `cancelled` | the parse step (#42) | Its reading of the title and description, `parse_stage.is_cancelled`. |
 | `people`, `facets`, `tags` | the parse step and build | As `docs/discover/schema-v2.md` has them. An event the tag stage could not answer carries no `tags`: untagged is a state, counted, and the client handles the absence (#46). |
-| `removed` | the merge (#44) | `true` when every row of the event is carried as removed, its fields frozen at last sight (#42). It clears when a listing returns. Kept all season; the client filters it out everywhere but Mine and Now. |
+| `removed` | the merge (#44) | `true` when every row of the event is carried as removed, its fields frozen at last sight (#42). It clears when a listing returns. Kept all season; the client filters it out everywhere but Mine, Now included, and Mine draws a picked one marked (#49). |
 | `stale` | the merge (#44) | The supplying row's: `true` where it was carried because its detail page failed (#42). A row carries one flag at most, so an event carries `removed` or `stale`, never both. |
-| `was` | the ids stage (#43), through the merge | The ids merged into this event, directly or through another merged id, from the ledger's `merged_into` lines (The merge). The client's pick reconciliation re-points a pick whose id is absent but in an event's `was`. |
+| `was` | the ids stage (#43), through the merge | The ids merged into this event, directly or through another merged id, from the ledger's `merged_into` lines (The merge). The client's pick reconciliation re-points a pick whose id is absent but in an event's `was` (#49). |
 
 The five place fields by `place`, as the venues step (below, under
 `venues.json`) sets them:
@@ -559,9 +559,9 @@ By hand, one a year (#44, #46). Every key is written, in this order, and
 - the source: `slug` (2026: `dragoncon26`) and `source`, its base URL;
 - `days`, the source's day strings (2026: `Sep  2` to `Sep  7`, two
   spaces before a one-digit day);
-- `con`, `{first, last}`: the con's first and last day, as the client's
-  `CON` has them (2026: `2026-09-02` to `2026-09-07`); and `tz`, the time
-  zone, a string;
+- `con`, `{first, last}`: the con's first and last day, which the client's
+  `CON` takes its days from (2026: `2026-09-02` to `2026-09-07`; #49); and
+  `tz`, the time zone, a string;
 - `window`, `{from, to}`: the cron window, outside which the workflow's
   guard exits 0 (#48); `null` in a frozen year;
 - `frozen` (#46), which the fetch reads: it writes nothing into a frozen
@@ -589,8 +589,8 @@ Every field is written, and
 their `order`; a hotel's fields and a level's, in the order below.
 
 - **A hotel:** `hotel`, the value the schedule's hotel field holds;
-  `name`; its `keys`, below; `short`, `group`, `var` and `order`, as the
-  client's `src/venues.js` has them until PR 9; `placeless` (Streaming,
+  `name`; its `keys`, below; `short`, `group`, `var` and `order`, which the
+  client reads, imported at its build (#49); `placeless` (Streaming,
   Other and Unknown); `display`, whether the room shown is the rest of
   the location or the whole of it (`location` for AmericasMart, else
   `rest`); its `levels`; and `unplaced`, each room with no known level
@@ -606,7 +606,8 @@ their `order`; a hotel's fields and a level's, in the order below.
 - **An alias:** an exact string, case-folded and whitespace-collapsed, to
   room ids on its level. A numeral style is an alias, never a rule, and an
   alias beats the grammar.
-- **The walk:** the matrix, verbatim from `src/venues.js`;
+- **The walk:** the matrix, migrated verbatim from `src/venues.js`, whose
+  constants the client read until #49;
   `same_venue_min` 5; `unknown_pair_min` 12; and `slack_min`, the
   tight-connection slack (#40), which starts at 10, data, tuned later.
 

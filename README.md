@@ -14,12 +14,12 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `tag_events.py` | The 2026 tagger, retired: its tags (fandoms, kind, topics, guests, 18+) are in the frozen `events.json`, which the live site on `main` still reads. The client on `next` reads tags v2, from `events.v2.json`. |
 | `tag_stage.py`, `tag_key.py`, `events_v2.py` | Tags v2: a model's answers about each event, cached, and the schedule with them built into `data/2026/events.v2.json`. See Tagging. |
 | `parse_stage.py`, `registry.py` and `data/registry/`, `draft_people.py`, `census_v2.py`, `tools/` | The rest of the Discover pipeline, and the tools a person runs beside it. `docs/ARCHITECTURE.md`'s repo map says what each one is. |
-| `index.html`, `src/` | The planner: the page's markup, the script as ES modules under `src/` (`main.js` is the entry and `boot.js` starts the app) and `src/styles.css`. Vite builds them into one inlined `dist/index.html`, which reads `data/2026/events.v2.json`. |
+| `index.html`, `src/` | The planner: the page's markup, the script as ES modules under `src/` (`main.js` is the entry and `boot.js` starts the app) and `src/styles.css`. Vite builds them into one inlined `dist/index.html`, which reads its year's `data/<year>/events.v2.json` - `DC_YEAR`'s, 2026 unless set. |
 | `public/sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `public/manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `public/icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Runs the pipeline hourly in the season's window, and by hand, and lands each run that changed a file by pull request, with auto-merge. See The scrape workflow. |
-| `vite.config.js`, `build/vite-dc.js` | The build. With `DC_CHANNEL=next` it stamps the output as a dev build, for the `next` branch's site. |
+| `vite.config.js`, `build/vite-dc.js` | The build. `DC_YEAR` names the year the client is for, 2026 unless set; with `DC_CHANNEL=next` it stamps the output as a dev build, for the `next` branch's site. |
 | `tests/` | The pipeline's tests (pytest) and the client's (Vitest): units, rules over the source, the page in jsdom, the real schedule, the build. Not optional — run them before you push. |
 | `docs/` | `ARCHITECTURE.md`, what the system is; `DECISIONS.md`, what was decided and why; `VISION.md` and `ROADMAP.md`, what 2027 is for and in what order; `discover/`, the Discover design, its censuses and its review records; `venues/`, the floor-plan checklist and the room census; `SPLIT-MANIFEST.md`, the record of the module split. |
 
@@ -34,6 +34,7 @@ python scraper.py --season data/2027/season.json   # the 2027 fetch, into data/2
 npm ci                           # Node version in .nvmrc
 npm run dev                      # the app, unbuilt, at http://localhost:5173
 npm run build && npm run preview # the app as it ships, from dist/
+DC_YEAR=2027 npm run build       # the 2027 client, once data/2027/events.v2.json exists
 ```
 
 The root `index.html` is a build template: opening it as a file, or serving the repo root with a static server, no longer runs the app.
@@ -84,7 +85,7 @@ Rows and the detail sheet name the hotel before the room ("Hilton · 313-314"); 
 
 ## After the con
 
-The app knows the con's bounds (`CON` in `src/time.js`: the first listed event's start to the last one's end) and derives a phase from the clock: before, live, or ended. Once it has ended, a dismissible banner says so, the Now tab becomes **Your 2026 schedule** - every starred event by day, still starrable - and nothing anywhere says "on now", "leave by" or "in 40 min". Search, Explore, the map, Mine and the calendar export work as before, except that the "Already happened" folds are gone, since everything has.
+The app knows the con's bounds (`CON` in `src/time.js`: the season file's first and last day, from 18:00 on the first to 19:00 on the last - the 2026 schedule's first start and last end) and derives a phase from the clock: before, live, or ended. Once it has ended, a dismissible banner says so, the Now tab becomes **Your 2026 schedule** - every starred event by day, still starrable - and nothing anywhere says "on now", "leave by" or "in 40 min". Search, Explore, the map, Mine and the calendar export work as before, except that the "Already happened" folds are gone, since everything has.
 
 Every read of the clock goes through one `now()` function. `?now=2026-09-05T14:15` in the URL (an offset works too: `?now=2026-09-05T14:15:00-04:00`) simulates that moment for the whole app and shows a small **simulated time** chip in the header; the override is kept for the tab's session, so reloads keep it, and the chip or Settings clears it. That is how the live behaviour is checked in the off-season.
 
@@ -100,9 +101,11 @@ The publishing lives in the [`dragoncon-planner-next`](https://github.com/Kilgor
 gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next
 ```
 
-`npm run build` writes the site into `dist/` - one `index.html` with the CSS and script inlined, the files from `public/`, and `data/2026/events.v2.json`, the one data file the client reads - and, given a channel, stamps it: `index.html` gets the channel and build id in two `<meta>` tags, which the page reads to show the **dev build** mark and to name the build in the device readout; `sw.js` gets a cache name of its own (`dc26-next-v5`), because the two sites share one origin and would otherwise delete each other's caches. The source carries empty stamps, so a build with no channel wears no mark and its `sw.js` is `public/sw.js` byte for byte; the mark is decided by the stamp, never by the address. `main` is still the 2026 one-file app and never runs a build. `dist/` is ignored by git.
+`npm run build` writes the site into `dist/` - one `index.html` with the CSS and script inlined, the files from `public/`, and the year's `data/<year>/events.v2.json`, the one data file the client reads - and, given a channel, stamps it: `index.html` gets the channel and build id in two `<meta>` tags, which the page reads to show the **dev build** mark and to name the build in the device readout; `sw.js` gets a cache name of its own (`dc26-next-v6`), because the two sites share one origin and would otherwise delete each other's caches. The source carries empty stamps, so a build with no channel wears no mark and its `sw.js` is `public/sw.js` byte for byte; the mark is decided by the stamp, never by the address. `main` is still the 2026 one-file app and never runs a build. `dist/` is ignored by git.
 
-One origin also means one localStorage: in an ordinary browser tab the next site reads the same picks and settings as the live one. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected. The simulated clock is the exception: its session key carries the channel, so a `?now=` opened on the next site does not follow you to the live site in the same tab.
+`DC_YEAR` names the year the client is built for: four digits, 2026 unless set, and a year with no `data/<year>/events.v2.json` does not build. A build for another year stamps it into the worker, the page's name and the manifest, and keys everything it stores by the year, so it starts with none of 2026's picks, follows or settings (DECISIONS #49). The next site moves to 2027 by a line of its workflow, once 2027's first run has written the file (ROADMAP, Checklist).
+
+One origin also means one localStorage: in an ordinary browser tab the next site reads the same picks and settings as the live one, while both are built for the same year. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected. The simulated clock is the exception: its session key carries the channel, so a `?now=` opened on the next site does not follow you to the live site in the same tab.
 
 ## Offline
 
@@ -114,7 +117,7 @@ The service worker caches the app and the schedule, so it opens and renders in a
 
 To install: iPhone must use **Safari** (Share → Add to Home Screen); Android uses Chrome (⋮ → Install app). Until it is installed, the Now tab opens with a nudge saying so, which can be put off for a week at a time. You get a **DC26** icon that opens without browser chrome. The content area scrolls inside its own container rather than the page, so the header and the nav stay put on an iPhone instead of riding the system's bottom inset. The status bar is opaque on purpose: on iOS 26 a translucent one leaves the web view short by its own height, with a dead strip at the bottom of the screen. iOS reads these web-app settings once, when the icon is added, so a change to them only reaches a phone after the icon is deleted and added again from Safari. The device line under Advanced in Settings ends with the build time, so you can tell which version a phone is running.
 
-Bump `CACHE` in `public/sw.js` when the built page or the worker changes in a way that must reach people immediately; older `dc26-*` caches are dropped on activate.
+Bump `CACHE` in `public/sw.js` when the built page or the worker changes in a way that must reach people immediately; the site's other caches, of any year, are dropped on activate.
 
 ## Tagging
 
@@ -147,7 +150,7 @@ The same event is often listed twice — once in the panel feed and once in gami
 
 ## Walk times
 
-Estimates in minutes, before the crowd factor, in the `WALK` table in `src/venues.js`, and again as `walk` in `data/2027/venues.json`, which a test holds equal to it until the client reads the file. Edit both if you know better — especially Westin and Courtland Grand, the far ends.
+Estimates in minutes, before the crowd factor, as `walk` in the year's `data/<year>/venues.json`, beside `same_venue_min`, `unknown_pair_min` and `slack_min`; the client imports the file at its build (DECISIONS #49). Edit the year's file if you know better — especially Westin and Courtland Grand, the far ends.
 
 ## If the scraper breaks
 
@@ -161,4 +164,4 @@ Hosted by Core-apps at `https://app.core-apps.com/dragoncon26`. Day pages are `e
 
 A run that changed a committed file lands by pull request (DECISIONS #48): it commits as schedule-bot to a `schedule/<stamp>` branch off the target, opens a pull request into the target with the run's summary as its body, closes the bot's older open ones as superseded, and turns on auto-merge, so the pull request merges once CI passes. A run that changed nothing, or a fatal one, commits nothing, and a fatal one fails the job. Each fault - a failed page, an input past the request cap, an event untagged - shows as a warning on the run, and the rooms still to curate as notices. Two runs never overlap: a second waits for the first.
 
-The 2027 client still points at 2026: the worker (`DATA` and `SHELL` in `public/sw.js`), the build's allowlist (`DATA_FILES` in `build/vite-dc.js`) and `CON` (`src/time.js`; `DATA_URL` in `src/data.js` follows its year) move to `data/2027/` with the 2027 client switch (ROADMAP, Pipeline shape's PR 9), and the 2026 file stays where it is.
+The client is built for one year, `DC_YEAR`'s, 2026 unless set (DECISIONS #49): the next site moves to 2027 once the season's first run past the ids stage has written `data/2027/events.v2.json`, and `main` at the freeze (ROADMAP, Checklist). The 2026 file stays where it is.
