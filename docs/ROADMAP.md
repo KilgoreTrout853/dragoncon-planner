@@ -69,10 +69,19 @@ seam a feed would plug into (#41). The sequence:
    the build import; a season read through the build's front door and the
    merge; `prompt_version` from `season.json`; `seed`; the request cap and
    `--requests`; the result the run summary reads; the frozen refusal; and
-   `minted` on a minted row. 7b, the diff.
+   `minted` on a minted row. 7b, the diff - built: `diff_stage.py`, one
+   line per event and kind, `merged` read from `was`, each line `source` or
+   `code` by the attribution document the caller builds with
+   `events_v2.attribution()`, `changed_at` with the digest, `render()`; and
+   the change log's committed check, skipped until a live run commits.
 8. The orchestrator, the run summary and the workflow, proven by a
    dispatch run against the 2026 source with `--limit` into a scratch
-   branch; and the season-start sequence it owns: a dispatch run to the
+   branch: the snapshot of the previous files, one stamp handed down to
+   every stage, the SHA - two git calls, `rev-parse HEAD` and
+   `diff --name-only` against `last-run.json`'s, which set
+   `fetch_code_changed` - the attribution and the diff, and the workflow,
+   whose commit step checks that the change log begins with the last
+   commit's; and the season-start sequence it owns: a dispatch run to the
    ids stage, then `seed`, then a hand tag with `--requests` set high
    (`contract.md`, The tag stage, as built).
 9. The 2027 client switch, after a design pass of its own; its pick
