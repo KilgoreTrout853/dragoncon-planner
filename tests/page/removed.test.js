@@ -188,6 +188,36 @@ describe("a schedule that dropped one pick and merged two", () => {
       expect(info["old-b"]).toBeUndefined();
     });
   });
+
+  describe("with only the removed pick left", () => {
+    it("Export to calendar is off, and Remove all is on", () => {
+      handle.picks.set([removed.id]);
+      show("mine", { mineView: "list" });
+      expect(document.querySelector('#view-mine [data-act="ics"]').disabled).toBe(true);
+      expect(document.querySelector('#view-mine [data-act="clear"]').disabled).toBe(false);
+    });
+  });
+});
+
+/* A merge's survivor that the source has since dropped: the picks move to
+   it, and it is reported removed once, however many picks came to it. */
+describe("two picks merged into an event the source has since dropped", () => {
+  let page;
+  beforeAll(async () => {
+    seed(`dc${YY}.picks`, ["old-a", "old-b"]);
+    seed(`dc${YY}.pickInfo`, {
+      "old-a": { title: "Old title A", start: survivor.start, location: survivor.location },
+      "old-b": { title: "Old title B", start: survivor.start, location: survivor.location },
+    });
+    page = await bootPage({ data: { ...data, events: data.events.map(e => e.id === survivor.id ? { ...e, removed: true } : e) } });
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("says each moved, and that the event was removed, once", () => {
+    expect(JSON.parse(window.localStorage.getItem(`dc${YY}.pickNews`)).map(n => n.kind)).toEqual(["merged", "removed", "merged"]);
+    expect(JSON.parse(window.localStorage.getItem(`dc${YY}.pickInfo`))[survivor.id].removed).toBe(true);
+    expect([...page.handle.picks.get()]).toEqual([survivor.id]);
+  });
 });
 
 /* The merge's news, read before anything is dismissed. */
