@@ -539,6 +539,7 @@
   {"id": "the-cruxshadows", "name": "The Cruxshadows", "aliases": [], "type": "franchise", "reviewed": true},
   {"id": "the-dark-crystal", "name": "The Dark Crystal", "aliases": [], "type": "franchise", "reviewed": true},
   {"id": "the-dark-knight", "name": "The Dark Knight", "aliases": [], "type": "franchise", "parent": "batman", "reviewed": true},
+  {"id": "the-dark-knight-returns", "name": "The Dark Knight Returns", "aliases": [], "type": "franchise", "parent": "batman", "reviewed": false, "minted": {"year": 2026, "run": "2026-09-24T13:53:18+00:00"}},
   {"id": "the-death-of-robin-hood", "name": "The Death of Robin Hood", "aliases": [], "type": "franchise", "reviewed": true},
   {"id": "the-delta-flyers", "name": "The Delta Flyers", "aliases": ["The Delta Flyers Podcast"], "type": "franchise", "parent": "star-trek-voyager", "reviewed": true},
   {"id": "the-demonatrix", "name": "The Demonatrix", "aliases": [], "type": "franchise", "reviewed": false},

@@ -1,24 +1,24 @@
 {
-  "stamp": "2026-09-24T13:45:13+00:00",
-  "fetched_at": "2026-09-24T13:45:13+00:00",
-  "changed_at": "2026-09-24T13:45:13+00:00",
-  "sha": "c8c09c6e563f6f941bb125c06f7e864aca47e1e6",
+  "stamp": "2026-09-24T13:53:18+00:00",
+  "fetched_at": "2026-09-24T13:53:18+00:00",
+  "changed_at": "2026-09-24T13:53:18+00:00",
+  "sha": "1db496d51018be5cf57be1eb51d405d16c5aa616",
   "fetch_code_hash": "5b30ac1c916fe40f434bb177f275a715f388d7027e725fdedd8bcd95228f8bdf",
   "fetch_code_changed": false,
-  "changes_logged": 10,
-  "digest": "dc3b1631303be8933fd1590c0f5237b009acf8b1b1c30b871e13b6f36065d873",
+  "changes_logged": 14,
+  "digest": "1f8b141607a8c4765b68072aee4516d1b8e127d92c452ea5cff69cad6def2c4a",
   "season": 2026,
-  "elapsed": 70.8,
+  "elapsed": 84.5,
   "fetch": {
-    "listings": 70,
-    "fetched": 70,
+    "listings": 84,
+    "fetched": 84,
     "stale": 0,
     "removed": 0,
     "failures": 0,
     "repaired": 0
   },
   "ids": {
-    "new": 10,
+    "new": 14,
     "matches": 0,
     "merges": 0,
     "leavers": 0,
@@ -28,35 +28,35 @@
   },
   "tag": {
     "requests": 1,
-    "sent": 10,
+    "sent": 13,
     "capped": 0,
     "failed": 0,
     "stopped": 0,
     "unanswered": 0,
-    "minted": 0,
+    "minted": 1,
     "mint_failed": 0
   },
   "build": {
     "untagged": 0,
     "unresolved_names": 0,
     "unknown_tracks": 0,
-    "rooms_unresolved": 30,
+    "rooms_unresolved": 39,
     "hotels_unknown": 0,
     "places": {
-      "exact": 18,
+      "exact": 20,
       "alias": 0,
-      "rule": 14,
+      "rule": 16,
       "level": 0,
-      "hotel": 32,
-      "none": 6
+      "hotel": 41,
+      "none": 7
     }
   },
   "diff": {
     "kinds": {
-      "added": 10
+      "added": 14
     },
     "causes": {
-      "source": 10
+      "source": 14
     }
   }
 }
