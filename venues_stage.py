@@ -411,7 +411,7 @@ def _check(names, rooms):
 
 @dataclass
 class VenuesReport:
-    """What a run read, for the run summary's venue counters (#44; PR 8). Every list runs by events, descending.
+    """What a run read, for the run summary's venue counters (#44; pipeline.py). Every list runs by events, descending.
 
     places      events by place kind, every kind
     hotels      per hotel, in the file's order, events by place kind

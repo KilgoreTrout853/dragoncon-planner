@@ -338,30 +338,62 @@ def live(folder, season):
     the committed ledger. BuildError where source.json is absent, unreadable or another source's; where last-run.json
     is absent - a live year needs a run - or holds no stamps; where the ids stage refuses the rows; and where
     assigning them would change the ledger: run the ids stage first."""
-    path = os.path.join(folder, "source.json")
-    source = _read(path)
-    if not isinstance(source, dict) or set(source) != {"source", "failures", "rows"}:
-        raise BuildError([f"{path} is not a source.json: an object of source, failures and rows"])
-    if source["source"] != season["source"]:
-        raise BuildError([f"{path} is {source['source']}'s, not the season's {season['source']}"])
+    source = _read(os.path.join(folder, "source.json"))
+    _check_source(source, folder, season)
     path = os.path.join(folder, "last-run.json")
     if not os.path.exists(path):
         raise BuildError([f"{path} is absent: a live year needs a run, whose fetched_at and changed_at are the file's "
                           "generated_at and changed_at (DECISIONS #42, #44)"])
     run = _read(path)
-    if not isinstance(run, dict) or not all(isinstance(run.get(k), str) and run[k]
-                                            for k in ("fetched_at", "changed_at")):
-        raise BuildError([f"{path} holds no fetched_at and changed_at"])
+    _check_run(run, folder)
     try:
         ledger = ids_stage.read_ledger(os.path.join(folder, "ids.jsonl"))
+    except ids_stage.IdsError as exc:
+        raise BuildError([f"the ids stage refuses these rows: {exc}"]) from None
+    return _assigned(source, run, ledger, season, folder)
+
+
+def live_inputs(source, run, ledger, season, folder):
+    """live() on inputs already read (#42) -> (rows, top, ledger), with its refusals: source.json's parsed file,
+    last-run.json's and the ledger, as ids_stage.parse_ledger() gives it. The orchestrator (pipeline.py) builds through
+    it where it skips the ids stage, and builds a second time through it on the texts a run is about to write, the
+    build CI checks (#44). `folder` names the files in the messages."""
+    _check_source(source, folder, season)
+    _check_run(run, folder)
+    return _assigned(source, run, ledger, season, folder)
+
+
+def live_top(season, failures, rows, fetched_at, changed_at):
+    """A live year's top-level fields (#42): generated_at, last-run.json's fetched_at; its changed_at; the season's
+    source; count, the ids the rows carry - every event, the removed ones among them; and source.json's failures."""
+    return {"generated_at": fetched_at, "changed_at": changed_at, "source": season["source"],
+            "count": len({r["id"] for r in rows}), "failures": failures}
+
+
+def _check_source(source, folder, season):
+    path = os.path.join(folder, "source.json")
+    if not isinstance(source, dict) or set(source) != {"source", "failures", "rows"}:
+        raise BuildError([f"{path} is not a source.json: an object of source, failures and rows"])
+    if source["source"] != season["source"]:
+        raise BuildError([f"{path} is {source['source']}'s, not the season's {season['source']}"])
+
+
+def _check_run(run, folder):
+    if not isinstance(run, dict) or not all(isinstance(run.get(k), str) and run[k]
+                                            for k in ("fetched_at", "changed_at")):
+        raise BuildError([f"{os.path.join(folder, 'last-run.json')} holds no fetched_at and changed_at"])
+
+
+def _assigned(source, run, ledger, season, folder):
+    """The rows' ids from the committed ledger, which the ids stage must leave as it is."""
+    try:
         result = ids_stage.assign(source["rows"], ledger, run["fetched_at"], season["thresholds"])
     except ids_stage.IdsError as exc:
         raise BuildError([f"the ids stage refuses these rows: {exc}"]) from None
     if result.ledger != ledger:
         raise BuildError([f"{os.path.join(folder, 'ids.jsonl')} does not hold the ids of source.json's rows: run the "
                           "ids stage first"])
-    top = {"generated_at": run["fetched_at"], "changed_at": run["changed_at"], "source": season["source"],
-           "count": len({r["id"] for r in result.rows}), "failures": source["failures"]}
+    top = live_top(season, source["failures"], result.rows, run["fetched_at"], run["changed_at"])
     return result.rows, top, ledger
 
 
@@ -500,7 +532,8 @@ def main(argv=None):
         except OSError:
             on_disk = None
         if on_disk != body:
-            fix = ("the orchestrator writes it (DECISIONS #44)" if not season["frozen"] else
+            fix = ("the orchestrator writes it (DECISIONS #44): run `python pipeline.py run --season "
+                   f"{args.season} --from build`" if not season["frozen"] else
                    "run `python events_v2.py" + ("" if same_file(args.season, SEASON) else f" --season {args.season}")
                    + "`")
             print(f"{out} is not a fresh build: {fix}", file=sys.stderr)

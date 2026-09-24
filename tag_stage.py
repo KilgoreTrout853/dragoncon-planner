@@ -484,10 +484,10 @@ def run_requests(batches, guide, transport, model, cache, save, tally, requests,
 
 @dataclass
 class TagResult:
-    """What a run of the tag stage did, for the run summary (#44, #46; PR 8). Every input asked about - uncached, and
-    named by --only where it is given - is answered, or left uncached one way: capped, stopped, failed or unanswered.
-    tag() fills the counts; the mint pass, mint(), fills minted - their count is its length - mint_failed and
-    parents_requests."""
+    """What a run of the tag stage did, for the run summary (#44, #46; pipeline.py). Every input asked about -
+    uncached, and named by --only where it is given - is answered, or left uncached one way: capped, stopped, failed
+    or unanswered. tag() fills the counts; the mint pass, mint(), fills minted - their count is its length -
+    mint_failed and parents_requests."""
     model: str                  # the model asked for, by full id; each cache line records the one that answered
     inputs: int = 0             # the season's distinct inputs, its removed events aside
     cached_before: int = 0      # of those, with an answer in the cache before the run
@@ -663,11 +663,17 @@ def place_parents(new, reg, transport, model):
     return acyclic(found, {w["id"]: w.get("parent") for w in reg.works})
 
 
+def works_rows(reg, new):
+    """works.json's rows with the new ones added, sorted by id and each in the registry's key order, as write_works()
+    writes them and the orchestrator (pipeline.py) does, with draft_people.json_text()."""
+    return [dp.in_order(w, registry.WORK_KEYS) for w in sorted(list(reg.works) + list(new), key=lambda w: w["id"])]
+
+
 def write_works(directory, reg, new):
     """works.json with the new rows added, sorted by id and in the registry's key order - written
     the way draft_people writes it, so the diff is the added rows - once the registry, new rows
     and all, has been shown to load."""
-    rows = [dp.in_order(w, registry.WORK_KEYS) for w in sorted(list(reg.works) + list(new), key=lambda w: w["id"])]
+    rows = works_rows(reg, new)
     with tempfile.TemporaryDirectory() as tmp:
         dp.write_json(os.path.join(tmp, "works.json"), rows)
         for name in ("people.json", "tracks.json"):
@@ -683,7 +689,19 @@ def mint(result, events, cache, reg, version, directory, transport, model, *, mi
     `minted` ({year, run}) after `reviewed`, and no other row changed. A failed parents request
     writes nothing: the planned ids go to result.mint_failed, and their links drop for this run, as
     an unresolved name's do (#44). -> the plan, for the report, with the parents found, and
-    parents_failed where the request failed."""
+    parents_failed where the request failed. mint_works() is all of it but the write."""
+    plan = mint_works(result, events, cache, reg, version, transport, model, minted=minted, parents=parents, log=log)
+    if plan["works"] and "parents_failed" not in plan:
+        write_works(directory, reg, plan["works"])
+        result.minted = sorted(w["id"] for w in plan["works"])
+    return plan
+
+
+def mint_works(result, events, cache, reg, version, transport, model, *, minted, parents=True, log=None):
+    """mint() with no file: the plan, the parents asked for and each new row's parent and `minted`, but nothing
+    written and result.minted left to the caller, who writes the rows - mint(), at once; the orchestrator
+    (pipeline.py), with the rest of a run's files, once registry.check() has passed them. -> the plan: its "works" are
+    the rows to add, unless it holds "parents_failed", and then nothing is added and result.mint_failed names them."""
     log = log or (lambda msg: None)
     plan = mint_plan(events, cache, reg, version)
     placed = {}
@@ -700,13 +718,10 @@ def mint(result, events, cache, reg, version, directory, transport, model, *, mi
             plan["parents"] = {}
             result.mint_failed = sorted(w["id"] for w in plan["works"])
             return plan
-    if plan["works"]:
-        for w in plan["works"]:
-            if w["id"] in placed:
-                w["parent"] = placed[w["id"]]
-            w["minted"] = dict(minted)
-        write_works(directory, reg, plan["works"])
-        result.minted = sorted(w["id"] for w in plan["works"])
+    for w in plan["works"]:
+        if w["id"] in placed:
+            w["parent"] = placed[w["id"]]
+        w["minted"] = dict(minted)
     plan["parents"] = placed
     return plan
 
@@ -829,8 +844,8 @@ def seed_main(argv):
 def main(argv=None):
     """The tag stage by hand; `seed` as the first argument is seed_main's. The exit code is a hand run's: 1 where an
     input failed, was stopped or went unanswered, or the parents request failed; 0 otherwise, inputs past the cap among
-    them, since a later run takes them. The orchestrator (PR 8) calls tag() and mint() and reads the TagResult, so its
-    own table of the fatal and the degraded (#44) decides, not this exit code."""
+    them, since a later run takes them. The orchestrator (pipeline.py) calls tag() and mint_works() and reads the
+    TagResult, so its own table of the fatal and the degraded (#44) decides, not this exit code."""
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv[:1] == ["seed"]:
         return seed_main(argv[1:])

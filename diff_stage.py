@@ -36,7 +36,7 @@ survivor - and "code" where they agree: the previous rows, read by the current c
 whole change. Without attribution every line is "source". from and to are always previous to current. Attribution
 sees the build's code and data - the registries, the venues file, the cache and the version - not the fetch's: a
 change to the fetch's parsing or its repair reaches the raw rows themselves, and reads as source (last-run.json's
-fetch_code_changed, PR 8's, says when).
+fetch_code_changed, the orchestrator's, says when).
 
 A line is {run, sha, id, kind, from, to, cause}, in that order: from and to only where the kind has them, `to` alone
 for merged. Lines sort by run, id and kind, in string order. changed_at is the stamp when current's digest differs
@@ -71,7 +71,7 @@ class DiffError(Exception):
 
 @dataclass
 class DiffResult:
-    """What diff() returns (contract.md, The change log): the run summary reads the counts (#44; PR 8)."""
+    """What diff() returns (contract.md, The change log): the run summary reads the counts (#44; pipeline.py)."""
     lines: list                                        # the change lines, sorted by run, id and kind
     changed_at: str                                    # the file's changed_at after this run
     changes_logged: int                                # the count of lines

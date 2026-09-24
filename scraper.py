@@ -318,7 +318,7 @@ class FetchError(Exception):
 
 @dataclass
 class FetchResult:
-    """What fetch() returns: the file's two lists, and the counts the run summary will read (contract.md, The
+    """What fetch() returns: the file's two lists, and the counts the run summary reads (contract.md, The
     fetch's result). `rows` is `fetched` + `carried_stale` + `carried_removed` rows, and `listings` is `fetched` +
     the failures."""
     rows: list             # the raw rows, sorted by source_id: source.json's `rows`
@@ -469,38 +469,53 @@ def read_previous(path, source):
     source.json, or is another source's: a wrong file's rows would all be carried as removed."""
     try:
         with open(path, "rb") as f:
-            doc = json.loads(f.read().decode("utf-8"))
+            data = f.read()
     except OSError as exc:
         raise FetchError(f"the previous file {path} cannot be read ({exc.strerror or exc})") from None
+    return {row["source_id"]: row for row in parse_source(data, path, source)["rows"]}
+
+
+def parse_source(data, path, source):
+    """A source.json's bytes -> the file, {source, failures, rows}, checked as read_previous() checks it: the
+    orchestrator (pipeline.py) reads the file once, before any stage, and hands the bytes here. `path` names the file
+    in the messages. FetchError where the bytes are not a source.json - each row a raw row, each source id once - or
+    are another source's."""
+    try:
+        doc = json.loads(data.decode("utf-8"))
     except ValueError as exc:
         raise FetchError(f"the previous file {path} is not JSON ({exc})") from None
     if not isinstance(doc, dict) or set(doc) != {"source", "failures", "rows"} or not isinstance(doc["rows"], list):
         raise FetchError(f"the previous file {path} is not a source.json: an object of source, failures and rows")
     if doc["source"] != source:
         raise FetchError(f"the previous file {path} is {doc['source']}'s, not {source}'s")
-    rows = {}
+    seen = set()
     for row in doc["rows"]:
         if not isinstance(row, dict) or not all(k in row for k in ROW_FIELDS):
             raise FetchError(f"the previous file {path} holds a row that is not a raw row: "
                              f"{json.dumps(row, ensure_ascii=False)[:80]}")
-        if row["source_id"] in rows:
+        if row["source_id"] in seen:
             raise FetchError(f"the previous file {path} holds {row['source_id']} twice")
-        rows[row["source_id"]] = row
-    return rows
+        seen.add(row["source_id"])
+    return doc
 
 
-def write_source(path, source, failures, rows):
-    """source.json (#42): {"source", "failures", "rows"}, compact, a line break before each row, UTF-8 and LF, and
-    no timestamp, so a run that changes nothing writes the same bytes. Written beside the file and swapped in, so a
-    run that dies part-way leaves the last file whole."""
+def source_text(source, failures, rows):
+    """source.json's text (#42): {"source", "failures", "rows"}, compact, a line break before each row and one after
+    the last, and no timestamp, so a run that changes nothing gives the same bytes. write_source() writes it, and the
+    orchestrator (pipeline.py) with the rest of a run's files."""
     def dumps(obj):
         return json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
 
-    text = ('{"source":' + dumps(source) + ',"failures":' + dumps(failures) + ',"rows":['
+    return ('{"source":' + dumps(source) + ',"failures":' + dumps(failures) + ',"rows":['
             + ",".join("\n" + dumps(row) for row in rows) + "]}\n")
+
+
+def write_source(path, source, failures, rows):
+    """source.json (#42): source_text(), UTF-8 and LF. Written beside the file and swapped in, so a run that dies
+    part-way leaves the last file whole."""
     tmp = path + ".tmp"
     with open(tmp, "wb") as f:
-        f.write(text.encode("utf-8"))
+        f.write(source_text(source, failures, rows).encode("utf-8"))
     os.replace(tmp, path)
 
 

@@ -1,11 +1,12 @@
 """The committed change log's check (DECISIONS #47, as amended; contract.md, What CI holds). For a live year whose
-first run has committed: the log's last stamp against last-run.json - its changed_at when the run logged lines, no
-later when it logged none - every id the log names in events.v2.json, removed or not, or the id of a merged line, and
-the lines sorted by run, id and kind. The prefix check - each commit's log beginning with the last commit's, byte for
-byte - is PR 8's workflow step, where the old bytes exist: CI's checkout is shallow.
+first full run has committed: the log's last stamp against last-run.json - its changed_at when the run logged lines,
+no later when it logged none - every id the log names in events.v2.json, removed or not, or the id of a merged line,
+and the lines sorted by run, id and kind. The prefix check - each commit's log beginning with the last commit's, byte
+for byte - is the orchestrator's, made as it writes (pipeline.py), where the old bytes are: CI's checkout is shallow.
 
-The check on the committed files is skipped until data/2027/last-run.json exists; the fixture test runs the same
-check on every run of the suite.
+The check on the committed files is skipped until data/2027/events.v2.json exists: a season's first run stops after
+the ids stage and leaves last-run.json with no log (contract.md, The tag stage, as built). The fixture test runs the
+same check on every run of the suite.
 
 Run:  python -m pytest tests/
 """
@@ -47,8 +48,8 @@ def problems(log_text, last_run, doc):
     return out
 
 
-@pytest.mark.skipif(not os.path.exists(os.path.join(LIVE, "last-run.json")),
-                    reason="data/2027/last-run.json does not exist: no live run has committed yet (PR 8)")
+@pytest.mark.skipif(not os.path.exists(os.path.join(LIVE, "events.v2.json")),
+                    reason="data/2027/events.v2.json does not exist: no run past the ids stage has committed yet")
 def test_the_committed_change_log_agrees_with_last_run_and_events_v2():
     texts = {}
     for name in ("changes.jsonl", "last-run.json", "events.v2.json"):

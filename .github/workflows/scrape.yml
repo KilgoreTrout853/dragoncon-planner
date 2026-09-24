@@ -1,90 +1,146 @@
-name: Refresh schedule
+name: Scrape
 
-# Dragon Con 2026 is over and data/2026/events.json is the final schedule.
-# This runs by hand only, from the Actions tab, and a run overwrites that
-# file with whatever the host serves now - so only on purpose. The cron
-# that ran it every three hours through con week is gone, not paused; put
-# it back for next year, with a date guard for that year's con week.
+# The 2027 pipeline (DECISIONS #44, #48; docs/pipeline/contract.md, The run, as built): hourly inside the season
+# window, and by hand with `force` past it. pipeline.py decides what a run does and writes; this file lands it. A run
+# that changed a committed file commits to a schedule/ branch off the target, opens a pull request into the target,
+# closes the bot's older ones, and turns on auto-merge, so CI gates it as it gates every change (#26). A run that
+# changed nothing, or a fatal one, commits nothing.
 on:
+  schedule:
+    - cron: "17 * * * *"
   workflow_dispatch:
+    inputs:
+      force:
+        description: Run outside the season window (nothing overrides a fatal rule)
+        type: boolean
+        default: false
+      to:
+        description: Stop after fetch, ids or tag; empty runs every stage
+        type: string
+        default: ""
+      limit:
+        description: Only the first N listings, in page order; empty takes every listing
+        type: string
+        default: ""
+      requests:
+        description: The tag stage's request cap for this run; empty takes the season's
+        type: string
+        default: ""
+      season:
+        description: The season file
+        type: string
+        default: data/2027/season.json
+      target:
+        description: The branch the run starts from and lands on; empty takes the SCRAPE_TARGET variable
+        type: string
+        default: ""
 
 permissions:
-  contents: write
+  contents: read
 
-# Two refreshes at once - a run started by hand overlapping another - both
-# rewrite the schedule, and the rebase in the push step cannot resolve that;
-# it dropped a scrape on Sep 2. Queue them instead: a second run waits for
-# the first to finish, and a third replaces the waiting second.
+# One run at a time: a second waits for the first to land, and a third replaces a second still waiting (#48).
 concurrency:
-  group: refresh-schedule
+  group: scrape
   cancel-in-progress: false
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    env:
+      SEASON: ${{ inputs.season || 'data/2027/season.json' }}
+      TARGET: ${{ inputs.target || vars.SCRAPE_TARGET }}
     steps:
-      - uses: actions/checkout@v7
+      # A run branches afresh from the target (#48): its code and its committed files. The bot's token pushes.
+      - id: checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.target || vars.SCRAPE_TARGET }}
+          token: ${{ secrets.SCHEDULE_BOT_TOKEN }}
+          fetch-depth: 1
 
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.13"
+          cache: pip
 
-      - name: Install
-        run: pip install requests beautifulsoup4
+      - run: pip install -r requirements.txt
 
-      - name: Scrape
-        run: python scraper.py --workers 4
-
-      - name: Refuse to commit a broken scrape
+      - id: window
+        name: Season window
+        env:
+          FORCE: ${{ inputs.force }}
         run: |
-          python - <<'PY'
-          import json, subprocess, sys
-          path = "data/2026/events.json"
-          new = json.load(open(path, encoding="utf-8"))
-          new_n = len(new["events"])
-          f = new.get("failures")
-          n_fail = len(f) if isinstance(f, list) else (f or 0)
-          try:
-              old_raw = subprocess.run(["git", "show", f"HEAD:{path}"],
-                                       capture_output=True, text=True, check=True).stdout
-              old_n = len(json.loads(old_raw)["events"])
-          except Exception:
-              old_n = 0
-          print(f"previous={old_n} new={new_n} failures={n_fail}")
-          if new_n == 0:
-              sys.exit("Refusing to commit: scrape returned 0 events.")
-          if old_n and new_n < old_n * 0.8:
-              pct = 100 * (1 - new_n / old_n)
-              sys.exit(f"Refusing to commit: event count fell {pct:.0f}% ({old_n} -> {new_n}). "
-                       "Host is probably rate-limiting; the previous schedule is left in place.")
-          PY
+          if [ -z "$TARGET" ]; then
+            echo "::error title=scrape::no target: set the SCRAPE_TARGET repository variable, or dispatch with one"
+            exit 1
+          fi
+          window=$(python pipeline.py window --season "$SEASON")
+          echo "$window"
+          echo "window=$window" >> "$GITHUB_OUTPUT"
+          if [ "$window" != "in window" ] && [ "$FORCE" != true ]; then
+            echo "Outside the season window of \`$SEASON\`: nothing run." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
-      - name: Commit the schedule if anything changed
+      - id: run
+        name: Run the pipeline
+        if: steps.window.outputs.window == 'in window' || inputs.force
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PIPELINE_SHA: ${{ steps.checkout.outputs.commit }}
+          FORCE: ${{ inputs.force }}
+          TO: ${{ inputs.to }}
+          LIMIT: ${{ inputs.limit }}
+          REQUESTS: ${{ inputs.requests }}
         run: |
-          git config user.name "schedule-bot"
-          git config user.email "schedule-bot@users.noreply.github.com"
-          git add data/2026/events.json
-          if git diff --cached --quiet; then
-            echo "No changes."
+          args=(run --season "$SEASON")
+          if [ "$FORCE" = true ]; then args+=(--force); fi
+          if [ -n "$TO" ]; then args+=(--to "$TO"); fi
+          if [ -n "$LIMIT" ]; then args+=(--limit "$LIMIT"); fi
+          if [ -n "$REQUESTS" ]; then args+=(--requests "$REQUESTS"); fi
+          python pipeline.py "${args[@]}"
+
+      - name: Job summary
+        if: always() && steps.run.outcome != 'skipped'
+        run: python pipeline.py summary --format md >> "$GITHUB_STEP_SUMMARY"
+
+      # Authored as schedule-bot with the token owner's noreply address, which GitHub attributes to that account, so
+      # the rulesets' extra approval for unattributed changes does not hold the pull request.
+      - name: Land by pull request
+        if: steps.run.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.SCHEDULE_BOT_TOKEN }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "nothing changed"
             exit 0
           fi
-          git commit -m "Refresh schedule $(date -u +%Y-%m-%dT%H:%MZ)"
-          # The scrape takes ~20 minutes, and main may well have moved while it
-          # ran - a push that loses that race drops the whole refresh silently.
-          # The schedule is the only file this job touches, and the concurrency
-          # group keeps two refreshes from running at once, so rebasing onto
-          # whatever landed meanwhile cannot conflict.
-          for attempt in 1 2 3; do
-            if git push; then
-              echo "Pushed on attempt $attempt."
-              exit 0
-            fi
-            echo "Push rejected; main moved while we were scraping. Rebasing and retrying."
-            git pull --rebase --no-edit origin main || {
-              echo "Rebase failed - leaving main alone rather than forcing."
-              exit 1
-            }
-            sleep 5
-          done
-          echo "Still could not push after three attempts."
-          exit 1
+          stamp=$(jq -r .stamp "$(dirname "$SEASON")/last-run.json")
+          branch="schedule/${stamp//:/}"
+          python pipeline.py summary --format md > "$RUNNER_TEMP/summary.md"
+          { echo "schedule: $stamp"; echo; cat "$RUNNER_TEMP/summary.md"; } > "$RUNNER_TEMP/commit.txt"
+          git config user.name schedule-bot
+          git config user.email 237842455+KilgoreTrout853@users.noreply.github.com
+          git switch -c "$branch"
+          git add -A
+          git commit --cleanup=verbatim -F "$RUNNER_TEMP/commit.txt"
+          git push origin "$branch"
+          url=$(gh pr create --base "$TARGET" --head "$branch" --title "schedule: $stamp" --body-file "$RUNNER_TEMP/summary.md")
+          number=${url##*/}
+          gh pr list --state open --base "$TARGET" --author "@me" --json number,headRefName \
+            --jq ".[] | select(.headRefName | startswith(\"schedule/\")) | select(.number != $number) | .number" |
+          while read -r old; do gh pr close "$old" --comment "Superseded by #$number." --delete-branch; done
+          if [ "$TARGET" = main ]; then method=--merge; else method=--squash; fi
+          gh pr merge "$number" --auto "$method"
+
+      # A fatal run writes nothing (#44); if a failure left anything changed, say what, and fail.
+      - name: A failed run leaves the tree clean
+        if: failure()
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+            git --no-pager diff --stat
+            git --no-pager diff | head -n 200 || true
+            echo "::error title=scrape::the run failed and left files changed; a fatal run writes nothing (DECISIONS #44)"
+            exit 1
+          fi
+          echo "the tree is clean"

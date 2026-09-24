@@ -47,3 +47,6 @@ jobs:
       - run: python -m pytest tests/
       # The frozen year's derived file is a fresh build of its committed inputs (DECISIONS #42, #46).
       - run: python events_v2.py --season data/2026/season.json --check
+      # And a live year's, once a run past its ids stage has committed one (#42, #44).
+      - if: hashFiles('data/2027/events.v2.json') != ''
+        run: python events_v2.py --season data/2027/season.json --check
