@@ -1,0 +1,29 @@
+{
+  "stamp": "2026-09-24T13:49:04+00:00",
+  "fetched_at": "2026-09-24T13:49:04+00:00",
+  "changed_at": "2026-09-24T13:49:04+00:00",
+  "sha": "3c96a59f7326a74bf02359025a8bdc905b127d1c",
+  "fetch_code_hash": "5b30ac1c916fe40f434bb177f275a715f388d7027e725fdedd8bcd95228f8bdf",
+  "fetch_code_changed": false,
+  "changes_logged": 0,
+  "digest": null,
+  "season": 2026,
+  "elapsed": 40.0,
+  "fetch": {
+    "listings": 60,
+    "fetched": 60,
+    "stale": 0,
+    "removed": 0,
+    "failures": 0,
+    "repaired": 0
+  },
+  "ids": {
+    "new": 60,
+    "matches": 0,
+    "merges": 0,
+    "leavers": 0,
+    "gone": 0,
+    "returned": 0,
+    "unsure": 0
+  }
+}
