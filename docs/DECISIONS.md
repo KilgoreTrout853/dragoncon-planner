@@ -48,7 +48,7 @@ refresh cheap.
 **Cost:** Tag quality depends on a prompt and a `CANON` alias map in the
 script. A change to the taxonomy means a full `--all` retag.
 
-### 4. Offline by service worker, with three cache strategies — Standing (2026-09-01 backlog → shipped pre-con)
+### 4. Offline by service worker, with three cache strategies — Standing (2026-09-01 backlog → shipped pre-con) — on `next` since #49 the update notice keys on the `digest`, `generated_at` deciding only for a copy without one; the caches are named by year and cleared by the whole name, so the unchanneled worker no longer deletes the next site's `dc26-next-*` caches, which `main`'s frozen worker still does until the freeze replaces it
 **Decided:** `sw.js` serves `index.html` network-first with a 3 s timeout,
 the schedule cache-first with quiet background revalidation (it only
 announces an update when `generated_at` actually changed), and fonts
@@ -369,7 +369,7 @@ PR with auto-merge on green, or run as a bypass actor — pipeline work,
 forced by this decision. The line-ending change is a one-time noisy
 commit.
 
-### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17) — by #40 the shared `leaveBy` module becomes the tight-connection helper; the buffer becomes the slack; the walk table's home unchanged; an unknown hotel to degrade to Other rather than fail the run (#44); the file to be built by #45
+### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17) — by #40 the shared `leaveBy` module becomes the tight-connection helper; the buffer becomes the slack; the walk table's home unchanged; an unknown hotel to degrade to Other rather than fail the run (#44); the file to be built by #45; the client's import built by #49: `virtual:venues`, and `src/venues.js`'s constants gone
 **Decided:** #21's venues file (`data/2027/venues.json`, per-year as #13
 set for events) also holds hotel identity (keys as used in `events.json`,
 short names, groups), the walk matrix, the seating buffer from #6, and the
@@ -425,7 +425,7 @@ mode now also covers moved partitions. The map needs one persistent SVG
 mutated in place rather than the innerHTML rebuild in `src/app.js` — a
 constraint on step 4's module split.
 
-### 29. Module order and the bus — Standing (2026-09-19)
+### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49)
 **Decided:** The client's modules stand in one order, and `src/boot.js` is
 its root. The order is the array `ORDER` in `tests/rules/imports.test.js` -
 the fourteen leaves, then `scroll` and the `bus`, the five views, then
@@ -748,7 +748,7 @@ terms, reviewed flag or parent of a work in the block now changes
 marks such works reviewed now rebuilds the file. The census report does not
 read the block.
 
-### 39. The client switch as built — Standing (2026-09-22)
+### 39. The client switch as built — Standing (2026-09-22) — by year since #49: the file is `DC_YEAR`'s, and every storage key carries the year, so a build for 2027 starts with no picks, follows or settings of 2026's, by design; the update notice keys on the `digest`
 **Decided:** The client on `next` reads `data/2026/events.v2.json` (#33,
 #38), and every surface keeps its behaviour: plumbing and parity, not a
 search redesign (#36). `docs/discover/schema-v2.md` has the detail, under
@@ -825,7 +825,7 @@ live site drops `next`'s work and axis follows. The worker's update notice
 keys on `generated_at`, which every rebuild of `events.v2.json` keeps
 (ROADMAP, Held).
 
-### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later
+### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49)
 **Decided:** Leave-by is retired: no `leave by <time>` countdown on any
 screen, and no leave-by push.
 - The plan keeps what is true of the plan rather than the person: a walk
@@ -880,7 +880,7 @@ so the design starts from them.
 33m 00s (median 22m 32s: `docs/pipeline/history-2026.md`, section 8) and
 the encoding repair (#44) stay ours.
 
-### 42. The 2027 contract — Decided, not built (2026-09-22) — `events.v2.json` built by PR 6, 2026's rebuilt in its shape: the digest is the sha256 of the works and the events written exactly as the file writes them, one serialisation, not a canonical sorted-key JSON; a line break before each works row too; a frozen year's `failures` stays a count (`contract.md`, The v2 file); the year is its season file, `pipeline.py run --season`, not `--year` (PR 8)
+### 42. The 2027 contract — Decided, not built (2026-09-22) — `events.v2.json` built by PR 6, 2026's rebuilt in its shape: the digest is the sha256 of the works and the events written exactly as the file writes them, one serialisation, not a canonical sorted-key JSON; a line break before each works row too; a frozen year's `failures` stays a count (`contract.md`, The v2 file); the year is its season file, `pipeline.py run --season`, not `--year` (PR 8); the client's half built by #49: `DC_YEAR` at its build, a removed event shown in Mine alone - not in Now, as the Cost had it - and a pick re-pointed through `was`
 **Decided:** A year's pipeline files live in `data/<year>/`, one writer
 each; `docs/pipeline/contract.md` has the detail.
 - `season.json` (by hand, #44), `venues.json` (by hand, #45),
@@ -1215,3 +1215,73 @@ take pull requests only.
 **Cost:** A few tens of pull requests a week; an hourly run with no change
 costs nothing, since it commits nothing (#44). About a minute of CI a run.
 A token to rotate every year.
+
+### 49. The client switch, by year — Standing (2026-09-24)
+**Decided:** The client is built for one year, `DC_YEAR`'s (#42), and
+reads that year's contract: its `events.v2.json`, and at build its
+`season.json` and `venues.json`. Plumbing and parity, as #39 was;
+`docs/pipeline/contract.md` has the file.
+- **The year.** `DC_YEAR` at the build, four digits, 2026 where it is
+  unset, or the build refuses. `build/vite-dc.js`'s `dcYear()` defines
+  `__DC_YEAR__`, which `src/season.js` - first in the order (#29) - reads
+  as `YEAR`. `DATA_URL` is built from it, and `dcBuild()` copies that
+  year's `events.v2.json` alone into `dist/` and refuses a year with none.
+  2026 stays the year copied and read until the checklist sets `DC_YEAR`
+  where each site is built (ROADMAP, Checklist).
+- **The season and venues files are modules.** `virtual:season` and
+  `virtual:venues` resolve to the year's two files, inlined at build like
+  any import (#27): no fetch, offline by construction. The build refuses a
+  year whose two files are missing, or whose `season.json` names another
+  year. `CON`'s days are `season.con`'s, and its bounds keep 2026's
+  observed 18:00 and 19:00 until `season.json` holds a year's own. Every
+  other 2026 date the client held is derived from the days: their names,
+  the preview, the default day, the day words, the calendar export's names.
+  The hotels - their order, short names, groups and colours - the walk, the
+  same-venue and unknown-pair minutes and the slack are the venues file's,
+  and the constants are gone. `LEAVE_BUFFER_MIN` keeps its name until Where
+  things live, and the tight band reads it (#40).
+- **Keys by year.** Every storage key is `dc<yy>.`, settings and all, and
+  the worker's caches `dc<yy>-`: a build for a new year starts with
+  nothing of the last one's.
+- **Removed.** An event with `removed` is in `byId` and in nothing drawn
+  from the schedule: search, Browse, Explore, the feeds, Now and the map see
+  only the rest. A pick on one stays a pick. Mine draws it where its time
+  puts it, marked removed from the schedule, with no gap line or walk link
+  to or from it; its event sheet marks it as a cancelled event is marked;
+  the pick news says so once; the calendar takes it by neither door, Mine's
+  export or its sheet. Everywhere but Mine, where #42's Cost and
+  `contract.md` had Mine and Now.
+- **Was.** A pick whose id is absent but in an event's `was` moves to that
+  event, and the news says it is now listed under that title (#43).
+- **Untagged.** Every read of an event's tags goes through `tagsOf()`,
+  which gives one empty set where the key is absent (#46): an untagged
+  event is found by its text, shows in Now, Browse and Mine, and is under
+  no work, axis or guests tile.
+- **The worker.** `public/sw.js` builds its data file, its shell's entry
+  and its cache names from a stamped `YEAR`, as from `CHANNEL`; the cache
+  is v6, and an unstamped worker is `public/sw.js` still. It tells the
+  page of a new schedule when the `digest` moves (#42), `generated_at`
+  deciding only where a copy has none, and `loading.js`'s own check, with
+  no worker, asks the same. On activate it deletes its site's caches of
+  every year, by the whole name, so the unchanneled worker no longer
+  deletes the next site's; `main`'s frozen worker still does, until the
+  freeze replaces it.
+- **The page's name.** For a year that is not 2026 the build stamps the
+  year into the head, the brand on Now and the manifest; the default build
+  is byte for byte what it was.
+
+**Why:** #42: the year is `DC_YEAR` at the client build, and there is no
+pointer file. #27: the venues file is inlined at build, one copy a year.
+#46: untagged is a state the client handles. #43: re-pointing a pick
+through `was` is certain. #39's Cost: the notice keyed on `generated_at`,
+which a rebuild keeps.
+**Cost:** A build for 2027 starts empty - no picks, follows or settings of
+2026's - by design (#39's note). The flip is a checklist line, and it waits
+for the season's first run past the ids stage, since a year with no
+`events.v2.json` does not build. The worker's digest comparison is Pipeline
+shape's input to Delivery (ROADMAP, Held), taken here, and v6 is a new
+worker for every installed client. The page carries the whole venues file,
+8,336 bytes before gzip, of which it reads about a thousand; Places will
+read the rest. 18:00 and 19:00 are a guess for 2027 until its schedule
+shows. The icons draw 2026 in their pixels, which no stamp reaches
+(ROADMAP, Checklist).

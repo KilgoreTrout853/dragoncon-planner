@@ -1,3 +1,4 @@
+import { SEASON, YEAR, YY } from "./season.js";
 import { dayOf, pad, toDate } from "./util.js";
 import { readSession, writeSession } from "./storage.js";
 import { BUILD } from "./build.js";
@@ -18,22 +19,34 @@ import { BUILD } from "./build.js";
    The con's bounds live here too, because the phase of the con - before,
    live, ended - is a question about the clock.
    ================================================================== */
+/* The con's days are its season file's, con.first to con.last (DECISIONS
+   #49). Its bounds are the first listed event's start and the last one's
+   end, as the data has them: local time, like every time in the app. The two
+   clock times are 2026's observed bounds, which season.json does not hold;
+   they move into it once 2027's schedule shows its own (ROADMAP). */
+const CON_OPENS = "18:00", CON_CLOSES = "19:00";
 const CON = {
-  year: 2026,
-  /* The first listed event's start and the last one's end, as the data
-     has them: local time, like every time in the app. */
-  start: toDate("2026-09-02T18:00"),
-  end: toDate("2026-09-07T19:00"),
+  year: YEAR,
+  start: toDate(`${SEASON.con.first}T${CON_OPENS}`),
+  end: toDate(`${SEASON.con.last}T${CON_CLOSES}`),
 };
 
-const CON_DAYS = ["2026-09-02","2026-09-03","2026-09-04","2026-09-05","2026-09-06","2026-09-07"];
-const DAY_LABEL = {"2026-09-02":"Wed","2026-09-03":"Thu","2026-09-04":"Fri","2026-09-05":"Sat","2026-09-06":"Sun","2026-09-07":"Mon"};
-const DAY_LONG = {"2026-09-02":"Wednesday","2026-09-03":"Thursday","2026-09-04":"Friday","2026-09-05":"Saturday","2026-09-06":"Sunday","2026-09-07":"Monday"};
+/* Every day from the first to the last, each by its name. At noon, so no
+   change of the clocks can move a date. */
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const noonOf = day => toDate(`${day}T12:00`);
+const CON_DAYS = [];
+for (let d = noonOf(SEASON.con.first); dayOf(d) <= SEASON.con.last; d.setDate(d.getDate() + 1)) CON_DAYS.push(dayOf(d));
+const DAY_LONG = Object.fromEntries(CON_DAYS.map(day => [day, WEEKDAYS[noonOf(day).getDay()]]));
+const DAY_LABEL = Object.fromEntries(CON_DAYS.map(day => [day, DAY_LONG[day].slice(0, 3)]));
+/* The con's first full day, Thursday: what the preview before the con shows,
+   and the day Search and the Map open on outside con week. */
+const FIRST_FULL_DAY = CON_DAYS[1];
 
 /* Per channel: the next site shares this origin, and sessionStorage with it,
    so a clock simulated there must not follow the reader to the live site in
    the same tab. */
-const TIME_OVERRIDE_KEY = `dc26.timeOverride${BUILD.channel ? "." + BUILD.channel : ""}`;
+const TIME_OVERRIDE_KEY = `dc${YY}.timeOverride${BUILD.channel ? "." + BUILD.channel : ""}`;
 let timeOverride = null;                     // a Date, or null for the wall clock
 const parseMoment = raw => { const d = raw ? new Date(raw) : null; return d && !isNaN(d) ? d : null; };
 
@@ -78,8 +91,9 @@ const isPast = (e, at) => e._e <= at && conPhase(at) !== "ended";
 function effectiveNow() {
   const real = now();
   if (conPhase(real) === "before") {
-    return {now: toDate("2026-09-03T10:00"),
-      banner: `<b>Con starts Thursday.</b> Showing Thursday 10:00 AM as a preview. Use Settings to preview any other time.`};
+    const day = DAY_LONG[FIRST_FULL_DAY];
+    return {now: toDate(`${FIRST_FULL_DAY}T10:00`),
+      banner: `<b>Con starts ${day}.</b> Showing ${day} 10:00 AM as a preview. Use Settings to preview any other time.`};
   }
   return {now: real, banner: ""};
 }
@@ -88,7 +102,7 @@ function effectiveNow() {
 function conDayKey(d) { return dayOf(new Date(d.getTime() - 5 * 3600000)); }
 
 export {
-  CON, CON_DAYS, DAY_LABEL, DAY_LONG, TIME_OVERRIDE_KEY, timeOverride, now, isSimulated,
+  CON, CON_DAYS, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, TIME_OVERRIDE_KEY, timeOverride, now, isSimulated,
   initTimeOverride, setOverride, localInputValue, conPhase, conEnded, isPast, effectiveNow,
   conDayKey,
 };

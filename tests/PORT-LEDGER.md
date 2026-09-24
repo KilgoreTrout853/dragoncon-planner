@@ -10,7 +10,10 @@ Amended in the docs slice (2026-09-19), for what has moved since: four lint-like
 `src/time.js` became a module and the Time-section rule was deleted, 780 and 1989 in the docs slice - and `tests/build.test.js`
 lost its same-program case in #13. Those four rows and that sentence are corrected below. Amended in the client switch
 (2026-09-22, DECISIONS #39), for two rows whose titles name what moved: 1290's cache is v5, and 1683's fetch is of
-`data/2026/events.v2.json`; both rows are corrected below. The tables' counts are as of 4b-ii, and
+`data/2026/events.v2.json`; both rows are corrected below. Amended in the client switch by year (2026-09-24, DECISIONS #49),
+for three rows whose titles name what changed: 1290's cache is v6, 1313's worker clears its site's caches of any year, by the whole
+name, and 1315's worker announces a new schedule by its digest, generated_at deciding only where a copy has none; the three rows are
+corrected below. The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
@@ -832,7 +835,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 1284 | c | index.html registers ./sw.js by relative path (scope stays under /dragoncon-p… | `build.test.js` | 4b-i | build | port |
 | 1286 | c | registration is guarded by a serviceWorker capability check | `build.test.js` | 4b-i | build | port |
 | 1288 | d | a failed registration is reported, not swallowed | `page/offline.test.js` | 4b-ii | provoke | **rewrite** make the stub's register() reject and dispatch load: console.warn is called with 'Offline support unavailable' |
-| 1290 | c | the cache name is versioned (v5) under a prefix the build can stamp, and only… | `build.test.js` | 4b-i | build | port |
+| 1290 | c | the cache name is versioned (v6) under a prefix the build can stamp, and only… | `build.test.js` | 4b-i | build | port |
 | 1292 | c | the Apple touch icon is a PNG, not the SVG iOS ignores | `build.test.js` | 4b-i |  | **merge** with build.test.js case 6, which already asserts this exact <link> |
 | 1293 | c | the home-screen title is DC26 | `build.test.js` | 4b-i | build | port |
 | 1295 | c | the head carries … | `build.test.js` | 4b-i | build | port. ×5 (one per og: tag) |
@@ -844,9 +847,9 @@ One row per call site, in harness order, under the harness's own section comment
 | 1309 | c | the html fetch stores its response whenever it lands | `build.test.js` | 4b-i | build | port |
 | 1311 | c | and is kept alive past the response with waitUntil | `build.test.js` | 4b-i | build | port |
 | 1312 | c | while the race uses that same fetch rather than a second one | `build.test.js` | 4b-i | build | port |
-| 1313 | c | older caches under this site's prefix are deleted on activate | `build.test.js` | 4b-i | build | port |
+| 1313 | c | this site's older caches, of any year, are deleted on activate | `build.test.js` | 4b-i | build | port |
 | 1314 | c | the html network race times out at 3s | `build.test.js` | 4b-i | build | port |
-| 1315 | c | the worker only announces an update when generated_at actually changed | `build.test.js` | 4b-i | build | port |
+| 1315 | c | the worker only announces an update when the digest changed, or generated_at wh… | `build.test.js` | 4b-i | build | port |
 | 1317 | c | font requests are cached, opaque allowed | `build.test.js` | 4b-i | build | port |
 | 1321 | c | the background revalidation is kept alive with waitUntil | `build.test.js` | 4b-i | build | port |
 | 1322 | c | and waitUntil is called synchronously in the fetch handler, before respondWith | `build.test.js` | 4b-i | build | port |

@@ -1,8 +1,20 @@
-/* The part of the build that is this project's own (DECISIONS #15, #23).
-   It runs in closeBundle, after Vite and vite-plugin-singlefile have written
-   dist/, and does two jobs:
+/* The part of the build that is this project's own (DECISIONS #15, #23, #49).
+   Two plugins.
 
-   1. Fix up and stamp dist/index.html and dist/sw.js.
+   dcYear() names the year the client is built for, in the dev server, the
+   build and Vitest alike: DC_YEAR, four digits, 2026 where it is unset
+   (DECISIONS #49). It defines __DC_YEAR__, which src/season.js reads, and
+   resolves the year's two data modules - virtual:season to
+   data/<year>/season.json and virtual:venues to data/<year>/venues.json -
+   to the files themselves, so Vite reads them as it reads any JSON import
+   and the build inlines them. It refuses a year that is not four digits, a
+   year whose two files are not there, and a season.json that names another
+   year, so the define and the file cannot disagree.
+
+   dcBuild() runs in closeBundle, after Vite and vite-plugin-singlefile have
+   written dist/, and does two jobs:
+
+   1. Fix up and stamp dist/index.html, dist/sw.js and dist/manifest.json.
       Vite emits the inlined entry as <script type="module" crossorigin> in
       <head>. The page is written as a classic script at the end of <body> -
       it reads the DOM as it parses, and jsdom, which the build smoke runs
@@ -12,13 +24,19 @@
       leaves on it: a bare <style> holding src/styles.css, minified.
       With DC_CHANNEL set, the channel and build id go into the two stamp
       metas and the channel into the worker's CHANNEL, exactly as build.py
-      did. With no channel both stay empty and dist/sw.js is public/sw.js.
+      did. For a year that is not the default, the year goes into the
+      worker's YEAR, and into the page's name - "Dragon Con <year>" and
+      "DC<yy>" in its title, its head's tags and the brand on Now - and the
+      manifest's. With no channel and the default year, dist/sw.js is
+      public/sw.js and dist/manifest.json is public/manifest.json.
 
    2. Copy what the client reads from data/ into dist/data/, and nothing
-      else: DATA_FILES, an allowlist (DECISIONS #39). The schedule is fetched
-      at run time, and is far too big to live in public/ twice; the frozen v1
-      file, the tag cache and the registries are the pipeline's, never the
-      page's.
+      else: DATA_FILES, the year's schedule, an allowlist (DECISIONS #39).
+      The schedule is fetched at run time, and is far too big to live in
+      public/ twice; the frozen v1 file, the tag cache and the registries are
+      the pipeline's, never the page's. A year with no schedule yet - before
+      its season's first run past the ids stage - is refused before the build
+      starts.
 
    Nothing here uses String.replace with file contents as the replacement
    text: the app contains "$&", which a replacement string would expand. */
@@ -26,9 +44,19 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const CHANNEL_RE = /^[a-z0-9-]*$/, BUILD_RE = /^[A-Za-z0-9._-]*$/;
+const CHANNEL_RE = /^[a-z0-9-]*$/, BUILD_RE = /^[A-Za-z0-9._-]*$/, YEAR_RE = /^\d{4}$/;
+const DEFAULT_YEAR = "2026";
 const VITE_CSS_MARKER = "/*$vite$:1*/";
-const DATA_FILES = ["data/2026/events.v2.json"];
+const DATA_FILES = year => [`data/${year}/events.v2.json`];
+/* The year's two data modules, under the names src/ imports them by. */
+const DATA_MODULES = {"virtual:season": "season.json", "virtual:venues": "venues.json"};
+
+/* The year the client is built for: DC_YEAR, or the default where it is unset. */
+export function dcYearFromEnv() {
+  const year = (process.env.DC_YEAR || "").trim() || DEFAULT_YEAR;
+  if (!YEAR_RE.test(year)) throw new Error(`build: a year is four digits, not ${JSON.stringify(year)}`);
+  return year;
+}
 
 function gitShortSha(cwd) {
   try { return execFileSync("git", ["rev-parse", "--short", "HEAD"], {cwd, encoding: "utf8"}).trim(); }
@@ -65,14 +93,54 @@ function fixUpPage(html) {
   return rest;
 }
 
+/* The page's name, in its markup and never in its one script, which takes the
+   year from the define: every "Dragon Con 2026" and "DC26" becomes the year's.
+   A markup that no longer names the default year is refused, as a stamp that
+   silently did nothing would be. The icons draw the year in pixels, which no
+   stamp reaches (ROADMAP, Checklist). */
+function stampPageYear(html, year) {
+  const at = html.indexOf("<script>");
+  let markup = html.slice(0, at);
+  for (const [from, to] of [[`Dragon Con ${DEFAULT_YEAR}`, `Dragon Con ${year}`], [`DC${DEFAULT_YEAR.slice(2)}`, `DC${year.slice(2)}`]]) {
+    if (!count(markup, from)) throw new Error(`build: could not stamp the year in index.html: no ${JSON.stringify(from)}`);
+    markup = markup.split(from).join(to);
+  }
+  return markup + html.slice(at);
+}
+
+export function dcYear() {
+  let year = "", files = {};
+  return {
+    name: "dc-year",
+    enforce: "pre",
+
+    /* A bad year is refused before any work is done. */
+    config() {
+      year = dcYearFromEnv();
+      return {define: {__DC_YEAR__: year}};
+    },
+
+    configResolved(config) {
+      files = Object.fromEntries(Object.entries(DATA_MODULES).map(([id, file]) => [id, path.join(config.root, "data", year, file)]));
+      for (const file of Object.values(files)) {
+        if (!fs.existsSync(file)) throw new Error(`build: no data/${year}/${path.basename(file)}: the year ${year} needs its season.json and venues.json`);
+      }
+      const named = JSON.parse(fs.readFileSync(files["virtual:season"], "utf8")).year;
+      if (String(named) !== year) throw new Error(`build: data/${year}/season.json names the year ${named}, not ${year}`);
+    },
+
+    resolveId(id) { return files[id] || null; },
+  };
+}
+
 export function dcBuild() {
-  let root = "", outDir = "", channel = "", build = "";
+  let root = "", outDir = "", channel = "", build = "", year = "";
   return {
     name: "dc-build",
     apply: "build",
     enforce: "post",
 
-    /* Refuse a bad stamp before any work is done. */
+    /* Refuse a bad stamp, or a year with nothing to ship, before any work is done. */
     configResolved(config) {
       root = config.root;
       outDir = path.resolve(root, config.build.outDir);
@@ -80,25 +148,41 @@ export function dcBuild() {
       if (!CHANNEL_RE.test(channel)) throw new Error(`build: a channel is lowercase letters, digits and dashes, not ${JSON.stringify(channel)}`);
       build = channel ? ((process.env.DC_BUILD || "").trim() || gitShortSha(root)) : "";
       if (!BUILD_RE.test(build)) throw new Error(`build: a build id is letters, digits, dots and dashes, not ${JSON.stringify(build)}`);
+      year = dcYearFromEnv();
+      for (const file of DATA_FILES(year)) {
+        if (!fs.existsSync(path.join(root, file))) throw new Error(`build: no ${file}: the year ${year} has no schedule to ship until its season's first run past the ids stage`);
+      }
     },
 
     closeBundle(error) {
       if (error) return;
-      const pagePath = path.join(outDir, "index.html"), swPath = path.join(outDir, "sw.js");
+      const pagePath = path.join(outDir, "index.html"), swPath = path.join(outDir, "sw.js"), manifestPath = path.join(outDir, "manifest.json");
+      const yearStamped = year !== DEFAULT_YEAR;
       let html = fixUpPage(fs.readFileSync(pagePath, "utf8"));
       if (channel) {
         html = swapOnce(html, '<meta name="dc-channel" content="">', `<meta name="dc-channel" content="${channel}">`, "stamp the channel in index.html");
         html = swapOnce(html, '<meta name="dc-build" content="">', `<meta name="dc-build" content="${build}">`, "stamp the build id in index.html");
-        const sw = swapOnce(fs.readFileSync(swPath, "utf8"), 'const CHANNEL = "";', `const CHANNEL = "${channel}";`, "stamp the channel in sw.js");
+      }
+      if (yearStamped) html = stampPageYear(html, year);
+      if (channel || yearStamped) {
+        let sw = fs.readFileSync(swPath, "utf8");
+        if (channel) sw = swapOnce(sw, 'const CHANNEL = "";', `const CHANNEL = "${channel}";`, "stamp the channel in sw.js");
+        if (yearStamped) sw = swapOnce(sw, `const YEAR = "${DEFAULT_YEAR}";`, `const YEAR = "${year}";`, "stamp the year in sw.js");
         fs.writeFileSync(swPath, sw);
+      }
+      if (yearStamped) {
+        let manifest = fs.readFileSync(manifestPath, "utf8");
+        manifest = swapOnce(manifest, `"name": "Dragon Con ${DEFAULT_YEAR}"`, `"name": "Dragon Con ${year}"`, "stamp the year in manifest.json's name");
+        manifest = swapOnce(manifest, `"short_name": "DC${DEFAULT_YEAR.slice(2)}"`, `"short_name": "DC${year.slice(2)}"`, "stamp the year in manifest.json's short name");
+        fs.writeFileSync(manifestPath, manifest);
       }
       fs.writeFileSync(pagePath, html);
 
-      for (const file of DATA_FILES) {
+      for (const file of DATA_FILES(year)) {
         fs.mkdirSync(path.dirname(path.join(outDir, file)), {recursive: true});
         fs.copyFileSync(path.join(root, file), path.join(outDir, file));
       }
-      console.log(`dc-build: channel=${channel || "(none)"} build=${build || "(none)"}`);
+      console.log(`dc-build: year=${year} channel=${channel || "(none)"} build=${build || "(none)"}`);
     },
   };
 }

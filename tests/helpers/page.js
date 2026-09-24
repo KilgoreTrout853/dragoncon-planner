@@ -16,10 +16,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { vi } from "vitest";
+import { YEAR } from "../../src/season.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), "utf8");
-const FIXTURES = { sample: ["tests", "sample-events.json"], real: ["data", "2026", "events.v2.json"] };
+/* real is the schedule of the year under test, DC_YEAR's (DECISIONS #49). */
+const FIXTURES = { sample: ["tests", "sample-events.json"], real: ["data", String(YEAR), "events.v2.json"] };
 const DEFAULT_NOW = "2026-09-05T13:05";            // the harness's Saturday afternoon
 
 /* index.html is Vite's entry template: its module script and its stylesheet
@@ -33,7 +35,10 @@ function template() {
 
 let live = null;
 
-export async function bootPage({ fixture = "sample", now = DEFAULT_NOW, channel = "", build = "", url, matchMedia, reload } = {}) {
+/* data: a schedule the fixtures do not have, already parsed - a test's copy of
+   the sample with what it needs changed. The page is handed a copy of it,
+   since the page keeps and mutates what it loads. */
+export async function bootPage({ fixture = "sample", data, now = DEFAULT_NOW, channel = "", build = "", url, matchMedia, reload } = {}) {
   if (live) throw new Error("bootPage: a page is already live in this file; call its cleanup() first");
   const jsdom = globalThis.jsdom;
   if (!jsdom) throw new Error("bootPage needs Vitest's jsdom environment");
@@ -89,7 +94,7 @@ export async function bootPage({ fixture = "sample", now = DEFAULT_NOW, channel 
         Object.defineProperty(app, name, { enumerable: true, get: () => loaded[name] });
       }
     }
-    handle = app.boot({ events: JSON.parse(read(...FIXTURES[fixture])), reload });
+    handle = app.boot({ events: data ? structuredClone(data) : JSON.parse(read(...FIXTURES[fixture])), reload });
     await handle.ready;
   } finally {
     targets.forEach(({ target, add }) => { target.addEventListener = add; });

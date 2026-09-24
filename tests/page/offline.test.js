@@ -6,6 +6,9 @@
    The harness wrote servedOffline, pillDragged and lastScheduleCheck by hand
    and patched window.reloadNow. Here each situation arrives the way it does on
    a phone: a message from the worker, a finger on the pill, time passing. */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { bootPage } from "../helpers/page.js";
 import { touch } from "../helpers/act.js";
@@ -86,6 +89,14 @@ describe("what the service worker tells the page", () => {
       expect(el("updatePill").hidden).toBe(false);
       app.hideUpdatePill();
     });
+    /* DECISIONS #49: the worker announces by the digest, and hands it over */
+    it("and its digest, which the page keeps with the copy's generated_at", () => {
+      fromWorker({ type: "schedule-updated", digest: "d9", generated_at: "2026-09-05T12:35:00" });
+      expect(handle.meta.digest).toBe("d9");
+      expect(handle.meta.generated_at).toBe("2026-09-05T12:35:00");
+      expect(el("updatePill").hidden).toBe(false);
+      app.hideUpdatePill();
+    });
   });
 
   /* The harness matched `register("./sw.js").catch(err => … console.warn` in the source. */
@@ -161,5 +172,43 @@ describe("polish 5: refresh on foreground", () => {
       expect(document.querySelectorAll("main .row").length).toBeGreaterThan(0);
       expect(underMain).toBe(0);
     });
+  });
+});
+
+/* DECISIONS #49: with no worker, the page's own check asks what the worker
+   asks - the digest, where both copies have one - so a rebuild that keeps
+   generated_at is news, and a new generated_at on the same digest is not.
+   The sample has no digest, which is why the checks above go by
+   generated_at; the copy booted here has one. */
+describe("the page's own check goes by the digest", () => {
+  let page, handle, calls, reply, realFetch;
+  const sample = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "sample-events.json"), "utf8"));
+  const pill = () => document.getElementById("updatePill");
+  const settle = () => new Promise(resolve => setTimeout(resolve, 20));
+
+  beforeAll(async () => {
+    page = await bootPage({ data: { ...sample, digest: "d1" } });
+    ({ handle } = page);
+    calls = 0;
+    realFetch = globalThis.fetch;
+    globalThis.fetch = () => { calls++; return Promise.resolve({ ok: true, json: () => Promise.resolve(reply) }); };
+  }, 30000);
+  afterAll(async () => { globalThis.fetch = realFetch; await page.cleanup(); });
+
+  it("a new generated_at on the same digest is no news", async () => {
+    reply = { generated_at: "2026-09-05T13:00:00+00:00", digest: "d1", events: [] };
+    handle.setTimeOverride("2026-09-05T13:21");                  // sixteen minutes on
+    window.dispatchEvent(new Event("pageshow")); await settle();
+    expect(calls).toBe(1);
+    expect(pill().hidden).toBe(true);
+    expect(handle.meta.generated_at).toBe(sample.generated_at);
+  });
+  it("a new digest is news though generated_at is the same, and the page keeps it", async () => {
+    reply = { generated_at: sample.generated_at, digest: "d2", events: [] };
+    handle.setTimeOverride("2026-09-05T13:37");                  // another sixteen
+    window.dispatchEvent(new Event("pageshow"));
+    await page.until(() => !pill().hidden, 2000, "the pill");
+    expect(calls).toBe(2);
+    expect(handle.meta.digest).toBe("d2");
   });
 });

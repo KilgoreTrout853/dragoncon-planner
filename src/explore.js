@@ -1,7 +1,7 @@
 import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
 import { conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
-import { AXES, byId, CAST, events, isCeleb, linkedWorks, linksTo, NOISE_TRACKS, personName, topWorks, worksById } from "./data.js";
+import { AXES, byId, CAST, events, isCeleb, linkedWorks, linksTo, NOISE_TRACKS, personName, tagsOf, topWorks, worksById } from "./data.js";
 import { picks } from "./picks.js";
 import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing } from "./follows.js";
 import { axisLabel } from "./search.js";
@@ -57,7 +57,7 @@ function buildCatalogue() {
   const byName = (a, b) => a.name.localeCompare(b.name);
   const person = rank(people, personName).filter(t => celebs.has(t.key) || t.count >= 5);
   const topics = tally(e => {
-    const tg = e.tags || {};
+    const tg = tagsOf(e);
     return AXES.flatMap(a => (tg[a] || []).map(v => `${a}:${v}`)).concat(tg.audience === "kids" ? ["audience:kids"] : []);
   });
   catalogue = {
@@ -340,8 +340,8 @@ function renderExplorePage() {
   }
   if (cast.length) {
     const open = !!state.explore.showCast;
-    const quiet = cast.filter(e => CAST_QUIET.includes((e.tags || {}).kind));
-    const shown = state.explore.castNoise ? cast : cast.filter(e => !CAST_QUIET.includes((e.tags || {}).kind));
+    const quiet = cast.filter(e => CAST_QUIET.includes(tagsOf(e).kind));
+    const shown = state.explore.castNoise ? cast : cast.filter(e => !CAST_QUIET.includes(tagsOf(e).kind));
     html += `<div class="divider fold"><button data-act="explore-cast" aria-expanded="${open}">With the cast (${cast.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
     if (open) {
       if (shown.length) html += `<ul class="list">${dayGroups(shown, "explore-cast")}</ul>`;

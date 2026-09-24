@@ -2,7 +2,7 @@ import { esc, fmtShort, minutesBetween } from "./util.js";
 import { state } from "./state.js";
 import { conDayKey, DAY_LONG, now } from "./time.js";
 import { hotelVar, walkMin } from "./venues.js";
-import { events } from "./data.js";
+import { byId } from "./data.js";
 import { pickNewsHTML, picks } from "./picks.js";
 import { gapHTML } from "./leave.js";
 import { rowHTML } from "./ui.js";
@@ -55,20 +55,24 @@ function timelineDayHTML(dayKey, list, now) {
     hours += `<div class="tl-hour" style="top:${h * HOUR_PX}px"><span>${fmtShort(at)}</span></div>`;
   }
 
+  /* A removed pick keeps its place in time, marked, and says so where its
+     room would be. */
   const blocks = items.map(({ev, col, cols}) => {
     const h = Math.max(24, top(ev._e.getTime()) - top(ev._s.getTime()) - 2);
     const w = 100 / cols;
     const long = h >= 150;
-    return `<button class="tl-block${long ? " long" : ""}" data-hero="${esc(ev.id)}" style="top:${top(ev._s.getTime()).toFixed(1)}px;height:${h.toFixed(1)}px;left:${(col * w).toFixed(2)}%;width:calc(${w.toFixed(2)}% - 3px);--h:var(${hotelVar(ev.hotel)})">
+    return `<button class="tl-block${long ? " long" : ""}${ev.removed ? " removed" : ""}" data-hero="${esc(ev.id)}" style="top:${top(ev._s.getTime()).toFixed(1)}px;height:${h.toFixed(1)}px;left:${(col * w).toFixed(2)}%;width:calc(${w.toFixed(2)}% - 3px);--h:var(${hotelVar(ev.hotel)})">
       <span class="tb-title">${esc(ev.title)}</span>
-      <span class="tb-room">${esc(ev.room || ev.location || "")}</span>
+      <span class="tb-room">${ev.removed ? "Removed from the schedule" : esc(ev.room || ev.location || "")}</span>
       ${long ? `<span class="tb-runs">runs to ${fmtShort(ev._e)}</span>` : ""}
     </button>`;
   }).join("");
 
+  /* A removed pick is not happening: no walk runs to it or from it. */
+  const live = sorted.filter(e => !e.removed);
   let links = "";
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1], next = sorted[i];
+  for (let i = 1; i < live.length; i++) {
+    const prev = live[i - 1], next = live[i];
     if (prev.hotel === next.hotel) continue;
     const walk = walkMin(prev.hotel, next.hotel);
     const gap = minutesBetween(prev._e, next._s);
@@ -97,10 +101,15 @@ function renderMineTimeline(mine, now) {
   return [...days.keys()].sort().map(k => timelineDayHTML(k, days.get(k), now)).join("");
 }
 
+/* Every pick, the removed among them: byId holds every event in start order.
+   A pick on an event the source dropped stays in the plan until the reader
+   takes it out, marked, and is on no other tab (DECISIONS #49). The calendar
+   export takes the picks still on the schedule. */
 function renderMine() {
-  const mine = events.filter(e => picks.has(e.id));
+  const mine = [...byId.values()].filter(e => picks.has(e.id));
+  const onSchedule = mine.filter(e => !e.removed).length;
   let html = pickNewsHTML() + `<div class="mine-actions">
-    <button class="btn" data-act="ics" ${mine.length ? "" : "disabled"}>Export to calendar</button>
+    <button class="btn" data-act="ics" ${onSchedule ? "" : "disabled"}>Export to calendar</button>
     <button class="btn quiet" data-act="clear" ${mine.length ? "" : "disabled"}>Remove all</button>
   </div>`;
   if (mine.length) html += `<div class="view-toggle" role="group" aria-label="View">
@@ -116,6 +125,9 @@ function renderMine() {
     let lastDay = "", prev = null;
     mine.forEach(ev => {
       if (ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd} <span class="count" style="font-size:.875rem;color:var(--dim);font-weight:400">${mine.filter(x => x._cd === ev._cd).length}</span></li>`; lastDay = ev._cd; prev = null; }
+      /* A removed pick has no gap line on either side: the next one's is
+         measured from the pick before it. */
+      if (ev.removed) { html += rowHTML(ev, {list: "mine"}); return; }
       html += gapHTML(prev, ev) + rowHTML(ev, {list: "mine"});
       prev = ev;
     });

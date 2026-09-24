@@ -7,9 +7,9 @@
 import MiniSearch from "minisearch";
 import { dayOf } from "./util.js";
 import { state } from "./state.js";
-import { conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
+import { CON_DAYS, conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
 import { hotelMatches, hotelShort } from "./venues.js";
-import { AXES, byId, events, isNoise, linkedWorks, linksTo, personName, worksById } from "./data.js";
+import { AXES, byId, events, isNoise, linkedWorks, linksTo, personName, tagsOf, worksById } from "./data.js";
 
 /* Con vocabulary. If an event mentions any phrase in a group, every phrase in the group becomes searchable for it.
    Add your own lines freely; lowercase, no punctuation needed. */
@@ -95,7 +95,7 @@ function axisLabel(key) {
   return (AXIS_LABELS[axis] || {})[value] || value;
 }
 /* The labels of an event's four axes, which is what v1 called its topics. */
-const axisLabelsOf = e => AXES.flatMap(a => ((e.tags || {})[a] || []).map(v => axisLabel(`${a}:${v}`)));
+const axisLabelsOf = e => AXES.flatMap(a => (tagsOf(e)[a] || []).map(v => axisLabel(`${a}:${v}`)));
 /* The names of what an event is about, and of everything above it. */
 const workNamesOf = e => [...linkedWorks(e)].map(id => (worksById.get(id) || {}).name).filter(Boolean);
 let index = null;
@@ -123,7 +123,7 @@ function buildIndex() {
       boost: {title: 5, fandoms: 4, speakers: 3, aliases: 2, tracks: 2, kind: 2, topics: 2, description: 1, location: 1}},
   });
   index.addAll(events.map(e => {
-    const tg = e.tags || {};
+    const tg = tagsOf(e);
     const fandoms = workNamesOf(e).join(" "), topics = axisLabelsOf(e).join(" ");
     const kind = tg.kind ? `${tg.kind} ${KIND_LABELS[tg.kind] || ""}` : "";
     const text = [e.title, e.description, (e.tracks || []).join(" "), fandoms, topics, kind, e.location].join(" ").toLowerCase();
@@ -154,7 +154,7 @@ function buildSuggestIndex() {
     new Set((e.people || []).map(p => p.id)).forEach(id => bump(people, id, personName(id).trim(), quiet));
     /* Kids was one of v1's topics, so it is a chip here as it was, though
        audience is not an axis and stays out of the index's topics field. */
-    const kids = (e.tags || {}).audience === "kids" ? [axisLabel("audience:kids")] : [];
+    const kids = tagsOf(e).audience === "kids" ? [axisLabel("audience:kids")] : [];
     new Set([...workNamesOf(e), ...axisLabelsOf(e), ...kids]).forEach(t => bump(topics, t.trim(), t.trim(), quiet));
   });
   const doc = (group, prefix) => ([key, c]) => ({id: `${prefix}:${key}`, key, name: c.name, all: c.all, visible: c.visible, group});
@@ -195,7 +195,7 @@ function suggestionsFor(raw) {
 }
 
 function passesFilters(e) {
-  const f = activeFilters(), tg = e.tags || {};
+  const f = activeFilters(), tg = tagsOf(e);
   return (f.day === "All" || e._cd === f.day) &&
     hotelMatches(e, f.hotel) &&
     (f.type === "All" || e.type === f.type) &&
@@ -212,8 +212,9 @@ function passesFilters(e) {
    Pull the filter words out, search on what's left, and show what we
    took so the reader can put it back.
    ================================================================== */
-const DAY_WORDS = {wed: 2, wednesday: 2, thu: 3, thur: 3, thurs: 3, thursday: 3, fri: 4, friday: 4,
-  sat: 5, saturday: 5, sun: 6, sunday: 6, mon: 7, monday: 7};
+/* A day word names a weekday; the con day that falls on it is the season's. */
+const DAY_WORDS = {wed: "Wednesday", wednesday: "Wednesday", thu: "Thursday", thur: "Thursday", thurs: "Thursday", thursday: "Thursday",
+  fri: "Friday", friday: "Friday", sat: "Saturday", saturday: "Saturday", sun: "Sunday", sunday: "Sunday", mon: "Monday", monday: "Monday"};
 const HOTEL_WORDS = {marriott: "Marriott", hyatt: "Hyatt", hilton: "Hilton", westin: "Westin",
   courtland: "Courtland Grand", sheraton: "Courtland Grand", mart: "AmericasMart", americasmart: "AmericasMart"};
 const TIME_BANDS = {morning: [0, 12], afternoon: [12, 17], evening: [17, 21], "late night": [21, 29], late: [21, 29]};
@@ -223,7 +224,10 @@ const TIME_BANDS = {morning: [0, 12], afternoon: [12, 17], evening: [17, 21], "l
 function queryRules() {
   const r = [];
   const add = (word, dim, value, label) => r.push({word, dim, value, label});
-  Object.entries(DAY_WORDS).forEach(([w, dayNum]) => add(w, "day", `2026-09-0${dayNum}`, DAY_LONG[`2026-09-0${dayNum}`]));
+  Object.entries(DAY_WORDS).forEach(([w, name]) => {
+    const day = CON_DAYS.find(d => DAY_LONG[d] === name);
+    if (day) add(w, "day", day, name);
+  });
   Object.entries(HOTEL_WORDS).forEach(([w, h]) => add(w, "hotel", h, hotelShort(h)));
   add("q&a", "kind", "qa", "Celebrity Q&A"); add("qa", "kind", "qa", "Celebrity Q&A");
   add("signing", "kind", "signing", "Signing");

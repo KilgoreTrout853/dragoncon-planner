@@ -65,6 +65,12 @@ export default [
     },
   },
 
+  /* The year the build defines, read in one place (DECISIONS #49). */
+  {
+    files: ["src/season.js"],
+    languageOptions: { globals: { __DC_YEAR__: "readonly" } },
+  },
+
   /* One rule, two lists. A later object's options for a rule replace an
      earlier object's, they are not added to them: so the page's selectors are
      given for all of src/, and given again, with the clock's, for every file

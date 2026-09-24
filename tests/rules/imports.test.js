@@ -2,12 +2,14 @@
 /* The shape of the module graph under src/ (DECISIONS #29; how it came
    about is docs/SPLIT-MANIFEST.md). src/boot.js is the root: it imports the
    others, and only main.js imports it. ORDER is the order the others may
-   depend on one another in - the fourteen leaves, then scroll, the bus and
+   depend on one another in - the fifteen leaves, then scroll, the bus and
    the five views, then the sheet, loading, the shell and dispatch - each only
    on npm packages and on the modules before it, so there is no cycle to
-   find. dispatch is last, and the root alone imports it. A new module goes
-   into ORDER at the lowest place its imports allow. These are new tests, not
-   rows of tests/PORT-LEDGER.md, so their titles carry no harness line. */
+   find; and each of the year's two data files, which the build resolves
+   (DECISIONS #49), is imported by the one module that owns it. dispatch is
+   last, and the root alone imports it. A new module goes into ORDER at the
+   lowest place its imports allow. These are new tests, not rows of
+   tests/PORT-LEDGER.md, so their titles carry no harness line. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,10 +17,12 @@ import { describe, expect, it } from "vitest";
 import { parseAst } from "vite";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const ORDER = ["util", "storage", "platform", "build", "state", "time", "venues", "data", "picks", "follows", "ics", "leave", "search", "ui",
+const ORDER = ["season", "util", "storage", "platform", "build", "state", "time", "venues", "data", "picks", "follows", "ics", "leave", "search", "ui",
   "scroll", "bus", "now", "browse", "explore", "map", "mine",
   "sheet", "loading", "shell", "dispatch"];
 const PACKAGES = Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).dependencies || {});
+/* The year's data files, as build/vite-dc.js resolves them, and the module each belongs to. */
+const DATA_MODULES = { "virtual:season": "season", "virtual:venues": "venues" };
 const files = fs.readdirSync(path.join(ROOT, "src")).filter(f => f.endsWith(".js")).sort();
 
 /* Every module a file names: import and export-from declarations, and
@@ -46,14 +50,14 @@ describe("the module graph under src/", () => {
     expect(others).toEqual([]);
   });
 
-  it("a module imports only npm dependencies and the modules before it", () => {
+  it("a module imports only npm dependencies, the year's data file it owns and the modules before it", () => {
     const offences = [];
     ORDER.forEach((name, at) => {
       if (!files.includes(`${name}.js`)) return;               // in the list, and no file yet
       for (const s of specifiers(`${name}.js`)) {
         const local = /^\.\/([\w-]+)\.js$/.exec(s);
         const earlier = local && ORDER.indexOf(local[1]) >= 0 && ORDER.indexOf(local[1]) < at;
-        if (!earlier && !PACKAGES.includes(s)) offences.push(`${name}.js imports ${s}`);
+        if (!earlier && !PACKAGES.includes(s) && DATA_MODULES[s] !== name) offences.push(`${name}.js imports ${s}`);
       }
     });
     expect(offences).toEqual([]);

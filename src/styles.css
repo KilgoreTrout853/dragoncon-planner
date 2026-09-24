@@ -286,9 +286,10 @@ select.track {
 .row { border-top: 1px solid var(--line); }
 .row.open { background: var(--surface); }
 .row.mine .title::before { content: "★ "; color: var(--gold); }
-.row.cancelled .title { text-decoration: line-through; color: var(--muted); }
-/* A strike-through alone reads as a rendering glitch; say the word. */
-.cancelled-tag {
+.row.cancelled .title, .row.removed .title { text-decoration: line-through; color: var(--muted); }
+/* A strike-through alone reads as a rendering glitch; say the word. A pick
+   the source dropped says it the same way. */
+.removed-tag, .cancelled-tag {
   display: inline-block; font-size: .6875rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
   color: var(--warn); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; line-height: 17px;
 }
@@ -499,6 +500,9 @@ body.has-minibar .devmark { bottom: calc(124px + var(--safe-bottom)); }
    goes. Larger text made this matter for hour-long picks. */
 .tl-block.tight .tb-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .tl-block.tighter .tb-room { display: none; }
+/* A removed pick keeps its place in the timeline, faded and struck. */
+.tl-block.removed { opacity: .55; }
+.tl-block.removed .tb-title { text-decoration: line-through; }
 /* A six-hour block is 360px of flat colour. Keep its true position and
    height - the geometry is the point - but let the body fade toward the
    page so shorter picks still read as the foreground. */
