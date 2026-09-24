@@ -684,6 +684,20 @@ def test_the_summary_renders_the_last_run_s_result_as_markdown(year, capsys):
         in out)
 
 
+def test_the_summary_escapes_the_titles_and_errors_it_quotes(year, capsys):
+    # the source writes marks Markdown would read: "**EXTRA FEE**", an unmatched pair, a tag, a backslash
+    title = "Workshop w/ Jason Marsden **EXTRA FEE Workshop #1 <b>_x_</b> \\o/"
+    year.listed = {"w1": raw("w1", title)}
+    year.silent = {tag_key.tagger_input(raw("w1", title))["title"]}     # the title as the model is sent it
+    year.run()
+    untagged = next(x for x in capsys.readouterr().out.splitlines() if x.startswith("Untagged: "))
+    assert untagged == ("Untagged: Workshop w/ Jason Marsden \\*\\*EXTRA FEE Workshop #1 \\<b\\>\\_x\\_\\</b\\> "
+                        "\\\\o/.")
+    year.fetch_error = scraper.FetchError("a *bold* claim about `code`")
+    year.run(at=T2)
+    assert "**Fatal:** FetchError: a \\*bold\\* claim about \\`code\\`" in capsys.readouterr().out.splitlines()
+
+
 def test_a_path_shows_from_the_repository_s_root_where_it_is_inside_it():
     assert pipeline.shown(os.path.join(pipeline.HERE, "data", "2027", "season.json")) == "data/2027/season.json"
     outside = os.path.join(os.path.dirname(pipeline.HERE), "elsewhere", "season.json")

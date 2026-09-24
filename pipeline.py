@@ -460,6 +460,13 @@ def cell(stage, block):
 DETAILS = (("failures", "Failed pages"), ("merges", "Merged"), ("unsure", "UNSURE"), ("unanswered", "Not tagged"),
            ("minted", "Minted"), ("untagged", "Untagged"), ("unresolved_names", "Work names unresolved"),
            ("unknown_tracks", "Tracks unknown"))
+MARKDOWN = str.maketrans({c: "\\" + c for c in "\\`*_[]<>~"})
+
+
+def plain(text):
+    """A title, a name or an error as the summary shows it, escaped so Markdown does not read it: the source's
+    "**EXTRA FEE**" stays four asterisks, and an unmatched pair does not embolden the rest of a line."""
+    return str(text).translate(MARKDOWN)
 
 
 def markdown(result):
@@ -474,7 +481,7 @@ def markdown(result):
                  "fetch code changed" if last_run["fetch_code_changed"] else "fetch code unchanged"]
     out = [f"### Pipeline run {result['stamp']}: {result['outcome']}", "", " · ".join(head), ""]
     if result["outcome"] == "fatal":
-        return "\n".join(out + [f"**Fatal:** {result['error']}", "", "Nothing written (DECISIONS #44)."]) + "\n"
+        return "\n".join(out + [f"**Fatal:** {plain(result['error'])}", "", "Nothing written (DECISIONS #44)."]) + "\n"
     if result["outcome"] == "out of window":
         window = result.get("window")
         where = f"{window['from']} to {window['to']}, {window['tz']}" if window else "the season has none"
@@ -498,7 +505,8 @@ def markdown(result):
     for key, label in DETAILS:
         names = result.get("details", {}).get(key)
         if names:
-            notes.append(f"{label}: " + "; ".join(names[:LISTED]) + ("; ..." if len(names) > LISTED else "") + ".")
+            notes.append(f"{label}: " + "; ".join(plain(x) for x in names[:LISTED])
+                         + ("; ..." if len(names) > LISTED else "") + ".")
     return "\n".join(out + ([""] + notes if notes else [])) + "\n"
 
 
