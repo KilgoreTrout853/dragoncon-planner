@@ -168,7 +168,7 @@ shape's venue resolution (#37, #45). The building view's drawings and
 sketches continue on the side, in chat; a Places PR beyond what the
 pipeline absorbs takes a free review slot.
 
-### 4. Identity and sync — not opened; designed while Pipeline shape executes (#37)
+### 4. Identity and sync — in design (opened 2026-09-24, after Pipeline shape closed at PR #50; the recon is `docs/sync/recon.md`)
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
