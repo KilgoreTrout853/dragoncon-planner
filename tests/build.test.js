@@ -228,6 +228,19 @@ describe("vite build", () => {
           expect([...doc.querySelectorAll("#dayChips .chip")].map(c => c.dataset.value))
             .toEqual(["All", "2027-09-01", "2027-09-02", "2027-09-03", "2027-09-04", "2027-09-05", "2027-09-06"]);
         });
+        it("exports the calendar as 2027's: the file's name, the calendar's and each event's UID", async () => {
+          const win = dom.window, doc = win.document, id = JSON.parse(win.localStorage.getItem("dc27.picks"))[0];
+          let blob = null, name = "";
+          win.URL.createObjectURL = b => { blob = b; return "blob:x"; };
+          win.URL.revokeObjectURL = () => {};
+          win.HTMLAnchorElement.prototype.click = function () { name = this.download; };
+          doc.querySelector('.nav button[data-tab="mine"]').click();
+          doc.querySelector('#view-mine [data-act="ics"]').click();
+          const text = await blob.text();
+          expect(name).toBe("dragoncon-2027-my-schedule.ics");
+          expect(text).toContain("X-WR-CALNAME:Dragon Con 2027");
+          expect(text).toContain(`UID:dc27-${id}@dragoncon-planner`);
+        });
         it("no uncaught error fired", () => {
           expect(errors).toEqual([]);
         });
