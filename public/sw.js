@@ -1,4 +1,4 @@
-/* Dragon Con 2026 planner - offline support.
+/* Dragon Con planner - offline support.
 
    The building has terrible signal and everyone is on the same towers, so
    the planner has to open and render from cache. Three different jobs, three
@@ -14,17 +14,24 @@
      fonts         cache-first forever. They never change and a missing font
                    is a visibly broken page.
 
-   Bump the version in CACHE when index.html or sw.js changes; older caches
-   under the same prefix are removed on activate. */
+   Bump the version in CACHE when index.html or sw.js changes; this site's
+   older caches, of any year, are removed on activate. */
 
-/* The next site shares this origin, and so its CacheStorage. build.py stamps
-   CHANNEL there, so each site's worker names, and clears, only its own. */
-const CHANNEL = "";                        /* stamped by build.py: "next" on the next site */
-const CACHE_PREFIX = `dc26${CHANNEL ? "-" + CHANNEL : ""}-`;
-const CACHE = `${CACHE_PREFIX}v5`;
+/* The next site shares this origin, and so its CacheStorage. The build stamps
+   CHANNEL there, so each site's worker names, and clears, only its own; and
+   YEAR, DC_YEAR, so the schedule and the caches are the year's (DECISIONS
+   #49). */
+const CHANNEL = "";                        /* stamped by the build: "next" on the next site */
+const YEAR = "2026";                       /* stamped by the build: DC_YEAR, where it is not 2026 */
+const CACHE_PREFIX = `dc${YEAR.slice(2)}${CHANNEL ? "-" + CHANNEL : ""}-`;
+const CACHE = `${CACHE_PREFIX}v6`;
+/* This site's caches, of any year, by the whole name: dc<yy>-v<n> for the
+   live site and dc<yy>-<channel>-v<n> for a stamped one. A prefix alone let
+   the live site's worker take the next site's caches too. */
+const OURS = new RegExp(`^dc\\d{2}-${CHANNEL ? CHANNEL + "-" : ""}v\\d+$`);
 const HTML_TIMEOUT_MS = 3000;
-const DATA = "data/2026/events.v2.json";
-const SHELL = ["./", "./index.html", "./data/2026/events.v2.json", "./manifest.json", "./icon.svg",
+const DATA = `data/${YEAR}/events.v2.json`;
+const SHELL = ["./", "./index.html", `./${DATA}`, "./manifest.json", "./icon.svg",
                "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 const isFont = url =>
@@ -54,7 +61,7 @@ self.addEventListener("activate", event => {
   event.waitUntil((async () => {
     const names = await caches.keys();
     await Promise.all(names
-      .filter(n => n.startsWith(CACHE_PREFIX) && n !== CACHE)
+      .filter(n => OURS.test(n) && n !== CACHE)
       .map(n => caches.delete(n)));
     await self.clients.claim();
   })());
@@ -65,9 +72,13 @@ async function tellClients(message) {
   clients.forEach(c => c.postMessage(message));
 }
 
-/* Serve the cached schedule at once, then look for a newer one. Only if
-   generated_at actually moved do we replace it and tell the page - a
-   reload prompt that fires on every load would be trained away in a day. */
+/* Serve the cached schedule at once, then look for a newer one. Only if it
+   actually changed do we tell the page - a reload prompt that fires on every
+   load would be trained away in a day. Changed means its digest moved, which
+   it does with every rebuild of the works or the events and with nothing
+   else; generated_at decides only where a copy has no digest, one saved from
+   before the file had one (DECISIONS #42, #49). */
+const changed = (a, b) => a.digest && b.digest ? a.digest !== b.digest : a.generated_at !== b.generated_at;
 async function revalidateData(request) {
   const cache = await caches.open(CACHE);
   const cached = await cache.match(request, {ignoreSearch: true});
@@ -77,8 +88,8 @@ async function revalidateData(request) {
     if (!cached) { await cache.put(request, fresh.clone()); return fresh; }
     const [a, b] = await Promise.all([cached.clone().json(), fresh.clone().json()]);
     await cache.put(request, fresh.clone());
-    if (a.generated_at !== b.generated_at) {
-      await tellClients({type: "schedule-updated", generated_at: b.generated_at});
+    if (changed(a, b)) {
+      await tellClients({type: "schedule-updated", digest: b.digest, generated_at: b.generated_at});
     } else {
       await tellClients({type: "schedule-online"});
     }

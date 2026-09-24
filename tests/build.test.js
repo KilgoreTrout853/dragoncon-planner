@@ -1,9 +1,10 @@
 // @vitest-environment node
-/* The build's contract (DECISIONS #15, #23): what `vite build` leaves in the
-   output folder, stamped and unstamped. Cases 1-4 are build.py's old tests;
-   5-6 pin the shape the deploy and the build smoke depend on. Each case
-   runs the real CLI into a temp folder, so this is slow by unit-test
-   standards - a second or so a build.
+/* The build's contract (DECISIONS #15, #23, #49): what `vite build` leaves in
+   the output folder, stamped and unstamped. Cases 1-4 are build.py's old
+   tests; 5-6 pin the shape the deploy and the build smoke depend on; the
+   year's cases follow, and a build for a year whose schedule the repo does
+   not hold yet, in a temporary copy. Each case runs the real CLI into a temp
+   folder, so this is slow by unit-test standards - a second or so a build.
 
    Below them, the checks of the build output that came from the old smoke
    harness, one for one (the number in brackets is its line;
@@ -24,20 +25,45 @@ afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
 let n = 0;
 /* env always names both stamps and the year, so a DC_CHANNEL or a DC_YEAR in
-   the caller's shell cannot leak in */
-function build(env) {
+   the caller's shell cannot leak in. root: a temporary copy to build, with
+   the repo's own vite.config.js; the repo itself where there is none. */
+function build(env, root) {
   const out = path.join(TMP, `site-${++n}`);
+  const args = root ? [VITE, "build", root, "--config", path.join(ROOT, "vite.config.js")] : [VITE, "build"];
   try {
-    const stdout = execFileSync(process.execPath, [VITE, "build", "--outDir", out, "--logLevel", "warn"],
+    const stdout = execFileSync(process.execPath, [...args, "--outDir", out, "--logLevel", "warn"],
       { cwd: ROOT, env: { ...process.env, DC_CHANNEL: "", DC_BUILD: "", DC_YEAR: "", ...env }, encoding: "utf8", stdio: "pipe" });
     return { ok: true, out, stdout, stderr: "" };
   } catch (e) {
     return { ok: false, out, stdout: String(e.stdout || ""), stderr: String(e.stderr || "") };
   }
 }
+/* A temporary copy of the project for a year whose files the repo does not
+   hold yet (DECISIONS #49): the page, src/ and public/ copied, node_modules
+   linked, and data/<year>/ holding the given files, each written as it is
+   given. fs.rm takes the link away and never walks into node_modules. */
+function stage(year, files) {
+  const root = path.join(TMP, `root-${++n}`);
+  fs.mkdirSync(path.join(root, "data", year), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, "index.html"), path.join(root, "index.html"));
+  for (const dir of ["src", "public"]) fs.cpSync(path.join(ROOT, dir), path.join(root, dir), { recursive: true });
+  fs.symlinkSync(path.join(ROOT, "node_modules"), path.join(root, "node_modules"), "junction");
+  for (const [name, text] of Object.entries(files)) fs.writeFileSync(path.join(root, "data", year, name), text);
+  return root;
+}
 const read = (...parts) => fs.readFileSync(path.join(...parts), "utf8");
 const exists = (...parts) => fs.existsSync(path.join(...parts));
 const SLOW = { timeout: 120_000 };
+/* The worker's constants as it works them out: its text run with a stand-in
+   self that registers nothing. */
+const workerConstants = text => new Function("self", `${text}\nreturn {CACHE_PREFIX, CACHE, DATA, SHELL};`)({ addEventListener() {} });
+const until = async (holds, what, ms = 20_000) => {
+  const deadline = performance.now() + ms;
+  while (!holds()) {
+    if (performance.now() > deadline) throw new Error(`the built page: ${what} did not happen within ${ms} ms`);
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+};
 
 describe("vite build", () => {
   const plain = build({});          // shared by the cases that only read an unstamped build
@@ -49,7 +75,7 @@ describe("vite build", () => {
     expect(html).toContain('<meta name="dc-channel" content="next">');
     expect(html).toContain('<meta name="dc-build" content="abc1234">');
     expect(sw).toContain('const CHANNEL = "next";');
-    expect(sw.replaceAll("dc26${", "")).not.toContain("dc26-v5");      // the name is built from the prefix
+    expect(workerConstants(sw).CACHE).toBe("dc26-next-v6");              // the name is built from the stamps
     expect(exists(r.out, "data", "2026", "events.v2.json")).toBe(true);
     expect(exists(r.out, ".nojekyll")).toBe(true);
     for (const absent of ["tests", "src", "scraper.py", "README.md", "node_modules", "package.json"]) {
@@ -66,6 +92,7 @@ describe("vite build", () => {
       expect(fs.readFileSync(path.join(plain.out, f)).equals(fs.readFileSync(path.join(ROOT, "public", f))), f).toBe(true);
     }
     expect(read(plain.out, "sw.js")).toContain('const CHANNEL = "";');
+    expect(read(plain.out, "sw.js")).toContain('const YEAR = "2026";');
   });
 
   it("defaults the build id to the commit", SLOW, () => {
@@ -99,6 +126,115 @@ describe("vite build", () => {
     expect(exists(r.out, "index.html")).toBe(false);
   });
 
+  /* 2027's schedule arrives with its season's first run past the ids stage;
+     until then a build for it is made in a temporary copy, with the repo's
+     2027 season and venues files and a stand-in schedule: six of the
+     sample's Saturday events around 1 PM, untagged, moved to 2027's Saturday. */
+  describe("a build for 2027, in a temporary copy", () => {
+    const own = name => read(ROOT, "data", "2027", name);
+    const sample = JSON.parse(read(ROOT, "tests", "sample-events.json"));
+    const moved = s => s.replace("2026-09-05", "2027-09-04");
+    const schedule = JSON.stringify({ ...sample, digest: "stand-in", works: [],
+      events: sample.events.filter(e => !e.tags && !(e.tracks || []).some(t => /Epic Photos|Video Room/.test(t))
+        && e.start >= "2026-09-05T12:00" && e.start <= "2026-09-05T14:00" && e.end.startsWith("2026-09-05")).slice(0, 6)
+        .map(e => ({ ...e, day: moved(e.day), start: moved(e.start), end: moved(e.end) })) });
+
+    it("refuses 2027 while it has no schedule, before building anything", SLOW, () => {
+      const r = build({ DC_YEAR: "2027" }, stage("2027", { "season.json": own("season.json"), "venues.json": own("venues.json") }));
+      expect(r.ok).toBe(false);
+      expect(r.stderr + r.stdout).toMatch(/no data\/2027\/events\.v2\.json/);
+      expect(exists(r.out, "index.html")).toBe(false);
+    });
+
+    it("refuses a season file that names another year", SLOW, () => {
+      const r = build({ DC_YEAR: "2027" }, stage("2027", { "season.json": read(ROOT, "data", "2026", "season.json"), "venues.json": own("venues.json"), "events.v2.json": schedule }));
+      expect(r.ok).toBe(false);
+      expect(r.stderr + r.stdout).toMatch(/data\/2027\/season\.json names the year 2026/);
+    });
+
+    describe("with a schedule", () => {
+      let r, html, markup;
+      beforeAll(() => {
+        r = build({ DC_YEAR: "2027" }, stage("2027", { "season.json": own("season.json"), "venues.json": own("venues.json"), "events.v2.json": schedule }));
+        html = r.ok ? read(r.out, "index.html") : "";
+        markup = html.slice(0, html.indexOf("<script>"));
+      }, 120_000);
+
+      it("builds", () => {
+        expect(r.ok, r.stderr).toBe(true);
+        expect(JSON.parse(schedule).events).toHaveLength(6);
+      });
+      it("copies the year's schedule from data/, and nothing else", () => {
+        const listed = fs.readdirSync(path.join(r.out, "data"), { recursive: true }).map(f => String(f).split(path.sep).join("/")).sort();
+        expect(listed).toEqual(["2027", "2027/events.v2.json"]);
+        expect(read(r.out, "data", "2027", "events.v2.json")).toBe(schedule);
+      });
+      it("stamps the worker's year and nothing else: its cache, its schedule and its shell are 2027's", () => {
+        const sw = read(r.out, "sw.js");
+        expect(sw).toBe(read(ROOT, "public", "sw.js").replace('const YEAR = "2026";', 'const YEAR = "2027";'));
+        const { CACHE, DATA, SHELL } = workerConstants(sw);
+        expect([CACHE, DATA]).toEqual(["dc27-v6", "data/2027/events.v2.json"]);
+        expect(SHELL).toContain("./data/2027/events.v2.json");
+      });
+      it("stamps the page's name - its title, its head's tags, the brand and the home-screen title", () => {
+        expect(markup).toContain("<title>Dragon Con 2027 planner</title>");
+        expect(markup).toContain('<meta property="og:title" content="Dragon Con 2027 planner">');
+        expect(markup).toContain('<meta name="apple-mobile-web-app-title" content="DC27">');
+        expect(markup).toContain('<div class="brand" id="brand">Dragon Con 2027</div>');
+        expect(markup).not.toMatch(/2026|DC26/);
+      });
+      it("and the manifest's name, and nothing else in the manifest", () => {
+        const manifest = JSON.parse(read(r.out, "manifest.json")), before = JSON.parse(read(ROOT, "public", "manifest.json"));
+        expect([manifest.name, manifest.short_name]).toEqual(["Dragon Con 2027", "DC27"]);
+        expect({ ...manifest, name: before.name, short_name: before.short_name }).toEqual(before);
+      });
+
+      /* The define, seen from inside: the page fetches, keys and reads its days by 2027. */
+      describe("booted", () => {
+        let dom;
+        const fetched = [], errors = [];
+        beforeAll(async () => {
+          dom = new JSDOM(html, {
+            runScripts: "dangerously", pretendToBeVisual: true, url: "https://example.test/?now=2027-09-04T13:05",
+            beforeParse(window) {
+              window.addEventListener("error", e => errors.push(e.message));
+              window.fetch = url => { fetched.push(String(url)); return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(JSON.parse(schedule)) }); };
+              const worker = new window.EventTarget();
+              worker.register = () => Promise.resolve({});
+              worker.controller = null;
+              Object.defineProperty(window.navigator, "serviceWorker", { value: worker, configurable: true });
+            },
+          });
+          await until(() => dom.window.document.querySelector("#view-now .row"), "the first screen");
+        }, 60_000);
+        afterAll(() => dom && dom.window.close());
+
+        it("fetches the year's schedule", () => {
+          expect(fetched[0]).toBe("data/2027/events.v2.json");
+        });
+        it("reads the clock by 2027's days", () => {
+          expect(dom.window.document.getElementById("clock").textContent).toMatch(/^Sat 1:05 PM/);
+        });
+        it("keeps a star, and all it keeps, under dc27.", () => {
+          const star = dom.window.document.querySelector("#view-now .row .star"), id = star.closest(".row").dataset.id;
+          star.click();
+          expect(JSON.parse(dom.window.localStorage.getItem("dc27.picks"))).toEqual([id]);
+          expect(Object.keys(dom.window.localStorage).filter(k => !k.startsWith("dc27."))).toEqual([]);
+          expect(Object.keys(dom.window.sessionStorage)).toEqual(["dc27.timeOverride"]);
+        });
+        it("offers 2027's days on Search", () => {
+          const doc = dom.window.document;
+          doc.querySelector('.nav button[data-tab="browse"]').click();
+          expect([...doc.querySelectorAll("#dayChips .chip")].map(c => c.dataset.value))
+            .toEqual(["All", "2027-09-01", "2027-09-02", "2027-09-03", "2027-09-04", "2027-09-05", "2027-09-06"]);
+        });
+        it("no uncaught error fired", () => {
+          expect(errors).toEqual([]);
+        });
+      });
+    });
+  });
+
   it("emits one classic script at the end of the body and no separate assets", SLOW, () => {
     const html = read(plain.out, "index.html");
     expect(html).not.toContain("<script src");
@@ -115,11 +251,10 @@ describe("vite build", () => {
   });
 
   it("the worker's schedule and shell name files the build ships, the schedule among them", SLOW, () => {
-    const sw = read(plain.out, "sw.js");
-    expect(sw).toContain('const DATA = "data/2026/events.v2.json";');
-    const shell = [...sw.match(/const SHELL = \[([^\]]*)\]/)[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
-    expect(shell).toContain("./data/2026/events.v2.json");
-    shell.filter(p => p !== "./").forEach(p => expect(exists(plain.out, ...p.slice(2).split("/")), p).toBe(true));
+    const { DATA, SHELL } = workerConstants(read(plain.out, "sw.js"));
+    expect(DATA).toBe("data/2026/events.v2.json");
+    expect(SHELL).toContain("./data/2026/events.v2.json");
+    SHELL.filter(p => p !== "./").forEach(p => expect(exists(plain.out, ...p.slice(2).split("/")), p).toBe(true));
   });
 
   it("copies from data/ the one file the client reads, and nothing else", SLOW, () => {
@@ -182,10 +317,11 @@ describe("vite build", () => {
       expect(() => new Function(sw())).not.toThrow();
     });
     it.skip("sw.js parses: the catch arm of 1282; it runs only when sw.js fails to parse, and then 1282 has already failed [1283]", () => {});
-    it("the cache name is versioned (v5) under a prefix the build can stamp, and only that prefix is cleared [1290]", () => {
+    it("the cache name is versioned (v6) under a prefix the build can stamp, and only this site's caches are cleared [1290]", () => {
       expect(sw()).toMatch(/const CHANNEL = "";/);
-      expect(sw()).toMatch(/const CACHE = `\$\{CACHE_PREFIX\}v5`;/);
-      expect(sw()).toMatch(/n\.startsWith\(CACHE_PREFIX\) && n !== CACHE/);
+      expect(sw()).toMatch(/const YEAR = "2026";/);
+      expect(sw()).toMatch(/const CACHE = `\$\{CACHE_PREFIX\}v6`;/);
+      expect(sw()).toMatch(/OURS\.test\(n\) && n !== CACHE/);
     });
     it("the worker precaches the icons [1307]", () => {
       expect(sw()).toMatch(/SHELL = \[[^\]]*"\.\/icon-180\.png"[^\]]*"\.\/icon-512\.png"/);
@@ -200,15 +336,15 @@ describe("vite build", () => {
     it("while the race uses that same fetch rather than a second one [1312]", () => {
       expect(sw()).toMatch(/networkFirst\(request, net\)/);
     });
-    it("older caches under this site's prefix are deleted on activate [1313]", () => {
-      expect(sw()).toMatch(/startsWith\(CACHE_PREFIX\) && n !== CACHE[\s\S]{0,80}caches\.delete/);
+    it("this site's older caches, of any year, are deleted on activate [1313]", () => {
+      expect(sw()).toMatch(/OURS\.test\(n\) && n !== CACHE[\s\S]{0,80}caches\.delete/);
     });
     it("the html network race times out at 3s [1314]", () => {
       expect(sw()).toMatch(/HTML_TIMEOUT_MS\s*=\s*3000/);
     });
-    it("the worker only announces an update when generated_at actually changed [1315]", () => {
-      expect(sw()).toMatch(/schedule-updated/);
-      expect(sw()).toMatch(/generated_at !== /);
+    it("the worker only announces an update when the digest changed, or generated_at where a copy has none [1315]", () => {
+      expect(sw()).toMatch(/a\.digest && b\.digest \? a\.digest !== b\.digest : a\.generated_at !== b\.generated_at/);
+      expect(sw()).toMatch(/if \(changed\(a, b\)\) \{\s*await tellClients\(\{type: "schedule-updated", digest: b\.digest, generated_at: b\.generated_at\}\)/);
     });
     it("font requests are cached, opaque allowed [1317]", () => {
       expect(sw()).toMatch(/fonts\.gstatic\.com/);
@@ -273,13 +409,6 @@ describe("vite build", () => {
   describe("the built page boots", () => {
     let dom;
     const errors = [];
-    const until = async (holds, what, ms = 20_000) => {
-      const deadline = performance.now() + ms;
-      while (!holds()) {
-        if (performance.now() > deadline) throw new Error(`the built page: ${what} did not happen within ${ms} ms`);
-        await new Promise(resolve => setTimeout(resolve, 20));
-      }
-    };
 
     beforeAll(async () => {
       const fixture = JSON.parse(read(ROOT, "tests", "sample-events.json"));

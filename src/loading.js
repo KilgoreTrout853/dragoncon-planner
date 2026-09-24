@@ -163,10 +163,14 @@ function onPillTouchEnd() {
 /* Coming back to the app after a while: check the schedule once, quietly.
    The service worker does the checking when there is one - a fetch of
    the schedule is served from cache and revalidated behind it, and the
-   worker says if generated_at moved, which shows the pill above. Without
-   a worker the fetch is real and we compare ourselves. Nothing re-renders
-   under the reader either way; the pill offers the reload. Timers stop in
-   the background too, so the freshness text is brought up to date first. */
+   worker says if the schedule changed, which shows the pill above. Without
+   a worker the fetch is real and we compare ourselves, by the worker's
+   rule: the digest, which moves with every rebuild of the works or the
+   events and with nothing else, or generated_at where a copy has none
+   (DECISIONS #42, #49). Nothing re-renders under the reader either way; the
+   pill offers the reload. Timers stop in the background too, so the
+   freshness text is brought up to date first. */
+const scheduleChanged = (a, b) => a.digest && b.digest ? a.digest !== b.digest : a.generated_at !== b.generated_at;
 const RECHECK_MS = 15 * 60000;
 let lastScheduleCheck = 0;                   // boot() sets it: loading was a check
 async function recheckSchedule() {
@@ -178,8 +182,9 @@ async function recheckSchedule() {
     const viaWorker = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
     if (!viaWorker && r && r.ok) {
       const data = await r.json();
-      if (data.generated_at && data.generated_at !== meta.generated_at) {
+      if (data.generated_at && scheduleChanged(meta, data)) {
         meta.generated_at = data.generated_at;
+        if (data.digest) meta.digest = data.digest;
         updateFresh();
         showUpdatePill();
       }
@@ -193,8 +198,9 @@ async function recheckSchedule() {
 function onWorkerMessage(e) {
   const t = e.data && e.data.type;
   if (t === "schedule-updated") {
-    /* The worker hands over the new generated_at; the header can say how
-       fresh the waiting copy is while the pill offers it. */
+    /* The worker hands over the new copy's digest and generated_at; the
+       header can say how fresh the waiting copy is while the pill offers it. */
+    if (e.data.digest) meta.digest = e.data.digest;
     if (e.data.generated_at) { meta.generated_at = e.data.generated_at; updateFresh(); }
     showUpdatePill();
   }
