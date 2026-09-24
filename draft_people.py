@@ -294,16 +294,20 @@ def load_sidecar(path):
             "minted": data.get("minted") or []}
 
 
+def json_text(data):
+    """What write_json() writes: a list one entry a line, as the seeded registries are written, and anything else
+    indented and sorted. The orchestrator (pipeline.py) writes works.json's with the rest of a run's files."""
+    if not isinstance(data, list):
+        return json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n"
+    if not data:
+        return "[]\n"
+    return "[\n" + ",\n".join("  " + json.dumps(r, ensure_ascii=False) for r in data) + "\n]\n"
+
+
 def write_json(path, data):
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:  # LF on Windows too (.gitattributes)
-        if not isinstance(data, list):
-            json.dump(data, f, ensure_ascii=False, indent=1, sort_keys=True)
-            f.write("\n")
-        elif not data:
-            f.write("[]\n")
-        else:  # one entry a line, as the seeded registries are written
-            f.write("[\n" + ",\n".join("  " + json.dumps(r, ensure_ascii=False) for r in data) + "\n]\n")
+        f.write(json_text(data))
 
 
 # ---------------------------------------------------------------------------

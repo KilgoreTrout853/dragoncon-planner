@@ -36,8 +36,8 @@ parts - read the location with a space, a comma and a hyphen alike (`folded`); t
 
 dupe_key and norm_text live here, as the 2026 dedupe had them; tests/make_sample.py imports dupe_key for its copy of
 that dedupe, and tools/schedule_history.py both. A frozen year has no ledger and no ids stage (#46). Standard library;
-nothing here reads the network or the clock, and there is no command: PR 8's orchestrator runs it after the fetch, and
-tools/replay_2026.py over the 2026 history.
+nothing here reads the network or the clock, and there is no command: the orchestrator (pipeline.py) runs it after the
+fetch, and tools/replay_2026.py over the 2026 history.
 """
 
 import json
@@ -58,7 +58,7 @@ class IdsError(Exception):
 
 @dataclass
 class IdsReport:
-    """What a run did, for the run summary (#44; PR 8). Every list is sorted.
+    """What a run did, for the run summary (#44; pipeline.py). Every list is sorted.
 
     new       the ids new this run by rule d
     matched   {id, source_ids}: a group that took a gone line's id by rule c
@@ -296,9 +296,18 @@ def read_ledger(path):
         with open(path, "rb") as f:
             data = f.read()
     except FileNotFoundError:
-        raise IdsError(f"the ledger {path} is absent: it exists, empty, from the season's first commit (#43)") from None
+        data = None
     except OSError as exc:
         raise IdsError(f"the ledger {path} cannot be read ({exc.strerror or exc})") from None
+    return parse_ledger(data, path)
+
+
+def parse_ledger(data, path):
+    """A ledger's bytes -> {id: line}, as read_ledger() reads the file: the orchestrator (pipeline.py) reads it once,
+    before any stage, and hands the bytes here, None where the file is absent. `path` names the file in the messages.
+    IdsError where it is absent, is not UTF-8, or a line is malformed, the line's number in the message."""
+    if data is None:
+        raise IdsError(f"the ledger {path} is absent: it exists, empty, from the season's first commit (#43)")
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -353,14 +362,18 @@ def _text(value):
     return isinstance(value, str) and bool(value)
 
 
-def write_ledger(path, ledger):
-    """ids.jsonl (#43): a line per id, sorted by id, its keys in LINE_KEYS order - `left`, `gone_since` and
-    `merged_into` only where set - compact UTF-8 with LF line ends and a line break after each line, so an empty
-    ledger is an empty file. Written beside the file and swapped in, as source.json is, so a run that dies part-way
-    leaves the last file whole."""
-    text = "".join(json.dumps(_ordered(ledger[i]), ensure_ascii=False, separators=(",", ":")) + "\n"
+def ledger_text(ledger):
+    """ids.jsonl's text (#43): a line per id, sorted by id, its keys in LINE_KEYS order - `left`, `gone_since` and
+    `merged_into` only where set - compact, with a line break after each line, so an empty ledger is empty text.
+    write_ledger() writes it, and the orchestrator (pipeline.py) with the rest of a run's files."""
+    return "".join(json.dumps(_ordered(ledger[i]), ensure_ascii=False, separators=(",", ":")) + "\n"
                    for i in sorted(ledger))
+
+
+def write_ledger(path, ledger):
+    """ids.jsonl (#43): ledger_text(), UTF-8 with LF line ends. Written beside the file and swapped in, as
+    source.json is, so a run that dies part-way leaves the last file whole."""
     tmp = path + ".tmp"
     with open(tmp, "wb") as f:
-        f.write(text.encode("utf-8"))
+        f.write(ledger_text(ledger).encode("utf-8"))
     os.replace(tmp, path)

@@ -76,14 +76,17 @@ seam a feed would plug into (#41). The sequence:
    the change log's committed check, skipped until a live run commits.
 8. The orchestrator, the run summary and the workflow, proven by a
    dispatch run against the 2026 source with `--limit` into a scratch
-   branch: the snapshot of the previous files, one stamp handed down to
-   every stage, the SHA - two git calls, `rev-parse HEAD` and
-   `diff --name-only` against `last-run.json`'s, which set
-   `fetch_code_changed` - the attribution and the diff, and the workflow,
-   whose commit step checks that the change log begins with the last
-   commit's; and the season-start sequence it owns: a dispatch run to the
-   ids stage, then `seed`, then a hand tag with `--requests` set high
-   (`contract.md`, The tag stage, as built).
+   branch - built: `pipeline.py`, its `run`, `window` and `summary`; the
+   snapshot of the previous files; one stamp handed down to every stage,
+   and one git call, `rev-parse HEAD`, with `fetch_code_hash` for
+   `fetch_code_changed`; every stage called with its inputs; the writes
+   all or nothing, the change log's prefix check among them, and the
+   build's second run on the texts about to be written; `last-run.json`
+   as built; `scrape.yml`, landing each run by pull request with
+   auto-merge; `requirements.txt` frozen; and the season-start sequence
+   it owns: a dispatch run to the ids stage, then `seed`, then the cron,
+   whose runs finish a first tag in about three (`contract.md`, The run,
+   as built).
 9. The 2027 client switch, after a design pass of its own; its pick
    reconciliation reads `was` (#43).
 
@@ -203,13 +206,14 @@ Steps taken by hand, beside the PRs rather than in them:
   key revoked (#46).
 - Before PR 8's dispatch run: `ANTHROPIC_API_KEY` as a repository secret,
   with a spend cap in the console (#46); the fine-grained token as a
-  secret, expiring the month after the con (#48); "Allow auto-merge"
-  turned on (#48).
+  secret, `SCHEDULE_BOT_TOKEN`, expiring the month after the con (#48);
+  "Allow auto-merge" turned on (#48); and `SCRAPE_TARGET` = `next`, a
+  repository variable.
 - Before the freeze: `client` and `pipeline` required on the `main`
   ruleset (#48).
 - At the freeze: `next` merges to `main`, the default branch flips to
-  `main`, and the freeze PR flips the scrape's target (#48).
+  `main`, and `SCRAPE_TARGET` flips to `main`, by hand (#48; PR 8).
 - After the con: the `next` ruleset allows merge commits beside squash,
   `main` merges back into `next` as a merge commit, and the default branch
-  and the target flip back (#48).
+  and `SCRAPE_TARGET` flip back to `next` (#48).
 - Every year: a new token (#48).

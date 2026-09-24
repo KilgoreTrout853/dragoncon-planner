@@ -7,7 +7,7 @@ Hand-edited, one a year: what the pipeline needs to know of a con that its sched
     slug, source    the source's slug and its base URL (2026: dragoncon26)
     days            the source's day strings, as its day pages take them: "Sep  2", two spaces before one digit
     con             {first, last}: the first and last day of the client's CON, ISO dates
-    tz              the time zone's name, a string only: the cron guard that reads it runs on Linux, PR 8's
+    tz              the time zone's name, a string only: pipeline.py's window reads it through zoneinfo
     window          {from, to}, ISO dates: the cron window, outside which a run exits 0 (#48); null for a frozen year
     frozen          a frozen year: its raw file is write-refused and no run targets it (#46)
     prompt_version  the tag stage's PROMPT_VERSION for the year (#46)

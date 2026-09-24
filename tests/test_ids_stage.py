@@ -379,6 +379,20 @@ def test_the_ledger_file_is_a_line_per_id_sorted_compact_utf8_lf_its_keys_in_ord
     assert path.read_bytes() == b"" and ids_stage.read_ledger(str(path)) == {}   # an empty ledger: an empty file
 
 
+def test_ledger_text_and_parse_ledger_are_the_writer_s_and_the_reader_s_halves(tmp_path):
+    # the orchestrator (pipeline.py) reads and writes the file itself, through these; its snapshot holds None for an
+    # absent ledger
+    ledger = assign([row("a1"), row("b2", title="Other")]).ledger
+    path = tmp_path / "ids.jsonl"
+    ids_stage.write_ledger(str(path), ledger)
+    assert path.read_bytes() == ids_stage.ledger_text(ledger).encode("utf-8")
+    assert ids_stage.parse_ledger(path.read_bytes(), str(path)) == ids_stage.read_ledger(str(path)) == ledger
+    with pytest.raises(ids_stage.IdsError, match="the ledger data/2027/ids.jsonl is absent: it exists, empty"):
+        ids_stage.parse_ledger(None, "data/2027/ids.jsonl")
+    with pytest.raises(ids_stage.IdsError, match="the ledger x, line 1: not JSON"):
+        ids_stage.parse_ledger(b"{\n", "x")
+
+
 # ---------------------------------------------------------------------------
 # The mini-history, end to end
 # ---------------------------------------------------------------------------

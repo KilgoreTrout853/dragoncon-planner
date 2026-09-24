@@ -57,6 +57,16 @@ def test_three_valid_files_load(tmp_path):
     assert [p["id"] for p in reg.people] == ["nathan-fillion"]
 
 
+def test_check_is_load_with_no_file(tmp_path):
+    # the orchestrator (pipeline.py) checks works.json with a run's mint in it before anything is written
+    reg = registry.check([WORK], [PERSON], [TRACK])
+    assert reg.resolve_work("Serenity") == "firefly" and reg.resolve_track("Filk") == "filk-music"
+    bad = [{**WORK, "id": "Not A Slug"}, {**WORK, "id": "firefly-2", "type": "comic"}]
+    with pytest.raises(registry.RegistryError) as exc:
+        registry.check(bad, [], [])
+    assert exc.value.problems == problems(tmp_path, works=bad) != []
+
+
 def test_an_empty_people_file_is_valid(tmp_path):
     assert registry.load(write(tmp_path, people=[])).people == []
 

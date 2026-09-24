@@ -253,8 +253,9 @@ def test_the_description_is_trimmed_and_capped():
 
 
 def test_the_key_and_the_cache_are_a_leaf_that_neither_stage_is_imported_by():
-    """tag_key.py holds the input, the key and the cache's file, and nothing else; events_v2.py imports it, not the
-    tag stage, so the tag stage imports the build with no cycle."""
+    """tag_key.py holds the input, the key and the cache's file - its reader and writer, and their text halves, which
+    the orchestrator calls - and nothing else; events_v2.py imports it, not the tag stage, so the tag stage imports
+    the build with no cycle."""
     def imported(name):
         tree = ast.parse(open(os.path.join(ROOT, name), encoding="utf-8").read())
         return {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names} | \
@@ -263,7 +264,8 @@ def test_the_key_and_the_cache_are_a_leaf_that_neither_stage_is_imported_by():
     assert "tag_key" in imported("events_v2.py") and "tag_stage" not in imported("events_v2.py")
     assert {"tag_key", "events_v2", "merge_stage"} <= imported("tag_stage.py")
     public = {n for n, v in vars(tag_key).items() if not n.startswith("_") and not inspect.ismodule(v)}
-    assert public == {"tagger_input", "input_key", "DESCRIPTION_CAP", "load_cache", "write_cache"}
+    assert public == {"tagger_input", "input_key", "DESCRIPTION_CAP", "load_cache", "write_cache", "parse_cache",
+                      "cache_text"}
     code = "import sys; sys.path.insert(0, sys.argv[1]); import tag_stage; print('ok')"
     assert subprocess.run([sys.executable, "-c", code, ROOT], capture_output=True, text=True,
                           check=True).stdout.strip() == "ok"
@@ -553,6 +555,21 @@ def test_the_cache_round_trips_sorted_lf_one_entry_a_line_fields_in_order(tmp_pa
     tag_key.write_cache(path, back)
     assert open(path, "rb").read() == raw_bytes
     assert tag_key.load_cache(str(tmp_path / "absent.jsonl")) == {}
+
+
+def test_cache_text_and_parse_cache_are_the_writer_s_and_the_reader_s_halves(tmp_path):
+    # the orchestrator (pipeline.py) reads and writes the file itself, through these
+    cache = {e["key"]: e for e in (entry(ev("Castle Cast"), works=[work("Castle")]), entry(ev("Opening Ceremonies")))}
+    path = str(tmp_path / "tags.cache.jsonl")
+    tag_key.write_cache(path, cache)
+    text = open(path, "rb").read().decode("utf-8")
+    assert text == tag_key.cache_text(cache)
+    assert tag_key.parse_cache(text, path) == tag_key.load_cache(path) == cache
+    # lines break as a file read as text breaks them, a blank line skipped, a bad one named by its number
+    assert tag_key.parse_cache(text.replace("\n", "\r\n") + "\r\n", path) == cache
+    assert tag_key.parse_cache(text.replace("\n", "\r"), path) == cache
+    with pytest.raises(ValueError, match=r"x:3: not a cache entry"):
+        tag_key.parse_cache(text + '{"key": "k"}\n', "x")
 
 
 def test_a_line_that_is_not_an_entry_is_an_error(tmp_path):
@@ -854,6 +871,26 @@ def test_mint_writes_added_rows_only_each_carrying_minted_and_the_registry_still
     reg = registry.load(str(tmp_path / "registry"))
     assert reg.resolve_work("Star Trek: Prodigy") == "star-trek-prodigy" and len(calls) == 1   # the parents request
     assert sum("minted" in w for w in reg.works) == 1
+
+
+def test_mint_works_is_the_mint_with_no_file_and_works_rows_what_mint_writes(tmp_path):
+    # the orchestrator (pipeline.py) mints through mint_works and writes works_rows itself, after registry.check
+    reg = registry_at(tmp_path / "registry")
+    event = ev("The Expanse Panel")
+    cache = {key(event): entry(event, works=[work("The Expanse")])}
+    files = {name: (tmp_path / "registry" / name).read_bytes() for name in registry.FILES}
+    result = ts.TagResult(model="m")
+    plan = ts.mint_works(result, [event], cache, reg, VERSION, refusing, "m", minted={"year": 2027, "run": T1},
+                         parents=False)
+    assert [(w["id"], w["minted"]) for w in plan["works"]] == [("the-expanse", {"year": 2027, "run": T1})]
+    assert result.minted == []                                        # the caller's, once the rows are written
+    assert {name: (tmp_path / "registry" / name).read_bytes() for name in registry.FILES} == files
+    rows = ts.works_rows(reg, plan["works"])
+    assert [w["id"] for w in rows] == ["dungeons-and-dragons", "firefly", "star-trek", "the-expanse"]
+    assert list(rows[-1]) == ["id", "name", "aliases", "type", "reviewed", "minted"]
+    ts.mint(ts.TagResult(model="m"), [event], cache, reg, VERSION, str(tmp_path / "registry"), refusing, "m",
+            minted={"year": 2027, "run": T1}, parents=False)
+    assert (tmp_path / "registry" / "works.json").read_text(encoding="utf-8") == dp.json_text(rows)
 
 
 def test_a_failed_parents_request_writes_nothing(tmp_path, monkeypatch):

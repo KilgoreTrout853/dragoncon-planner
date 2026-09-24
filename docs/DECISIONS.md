@@ -880,7 +880,7 @@ so the design starts from them.
 33m 00s (median 22m 32s: `docs/pipeline/history-2026.md`, section 8) and
 the encoding repair (#44) stay ours.
 
-### 42. The 2027 contract — Decided, not built (2026-09-22) — `events.v2.json` built by PR 6, 2026's rebuilt in its shape: the digest is the sha256 of the works and the events written exactly as the file writes them, one serialisation, not a canonical sorted-key JSON; a line break before each works row too; a frozen year's `failures` stays a count (`contract.md`, The v2 file)
+### 42. The 2027 contract — Decided, not built (2026-09-22) — `events.v2.json` built by PR 6, 2026's rebuilt in its shape: the digest is the sha256 of the works and the events written exactly as the file writes them, one serialisation, not a canonical sorted-key JSON; a line break before each works row too; a frozen year's `failures` stays a count (`contract.md`, The v2 file); the year is its season file, `pipeline.py run --season`, not `--year` (PR 8)
 **Decided:** A year's pipeline files live in `data/<year>/`, one writer
 each; `docs/pipeline/contract.md` has the detail.
 - `season.json` (by hand, #44), `venues.json` (by hand, #45),
@@ -988,7 +988,7 @@ arrived at the same starts, under new titles, new source ids and the room
 written `Hilton-Salon` (section 4, v6 → v7). Precision over recall.
 **Cost:** The Salon pair's picks break. A rule that fires once a con.
 
-### 44. The run — Decided, not built (2026-09-22) — a room placed at its level is by design, not a degradation, and the zero hold on 2026's build covers the tag and track counters alone, the venue counters reported, never held (`contract.md`, `last-run.json`); the build tolerates, built by PR 6: a cache miss ships the event untagged, an unresolved work name drops its link and a track `tracks.json` lacks keeps its name with no axes, each counted in the build's report, and `tests/test_zero_hold.py` is the zero hold (`contract.md`, The build, as built)
+### 44. The run — Decided, not built (2026-09-22) — a room placed at its level is by design, not a degradation, and the zero hold on 2026's build covers the tag and track counters alone, the venue counters reported, never held (`contract.md`, `last-run.json`); the build tolerates, built by PR 6: a cache miss ships the event untagged, an unresolved work name drops its link and a track `tracks.json` lacks keeps its name with no axes, each counted in the build's report, and `tests/test_zero_hold.py` is the zero hold (`contract.md`, The build, as built); the run built by PR 8, `pipeline.py` (`contract.md`, The run, as built): `run --season`, not `--year`; `--from` the ids stage, the tag stage or the build, and `--to` the fetch, the ids stage or the tag stage; every file written by the orchestrator at the end of a run, all or nothing; the build's second run through the live front door, on the texts about to be written; the previous `events.v2.json` absent never fatal, a season's first run stopping after the ids stage; a fault counter above zero a warning annotation, a curation counter - rooms unresolved, listings gone, texts repaired - a notice
 **Decided:** `pipeline.py run --year <year>` runs five stages in order:
 fetch writes `source.json`, ids `ids.jsonl` and tag the cache; build makes
 `events.v2.json`, and the diff its change lines and `changed_at`; and the
@@ -1137,7 +1137,7 @@ is what keeps an event's tags stable.
 tagged again and can change works. The request cap is a guess, to be tuned
 in August.
 
-### 47. The change log (builds #20 as narrowed by #40) — Decided, not built (2026-09-22) — built by PR 7b: `diff_stage.py`, the attribution built by the caller (`events_v2.attribution()`) from the snapshot of the previous files, one cause per id and kind, `source` winning where the code and the source both changed it; `merged` read from the survivors' `was`, the diff reading no ledger, and the snapshot's fatal rule the orchestrator's; `people` and `tracks` compared as sets, `from` and `to` sorted; the prefix check PR 8's workflow step; the attribution sees the build's code and data, not the fetch's, and `last-run.json`'s `fetch_code_changed` is PR 8's (`contract.md`, The diff, as built)
+### 47. The change log (builds #20 as narrowed by #40) — Decided, not built (2026-09-22) — built by PR 7b: `diff_stage.py`, the attribution built by the caller (`events_v2.attribution()`) from the snapshot of the previous files, one cause per id and kind, `source` winning where the code and the source both changed it; `merged` read from the survivors' `was`, the diff reading no ledger, and the snapshot's fatal rule the orchestrator's; `people` and `tracks` compared as sets, `from` and `to` sorted; the prefix check PR 8's workflow step; the attribution sees the build's code and data, not the fetch's, and `last-run.json`'s `fetch_code_changed` is PR 8's (`contract.md`, The diff, as built); the prefix check built by PR 8 as the orchestrator's, where it writes, and `fetch_code_changed` by a hash of the fetch's code, not a git diff (`contract.md`, `last-run.json`)
 **Decided:** `changes.jsonl` is append-only, one line per change to an
 event: the run's stamp, the code's SHA, the event's id, the kind, from and
 to, and the cause, sorted by run, id and kind.
@@ -1174,7 +1174,7 @@ commit's log begins with the last commit's, byte for byte.
 **Cost:** A typo fixed at the source makes a description line. Thousands
 of lines a season.
 
-### 48. Cadence and landing (builds #26) — Decided, not built (2026-09-22)
+### 48. Cadence and landing (builds #26) — Decided, not built (2026-09-22) — built by PR 8, `.github/workflows/scrape.yml` (`contract.md`, The run, as built): `pipeline.py run --season`, not `--year`; the target the repository variable `SCRAPE_TARGET`, flipped by hand with the default branch (ROADMAP, Checklist), not by the freeze PR; a run checks the target out; its commits authored as schedule-bot with the token owner's noreply address, which GitHub attributes to that account, so the rulesets' extra approval for unattributed changes does not hold them; a fault counter a warning annotation, a curation counter a notice
 **Decided:** A run lands by pull request: it commits to a branch, opens a
 pull request to the target and enables auto-merge; CI runs; the pull
 request merges, and the branch is deleted.

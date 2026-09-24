@@ -84,24 +84,36 @@ def load_cache(path):
     something to skip: the file is committed, and a bad line is a bad merge."""
     if not os.path.exists(path):
         return {}
+    with open(path, "rb") as f:
+        return parse_cache(f.read().decode("utf-8"), path)
+
+
+def parse_cache(text, path):
+    """A cache's text -> {key: entry}, as load_cache() reads the file: the orchestrator (pipeline.py) reads it once,
+    before any stage, and hands the text here. Its lines break at LF, CRLF or CR, as a file read as text breaks them,
+    and a blank line is skipped. `path` names the file in the message where a line is not an entry."""
     out = {}
-    with open(path, encoding="utf-8") as f:
-        for n, line in enumerate(f, 1):
-            if not line.strip():
-                continue
-            entry = json.loads(line)
-            if not isinstance(entry, dict) or tuple(entry) != _ENTRY_FIELDS:
-                raise ValueError(f"{path}:{n}: not a cache entry {_ENTRY_FIELDS}")
-            out[entry["key"]] = entry
+    for n, line in enumerate(text.replace("\r\n", "\n").replace("\r", "\n").split("\n"), 1):
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        if not isinstance(entry, dict) or tuple(entry) != _ENTRY_FIELDS:
+            raise ValueError(f"{path}:{n}: not a cache entry {_ENTRY_FIELDS}")
+        out[entry["key"]] = entry
     return out
 
 
+def cache_text(cache):
+    """The cache's text: every entry, one a line, sorted by key, a line break after each. write_cache() writes it,
+    and the orchestrator (pipeline.py) with the rest of a run's files."""
+    return "".join(_line(cache[key]) + "\n" for key in sorted(cache))
+
+
 def write_cache(path, cache):
-    """Every entry, one a line, sorted by key, LF. Written beside the file and moved over it, so an
-    interrupted write leaves the last good cache in place."""
+    """cache_text(), UTF-8 and LF. Written beside the file and moved over it, so an interrupted write leaves the last
+    good cache in place."""
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
-        for key in sorted(cache):
-            f.write(_line(cache[key]) + "\n")
+        f.write(cache_text(cache))
     os.replace(tmp, path)

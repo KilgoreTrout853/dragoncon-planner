@@ -44,6 +44,14 @@ def answers(*rows):
 
 # --- candidates ------------------------------------------------------------
 
+def test_json_text_is_what_write_json_writes(tmp_path):
+    # the orchestrator (pipeline.py) writes works.json with a run's mint in it, through json_text
+    for data in ([{"id": "b", "name": "Pokémon"}, {"id": "a"}], [], {"b": 1, "a": [2]}):
+        path = tmp_path / "x.json"
+        dp.write_json(str(path), data)
+        assert path.read_bytes() == dp.json_text(data).encode("utf-8")
+
+
 def test_candidates_are_the_people_on_celebrity_events():
     events = [ev("Castle Cast", [("Nathan Fillion", "Speaker"), ("Ada Quill", "Moderator")], id="a"),
               ev("A Fan Panel", [("Joe Crowe", "Speaker")], guests="fan", id="b"),

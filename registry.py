@@ -158,8 +158,21 @@ def load(directory=DIR):
             problems.append(f"{name}: holds {type(data).__name__}, not a list of entries")
             data = []
         files[name] = data
+    try:
+        reg = check(files["works.json"], files["people.json"], files["tracks.json"])
+    except RegistryError as exc:
+        problems += exc.problems
+    else:
+        if not problems:
+            return reg
+    raise RegistryError(sorted(problems))
 
-    works, people, tracks = files["works.json"], files["people.json"], files["tracks.json"]
+
+def check(works, people, tracks):
+    """The three registries' entries, validated as load() validates them, with no file: the orchestrator
+    (pipeline.py) checks works.json with a run's mint in it before anything is written. Raises RegistryError listing
+    every problem found."""
+    problems = []
     for name, entries in (("works.json", works), ("people.json", people), ("tracks.json", tracks)):
         problems += _common(name, entries, person_slug if name == "people.json" else resolve_key)
     work_ids = {e["id"] for e in works if isinstance(e, dict) and isinstance(e.get("id"), str)}

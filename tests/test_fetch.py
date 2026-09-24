@@ -378,6 +378,21 @@ def test_the_file_is_compact_a_row_a_line_utf8_and_lf_with_no_timestamp(tmp_path
     assert path.read_bytes() == b'{"source":"https://example.test/dc","failures":[],"rows":[]}\n'
 
 
+def test_source_text_and_parse_source_are_the_writer_s_and_the_reader_s_halves(tmp_path):
+    # the orchestrator (pipeline.py) reads and writes the file itself, through these
+    rows, failures = [old("a1"), old("b2", stale=True)], [{"source_id": "b2", "error": "boom"}]
+    path = tmp_path / "source.json"
+    scraper.write_source(str(path), BASE, failures, rows)
+    assert path.read_bytes() == scraper.source_text(BASE, failures, rows).encode("utf-8")
+    assert scraper.parse_source(path.read_bytes(), str(path), BASE) == {"source": BASE, "failures": failures,
+                                                                        "rows": rows}
+    assert scraper.read_previous(str(path), BASE) == {"a1": rows[0], "b2": rows[1]}
+    with pytest.raises(scraper.FetchError, match="the previous file x holds b2 twice"):
+        scraper.parse_source(scraper.source_text(BASE, [], rows + rows[1:]).encode("utf-8"), "x", BASE)
+    with pytest.raises(scraper.FetchError, match="the previous file x is not JSON"):
+        scraper.parse_source(b"\xff", "x", BASE)
+
+
 # ---------------------------------------------------------------------------
 # main()
 # ---------------------------------------------------------------------------

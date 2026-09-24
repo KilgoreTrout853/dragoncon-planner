@@ -610,6 +610,27 @@ def test_a_live_year_whose_ledger_would_change_refuses_run_the_ids_stage_first(t
         build_live(tmp_path / "added", added)
 
 
+def test_live_inputs_is_live_on_what_was_read_and_live_top_its_top_level_fields(tmp_path):
+    # the orchestrator (pipeline.py) builds through live_inputs where it skips the ids stage, and a second time on the
+    # texts it is about to write
+    season = live_folder(tmp_path)
+    folder, s = str(season.parent), load_season(str(season))
+
+    def read(name):
+        return json.loads((season.parent / name).read_text(encoding="utf-8"))
+    ledger = ids_stage.read_ledger(os.path.join(folder, "ids.jsonl"))
+    assert v2.live_inputs(read("source.json"), read("last-run.json"), ledger, s, folder) == v2.live(folder, s)
+    with pytest.raises(v2.BuildError, match="last-run.json holds no fetched_at and changed_at"):
+        v2.live_inputs(read("source.json"), {"fetched_at": T2}, ledger, s, folder)
+    source = read("source.json")
+    retitled = {**source, "rows": [dict(r, title="Trek Trivia Night") if r["source_id"] == "d4" else r
+                                   for r in source["rows"]]}
+    with pytest.raises(v2.BuildError, match="run the ids stage first"):
+        v2.live_inputs(retitled, read("last-run.json"), ledger, s, folder)
+    assert v2.live_top(s, [], [{"id": "a"}, {"id": "a"}, {"id": "b"}], T2, T1) == {
+        "generated_at": T2, "changed_at": T1, "source": s["source"], "count": 2, "failures": []}
+
+
 def test_a_live_year_needs_a_run(tmp_path):
     season = live_folder(tmp_path, run=False)
     with pytest.raises(v2.BuildError, match="a live year needs a run"):
