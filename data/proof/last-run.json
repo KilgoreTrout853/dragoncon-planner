@@ -1,14 +1,14 @@
 {
-  "stamp": "2026-09-24T13:33:24+00:00",
-  "fetched_at": "2026-09-24T13:33:24+00:00",
-  "changed_at": "2026-09-24T13:33:24+00:00",
-  "sha": "3c96a59f7326a74bf02359025a8bdc905b127d1c",
+  "stamp": "2026-09-24T13:38:42+00:00",
+  "fetched_at": "2026-09-24T13:38:42+00:00",
+  "changed_at": "2026-09-24T13:38:42+00:00",
+  "sha": "9e9768e8c9767248f57d022202809c6e1e488995",
   "fetch_code_hash": "5b30ac1c916fe40f434bb177f275a715f388d7027e725fdedd8bcd95228f8bdf",
   "fetch_code_changed": false,
-  "changes_logged": 60,
-  "digest": "c3060de683d7ce8d578e0fa53a6a392784236fdb36616597e61ea9b2c3e59920",
+  "changes_logged": 0,
+  "digest": "b7d14263eb331addcca02b01fe429b55e07cbe053657b10af8f8eb2c02120e1e",
   "season": 2026,
-  "elapsed": 134.1,
+  "elapsed": 64.6,
   "fetch": {
     "listings": 60,
     "fetched": 60,
@@ -18,7 +18,7 @@
     "repaired": 0
   },
   "ids": {
-    "new": 60,
+    "new": 0,
     "matches": 0,
     "merges": 0,
     "leavers": 0,
@@ -27,9 +27,9 @@
     "unsure": 0
   },
   "tag": {
-    "requests": 2,
-    "sent": 50,
-    "capped": 8,
+    "requests": 1,
+    "sent": 8,
+    "capped": 0,
     "failed": 0,
     "stopped": 0,
     "unanswered": 0,
@@ -37,7 +37,7 @@
     "mint_failed": 0
   },
   "build": {
-    "untagged": 8,
+    "untagged": 0,
     "unresolved_names": 0,
     "unknown_tracks": 0,
     "rooms_unresolved": 24,
@@ -52,11 +52,7 @@
     }
   },
   "diff": {
-    "kinds": {
-      "added": 60
-    },
-    "causes": {
-      "source": 60
-    }
+    "kinds": {},
+    "causes": {}
   }
 }
