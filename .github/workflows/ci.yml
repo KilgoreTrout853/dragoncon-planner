@@ -5,9 +5,7 @@ name: CI
 # ruleset on `next` requires - renaming either one un-gates the branch.
 on:
   pull_request:
-    # 'proof/**' is PR 8's proof alone, for the scrape's pull requests into its scratch branches; its cleanup commit
-    # removes it.
-    branches: [next, main, 'proof/**']
+    branches: [next, main]
   push:
     branches: [next]
   workflow_dispatch:
