@@ -10,6 +10,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 |---|---|
 | `data/2026/events.json` | The final 2026 schedule, frozen after the con: 3,459 events, scraped Sep 7 12:50 UTC. |
 | `scraper.py` | The fetch stage: pulls every listing (panels + gaming) from the web version of the official app, for the year its `season.json` names, and writes that year's `source.json`, one raw row per listing. Takes ~20 minutes. The frozen `data/2026/events.json` was written by the 2026 scraper, which also merged duplicates. |
+| `pipeline.py` | The 2027 pipeline, one run at a time: the fetch, the ids stage, the tag stage, the build and the diff in turn, every file the run changed written together at the end, or none, and `last-run.json`'s summary of it. See Running the pipeline. |
 | `tag_events.py` | The 2026 tagger, retired: its tags (fandoms, kind, topics, guests, 18+) are in the frozen `events.json`, which the live site on `main` still reads. The client on `next` reads tags v2, from `events.v2.json`. |
 | `tag_stage.py`, `tag_key.py`, `events_v2.py` | Tags v2: a model's answers about each event, cached, and the schedule with them built into `data/2026/events.v2.json`. See Tagging. |
 | `parse_stage.py`, `registry.py` and `data/registry/`, `draft_people.py`, `census_v2.py`, `tools/` | The rest of the Discover pipeline, and the tools a person runs beside it. `docs/ARCHITECTURE.md`'s repo map says what each one is. |
@@ -17,7 +18,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `public/sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `public/manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `public/icon.svg`. Needs Pillow; fetches the font once. |
-| `.github/workflows/scrape.yml` | The 2026 refresh, by hand only. It fails at its Scrape step now that the scraper is the fetch stage, until the 2027 workflow replaces it. |
+| `.github/workflows/scrape.yml` | Runs the pipeline hourly in the season's window, and by hand, and lands each run that changed a file by pull request, with auto-merge. See The scrape workflow. |
 | `vite.config.js`, `build/vite-dc.js` | The build. With `DC_CHANNEL=next` it stamps the output as a dev build, for the `next` branch's site. |
 | `tests/` | The pipeline's tests (pytest) and the client's (Vitest): units, rules over the source, the page in jsdom, the real schedule, the build. Not optional — run them before you push. |
 | `docs/` | `ARCHITECTURE.md`, what the system is; `DECISIONS.md`, what was decided and why; `VISION.md` and `ROADMAP.md`, what 2027 is for and in what order; `discover/`, the Discover design, its censuses and its review records; `venues/`, the floor-plan checklist and the room census; `SPLIT-MANIFEST.md`, the record of the module split. |
@@ -25,7 +26,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 ## Running it locally
 
 ```bash
-pip install -r requirements.txt  # requests, beautifulsoup4, urllib3, ftfy, pytest - pinned
+pip install -r requirements.txt  # every package pinned, the ones they need among them
 python scraper.py --season data/2026/season.json --limit 30 --out /tmp/source.json
                                  # smoke test against the live 2026 site; 2026 is frozen, so --out is outside data/2026/
 python scraper.py --season data/2027/season.json   # the 2027 fetch, into data/2027/source.json
@@ -50,6 +51,20 @@ python -m pytest tests/          # the pipeline: scraper, parse, tag and build s
 CI runs the same commands on every pull request (`.github/workflows/ci.yml`), and `next` takes no pull request until both of its jobs pass.
 
 The page tests boot the source in jsdom against `tests/sample-events.json` (558 synthetic events in the v2 shape, deterministic, which `python tools/sample_v2.py` makes from `tests/sample-events.v1.json`; CI checks it is fresh); `tests/real-data.test.js` boots it once more against the real `data/2026/events.v2.json`, because ranking questions are meaningless against synthetic rows. `docs/ARCHITECTURE.md` says how the suite is put together.
+
+## Running the pipeline
+
+`pipeline.py` runs a live season's stages in turn - fetch, ids, tag, build, diff - and writes every file the run changed together at the end, or none (`docs/pipeline/contract.md`, The run, as built):
+
+```bash
+python pipeline.py window --season data/2027/season.json            # "in window" or "out of window"
+python pipeline.py run --season data/2027/season.json               # the whole run
+python pipeline.py run --season data/2027/season.json --to ids      # a season's first run: its source and ids
+python pipeline.py run --season data/2027/season.json --from build  # after a registry edit: rebuild and diff
+python pipeline.py summary --format md                              # the last run's summary, as Markdown
+```
+
+The season's window is `window` in its `season.json`, read as local days in its time zone; outside it a run stops before it starts and writes nothing, and `--force` runs it anyway. `--to` stops after the fetch, the ids stage or the tag stage and writes what exists so far; `--from` starts at the ids stage, the tag stage or the build and reads what it skips from the committed files, keeping the last fetch's `fetched_at`. `--limit N` takes only the first N listings, and `--requests N` sets the tag stage's cap for the run. A run that changes nothing writes nothing, `last-run.json` included; a fatal one writes nothing and exits 2. The tag stage calls the API with `ANTHROPIC_API_KEY` in the environment, and Claude Code without it. On Actions the scrape workflow runs it (below).
 
 ## Using it
 
@@ -120,7 +135,7 @@ python events_v2.py              # no model; --check exits 1 if the committed fi
 python census_v2.py              # no model; the census of it; --check exits 1 if the report is stale
 ```
 
-A live year's tag stage needs the year's `source.json`, ledger and `last-run.json`, which a pipeline run leaves (PR 8), so a season starts with a run to the ids stage, then `seed`, then a hand tag with `--requests` set high.
+A live year's tag stage needs the year's `source.json`, ledger and `last-run.json`, which a pipeline run leaves, so a season starts with a run to the ids stage (`pipeline.py run --to ids`), then `seed`; the cron's runs tag the rest, a first tag in about three of them, and a hand tag with `--requests` set high is optional.
 
 With `ANTHROPIC_API_KEY` set in the environment it calls the API; nothing reads a key from a file. Without it, it runs `claude -p` on your subscription: the prompt on stdin, from an empty directory of its own, with no tools, no MCP servers and no saved session, so that no CLAUDE.md or memory rides along. That is practical now - about 70 seconds for a request of 25 inputs.
 
@@ -140,10 +155,10 @@ Hosted by Core-apps at `https://app.core-apps.com/dragoncon26`. Day pages are `e
 
 **The host signals rate limiting with `403`, not `429`.** That has to stay in the retry `status_forcelist` in `make_session()`; without it the first throttle turns every remaining fetch into an instant failure — it once cost 3,285 of 3,577 events.
 
-## The refresh workflow
+## The scrape workflow
 
-It fails at its Scrape step now: the scraper is the fetch stage, which takes `--season` and needs ftfy, and the workflow gives it neither. The 2027 workflow replaces it (DECISIONS #48). What follows is how it ran in 2026.
+`.github/workflows/scrape.yml` runs the pipeline hourly, at 17 minutes past, inside the season's window - 2027-08-01 to 2027-09-07 in `data/2027/season.json`, read in the con's time zone - and a run outside it checks the window and stops. By hand (Actions → Scrape → Run workflow) it takes `force`, to run outside the window; `to`, to stop after fetch, ids or tag; `limit`, the first N listings only; `requests`, the tag stage's cap for the run; `season`; and `target`, the branch it starts from and lands on - by default the `SCRAPE_TARGET` repository variable, `next` until the freeze. Nothing overrides a fatal rule.
 
-Runs by hand only (Actions → Refresh schedule → Run workflow); the 3-hourly cron that ran it through con week was removed once the schedule was final, and a run now would overwrite `data/2026/events.json` with whatever the host serves. Before committing it refuses a scrape that returned nothing or fell more than 20% — a throttled run can't overwrite good data. If `main` moved while it was scraping it rebases and retries rather than dropping the refresh. Two refreshes never run at once: a second run waits for the first, because both would rewrite the schedule and the rebase can't resolve that.
+A run that changed a committed file lands by pull request (DECISIONS #48): it commits as schedule-bot to a `schedule/<stamp>` branch off the target, opens a pull request into the target with the run's summary as its body, closes the bot's older open ones as superseded, and turns on auto-merge, so the pull request merges once CI passes. A run that changed nothing, or a fatal one, commits nothing, and a fatal one fails the job. Each fault - a failed page, an input past the request cap, an event untagged - shows as a warning on the run, and the rooms still to curate as notices. Two runs never overlap: a second waits for the first.
 
-For next year: put the `schedule:` trigger and its con-week date guard back, point the scraper, the tagger, the worker (`DATA` and `SHELL` in `public/sw.js`), the build's allowlist (`DATA_FILES` in `build/vite-dc.js`) and `CON` (`src/time.js`; `DATA_URL` in `src/data.js` follows its year) at `data/2027/`, and the 2026 file stays where it is.
+The 2027 client still points at 2026: the worker (`DATA` and `SHELL` in `public/sw.js`), the build's allowlist (`DATA_FILES` in `build/vite-dc.js`) and `CON` (`src/time.js`; `DATA_URL` in `src/data.js` follows its year) move to `data/2027/` with the 2027 client switch (ROADMAP, Pipeline shape's PR 9), and the 2026 file stays where it is.

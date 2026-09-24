@@ -11,9 +11,12 @@ update this file in the same PR.
 
 ## The files
 
-A year's files live in `data/<year>/`, one writer each (#42). The year is
-`--year` on the pipeline and `DC_YEAR` at the client build; there is no
-pointer file.
+A year's files live in `data/<year>/`, one writer each (#42): the stage
+whose output a file is. The orchestrator puts them on disk, every file a
+run changed together, at the end of the run, or none (The run, as built).
+The year is its season file, `--season data/<year>/season.json` on the
+pipeline - #42 wrote `--year`; PR 8 built `--season` - and `DC_YEAR` at the
+client build; there is no pointer file.
 
 | file | written by | read by | what it holds |
 |---|---|---|---|
@@ -24,7 +27,7 @@ pointer file.
 | `tags.cache.jsonl` | the tag stage | build; the tag stage's next run; another year's seed | One answer per input, as names (#34). |
 | `events.v2.json` | the orchestrator, after the diff: build's file, with the diff's `changed_at` | the client; the diff; census v2, on demand | The v2 file, below. |
 | `changes.jsonl` | the orchestrator, after the diff: the diff's lines | the mirror and the push job (Identity and sync); a windowed copy for the client (Delivery) | The change log, below. |
-| `last-run.json` | the orchestrator, after the diff | build, for `fetched_at` after `--from`; CI, for the stamps and `changes_logged` | The stamps and the summary of the last run that committed, below. |
+| `last-run.json` | the orchestrator, with each commit | the next run, for its stamps, SHA and `fetch_code_hash`; build's live front door, for the stamps; CI, for the stamps and `changes_logged` | The stamps and the summary of the last run that committed, below. |
 | `drawings/` | a person | the building view (#28); never the resolver | One file per hotel level, keyed by level and room ids (#45). |
 
 `data/registry/` is unchanged (#42): cross-year, edited by people, and
@@ -309,7 +312,10 @@ scratch runs do.
 - **`minted`.** Every row the mint adds to `works.json` carries
   `minted: {"year": <the season's year>, "run": <last-run.json's fetched_at>}`,
   after `reviewed` in the row's key order, and no other row gains it. A
-  live year with no `last-run.json` cannot mint: its front door refuses.
+  live year with no `last-run.json` cannot mint by hand: its front door
+  refuses. The orchestrator hands the mint its run's `fetched_at`, a
+  season's first run's too, and writes the rows with the rest of the run
+  (`tag_stage.mint_works`; The run, as built).
   `registry.py` holds `WORK_KEYS`, the one list of a work's keys in their
   order, which the drafter and the mint write in and the review page keeps
   a copy of, held equal by a test; it refuses any other key, and checks
@@ -318,10 +324,14 @@ scratch runs do.
   leaves out a work minted in a later year, and the works block of
   `events.v2.json` never carries it.
 - **The season-start sequence.** #46's "a season's first full tag is run
-  by hand, before the cron" becomes a sequence PR 8 owns: a dispatch run
-  to the ids stage, which must leave `source.json`, `ids.jsonl` and
-  `last-run.json`, the front door's inputs; then `seed --from` the year
-  before; then a hand tag with `--requests` set high.
+  by hand, before the cron" becomes a sequence the orchestrator owns (PR
+  8): a dispatch run to the ids stage (`--to ids`), which leaves
+  `source.json`, `ids.jsonl` and `last-run.json`, the front door's inputs;
+  then `seed --from` the year before; then the cron, whose runs send 40
+  requests each, 1,000 inputs, and finish a season's first tag in about
+  three runs, each leaving what the cap left for the next. A hand tag with
+  `--requests` set high is optional: `pipeline.py run --from tag --to tag
+  --requests <n>`.
 
 ## The v2 file: `events.v2.json`
 
@@ -509,7 +519,7 @@ the stamp and the sha are arguments. It reads no ledger.
   rows themselves, so the previous rows, rebuilt, still read the old way,
   and the change reads as `source`: 2026's v8 → v9 descriptions (303) and
   v4 → v5's seven mojibake titles were such changes. `last-run.json`'s
-  `fetch_code_changed` (PR 8's, below) marks such a run.
+  `fetch_code_changed` (below) marks such a run.
 - **The line** is `{run, sha, id, kind, from, to, cause}`, in that order:
   `from` and `to` only for `time`, `place`, `title`, `people` and `tracks`,
   and `to` alone for `merged`. The lines sort by run, id and kind, in string
@@ -527,16 +537,18 @@ the stamp and the sha are arguments. It reads no ledger.
   deletes no line in season (#43), so an event leaves the file by a merge
   or not at all: the input is corrupt, which is not a degradation (#44).
   Reading the snapshot is the orchestrator's, and so is its fatal rule:
-  the previous `events.v2.json` unreadable, unless it is absent and the
-  ledger empty.
+  the previous `events.v2.json` there and unreadable. Absent, it is a
+  season's first diff, whatever the ledger holds, since a season's first
+  run stops after the ids stage (The run, as built).
 - **The check** on a live year's committed files, `tests/test_changes_log.py`,
-  skipped until its first run commits: the log's last stamp equals
+  skipped until a run past the ids stage commits the year's
+  `events.v2.json`: the log's last stamp equals
   `last-run.json`'s `changed_at` when `changes_logged` is above zero, and is
   no later when it is zero; every id the log names is in `events.v2.json`,
   removed or not, or is a `merged` line's id; the lines sort. The prefix
   check - each commit's log beginning with the last commit's, byte for
-  byte - is PR 8's workflow step, where the old bytes exist: CI's checkout
-  is shallow.
+  byte - is the orchestrator's, made as it writes, where the old bytes are
+  (The run, as built): CI's checkout is shallow.
 
 ## `season.json`
 
@@ -674,72 +686,208 @@ rows and on a frozen year's rows alike; it is pure.
 
 ## `last-run.json`
 
-The orchestrator's, written with each commit; a run with no change writes
-nothing and reports through the job summary (#44). It holds two stamps:
-`fetched_at`, set only by a run that fetched, which is `events.v2.json`'s
-`generated_at`; and `changed_at`, set by the diff when the digest moves.
-Then the summary of the last run that committed: `changes_logged`, the
-lines it added to the change log (#47), and its counters, one per
-degradation #44 enumerates:
+The orchestrator's, written with each commit, the last of a run's files;
+a run with no change writes nothing and reports through the job summary
+(#44), so the file always describes the last run that committed. JSON,
+indented two spaces, its keys in this order (PR 8):
 
-| counter | what it counts, and where |
+| key | what it holds |
 |---|---|
-| detail pages failed | Rows carried with `stale: true`, each named (fetch). |
-| listings gone | Rows carried with `removed: true` (fetch). |
-| texts repaired | Texts the repair changed (fetch). |
-| UNSURE matches | Candidates looser than #43's one rule, and merges of two ids (the ids stage). |
-| hotels unknown | Locations no hotel key matches, placed at Other with the unknown-pair walk (build). |
-| rooms unresolved | Rooms read at the hotel alone - no reading, or a bare key: the venues step's worklist - but not an unplaced room of the file, and not a room placed at its level, which is by design (build). |
-| events untagged | The model unreachable, rate-limited or malformed after one retry (tag), and cache misses (build). |
-| mints failed | A mint that failed: its links drop for this run (tag). |
-| work names unresolved | Links dropped for this run (build). |
-| tracks unknown | Tracks `tracks.json` lacks: no track axes, and listed as owed (build, #46). |
+| `stamp` | The run's stamp: its one read of the clock as it started, UTC, whole seconds. |
+| `fetched_at` | The stamp of the last run that fetched: `events.v2.json`'s `generated_at`. A `--from` run keeps it. |
+| `changed_at` | The stamp of the last run that moved the digest, the diff's (#47). A run that stops before the diff keeps it; a season's first such run, with none to keep, writes its own stamp, which the build's live front door needs. |
+| `sha` | The code's SHA: `PIPELINE_SHA`, the workflow's checkout, or `git rev-parse HEAD`. |
+| `fetch_code_hash`, `fetch_code_changed` | Below. |
+| `changes_logged` | The lines the run added to the change log (#47); 0 where it stopped before the diff. |
+| `digest` | `events.v2.json`'s, as the commit leaves the file; `null` before a season's first build. |
+| `season` | The year. |
+| `elapsed` | Seconds from the run's start to this file's text. |
+| `fetch`, `ids`, `tag`, `build`, `diff` | Each stage's counters, in a block of its own, where the stage ran: a run `--to ids` has no `tag` block, and a run `--from build` no `fetch`. |
 
-A counter above zero becomes a warning annotation on the workflow (#48).
+The blocks, each counter one of #44's degradations or a count beside them:
+
+- `fetch`: `listings`, `fetched`, `stale` - rows carried with `stale:
+  true` - `removed` - rows carried with `removed: true` - `failures`, the
+  listings whose detail page failed, carried stale or named alone, and
+  `repaired`, the texts the repair changed (The fetch's result).
+- `ids`: `new`, `matches` (rule c), `merges`, `leavers`, `gone`,
+  `returned` and `unsure`: the report's lists, counted (The ledger).
+- `tag`: `requests`, `sent`, `capped`, `failed`, `stopped`, `unanswered`,
+  `minted` and `mint_failed`: the `TagResult`'s (The tag stage, as built).
+- `build`: `untagged`, the events with no cached answer; `unresolved_names`,
+  the links dropped; `unknown_tracks`, the tracks; `rooms_unresolved` and
+  `hotels_unknown`, the venue counters; and `places`, the events by place
+  kind (The build, as built).
+- `diff`: `kinds` and `causes`, the lines by kind and by cause.
+
+| degradation (#44) | its counters |
+|---|---|
+| detail pages failed | `fetch.failures`, and `fetch.stale`, the rows carried with `stale: true`, each named (fetch). |
+| listings gone | `fetch.removed`: rows carried with `removed: true` (fetch). |
+| texts repaired | `fetch.repaired`: texts the repair changed (fetch). |
+| UNSURE matches | `ids.unsure`, candidates looser than #43's one rule, and `ids.merges`, merges of two ids (the ids stage). |
+| hotels unknown | `build.hotels_unknown`: locations no hotel key matches, placed at Other with the unknown-pair walk (build). |
+| rooms unresolved | `build.rooms_unresolved`: rooms read at the hotel alone - no reading, or a bare key: the venues step's worklist - but not an unplaced room of the file, and not a room placed at its level, which is by design (build). |
+| events untagged | `tag.failed`, `tag.stopped` and `tag.unanswered` - the model unreachable, rate-limited or malformed after one retry - and `tag.capped`, inputs past the cap, left for a later run (tag); `build.untagged`, every event with no cached answer (build). |
+| mints failed | `tag.mint_failed`: a mint that failed, its links dropped for this run (tag). |
+| work names unresolved | `build.unresolved_names`: links dropped for this run (build). |
+| tracks unknown | `build.unknown_tracks`: tracks `tracks.json` lacks: no track axes, and listed as owed (build, #46). |
+
+A counter above zero becomes an annotation on the workflow (#48), in two
+kinds (PR 8). A fault is a `::warning::`: `fetch.failures` and
+`fetch.stale`; `ids.merges` and `ids.unsure`; `tag.capped`, `tag.failed`,
+`tag.stopped`, `tag.unanswered` and `tag.mint_failed`; `build.untagged`,
+`build.unresolved_names`, `build.unknown_tracks` and
+`build.hotels_unknown`. A curation counter is a `::notice::`:
+`build.rooms_unresolved`, 686 on 2026's build, and `fetch.removed` and
+`fetch.repaired`, which the carried rows and the repair on every page keep
+above zero all season. So a warning stays a fault, and nobody learns to
+read past one every hour. A fatal run is an `::error::`.
 On 2026's build the tag and track counters - events untagged, work names
 unresolved, tracks unknown - are held at zero by a CI test (#44): on a
 frozen year they are pipeline faults. The venue counters - hotels unknown,
 rooms unresolved - are curation state, reported and never held; PR 6
 built the test that way, `tests/test_zero_hold.py`.
 
-**`fetch_code_changed`** (PR 8's). The attribution sees the build's code
-and data, not the fetch's (The diff, as built). So the orchestrator's one
-git call becomes two - `git rev-parse HEAD`, the run's SHA, and
-`git diff --name-only` against the SHA `last-run.json` records of the run
-before - and `last-run.json` gains `fetch_code_changed: true` when
-`scraper.py`, `tag_key.py` or `requirements.txt` changed between the two
-runs. That run's lines still read as the diff finds them; the push job
-reads the flag and suppresses that run. Identity and sync's design gets
-the same sentence when it opens.
+**`fetch_code_hash`** (PR 8). The attribution sees the build's code and
+data, not the fetch's (The diff, as built). So each run records
+`fetch_code_hash`, the sha256 of `scraper.py`, `tag_key.py` and
+`requirements.txt`, their bytes one after another, and
+`fetch_code_changed: true` where it is not the last committed run's -
+`false` on a season's first run. No git diff: the orchestrator's one git
+call is `rev-parse HEAD`, and the workflow, which sets `PIPELINE_SHA` from
+its checkout, makes none. That run's lines still read as the diff finds
+them; the push job reads the flag and suppresses that run. Identity and
+sync's design gets the same sentence when it opens.
 
 ## The stages
 
-Five stages, in this order (#44). `--from <stage>` starts at any of them,
-and a run is idempotent after fetch. One stamp a run, taken as it starts
-and handed down: a run that fetches records it as `fetched_at`, and a
-`--from` run keeps the last one as `generated_at`.
+Five stages, in this order (#44). `--from` starts at the ids stage, the
+tag stage or the build, and `--to` stops after the fetch, the ids stage or
+the tag stage (The run, as built); a run is idempotent after fetch. One
+stamp a run, taken as it starts and handed down: a run that fetches
+records it as `fetched_at`, and a `--from` run keeps the last one as
+`generated_at`.
 
 | stage | reads | writes | fatal | degraded |
 |---|---|---|---|---|
 | fetch | `season.json`; the previous `source.json` | `source.json` | a day list that fails; no listings; listings under 80% of the previous file's, its removed rows aside; over 20% of the detail fetches failed; every detail page parsing to an empty title | a failed detail page; a listing gone; a repaired text |
 | ids | `source.json`; `ids.jsonl`; `season.json` | `ids.jsonl` | the ledger absent or a line of it malformed; a removed row no line holds; a source id in two lines' `source_ids`; new ids above `new_ids` × the lines before the run, skipped when the ledger was empty | an UNSURE match candidate or merge |
 | tag | the build's front door and the merge; the cache; the registries; `season.json` | the cache; `works.json`, by mint | a registry failing validation; the rows' ids not the ledger's, or no `last-run.json`, in a live year (The tag stage, as built) | the model unreachable, rate-limited or malformed after one retry; a mint that fails; inputs past the request cap, left for a later run |
-| build | the merge; `venues.json`; the registries; the cache; `season.json`; the run's `fetched_at`, or `last-run.json`'s after `--from` | `events.v2.json`, in memory | `venues.json`, a registry or the cache failing to load; a row with no id; the rows' ids not the ledger's, or no `last-run.json`, in a live year (The build, as built); any exception; its two builds in memory differing | a hotel unknown; a room unresolved; a cache miss; a work name unresolved; a track unknown |
-| diff | the previous `events.v2.json`, from the orchestrator's snapshot, and the new one; for a code cause, the attribution document the orchestrator builds from the snapshot's `source.json` and `ids.jsonl` (The diff, as built) - no ledger | the change lines and `changed_at`, in memory | an event that leaves the file by no merge; reading the snapshot is the orchestrator's, with its rule: the previous `events.v2.json` unreadable, unless it is absent and the ledger empty | - |
+| build | the merge; `venues.json`; the registries; the cache; `season.json`; the run's `fetched_at`, or `last-run.json`'s after `--from` | `events.v2.json`, in memory | `venues.json`, a registry or the cache failing to load; a row with no id; the rows' ids not the ledger's, or no `last-run.json`, in a live year (The build, as built); any exception; its two builds differing - the stages', and the live front door's on the texts about to be written (The run, as built) | a hotel unknown; a room unresolved; a cache miss; a work name unresolved; a track unknown |
+| diff | the previous `events.v2.json`, from the orchestrator's snapshot, and the new one; for a code cause, the attribution document the orchestrator builds from the snapshot's `source.json` and `ids.jsonl` (The diff, as built) - no ledger | the change lines and `changed_at`, in memory | an event that leaves the file by no merge; reading the snapshot is the orchestrator's, with its rules (The run, as built) | - |
 
-After the diff the orchestrator writes `events.v2.json`, `changes.jsonl`
-and `last-run.json` together, so no file has two writers, and makes the
-commit - only when a committed file's bytes change, its own stamp aside
-(#44).
+The orchestrator writes every file a run changed, together, at the end,
+or none - each file's content one stage's, so no file has two writers -
+and the workflow commits them: only when a committed file's bytes change,
+the run's own stamp aside (#44; The run, as built).
+
+### The run, as built
+
+`pipeline.py` (PR 8), three commands:
+
+- `run --season <season.json> [--to fetch|ids|tag] [--from ids|tag|build]
+  [--limit N] [--requests N] [--force]`: the stages in order, the fetch to
+  the diff. `--to` stops after a stage and writes what exists so far - not
+  after the build, whose file goes only with the diff's lines and
+  `changed_at`. `--from` starts at a later stage and reads what it skips
+  from the committed files: the rows from `source.json`; their ids from the
+  committed ledger, which must already hold them, through the build's live
+  front door (`events_v2.live_inputs`); `fetched_at` from `last-run.json`,
+  kept. The run's own stamp goes on its lines and `changed_at`. `--limit`
+  is the fetch's and `--requests` the tag stage's cap for the run. Outside
+  the season window a run stops before it starts, writing nothing, unless
+  `--force`; no run targets a frozen season (#46).
+- `window --season <season.json>`: `in window` or `out of window`, exit 0
+  either way. The window's dates are the season's local days, read in its
+  `tz` through zoneinfo; where that zone cannot be loaded - Windows without
+  tzdata - they are compared in UTC, with a warning. A season whose window
+  is `null` is always out.
+- `summary --format md`: the last run's result object, as the job summary,
+  the pull request's body and the commit's body show it.
+
+**The edges**, each in one place. One read of the clock as the run
+starts, UTC, to the second, is the run's stamp, handed to every stage, and
+a fetch's `fetched_at`. The SHA is `PIPELINE_SHA`, the workflow's checkout,
+or else one `git rev-parse HEAD`. The files are read before the first stage
+and written after the last: no stage reads a file, the clock or git during
+a run. Each is called with its rows, ledgers and stamps as arguments - the
+fetch with the previous rows; the ids stage with the ledger; the tag stage
+with the season's inputs and the cache, and the mint with no file
+(`tag_stage.mint_works`); the build, the attribution and the diff with the
+documents - and the front doors that read a season's files are not used.
+
+**The snapshot.** Before any stage, the previous `source.json`,
+`ids.jsonl`, `tags.cache.jsonl`, `events.v2.json`, `changes.jsonl` and
+`last-run.json`, as bytes, each `None` where absent; a season's first run
+has none but its empty ledger. A file that is there and cannot be read is
+fatal: the ledger absent or malformed, a `source.json` that is not one or
+is another source's, a `last-run.json` or `events.v2.json` that is not
+JSON or lacks its keys. An absent `events.v2.json` is not, whatever the
+ledger holds: after a season's first run, to the ids stage, the first full
+run's diff records every event `added`. The attribution runs where the SHA
+differs from `last-run.json`'s and there is a previous `events.v2.json` to
+attribute (The diff, as built).
+
+**The writes**, all or nothing (#44). A run commits when a file's bytes
+change, `events.v2.json`'s compared with its `generated_at` held at the
+committed one - the run's own stamp aside - so a run whose fetch finds
+nothing new writes nothing, `last-run.json` included. A run that commits
+writes each file whose bytes differ from the committed ones - `source.json`,
+`ids.jsonl`, `tags.cache.jsonl`, `works.json` for a mint, `events.v2.json`,
+its `generated_at` new where the run fetched, and `changes.jsonl` - each to
+a temp file beside it, every temp before any is moved over its file, and
+`last-run.json` last. `changes.jsonl` is the committed log, re-rendered,
+with the new lines after it, and must begin with the committed bytes - the
+prefix check, made where the old bytes are - or the run is fatal. A mint's
+rows are checked with the registry (`registry.check`) before the build,
+which resolves them in the same run.
+
+**Two builds** (#44): the file from the stages' rows, and the file again
+through the live front door on the texts about to be written -
+`source.json`, the ledger, the cache and `last-run.json` - which is the
+build CI checks. The two must be equal, byte for byte.
+
+**Fatal**, writing nothing and exiting 2: a frozen season; an input that
+does not load; a stage's error - the fatal column above - or any other
+exception; a registry the mint's rows break; the prefix check; the two
+builds differing. A degraded run commits, and exits 0, as do a run that
+changes nothing and one outside the window.
+
+**The result object**: the outcome - committed, nothing changed, fatal or
+out of window - the error, the files written, `last-run.json`'s fields,
+and the names behind the counters: failed pages, merges, UNSURE pairs,
+inputs left untagged, works minted, events untagged, names unresolved and
+tracks unknown, ten of each. It goes to `pipeline-result.json` in the
+system's temp folder, never into the tree, for `summary`.
+
+**The workflow**, `.github/workflows/scrape.yml` (#48): the cron
+`17 * * * *`, and `workflow_dispatch` with `force`, `to`, `limit`,
+`requests`, `season` (default `data/2027/season.json`) and `target`
+(default the repository variable `SCRAPE_TARGET`); the concurrency group
+`scrape`, nothing cancelled. It checks the target out with the bot's token -
+a run branches afresh from the target (#48) - installs `requirements.txt`
+on Python 3.13, asks `window`, and runs `pipeline.py run` when in the
+window or forced, with `ANTHROPIC_API_KEY` and `PIPELINE_SHA`, its
+checkout's commit. The summary goes to the job summary whatever the
+outcome. A run that changed a file commits it to `schedule/<stamp>`, the
+stamp's colons dropped, as schedule-bot with the token owner's noreply
+address, which GitHub attributes to that account, so the rulesets' extra
+approval for unattributed changes does not hold it. It opens a pull request
+into the target with the summary as its body, closes the bot's other open
+`schedule/` pull requests into that target with a "Superseded by" comment,
+deleting their branches, and turns on auto-merge: `--merge` into `main`,
+`--squash` otherwise. On a failure the last step checks that the tree is
+clean, and fails with the diff where it is not.
 
 ## What CI holds, per year
 
 | | a frozen year: 2026 | a live year: 2027 |
 |---|---|---|
-| `events.v2.json` | Rebuilt from the raw file, the registries, the cache, `season.json` and `venues.json`: equal to the committed file (#34, #46) - by pytest, and by the pipeline job's `python events_v2.py --season data/2026/season.json --check`. | Rebuilt from `source.json`, `ids.jsonl`, the registries, `venues.json`, the cache and `season.json`, its two stamps read from `last-run.json`, not from the file it checks: equal to it, byte for byte (#42). |
+| `events.v2.json` | Rebuilt from the raw file, the registries, the cache, `season.json` and `venues.json`: equal to the committed file (#34, #46) - by pytest, and by the pipeline job's `python events_v2.py --season data/2026/season.json --check`. | Rebuilt from `source.json`, `ids.jsonl`, the registries, `venues.json`, the cache and `season.json`, its two stamps read from `last-run.json`, not from the file it checks: equal to it, byte for byte (#42) - by the pipeline job's `python events_v2.py --season data/2027/season.json --check` once the file exists, and by each run's second build as it writes (The run, as built). |
 | census v2 | Rendered afresh: equal to the committed report (#35). | Not held; run on demand (#46). |
 | `venues.json` | Loads and validates (#45). | Loads and validates (#45). |
-| `changes.jsonl` | - | `last-run.json`'s `changes_logged` against the log's last stamp; every id the log names in `events.v2.json`, removed or not, or a `merged` line's id; the lines sorted (`tests/test_changes_log.py`, skipped until the first run commits; #47). Each commit's log beginning with the last commit's is PR 8's workflow step, where the old bytes exist: CI's checkout is shallow. |
+| `changes.jsonl` | - | `last-run.json`'s `changes_logged` against the log's last stamp; every id the log names in `events.v2.json`, removed or not, or a `merged` line's id; the lines sorted (`tests/test_changes_log.py`, skipped until a run past the ids stage commits the year's `events.v2.json`; #47). Each commit's log beginning with the last commit's is the orchestrator's prefix check, made where the old bytes are: CI's checkout is shallow. |
 | the counters | The tag and track counters held at zero on 2026's build, by `tests/test_zero_hold.py`; the venue counters reported, never held (#44). | - |
 | the tag cache | Every event's key, read through the front door and the merge, in the committed cache (`tests/test_tag_stage.py`). | - |
 | writes | The raw file refused, and the tag stage run with `--dry-run` only; the derived files rebuilt by an explicit command, never by a run (#46). | A run's, when it commits (#44). |
@@ -763,9 +911,8 @@ What CI cannot check:
 - ~~The key order in each file, and whether a key that holds nothing -
   `false`, an empty list - is written.~~ Settled by each writing PR: PR 2
   for `season.json` and `venues.json`, PR 3 for `source.json`, PR 4 for
-  `ids.jsonl` and PR 6 for `events.v2.json`, above; `changes.jsonl` and
-  `last-run.json` settle theirs with the PRs that write them.
-- The names the entries do not give: ~~the SHA's key in a change line~~ -
-  `sha`, PR 7b (The diff, as built) - and `last-run.json`'s counters
-  (PR 8), which read the tag stage's result (The tag stage, as built) and
-  the diff's among the stages'.
+  `ids.jsonl`, PR 6 for `events.v2.json`, PR 7b for `changes.jsonl` and
+  PR 8 for `last-run.json`, above.
+- ~~The names the entries do not give~~: the SHA's key in a change line,
+  `sha`, PR 7b (The diff, as built); `last-run.json`'s counters, PR 8
+  (`last-run.json`, above).
