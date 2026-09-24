@@ -4,7 +4,7 @@
    the drawing of it. */
 import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
-import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, now } from "./time.js";
+import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
 import { hotelShort } from "./venues.js";
 import { events, hotelChips, isNoise, topWorks, tracks } from "./data.js";
 import { browseResults, index, KIND_LABELS, processTerm, SEARCH_PLACEHOLDER, suggestDocs, suggestionsFor } from "./search.js";
@@ -84,7 +84,7 @@ function parsedChipsHTML() {
 
 function renderBrowse() {
   const b = state.browse;
-  if (b.day === null) { const d = conDayKey(now()); b.day = CON_DAYS.includes(d) ? d : "2026-09-03"; }
+  if (b.day === null) { const d = conDayKey(now()); b.day = CON_DAYS.includes(d) ? d : FIRST_FULL_DAY; }
   const searching = !!b.q.trim();
   const results = browseResults();
   const shown = results.slice(0, PAGE * b.page);

@@ -6,6 +6,7 @@
    is last in the order: it imports the views, the sheet, loading and the
    shell, and nothing imports it but the root. It declares nothing but the
    handlers and reads nothing as it is imported. */
+import { YY } from "./season.js";
 import { saveJSON } from "./storage.js";
 import { state } from "./state.js";
 import { CON, now } from "./time.js";
@@ -71,7 +72,7 @@ function onMainClick(e) {
     if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
     if (a === "dismiss-news") { clearNews(); savePickNews(); render(); return; }
     if (a === "dismiss-archive") { saveJSON(ARCHIVE_NOTICE_KEY, CON.year); render(); return; }
-    if (a === "nudge-later") { saveJSON("dc26.nudgeSnoozedUntil", now().getTime() + NUDGE_SNOOZE_MS); render(); return; }
+    if (a === "nudge-later") { saveJSON(`dc${YY}.nudgeSnoozedUntil`, now().getTime() + NUDGE_SNOOZE_MS); render(); return; }
     if (a === "nudge-install") {
       const p = takeInstallPrompt(); if (p) p.prompt();
       return;
@@ -87,7 +88,7 @@ function onMainClick(e) {
     if (a === "explore-all") { state.explore.expanded[act.dataset.section] = true; renderExploreSections(); return; }
     if (a === "fol-toggle") {
       state.following.open = state.following.open === false;
-      saveJSON("dc26.followingOpen", state.following.open);
+      saveJSON(`dc${YY}.followingOpen`, state.following.open);
       render();
       return;
     }
@@ -98,7 +99,7 @@ function onMainClick(e) {
     }
     if (a === "fol-interest" || a === "fol-time") {
       state.following.layout = a === "fol-time" ? "time" : "interest";
-      saveJSON("dc26.followingLayout", state.following.layout);
+      saveJSON(`dc${YY}.followingLayout`, state.following.layout);
       render();
       return;
     }
@@ -128,7 +129,7 @@ function onMainClick(e) {
     }
     if (a === "view-timeline" || a === "view-list") {
       state.mineView = a === "view-timeline" ? "timeline" : "list";
-      saveJSON("dc26.mineView", state.mineView); render();
+      saveJSON(`dc${YY}.mineView`, state.mineView); render();
     }
     return;
   }

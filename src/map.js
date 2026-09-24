@@ -1,6 +1,6 @@
 import { esc, fmtMins, fmtShort, minutesBetween } from "./util.js";
 import { state } from "./state.js";
-import { CON_DAYS, conDayKey, conEnded, DAY_LABEL, DAY_LONG, now } from "./time.js";
+import { CON_DAYS, conDayKey, conEnded, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
 import { hotelPhrase, hotelShort, hotelVar, placeHTML } from "./venues.js";
 import { events } from "./data.js";
 import { picks } from "./picks.js";
@@ -128,11 +128,12 @@ function mapSVG(day, st = mapNowState(day), counts = mapCounts(day)) {
 }
 
 /* The day the map shows: the one tapped, else the con day the clock is in,
-   with the timeline's 5 AM boundary. Outside con week, Thursday. */
+   with the timeline's 5 AM boundary. Outside con week, the first full day,
+   Thursday. */
 function mapDay() {
   if (state.map.day) return state.map.day;
   const d = conDayKey(now());
-  return CON_DAYS.includes(d) ? d : "2026-09-03";
+  return CON_DAYS.includes(d) ? d : FIRST_FULL_DAY;
 }
 
 function renderMap() {

@@ -1,6 +1,18 @@
-/* The part of the build that is this project's own (DECISIONS #15, #23).
-   It runs in closeBundle, after Vite and vite-plugin-singlefile have written
-   dist/, and does two jobs:
+/* The part of the build that is this project's own (DECISIONS #15, #23, #49).
+   Two plugins.
+
+   dcYear() names the year the client is built for, in the dev server, the
+   build and Vitest alike: DC_YEAR, four digits, 2026 where it is unset
+   (DECISIONS #49). It defines __DC_YEAR__, which src/season.js reads, and
+   resolves the year's two data modules - virtual:season to
+   data/<year>/season.json and virtual:venues to data/<year>/venues.json -
+   to the files themselves, so Vite reads them as it reads any JSON import
+   and the build inlines them. It refuses a year that is not four digits, a
+   year whose two files are not there, and a season.json that names another
+   year, so the define and the file cannot disagree.
+
+   dcBuild() runs in closeBundle, after Vite and vite-plugin-singlefile have
+   written dist/, and does two jobs:
 
    1. Fix up and stamp dist/index.html and dist/sw.js.
       Vite emits the inlined entry as <script type="module" crossorigin> in
@@ -15,10 +27,12 @@
       did. With no channel both stay empty and dist/sw.js is public/sw.js.
 
    2. Copy what the client reads from data/ into dist/data/, and nothing
-      else: DATA_FILES, an allowlist (DECISIONS #39). The schedule is fetched
-      at run time, and is far too big to live in public/ twice; the frozen v1
-      file, the tag cache and the registries are the pipeline's, never the
-      page's.
+      else: DATA_FILES, the year's schedule, an allowlist (DECISIONS #39).
+      The schedule is fetched at run time, and is far too big to live in
+      public/ twice; the frozen v1 file, the tag cache and the registries are
+      the pipeline's, never the page's. A year with no schedule yet - before
+      its season's first run past the ids stage - is refused before the build
+      starts.
 
    Nothing here uses String.replace with file contents as the replacement
    text: the app contains "$&", which a replacement string would expand. */
@@ -26,9 +40,19 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const CHANNEL_RE = /^[a-z0-9-]*$/, BUILD_RE = /^[A-Za-z0-9._-]*$/;
+const CHANNEL_RE = /^[a-z0-9-]*$/, BUILD_RE = /^[A-Za-z0-9._-]*$/, YEAR_RE = /^\d{4}$/;
+const DEFAULT_YEAR = "2026";
 const VITE_CSS_MARKER = "/*$vite$:1*/";
-const DATA_FILES = ["data/2026/events.v2.json"];
+const DATA_FILES = year => [`data/${year}/events.v2.json`];
+/* The year's two data modules, under the names src/ imports them by. */
+const DATA_MODULES = {"virtual:season": "season.json", "virtual:venues": "venues.json"};
+
+/* The year the client is built for: DC_YEAR, or the default where it is unset. */
+export function dcYearFromEnv() {
+  const year = (process.env.DC_YEAR || "").trim() || DEFAULT_YEAR;
+  if (!YEAR_RE.test(year)) throw new Error(`build: a year is four digits, not ${JSON.stringify(year)}`);
+  return year;
+}
 
 function gitShortSha(cwd) {
   try { return execFileSync("git", ["rev-parse", "--short", "HEAD"], {cwd, encoding: "utf8"}).trim(); }
@@ -65,14 +89,39 @@ function fixUpPage(html) {
   return rest;
 }
 
+export function dcYear() {
+  let year = "", files = {};
+  return {
+    name: "dc-year",
+    enforce: "pre",
+
+    /* A bad year is refused before any work is done. */
+    config() {
+      year = dcYearFromEnv();
+      return {define: {__DC_YEAR__: year}};
+    },
+
+    configResolved(config) {
+      files = Object.fromEntries(Object.entries(DATA_MODULES).map(([id, file]) => [id, path.join(config.root, "data", year, file)]));
+      for (const file of Object.values(files)) {
+        if (!fs.existsSync(file)) throw new Error(`build: no data/${year}/${path.basename(file)}: the year ${year} needs its season.json and venues.json`);
+      }
+      const named = JSON.parse(fs.readFileSync(files["virtual:season"], "utf8")).year;
+      if (String(named) !== year) throw new Error(`build: data/${year}/season.json names the year ${named}, not ${year}`);
+    },
+
+    resolveId(id) { return files[id] || null; },
+  };
+}
+
 export function dcBuild() {
-  let root = "", outDir = "", channel = "", build = "";
+  let root = "", outDir = "", channel = "", build = "", year = "";
   return {
     name: "dc-build",
     apply: "build",
     enforce: "post",
 
-    /* Refuse a bad stamp before any work is done. */
+    /* Refuse a bad stamp, or a year with nothing to ship, before any work is done. */
     configResolved(config) {
       root = config.root;
       outDir = path.resolve(root, config.build.outDir);
@@ -80,6 +129,10 @@ export function dcBuild() {
       if (!CHANNEL_RE.test(channel)) throw new Error(`build: a channel is lowercase letters, digits and dashes, not ${JSON.stringify(channel)}`);
       build = channel ? ((process.env.DC_BUILD || "").trim() || gitShortSha(root)) : "";
       if (!BUILD_RE.test(build)) throw new Error(`build: a build id is letters, digits, dots and dashes, not ${JSON.stringify(build)}`);
+      year = dcYearFromEnv();
+      for (const file of DATA_FILES(year)) {
+        if (!fs.existsSync(path.join(root, file))) throw new Error(`build: no ${file}: the year ${year} has no schedule to ship until its season's first run past the ids stage`);
+      }
     },
 
     closeBundle(error) {
@@ -94,11 +147,11 @@ export function dcBuild() {
       }
       fs.writeFileSync(pagePath, html);
 
-      for (const file of DATA_FILES) {
+      for (const file of DATA_FILES(year)) {
         fs.mkdirSync(path.dirname(path.join(outDir, file)), {recursive: true});
         fs.copyFileSync(path.join(root, file), path.join(outDir, file));
       }
-      console.log(`dc-build: channel=${channel || "(none)"} build=${build || "(none)"}`);
+      console.log(`dc-build: year=${year} channel=${channel || "(none)"} build=${build || "(none)"}`);
     },
   };
 }

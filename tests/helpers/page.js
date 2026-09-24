@@ -16,10 +16,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { vi } from "vitest";
+import { YEAR } from "../../src/season.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), "utf8");
-const FIXTURES = { sample: ["tests", "sample-events.json"], real: ["data", "2026", "events.v2.json"] };
+/* real is the schedule of the year under test, DC_YEAR's (DECISIONS #49). */
+const FIXTURES = { sample: ["tests", "sample-events.json"], real: ["data", String(YEAR), "events.v2.json"] };
 const DEFAULT_NOW = "2026-09-05T13:05";            // the harness's Saturday afternoon
 
 /* index.html is Vite's entry template: its module script and its stylesheet

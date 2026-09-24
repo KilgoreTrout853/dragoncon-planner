@@ -6,6 +6,7 @@
    the bus, because render() is the shell's, above this module. The six
    elements are looked up as the module is imported, so the markup has to be
    there first. */
+import { YY } from "./season.js";
 import { esc, fmtShort } from "./util.js";
 import { saveJSON } from "./storage.js";
 import { deviceLine } from "./build.js";
@@ -170,8 +171,8 @@ function onSheetTouchCancel() { if (dragY !== null) { dragY = null; settle(false
 
 /* And on the header's Settings button and the Settings panel's controls. */
 function onSettingsClick() { openSheet("settings"); }
-function onCrowdInput(e) { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON("dc26.settings", settings); }
-function onNoiseDefaultChange(e) { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON("dc26.settings", settings); }
+function onCrowdInput(e) { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON(`dc${YY}.settings`, settings); }
+function onNoiseDefaultChange(e) { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON(`dc${YY}.settings`, settings); }
 function onResetPicks() { if (confirm("Remove everything from my schedule?")) { replacePicks([]); savePicks(); closeSheet(); } }
 
 export {

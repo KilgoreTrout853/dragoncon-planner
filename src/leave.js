@@ -59,7 +59,7 @@ function gapHTML(prev, next) {
     return `<div class="gap overlap">Overlaps the one above by ${ov} min</div>`;
   }
   if (gap < walk) return `<div class="gap tight">${gap} min to get there, ${move} is about ${walk} min at con pace</div>`;
-  if (gap < walk + 10) return `<div class="gap">${gap} min gap, ${move} about ${walk} min. Tight but doable</div>`;
+  if (gap < walk + LEAVE_BUFFER_MIN) return `<div class="gap">${gap} min gap, ${move} about ${walk} min. Tight but doable</div>`;
   return "";
 }
 

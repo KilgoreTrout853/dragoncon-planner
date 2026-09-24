@@ -7,6 +7,7 @@
    It is above the views and loading and imports them; nothing below imports
    it, and what is below asks for a redraw over the bus. It reads nothing as
    it is imported. */
+import { YY } from "./season.js";
 import { dayOf, esc, fmtMins, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON, saveJSON } from "./storage.js";
 import { state } from "./state.js";
@@ -87,7 +88,7 @@ function updateClock() {
 /* After the con: that it is over, on every tab, until dismissed - once,
    and remembered for that year. Before it: the preview banner. Live:
    nothing. */
-const ARCHIVE_NOTICE_KEY = "dc26.archiveNoticeDismissed";
+const ARCHIVE_NOTICE_KEY = `dc${YY}.archiveNoticeDismissed`;
 const archiveNoticeDismissed = () => loadJSON(ARCHIVE_NOTICE_KEY, null) === CON.year;
 function noticeHTML() {
   if (conEnded()) {
@@ -153,7 +154,7 @@ function onMiniBarClick() { state.tab = "now"; render(); pageScrollTo(0); }
    The header is re-measured because its line just changed height. */
 function onBigTextChange(e) {
   document.documentElement.classList.toggle("bigtext", e.target.checked);
-  saveJSON("dc26.bigtext", e.target.checked);
+  saveJSON(`dc${YY}.bigtext`, e.target.checked);
   syncHeaderHeight();
   render();                    // the timeline re-measures its blocks at the new size
 }

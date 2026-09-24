@@ -1,27 +1,32 @@
 /* The venues: which hotels there are, what each is called on a chip, how they
    group, how long the walk between them is at con pace, and the slack added
-   to every leave-by. These constants are what the venues file will hold
-   (DECISIONS #27). The helpers beside them answer in the same terms: a room as
-   it should read, a walk in minutes at the reader's crowd factor. */
+   to every leave-by. All of it is the year's venues file,
+   data/<year>/venues.json (DECISIONS #27, #45, #49), which the build resolves
+   as virtual:venues and inlines like any import. The helpers beside it answer
+   in the same terms: a room as it should read, a walk in minutes at the
+   reader's crowd factor. */
+import VENUES from "virtual:venues";
 import { esc } from "./util.js";
 import { settings } from "./state.js";
 
-const HOTEL_ORDER = ["Marriott","Hyatt","Hilton","Courtland Grand","Westin","AmericasMart","Hardy Ivy Park","Streaming","Other","Unknown"];
-const HOTEL_VAR = {"Marriott":"Marriott","Hyatt":"Hyatt","Hilton":"Hilton","Courtland Grand":"Courtland","Westin":"Westin","AmericasMart":"Mart","Hardy Ivy Park":"Hardy","Streaming":"Streaming","Other":"Other","Unknown":"Other"};
-const HOTEL_SHORT = {"Courtland Grand":"Courtland","AmericasMart":"Mart","Hardy Ivy Park":"Hardy Ivy"};
-/* Streaming and the offsite venues share one chip. Neither is a con hotel,
-   both wear the same grey, and together they are under 3% of the schedule.
-   The data keeps them apart: a stream has no walk, an offsite venue does. */
-const HOTEL_GROUP = {"Streaming":"Other","Other":"Other","Unknown":"Other"};
-// Rough walking minutes between venues at con pace. Edit freely. Same venue = 5 (room changes, elevators).
-const WALK = {
-  "Marriott|Hyatt":8, "Marriott|Hilton":7, "Hyatt|Hilton":12,
-  "Marriott|Courtland Grand":10, "Hilton|Courtland Grand":8, "Hyatt|Courtland Grand":15,
-  "Westin|Hyatt":8, "Westin|Marriott":12, "Westin|Hilton":15, "Westin|Courtland Grand":18,
-  "AmericasMart|Hyatt":7, "AmericasMart|Marriott":12, "AmericasMart|Westin":8, "AmericasMart|Hilton":15, "AmericasMart|Courtland Grand":18,
-  "Hardy Ivy Park|Marriott":5, "Hardy Ivy Park|Hilton":4, "Hardy Ivy Park|Hyatt":10, "Hardy Ivy Park|Courtland Grand":8, "Hardy Ivy Park|Westin":12, "Hardy Ivy Park|AmericasMart":12,
-};
-const LEAVE_BUFFER_MIN = 10;   /* slack on every leave-by: lifts, crowds, one wrong turn */
+const HOTELS = [...VENUES.hotels].sort((a, b) => a.order - b.order);
+const HOTEL_ORDER = HOTELS.map(h => h.hotel);
+const HOTEL_VAR = Object.fromEntries(HOTELS.map(h => [h.hotel, h.var]));
+const HOTEL_SHORT = Object.fromEntries(HOTELS.map(h => [h.hotel, h.short]));
+/* Streaming and the offsite venues share one chip, their group Other. Neither
+   is a con hotel, both wear the same grey, and together they are under 3% of
+   the schedule. The data keeps them apart: a stream has no walk, an offsite
+   venue does. */
+const HOTEL_GROUP = Object.fromEntries(HOTELS.map(h => [h.hotel, h.group]));
+/* Rough walking minutes between venues at con pace, keyed either way round;
+   the same venue (room changes, elevators) and a pair the walk lacks have
+   minutes of their own. */
+const WALK = VENUES.walk;
+const SAME_VENUE_MIN = VENUES.same_venue_min, UNKNOWN_PAIR_MIN = VENUES.unknown_pair_min;
+/* The slack on every leave-by and in the tight band (#40): lifts, crowds, one
+   wrong turn. The file calls it slack_min; the name here waits for Where
+   things live. */
+const LEAVE_BUFFER_MIN = VENUES.slack_min;
 
 /* The source marks offsite venues with a leading "O ": "O Joystick Gamebar".
    The scraper now drops it; this covers data scraped before it did. */
@@ -45,8 +50,8 @@ function placeHTML(ev) {
 }
 function walkMin(a, b) {
   if (!a || !b || a === "Streaming" || b === "Streaming") return 0;
-  if (a === b) return Math.round(5 * settings.crowd);
-  const base = WALK[`${a}|${b}`] ?? WALK[`${b}|${a}`] ?? 12;
+  if (a === b) return Math.round(SAME_VENUE_MIN * settings.crowd);
+  const base = WALK[`${a}|${b}`] ?? WALK[`${b}|${a}`] ?? UNKNOWN_PAIR_MIN;
   return Math.round(base * settings.crowd);
 }
 

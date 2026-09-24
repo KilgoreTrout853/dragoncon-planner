@@ -1,12 +1,13 @@
 /* The schedule: where it lives, the events once they are loaded, and the
    small questions asked of one event or of all of them. Nothing here fetches
    or draws - load() in loading.js does - and nothing is read at import but the
-   con's year, for the URL. The file is events.v2.json (DECISIONS #39): each
-   event names its works by id, and the file's works block says what each id
-   is called and what it belongs to. This module is the only one that walks a
-   work's parent. */
+   build's year, for the URL. The file is the year's events.v2.json (DECISIONS
+   #39, #49): each event names its works by id, and the file's works block says
+   what each id is called and what it belongs to. This module is the only one
+   that walks a work's parent. */
+import { YEAR } from "./season.js";
 import { toDate } from "./util.js";
-import { CON, conDayKey } from "./time.js";
+import { conDayKey } from "./time.js";
 import { cleanRoom, HOTEL_ORDER, hotelGroup } from "./venues.js";
 
 const NOISE_TRACKS = new Set(["Epic Photos","Video Room"]);
@@ -31,7 +32,7 @@ let axisKeys = new Set();
    evidence, so they drop out when the toggle is on. */
 const isCeleb = e => !!(e.tags && e.tags.guests === "celebrity");
 
-const DATA_URL = `data/${CON.year}/events.v2.json`;
+const DATA_URL = `data/${YEAR}/events.v2.json`;
 
 const viaKind = via => String(via || "").split(":")[0];
 

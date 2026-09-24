@@ -7,7 +7,7 @@
 import MiniSearch from "minisearch";
 import { dayOf } from "./util.js";
 import { state } from "./state.js";
-import { conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
+import { CON_DAYS, conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
 import { hotelMatches, hotelShort } from "./venues.js";
 import { AXES, byId, events, isNoise, linkedWorks, linksTo, personName, worksById } from "./data.js";
 
@@ -212,8 +212,9 @@ function passesFilters(e) {
    Pull the filter words out, search on what's left, and show what we
    took so the reader can put it back.
    ================================================================== */
-const DAY_WORDS = {wed: 2, wednesday: 2, thu: 3, thur: 3, thurs: 3, thursday: 3, fri: 4, friday: 4,
-  sat: 5, saturday: 5, sun: 6, sunday: 6, mon: 7, monday: 7};
+/* A day word names a weekday; the con day that falls on it is the season's. */
+const DAY_WORDS = {wed: "Wednesday", wednesday: "Wednesday", thu: "Thursday", thur: "Thursday", thurs: "Thursday", thursday: "Thursday",
+  fri: "Friday", friday: "Friday", sat: "Saturday", saturday: "Saturday", sun: "Sunday", sunday: "Sunday", mon: "Monday", monday: "Monday"};
 const HOTEL_WORDS = {marriott: "Marriott", hyatt: "Hyatt", hilton: "Hilton", westin: "Westin",
   courtland: "Courtland Grand", sheraton: "Courtland Grand", mart: "AmericasMart", americasmart: "AmericasMart"};
 const TIME_BANDS = {morning: [0, 12], afternoon: [12, 17], evening: [17, 21], "late night": [21, 29], late: [21, 29]};
@@ -223,7 +224,10 @@ const TIME_BANDS = {morning: [0, 12], afternoon: [12, 17], evening: [17, 21], "l
 function queryRules() {
   const r = [];
   const add = (word, dim, value, label) => r.push({word, dim, value, label});
-  Object.entries(DAY_WORDS).forEach(([w, dayNum]) => add(w, "day", `2026-09-0${dayNum}`, DAY_LONG[`2026-09-0${dayNum}`]));
+  Object.entries(DAY_WORDS).forEach(([w, name]) => {
+    const day = CON_DAYS.find(d => DAY_LONG[d] === name);
+    if (day) add(w, "day", day, name);
+  });
   Object.entries(HOTEL_WORDS).forEach(([w, h]) => add(w, "hotel", h, hotelShort(h)));
   add("q&a", "kind", "qa", "Celebrity Q&A"); add("qa", "kind", "qa", "Celebrity Q&A");
   add("signing", "kind", "signing", "Signing");

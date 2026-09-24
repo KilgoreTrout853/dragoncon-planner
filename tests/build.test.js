@@ -23,12 +23,13 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "dc-build-"));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
 let n = 0;
-/* env always names both stamps, so a DC_CHANNEL in the caller's shell cannot leak in */
+/* env always names both stamps and the year, so a DC_CHANNEL or a DC_YEAR in
+   the caller's shell cannot leak in */
 function build(env) {
   const out = path.join(TMP, `site-${++n}`);
   try {
     const stdout = execFileSync(process.execPath, [VITE, "build", "--outDir", out, "--logLevel", "warn"],
-      { cwd: ROOT, env: { ...process.env, DC_CHANNEL: "", DC_BUILD: "", ...env }, encoding: "utf8", stdio: "pipe" });
+      { cwd: ROOT, env: { ...process.env, DC_CHANNEL: "", DC_BUILD: "", DC_YEAR: "", ...env }, encoding: "utf8", stdio: "pipe" });
     return { ok: true, out, stdout, stderr: "" };
   } catch (e) {
     return { ok: false, out, stdout: String(e.stdout || ""), stderr: String(e.stderr || "") };
@@ -79,6 +80,23 @@ describe("vite build", () => {
     const r = build({ DC_CHANNEL: "Next Site" });
     expect(r.ok).toBe(false);
     expect(r.stderr + r.stdout).toMatch(/channel/);
+  });
+
+  /* DECISIONS #49: DC_YEAR is four digits, and names a year whose season and
+     venues files are there. */
+  it("refuses a year that is not four digits", SLOW, () => {
+    for (const year of ["27", "2O27", "20271"]) {
+      const r = build({ DC_YEAR: year });
+      expect(r.ok, year).toBe(false);
+      expect(r.stderr + r.stdout, year).toMatch(/a year is four digits/);
+    }
+  });
+
+  it("refuses a year with no season file", SLOW, () => {
+    const r = build({ DC_YEAR: "2031" });
+    expect(r.ok).toBe(false);
+    expect(r.stderr + r.stdout).toMatch(/no data\/2031\/season\.json/);
+    expect(exists(r.out, "index.html")).toBe(false);
   });
 
   it("emits one classic script at the end of the body and no separate assets", SLOW, () => {
