@@ -3,8 +3,9 @@
    on a phone: the picks and their snapshots are in storage from an earlier
    visit, and the page boots against a schedule that has moved on - a copy of
    the sample in which one picked event carries removed: true and a Sunday
-   event's was names two ids the reader had picked. New tests, not rows of
-   tests/PORT-LEDGER.md, so their titles carry no harness line. */
+   event's was names two ids the reader had picked, and a Friday event is
+   cancelled, to hold its sheet up beside the removed one's. New tests, not
+   rows of tests/PORT-LEDGER.md, so their titles carry no harness line. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,8 +34,9 @@ const { first, removed, last } = (() => {
   return {};
 })();
 const survivor = sample.events.find(e => e.start >= "2026-09-06T09:00" && e.end.startsWith("2026-09-06") && placed(e));   // Sunday's con day, not Saturday night's
+const cancelled = sample.events.find(e => e.day === "2026-09-04" && placed(e));
 const data = { ...sample, events: sample.events.map(e => e.id === removed.id ? { ...e, removed: true }
-  : e.id === survivor.id ? { ...e, was: ["old-a", "old-b"] } : e) };
+  : e.id === survivor.id ? { ...e, was: ["old-a", "old-b"] } : e.id === cancelled.id ? { ...e, cancelled: true } : e) };
 
 const seed = (key, value) => window.localStorage.setItem(key, JSON.stringify(value));
 const stored = key => JSON.parse(window.localStorage.getItem(key));
@@ -127,6 +129,19 @@ describe("a schedule that dropped one pick and merged two", () => {
       it("its sheet is marked as a cancelled event's is", () => {
         document.querySelector(`#view-mine .row[data-id="${removed.id}"] .row-main`).click();
         expect(document.querySelector("#panel-event .ev-head .removed-tag").textContent).toBe("Removed from the schedule");
+        handle.closeSheet();
+      });
+      it("its sheet offers no way to the calendar, which a cancelled event's, like a live one's, still does", () => {
+        document.querySelector(`#view-mine .row[data-id="${removed.id}"] .row-main`).click();
+        expect(document.querySelector("#panel-event .removed-tag")).not.toBe(null);
+        expect(document.getElementById("sheetICS")).toBe(null);
+        handle.closeSheet();
+        handle.openSheet("event", cancelled.id);
+        expect(document.querySelector("#panel-event .cancelled-tag")).not.toBe(null);
+        expect(document.getElementById("sheetICS")).not.toBe(null);
+        handle.closeSheet();
+        handle.openSheet("event", first.id);
+        expect(document.getElementById("sheetICS")).not.toBe(null);
         handle.closeSheet();
       });
     });

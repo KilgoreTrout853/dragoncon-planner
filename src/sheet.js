@@ -49,6 +49,10 @@ function eventSheetHTML(ev) {
   const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
   const chips = [...(ev.tracks || []), ...directWorks(ev).map(id => (worksById.get(id) || {}).name).filter(Boolean)];
   const mature = tagsOf(ev).audience === "mature";
+  /* The calendar takes only what is on the schedule: Mine's export leaves a
+     removed pick out, and so does this, the other door to the same calendar
+     (DECISIONS #49). A cancelled event keeps its button, as it always had. */
+  const ics = ev.removed ? "" : `<button class="btn quiet" id="sheetICS">Add this to calendar</button>`;
   return `<div class="ev-head">
       <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
       <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}${ev._cd !== ev.day ? ` &middot; ${DAY_LONG[ev._cd] || ev._cd} night` : ""}</div>
@@ -65,7 +69,7 @@ function eventSheetHTML(ev) {
     </div>
     <div class="ev-actions">
       <button class="ev-star" id="sheetStar" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>
-      <button class="btn quiet" id="sheetICS">Add this to calendar</button>
+      ${ics}
       <button class="btn" id="closeSheetEvent">Done</button>
     </div>`;
 }

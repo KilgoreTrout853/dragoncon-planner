@@ -1248,8 +1248,9 @@ reads that year's contract: its `events.v2.json`, and at build its
   only the rest. A pick on one stays a pick. Mine draws it where its time
   puts it, marked removed from the schedule, with no gap line or walk link
   to or from it; its event sheet marks it as a cancelled event is marked;
-  the pick news says so once; the calendar export leaves it out. Everywhere
-  but Mine, where #42's Cost and `contract.md` had Mine and Now.
+  the pick news says so once; the calendar takes it by neither door, Mine's
+  export or its sheet. Everywhere but Mine, where #42's Cost and
+  `contract.md` had Mine and Now.
 - **Was.** A pick whose id is absent but in an event's `was` moves to that
   event, and the news says it is now listed under that title (#43).
 - **Untagged.** Every read of an event's tags goes through `tagsOf()`,
