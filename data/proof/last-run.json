@@ -1,17 +1,17 @@
 {
-  "stamp": "2026-09-24T13:51:35+00:00",
-  "fetched_at": "2026-09-24T13:51:35+00:00",
-  "changed_at": "2026-09-24T13:51:35+00:00",
-  "sha": "1db496d51018be5cf57be1eb51d405d16c5aa616",
+  "stamp": "2026-09-24T13:57:06+00:00",
+  "fetched_at": "2026-09-24T13:57:06+00:00",
+  "changed_at": "2026-09-24T13:57:06+00:00",
+  "sha": "3bb4b04db8894ca981022f472b0339f9301c02b8",
   "fetch_code_hash": "5b30ac1c916fe40f434bb177f275a715f388d7027e725fdedd8bcd95228f8bdf",
   "fetch_code_changed": false,
   "changes_logged": 10,
-  "digest": "03bfcb9eedfeb8f66f6f5cd8f42fbf96f098d1e61532e39f678857101665ad83",
+  "digest": "50d73f1cb84f85ebe95d6e8b3c77f45a89880762600f5a2a29945c07bdfe11fc",
   "season": 2026,
-  "elapsed": 77.9,
+  "elapsed": 61.3,
   "fetch": {
-    "listings": 80,
-    "fetched": 80,
+    "listings": 90,
+    "fetched": 90,
     "stale": 0,
     "removed": 0,
     "failures": 0,
@@ -28,27 +28,27 @@
   },
   "tag": {
     "requests": 1,
-    "sent": 10,
+    "sent": 8,
     "capped": 0,
     "failed": 0,
     "stopped": 0,
     "unanswered": 0,
-    "minted": 1,
+    "minted": 0,
     "mint_failed": 0
   },
   "build": {
     "untagged": 0,
     "unresolved_names": 0,
     "unknown_tracks": 0,
-    "rooms_unresolved": 37,
+    "rooms_unresolved": 40,
     "hotels_unknown": 0,
     "places": {
-      "exact": 19,
+      "exact": 23,
       "alias": 0,
-      "rule": 16,
+      "rule": 17,
       "level": 0,
-      "hotel": 39,
-      "none": 6
+      "hotel": 42,
+      "none": 8
     }
   },
   "diff": {
