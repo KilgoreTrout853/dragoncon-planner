@@ -1,6 +1,6 @@
 import { YY } from "./season.js";
 import { loadJSON, saveJSON } from "./storage.js";
-import { axisKeys, events, linksTo, personName, worksById } from "./data.js";
+import { axisKeys, events, linksTo, personName, tagsOf, worksById } from "./data.js";
 
 /* ==================================================================
    Follows. A pick is one event; a follow is a standing interest - a
@@ -67,7 +67,7 @@ function eventsFor(follow) {
     case "axis": {
       const i = key.indexOf(":"), axis = key.slice(0, i), value = key.slice(i + 1);
       return events.filter(e => {
-        const tg = e.tags || {};
+        const tg = tagsOf(e);
         return axis === "audience" ? tg.audience === value : (tg[axis] || []).includes(value);
       });
     }

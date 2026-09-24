@@ -28,9 +28,16 @@ let meta = {};
 let worksById = new Map(), descendants = new Map(), workCounts = new Map(), personNames = new Map();
 let axisKeys = new Set();
 
+/* An event's tags, or none. An event the tag stage could not answer carries
+   no tags key - untagged is a state (DECISIONS #46) - and every read of an
+   event's tags goes through here, so the absence is one empty set of tags,
+   frozen, since every untagged event shares it. */
+const NO_TAGS = Object.freeze({});
+const tagsOf = e => e.tags || NO_TAGS;
+
 /* "unknown" and untagged are not celebrities - absence of evidence isn't
    evidence, so they drop out when the toggle is on. */
-const isCeleb = e => !!(e.tags && e.tags.guests === "celebrity");
+const isCeleb = e => tagsOf(e).guests === "celebrity";
 
 const DATA_URL = `data/${YEAR}/events.v2.json`;
 
@@ -38,7 +45,7 @@ const viaKind = via => String(via || "").split(":")[0];
 
 /* The ids of the works an event names itself, by one of the vias. */
 function directWorks(ev, vias = ABOUT_TRACK) {
-  return ((ev.tags || {}).works || []).filter(w => vias.includes(viaKind(w.via))).map(w => w.id);
+  return (tagsOf(ev).works || []).filter(w => vias.includes(viaKind(w.via))).map(w => w.id);
 }
 
 /* A work's ancestors, nearest first. The block holds every ancestor of every
@@ -63,7 +70,7 @@ function linkedWorks(ev, vias = ABOUT_TRACK) {
 function linksTo(ev, workId, vias = ABOUT_TRACK) {
   const under = descendants.get(workId);
   if (!under) return false;
-  return ((ev.tags || {}).works || []).some(w => under.has(w.id) && vias.includes(viaKind(w.via)));
+  return (tagsOf(ev).works || []).some(w => under.has(w.id) && vias.includes(viaKind(w.via)));
 }
 
 /* A person's name as the app shows it: the spelling the schedule uses most
@@ -82,7 +89,13 @@ function topWorks() {
    the events in start order, each with its Dates, its con day and its cleaned
    room, and the lookups the views read. load() in loading.js fetches and then
    calls this; what it assigns is read everywhere else through the live
-   binding. */
+   binding.
+   An event the source dropped is kept all season with removed: true
+   (DECISIONS #42). byId holds every event, the removed among them, in the
+   same start order, so a pick on one still finds it; events holds the rest,
+   and every list, count and index is taken from events - search, Browse,
+   Explore, the feeds, Now and the map never see a removed event. Only Mine
+   draws one, marked, and only if it is picked (DECISIONS #49). */
 function replaceSchedule(data) {
   meta = data;
   /* The block is a Map, never read in file order: Python sorted it, and
@@ -92,9 +105,9 @@ function replaceSchedule(data) {
   for (const id of worksById.keys()) ancestorsOf(id).forEach(a => { if (descendants.has(a)) descendants.get(a).add(id); });
 
   const spellings = new Map();
-  events = (data.events || []).filter(e => e.start).map(e => {
+  const all = (data.events || []).filter(e => e.start).map(e => {
     const s = toDate(e.start), en = e.end ? toDate(e.end) : new Date(s.getTime() + 60 * 60000);
-    (e.people || []).forEach(p => {
+    if (!e.removed) (e.people || []).forEach(p => {
       const m = spellings.get(p.id) || new Map();
       m.set(p.name, (m.get(p.name) || 0) + 1);
       spellings.set(p.id, m);
@@ -109,13 +122,14 @@ function replaceSchedule(data) {
     b[1] - a[1] || a[0].length - b[0].length || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))[0][0]]));
   /* The index's speakers field: every spelling the event uses, and the name
      the app shows for each person on it, so a tapped chip finds them all. */
-  events.forEach(e => {
+  all.forEach(e => {
     const names = [];
     (e.people || []).forEach(p => [p.name, personName(p.id)].forEach(n => { if (n && !names.includes(n)) names.push(n); }));
     e._people = names.join(" ");
   });
-  events.sort((a, b) => a._s - b._s || a.title.localeCompare(b.title));
-  byId = new Map(events.map(e => [e.id, e]));
+  all.sort((a, b) => a._s - b._s || a.title.localeCompare(b.title));
+  byId = new Map(all.map(e => [e.id, e]));
+  events = all.filter(e => !e.removed);
   tracks = [...new Set(events.map(e => e.track).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   hotels = HOTEL_ORDER.filter(h => events.some(e => e.hotel === h));
   hotelChips = [...new Set(hotels.map(hotelGroup))];
@@ -126,14 +140,14 @@ function replaceSchedule(data) {
   events.forEach(e => linkedWorks(e).forEach(id => workCounts.set(id, (workCounts.get(id) || 0) + 1)));
   axisKeys = new Set();
   events.forEach(e => {
-    const tg = e.tags || {};
+    const tg = tagsOf(e);
     AXES.forEach(a => (tg[a] || []).forEach(v => axisKeys.add(`${a}:${v}`)));
     if (tg.audience === "kids") axisKeys.add("audience:kids");
   });
 }
 
 export {
-  NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, isCeleb, DATA_URL,
+  NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, tagsOf, isCeleb, DATA_URL,
   AXES, CAST, worksById, workCounts, axisKeys,
   replaceSchedule, directWorks, linkedWorks, linksTo, personName, topWorks,
 };

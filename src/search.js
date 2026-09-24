@@ -9,7 +9,7 @@ import { dayOf } from "./util.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
 import { hotelMatches, hotelShort } from "./venues.js";
-import { AXES, byId, events, isNoise, linkedWorks, linksTo, personName, worksById } from "./data.js";
+import { AXES, byId, events, isNoise, linkedWorks, linksTo, personName, tagsOf, worksById } from "./data.js";
 
 /* Con vocabulary. If an event mentions any phrase in a group, every phrase in the group becomes searchable for it.
    Add your own lines freely; lowercase, no punctuation needed. */
@@ -95,7 +95,7 @@ function axisLabel(key) {
   return (AXIS_LABELS[axis] || {})[value] || value;
 }
 /* The labels of an event's four axes, which is what v1 called its topics. */
-const axisLabelsOf = e => AXES.flatMap(a => ((e.tags || {})[a] || []).map(v => axisLabel(`${a}:${v}`)));
+const axisLabelsOf = e => AXES.flatMap(a => (tagsOf(e)[a] || []).map(v => axisLabel(`${a}:${v}`)));
 /* The names of what an event is about, and of everything above it. */
 const workNamesOf = e => [...linkedWorks(e)].map(id => (worksById.get(id) || {}).name).filter(Boolean);
 let index = null;
@@ -123,7 +123,7 @@ function buildIndex() {
       boost: {title: 5, fandoms: 4, speakers: 3, aliases: 2, tracks: 2, kind: 2, topics: 2, description: 1, location: 1}},
   });
   index.addAll(events.map(e => {
-    const tg = e.tags || {};
+    const tg = tagsOf(e);
     const fandoms = workNamesOf(e).join(" "), topics = axisLabelsOf(e).join(" ");
     const kind = tg.kind ? `${tg.kind} ${KIND_LABELS[tg.kind] || ""}` : "";
     const text = [e.title, e.description, (e.tracks || []).join(" "), fandoms, topics, kind, e.location].join(" ").toLowerCase();
@@ -154,7 +154,7 @@ function buildSuggestIndex() {
     new Set((e.people || []).map(p => p.id)).forEach(id => bump(people, id, personName(id).trim(), quiet));
     /* Kids was one of v1's topics, so it is a chip here as it was, though
        audience is not an axis and stays out of the index's topics field. */
-    const kids = (e.tags || {}).audience === "kids" ? [axisLabel("audience:kids")] : [];
+    const kids = tagsOf(e).audience === "kids" ? [axisLabel("audience:kids")] : [];
     new Set([...workNamesOf(e), ...axisLabelsOf(e), ...kids]).forEach(t => bump(topics, t.trim(), t.trim(), quiet));
   });
   const doc = (group, prefix) => ([key, c]) => ({id: `${prefix}:${key}`, key, name: c.name, all: c.all, visible: c.visible, group});
@@ -195,7 +195,7 @@ function suggestionsFor(raw) {
 }
 
 function passesFilters(e) {
-  const f = activeFilters(), tg = e.tags || {};
+  const f = activeFilters(), tg = tagsOf(e);
   return (f.day === "All" || e._cd === f.day) &&
     hotelMatches(e, f.hotel) &&
     (f.type === "All" || e.type === f.type) &&

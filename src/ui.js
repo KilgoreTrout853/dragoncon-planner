@@ -16,7 +16,9 @@ function rowHTML(ev, opts = {}) {
   const s = fmt(ev._s), e = fmt(ev._e);
   const mine = picks.has(ev.id), open = state.sheetId === ev.id;
   const status = opts.status ? `<span class="status">${esc(opts.status)}</span>` : "";
-  const cls = ["row", mine ? "mine" : "", open ? "open" : "", ev.cancelled ? "cancelled" : ""].filter(Boolean).join(" ");
+  /* A removed event is drawn only as a pick, in Mine (DECISIONS #49), and is
+     marked as a cancelled one is. */
+  const cls = ["row", mine ? "mine" : "", open ? "open" : "", ev.cancelled ? "cancelled" : "", ev.removed ? "removed" : ""].filter(Boolean).join(" ");
   const hl = opts.terms ? highlighter(opts.terms) : (x => esc(x));
   const snippet = opts.terms ? snippetFor(ev, opts.terms) : "";
   return `<li class="${cls}" data-id="${esc(ev.id)}" data-list="${esc(opts.list || "")}">
@@ -27,7 +29,7 @@ function rowHTML(ev, opts = {}) {
           <div class="title">${hl(ev.title)}</div>
           <div class="meta">
             <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</span>
-            ${ev.cancelled ? `<span class="cancelled-tag">Cancelled</span>` : ""}${status}${isCeleb(ev) ? CELEB_BADGE : ""}${(opts.labels || []).map(l => `<span class="flabel">${esc(l)}</span>`).join("")}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
+            ${ev.cancelled ? `<span class="cancelled-tag">Cancelled</span>` : ""}${ev.removed ? `<span class="removed-tag">Removed from the schedule</span>` : ""}${status}${isCeleb(ev) ? CELEB_BADGE : ""}${(opts.labels || []).map(l => `<span class="flabel">${esc(l)}</span>`).join("")}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
           </div>
           ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
         </div>

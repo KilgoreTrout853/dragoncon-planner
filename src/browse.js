@@ -6,7 +6,7 @@ import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
 import { hotelShort } from "./venues.js";
-import { events, hotelChips, isNoise, topWorks, tracks } from "./data.js";
+import { events, hotelChips, isNoise, tagsOf, topWorks, tracks } from "./data.js";
 import { browseResults, index, KIND_LABELS, processTerm, SEARCH_PLACEHOLDER, suggestDocs, suggestionsFor } from "./search.js";
 import { chipHTML, rowHTML } from "./ui.js";
 import { chipRowsRestore, chipRowsSnapshot } from "./scroll.js";
@@ -89,11 +89,13 @@ function renderBrowse() {
   const results = browseResults();
   const shown = results.slice(0, PAGE * b.page);
   const noiseCount = events.filter(e => isNoise(e) && (b.day === "All" || e._cd === b.day)).length;
-  const hasTags = events.some(e => e.tags);
+  /* A schedule with no tags at all - a year's first days, before its first
+     tag - offers no kind chips and no Fandom select. */
+  const hasTags = events.some(e => Object.keys(tagsOf(e)).length > 0);
   /* The Fandom select holds works, by id: the reviewed ones with 3+ events,
      their own and those of the works under them. */
   const works = hasTags ? topWorks() : [];
-  const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => e.tags && e.tags.kind === k)) : [];
+  const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => tagsOf(e).kind === k)) : [];
 
   const dayChips = `${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}`;
   const sticky = `<div class="controls controls-sticky">

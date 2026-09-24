@@ -13,7 +13,7 @@ import { deviceLine } from "./build.js";
 import { settings, state } from "./state.js";
 import { DAY_LONG, localInputValue, timeOverride } from "./time.js";
 import { hotelPhrase, hotelVar, placeHTML, WALK } from "./venues.js";
-import { byId, directWorks, events, isCeleb, worksById } from "./data.js";
+import { byId, directWorks, events, isCeleb, tagsOf, worksById } from "./data.js";
 import { picks, replacePicks, savePicks } from "./picks.js";
 import { CELEB_BADGE, rowHTML } from "./ui.js";
 import { pageScrollTo, pageScrollTop } from "./scroll.js";
@@ -48,12 +48,13 @@ function eventSheetHTML(ev) {
   }));
   const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
   const chips = [...(ev.tracks || []), ...directWorks(ev).map(id => (worksById.get(id) || {}).name).filter(Boolean)];
-  const mature = !!(ev.tags && ev.tags.audience === "mature");
+  const mature = tagsOf(ev).audience === "mature";
   return `<div class="ev-head">
       <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
       <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}${ev._cd !== ev.day ? ` &middot; ${DAY_LONG[ev._cd] || ev._cd} night` : ""}</div>
       <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</div>
       ${ev.cancelled ? `<div><span class="cancelled-tag">Cancelled</span></div>` : ""}
+      ${ev.removed ? `<div><span class="removed-tag">Removed from the schedule</span></div>` : ""}
       ${isCeleb(ev) ? `<div>${CELEB_BADGE}</div>` : ""}
     </div>
     <div class="ev-body">
