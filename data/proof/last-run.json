@@ -1,0 +1,62 @@
+{
+  "stamp": "2026-09-24T13:33:24+00:00",
+  "fetched_at": "2026-09-24T13:33:24+00:00",
+  "changed_at": "2026-09-24T13:33:24+00:00",
+  "sha": "3c96a59f7326a74bf02359025a8bdc905b127d1c",
+  "fetch_code_hash": "5b30ac1c916fe40f434bb177f275a715f388d7027e725fdedd8bcd95228f8bdf",
+  "fetch_code_changed": false,
+  "changes_logged": 60,
+  "digest": "c3060de683d7ce8d578e0fa53a6a392784236fdb36616597e61ea9b2c3e59920",
+  "season": 2026,
+  "elapsed": 134.1,
+  "fetch": {
+    "listings": 60,
+    "fetched": 60,
+    "stale": 0,
+    "removed": 0,
+    "failures": 0,
+    "repaired": 0
+  },
+  "ids": {
+    "new": 60,
+    "matches": 0,
+    "merges": 0,
+    "leavers": 0,
+    "gone": 0,
+    "returned": 0,
+    "unsure": 0
+  },
+  "tag": {
+    "requests": 2,
+    "sent": 50,
+    "capped": 8,
+    "failed": 0,
+    "stopped": 0,
+    "unanswered": 0,
+    "minted": 0,
+    "mint_failed": 0
+  },
+  "build": {
+    "untagged": 8,
+    "unresolved_names": 0,
+    "unknown_tracks": 0,
+    "rooms_unresolved": 24,
+    "hotels_unknown": 0,
+    "places": {
+      "exact": 17,
+      "alias": 0,
+      "rule": 11,
+      "level": 0,
+      "hotel": 26,
+      "none": 6
+    }
+  },
+  "diff": {
+    "kinds": {
+      "added": 60
+    },
+    "causes": {
+      "source": 60
+    }
+  }
+}
