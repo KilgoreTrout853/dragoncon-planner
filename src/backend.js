@@ -10,7 +10,8 @@ import { storageKey } from "./build.js";
    false, nothing here sends anything, and the app is the 2026 app.
 
    By fetch, with no library (#53): every request carries the public key,
-   and one made as the user carries the session's token too. An answer
+   one made as the user carries the session's token too, and sync's
+   upserts carry PostgREST's Prefer header (outbox.js). An answer
    that is not ok becomes a BackendError with the server's error code. The
    session is kept under storageKey("session") and read afresh at every
    use, so a tab never holds a token another tab has rotated away. It is
@@ -38,12 +39,14 @@ class BackendError extends Error {
 const errorCode = (data, status) => (data && typeof data.code === "string" && data.code) || (data && data.error_code) || `http_${status}`;
 
 /* The one door out: path is under the project's address, body is sent as
-   JSON, and token is the user's, for a request made as them. */
-async function callBackend(path, {method = "POST", body, token} = {}) {
+   JSON, token is the user's, for a request made as them, and prefer is
+   PostgREST's Prefer header, for a request that needs one. */
+async function callBackend(path, {method = "POST", body, token, prefer} = {}) {
   if (!hasBackend) throw new BackendError("no_backend");
   const headers = {apikey: BACKEND_KEY};
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
+  if (prefer) headers.Prefer = prefer;
   let res;
   try { res = await fetch(BACKEND_URL + path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body)}); }
   catch (e) { throw new BackendError("offline"); }

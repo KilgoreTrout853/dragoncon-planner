@@ -1,5 +1,6 @@
 import { loadJSON, saveJSON } from "./storage.js";
 import { storageKey } from "./build.js";
+import { record } from "./outbox.js";
 import { axisKeys, events, linksTo, personName, tagsOf, worksById } from "./data.js";
 
 /* ==================================================================
@@ -30,7 +31,39 @@ function wellFormedFollow(f) {
 }
 let follows = (loadJSON(storageKey("follows"), []) || []).filter(wellFormedFollow);
 const followId = f => `${f.kind}:${f.key}`;
-function saveFollows() { saveJSON(storageKey("follows"), follows.map(f => ({kind: f.kind, key: f.key}))); }
+/* The follows as last saved, by id, which saveFollows() compares the list
+   with: each follow gained or lost since is a change for the outbox
+   (docs/sync/contract.md, section 5). Read after the shape filter, so a
+   follow it drops - v1's, never synced - is no change. */
+let saved = new Set(follows.map(followId));
+const keepFollows = () => saveJSON(storageKey("follows"), follows.map(f => ({kind: f.kind, key: f.key})));
+/* The one door for a change to the follows, as savePicks() is for picks: it
+   tells the outbox what changed since the last save, a follow an add and an
+   unfollow a tombstone. */
+function saveFollows() {
+  const current = new Set(follows.map(followId)), changes = [];
+  current.forEach(id => { if (!saved.has(id)) changes.push([id, true]); });
+  saved.forEach(id => { if (!current.has(id)) changes.push([id, false]); });
+  saved = current;
+  keepFollows();
+  record("follows", changes);
+}
+/* The reader's own follows a pull read, applied as the server has them, a
+   new one at the end of the list; one of a shape this client does not keep
+   is passed over. The saved copy moves with them, so the next save does not
+   send them back. Returns whether the list changed. */
+function applyPulledFollows(rows) {
+  let changed = false;
+  for (const {kind, key, followed} of rows) {
+    if (!wellFormedFollow({kind, key})) continue;
+    const id = followId({kind, key}), i = follows.findIndex(f => f.kind === kind && f.key === key);
+    if (followed) saved.add(id); else saved.delete(id);
+    if (followed && i < 0) { follows.push({kind, key}); changed = true; }
+    else if (!followed && i >= 0) { follows.splice(i, 1); changed = true; }
+  }
+  if (changed) keepFollows();
+  return changed;
+}
 function isFollowing(kind, key) { return follows.some(f => f.kind === kind && f.key === key); }
 /* Whether the loaded schedule offers this to follow: a person it has, an axis
    value some event carries, a work it names that a person has reviewed. An
@@ -83,6 +116,6 @@ function eventsFor(follow) {
 function replaceFollows(list) { follows = [...list]; }
 
 export {
-  FOLLOW_KINDS, wellFormedFollow, follows, followId, saveFollows, isFollowing, canFollow, toggleFollow, eventsFor,
-  replaceFollows,
+  FOLLOW_KINDS, wellFormedFollow, follows, followId, saveFollows, applyPulledFollows, isFollowing, canFollow, toggleFollow,
+  eventsFor, replaceFollows,
 };

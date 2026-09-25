@@ -177,7 +177,13 @@ pipeline absorbs takes a free review slot.
    `src/backend.js` and `src/identity.js`, the email step in Settings, and
    the sync rules written down, `docs/sync/contract.md` section 5 and
    DECISIONS #53 - built.
-5. Picks and follows sync: the doors, the outbox, the pull.
+5. Picks and follows sync: the doors, the outbox, the pull, the crew's
+   data, the status line in Keep your plan, and a second migration -
+   `synced_at`, the key columns' grant and the trigger that keeps them
+   (`docs/sync/contract.md`, section 5, as built) - built.
+6. The mirror job: `schedule_events` and `schedule_changes`, written
+   after a scrape's pull request merges (`docs/sync/contract.md`,
+   section 6).
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
@@ -243,6 +249,11 @@ Steps taken by hand, beside the PRs rather than in them:
 - On the dev project, for the email step: anonymous sign-ins turned on, and
   the Magic Link and Change Email Address templates sending the code,
   `{{ .Token }}`, rather than a link (#51, #53).
+- Before the production project serves the email step, its Auth set up by
+  hand: custom SMTP, with a domain verified at the sender - the templates
+  cannot be edited without it (#25's note) - the Magic Link and Change
+  Email Address templates sending `{{ .Token }}`, an OTP length of 6,
+  anonymous sign-ins on, and Confirm email on (#51, #53).
 - On every project, an invariant: Confirm email stays on. With it off, the
   server sets an anonymous user's email with no code at all, so anyone
   could claim an address they do not own, and its owner's later recover

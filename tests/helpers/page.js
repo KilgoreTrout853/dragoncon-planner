@@ -135,6 +135,10 @@ export async function bootPage({ fixture = "sample", data, now = DEFAULT_NOW, ch
       await until(() => app.BOOT.suggested > 0, 20000, "the index build");
       await new Promise(resolve => setTimeout(resolve, app.SEARCH_DEBOUNCE_MS + 30));
     }
+    /* a sync run or a drain under way finishes against this page, and the
+       drains stop for good, so no retry of this page's sends into the next */
+    await app.syncSettled();
+    app.stopDrains();
     listeners.forEach(([target, type, fn, options]) => target.removeEventListener(type, fn, options));
     intervals.forEach(id => clearInterval(id));
     window.removeEventListener("error", onError);

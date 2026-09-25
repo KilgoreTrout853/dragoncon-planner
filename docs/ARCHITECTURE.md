@@ -15,8 +15,9 @@ app, built by Vite into a single HTML file, reads it, lets you search,
 star, and plan, and stores your picks in the browser. A service worker
 keeps the app usable with no signal. GitHub Pages serves it. A build
 given a backend - a Supabase project's address and public key - lets a
-reader keep the plan by email (Identity and sync); a build given none has
-no backend, and sends nothing anywhere but for the schedule.
+reader keep the plan by email, and syncs their picks and follows once the
+phone has a user (Identity and sync); a build given none has no backend,
+and sends nothing anywhere but for the schedule.
 
 ```
 app.core-apps.com/dragoncon26          (official schedule, HTML)
@@ -48,7 +49,8 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/dispatch.js`, `shell.js`, `loading.js`, `sheet.js` | The four modules above the views: the handlers that span modules; `render()` and what is on screen whatever the tab; loading, freshness and offline; the bottom sheet. |
 | `src/now.js`, `browse.js`, `explore.js`, `map.js`, `mine.js` | The five views, one per tab (`browse` is the Search tab). |
 | `src/scroll.js`, `bus.js` | The scroller and the header's measurement; how a module below the shell asks for a redraw. |
-| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `state.js`, `time.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The seventeen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
+| `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data; the status line in Keep your plan. |
+| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The eighteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own three plugins: `dcYear`, the year `DC_YEAR` names - its define and its two data modules, in the dev server, the build and Vitest alike (DECISIONS #49); `dcBackend`, the backend `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name, or none - its two defines, in the same three places, and the guard on them (#53); and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy. |
@@ -80,12 +82,12 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `draft_people.py` | Drafts people into `people.json` with a model, for review (DECISIONS #31): everyone on a `guests: celebrity` event, skipped when the registry already resolves the name or the sidecar records a rejection, so a second run calls nothing. Reuses `tag_events.py`'s two transports; Opus by full id, `claude-opus-5`, on the API and on Claude Code alike (see Sharp edges). `--parents` is a second, narrow pass that gives each work it minted a parent from the registry. Nothing it writes is reviewed. |
 | `tools/` | Tools a person runs, not part of the build and never copied into `dist/`. `review-people.html` + `review-people.js` are pages opened from disk - no server, no network - and the review for `draft_people.py`'s output: one card a person, tier and credit controls, and an export of the three files formatted as the drafter writes them. The state changes are pure functions in the `.js`, which is a classic script - no import, no export - because a browser refuses an ES module over `file://`. `tag_pilot.py` is the tag stage's pilot: `sample` picks about 150 inputs, and `compare` reports how runs of the tag stage into scratch caches agree - runs made against 2026 before it was frozen; a later pilot runs on a live copy, as its docstring says. It string-matches work names against event text to choose test events, which the tag stage must never do, so nothing on the tag or build path imports it. `sample_v2.py` makes `tests/sample-events.json`, the page tests' v2 fixture, from the v1 sample: each event in the file's shape, its place from the venues step against `data/2026/venues.json`, people and facets from the parse stage, the five tagged events' fandoms as works and topics as axes, one parent chain for a roll-up, and the works block. `schedule_history.py` walks every commit on `main` that touched the 2026 schedule, diffs each version against the one before by id and by the dedupe's key, adds scrape.yml's runs where `gh` can list them, and writes `docs/pipeline/history-2026.md`. `room_census.py` reads every location of the frozen schedule through the venues step, `venues_stage.py`, against `data/2026/venues.json`, and writes `docs/venues/census-2026.md`, the off-season coverage report (#45): each hotel's strings as the step reads them, the curation worklist, the rooms no string reaches and the rules' firings. It has no grammar of its own, and writes neither input. `replay_2026.py` replays the ids stage over the 2026 versions `schedule_history.py` reads - each converted to raw rows and carried as the fetch carries them, the ledger in a temp folder - and writes `docs/pipeline/replay-2026.md`: which frozen ids ours differ from and how, #43's named checks, each version's counts and the UNSURE pairs. None of the three reports is held fresh by CI. |
 | `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
-| `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test, with no backend or with a fake one; `backend.js` is that fake, of the Supabase Auth server, keeping every request it is sent; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
+| `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test, with no backend or with a fake one, and as it cleans up lets a sync run finish and stops the drains; `backend.js` is that fake, of the Supabase Auth server and of PostgREST over the four synced tables - judging an upsert as the database's triggers and grants do, narrowing a read as row-level security does - keeping every request it is sent; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
 | `tests/unit/` | Vitest: pure exports, imported by name from the module that holds them, with no page. |
 | `tests/rules/` | Vitest: rules over the text of `src/styles.css` and of every module under `src/`, and over the module graph (`imports.test.js`). |
 | `tests/real-data.test.js` | Vitest: search quality and Explore against the real schedule of the year under test, `data/2026/events.v2.json`. |
-| `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, and smokes that boot the built pages - the next site's, given a backend, signing in by email. The only test that executes `dist/`. |
+| `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, and smokes that boot the built pages - the next site's, given a backend, signing in by email and syncing a star. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record. |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
@@ -114,8 +116,8 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/test_tag_events.py` | What the retired tagger still does: refuse the frozen file, and carry a prompt to `claude -p` on stdin, isolated for the tag stage. |
 | `tests/sample-events.json`, `tests/sample-events.v1.json`, `tests/make_sample.py` | 558 synthetic events: in the v2 shape, the fixture for the page tests and the build smoke, which `tools/sample_v2.py` makes from the v1 sample; and the seeded script that generates the v1 sample, which keeps v1's dedupe, `_dedupe` and `_merge_group`, to reproduce it. |
 | `supabase/config.toml`, `supabase/package.json`, `supabase/package-lock.json` | The backend's local project (DECISIONS #52; `docs/sync/contract.md`, section 4, as built): `supabase init`'s config - the project `dragoncon-planner`, Postgres 17, storage and realtime off - and the Supabase CLI, pinned in a package of its own so that the root `npm ci` never fetches it. `npm --prefix supabase run start` starts the database alone, in Docker; `test`, `reset` and `stop` are the others. No hosted project exists yet, and the client talks to none. |
-| `supabase/migrations/`, `supabase/seed.sql` | The schema, numbered SQL the CLI applies, one migration a pull request and never edited once merged: so far `20260925154849_sync_schema.sql`, the ten tables of `contract.md`'s section 2, their row-level security and grants by name, the two helpers, the stamp triggers and the three RPCs. `seed.sql` is a local dataset alone - three users, a crew of two, a few picks and follows - which no hosted project runs. |
-| `supabase/tests/` | pgTAP, one file per concern, each a transaction rolled back: the structure and the grants, anon, a stranger, a member, the stamps, the RPCs, the job tables, the cascades and push subscriptions (`contract.md`, section 3, as built). Run by `npm --prefix supabase test`, and by CI's `database` job. |
+| `supabase/migrations/`, `supabase/seed.sql` | The schema, numbered SQL the CLI applies, one migration a pull request and never edited once merged: `20260925154849_sync_schema.sql`, the ten tables of `contract.md`'s section 2, their row-level security and grants by name, the two helpers, the stamp triggers and the three RPCs; and `20260925204917_picks_follows_sync.sql`, sync's: `synced_at` on picks and follows, the caller as a row's user by default, the key columns' update grant and the trigger that keeps every key as it is, and the indexes by user and `synced_at` (`contract.md`, sections 2 and 3, as built). `seed.sql` is a local dataset alone - three users, a crew of two, a few picks and follows - which no hosted project runs. |
+| `supabase/tests/` | pgTAP, one file per concern, each a transaction rolled back: the structure and the grants, anon, a stranger, a member, the stamps, the RPCs, the job tables, the cascades, push subscriptions and sync's migration (`contract.md`, section 3, as built). Run by `npm --prefix supabase test`, and by CI's `database` job. |
 | `.github/workflows/scrape.yml` | The 2027 pipeline's workflow (DECISIONS #48; `contract.md`, The run, as built): hourly at `17 * * * *` inside the season window, and by `workflow_dispatch` with `force`, `to`, `limit`, `requests`, `season` and `target`. It checks the target out - the `SCRAPE_TARGET` repository variable - with the bot's token, runs `pipeline.py`, writes the summary to the job summary, and lands a run that changed a file by pull request: a `schedule/<stamp>` branch, the bot's older pull requests closed as superseded, auto-merge on, and CI the gate. |
 | `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client`, `pipeline` and `database`. |
 | `.github/dependabot.yml` | Monthly update PRs for GitHub Actions only. |
@@ -354,7 +356,7 @@ a reviewer, and each review's decisions are committed as a record in
 
 ## The client: modules and their order
 
-One program in twenty-nine modules under `src/`, and `main.js`, the entry.
+One program in thirty-one modules under `src/`, and `main.js`, the entry.
 The markup it drives is in `index.html` and the CSS in `src/styles.css`.
 
 The modules stand in one order, which is the array `ORDER` in
@@ -362,8 +364,9 @@ The modules stand in one order, which is the array `ORDER` in
 
 ```
 season  util  storage  platform  build  backend  identity  state  time
-venues  data  picks  follows  ics  leave  search  ui   the seventeen leaves
-scroll  bus
+outbox  venues  data  picks  follows  ics  leave  search  ui
+                                                       the eighteen leaves
+scroll  bus  sync
 now  browse  explore  map  mine                        the five views
 sheet  loading  shell  dispatch
                                                        boot.js, the root
@@ -390,7 +393,11 @@ every request to it, by `fetch`, and the session it keeps under
 at the first tap that needs one, the email step - add and recover by one
 code - and sign out (#51). `state`: `settings` and `state`.
 `time`: `now()`, the override, `CON` - the season file's days - and the
-days' names, `conPhase()`, `conDayKey()`, `effectiveNow()`. `venues`: hotel
+days' names, `conPhase()`, `conDayKey()`, `effectiveNow()`. `outbox`: what
+the doors have changed and the server has not yet taken - one op per
+changed key, stamped by `wallClock()` - under `storageKey("outbox")`, and
+the drain that sends it, one upsert per table, one at a time, with its
+backoff (DECISIONS #53). `venues`: hotel
 identity, the `WALK` table, the slack, `walkMin()`, `placeHTML()`, all from
 the year's venues file, inlined at build as `virtual:venues`. `data`:
 `DATA_URL`, the schedule as the app holds it (`events`, `byId`, `meta`) -
@@ -400,7 +407,11 @@ an event's tags, which an untagged event has none of; `linksTo()`, which says wh
 event is about a work or anything under it, the rolled-up counts and
 `topWorks()` it agrees with, and a person's display name. `data` is the only
 module that walks a work's parent. `picks` and `follows`: what the reader starred and follows -
-a follow is a track by name, or a work, an axis value or a person by id.
+a follow is a track by name, or a work, an axis value or a person by id -
+and their doors, `savePicks()` and `saveFollows()`, which hand the outbox
+every key changed since the last save; `applyPulledPicks()` and
+`applyPulledFollows()` are how a pull changes them without sending them
+back.
 `ics`: the calendar export. `leave`: leave-by. `search`: the two MiniSearch
 indexes (MiniSearch is an npm dependency, pinned to 7.2.0), the reading of a
 query, the ranking, and `AXIS_LABELS`, the only place an axis slug becomes a
@@ -420,6 +431,16 @@ importing the shell: `requestRender()` calls the function `boot()`
 registered with `setRenderer(render)`, synchronously, and throws if none is
 registered. Only `render()` goes over it.
 
+**`sync`** is sync's run (DECISIONS #53; `docs/sync/contract.md`,
+section 5, as built): `runSync()` drains the outbox, then pulls - the
+crews, then the picks and the follows since the watermark - and applies
+the reader's own rows through the owners' functions and crewmates' picks
+to its own key; the change of owner, which seeds the outbox with the whole
+plan; and the status line in Keep your plan. It stands above the bus,
+because a pull that changed the plan asks for a redraw. The outbox stands
+below `picks` and `follows`, whose doors call it, so a drain it starts
+after a tap is followed by no pull: the next trigger's run pulls.
+
 **The five views** each draw their own tab and nothing else; `render()` in
 `shell.js` calls them, and none of them imports it. `now` also carries the
 install nudge and the two listeners for the install prompt; `explore` the
@@ -430,7 +451,9 @@ between two views.
 hotel) and what fills them, `openSheet()` and `closeSheet()`, the swipe that
 dismisses it, and the handlers for the drag and the Settings controls -
 the email step's among them, Keep your plan, which it draws only on a
-build with a backend. `closeSheet()` asks for its redraw over the bus. It
+build with a backend, with sync's status line under its heading; the step
+starts a sync run once it has sent a code and once it has confirmed one,
+and Sign out forgets sync's keys. `closeSheet()` asks for its redraw over the bus. It
 looks up the seven sheet elements as it is imported.
 
 **`loading`** is loading, freshness and offline: `load()` and the idle index
@@ -487,7 +510,8 @@ owns the state it writes (`sheet`, `loading`, `shell`, `explore`, `now`), or
 from `scroll` or `dispatch`. What `boot()` still holds inline is the four
 conditions that decide whether a registration is made at all -
 `document.fonts.ready`, `ResizeObserver`, `IS_IOS`, `serviceWorker` - and the
-empty `catch`. Then it calls `load()`.
+empty `catch`. Sync's triggers come last, after the schedule's recheck on
+the same events. Then it calls `load()`, and a sync run follows it.
 
 The two options are for tests: given `events`, `load()` uses it instead of
 fetching and reaches the first render - over the bus, since `load()` is
@@ -525,7 +549,11 @@ else under `src/` fails `npm run lint`.
 **Picks.** A `Set` of event ids, persisted as `dc<yy>.picks`. On load,
 `reconcilePicks()` compares each pick against a stored snapshot: a pick
 whose id was merged into another event - it is in that event's `was` -
-moves to it; one whose event vanished otherwise is dropped; one whose
+moves to it; one whose event vanished otherwise is dropped, where it has a
+snapshot - one with none, which this copy of the schedule never showed, a
+pick pulled from a device on a newer schedule, stays unseen until the
+schedule knows it, and Mine's badge, `picks.size`, counts it meanwhile
+(DECISIONS #53); one whose
 event the source dropped stays a pick, and its snapshot remembers that it
 was told; one whose time or room moved is re-snapshotted. Each is reported
 once (DECISIONS #49). The report (`dc<yy>.pickNews`) shows on Now and Mine
@@ -571,7 +599,9 @@ hotel's picks for the day. Swipe down to dismiss. On a build with a
 backend, Settings carries Keep your plan: the email step, which adds an
 email to the phone's user or signs the phone in as the user who holds it,
 by a six-digit code (DECISIONS #51, #53; `docs/sync/contract.md`,
-section 1, as built).
+section 1, as built). Under its heading, with a session, is one line of
+sync's: synced, what is waiting, offline, or the last failure in plain
+words (`contract.md`, section 5, as built).
 
 **Stored keys.** Everything is `localStorage` but the last row. Every key
 carries the build's year, `<yy>` its last two digits, so a build for a new
@@ -590,6 +620,10 @@ its origin (#39). `storageKey()` in `build.js` names them all.
 | `dc<yy>.archiveNoticeDismissed` | `shell` | `dispatch` | The year whose "has ended" notice was dismissed |
 | `dc<yy>.nudgeSnoozedUntil` | `now` | `dispatch` | When the install nudge may show again |
 | `dc<yy>.session` | `backend` | `backend` | The backend's session: its two tokens and the user's id, email and `is_anonymous`. Only on a build with a backend, and only from the first tap that needs a user (DECISIONS #51, #53) |
+| `dc<yy>.outbox` | `outbox` | `outbox` | What the server has not yet taken: `{user, ops}`, an op per changed pick or follow. Only with a backend and a session, like the three below; Sign out and a run with no session remove all four (DECISIONS #53) |
+| `dc<yy>.syncStamp` | `sync` | `sync` | The pull's watermark, the server's `synced_at` for each table: `{user, picks, follows}` |
+| `dc<yy>.crew` | `sync` | `sync` | The reader's crews of the year, with their members, as the last pull read them: data alone, for the crew screens |
+| `dc<yy>.crewPicks` | `sync` | `sync` | Crewmates' picks, by user and then event |
 | `dc<yy>.timeOverride` (`sessionStorage`) | `time` | `time` | The simulated clock |
 
 ## Offline
@@ -783,7 +817,8 @@ to serve the sample fixture, asserting that the first screen renders, a
 search returns rows, nothing is asked for but the schedule and no uncaught
 error fired; the page stamped with a channel, keeping everything under it;
 and the next site's build given a backend, signing in by email against the
-fake Auth server and keeping its session under the channel.
+fake backend, keeping its session under the channel, and sending a star to
+the fake's PostgREST as the user's pick.
 
 **`tests/worker.test.js`** runs `public/sw.js` in Node against fakes of
 `self`, `caches`, `fetch` and the worker's clients (DECISIONS #49): the
@@ -927,7 +962,10 @@ the `next` ruleset by hand (ROADMAP, Checklist).
   year, so the switch starts each reader with nothing of 2026's.
 - The page makes one third-party request at run time: Google Fonts, for
   Barlow Semi Condensed (`index.html`). The worker caches it.
-- No backend, no accounts, no sync: picks live on one device.
+- A build with no backend has no accounts and no sync: picks live on one
+  device. With one, picks and follows sync once the phone has a user -
+  the email step mints one - and what was starred before then goes up
+  with the rest (DECISIONS #53).
 - A Claude Code model alias moves with the CLI: on CLI 2.1.145 (2026-09-21)
   `sonnet` was claude-sonnet-4-6 and `opus` claude-opus-4-7. The tag stage
   asks by full id (`claude-sonnet-5`) and caches the id of the model that
