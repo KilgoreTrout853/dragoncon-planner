@@ -9,7 +9,9 @@
    Below them, the checks of the build output that came from the old smoke
    harness, one for one (the number in brackets is its line;
    tests/PORT-LEDGER.md), and
-   the "dist boots" smoke: the built page, run for real in a JSDOM of its own. */
+   the "dist boots" smoke: the built page, run for real in a JSDOM of its own,
+   unstamped and then stamped with a channel, which every key it keeps
+   carries (DECISIONS #39). */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -455,6 +457,69 @@ describe("vite build", () => {
       /* a <mark> is drawn only for a ranked hit, so it is the index answering, not the unfiltered list */
       await until(() => doc.querySelector("#view-browse .row mark"), "a highlighted search result");
       expect(doc.querySelectorAll("#view-browse .row").length).toBeGreaterThan(0);
+    });
+    it("keeps a star under dc26.picks, and nothing it keeps carries a channel", () => {
+      const win = dom.window, doc = win.document;
+      doc.querySelector('.nav button[data-tab="now"]').click();
+      const star = doc.querySelector("#view-now .row .star"), id = star.closest(".row").dataset.id;
+      star.click();
+      expect(JSON.parse(win.localStorage.getItem("dc26.picks"))).toEqual([id]);
+      const keys = [...Object.keys(win.localStorage), ...Object.keys(win.sessionStorage)];
+      expect(keys.filter(k => !/^dc26\.[A-Za-z]+$/.test(k))).toEqual([]);
+    });
+    it("no uncaught error fired", () => {
+      expect(errors).toEqual([]);
+    });
+  });
+
+  /* The channel is read as the page runs, from the stamp in its head
+     (DECISIONS #15, #39): the stamped page is the unstamped one but for its
+     two stamps, so no text in the build names a key, and it is the page,
+     booted, that shows everything it keeps is under the channel. */
+  describe("the built page, stamped with a channel, boots", () => {
+    let stamped, dom;
+    const errors = [];
+
+    beforeAll(async () => {
+      stamped = build({ DC_CHANNEL: "next", DC_BUILD: "abc1234" });
+      if (!stamped.ok) return;
+      const fixture = JSON.parse(read(ROOT, "tests", "sample-events.json"));
+      dom = new JSDOM(read(stamped.out, "index.html"), {
+        runScripts: "dangerously", pretendToBeVisual: true, url: "https://example.test/?now=2026-09-05T13:05",
+        beforeParse(window) {
+          window.addEventListener("error", e => errors.push(e.message));
+          window.fetch = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(fixture) });
+          const worker = new window.EventTarget();
+          worker.register = () => Promise.resolve({});
+          worker.controller = null;
+          Object.defineProperty(window.navigator, "serviceWorker", { value: worker, configurable: true });
+        },
+      });
+      await until(() => dom.window.document.querySelector("#view-now .row"), "the first screen");
+    }, 120_000);
+    afterAll(() => dom && dom.window.close());
+
+    it("its page is the unstamped page's, script and all, but for the two stamps", () => {
+      expect(stamped.ok, stamped.stderr).toBe(true);
+      const unstamp = html => html
+        .replace('<meta name="dc-channel" content="next">', '<meta name="dc-channel" content="">')
+        .replace('<meta name="dc-build" content="abc1234">', '<meta name="dc-build" content="">');
+      const page = read(stamped.out, "index.html");
+      expect(page).not.toBe(read(plain.out, "index.html"));
+      expect(unstamp(page)).toBe(read(plain.out, "index.html"));
+    });
+    it("keeps a star under dc26.picks.next, and never writes the key the live site keeps", () => {
+      const win = dom.window, doc = win.document;
+      const star = doc.querySelector("#view-now .row .star"), id = star.closest(".row").dataset.id;
+      star.click();
+      expect(JSON.parse(win.localStorage.getItem("dc26.picks.next"))).toEqual([id]);
+      expect(win.localStorage.getItem("dc26.picks")).toBe(null);
+    });
+    it("and everything it keeps, in either storage, ends .next", () => {
+      const win = dom.window;
+      expect(Object.keys(win.localStorage).length).toBeGreaterThan(0);
+      expect(Object.keys(win.localStorage).filter(k => !k.endsWith(".next"))).toEqual([]);
+      expect(Object.keys(win.sessionStorage)).toEqual(["dc26.timeOverride.next"]);
     });
     it("no uncaught error fired", () => {
       expect(errors).toEqual([]);

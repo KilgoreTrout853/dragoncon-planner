@@ -1,5 +1,5 @@
-import { YY } from "./season.js";
 import { loadJSON, saveJSON } from "./storage.js";
+import { storageKey } from "./build.js";
 import { axisKeys, events, linksTo, personName, tagsOf, worksById } from "./data.js";
 
 /* ==================================================================
@@ -28,9 +28,9 @@ function wellFormedFollow(f) {
     default: return false;
   }
 }
-let follows = (loadJSON(`dc${YY}.follows`, []) || []).filter(wellFormedFollow);
+let follows = (loadJSON(storageKey("follows"), []) || []).filter(wellFormedFollow);
 const followId = f => `${f.kind}:${f.key}`;
-function saveFollows() { saveJSON(`dc${YY}.follows`, follows.map(f => ({kind: f.kind, key: f.key}))); }
+function saveFollows() { saveJSON(storageKey("follows"), follows.map(f => ({kind: f.kind, key: f.key}))); }
 function isFollowing(kind, key) { return follows.some(f => f.kind === kind && f.key === key); }
 /* Whether the loaded schedule offers this to follow: a person it has, an axis
    value some event carries, a work it names that a person has reviewed. An

@@ -7,7 +7,8 @@
    [1728] stays. They read every module under src/, one after another in name
    order. The number in brackets is the harness line the rule came from
    (tests/PORT-LEDGER.md). Two more hold the year the build names (DECISIONS
-   #49); they are new, not ledger rows, and their titles carry no bracket. */
+   #49), and one the channel in every storage key (#39); they are new, not
+   ledger rows, and their titles carry no bracket. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,6 +55,19 @@ describe("src/", () => {
      as dc<YY>; one written as dc26 would carry 2026 into every year. */
   it("no dc26 is left in src/: what the app keeps is keyed by the build's year", () => {
     expect(src).not.toMatch(/dc26/);
+  });
+
+  /* Every key the app stores is storageKey()'s, in src/build.js, which puts
+     the channel after the name on a stamped build (DECISIONS #15, #39). A key
+     spelled anywhere else - dc${YY}. and a name, or a year written out, as in
+     dc27. - would be one the live and next sites share. The calendar's UID,
+     dc${YY}- and an id, is not a key. The rule above stays beside this one:
+     it holds the year in the UID and the cache names too. */
+  it("a storage key's dc<YY>. is spelled in src/build.js and nowhere else: every key is storageKey()'s", () => {
+    const text = file => fs.readFileSync(path.join(ROOT, "src", file), "utf8");
+    const prefix = /dc(\$\{YY\}|\d{2})\./;
+    expect(text("build.js")).toMatch(prefix);
+    expect(files.filter(f => f !== "build.js" && prefix.test(text(f)))).toEqual([]);
   });
 
   /* The con's days are the season file's. A date written into a string is a

@@ -4,10 +4,10 @@
    install nudge, which is the tab's first card until the app is on the home
    screen. render(), in shell.js, and the minute tick, in dispatch.js, call
    renderNow() and tickNow(); nothing here draws anything else. */
-import { YY } from "./season.js";
 import { esc, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON } from "./storage.js";
 import { IS_IOS, isStandalone } from "./platform.js";
+import { storageKey } from "./build.js";
 import { state } from "./state.js";
 import { CON, conDayKey, conEnded, DAY_LONG, effectiveNow, now } from "./time.js";
 import { hotelMatches, hotelPhrase, hotelShort, hotelVar, placeHTML } from "./venues.js";
@@ -215,7 +215,7 @@ const NUDGE_SNOOZE_MS = 7 * 24 * 3600 * 1000;
 let installPrompt = null;
 function nudgeVisible() {
   if (isStandalone()) return false;
-  const until = loadJSON(`dc${YY}.nudgeSnoozedUntil`, 0);
+  const until = loadJSON(storageKey("nudgeSnoozedUntil"), 0);
   return !(until && now().getTime() < until);
 }
 function nudgeCopy(ios, canPrompt) {

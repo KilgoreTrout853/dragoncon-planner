@@ -2,30 +2,30 @@
    starred, and the news of any that changed since. Read from storage as the
    module is imported; saved by whoever changes them. togglePick() is not
    here: it redraws and scrolls, so it is the shell's. */
-import { YY } from "./season.js";
 import { dayOf, esc, fmtShort, toDate } from "./util.js";
 import { loadJSON, saveJSON } from "./storage.js";
+import { storageKey } from "./build.js";
 import { DAY_LABEL } from "./time.js";
 import { byId } from "./data.js";
 
-let picks = new Set(loadJSON(`dc${YY}.picks`, []));
+let picks = new Set(loadJSON(storageKey("picks"), []));
 
 /* What each pick looked like when it was starred, so a later refresh can say
    what changed. The rows alone would show the new time, or nothing at all,
    and the reader would find out at the door. */
-let pickInfo = loadJSON(`dc${YY}.pickInfo`, {}) || {};
-let pickNews = loadJSON(`dc${YY}.pickNews`, []) || [];
+let pickInfo = loadJSON(storageKey("pickInfo"), {}) || {};
+let pickNews = loadJSON(storageKey("pickNews"), []) || [];
 /* removed is written only where it is true - that the news has said so - so
    a snapshot taken before it existed reads the same. */
 const snapshotOf = e => ({title: e.title, start: e.start, location: e.location || "", ...(e.removed ? {removed: true} : {})});
 function savePicks() {
-  saveJSON(`dc${YY}.picks`, [...picks]);
+  saveJSON(storageKey("picks"), [...picks]);
   const info = {};
   picks.forEach(id => { const e = byId.get(id); if (e) info[id] = snapshotOf(e); else if (pickInfo[id]) info[id] = pickInfo[id]; });
   pickInfo = info;
-  saveJSON(`dc${YY}.pickInfo`, pickInfo);
+  saveJSON(storageKey("pickInfo"), pickInfo);
 }
-function savePickNews() { saveJSON(`dc${YY}.pickNews`, pickNews); }
+function savePickNews() { saveJSON(storageKey("pickNews"), pickNews); }
 /* "Hilton Salon" and "Hilton-Salon" are one room; a refresh that respells
    it is not a move. */
 const samePlace = (a, b) => String(a || "").toLowerCase().replace(/[^a-z0-9]+/g, "") === String(b || "").toLowerCase().replace(/[^a-z0-9]+/g, "");

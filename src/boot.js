@@ -1,7 +1,6 @@
-import { YY } from "./season.js";
 import { loadJSON } from "./storage.js";
 import { IS_IOS } from "./platform.js";
-import { devMarkHTML } from "./build.js";
+import { devMarkHTML, storageKey } from "./build.js";
 import { state } from "./state.js";
 import { initTimeOverride, now } from "./time.js";
 import { events, meta } from "./data.js";
@@ -57,7 +56,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   setRenderer(render);         // first: a view asks for a redraw over the bus, and it throws until this has run
   if (reloadWith) setReload(reloadWith);
 
-  document.documentElement.classList.toggle("bigtext", !!loadJSON(`dc${YY}.bigtext`, false));
+  document.documentElement.classList.toggle("bigtext", !!loadJSON(storageKey("bigtext"), false));
   document.body.insertAdjacentHTML("beforeend", devMarkHTML());
   initTimeOverride();
 
