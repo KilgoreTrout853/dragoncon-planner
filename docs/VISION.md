@@ -58,15 +58,17 @@ time slot when a pick is cancelled or moved (#40), and a real "For you"
 built from follows plus similarity computed in the pipeline.
 
 ### 2. Coordinate
-DECISIONS #10, unchanged: crew picks on your timeline, who's going per
-event, a crew Now board, status pings tied to a pick, one-tap share-a-day.
-Build order picks → presence → pings. No chat.
+DECISIONS #10: crew picks on your timeline, who's going per event, a crew
+Now board, status pings tied to a pick, one-tap share-a-day. Build order
+picks → presence → pings. No chat. For 2027, #50 narrows the build: the
+Now board is deferred to Where things live, share-a-day is a link that
+needs no backend, and pings are a spring question.
 
 ### 3. Keep
-DECISIONS #8 and #9: a device key with no prompt, an optional email
-upgrade to link devices (a six-digit code typed into the app, not a
-magic link — #25), local-first with an outbox to sync. With the backend
-down, the app is the 2026 app.
+DECISIONS #8 and #9: a key at the first tap that needs one, with no
+prompt (#51), an optional email upgrade to link devices (a six-digit code
+typed into the app, not a magic link — #25), local-first with an outbox
+to sync. With the backend down, the app is the 2026 app.
 
 ### 4. Live
 Stable ids (#7) so nothing breaks when the schedule changes; scrapes every
@@ -129,7 +131,8 @@ scope cut takes from the bottom.
 1. A build step and a modular client, replacing the one-file app with
    zero behaviour change (plan step 4).
 2. A real test setup and CI that runs on every PR.
-3. Supabase: Postgres, row-level security, auth, realtime.
+3. Supabase: Postgres, row-level security, auth. Realtime is a spring
+   question, with pings, not 2027's (#50).
 4. Local-first sync: the outbox, conflicts, what happens when two devices
    disagree.
 5. Web Push end to end: subscriptions, a scheduled job, delivery on iOS.

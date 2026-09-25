@@ -88,7 +88,7 @@ a third party.
 **Cost:** A match-by-content step with edge cases (renamed panel, moved
 room). Belongs to the 2027 pipeline work.
 
-### 8. Identity is anonymous-first — Decided, not built (2026-09-05) — the email step amended by #25 (a six-digit code, not a magic link)
+### 8. Identity is anonymous-first — Decided, not built (2026-09-05) — the email step amended by #25 (a six-digit code, not a magic link); to be built by #51, as #50 amends it: no user until the first tap that needs one, and no device key apart from the anonymous user
 **Decided:** Every device gets a key with no prompt. An optional email
 magic-link upgrade links devices for cross-device sync. Crews need only a
 display name. No passwords, no social graph.
@@ -97,7 +97,7 @@ author. Zero friction to first pick, and nothing worth breaching.
 **Cost:** Someone who never upgrades and loses their phone loses their plan.
 Acceptable.
 
-### 9. Local-first with optional sync; link-based sharing — Decided, not built (2026-09-05)
+### 9. Local-first with optional sync; link-based sharing — Decided, not built (2026-09-05) — the conflict rule its Cost left open is #52's: latest stamp wins, per row
 **Decided:** The device is the primary store. Sync is an add-on. Sharing and
 crews work by link, not by friending. Supabase is the working assumption for
 the backend, to be confirmed in step 3a of the plan.
@@ -106,7 +106,7 @@ backend at all. A backend that is down should degrade to 2026 behaviour, not
 to a blank screen.
 **Cost:** A sync/conflict rule (outbox proposed) still has to be designed.
 
-### 10. Crews are coordination, not conversation — Decided, not built (2026-09-05)
+### 10. Crews are coordination, not conversation — Decided, not built (2026-09-05) — its build narrowed for 2027 by #50: create, join, leave, remove, the invite, the overlay and who's going; the Now board deferred to Where things live, share-a-day a link with no backend, pings the spring's
 **Decided:** No in-app chat, ever. WhatsApp stays the chat. In scope: crew
 picks overlaid on the timeline, "who's going" per panel, a crew Now board,
 status pings tied to a pick, one-tap share-a-day. Build order: picks →
@@ -123,7 +123,7 @@ deliberate learning exercise.
 is a broken app on con weekend.
 **Cost:** More infrastructure than a friend-group app strictly needs.
 
-### 12. Every current-time read goes through `now()` with a dev override — Standing (2026-09-07)
+### 12. Every current-time read goes through `now()` with a dev override — Standing (2026-09-07) — one second read, of the real clock, in `src/time.js` under the same exemption, for sync stamps only (#51)
 **Decided:** One `now()` function. `?now=<ISO>` in the URL sets a simulated
 clock, kept in `sessionStorage`; bare `new Date()` / `Date.now()` are
 forbidden outside the Time section of `index.html` and the smoke test
@@ -245,7 +245,7 @@ feature may be tried behind a flag as an experiment, never as a dependency.
 Pipeline-time AI is free at runtime and works offline.
 **Cost:** The app cannot answer a question it was not pre-computed for.
 
-### 23. The client is built from `src/` by Vite; single-file output for step 4 — Built (2026-09-17)
+### 23. The client is built from `src/` by Vite; single-file output for step 4 — Built (2026-09-17) — TypeScript closed as no by #52
 **Decided:** The client becomes ES modules under `src/`, built by Vite.
 `public/` holds what is served verbatim: `sw.js`, `manifest.json`, icons,
 `data/`. `base` is `./` because the same build is deployed at two
@@ -277,7 +277,7 @@ execute `<script type="module">`, so the inlined script is emitted as a
 classic script (or the test loader strips the attribute). Two toolchains:
 Python owns the pipeline, Node owns the client.
 
-### 24. Vitest and pytest; ESLint with two rules (three since 2026-09-19: `no-unused-vars`); Playwright deferred — Built (2026-09-18)
+### 24. Vitest and pytest; ESLint with two rules (three since 2026-09-19: `no-unused-vars`); Playwright deferred — Built (2026-09-18) — pgTAP for the database, in a `database` CI job, by #52
 **Decided:** Vitest (jsdom environment) for the client, run by `npm test`;
 pytest for the pipeline, run by `python -m pytest tests/` (the existing
 test files are already pytest-shaped; only the manual `__main__` runners
@@ -308,7 +308,7 @@ its own assumptions.
 feature. Until Playwright, offline and install are verified by hand on the
 dev site.
 
-### 25. Supabase is the backend — Decided, not built (2026-09-17)
+### 25. Supabase is the backend — Decided, not built (2026-09-17) — amended by #50: the mirror two tables written after merge by an Actions job, the pipeline writing no Postgres and no venues mirrored; realtime out of 2027, a pull since a watermark instead; sign-in lazy, the bot check the project's setting, off, and the cleanup built; identity by #51, the schema and its security by #52
 **Decided:** #9's working assumption is confirmed. Two hosted projects,
 dev and production; the schema lives as migration files in
 `supabase/migrations/`, applied by the CLI and changed only through PRs;
@@ -341,7 +341,7 @@ an email-upgraded user recovers. VISION.md's "one that did not still keeps
 what it had" is qualified in this PR, and the install nudge is now a
 data-safety measure, not only a push enabler.
 
-### 26. CI on every PR; `next` becomes PR-only with required checks — Decided, not built (2026-09-17) — built: CI, the required checks, the `next` ruleset, the deploy repo's build command, Dependabot and `.gitattributes`; open: Pages from Actions (Delivery); `scrape.yml`'s PR path decided by #48
+### 26. CI on every PR; `next` becomes PR-only with required checks — Decided, not built (2026-09-17) — built: CI, the required checks, the `next` ruleset, the deploy repo's build command, Dependabot and `.gitattributes`; open: Pages from Actions (Delivery); `scrape.yml`'s PR path decided by #48; a third job, `database`, to be added with the schema (#52), and required on `next` after its first green run (ROADMAP, Checklist)
 **Decided:** `.github/workflows/ci.yml` with two jobs matching the
 toolchain boundary: `client` (Node from `.nvmrc`, `npm ci` with cache,
 lint, test, build) and `pipeline` (Python, `requirements.txt`, pytest).
@@ -369,7 +369,7 @@ PR with auto-merge on green, or run as a bypass actor — pipeline work,
 forced by this decision. The line-ending change is a one-time noisy
 commit.
 
-### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17) — by #40 the shared `leaveBy` module becomes the tight-connection helper; the buffer becomes the slack; the walk table's home unchanged; an unknown hotel to degrade to Other rather than fail the run (#44); the file to be built by #45; the client's import built by #49: `virtual:venues`, and `src/venues.js`'s constants gone
+### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17) — by #40 the shared `leaveBy` module becomes the tight-connection helper; the buffer becomes the slack; the walk table's home unchanged; an unknown hotel to degrade to Other rather than fail the run (#44); the file to be built by #45; the client's import built by #49: `virtual:venues`, and `src/venues.js`'s constants gone; the mirror narrowed by #50: no venues in Postgres, and the pipeline writes none; the crowd factor per device, not synced (#50)
 **Decided:** #21's venues file (`data/2027/venues.json`, per-year as #13
 set for events) also holds hotel identity (keys as used in `events.json`,
 short names, groups), the walk matrix, the seating buffer from #6, and the
@@ -517,7 +517,7 @@ because fame is not in a blurb.
 rename or merge keeps an alias, because follows are stored by id. An
 unreviewed work can be wrong until someone looks.
 
-### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's; its golden-query gate replaced by #36; PR 6 built by #38 and #39, the cast group on a work's page only
+### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's; its golden-query gate replaced by #36; PR 6 built by #38 and #39, the cast group on a work's page only; its weights do not sync as settings in 2027: For-you's are recomputed from picks and follows, which sync (#50)
 **Decided:** Supersedes #3's tag shape and its keying by event id, when
 built. Parse what the source states; closed lists for what the model fills;
 every link says why.
@@ -825,7 +825,7 @@ live site drops `next`'s work and axis follows. The worker's update notice
 keys on `generated_at`, which every rebuild of `events.v2.json` keeps
 (ROADMAP, Held).
 
-### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49)
+### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50)
 **Decided:** Leave-by is retired: no `leave by <time>` countdown on any
 screen, and no leave-by push.
 - The plan keeps what is true of the plan rather than the person: a walk
@@ -1285,3 +1285,147 @@ worker for every installed client. The page carries the whole venues file,
 read the rest. 18:00 and 19:00 are a guess for 2027 until its schedule
 shows. The icons draw 2026 in their pixels, which no stamp reaches
 (ROADMAP, Checklist).
+
+### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25)
+**Decided:** Identity and sync is built smaller than #8, #10, #25 and #27
+drew it; `docs/sync/contract.md` has the design.
+- **The mirror** is two tables, `schedule_events` and `schedule_changes`,
+  written after a scrape's pull request merges, by a job of its own on
+  Actions. The pipeline never learns Supabase exists and writes no
+  Postgres; venues are not mirrored, and the walk table #40 kept in the
+  mirror goes with them (amends #25 and #27).
+- **Realtime is out of 2027.** The client pulls what changed since its
+  watermark instead (amends #25). Realtime is a spring question, with
+  crew pings.
+- **Crews** are create, join, leave, remove, regenerate the invite, the
+  overlay of crewmates' picks and who's going. The crew Now board goes to
+  Where things live, share-a-day is a link that needs no backend, and
+  pings are the spring's: #10's build for 2027 narrowed, not its scope.
+- **A pick is a row.** One row per pick and per follow, latest stamp
+  wins; the local lists are never synced as they stand (#52). Settings do
+  not sync in 2027: the crowd factor is per device, and For-you's weights
+  are recomputed from picks and follows, which sync (amends #27 and #32).
+- **Sign-in is lazy.** No server user until the first tap that needs
+  one, and no separate device key: the anonymous user is the device. The
+  bot check is the Supabase project's setting, left off, and the client
+  wires its widget. The periodic cleanup of stale anonymous users is
+  built (amends #8 and #25; the detail is #51's).
+- The push job is queue-shaped from its first pull request, which carries
+  the kill switch. Starts-soon uses one lead time, set in the push job's
+  call (#40).
+- Keep means recovery - a wiped or replaced phone gets its plan back by
+  email (#51) - not two devices kept in step.
+- Operations - the production project, the workflow that migrates it,
+  its plan and backups, and the dev project's keep-alive (#25) - is a
+  track inside this tentpole, run beside the rest and gating none of it.
+  It is not a tentpole; #30 stands.
+
+**Why:** One developer (VISION, Risks worth naming): what can wait for
+spring, or needs no backend, leaves the first build. The recon
+(`docs/sync/recon.md`, section 3) found every pick and every follow
+written by one whole-state save, so one row per item, stamped, is the
+smallest shape that syncs them. A mirror written after the merge keeps
+the backend off the path of the pipeline, which has to run unattended
+through con weekend.
+**Cost:** Two phones signed in as one user agree only by stamps: two taps
+seconds apart land in stamp order. Crew presence, pings and realtime wait
+for spring, and the mirror trails a scrape by its merge. The crowd factor
+is set again on each device.
+
+### 51. Identity: lazy, anonymous, recovered by email — Decided, not built (2026-09-25)
+**Decided:** #8 as #25 and #50 amend it; `docs/sync/contract.md`,
+section 1, has the detail.
+- No server user until the first tap that needs one: joining or creating
+  a crew, turning on notifications, or entering an email. A star, a
+  follow and every screen work with no session, no network and no
+  backend (#9).
+- The anonymous user is the device, minted by Supabase's anonymous
+  sign-in; there is no separate device key. A captcha is the project's
+  setting, off, and the client shows the widget when sign-in is refused.
+- The email step is one screen, one field and a six-digit code (#25).
+  **Add:** an anonymous user gains the email in place, keeping its id,
+  picks, follows, memberships and subscription. **Recover:** the email
+  already belongs to a user, and the phone signs in as that user - how a
+  wiped or replaced phone gets its plan back. The phone's local picks and
+  follows go up as adds stamped now: the union. A recovering phone that
+  was anonymous and in a crew leaves that membership and subscription
+  behind; the person rejoins by the link and turns notifications on
+  again. Documented, not built.
+- Two signed-in devices: latest stamp wins, and nothing more.
+- Stamps read the real clock, never `now()`: one read, in `src/time.js`
+  under the lint's exemption, for sync stamps only (#12).
+- The session is kept under `storageKey("session")`, per year and per
+  channel like every key (#39's note), so an email user types one code a
+  year.
+- Two rules every later screen inherits: a star or a follow never waits
+  on the network; a crew or notification action that needs the network
+  fails visibly and leaves local state untouched.
+
+**Why:** VISION's first rung: useful in ten seconds, with no account and
+no prompt. A user minted at the first tap that needs one is someone who
+chose to coordinate or to be told, not every visitor. Recovery is the one
+thing #25's Cost leaves an email user, and the reason the step exists.
+**Cost:** Someone who never enters an email and loses the phone loses the
+plan (#8). A recovering phone's crew membership stays behind until the
+person rejoins. A stamp ignores the simulated clock, so a test under
+`?now=` stamps the real time.
+
+### 52. The data model and security — Decided, not built (2026-09-25)
+**Decided:** Ten tables in Supabase's Postgres, row-level security on
+every one, and three RPCs; `docs/sync/contract.md`, sections 2-4, has the
+columns, the policies and the tests.
+- `picks` and `follows`: one row per item, per user and year, with
+  `changed_at`; unstarring and unfollowing write a tombstone with a newer
+  stamp, never a delete. Two tables of one shape because crewmates may
+  read picks and never follows: the boundary is structural.
+- Latest stamp wins, enforced by a trigger in the database, not by a
+  client clause; a stamp is the client's real clock (#51), clamped by a
+  trigger to the server's time plus five minutes. It is #9's conflict
+  rule.
+- `crews` and `crew_members`: the display name, 1 to 24 characters, is on
+  the membership, and the user row holds nothing personal (#8). A star
+  means going; there is no maybe. `push_subscriptions`: one row per
+  browser endpoint.
+- The mirror's `schedule_events`, `start` and `end` as `timestamptz` in
+  the con's zone, and `schedule_changes`, the change log's line as it is
+  with its run's `fetch_code_changed`. The mirror always mirrors;
+  suppression is the push job's, by that flag. `push_sent`, the push
+  job's idempotence ledger; `mirror_state`, one row per year; `flags`:
+  `push_enabled`, the kill switch, and `crew_size_cap`.
+- Every table that holds a year's plan carries `year`. Every foreign key
+  to a user cascades on delete, but `crews.creator`, which is set null: a
+  crew outlives its creator, whose actions then lapse. The cleanup deletes
+  a stale anonymous user only if it is in no crew and holds no
+  subscription.
+- The five job tables have no client access at all.
+- Row-level security on every table, policies for the signed-in role
+  alone; the anon role has none, and its default grants are revoked.
+  `is_crew_member(crew_id)`, a security-definer helper with a pinned
+  search path, serves the policies on `crews`, `crew_members` and
+  `picks`, because a policy on `crew_members` that reads `crew_members`
+  recurses. Reads are by policy, not by function.
+- Three RPCs, for what a plain write cannot do: `create_crew`,
+  `join_crew` and `regenerate_invite`. Everything else is a plain write
+  the policies judge.
+- The tests: pgTAP under `supabase/tests/`, run by the Supabase CLI
+  against a local database in a third CI job, `database`, which becomes
+  a required check on `next` after its first green run. They exist before
+  any crew screen.
+- Migrations: `supabase/migrations/`, numbered SQL, one a pull request,
+  never edited once merged, and `supabase/seed.sql`. Dev takes them by
+  hand after each merge, production by a workflow in the operations
+  track (#50).
+- No TypeScript: #23 left it to this step, and ten small tables whose
+  shapes live in the contract do not earn it.
+
+**Why:** Row-level security mistakes are silent (#25), so the policies
+are named and tested before any screen leans on them. A trigger judges
+every write the same way, whoever sends it. Picks and follows in
+separate tables make "crewmates see picks, never follows" a table's
+boundary, not a clause one query could forget.
+**Cost:** A tombstone for every unstar, so the tables only grow in a
+season. The RPCs, the helper and the triggers are SQL to keep beside the
+Python and the JavaScript; pgTAP is a third test framework beside Vitest
+and pytest, and `database` one more job on every pull request. A crew
+whose creator is gone can no longer regenerate its invite or remove
+anyone.

@@ -171,6 +171,8 @@ pipeline absorbs takes a free review slot.
 ### 4. Identity and sync — in design (opened 2026-09-24, after Pipeline shape closed at PR #50; the recon is `docs/sync/recon.md`)
 
 1. The channel in the key (#39) - built.
+2. Docs: `docs/sync/contract.md` sections 1-4, DECISIONS #50-#52 - built.
+3. The schema: migrations, RLS, pgTAP, the `database` CI job.
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
@@ -185,6 +187,9 @@ How the app reaches a phone and stays current: `sw.js` and its cache version
 (#4), hashed assets against the single file (#23), the IIFE-or-module sharp
 edge (ARCHITECTURE.md), Playwright (#24), the install flow, the client side
 of a push subscription, and Pages from Actions (#26).
+
+Open: `index.html` needs `mobile-web-app-capable` beside the Apple meta
+(Chrome's deprecation warning, 2026-09-25).
 
 ### 6. Where things live — not opened; opens last
 
@@ -228,6 +233,8 @@ Steps taken by hand, beside the PRs rather than in them:
   secret, `SCHEDULE_BOT_TOKEN`, expiring the month after the con (#48);
   "Allow auto-merge" turned on (#48); and `SCRAPE_TARGET` = `next`, a
   repository variable.
+- After the `database` job's first green run: `database` required on the
+  `next` ruleset (#52).
 - At the season start, once the first run past the ids stage has written
   `data/2027/events.v2.json`: `DC_YEAR=2027` on `next`, in the next site's
   build - the `dragoncon-planner-next` repository's workflow (#49).
