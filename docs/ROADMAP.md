@@ -173,6 +173,11 @@ pipeline absorbs takes a free review slot.
 1. The channel in the key (#39) - built.
 2. Docs: `docs/sync/contract.md` sections 1-4, DECISIONS #50-#52 - built.
 3. The schema: migrations, RLS, pgTAP, the `database` CI job - built.
+4. The client's identity: the backend's two build constants,
+   `src/backend.js` and `src/identity.js`, the email step in Settings, and
+   the sync rules written down, `docs/sync/contract.md` section 5 and
+   DECISIONS #53 - built.
+5. Picks and follows sync: the doors, the outbox, the pull.
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
@@ -235,6 +240,17 @@ Steps taken by hand, beside the PRs rather than in them:
   repository variable.
 - After the `database` job's first green run: `database` required on the
   `next` ruleset (#52).
+- On the dev project, for the email step: anonymous sign-ins turned on, and
+  the Magic Link and Change Email Address templates sending the code,
+  `{{ .Token }}`, rather than a link (#51, #53).
+- On every project, an invariant: Confirm email stays on. With it off, the
+  server sets an anonymous user's email with no code at all, so anyone
+  could claim an address they do not own, and its owner's later recover
+  would sign into the claimant's plan (`docs/sync/contract.md`, section 1).
+- For the next site's backend: `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` in
+  the `dragoncon-planner-next` repository's workflow, set by hand as
+  repository variables, not secrets - the key is the public one, and the
+  build refuses a secret (#53).
 - At the season start, once the first run past the ids stage has written
   `data/2027/events.v2.json`: `DC_YEAR=2027` on `next`, in the next site's
   build - the `dragoncon-planner-next` repository's workflow (#49).

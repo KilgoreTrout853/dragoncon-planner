@@ -1,5 +1,5 @@
-/* The part of the build that is this project's own (DECISIONS #15, #23, #49).
-   Two plugins.
+/* The part of the build that is this project's own (DECISIONS #15, #23, #49,
+   #53). Three plugins.
 
    dcYear() names the year the client is built for, in the dev server, the
    build and Vitest alike: DC_YEAR, four digits, 2026 where it is unset
@@ -10,6 +10,17 @@
    and the build inlines them. It refuses a year that is not four digits, a
    year whose two files are not there, and a season.json that names another
    year, so the define and the file cannot disagree.
+
+   dcBackend() names the backend the client talks to, in the dev server, the
+   build and Vitest alike: DC_SUPABASE_URL and DC_SUPABASE_KEY, a Supabase
+   project's address and its public key, both or neither (DECISIONS #51,
+   #53). It defines __DC_SUPABASE_URL__ and __DC_SUPABASE_KEY__, which
+   src/backend.js reads, each "" where they are unset: a build with no
+   backend, whose page sends nothing anywhere but for the schedule. The key
+   is inlined in a page anyone can read, so a secret key is refused - an
+   sb_secret_ key, or a JWT whose role is service_role - and so is an
+   address that is more than an origin, or not https but for http on this
+   machine, and either of the two without the other.
 
    dcBuild() runs in closeBundle, after Vite and vite-plugin-singlefile have
    written dist/, and does two jobs:
@@ -45,6 +56,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const CHANNEL_RE = /^[a-z0-9-]*$/, BUILD_RE = /^[A-Za-z0-9._-]*$/, YEAR_RE = /^\d{4}$/;
+const LOCAL_HTTP_RE = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const DEFAULT_YEAR = "2026";
 const VITE_CSS_MARKER = "/*$vite$:1*/";
 const DATA_FILES = year => [`data/${year}/events.v2.json`];
@@ -56,6 +68,28 @@ export function dcYearFromEnv() {
   const year = (process.env.DC_YEAR || "").trim() || DEFAULT_YEAR;
   if (!YEAR_RE.test(year)) throw new Error(`build: a year is four digits, not ${JSON.stringify(year)}`);
   return year;
+}
+
+/* The role a JWT names, or "" for a key that is not one. */
+function jwtRole(key) {
+  const parts = key.split(".");
+  if (parts.length !== 3) return "";
+  try { return String(JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")).role || ""); }
+  catch { return ""; }
+}
+
+/* The backend the client is built for: {url, key}, both "" for none. The
+   address loses any trailing slash; the error never repeats the key. */
+export function dcBackendFromEnv(env = process.env) {
+  const url = (env.DC_SUPABASE_URL || "").trim().replace(/\/+$/, ""), key = (env.DC_SUPABASE_KEY || "").trim();
+  if (!url && !key) return {url: "", key: ""};
+  if (!url || !key) throw new Error("build: DC_SUPABASE_URL and DC_SUPABASE_KEY go together: both for a backend, neither for none");
+  let origin = "";
+  try { origin = new URL(url).origin; } catch { /* not an address: refused below */ }
+  if (origin !== url) throw new Error(`build: DC_SUPABASE_URL is a project's address and nothing more, not ${JSON.stringify(url)}`);
+  if (!url.startsWith("https://") && !LOCAL_HTTP_RE.test(url)) throw new Error(`build: DC_SUPABASE_URL is https, or http on this machine, not ${JSON.stringify(url)}`);
+  if (key.startsWith("sb_secret_") || jwtRole(key) === "service_role") throw new Error("build: DC_SUPABASE_KEY is a secret key; the page is public, and takes the public key alone");
+  return {url, key};
 }
 
 function gitShortSha(cwd) {
@@ -130,6 +164,18 @@ export function dcYear() {
     },
 
     resolveId(id) { return files[id] || null; },
+  };
+}
+
+export function dcBackend() {
+  return {
+    name: "dc-backend",
+
+    /* A bad pair is refused before any work is done. */
+    config() {
+      const {url, key} = dcBackendFromEnv();
+      return {define: {__DC_SUPABASE_URL__: JSON.stringify(url), __DC_SUPABASE_KEY__: JSON.stringify(key)}};
+    },
   };
 }
 

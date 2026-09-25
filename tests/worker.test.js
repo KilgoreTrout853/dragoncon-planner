@@ -144,3 +144,25 @@ describe("which caches a new worker clears", () => {
     expect(await activate({ year: "2027" })).toEqual(["dc25-v4", "dc26-v5", "dc26-v6"]);
   });
 });
+
+/* The backend's requests go through src/backend.js, and the worker passes
+   them untouched (DECISIONS #53): it answers nothing that is not a GET, and
+   no GET to another origin but the fonts'. */
+describe("a request to the backend", () => {
+  const BACKEND = "https://backend.test";
+  const handled = request => {
+    const w = worker({ network: async () => { throw new Error("the worker fetched for the page"); } });
+    let answered = false, waited = false;
+    w.listeners.fetch({ request, respondWith: () => { answered = true; }, waitUntil: () => { waited = true; } });
+    return { answered, waited };
+  };
+
+  it("a POST - a sign-in, a code, an upsert - is not the worker's to answer", () => {
+    expect(handled(new Request(`${BACKEND}/auth/v1/signup`, { method: "POST", body: "{}" }))).toEqual({ answered: false, waited: false });
+    expect(handled(new Request(`${BACKEND}/rest/v1/picks`, { method: "POST", body: "[]" }))).toEqual({ answered: false, waited: false });
+  });
+  it("nor a PUT, nor a GET to the backend's origin", () => {
+    expect(handled(new Request(`${BACKEND}/auth/v1/user`, { method: "PUT", body: "{}" }))).toEqual({ answered: false, waited: false });
+    expect(handled(new Request(`${BACKEND}/rest/v1/picks?select=*`))).toEqual({ answered: false, waited: false });
+  });
+});

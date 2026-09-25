@@ -8,7 +8,9 @@ import { storageKey } from "./build.js";
    clock, the Now tab, leave-by, the search folds, the nudge snooze, the
    ICS stamp - so one override moves all of them together. Elapsed-time
    measurements (a drag's speed, the scroll-spy hold, boot timings) are
-   stopwatch reads and use performance.now() instead.
+   stopwatch reads and use performance.now() instead. One read is of the
+   real clock whatever the override, wallClock(), and it is for the stamps
+   sync writes and nothing else (DECISIONS #12, #51).
 
    ?now=2026-09-05T14:15 in the URL simulates that moment; an offset is
    honoured (2026-09-05T14:15:00-04:00). The override is kept for the tab's
@@ -52,6 +54,8 @@ const parseMoment = raw => { const d = raw ? new Date(raw) : null; return d && !
 
 function now() { return timeOverride ? new Date(timeOverride.getTime()) : new Date(); }
 const isSimulated = () => timeOverride !== null;
+/* The real clock, for a sync stamp: a simulated clock moves no stamp. */
+function wallClock() { return new Date(); }
 
 /* The URL wins over the session, so a pasted link means what it says; with
    no ?now= the session's override, if any, carries on. */
@@ -103,6 +107,6 @@ function conDayKey(d) { return dayOf(new Date(d.getTime() - 5 * 3600000)); }
 
 export {
   CON, CON_DAYS, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, TIME_OVERRIDE_KEY, timeOverride, now, isSimulated,
-  initTimeOverride, setOverride, localInputValue, conPhase, conEnded, isPast, effectiveNow,
+  wallClock, initTimeOverride, setOverride, localInputValue, conPhase, conEnded, isPast, effectiveNow,
   conDayKey,
 };

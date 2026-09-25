@@ -10,6 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
+import { fakeBackend } from "../helpers/backend.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -140,5 +141,27 @@ describe("the year under test", () => {
       expect(app.gapHTML(prev, after(walk + venues.slack_min - 1))).toMatch(/Tight but doable/);
       expect(app.gapHTML(prev, after(walk + venues.slack_min))).toBe("");
     });
+  });
+});
+
+/* The backend's session is a key like the rest (DECISIONS #51, #53):
+   storageKey("session"), so the every-key rule above holds with it. */
+describe("the year under test, with a session", () => {
+  let page, app;
+
+  beforeAll(async () => {
+    page = await bootPage({ backend: fakeBackend() });
+    ({ app } = page);
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("the session is kept under dc<YY>.session, and every key is still dc<YY>. and a name", async () => {
+    await app.ensureUser();
+    document.querySelector("#view-now .row .star").click();
+    expect(app.storageKey("session")).toBe(`dc${app.YY}.session`);
+    expect(Object.keys(window.localStorage)).toEqual(expect.arrayContaining([`dc${app.YY}.session`, `dc${app.YY}.picks`]));
+    const plain = new RegExp(`^dc${app.YY}\.[A-Za-z]+$`);
+    const keys = [...Object.keys(window.localStorage), ...Object.keys(window.sessionStorage)];
+    expect(keys.filter(k => !plain.test(k))).toEqual([]);
   });
 });

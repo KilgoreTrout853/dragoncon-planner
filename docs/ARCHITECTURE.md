@@ -13,8 +13,10 @@ registries and a cache of a model's answers, and the works those tags name
 - and that is the file the client reads. A web
 app, built by Vite into a single HTML file, reads it, lets you search,
 star, and plan, and stores your picks in the browser. A service worker
-keeps the app usable with no signal. GitHub Pages serves it; there is no
-backend.
+keeps the app usable with no signal. GitHub Pages serves it. A build
+given a backend - a Supabase project's address and public key - lets a
+reader keep the plan by email (Identity and sync); a build given none has
+no backend, and sends nothing anywhere but for the schedule.
 
 ```
 app.core-apps.com/dragoncon26          (official schedule, HTML)
@@ -46,10 +48,10 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/dispatch.js`, `shell.js`, `loading.js`, `sheet.js` | The four modules above the views: the handlers that span modules; `render()` and what is on screen whatever the tab; loading, freshness and offline; the bottom sheet. |
 | `src/now.js`, `browse.js`, `explore.js`, `map.js`, `mine.js` | The five views, one per tab (`browse` is the Search tab). |
 | `src/scroll.js`, `bus.js` | The scroller and the header's measurement; how a module below the shell asks for a redraw. |
-| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `state.js`, `time.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The fifteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
+| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `state.js`, `time.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The seventeen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
-| `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own two plugins: `dcYear`, the year `DC_YEAR` names - its define and its two data modules, in the dev server, the build and Vitest alike - and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy (DECISIONS #49). |
+| `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own three plugins: `dcYear`, the year `DC_YEAR` names - its define and its two data modules, in the dev server, the build and Vitest alike (DECISIONS #49); `dcBackend`, the backend `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name, or none - its two defines, in the same three places, and the guard on them (#53); and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy. |
 | `dist/` | Build output, not in git: `index.html` with the CSS and script inlined, the files from `public/`, and the one file from `data/` the client reads, the year's `events.v2.json`. |
 | `data/2026/events.json` | The frozen 2026 schedule: 3,459 events, 2.7 MB. Read by tags v2, which never write it, and by the live site's one-file app on `main`; the client on `next` reads `events.v2.json` (DECISIONS #39). |
 | `data/2026/tags.cache.jsonl` | The tag stage's answers, one a line, sorted by the hash of what the model was sent and the year's `prompt_version` (DECISIONS #34, #46): names, never ids. Frozen with its year: the tag stage reads 2026 with `--dry-run` only and writes it no more, and a line corrected by hand says `"model": "hand"`. |
@@ -78,12 +80,12 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `draft_people.py` | Drafts people into `people.json` with a model, for review (DECISIONS #31): everyone on a `guests: celebrity` event, skipped when the registry already resolves the name or the sidecar records a rejection, so a second run calls nothing. Reuses `tag_events.py`'s two transports; Opus by full id, `claude-opus-5`, on the API and on Claude Code alike (see Sharp edges). `--parents` is a second, narrow pass that gives each work it minted a parent from the registry. Nothing it writes is reviewed. |
 | `tools/` | Tools a person runs, not part of the build and never copied into `dist/`. `review-people.html` + `review-people.js` are pages opened from disk - no server, no network - and the review for `draft_people.py`'s output: one card a person, tier and credit controls, and an export of the three files formatted as the drafter writes them. The state changes are pure functions in the `.js`, which is a classic script - no import, no export - because a browser refuses an ES module over `file://`. `tag_pilot.py` is the tag stage's pilot: `sample` picks about 150 inputs, and `compare` reports how runs of the tag stage into scratch caches agree - runs made against 2026 before it was frozen; a later pilot runs on a live copy, as its docstring says. It string-matches work names against event text to choose test events, which the tag stage must never do, so nothing on the tag or build path imports it. `sample_v2.py` makes `tests/sample-events.json`, the page tests' v2 fixture, from the v1 sample: each event in the file's shape, its place from the venues step against `data/2026/venues.json`, people and facets from the parse stage, the five tagged events' fandoms as works and topics as axes, one parent chain for a roll-up, and the works block. `schedule_history.py` walks every commit on `main` that touched the 2026 schedule, diffs each version against the one before by id and by the dedupe's key, adds scrape.yml's runs where `gh` can list them, and writes `docs/pipeline/history-2026.md`. `room_census.py` reads every location of the frozen schedule through the venues step, `venues_stage.py`, against `data/2026/venues.json`, and writes `docs/venues/census-2026.md`, the off-season coverage report (#45): each hotel's strings as the step reads them, the curation worklist, the rooms no string reaches and the rules' firings. It has no grammar of its own, and writes neither input. `replay_2026.py` replays the ids stage over the 2026 versions `schedule_history.py` reads - each converted to raw rows and carried as the fetch carries them, the ledger in a temp folder - and writes `docs/pipeline/replay-2026.md`: which frozen ids ours differ from and how, #43's named checks, each version's counts and the UNSURE pairs. None of the three reports is held fresh by CI. |
 | `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
-| `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
+| `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test, with no backend or with a fake one; `backend.js` is that fake, of the Supabase Auth server, keeping every request it is sent; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
 | `tests/unit/` | Vitest: pure exports, imported by name from the module that holds them, with no page. |
 | `tests/rules/` | Vitest: rules over the text of `src/styles.css` and of every module under `src/`, and over the module graph (`imports.test.js`). |
 | `tests/real-data.test.js` | Vitest: search quality and Explore against the real schedule of the year under test, `data/2026/events.v2.json`. |
-| `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, and smokes that boot the built pages. The only test that executes `dist/`. |
+| `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, and smokes that boot the built pages - the next site's, given a backend, signing in by email. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record. |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
@@ -352,15 +354,15 @@ a reviewer, and each review's decisions are committed as a record in
 
 ## The client: modules and their order
 
-One program in twenty-seven modules under `src/`, and `main.js`, the entry.
+One program in twenty-nine modules under `src/`, and `main.js`, the entry.
 The markup it drives is in `index.html` and the CSS in `src/styles.css`.
 
 The modules stand in one order, which is the array `ORDER` in
 `tests/rules/imports.test.js`, with `boot.js` as the root above it:
 
 ```
-season  util  storage  platform  build  state  time  venues  data  picks
-follows  ics  leave  search  ui                        the fifteen leaves
+season  util  storage  platform  build  backend  identity  state  time
+venues  data  picks  follows  ics  leave  search  ui   the seventeen leaves
 scroll  bus
 now  browse  explore  map  mine                        the five views
 sheet  loading  shell  dispatch
@@ -381,7 +383,12 @@ and date helpers. `storage`: `loadJSON()`, `saveJSON()` and their session
 twins. `platform`: `IS_IOS`, `isStandalone()`. `build`: the stamp `BUILD`;
 `storageKey()`, which names every key the app stores - `dc<yy>.` and a name,
 and the channel after it on a stamped build; the dev-build mark; the device
-readout. `state`: `settings` and `state`.
+readout. `backend`: the backend the build names, or none - `hasBackend` -
+every request to it, by `fetch`, and the session it keeps under
+`storageKey("session")`, refreshed only when the server refuses its token
+(DECISIONS #53). `identity`: `ensureUser()`, which mints the anonymous user
+at the first tap that needs one, the email step - add and recover by one
+code - and sign out (#51). `state`: `settings` and `state`.
 `time`: `now()`, the override, `CON` - the season file's days - and the
 days' names, `conPhase()`, `conDayKey()`, `effectiveNow()`. `venues`: hotel
 identity, the `WALK` table, the slack, `walkMin()`, `placeHTML()`, all from
@@ -421,9 +428,10 @@ between two views.
 
 **`sheet`** is the bottom sheet: its three panels (Settings, an event, a
 hotel) and what fills them, `openSheet()` and `closeSheet()`, the swipe that
-dismisses it, and the handlers for the drag and the Settings controls.
-`closeSheet()` asks for its redraw over the bus. It looks up the six sheet
-elements as it is imported.
+dismisses it, and the handlers for the drag and the Settings controls -
+the email step's among them, Keep your plan, which it draws only on a
+build with a backend. `closeSheet()` asks for its redraw over the bus. It
+looks up the seven sheet elements as it is imported.
 
 **`loading`** is loading, freshness and offline: `load()` and the idle index
 build, `BOOT`, the header's freshness line (`updateFresh()`), the update
@@ -464,7 +472,7 @@ other module first, and runs nothing but declarations and the consts that
 read `localStorage`, the DOM and `navigator`: in the leaves `IS_IOS`
 (`platform`), `BUILD` (`build`), `settings` and `state` (`state`), `picks`
 with its snapshots and news (`picks`) and `follows` (`follows`); in
-`scroll.js`, `scroller`; in `sheet.js` the six sheet elements; in
+`scroll.js`, `scroller`; in `sheet.js` the seven sheet elements; in
 `loading.js`, `updatePill`. `boot.js` itself reads nothing. That is why
 `src/main.js` imports it after the markup exists. `main.js` then calls
 `boot()`, once, with no options: the page fetches its own schedule.
@@ -559,7 +567,11 @@ drawn from the reader's picks. The jump chips follow the scroll through a spy th
 runs once per animation frame.
 
 **The sheet.** One bottom sheet, three panels: Settings, an event's detail, a
-hotel's picks for the day. Swipe down to dismiss.
+hotel's picks for the day. Swipe down to dismiss. On a build with a
+backend, Settings carries Keep your plan: the email step, which adds an
+email to the phone's user or signs the phone in as the user who holds it,
+by a six-digit code (DECISIONS #51, #53; `docs/sync/contract.md`,
+section 1, as built).
 
 **Stored keys.** Everything is `localStorage` but the last row. Every key
 carries the build's year, `<yy>` its last two digits, so a build for a new
@@ -577,6 +589,7 @@ its origin (#39). `storageKey()` in `build.js` names them all.
 | `dc<yy>.bigtext` | `boot` | `shell` | Larger text. Its own key, so nothing that resets settings shrinks it; all sizes outside the map SVG are in `rem` |
 | `dc<yy>.archiveNoticeDismissed` | `shell` | `dispatch` | The year whose "has ended" notice was dismissed |
 | `dc<yy>.nudgeSnoozedUntil` | `now` | `dispatch` | When the install nudge may show again |
+| `dc<yy>.session` | `backend` | `backend` | The backend's session: its two tokens and the user's id, email and `is_anonymous`. Only on a build with a backend, and only from the first tap that needs a user (DECISIONS #51, #53) |
 | `dc<yy>.timeOverride` (`sessionStorage`) | `time` | `time` | The simulated clock |
 
 ## Offline
@@ -595,6 +608,10 @@ page or `sw.js` changes; this site's other caches, of any year, are deleted
 on activate, matched by the whole name, so the live site's worker and the
 next site's leave each other's alone. Install precaches the shell
 individually so one failed fetch doesn't fail the install.
+
+The worker answers no request but a GET, and no GET to another origin but
+the fonts', so the backend's requests - `src/backend.js`'s, to the Supabase
+project - pass it untouched (DECISIONS #53).
 
 ## Build and deploy
 
@@ -615,13 +632,23 @@ On `next` the client is built (DECISIONS #23). `npm run build` runs Vite
   where it is unset, an allowlist (DECISIONS #39, #49). The frozen v1 file,
   the tag cache and the registries are the pipeline's and stay behind.
 
-`build/vite-dc.js` holds two plugins. `dcYear` runs first, in the dev
+`build/vite-dc.js` holds three plugins. `dcYear` runs first, in the dev
 server and Vitest as in the build: it reads `DC_YEAR` - four digits, 2026
 where it is unset, or the build fails before it starts - defines
 `__DC_YEAR__`, which `src/season.js` reads, and resolves `virtual:season`
 and `virtual:venues` to the year's `season.json` and `venues.json`, which
 Vite inlines like any JSON import. It refuses a year whose two files are
 missing, or whose `season.json` names another year (DECISIONS #49).
+
+`dcBackend` runs beside it, in the same three places. It reads
+`DC_SUPABASE_URL` and `DC_SUPABASE_KEY`, a Supabase project's address and
+its public key, and defines `__DC_SUPABASE_URL__` and
+`__DC_SUPABASE_KEY__`, which `src/backend.js` reads: both empty where both
+are unset, a build with no backend, whose page sends nothing anywhere but
+for the schedule (DECISIONS #53). The key is inlined in a public page, so
+it refuses a secret key - an `sb_secret_` key, or a JWT whose role is
+`service_role` - an address that is more than an origin, or is not https
+but for http on this machine, and either variable without the other.
 
 `dcBuild` runs last, in `closeBundle`. Vite emits the
 entry as `<script type="module" crossorigin>` in `<head>`; `dcBuild` moves
@@ -653,8 +680,10 @@ compares the head of `next` (`git ls-remote`) with the sha in its
 `deployed.txt`. When they differ, or the run was manual, it checks `next`
 out, builds it (Node setup, then `npm ci && npm run build`) with
 `DC_CHANNEL=next` (no `DC_BUILD`, so the build id is the checkout's short
-sha), publishes the output folder to its `gh-pages` branch as an orphan
-commit (`peaceiris/actions-gh-pages`), and commits the deployed sha to
+sha) and the backend's two variables, once they are set there by hand
+(ROADMAP, Checklist), publishes the output folder to its `gh-pages`
+branch as an orphan commit (`peaceiris/actions-gh-pages`), and commits
+the deployed sha to
 `deployed.txt` on its `main`. That commit is also what keeps GitHub from
 disabling the schedule for inactivity. The source repo is public, so no
 secret is involved. To deploy now rather than within ten minutes:
@@ -704,10 +733,14 @@ modules export one name - and calls `boot({events, reload})` with a fixture:
 `real-data`, or a test's own copy of the sample, changed where it needs a
 schedule the sample lacks - a removed event, a `was`, a digest. A test
 drives the page through the DOM, through the handle `boot()` returned, and
-through `app`, wherever a name lives. The window outlives the modules, so
-the helper records every listener and interval `boot()` registers and
-`cleanup()` removes them; it also fails the file if the window saw an
-uncaught error.
+through `app`, wherever a name lives. The backend's two constants, which
+Vitest makes globals, are set before the import: empty - a build with no
+backend, whatever the shell says - unless the test hands the helper a fake
+of the Supabase Auth server, `tests/helpers/backend.js`, whose address and
+key the page is built with and whose `fetch` it talks to. The window
+outlives the modules, so the helper records every listener and interval
+`boot()` registers and `cleanup()` removes them; it also fails the file if
+the window saw an uncaught error.
 One boot per file, tests in file order; a test that needs a different start
 (seeded storage, a stamp, an iPhone, no `?now=`) cleans up and boots again.
 Internals are never assigned: a situation is produced the way it arises on a
@@ -737,16 +770,20 @@ and only the root imports `dispatch.js`.
 
 **`tests/build.test.js`** runs the real `vite build` into temp folders: a
 stamped build, an unstamped one, the default build id, a refused channel,
-the years it refuses, a build for 2027 in a temporary copy of the project
-with a stand-in schedule - its schedule copied, its worker and its name
+a refused secret key, the years it refuses, a build for 2027 in a
+temporary copy of the project with a stand-in schedule - its schedule
+copied, its worker and its name
 stamped, the page booted to fetch, key and read its days by 2027 -
 the shape of the output (one classic `<script>` at the end of the body,
 one `<style>`, no separate assets, relative links in the head, the one file
 copied from `data/`), and checks
-of `sw.js`, the manifest, the icons and the head. It ends with the one test
-that executes `dist/`: the built page in a JSDOM of its own, `fetch` stubbed
+of `sw.js`, the manifest, the icons and the head. It ends with the tests
+that execute `dist/`: the built page in a JSDOM of its own, `fetch` stubbed
 to serve the sample fixture, asserting that the first screen renders, a
-search returns rows and no uncaught error fired.
+search returns rows, nothing is asked for but the schedule and no uncaught
+error fired; the page stamped with a channel, keeping everything under it;
+and the next site's build given a backend, signing in by email against the
+fake Auth server and keeping its session under the channel.
 
 **`tests/worker.test.js`** runs `public/sw.js` in Node against fakes of
 `self`, `caches`, `fetch` and the worker's clients (DECISIONS #49): the
@@ -780,8 +817,9 @@ the scroller; and nothing reads `location.host`, `hostname` or `origin`,
 because the stamp decides the channel, never the address (#15). A later
 config object replaces an earlier one's options for a rule, so the config
 gives the page's selectors for all of `src/` and gives them again, with the
-clock's, for every file but `time.js`. One more object declares
-`__DC_YEAR__`, the build's define, a global for `src/season.js` alone.
+clock's, for every file but `time.js`. Two more declare the build's
+defines as globals: `__DC_YEAR__`, for `src/season.js` alone, and the
+backend's two, for `src/backend.js` alone.
 
 The Python test files are plain pytest modules; running one directly with
 `python tests/test_parse.py` executes nothing.

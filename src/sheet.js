@@ -1,14 +1,16 @@
 /* The bottom sheet: one wrapper and three panels - Settings, an event, a
    hotel - with what fills each, what opens and closes it, the swipe that
    dismisses it, and the handlers boot() registers on it and on the Settings
-   controls. The clicks inside the event and hotel panels are dispatch's:
-   they reach further than the sheet. closeSheet() asks for its redraw over
-   the bus, because render() is the shell's, above this module. The six
-   elements are looked up as the module is imported, so the markup has to be
-   there first. */
+   controls, the email step's among them. The clicks inside the event and
+   hotel panels are dispatch's: they reach further than the sheet.
+   closeSheet() asks for its redraw over the bus, because render() is the
+   shell's, above this module. The seven elements are looked up as the
+   module is imported, so the markup has to be there first. */
 import { esc, fmtShort } from "./util.js";
 import { saveJSON } from "./storage.js";
 import { deviceLine, storageKey } from "./build.js";
+import { hasBackend } from "./backend.js";
+import { codeSentTo, confirmCode, plainMessage, sendCode, signedInAs, signOut } from "./identity.js";
 import { settings, state } from "./state.js";
 import { DAY_LONG, localInputValue, timeOverride } from "./time.js";
 import { hotelPhrase, hotelVar, placeHTML, WALK } from "./venues.js";
@@ -35,6 +37,48 @@ function fillSettings() {
   document.getElementById("previewTime").value = timeOverride ? localInputValue(timeOverride) : "";
   document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
   document.getElementById("deviceLine").textContent = deviceLine();
+  fillKeep();
+}
+
+/* Keep your plan: the email step (DECISIONS #51, #53), between Advanced and
+   Done, and there only when the build has a backend - with none, the panel
+   is the 2026 app's. One screen for add and recover: the address and Send
+   code, then the code and Confirm; once the session has an email, who it
+   is and Sign out. Drawn once, the first time it is shown, and after that
+   only shown and hidden, so a half-typed address survives a redraw. */
+const keepEl = document.getElementById("keep");
+let keepNote = "", keepBusy = false;
+const KEEP_HTML = `<h3>Keep your plan</h3>
+  <div id="keepOut">
+    <p>Add your email, and a new phone gets this plan back. We send a six-digit code; there's no password.</p>
+    <form id="keepEmailForm" novalidate>
+      <label>Email <input type="email" id="keepEmail" autocomplete="email" autocapitalize="off" spellcheck="false"></label>
+      <button class="btn" id="keepSend">Send code</button>
+    </form>
+    <form id="keepCodeForm" novalidate hidden>
+      <label>The code sent to <b id="keepSentTo"></b> <input type="text" id="keepCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
+      <button class="btn" id="keepConfirm">Confirm</button>
+    </form>
+  </div>
+  <div id="keepIn" hidden>
+    <p>Signed in as <b id="keepWho"></b>. A new phone gets this plan back with the same email.</p>
+    <div class="rowbtns"><button class="btn quiet" type="button" id="keepSignOut">Sign out</button></div>
+  </div>
+  <p class="keep-note" id="keepNote" role="status"></p>`;
+
+function fillKeep() {
+  keepEl.hidden = !hasBackend;
+  if (!hasBackend) return;
+  if (!keepEl.firstElementChild) keepEl.innerHTML = KEEP_HTML;
+  const who = signedInAs(), sentTo = codeSentTo();
+  document.getElementById("keepOut").hidden = !!who;
+  document.getElementById("keepIn").hidden = !who;
+  document.getElementById("keepWho").textContent = who;
+  document.getElementById("keepCodeForm").hidden = !sentTo;
+  document.getElementById("keepSentTo").textContent = sentTo;
+  document.getElementById("keepSend").disabled = keepBusy;
+  document.getElementById("keepConfirm").disabled = keepBusy;
+  document.getElementById("keepNote").textContent = keepNote;
 }
 
 function eventSheetHTML(ev) {
@@ -179,8 +223,42 @@ function onCrowdInput(e) { settings.crowd = parseFloat(e.target.value); document
 function onNoiseDefaultChange(e) { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON(storageKey("settings"), settings); }
 function onResetPicks() { if (confirm("Remove everything from my schedule?")) { replacePicks([]); savePicks(); closeSheet(); } }
 
+/* The email step's two forms, Send code and Confirm. A failure is said in
+   plain words and changes nothing kept; a second tap while a request is out
+   does nothing. */
+async function onKeepSubmit(e) {
+  e.preventDefault();
+  if (keepBusy) return;
+  const form = e.target.id;
+  keepBusy = true;
+  keepNote = "";
+  fillKeep();
+  try {
+    if (form === "keepEmailForm") {
+      await sendCode(document.getElementById("keepEmail").value);
+      document.getElementById("keepCode").value = "";
+      keepNote = "Check your email for the code.";
+    } else if (form === "keepCodeForm") {
+      await confirmCode(document.getElementById("keepCode").value);
+      document.getElementById("keepCode").value = "";
+    }
+  } catch (err) {
+    keepNote = plainMessage(err);
+  } finally {
+    keepBusy = false;
+    fillKeep();
+  }
+}
+/* And Sign out, which only a user signed in with an email is shown. */
+function onKeepClick(e) {
+  if (!e.target.closest("#keepSignOut")) return;
+  signOut();
+  keepNote = "Signed out. Your plan stays on this phone.";
+  fillKeep();
+}
+
 export {
   sheetWrap, sheetEl, panelEvent, panelHotel, eventSheetHTML, hotelSheetHTML, openSheet,
   closeSheet, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
-  onSettingsClick, onCrowdInput, onNoiseDefaultChange, onResetPicks,
+  onSettingsClick, onCrowdInput, onNoiseDefaultChange, onResetPicks, onKeepSubmit, onKeepClick,
 };

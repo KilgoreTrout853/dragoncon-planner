@@ -1,8 +1,9 @@
 # Identity and sync: the data contract
 
-The design note for Identity and sync: DECISIONS #50-#52, in the detail a
-pull request needs. Written 2026-09-25, before any of it is built:
-sections 1-4 now, and 5-8 as their design is done. The evidence is
+The design note for Identity and sync: DECISIONS #50-#53, in the detail a
+pull request needs. Written 2026-09-25, before any of it was built:
+sections 1-4 first, section 5 with the client's identity (PR #55), and
+6-8 as their design is done. The evidence is
 `recon.md`, beside this file, the client as the design found it. Where an
 entry has the detail, this note points at it rather than saying it twice.
 What the note does not settle is under Open, at the end. A change of
@@ -22,8 +23,8 @@ the same PR.
   The first tap that needs a user mints one, by Supabase's anonymous
   sign-in, and that user is this browser's. Whether a bot check - a
   captcha - is required is the Supabase project's setting, and it is off;
-  the client wires the widget, and shows it when anonymous sign-in is
-  refused.
+  the client shows no widget until the project turns it on, and a refusal
+  for want of one is a plain message (#53).
 - **The email step** is one screen, one field and a six-digit code typed
   into the app (#25). It ends one of two ways:
   - *Add.* The email belongs to no one, so the anonymous user gains it in
@@ -40,6 +41,10 @@ the same PR.
     notifications on again, the phone unsubscribes and subscribes afresh,
     which gives it a new endpoint, so no endpoint ever changes hands; the
     old row is pruned when a send to it fails.
+- **Confirm email stays on,** on every project: an invariant (ROADMAP,
+  Checklist). With it off, the server sets an anonymous user's email with
+  no code at all, so anyone could claim an address they do not own, and
+  its owner's later recover would sign into the claimant's plan.
 - **Two devices.** Nothing keeps two signed-in devices in step beyond
   latest stamp wins (section 2).
 - **Stamps** read the real clock, never `now()`, so a simulated clock
@@ -54,6 +59,83 @@ the same PR.
   - a star or a follow never waits on the network;
   - a crew or notification action that needs the network fails visibly and
     leaves local state untouched.
+
+### Identity, as built
+
+PR #55, with #53.
+
+- **Two modules,** after `build` in #29's order - `build`, `backend`,
+  `identity`, `state`, `time`. `src/backend.js` holds the backend's
+  address and public key, every request, and the session.
+  `src/identity.js` holds `ensureUser()`, the email step and sign out.
+- **The constants.** `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` reach the
+  client through `dcBackend()` in `build/vite-dc.js`, as
+  `__DC_SUPABASE_URL__` and `__DC_SUPABASE_KEY__`, in the dev server, the
+  build and Vitest alike. A build given neither has no backend:
+  `hasBackend` is false, no request is made, `ensureUser()` is refused
+  without one, and Settings shows nothing of this - the app is the 2026
+  app. The key is inlined in a public page, so the build refuses a secret
+  key - an `sb_secret_` key, or a JWT whose role is `service_role` - and
+  refuses an address that is more than an origin, one that is not https
+  but for http on this machine, and either constant without the other.
+- **The session** is kept under `storageKey("session")` -
+  `dc<yy>.session`, or `dc<yy>.session.<channel>` on a stamped build - as
+  the two tokens and the user's id, email and `is_anonymous`, and read
+  afresh at every use, so a tab never holds a token another has rotated
+  away.
+- **Every request** carries `apikey`, the public key; one with a body,
+  `Content-Type: application/json`; one made as the user, `Authorization:
+  Bearer` and the session's access token. Nothing else: the page asks for
+  no API version, and reads an error's code from `code` where that is a
+  string - the Auth server's newer shape, and PostgREST's - and from
+  `error_code` otherwise. There are six:
+
+| Request | Method and path | As the user | Body | Expects |
+|---|---|---|---|---|
+| Anonymous sign-in | `POST /auth/v1/signup` | no | `{}` | 200 and a session; or 422 `anonymous_provider_disabled`, 400 `captcha_failed` |
+| Add | `PUT /auth/v1/user` | yes | `{"email"}` | 200, and a code sent; or 422 `email_exists`, and then recover |
+| Recover | `POST /auth/v1/otp` | no | `{"email", "create_user": false}` | 200, and a code sent; or 422 `otp_disabled`, and then mint and add |
+| Verify | `POST /auth/v1/verify` | no | `{"type", "email", "token"}`, the type `email_change` after add and `email` after recover | 200 and a session; or 403 `otp_expired` |
+| Refresh | `POST /auth/v1/token?grant_type=refresh_token` | no | `{"refresh_token"}` | 200 and a session; or 400, 401, 403 or 404, and the session is lost |
+| Sign out | `POST /auth/v1/logout?scope=local` | yes | none | 204, not waited on |
+
+- **A refused token.** A request made as the user and refused for its
+  token - a 401, or a 403 with `bad_jwt` or `session_not_found` - takes
+  the session another tab has refreshed, if there is one, or refreshes
+  it once, and is made once more. A refresh refused drops the session;
+  offline, rate-limited or a server's error, the session is kept for the
+  next try. No clock is read for any of it.
+- **`ensureUser()`** returns the session, or signs in anonymously, with
+  one request however many callers ask while it is out. Nothing calls it
+  on load; its one caller is the email step.
+- **The email step** is Settings' "Keep your plan", between Advanced and
+  Done, and only on a build with a backend. Send code: with no session,
+  recover, and an address no one holds mints the anonymous user and adds
+  it; with an anonymous session, add, and an address someone holds falls
+  through to recover. A session lost on the way - an anonymous user the
+  cleanup took - is dropped, and the step starts again with none. One
+  code either way, typed in and confirmed; then "Signed in as" the
+  address, and Sign out, offered only to a user with an email, which
+  removes the session key and nothing else. Recover signs in and no more:
+  carrying the phone's plan up is sync's (section 5).
+- **Failures in plain words,** and local state untouched: offline; the
+  captcha - "Signing in needs a check this app can't show yet. Please try
+  again later.", with no widget (#53); anonymous sign-ins switched off;
+  too many tries; a code asked for again too soon; a wrong or expired
+  code; a code or an address that does not look like one, refused before
+  a request; an address the server cannot mail; and a session lost.
+- **`wallClock()`,** in `src/time.js`: the real clock whatever `?now=`
+  says, for sync stamps; nothing calls it yet.
+- **The tests.** `tests/page/keep.test.js` pins each request above as it
+  is sent, against a fake of the Auth server (`tests/helpers/backend.js`),
+  and drives every door and failure; `tests/page/settings.test.js` pins
+  both layouts of Settings, `year.test.js` the session among the keys and
+  `time.test.js` `wallClock()`; `tests/unit/backend-env.test.js` the
+  build's guard; `tests/build.test.js` the built page with no backend
+  asking for nothing but the schedule, and the next site's build, given a
+  backend, signing in and keeping `dc26.session.next`; and
+  `tests/worker.test.js` the worker passing the backend's requests
+  untouched.
 
 ## 2. The data model
 
@@ -316,11 +398,59 @@ PR #54.
 - **CI's `database` job** runs the install, the start and the tests on
   Ubuntu, where Docker is running.
 
-## 5. Sync rules — to follow
+## 5. Sync rules
 
-How the client moves rows: the writes it queues and when they go, the pull
-since its watermark on the hooks it has (`recon.md`, section 5), a
-recovering phone's union, and a pick on a merged event (#43).
+#53: decided, not built; the sync PR builds it (ROADMAP, tentpole 4).
+
+- **What syncs.** Picks and follows, one's own rows, both ways, and
+  nothing else: no settings (#50), and neither the pick news nor the
+  snapshot it is judged against.
+- **The doors.** `savePicks()` and `saveFollows()` are the only writers of
+  picks and follows, and each writes the whole state (`recon.md`,
+  section 3), so the diff happens there: against a copy retained at the
+  last save, every key that changed becomes an op. A pick re-pointed by
+  `reconcilePicks()` - gone, or merged into another event (#43) - goes
+  through `savePicks()` as well: a tombstone for the old id, and for a
+  merge an add for the survivor.
+- **The outbox** is a map keyed by table and key: one op per changed key,
+  with `picked` or `followed` and a stamp from `wallClock()`, a later
+  change to a key replacing the op before it - coalescing to the latest.
+  No session means no outbox.
+- **Mint and recover.** At mint the whole local state goes up as adds,
+  stamped as it goes; recover's union (section 1) is the same act, for a
+  phone that signs in as a user who already has rows.
+- **The drain** is one upsert per table of every pending op. The trigger
+  judges each row by `changed_at` (section 2), so a replay or an older
+  stamp changes nothing. A failure is kept and retried with backoff up to
+  five minutes; nothing is dropped.
+- **The pull** is one query per table for the rows newer than the
+  watermark, `storageKey("syncStamp")`. The watermark is on a
+  server-written stamp, `synced_at`, set by a trigger on insert and on
+  update: never on `changed_at`, which a change drained late carries from
+  hours before, so a watermark on it would miss the change for good. The
+  query overlaps the watermark by a small margin, since a write can
+  commit after a later stamp was read, and a row applied twice changes
+  nothing. Latest stamp wins still judges by `changed_at`. One's own rows
+  are applied unless an op is pending for the key; crewmates' picks go to
+  `storageKey("crewPicks")`; the new watermark is the newest `synced_at`
+  seen. The pull also refreshes the member list, and drops a departed
+  member's picks.
+- **When.** On open; on `visibilitychange` and `pageshow`, ungated -
+  unlike the schedule's recheck, which waits fifteen minutes (`recon.md`,
+  section 5); on `online` and the worker's `schedule-online`; and after a
+  drain. There is no timer.
+- **Pick news and a push** agree by sharing no state: the phone's news
+  comes from the schedule it loads, the push job's from
+  `schedule_changes` (section 7).
+- **Failure modes.** The backend down: stars and follows work as ever, the
+  outbox holds and the drain retries. The session lost: no session, so no
+  outbox, until the email step signs in again and the whole local state
+  goes up as adds. Two tabs of one phone: each saves whole state, so the
+  last save wins, accepted for 2027.
+- **The migration** is the sync PR's: `synced_at` on `picks` and
+  `follows`, an index by user and `synced_at`, the trigger, and the
+  behavioural test that clamps a follow's stamp, which PR #54 left to the
+  structure test.
 
 ## 6. The mirror job — to follow
 
@@ -348,3 +478,8 @@ it).
   #50); how many minutes is unset.
 - Recording searches that return nothing, anonymously, in 2027: #36's
   privacy question for this tentpole.
+- The Auth project's two limits, for the operations track (#50): the
+  built-in mailer sends only to the organisation's own addresses, a few
+  an hour, so production needs a mail server of its own; and anonymous
+  sign-ins are capped at 30 an hour per IP by default, while a hotel's
+  Wi-Fi puts many phones behind one address.

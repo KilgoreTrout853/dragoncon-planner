@@ -71,6 +71,12 @@ export default [
     languageOptions: { globals: { __DC_YEAR__: "readonly" } },
   },
 
+  /* And the backend it names, read in one place (DECISIONS #53). */
+  {
+    files: ["src/backend.js"],
+    languageOptions: { globals: { __DC_SUPABASE_URL__: "readonly", __DC_SUPABASE_KEY__: "readonly" } },
+  },
+
   /* One rule, two lists. A later object's options for a rule replace an
      earlier object's, they are not added to them: so the page's selectors are
      given for all of src/, and given again, with the clock's, for every file
