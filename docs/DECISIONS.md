@@ -123,7 +123,7 @@ deliberate learning exercise.
 is a broken app on con weekend.
 **Cost:** More infrastructure than a friend-group app strictly needs.
 
-### 12. Every current-time read goes through `now()` with a dev override — Standing (2026-09-07) — one second read, of the real clock, in `src/time.js` under the same exemption, for sync stamps only (#51)
+### 12. Every current-time read goes through `now()` with a dev override — Standing (2026-09-07) — one second read, of the real clock, in `src/time.js` under the same exemption, for sync stamps only (#51); built by PR #55 as `wallClock()`
 **Decided:** One `now()` function. `?now=<ISO>` in the URL sets a simulated
 clock, kept in `sessionStorage`; bare `new Date()` / `Date.now()` are
 forbidden outside the Time section of `index.html` and the smoke test
@@ -425,7 +425,7 @@ mode now also covers moved partitions. The map needs one persistent SVG
 mutated in place rather than the innerHTML rebuild in `src/app.js` — a
 constraint on step 4's module split.
 
-### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49)
+### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53)
 **Decided:** The client's modules stand in one order, and `src/boot.js` is
 its root. The order is the array `ORDER` in `tests/rules/imports.test.js` -
 the fourteen leaves, then `scroll` and the `bus`, the five views, then
@@ -1286,7 +1286,7 @@ read the rest. 18:00 and 19:00 are a guess for 2027 until its schedule
 shows. The icons draw 2026 in their pixels, which no stamp reaches
 (ROADMAP, Checklist).
 
-### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25)
+### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on
 **Decided:** Identity and sync is built smaller than #8, #10, #25 and #27
 drew it; `docs/sync/contract.md` has the design.
 - **The mirror** is two tables, `schedule_events` and `schedule_changes`,
@@ -1332,7 +1332,7 @@ seconds apart land in stamp order. Crew presence, pings and realtime wait
 for spring, and the mirror trails a scrape by its merge. The crowd factor
 is set again on each device.
 
-### 51. Identity: lazy, anonymous, recovered by email — Decided, not built (2026-09-25)
+### 51. Identity: lazy, anonymous, recovered by email — Decided, not built (2026-09-25) — built by PR #55 but for recover's union, which is sync's (#53): `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the widget amended by #53, a plain message until the project turns the captcha on
 **Decided:** #8 as #25 and #50 amend it; `docs/sync/contract.md`,
 section 1, has the detail.
 - No server user until the first tap that needs one: joining or creating
@@ -1429,3 +1429,70 @@ Python and the JavaScript; pgTAP is a third test framework beside Vitest
 and pytest, and `database` one more job on every pull request. A crew
 whose creator is gone can no longer regenerate its invite or remove
 anyone.
+
+### 53. The fetch layer, the captcha, and the sync rules — Decided, not built (2026-09-25) — the fetch layer and the captcha's plain message built by PR #55: `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built)
+**Decided:** How the client talks to the backend, what it says when a
+captcha is demanded, and how it will move picks and follows;
+`docs/sync/contract.md` has the detail, in section 1, as built, and
+section 5.
+- **The fetch layer has no dependency.** The client talks to Supabase by
+  `fetch`: the Auth endpoints now, PostgREST from the sync PR. Every
+  request goes through one module, `src/backend.js`, which keeps the
+  session too; `src/identity.js` holds `ensureUser()` and the email step.
+  Both stand after `build` in #29's order. `dist/index.html`, measured on
+  `next` at 9fd43ab, raw and gzipped, in bytes:
+  - as it stood: 140,382 and 45,113;
+  - with `@supabase/supabase-js` 2.117.2: 355,648 and 99,543, up 153% and
+    121%;
+  - with `@supabase/auth-js` and `@supabase/postgrest-js` 2.117.2:
+    257,604 and 72,772, up 84% and 61% - `auth-js` alone, 240,811 and
+    67,864;
+  - by `fetch`: 142,528 and 46,107, up 1.5% and 2.2%.
+
+  The session is read from storage at every use; refreshed only when the
+  server refuses its token, never by the clock, so `wallClock()` stays
+  for stamps; one refresh in flight a tab; and dropped only when the
+  refresh itself is refused. **Revisit:** if the fetch layer outgrows
+  about two hundred lines across the sync and crew PRs, the two libraries
+  are reconsidered.
+- **No captcha widget** until the project turns the captcha on (amends
+  #50 and #51): a refusal for want of one is a plain message. A widget is
+  its own pull request, when abuse calls for it.
+- **The sync rules** (contract, section 5). Picks and follows sync, one's
+  own rows both ways, and nothing else. The doors are `savePicks()` and
+  `saveFollows()`, which diff against a retained copy into an outbox - a
+  map by table and key, one op per changed key, stamped by `wallClock()`,
+  coalescing to the latest; with no session there is no outbox. At mint,
+  and so at recover, the whole local state goes up as adds. The drain is
+  one upsert per table, the trigger judges each row, and a failure is
+  kept and retried with backoff up to five minutes: nothing is dropped.
+  The pull is one query per table for rows newer than its watermark,
+  `storageKey("syncStamp")`, on a server-written stamp, `synced_at`, set
+  by a trigger on insert and update and read with a small overlap; latest
+  stamp wins still judges by `changed_at`. The pull applies one's own
+  rows unless an op is pending for the key, keeps crewmates' picks under
+  `storageKey("crewPicks")`, refreshes the member list and drops departed
+  members' picks. It runs on open, on `visibilitychange` and `pageshow`
+  ungated, on `online` and `schedule-online`, and after a drain; there is
+  no timer. The sync PR carries the migration: `synced_at` on `picks` and
+  `follows`, an index by user and `synced_at`, the trigger, and the
+  behavioural test that clamps a follow's stamp, which PR #54 left to the
+  structure test.
+
+**Why:** The page loads over con Wi-Fi, and the libraries' weight is
+almost all code this app never calls: the Auth client's constructor
+binds MFA, WebAuthn, passkeys, an OAuth server and recovery codes, which
+no bundler can drop, where the app makes six plain requests. The refresh,
+the one part worth a library, is kept small by design, and a test pins
+every request. The captcha is off (#50), so a widget would be code that
+never runs. A pull by `changed_at` misses a change drained late: a phone
+offline from 10:00 to 14:00 stamps its star 10:00, and a crewmate who
+pulled at noon holds a watermark past it - and hours offline in a hotel
+basement are the con's normal case.
+**Cost:** The refresh is ours to keep: cross-tab coordination, retry with
+backoff and whatever the Auth API changes next, which a library would
+have followed for us. Two tabs refreshing one token more than ten seconds
+apart lose the session to the server's reuse detection. A captcha turned
+on in a hurry waits for a pull request. Two tabs of one phone: the last
+save wins, accepted for 2027. The sync PR has one more migration to
+write and test.

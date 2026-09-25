@@ -13,7 +13,7 @@ import { setRenderer } from "./bus.js";
 import { onAppInstalled, onBeforeInstallPrompt } from "./now.js";
 import { onScrollSpy } from "./explore.js";
 import {
-  closeSheet, onCrowdInput, onNoiseDefaultChange, onResetPicks, onSettingsClick,
+  closeSheet, onCrowdInput, onKeepClick, onKeepSubmit, onNoiseDefaultChange, onResetPicks, onSettingsClick,
   onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart, openSheet,
   panelEvent, panelHotel, sheetEl,
 } from "./sheet.js";
@@ -88,6 +88,8 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.getElementById("clearPreview").addEventListener("click", onClearPreview);
   document.getElementById("simChip").addEventListener("click", onSimChipClick);
   document.getElementById("resetPicks").addEventListener("click", onResetPicks);
+  document.getElementById("keep").addEventListener("submit", onKeepSubmit);
+  document.getElementById("keep").addEventListener("click", onKeepClick);
 
   window.addEventListener("hashchange", onHashChange);
 

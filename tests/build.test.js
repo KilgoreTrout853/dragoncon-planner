@@ -11,7 +11,8 @@
    tests/PORT-LEDGER.md), and
    the "dist boots" smoke: the built page, run for real in a JSDOM of its own,
    unstamped and then stamped with a channel, which every key it keeps
-   carries (DECISIONS #39). */
+   carries (DECISIONS #39); and last, stamped and given a backend, signing
+   in by email against a fake of the Auth server (#53). */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -19,6 +20,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CODE, fakeBackend } from "./helpers/backend.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const VITE = path.join(ROOT, "node_modules", "vite", "bin", "vite.js");
@@ -26,15 +28,16 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "dc-build-"));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
 let n = 0;
-/* env always names both stamps and the year, so a DC_CHANNEL or a DC_YEAR in
-   the caller's shell cannot leak in. root: a temporary copy to build, with
-   the repo's own vite.config.js; the repo itself where there is none. */
+/* env always names both stamps, the year and the backend, so a DC_CHANNEL, a
+   DC_YEAR or a DC_SUPABASE_URL in the caller's shell cannot leak in. root: a
+   temporary copy to build, with the repo's own vite.config.js; the repo
+   itself where there is none. */
 function build(env, root) {
   const out = path.join(TMP, `site-${++n}`);
   const args = root ? [VITE, "build", root, "--config", path.join(ROOT, "vite.config.js")] : [VITE, "build"];
   try {
     const stdout = execFileSync(process.execPath, [...args, "--outDir", out, "--logLevel", "warn"],
-      { cwd: ROOT, env: { ...process.env, DC_CHANNEL: "", DC_BUILD: "", DC_YEAR: "", ...env }, encoding: "utf8", stdio: "pipe" });
+      { cwd: ROOT, env: { ...process.env, DC_CHANNEL: "", DC_BUILD: "", DC_YEAR: "", DC_SUPABASE_URL: "", DC_SUPABASE_KEY: "", ...env }, encoding: "utf8", stdio: "pipe" });
     return { ok: true, out, stdout, stderr: "" };
   } catch (e) {
     return { ok: false, out, stdout: String(e.stdout || ""), stderr: String(e.stderr || "") };
@@ -109,6 +112,16 @@ describe("vite build", () => {
     const r = build({ DC_CHANNEL: "Next Site" });
     expect(r.ok).toBe(false);
     expect(r.stderr + r.stdout).toMatch(/channel/);
+  });
+
+  /* DECISIONS #53: the key is inlined in a public page. The guard's cases
+     are tests/unit/backend-env.test.js's; this is the build running it. */
+  it("refuses a secret key for the backend, before it writes anything", SLOW, () => {
+    const r = build({ DC_SUPABASE_URL: "https://backend.test", DC_SUPABASE_KEY: "sb_secret_do-not-ship" });
+    expect(r.ok).toBe(false);
+    expect(r.stderr + r.stdout).toMatch(/secret key/);
+    expect(r.stderr + r.stdout).not.toContain("sb_secret_do-not-ship");
+    expect(exists(r.out, "index.html")).toBe(false);
   });
 
   /* DECISIONS #49: DC_YEAR is four digits, and names a year whose season and
@@ -423,7 +436,7 @@ describe("vite build", () => {
      takes. The error listener is the harness's last line. */
   describe("the built page boots", () => {
     let dom;
-    const errors = [];
+    const errors = [], fetched = [];
 
     beforeAll(async () => {
       const fixture = JSON.parse(read(ROOT, "tests", "sample-events.json"));
@@ -431,7 +444,7 @@ describe("vite build", () => {
         runScripts: "dangerously", pretendToBeVisual: true, url: "https://example.test/?now=2026-09-05T13:05",
         beforeParse(window) {
           window.addEventListener("error", e => errors.push(e.message));
-          window.fetch = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(fixture) });
+          window.fetch = url => { fetched.push(String(url)); return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(fixture) }); };
           const worker = new window.EventTarget();
           worker.register = () => Promise.resolve({});
           worker.controller = null;
@@ -466,6 +479,16 @@ describe("vite build", () => {
       expect(JSON.parse(win.localStorage.getItem("dc26.picks"))).toEqual([id]);
       const keys = [...Object.keys(win.localStorage), ...Object.keys(win.sessionStorage)];
       expect(keys.filter(k => !/^dc26\.[A-Za-z]+$/.test(k))).toEqual([]);
+    });
+    it("built with no backend, it asks for nothing but the schedule, keeps no session and shows no Keep your plan (DECISIONS #53)", () => {
+      const win = dom.window, doc = win.document;
+      doc.getElementById("settingsBtn").click();
+      expect(fetched.length).toBeGreaterThan(0);
+      expect(fetched.filter(url => !url.endsWith("data/2026/events.v2.json"))).toEqual([]);
+      expect(win.localStorage.getItem("dc26.session")).toBe(null);
+      expect(doc.getElementById("keep").hidden).toBe(true);
+      expect(doc.getElementById("keep").children.length).toBe(0);
+      doc.getElementById("closeSheet").click();
     });
     it("no uncaught error fired", () => {
       expect(errors).toEqual([]);
@@ -520,6 +543,63 @@ describe("vite build", () => {
       expect(Object.keys(win.localStorage).length).toBeGreaterThan(0);
       expect(Object.keys(win.localStorage).filter(k => !k.endsWith(".next"))).toEqual([]);
       expect(Object.keys(win.sessionStorage)).toEqual(["dc26.timeOverride.next"]);
+    });
+    it("no uncaught error fired", () => {
+      expect(errors).toEqual([]);
+    });
+  });
+
+  /* A build with a backend (DECISIONS #51, #53): the next site's, stamped and
+     given the two constants. Nothing calls the backend on load; the email
+     step, driven as a reader drives it, signs in against a fake of the Auth
+     server (tests/helpers/backend.js) and keeps the session under the
+     channel's key. */
+  describe("the built page, stamped with a channel and given a backend, signs in by email", () => {
+    let built, dom;
+    const fake = fakeBackend(), errors = [];
+
+    beforeAll(async () => {
+      built = build({ DC_CHANNEL: "next", DC_BUILD: "abc1234", DC_SUPABASE_URL: fake.url, DC_SUPABASE_KEY: fake.key });
+      if (!built.ok) return;
+      const fixture = JSON.parse(read(ROOT, "tests", "sample-events.json"));
+      dom = new JSDOM(read(built.out, "index.html"), {
+        runScripts: "dangerously", pretendToBeVisual: true, url: "https://example.test/?now=2026-09-05T13:05",
+        beforeParse(window) {
+          window.addEventListener("error", e => errors.push(e.message));
+          window.fetch = (url, init) => String(url).startsWith(fake.url) ? fake.fetch(url, init)
+            : Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(fixture) });
+          const worker = new window.EventTarget();
+          worker.register = () => Promise.resolve({});
+          worker.controller = null;
+          Object.defineProperty(window.navigator, "serviceWorker", { value: worker, configurable: true });
+        },
+      });
+      await until(() => dom.window.document.querySelector("#view-now .row"), "the first screen");
+    }, 120_000);
+    afterAll(() => dom && dom.window.close());
+
+    it("builds with the backend's address in the page, and boots without a word to it", () => {
+      expect(built.ok, built.stderr).toBe(true);
+      expect(read(built.out, "index.html")).toContain(fake.url);
+      expect(fake.requests).toEqual([]);
+    });
+    it("the email step reaches signed in as the address, and the session is kept under dc26.session.next", async () => {
+      const win = dom.window, doc = win.document;
+      const submit = (form, field, value) => {
+        doc.getElementById(field).value = value;
+        doc.getElementById(form).dispatchEvent(new win.Event("submit", { bubbles: true, cancelable: true }));
+      };
+      doc.getElementById("settingsBtn").click();
+      expect(doc.getElementById("keep").hidden).toBe(false);
+      submit("keepEmailForm", "keepEmail", "new@example.test");
+      await until(() => !doc.getElementById("keepCodeForm").hidden, "the code form");
+      submit("keepCodeForm", "keepCode", CODE);
+      await until(() => !doc.getElementById("keepIn").hidden, "signed in");
+      expect(doc.getElementById("keepWho").textContent).toBe("new@example.test");
+      expect(JSON.parse(win.localStorage.getItem("dc26.session.next")).user).toMatchObject({ email: "new@example.test", is_anonymous: false });
+      expect(win.localStorage.getItem("dc26.session")).toBe(null);
+      expect(Object.keys(win.localStorage).filter(k => !k.endsWith(".next"))).toEqual([]);
+      expect(fake.requests.map(r => `${r.method} ${r.path}`)).toEqual(["POST /auth/v1/otp", "POST /auth/v1/signup", "PUT /auth/v1/user", "POST /auth/v1/verify"]);
     });
     it("no uncaught error fired", () => {
       expect(errors).toEqual([]);

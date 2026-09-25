@@ -19,7 +19,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `public/manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `public/icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Runs the pipeline hourly in the season's window, and by hand, and lands each run that changed a file by pull request, with auto-merge. See The scrape workflow. |
-| `vite.config.js`, `build/vite-dc.js` | The build. `DC_YEAR` names the year the client is for, 2026 unless set; with `DC_CHANNEL=next` it stamps the output as a dev build, for the `next` branch's site. |
+| `vite.config.js`, `build/vite-dc.js` | The build. `DC_YEAR` names the year the client is for, 2026 unless set; with `DC_CHANNEL=next` it stamps the output as a dev build, for the `next` branch's site; `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name its backend, and without them it has none. |
 | `tests/` | The pipeline's tests (pytest) and the client's (Vitest): units, rules over the source, the page in jsdom, the real schedule, the build. Not optional — run them before you push. |
 | `docs/` | `ARCHITECTURE.md`, what the system is; `DECISIONS.md`, what was decided and why; `VISION.md` and `ROADMAP.md`, what 2027 is for and in what order; `discover/`, the Discover design, its censuses and its review records; `venues/`, the floor-plan checklist and the room census; `SPLIT-MANIFEST.md`, the record of the module split. |
 
@@ -106,6 +106,8 @@ gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next
 `DC_YEAR` names the year the client is built for: four digits, 2026 unless set, and a year with no `data/<year>/events.v2.json` does not build. A build for another year stamps it into the worker, the page's name and the manifest, and keys everything it stores by the year, so it starts with none of 2026's picks, follows or settings (DECISIONS #49). The next site moves to 2027 by a line of its workflow, once 2027's first run has written the file (ROADMAP, Checklist).
 
 One origin also means one localStorage, so the storage keys carry the channel as the cache name does - `dc26.picks.next` on the next site where the live one keeps `dc26.picks` - and the next site keeps a plan of its own. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected.
+
+A build without `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` has no backend: the page asks for nothing but the schedule, and Settings shows no Keep your plan. Given both - a Supabase project's address and its public key, repository variables on the deploy repository and never secrets - a reader can keep their plan by email (DECISIONS #51, #53).
 
 ## Offline
 

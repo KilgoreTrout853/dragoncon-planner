@@ -396,6 +396,16 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .advanced-body { display: grid; gap: 16px; padding-top: 12px; max-height: 45vh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
 .walk-table { font-size: .875rem; color: var(--muted); }
 .walk-table td { padding: 2px 6px 2px 0; }
+/* Keep your plan, the email step: after Advanced and before Done, and only
+   on a build with a backend (DECISIONS #53). */
+.keep, .keep > div { display: grid; gap: 12px; }
+.keep { padding-top: 16px; border-top: 1px solid var(--line); }
+.keep h3 { margin: 0; font-size: 1rem; }
+.keep p { margin: 0; color: var(--muted); font-size: .9375rem; line-height: 1.4; }
+.keep p b { color: var(--text); font-weight: 600; }
+.keep form { display: grid; gap: 10px; }
+.keep input { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); font: inherit; }
+.keep-note:empty { display: none; }
 
 /* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
 .sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: -4px auto 0; flex: none; }

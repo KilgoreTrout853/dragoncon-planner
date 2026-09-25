@@ -1,8 +1,9 @@
-/* Settings: the device readout, the everyday controls, Advanced, Larger text.
-   The number in brackets is the harness line the assertion came from
-   (tests/PORT-LEDGER.md). */
+/* Settings: the device readout, the everyday controls, Advanced, Larger text,
+   and where Keep your plan sits on a build with a backend. The number in
+   brackets is the harness line the assertion came from (tests/PORT-LEDGER.md). */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
+import { fakeBackend } from "../helpers/backend.js";
 
 describe("the Settings sheet", () => {
   let page, handle;
@@ -123,5 +124,42 @@ describe("a boot with Larger text already chosen", () => {
     page.handle.openSheet("settings");
     expect(document.getElementById("bigText").checked).toBe(true);
     page.handle.closeSheet();
+  });
+});
+
+/* The same sheet on a build with a backend (DECISIONS #53): Keep your plan
+   sits between Advanced and Done. These extend [1701] and [1703] to that
+   layout, so both are pinned; they are new tests, not ledger rows, and
+   their titles carry no harness line. */
+describe("the Settings sheet on a build with a backend", () => {
+  let page, panel, advanced;
+  const el = id => document.getElementById(id);
+
+  beforeAll(async () => {
+    page = await bootPage({ backend: fakeBackend() });
+    page.handle.openSheet("settings");
+    panel = el("panel-settings");
+    advanced = el("advanced");
+  }, 30000);
+  afterAll(() => { page.handle.closeSheet(); return page.cleanup(); });
+
+  it("Keep your plan sits after Advanced and before Done, the everyday controls above it as they were", () => {
+    const children = [...panel.children];
+    expect(children[0].id).toBe("sheetTitle");
+    expect(children[4]).toBe(advanced);
+    expect(children[5]).toBe(el("keep"));
+    expect(children[6].contains(el("closeSheet"))).toBe(true);
+    expect(el("keep").hidden).toBe(false);
+  });
+  it("outside Advanced, the Keep section's buttons, then Done and Remove all picks, in that order", () => {
+    expect([...panel.querySelectorAll("button")].filter(b => !advanced.contains(b)).map(b => b.id))
+      .toEqual(["keepSend", "keepConfirm", "keepSignOut", "closeSheet", "resetPicks"]);
+  });
+  it("Remove all picks is still last, still destructive, outside Advanced and on its own row", () => {
+    const reset = el("resetPicks");
+    expect([...panel.querySelectorAll("button, input, select, summary")].pop()).toBe(reset);
+    expect(reset.classList.contains("danger")).toBe(true);
+    expect(advanced.contains(reset)).toBe(false);
+    expect(reset.parentElement).not.toBe(el("closeSheet").parentElement);
   });
 });

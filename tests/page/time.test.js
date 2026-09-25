@@ -20,6 +20,17 @@ describe("a page booted from ?now=", () => {
   }, 30000);
   afterAll(() => page.cleanup());
 
+  /* A new test, not a ledger row: the one read of the real clock, for the
+     stamps sync writes (DECISIONS #12, #51). */
+  it("wallClock() reads the real clock whatever ?now= says, while now() keeps the simulated moment", () => {
+    const before = Date.now(), wall = app.wallClock(), after = Date.now();
+    expect(app.isSimulated()).toBe(true);
+    expect(app.now().getTime()).toBe(app.timeOverride.getTime());
+    expect(wall.getTime()).toBeGreaterThanOrEqual(before);
+    expect(wall.getTime()).toBeLessThanOrEqual(after);
+    expect(wall.getTime()).not.toBe(app.now().getTime());
+  });
+
   describe("one definition of day: the con day, which runs to 5 AM, everywhere", () => {
     let late;
 

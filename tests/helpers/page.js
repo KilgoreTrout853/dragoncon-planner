@@ -35,10 +35,18 @@ function template() {
 
 let live = null;
 
+/* The build's two backend constants, which Vitest makes globals (DECISIONS
+   #53): set on every boot, before the fresh import, and put back by
+   cleanup(). */
+const BACKEND_GLOBALS = ["__DC_SUPABASE_URL__", "__DC_SUPABASE_KEY__"];
+
 /* data: a schedule the fixtures do not have, already parsed - a test's copy of
    the sample with what it needs changed. The page is handed a copy of it,
-   since the page keeps and mutates what it loads. */
-export async function bootPage({ fixture = "sample", data, now = DEFAULT_NOW, channel = "", build = "", url, matchMedia, reload } = {}) {
+   since the page keeps and mutates what it loads.
+   backend: a fake of the backend (tests/helpers/backend.js), whose address
+   and key the page is built with and whose fetch it talks to. Without one
+   the page is built with no backend, whatever the shell's environment. */
+export async function bootPage({ fixture = "sample", data, now = DEFAULT_NOW, channel = "", build = "", url, matchMedia, reload, backend } = {}) {
   if (live) throw new Error("bootPage: a page is already live in this file; call its cleanup() first");
   const jsdom = globalThis.jsdom;
   if (!jsdom) throw new Error("bootPage needs Vitest's jsdom environment");
@@ -54,6 +62,13 @@ export async function bootPage({ fixture = "sample", data, now = DEFAULT_NOW, ch
   document.querySelector('meta[name="dc-channel"]').setAttribute("content", channel);
   document.querySelector('meta[name="dc-build"]').setAttribute("content", build);
   jsdom.reconfigure({ url: url || `https://example.test/${now ? `?now=${now}` : ""}` });
+
+  /* the backend the page is built with, and the fetch it talks to */
+  const hadGlobals = Object.fromEntries([...BACKEND_GLOBALS, ...(backend ? ["fetch"] : [])].map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+  const setGlobal = (name, value) => Object.defineProperty(globalThis, name, { value, writable: true, configurable: true });
+  setGlobal("__DC_SUPABASE_URL__", backend ? backend.url : "");
+  setGlobal("__DC_SUPABASE_KEY__", backend ? backend.key : "");
+  if (backend) setGlobal("fetch", backend.fetch);
 
   /* what the module reads at import, and what boot() registers against */
   const had = { matchMedia: window.matchMedia, confirm: window.confirm };
@@ -127,6 +142,10 @@ export async function bootPage({ fixture = "sample", data, now = DEFAULT_NOW, ch
     window.sessionStorage.clear();
     window.matchMedia = had.matchMedia;
     window.confirm = had.confirm;
+    for (const [name, descriptor] of Object.entries(hadGlobals)) {
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+      else delete globalThis[name];
+    }
     delete window.navigator.serviceWorker;
     document.documentElement.removeAttribute("class");
     document.documentElement.removeAttribute("style");
