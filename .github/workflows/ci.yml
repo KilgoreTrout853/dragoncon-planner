@@ -1,8 +1,10 @@
 name: CI
 
 # DECISIONS #26. One job per toolchain: Node owns the client, Python owns the
-# pipeline. The job ids `client` and `pipeline` are the check names the
-# ruleset on `next` requires - renaming either one un-gates the branch.
+# pipeline, and SQL the database (#52). The job ids `client` and `pipeline` are
+# the check names the ruleset on `next` requires - renaming either one un-gates
+# the branch; `database` joins them after its first green run, by hand
+# (ROADMAP, Checklist).
 on:
   pull_request:
     branches: [next, main]
@@ -50,3 +52,23 @@ jobs:
       # And a live year's, once a run past its ids stage has committed one (#42, #44).
       - if: hashFiles('data/2027/events.v2.json') != ''
         run: python events_v2.py --season data/2027/season.json --check
+
+  # The schema's row-level security, helpers, triggers and RPCs, tested with
+  # pgTAP against a local database (#52; docs/sync/contract.md, section 3). The
+  # Supabase CLI is supabase/'s own pinned dev dependency, never the root's; the
+  # database runs in Docker, which GitHub's Ubuntu runners have running.
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: supabase/package-lock.json
+
+      - run: npm ci --prefix supabase
+      # The database alone: the migrations and the seed applied.
+      - run: npm --prefix supabase run start
+      - run: npm --prefix supabase test

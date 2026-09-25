@@ -111,8 +111,11 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/test_venues_stage.py` | The venues step on an inline venues file: the split, with every case `scraper.split_hotel` held; each rule of the grammar reading its rooms and failing on a missing room or two levels; alias, exact and rule in that order; the Mart, floors, partitions, the rewrites and the trailing note; the placeless hotels and the re-split; the report and its counters; and purity. It reads no `data/`. |
 | `tests/test_tag_events.py` | What the retired tagger still does: refuse the frozen file, and carry a prompt to `claude -p` on stdin, isolated for the tag stage. |
 | `tests/sample-events.json`, `tests/sample-events.v1.json`, `tests/make_sample.py` | 558 synthetic events: in the v2 shape, the fixture for the page tests and the build smoke, which `tools/sample_v2.py` makes from the v1 sample; and the seeded script that generates the v1 sample, which keeps v1's dedupe, `_dedupe` and `_merge_group`, to reproduce it. |
+| `supabase/config.toml`, `supabase/package.json`, `supabase/package-lock.json` | The backend's local project (DECISIONS #52; `docs/sync/contract.md`, section 4, as built): `supabase init`'s config - the project `dragoncon-planner`, Postgres 17, storage and realtime off - and the Supabase CLI, pinned in a package of its own so that the root `npm ci` never fetches it. `npm --prefix supabase run start` starts the database alone, in Docker; `test`, `reset` and `stop` are the others. No hosted project exists yet, and the client talks to none. |
+| `supabase/migrations/`, `supabase/seed.sql` | The schema, numbered SQL the CLI applies, one migration a pull request and never edited once merged: so far `20260925154849_sync_schema.sql`, the ten tables of `contract.md`'s section 2, their row-level security and grants by name, the two helpers, the stamp triggers and the three RPCs. `seed.sql` is a local dataset alone - three users, a crew of two, a few picks and follows - which no hosted project runs. |
+| `supabase/tests/` | pgTAP, one file per concern, each a transaction rolled back: the structure and the grants, anon, a stranger, a member, the stamps, the RPCs, the job tables, the cascades and push subscriptions (`contract.md`, section 3, as built). Run by `npm --prefix supabase test`, and by CI's `database` job. |
 | `.github/workflows/scrape.yml` | The 2027 pipeline's workflow (DECISIONS #48; `contract.md`, The run, as built): hourly at `17 * * * *` inside the season window, and by `workflow_dispatch` with `force`, `to`, `limit`, `requests`, `season` and `target`. It checks the target out - the `SCRAPE_TARGET` repository variable - with the bot's token, runs `pipeline.py`, writes the summary to the job summary, and lands a run that changed a file by pull request: a `schedule/<stamp>` branch, the bot's older pull requests closed as superseded, auto-merge on, and CI the gate. |
-| `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client` and `pipeline`. |
+| `.github/workflows/ci.yml` | CI on every PR into `next` or `main` and every push to `next`: jobs `client`, `pipeline` and `database`. |
 | `.github/dependabot.yml` | Monthly update PRs for GitHub Actions only. |
 | `package.json`, `.nvmrc`, `eslint.config.js`, `vitest.config.js` | Client tooling: scripts `dev`, `build`, `preview`, `lint`, `test`; Node 24; three ESLint rules; Vitest, with jsdom as its default environment and the year's two data modules resolved as the build resolves them. |
 | `requirements.txt` | Every package the pipeline and its tests import, and every package those need, each pinned; `colorama` and `tzdata` by a marker, for Windows alone. Python 3.13, for CI and the scrape workflow alike. |
@@ -668,7 +671,21 @@ npm run lint                  # eslint .
 npm test                      # vitest run: everything under tests/ that ends .test.js
 pip install -r requirements.txt
 python -m pytest tests/       # every tests/test_*.py: the pipeline's tests
+npm ci --prefix supabase         # once; the Supabase CLI, pinned in supabase/package.json
+npm --prefix supabase run start  # the local database, in Docker: the migrations and seed.sql applied
+npm --prefix supabase test       # pgTAP: every supabase/tests/*.test.sql against it
+npm --prefix supabase run reset  # the database afresh: the migrations and the seed again
+npm --prefix supabase run stop
 ```
+
+The database is tested by pgTAP (DECISIONS #52; `docs/sync/contract.md`,
+section 3, as built): one file per concern under `supabase/tests/`, each a
+transaction rolled back, run by the Supabase CLI's `test db` against the
+local database, which needs Docker running and nothing else of Supabase's.
+A test user is a row inserted into `auth.users`, and a test acts as them
+through the `authenticated` role and a `request.jwt.claims` that names
+them, or as anon. Each case is refused - 42501, where no grant reaches the
+role - or empty, where a grant exists and row-level security filters.
 
 The client is tested by Vitest (DECISIONS #24), in five kinds of file.
 
@@ -790,6 +807,13 @@ the file afresh and compares it
 ruleset on `next` requires both
 jobs to pass before a pull request can merge (DECISIONS #26), and it knows
 them by their job ids: renaming either one un-gates the branch.
+
+A third job, `database` (DECISIONS #52), installs the Supabase CLI with
+`npm ci --prefix supabase` - `supabase/`'s own lockfile, never the root's -
+starts the local database with the migrations and the seed applied, and
+runs the pgTAP tests. Docker is already running on GitHub's Ubuntu runners.
+It is not a required check until its first green run, when it is added to
+the `next` ruleset by hand (ROADMAP, Checklist).
 
 ## Branches
 

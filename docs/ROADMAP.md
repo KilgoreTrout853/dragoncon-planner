@@ -172,7 +172,7 @@ pipeline absorbs takes a free review slot.
 
 1. The channel in the key (#39) - built.
 2. Docs: `docs/sync/contract.md` sections 1-4, DECISIONS #50-#52 - built.
-3. The schema: migrations, RLS, pgTAP, the `database` CI job.
+3. The schema: migrations, RLS, pgTAP, the `database` CI job - built.
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
