@@ -375,8 +375,10 @@ the build is for, `YEAR`, the `YY` every storage key carries, and that
 year's season file, inlined at build as `virtual:season` (DECISIONS #49).
 `util`: formatting
 and date helpers. `storage`: `loadJSON()`, `saveJSON()` and their session
-twins. `platform`: `IS_IOS`, `isStandalone()`. `build`: the stamp `BUILD`,
-the dev-build mark, the device readout. `state`: `settings` and `state`.
+twins. `platform`: `IS_IOS`, `isStandalone()`. `build`: the stamp `BUILD`;
+`storageKey()`, which names every key the app stores - `dc<yy>.` and a name,
+and the channel after it on a stamped build; the dev-build mark; the device
+readout. `state`: `settings` and `state`.
 `time`: `now()`, the override, `CON` - the season file's days - and the
 days' names, `conPhase()`, `conDayKey()`, `effectiveNow()`. `venues`: hotel
 identity, the `WALK` table, the slack, `walkMin()`, `placeHTML()`, all from
@@ -556,9 +558,12 @@ runs once per animation frame.
 **The sheet.** One bottom sheet, three panels: Settings, an event's detail, a
 hotel's picks for the day. Swipe down to dismiss.
 
-**Stored keys.** Everything is `localStorage` but the last row, and every
-key carries the build's year, `<yy>` its last two digits (DECISIONS #49):
-a build for a new year starts with none of the last one's.
+**Stored keys.** Everything is `localStorage` but the last row. Every key
+carries the build's year, `<yy>` its last two digits, so a build for a new
+year starts with none of the last one's (DECISIONS #49); and on a build
+stamped with a channel every key ends `.<channel>` - `dc<yy>.picks.next` on
+the next site - so the next site reads none of the live site's, which shares
+its origin (#39). `storageKey()` in `build.js` names them all.
 
 | Key | Read in | Written in | What |
 |---|---|---|---|
@@ -569,7 +574,7 @@ a build for a new year starts with none of the last one's.
 | `dc<yy>.bigtext` | `boot` | `shell` | Larger text. Its own key, so nothing that resets settings shrinks it; all sizes outside the map SVG are in `rem` |
 | `dc<yy>.archiveNoticeDismissed` | `shell` | `dispatch` | The year whose "has ended" notice was dismissed |
 | `dc<yy>.nudgeSnoozedUntil` | `now` | `dispatch` | When the install nudge may show again |
-| `dc<yy>.timeOverride[.<channel>]` (`sessionStorage`) | `time` | `time` | The simulated clock |
+| `dc<yy>.timeOverride` (`sessionStorage`) | `time` | `time` | The simulated clock |
 
 ## Offline
 
@@ -653,7 +658,7 @@ secret is involved. To deploy now rather than within ten minutes:
 `gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next`.
 
 The live and dev sites share an origin; the channel stamp is what keeps
-their caches and session keys apart (DECISIONS #15).
+their caches and storage keys apart (DECISIONS #15, #39).
 
 ## Tests and lint
 

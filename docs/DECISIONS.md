@@ -152,7 +152,7 @@ Claude Code never commits to `main`.
 underneath it.
 **Cost:** Every change to the live site, including a one-line fix, is a PR.
 
-### 15. A separate dev site, stamped by a build step — Standing (2026-09-08)
+### 15. A separate dev site, stamped by a build step — Standing (2026-09-08) — its channel-specific session key extended to every storage key by PR #52 (see #39)
 **Decided:** `build.py` copies the site into an output folder, dropping
 source-only files (tests, scripts, README), and stamps a channel and build
 id into `index.html` (`<meta name="dc-channel">`, `<meta name="dc-build">`)
@@ -748,7 +748,7 @@ terms, reviewed flag or parent of a work in the block now changes
 marks such works reviewed now rebuilds the file. The census report does not
 read the block.
 
-### 39. The client switch as built — Standing (2026-09-22) — by year since #49: the file is `DC_YEAR`'s, and every storage key carries the year, so a build for 2027 starts with no picks, follows or settings of 2026's, by design; the update notice keys on the `digest`
+### 39. The client switch as built — Standing (2026-09-22) — by year since #49: the file is `DC_YEAR`'s, and every storage key carries the year, so a build for 2027 starts with no picks, follows or settings of 2026's, by design; the update notice keys on the `digest`; its Cost's shared storage closed by PR #52: every storage key carries the channel, `storageKey()` in `src/build.js`
 **Decided:** The client on `next` reads `data/2026/events.v2.json` (#33,
 #38), and every surface keeps its behaviour: plumbing and parity, not a
 search redesign (#36). `docs/discover/schema-v2.md` has the detail, under
