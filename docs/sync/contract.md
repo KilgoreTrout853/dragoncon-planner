@@ -36,7 +36,10 @@ the same PR.
     two plans. A recovering phone that was already anonymous and in a crew
     leaves that membership and its subscription behind, with the anonymous
     user; the person rejoins by the link and turns notifications on again.
-    Nothing carries them across: this is documented, not built.
+    Nothing carries them across: this is documented, not built. Turning
+    notifications on again, the phone unsubscribes and subscribes afresh,
+    which gives it a new endpoint, so no endpoint ever changes hands; the
+    old row is pruned when a send to it fails.
 - **Two devices.** Nothing keeps two signed-in devices in step beyond
   latest stamp wins (section 2).
 - **Stamps** read the real clock, never `now()`, so a simulated clock
@@ -60,13 +63,13 @@ the same PR.
 |---|---|---|---|
 | `picks` | the client, as its user | its user; crewmates, by policy | One row per event a user has starred, or unstarred. |
 | `follows` | the client, as its user | its user alone | One row per follow, or unfollow. |
-| `crews` | `create_crew`, `regenerate_invite` | its members | A crew and its invite token. |
-| `crew_members` | `create_crew`, `join_crew`; a plain delete to leave or remove | the crew's members | A membership, with its display name. |
+| `crews` | `create_crew`, `regenerate_invite`; the creator's plain update of the name, and delete | its members | A crew and its invite token. |
+| `crew_members` | `create_crew`, `join_crew`; a plain update of one's own display name; a plain delete to leave or remove | the crew's members | A membership, with its display name. |
 | `push_subscriptions` | the client, as its user | its user; the push job | One row per browser endpoint. |
 | `schedule_events` | the mirror job | the push job | The year's events, the fields the push job reads. |
-| `schedule_changes` | the mirror job | the push job | The change log's lines, and each run's `fetch_code_changed`. |
+| `schedule_changes` | the mirror job | the push job | The change log's lines, with their year and each run's `fetch_code_changed`. |
 | `push_sent` | the push job | the push job | What was sent to whom: the idempotence ledger. |
-| `mirror_state` | the mirror job | the mirror job | One row per year. |
+| `mirror_state` | the mirror job | the mirror job | One row per year: how far the mirror has read. |
 | `flags` | by hand | the push job; `join_crew` | `push_enabled`, the kill switch, and `crew_size_cap`. |
 
 ### Picks and follows
@@ -81,8 +84,9 @@ the same PR.
 - Two tables of one shape, deliberately: crewmates may read picks and
   never follows, and that boundary is structural.
 - **Latest stamp wins,** enforced in the database by a trigger, not by a
-  clause in the client's write: a write whose `changed_at` is older than
-  the row's leaves the row as it was. A stamp is the client's real clock
+  clause in the client's write: a write whose `changed_at` is not strictly
+  newer than the row's leaves the row as it was - an equal stamp is a
+  replayed operation. A stamp is the client's real clock
   (section 1), clamped by a trigger to the server's time plus five
   minutes. This is #9's conflict rule, per row.
 - The client's local lists, `dc<yy>.picks` and `dc<yy>.follows`, are never
@@ -111,9 +115,10 @@ year, and a dead one is pruned when a send to it fails.
   cancelled. `start` and `end` are `timestamptz`, converted at mirror time
   from the file's local times in the con's zone, `season.json`'s `tz`,
   America/New_York.
-- `schedule_changes`: the `changes.jsonl` line as it is - `run`, `sha`,
-  `id`, `kind`, `from`, `to`, `cause` (`docs/pipeline/contract.md`, The
-  change log) - plus the run's `fetch_code_changed`, from `last-run.json`.
+- `schedule_changes`: `year`, and the `changes.jsonl` line as it is -
+  `run`, `sha`, `id`, `kind`, `from`, `to`, `cause`
+  (`docs/pipeline/contract.md`, The change log) - plus the run's
+  `fetch_code_changed`, from `last-run.json`.
 - Both are written by the mirror job after a scrape's pull request merges
   (section 6; #50). The pipeline never learns Supabase exists.
 - The mirror always mirrors. Suppression is the push job's, by the flag:
@@ -126,7 +131,8 @@ year, and a dead one is pruned when a send to it fails.
 - `push_sent`: user, year, kind - `starts-soon` or `pick-changed` - key,
   `sent_at`: the push job's idempotence ledger. It carries `year` because
   retention deletes by year.
-- `mirror_state`: one row per year (section 6).
+- `mirror_state`: one row per year - `last_run`, `last_sha` and
+  `updated_at`, how far the mirror has read; section 6 may add columns.
 - `flags`: name and value; two, `push_enabled`, the kill switch, and
   `crew_size_cap`. Whether a captcha is required is not a flag but the
   Supabase project's setting (section 1).
@@ -148,6 +154,46 @@ year, and a dead one is pruned when a send to it fails.
   client access at all: no policy for any app role. The jobs reach them,
   and `join_crew` reads `flags` as a security definer.
 
+### The data model, as built
+
+`supabase/migrations/20260925154849_sync_schema.sql` (PR #54), the first
+migration.
+
+- **The keys.** `picks`: user, year and event id. `follows`: user, year,
+  kind and key. `crews`: a uuid. `crew_members`: crew and user.
+  `push_subscriptions`: the endpoint. `schedule_events`: year and id.
+  `schedule_changes`: year, run, id and kind. `push_sent`: user, kind and
+  key. `mirror_state`: the year. `flags`: the name. The columns are
+  `user_id`, `event_id` and `crew_id` where a user, an event or a crew is
+  meant.
+- **The checks.** Every `year` is an integer from 2026 to 2099. A crew's
+  name is 1 to 40 characters and a display name 1 to 24, each already
+  trimmed: the RPCs trim what they are given, and a plain update must send
+  it trimmed. `follows.kind` is one of its four, `push_sent.kind` one of
+  its two, `schedule_changes.kind` one of the change log's twelve and its
+  `cause` `source` or `code`. An event id, a follow's key and an endpoint
+  are never empty.
+- **The types.** Every stamp is `timestamptz`: `changed_at`, and
+  `schedule_changes.run`, the line's value in the database's type; `start`
+  and `end` too. `from` and `to` are `jsonb`, and the subscription's two
+  keys are `p256dh` and `auth`. `end`, `from` and `to` are reserved words,
+  quoted in SQL.
+- **The invite token** defaults to `new_invite_token()`: 16 random bytes
+  from pgcrypto's `gen_random_bytes`, base64url with no padding, 22
+  characters.
+- **`flags`** is seeded by the migration, not by `seed.sql`, so a hosted
+  project has it: `push_enabled` false and `crew_size_cap` 25, each a
+  one-row update to change.
+- **The indexes:** `picks` and `follows` by user and `changed_at`,
+  `crew_members` by user, `schedule_events` by year and start.
+  `schedule_changes` by year and run is its primary key's leading
+  columns, and has no index of its own.
+- **The triggers** on `picks` and `follows`: `*_1_clamp`, before insert
+  or update, and `*_2_latest_wins`, before update, which returns no row
+  unless the stamp is strictly newer, so the client's upsert updates
+  nothing. A table's before triggers fire in name order, so the clamp runs
+  first and latest-wins compares clamped stamps.
+
 ## 3. Security
 
 #52. Row-level security is the whole defence, and its mistakes are silent:
@@ -165,7 +211,7 @@ wrong rows come back, and nothing errors (#25).
   the picks it may see that changed since its watermark, and row-level
   security narrows it to its own and its crewmates'.
 - **Three RPCs,** because a plain write cannot do what they do:
-  - `create_crew(name, display_name)`: the crew and its creator's
+  - `create_crew(year, name, display_name)`: the crew and its creator's
     membership, in one transaction.
   - `join_crew(token, display_name)`: the caller holds a token, not an id;
     the cap is read from `flags`.
@@ -173,15 +219,70 @@ wrong rows come back, and nothing errors (#25).
     new secret.
 
   Everything else is a plain write the policies judge: a star, a follow,
-  leaving, removing - the creator, any member of the crew - and
+  leaving, removing - the creator, any member of the crew - renaming or
+  deleting a crew, the creator's too, editing one's own display name, and
   subscribing.
 - **The tests,** named here because the mistakes are silent: as the anon
   role, as a signed-in stranger and as a member, on every client table and
   every RPC; the recursion case; an older stamp losing; the job tables
-  returning nothing to any app role. pgTAP, under `supabase/tests/`, run by
-  the Supabase CLI against a local database in a `database` CI job (#24,
-  #26), which becomes a required check on `next` after its first green run
-  (ROADMAP, Checklist). They exist before any crew screen.
+  refused to every app role. Each case is refused or empty, and says
+  which: refused where no grant reaches the role, empty where a grant
+  exists and row-level security filters. pgTAP, under `supabase/tests/`,
+  run by the Supabase CLI against a local database in a `database` CI job
+  (#24, #26), which becomes a required check on `next` after its first
+  green run (ROADMAP, Checklist). They exist before any crew screen.
+
+### Security, as built
+
+The same migration (PR #54).
+
+- **Privileges.** Before creating anything, the migration alters the
+  default privileges of what `postgres` creates in `public`, so that no
+  table, sequence or function reaches `anon` or `authenticated` until a
+  migration grants it by name. PUBLIC's right to execute a function is
+  Postgres's own default and cannot be revoked for one schema, so each
+  function revokes it by name. `00_structure.test.sql` holds the list of
+  what each role reaches, and a later migration that adds to it changes
+  that test. `service_role` keeps Supabase's grants, for the jobs.
+- **Grants to `authenticated`.** On `picks` and `follows`: select, insert,
+  and an update of `picked` or `followed` and `changed_at` alone; no
+  delete. On `crews` and `crew_members`: select, delete, and an update of
+  `name` or `display_name` alone. On `push_subscriptions`: select, insert,
+  delete, and an update of its keys and `last_seen_at`. On the five job
+  tables: nothing.
+- **Two helpers,** security definer, stable, `search_path` pinned to
+  `public`, executable by `authenticated` alone: `is_crew_member(crew_id)`,
+  which the policies on `crews` and `crew_members` use; and
+  `shares_crew_with(other_user, year)`, whether the caller shares a crew
+  of that year with another user, which the `picks` policy uses, so a
+  crewmate reads the picks of the crew's year only.
+- **The policies,** every one `to authenticated`: `picks` - read one's
+  own or a crewmate's, add and change one's own; `follows` - read, add and
+  change one's own; `crews` - members read, the creator renames and
+  deletes; `crew_members` - members read, a member changes their own
+  display name, deletes their own row, and the creator deletes any;
+  `push_subscriptions` - one's own, for everything. Nothing for anon, and
+  nothing on the job tables. The creator's rename, delete and removal
+  read the crew as a member, so they hold while the creator is one.
+- **The RPCs,** security definer, `search_path` pinned, executable by
+  `authenticated` alone. `create_crew(year, name, display_name)` returns
+  the crew, its token with it. `join_crew(token, display_name)` locks the
+  crew's row, so two joins at the cap cannot both pass, returns the crew
+  unchanged to a member, and refuses at `crew_size_cap`, or at any size if
+  the flag is missing. `regenerate_invite(crew_id)` returns the new token.
+  Their errors: 42501, not signed in or not the creator; P0002, no crew
+  has that invite; 53400, the crew is full; 22023, no such year; 23514, a
+  name out of bounds, from the table's check.
+- **The tests,** nine files under `supabase/tests/`, each one transaction
+  rolled back: `00_structure`, `01_anon`, `02_stranger`, `03_member`,
+  `04_stamps`, `05_rpcs`, `06_job_tables`, `07_cascades` and
+  `08_push_subscriptions`. A test user is a row inserted into
+  `auth.users`. The test acts as that user through the `authenticated`
+  role and a `request.jwt.claims` naming them, which `auth.uid()` reads,
+  and as anon through `set local role anon`. A mutation pass - every
+  policy dropped, each helper dropped and made to answer yes, each stamp
+  trigger dropped, a grant to anon and one to `authenticated` on a job
+  table - failed at least one test each; it is not committed.
 
 ## 4. Migrations
 
@@ -194,6 +295,26 @@ wrong rows come back, and nothing errors (#25).
 - **No TypeScript.** #23 left it to this step, where generated database
   types were to be the payoff; ten small tables whose shapes live here do
   not earn it.
+
+### Migrations, as built
+
+PR #54.
+
+- **The CLI** is `supabase/package.json`'s dev dependency, pinned at
+  2.118.0 with its own lockfile. `npm ci --prefix supabase` installs it;
+  the root `npm ci` - CI's `client` job, the next site's build - never
+  does, since its binary is about 150 MB.
+- **`supabase/config.toml`** is `supabase init`'s: the project
+  `dragoncon-planner`, Postgres 17, and storage and realtime turned off,
+  since nothing uses them and `db start` then pulls neither image. The
+  hosted projects are to match it (#50, operations). `supabase/.gitignore`
+  is the CLI's own.
+- **The commands,** from the repo root with Docker running:
+  `npm --prefix supabase run start` starts the database alone and applies
+  the migrations and `seed.sql`; `npm --prefix supabase test` runs pgTAP
+  against it; `run reset` builds it afresh, and `run stop` stops it.
+- **CI's `database` job** runs the install, the start and the tests on
+  Ubuntu, where Docker is running.
 
 ## 5. Sync rules — to follow
 

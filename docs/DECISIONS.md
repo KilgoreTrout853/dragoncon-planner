@@ -1370,7 +1370,7 @@ plan (#8). A recovering phone's crew membership stays behind until the
 person rejoins. A stamp ignores the simulated clock, so a test under
 `?now=` stamps the real time.
 
-### 52. The data model and security — Decided, not built (2026-09-25)
+### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built)
 **Decided:** Ten tables in Supabase's Postgres, row-level security on
 every one, and three RPCs; `docs/sync/contract.md`, sections 2-4, has the
 columns, the policies and the tests.

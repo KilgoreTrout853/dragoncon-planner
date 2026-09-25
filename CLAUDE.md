@@ -8,7 +8,10 @@
    `next`, squash-merged.
 3. Before writing code, summarize what you found and your plan.
 4. Before pushing: `npm run lint`, `npm test` and
-   `python -m pytest tests/` all green.
+   `python -m pytest tests/` all green; and when anything under `supabase/`
+   changed, the database tests too: `npm --prefix supabase run start`, then
+   `npm --prefix supabase test`. They need Docker running - the local
+   database is a container - so start Docker Desktop first.
 5. Every read of the current time goes through `now()` (DECISIONS #12). No
    bare `new Date()` or `Date.now()` outside `src/time.js`; `npm run lint`
    fails on one.

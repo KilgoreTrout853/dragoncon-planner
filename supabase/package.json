@@ -1,0 +1,14 @@
+{
+  "name": "dragoncon-planner-supabase",
+  "private": true,
+  "description": "The Supabase CLI, pinned, for the local database and its pgTAP tests (DECISIONS #52). Not the client's: the root package.json never installs it.",
+  "scripts": {
+    "start": "supabase db start",
+    "test": "supabase test db",
+    "reset": "supabase db reset",
+    "stop": "supabase stop --no-backup"
+  },
+  "devDependencies": {
+    "supabase": "2.118.0"
+  }
+}
