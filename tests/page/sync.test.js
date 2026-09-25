@@ -465,6 +465,285 @@ describe("recover: the phone's plan goes up as the recovered user's, and nothing
   });
 });
 
+describe("sign out sends what waits first", () => {
+  let page, app, handle, fake;
+  const SYNC_KEYS = ["session", "outbox", "syncStamp", "crew", "crewPicks"];
+  const kept = () => Object.fromEntries(SYNC_KEYS.map(name => [name, window.localStorage.getItem(KEY(name))]));
+  async function signOut() {
+    el("keepSignOut").click();
+    expect(el("keepSignOut").disabled).toBe(true);
+    await page.until(() => !el("keepSignOut").disabled, 5000, "the sign-out");
+  }
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    const ada = fake.held("ada@example.test");
+    signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+    handle.openSheet("settings");
+  }, 30000);
+  afterAll(() => { handle.closeSheet(); return page.cleanup(); });
+
+  const FAIL_POSTS = r => (r.method === "POST" && r.path.startsWith("/rest/v1/") ? { status: 503, code: "PGRST000" } : null);
+  const waitingLine = () => (el("keepWaiting").hidden ? null : el("keepWaiting").textContent);
+
+  it("with a change the server does not take, it tries once more, refuses, says so, and leaves the session and sync's keys as they were", async () => {
+    fake.fail = FAIL_POSTS;
+    handle.picks.set([ids[1]]);
+    await app.syncSettled();
+    const before = kept(), tries = posts(fake, "picks").length;
+    await signOut();
+    expect(posts(fake, "picks").length).toBe(tries + 1);
+    expect(waitingLine()).toBe("1 change is waiting to send; connect and try again");
+    expect(el("keep").children[2]).toBe(el("keepWaiting"));
+    expect(kept()).toEqual(before);
+    expect(before.session).not.toBe(null);
+    expect(fake.to("/auth/v1/logout?scope=local")).toEqual([]);
+    expect(el("keepIn").hidden).toBe(false);
+    expect(el("keepNote").textContent).toBe("");
+    expect(el("keepSync").textContent).toBe("The server had a problem. Your changes are safe on this phone, and will be sent again.");
+  });
+  it("the line counts what waits afresh each time the section is drawn", async () => {
+    handle.picks.set([ids[1], ids[2]]);
+    await app.syncSettled();
+    handle.openSheet("settings");
+    expect(waitingLine()).toBe("2 changes are waiting to send; connect and try again");
+  });
+  it("and goes once the server has taken them: the next run redraws it", async () => {
+    fake.fail = null;
+    document.dispatchEvent(new Event("visibilitychange"));
+    await app.syncSettled();
+    expect(waitingLine()).toBe(null);
+    expect(el("keepSync").textContent).toBe("Synced just now");
+    handle.openSheet("settings");
+    expect(waitingLine()).toBe(null);
+  });
+  it("with a change waiting that the server will take, it sends it, then signs out: the session and sync's four keys go, and the plan stays", async () => {
+    fake.fail = FAIL_POSTS;
+    handle.picks.set([ids[1], ids[2], ids[3]]);
+    await app.syncSettled();
+    handle.openSheet("settings");
+    expect(waitingLine()).toBe(null);
+    fake.fail = null;
+    const plan = window.localStorage.getItem(KEY("picks")), from = fake.requests.length;
+    await signOut();
+    expect(fake.requests.slice(from).map(r => `${r.method} ${r.path.split("?")[0]}`)).toEqual(["POST /rest/v1/picks", "POST /auth/v1/logout"]);
+    expect(fake.rows("picks").filter(r => r.picked).map(r => r.event_id).sort()).toEqual([ids[1], ids[2], ids[3]].sort());
+    for (const name of SYNC_KEYS) expect(window.localStorage.getItem(KEY(name)), name).toBe(null);
+    expect(window.localStorage.getItem(KEY("picks"))).toBe(plan);
+    expect(el("keepNote").textContent).toBe("Signed out. Your plan stays on this phone.");
+    expect(el("keepOut").hidden).toBe(false);
+    expect(el("keepWaiting").hidden).toBe(true);
+  });
+});
+
+describe("a star made while sign-out's drain is out", () => {
+  let page, app, handle, fake;
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    const ada = fake.held("ada@example.test");
+    signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+    handle.openSheet("settings");
+  }, 30000);
+  afterAll(() => { handle.closeSheet(); return page.cleanup(); });
+
+  it("goes in the drain that follows it, and the sign-out goes after both", async () => {
+    fake.fail = r => (r.method === "POST" && r.path.startsWith("/rest/v1/") ? { status: 503, code: "PGRST000" } : null);
+    handle.picks.set([ids[1]]);
+    await app.syncSettled();
+    fake.fail = null;
+    let held = false;
+    fake.defer = r => { if (held || r.method !== "POST") return false; held = true; return true; };
+    const from = posts(fake, "picks").length;
+    el("keepSignOut").click();
+    await page.until(() => posts(fake, "picks").length === from + 1, 5000, "sign-out's drain");
+    handle.picks.set([ids[1], ids[2]]);
+    fake.defer = null;
+    fake.release();
+    await page.until(() => !el("keepSignOut").disabled, 5000, "the sign-out");
+    expect(posts(fake, "picks").slice(from).map(r => r.body.map(b => b.event_id))).toEqual([[ids[1]], [ids[2]]]);
+    expect(el("keepNote").textContent).toBe("Signed out. Your plan stays on this phone.");
+    expect(window.localStorage.getItem(KEY("session"))).toBe(null);
+  });
+});
+
+describe("a sign-out tapped while a drain is out", () => {
+  let page, app, handle, fake;
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    const ada = fake.held("ada@example.test");
+    signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+    handle.openSheet("settings");
+  }, 30000);
+  afterAll(() => { handle.closeSheet(); return page.cleanup(); });
+
+  it("waits for it, and when it fails, tries afresh before judging: the fresh try is taken, and the sign-out goes", async () => {
+    let posted = 0;
+    fake.fail = r => (r.method === "POST" && r.path.startsWith("/rest/v1/") && posted++ === 0 ? { status: 503, code: "PGRST000" } : null);
+    fake.defer = r => r.method === "POST" && r.path.startsWith("/rest/v1/") && posted === 0;
+    const from = posts(fake, "picks").length;
+    handle.picks.set([ids[1]]);
+    await page.until(() => posts(fake, "picks").length === from + 1, 5000, "the tap's drain");
+    el("keepSignOut").click();
+    fake.defer = null;
+    fake.release();
+    await page.until(() => !el("keepSignOut").disabled, 5000, "the sign-out");
+    expect(posts(fake, "picks").length).toBe(from + 2);
+    expect(el("keepNote").textContent).toBe("Signed out. Your plan stays on this phone.");
+    expect(fake.rows("picks").find(r => r.event_id === ids[1]).picked).toBe(true);
+  });
+});
+
+describe("a run a trigger starts while sign-out waits on a drain", () => {
+  let page, app, handle, fake;
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    const ada = fake.held("ada@example.test");
+    signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+    handle.openSheet("settings");
+  }, 30000);
+  afterAll(() => { handle.closeSheet(); return page.cleanup(); });
+
+  it("is waited for too, and sign-out still gets its own try after it", async () => {
+    let posted = 0;
+    fake.defer = r => r.method === "POST" && r.path.startsWith("/rest/v1/") && posted === 0;
+    fake.fail = r => (r.method === "POST" && r.path.startsWith("/rest/v1/") && posted++ === 0 ? { status: 503, code: "PGRST000" } : null);
+    const from = posts(fake, "picks").length, reads = () => fake.requests.filter(r => r.method === "GET" && r.path.startsWith("/rest/v1/crews")).length;
+    handle.picks.set([ids[1]]);
+    await page.until(() => posts(fake, "picks").length === from + 1, 5000, "the tap's drain");
+    el("keepSignOut").click();
+    const pulls = reads();
+    document.dispatchEvent(new Event("visibilitychange"));
+    fake.defer = null;
+    fake.release();
+    await page.until(() => !el("keepSignOut").disabled, 5000, "the sign-out");
+    expect(reads()).toBe(pulls + 1);
+    expect(posts(fake, "picks").length).toBe(from + 2);
+    expect(el("keepNote").textContent).toBe("Signed out. Your plan stays on this phone.");
+    expect(fake.rows("picks").find(r => r.event_id === ids[1]).picked).toBe(true);
+  });
+});
+
+describe("a refused sign-out's line, when a drain no one saw has sent what waited", () => {
+  let page, app, handle, fake;
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    const ada = fake.held("ada@example.test");
+    signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+    handle.openSheet("settings");
+  }, 30000);
+  afterAll(() => { handle.closeSheet(); return page.cleanup(); });
+
+  it("is gone, and a change made after is no refusal's", async () => {
+    const FAIL = r => (r.method === "POST" && r.path.startsWith("/rest/v1/") ? { status: 503, code: "PGRST000" } : null);
+    fake.fail = FAIL;
+    handle.picks.set([ids[1]]);
+    await app.syncSettled();
+    el("keepSignOut").click();
+    await page.until(() => !el("keepSignOut").disabled, 5000, "the sign-out");
+    expect(el("keepWaiting").textContent).toBe("1 change is waiting to send; connect and try again");
+    handle.closeSheet();
+    /* the retry sends it, with the sheet shut: no run, and nothing drawn */
+    fake.fail = null;
+    await app.drain();
+    expect(fake.rows("picks").find(r => r.event_id === ids[1]).picked).toBe(true);
+    fake.fail = FAIL;
+    handle.picks.set([ids[1], ids[2]]);
+    await app.syncSettled();
+    handle.openSheet("settings");
+    expect(el("keepWaiting").hidden).toBe(true);
+    fake.fail = null;
+  });
+});
+
+describe("a session lost on sign-out's way", () => {
+  let page, app, handle, fake, session;
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    const ada = fake.held("ada@example.test");
+    session = signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+    handle.openSheet("settings");
+  }, 30000);
+  afterAll(() => { handle.closeSheet(); return page.cleanup(); });
+
+  it("leaves nothing to sign out of: it says so, forgets sync's keys, and sends no sign-out", async () => {
+    fake.fail = r => (r.method === "POST" && r.path.startsWith("/rest/v1/") ? { status: 503, code: "PGRST000" } : null);
+    handle.picks.set([ids[1]]);
+    await app.syncSettled();
+    fake.fail = null;
+    fake.refuse(session.access_token);
+    fake.revoke(session.refresh_token);
+    el("keepSignOut").click();
+    await page.until(() => !el("keepSignOut").disabled, 5000, "the sign-out");
+    expect(el("keepNote").textContent).toBe("You were signed out. Enter your email to sign in again.");
+    for (const name of ["session", "outbox", "syncStamp", "crew", "crewPicks"]) expect(window.localStorage.getItem(KEY(name)), name).toBe(null);
+    expect(fake.to("/auth/v1/logout?scope=local")).toEqual([]);
+    expect(el("keepWaiting").hidden).toBe(true);
+  });
+});
+
+describe("a sign-out tapped while a run is pulling", () => {
+  let page, app, handle, fake;
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    const ada = fake.held("ada@example.test");
+    signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+    handle.openSheet("settings");
+  }, 30000);
+  afterAll(() => { handle.closeSheet(); return page.cleanup(); });
+
+  it("waits for the run, whose pull holds the drains, and goes once the star made meanwhile is sent", async () => {
+    const from = fake.requests.length;
+    fake.defer = r => r.method === "GET" && r.path.startsWith("/rest/v1/crews");
+    document.dispatchEvent(new Event("visibilitychange"));
+    await page.until(() => fake.requests.slice(from).some(r => r.path.startsWith("/rest/v1/crews")), 5000, "the pull's first read");
+    handle.picks.set([...handle.picks.get(), ids[5]]);
+    el("keepSignOut").click();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    expect(el("keepSignOut").disabled).toBe(true);
+    expect(window.localStorage.getItem(KEY("session"))).not.toBe(null);
+    fake.defer = null;
+    fake.release();
+    await page.until(() => !el("keepSignOut").disabled, 5000, "the sign-out");
+    expect(el("keepNote").textContent).toBe("Signed out. Your plan stays on this phone.");
+    expect(fake.rows("picks").find(r => r.event_id === ids[5]).picked).toBe(true);
+    expect(window.localStorage.getItem(KEY("session"))).toBe(null);
+  });
+});
+
 describe("sign out, then in again as the same user", () => {
   let page, app, handle, fake, ada;
 
@@ -481,8 +760,9 @@ describe("sign out, then in again as the same user", () => {
   }, 30000);
   afterAll(() => { handle.closeSheet(); return page.cleanup(); });
 
-  it("sign out forgets sync's keys and hides the status line", () => {
+  it("sign out forgets sync's keys and hides the status line", async () => {
     el("keepSignOut").click();
+    await page.until(() => !el("keepSignOut").disabled, 5000, "the sign-out");
     for (const name of ["session", "outbox", "syncStamp", "crew", "crewPicks"]) expect(window.localStorage.getItem(KEY(name)), name).toBe(null);
     expect(el("keepSync").hidden).toBe(true);
   });

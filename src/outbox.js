@@ -102,6 +102,7 @@ let held = 0;            // the pulls holding the drains
 let wait = 0;            // the wait after the last failure; 0 after a success
 let retry = null;        // the timer that ends it
 let lastError = null;    // the last drain's failure, until one succeeds
+let emptied = 0;         // how many drains have left nothing waiting
 let stopped = false;
 
 /* A tap's drain: after the tap's own work, and never inside a failure's
@@ -155,6 +156,7 @@ async function send() {
   }
   lastError = null;
   wait = 0;
+  if (!outboxState().count) emptied++;
   return true;
 }
 /* Kept, and tried again when the wait is up; a lost session is sync.js's to
@@ -178,11 +180,12 @@ function releaseDrains() {
   if (!held && again && !retry) drain();
 }
 
-/* What the status line says of the outbox: how many ops wait, and the last
-   drain's failure. */
+/* What the status lines say of the outbox: how many ops wait, the last
+   drain's failure, and how many drains have left nothing waiting - so a
+   line raised for what waited can tell, drawn later, that it all went. */
 function outboxState() {
   const box = currentOutbox();
-  return {count: box ? Object.keys(box.ops.picks).length + Object.keys(box.ops.follows).length : 0, error: lastError};
+  return {count: box ? Object.keys(box.ops.picks).length + Object.keys(box.ops.follows).length : 0, error: lastError, emptied};
 }
 /* For a test: when no drain is queued or out. And stopping the drains for
    good, which a page test does as it cleans up, so no timer of this page

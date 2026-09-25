@@ -51,6 +51,7 @@ const OVERLAP_MS = 60000, PAGE = 1000;
 let running = null;      // the run in flight
 let again = false;       // a trigger during it
 let lastRun = null;      // {ok: true} or {error}: how the last run ended
+let refusedAt = null;    // Sign out refused: the outbox's emptied count then, until a drain empties it
 
 /* Every trigger's one call, and the email step's after it sends a code and
    after it confirms one. */
@@ -99,6 +100,7 @@ function forgetSync() {
   removeJSON(CREW_KEY);
   removeJSON(CREW_PICKS_KEY);
   lastRun = null;
+  refusedAt = null;
   fillSyncStatus();
 }
 
@@ -175,18 +177,46 @@ function syncStatusText() {
   if (count) return waiting;
   return lastRun && lastRun.ok ? "Synced just now" : "";
 }
+/* And under it, once Sign out has been refused, what still waits: counted
+   afresh each time it is drawn, and gone once a drain has left nothing
+   waiting, whether or not the line was drawn then - so changes made after
+   that are no refusal's. */
+function refusalText() {
+  const {count, emptied} = outboxState();
+  if (refusedAt !== null && (!count || emptied !== refusedAt || !storedSession())) refusedAt = null;
+  return refusedAt !== null ? `${count} ${count === 1 ? "change is" : "changes are"} waiting to send; connect and try again` : "";
+}
 function fillSyncStatus() {
-  const line = document.getElementById("keepSync");
-  if (!line) return;
-  const text = syncStatusText();
-  line.hidden = !text;
-  line.textContent = text;
+  for (const [id, text] of [["keepSync", syncStatusText()], ["keepWaiting", refusalText()]]) {
+    const line = document.getElementById(id);
+    if (!line) continue;
+    line.hidden = !text;
+    line.textContent = text;
+  }
 }
 
 /* What boot() registers: the load's run and every trigger's, and the
    worker's word that the network answers. */
 function onSyncTrigger() { runSync(); }
 function onSyncWorkerMessage(e) { if (e.data && e.data.type === "schedule-online") runSync(); }
+
+/* Sign out's condition, the email step's: nothing left to send. It lets
+   every run and drain under way finish - a run a trigger starts meanwhile
+   too - then drains once more, now, inside a failure's wait too, and waits
+   for any drain that follows it. It returns how many ops still wait, 0 once
+   the server has taken them all, and marks Sign out refused for the line
+   above while any do. */
+async function sendBeforeSignOut() {
+  do {
+    while (running) await running;
+    await drainsSettled();
+  } while (running);
+  await drainNow();
+  await drainsSettled();
+  const {count, emptied} = outboxState();
+  refusedAt = count ? emptied : null;
+  return count;
+}
 
 /* For a test: when no run and no drain is under way. */
 async function syncSettled() {
@@ -196,4 +226,4 @@ async function syncSettled() {
   } while (running);
 }
 
-export { runSync, forgetSync, fillSyncStatus, onSyncTrigger, onSyncWorkerMessage, syncSettled };
+export { runSync, forgetSync, sendBeforeSignOut, fillSyncStatus, onSyncTrigger, onSyncWorkerMessage, syncSettled };

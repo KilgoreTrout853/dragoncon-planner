@@ -125,10 +125,20 @@ none, and neither has the picks' when a crew has gained anyone.
   through to recover. A session lost on the way - an anonymous user the
   cleanup took - is dropped, and the step starts again with none. One
   code either way, typed in and confirmed; then "Signed in as" the
-  address, and Sign out, offered only to a user with an email, which
-  removes the session key and sync's four, and nothing of the plan
-  (section 5, as built). Recover signs in, and sync then carries the
-  phone's plan up (section 5, as built).
+  address, and Sign out, offered only to a user with an email. Since sync
+  (PR #56), Sign out first sends every change still waiting: it lets any
+  run or send under way finish - a run a trigger starts meanwhile too -
+  then makes a try of its own. If any change still waits after that try,
+  it refuses, and removes neither the session nor sync's four keys; a line
+  in the Keep section, under sync's status, says "N changes are waiting to
+  send; connect and try again" - "1 change is" for one - counting afresh
+  each time it is drawn, and gone once a drain has left nothing waiting,
+  whether or not the line was drawn then. Only with the outbox empty does
+  Sign out remove the session key and sync's four, and nothing of the plan
+  (section 5, as built). A session lost on the way - its refresh refused -
+  leaves nothing to sign out of: sync's keys are forgotten, as with no
+  session, and the note says the phone was signed out. Recover signs in,
+  and sync then carries the phone's plan up (section 5, as built).
 - **Failures in plain words,** and local state untouched: offline; the
   captcha - "Signing in needs a check this app can't show yet. Please try
   again later.", with no widget (#53); anonymous sign-ins switched off;
@@ -557,21 +567,42 @@ PR #56, with #53.
   the op, drained, lost to a newer stamp. A watermark past it would leave
   the phone holding a change the server turned away. The rule above, "the
   newest `synced_at` seen", did not say so; this is the rule as built.
+  **Its cost when a refusal lasts.** The client builds no row the
+  database's checks refuse, so a lasting refusal is a whole request's: a
+  grant or a schema out of step with the client. It is retried and shown,
+  never dropped (the drain, above). The drain sends a table in one
+  request, all or none, the picks before the follows, and stops at the
+  first refused. So while the refusal lasts every waiting change of the
+  refused table waits with it, and every later one joins them; when the
+  picks are refused the follows wait too, and crewmates see none of the
+  reader's later picks, while a refusal of the follows alone lets the
+  picks through. Each waiting key keeps the phone's value, never the
+  server's. Where the reads still work - a missing update grant, say -
+  the watermark of each table with waiting keys stops at the earliest row
+  a pull reads for any of them, so every pull then reads again everything
+  written since, page after page, a read that only grows while the
+  refusal lasts. Where they do not - a project this PR's migration has
+  not reached, whose tables have no `synced_at` to read by - no pull
+  succeeds at all, so no watermark moves and nothing from the server
+  reaches the phone, crewmates' picks included. Sign out is refused
+  meanwhile (section 1, as built), and the status line names the refusal.
 - **The owner.** A run whose session's user is not the watermark's - a
   mint, a recover, a sign-in in another tab - starts the outbox afresh for
   them, with the whole local plan as adds stamped at once, which is
   recover's union (section 1), and starts the watermark and the crew's
   two keys again. With no session a run forgets all four keys, and so does
-  Sign out, so the next sign-in, even as the same user, sends the whole
-  plan again.
+  Sign out, once nothing waits to be sent (section 1, as built), so the
+  next sign-in, even as the same user, sends the whole plan again.
 - **The status line,** under Keep your plan's heading, with a session
   alone: "Synced just now"; "N changes waiting"; "Offline, N changes
   waiting", or "Offline, nothing waiting"; or the last failure in plain
   words - a server's error, "The server had a problem. Your changes are
   safe on this phone, and will be sent again.", and a refusal, "The server
   turned your changes away. They're kept on this phone, and will be sent
-  again." A run redraws it; a drain the outbox starts on its own does not,
-  until the next run or the next time Settings opens.
+  again." Under it, after a refused Sign out and while changes still
+  wait, the refusal's line (section 1, as built). A run redraws both; a
+  drain the outbox starts on its own does not, until the next run or the
+  next time Settings opens.
 - **What never syncs:** settings, the views, `pickInfo` and the pick news.
 - **The tests.** `tests/page/sync.test.js`: the doors and the upsert
   pinned as sent, coalescing, the stamps and `?now=`, one drain at a time,

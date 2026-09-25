@@ -49,7 +49,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/dispatch.js`, `shell.js`, `loading.js`, `sheet.js` | The four modules above the views: the handlers that span modules; `render()` and what is on screen whatever the tab; loading, freshness and offline; the bottom sheet. |
 | `src/now.js`, `browse.js`, `explore.js`, `map.js`, `mine.js` | The five views, one per tab (`browse` is the Search tab). |
 | `src/scroll.js`, `bus.js` | The scroller and the header's measurement; how a module below the shell asks for a redraw. |
-| `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data; the status line in Keep your plan. |
+| `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
 | `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The eighteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
@@ -127,7 +127,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
 | `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the two censuses, `census-2026.md` of v1's tags and `census-v2-2026.md` of the v2 file, which CI holds fresh; `parse-2026.md`, above; `registry-2026.md`, the record of the seed review, whose script is retired; `works-review-2.json` and `people-review-1.json`, the review records - what each review decided, applied by a one-off script outside the repo; and `schema-v2.md`, the design note for the registries and tags v2 (#31-#34, #38, #39), built: the pipeline half - the parse stage, the registries, the tag stage and `events.v2.json` - and the client switch. |
 | `docs/pipeline/` | Pipeline shape (ROADMAP tentpole 1): `contract.md`, the design note for DECISIONS #41-#48 - the 2027 pipeline's files, with their writers and readers, the raw row, the ledger, the change log and the stages - decided, and built so far for `season.json` and `venues.json` (ROADMAP, PR 2), `source.json`, the fetch (PR 3), `ids.jsonl`, the ids stage (PR 4), `events.v2.json`, the build (PR 6), `tags.cache.jsonl`, the tag stage (PR 7a), and `changes.jsonl`'s lines, the diff (PR 7b); its evidence, `history-2026.md`, how the 2026 schedule changed from commit to commit on `main` and how scrape.yml ran, written by `tools/schedule_history.py`; and `replay-2026.md`, the ids stage run over that history by `tools/replay_2026.py`, #43's verification. Both are records, not held fresh by CI: a shallow checkout has no history, and the history will not change. |
-| `docs/sync/` | Identity and sync (ROADMAP tentpole 4), in design: `recon.md`, the client as it stood when the design opened, `next` at c860f38 - every key it stores and whether each is expected to sync, every site that changes picks or follows, the clock, the refresh hooks, install and notifications, the channel stamp, a change log for 2026 sized, and the backend's absence - a record, written by hand, not held fresh by CI; and `contract.md`, the design note for DECISIONS #50-#52 - identity, the data model, security and migrations, with the sync rules, the mirror job, the push job and crews to follow - decided, not built. |
+| `docs/sync/` | Identity and sync (ROADMAP tentpole 4), in design: `recon.md`, the client as it stood when the design opened, `next` at c860f38 - every key it stores and whether each is expected to sync, every site that changes picks or follows, the clock, the refresh hooks, install and notifications, the channel stamp, a change log for 2026 sized, and the backend's absence - a record, written by hand, not held fresh by CI; and `contract.md`, the design note for DECISIONS #50-#53 - identity, the data model, security and migrations, and the sync rules, each with its "as built" (PRs #54, #55 and #56), and the mirror job, the push job and crews to follow. |
 | `docs/venues/` | The venues curation (DECISIONS #21, #27, #28, #45): `README.md`, the floor-plan checklist, kept by hand - every hotel × level where programming happens, which published floor plan covers the level, our local copy of it and the state of our own drawing, with the notes on plans and drawings; `drawings/`, our schematics, one draft so far; and `census-2026.md`, the room census - every location of the frozen schedule read by the venues step against `data/2026/venues.json`, with the curation worklist, written by `tools/room_census.py`. The rooms, aliases and level notes are the venues file's; `registry.json` is retired (#45). The census is a record, not held fresh by CI: an edit to the venues file leaves it stale until the script runs again. |
 | `reference/` | Local copies of other people's drawings, gitignored but for its README: the hotels' floor plans in `plans/`, at the paths `docs/venues/README.md` records, and screenshots of single levels in `shots/`, used as an underlay to trace our own shapes against (#28). Never committed - none of it is ours. |
 
@@ -436,7 +436,10 @@ section 5, as built): `runSync()` drains the outbox, then pulls - the
 crews, then the picks and the follows since the watermark - and applies
 the reader's own rows through the owners' functions and crewmates' picks
 to its own key; the change of owner, which seeds the outbox with the whole
-plan; and the status line in Keep your plan. It stands above the bus,
+plan; `sendBeforeSignOut()`, Sign out's send of what waits, which lets
+every run and drain under way finish, makes a try of its own, and says how
+much still waits; and two lines in Keep your plan, the status and, after a
+refused Sign out, what still waits. It stands above the bus,
 because a pull that changed the plan asks for a redraw. The outbox stands
 below `picks` and `follows`, whose doors call it, so a drain it starts
 after a tap is followed by no pull: the next trigger's run pulls.
@@ -453,7 +456,9 @@ dismisses it, and the handlers for the drag and the Settings controls -
 the email step's among them, Keep your plan, which it draws only on a
 build with a backend, with sync's status line under its heading; the step
 starts a sync run once it has sent a code and once it has confirmed one,
-and Sign out forgets sync's keys. `closeSheet()` asks for its redraw over the bus. It
+and Sign out sends what waits first - refused while anything still waits,
+and sync's line under the status says how much - and then forgets sync's
+keys. `closeSheet()` asks for its redraw over the bus. It
 looks up the seven sheet elements as it is imported.
 
 **`loading`** is loading, freshness and offline: `load()` and the idle index
@@ -620,7 +625,7 @@ its origin (#39). `storageKey()` in `build.js` names them all.
 | `dc<yy>.archiveNoticeDismissed` | `shell` | `dispatch` | The year whose "has ended" notice was dismissed |
 | `dc<yy>.nudgeSnoozedUntil` | `now` | `dispatch` | When the install nudge may show again |
 | `dc<yy>.session` | `backend` | `backend` | The backend's session: its two tokens and the user's id, email and `is_anonymous`. Only on a build with a backend, and only from the first tap that needs a user (DECISIONS #51, #53) |
-| `dc<yy>.outbox` | `outbox` | `outbox` | What the server has not yet taken: `{user, ops}`, an op per changed pick or follow. Only with a backend and a session, like the three below; Sign out and a run with no session remove all four (DECISIONS #53) |
+| `dc<yy>.outbox` | `outbox` | `outbox` | What the server has not yet taken: `{user, ops}`, an op per changed pick or follow. Only with a backend and a session, like the three below; Sign out, once nothing waits to be sent, and a run with no session remove all four (DECISIONS #53) |
 | `dc<yy>.syncStamp` | `sync` | `sync` | The pull's watermark, the server's `synced_at` for each table: `{user, picks, follows}` |
 | `dc<yy>.crew` | `sync` | `sync` | The reader's crews of the year, with their members, as the last pull read them: data alone, for the crew screens |
 | `dc<yy>.crewPicks` | `sync` | `sync` | Crewmates' picks, by user and then event |

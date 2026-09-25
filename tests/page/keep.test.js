@@ -18,6 +18,12 @@ const read = key => JSON.parse(window.localStorage.getItem(key));
 const everything = () => Object.fromEntries(Object.keys(window.localStorage).map(k => [k, window.localStorage.getItem(k)]));
 /* the requests to the Auth server alone: the email step's conversation */
 const authOf = fake => fake.requests.filter(r => r.path.startsWith("/auth/"));
+/* Sign out as a reader taps it, done when the button is back: it sends what
+   waits first (docs/sync/contract.md, section 1, as built). */
+async function signOut(page) {
+  el("keepSignOut").click();
+  await page.until(() => !el("keepSignOut").disabled, 5000, "the sign-out");
+}
 
 /* The email step as a reader drives it: a value typed into a field and its
    form sent, done when the step is no longer busy and the sync run it
@@ -116,8 +122,8 @@ describe("every request the page makes, exactly as it is sent", () => {
     expect(el("keepWho").textContent).toBe("new@example.test");
     session = signedIn;
   });
-  it("sign out: POST /auth/v1/logout?scope=local as the user, with no body", () => {
-    el("keepSignOut").click();
+  it("sign out: POST /auth/v1/logout?scope=local as the user, with no body", async () => {
+    await signOut(page);
     expect(auth().at(-1)).toEqual({ method: "POST", path: "/auth/v1/logout?scope=local",
       headers: { apikey: fake.key, Authorization: `Bearer ${session.access_token}` }, body: undefined });
   });
@@ -190,10 +196,10 @@ describe("the email step, from no session to signed in", () => {
     expect(el("keepNote").textContent).toBe("");
     expect(read(`dc${app.YY}.session`).user).toMatchObject({ email: "new@example.test", is_anonymous: false });
   });
-  it("Sign out removes the session key and sync's own four, and nothing of the plan", () => {
+  it("Sign out, with nothing waiting to send, removes the session key and sync's own four, and nothing of the plan", async () => {
     const gone = ["session", "outbox", "syncStamp", "crew", "crewPicks"].map(name => `dc${app.YY}.${name}`);
     const before = everything();
-    el("keepSignOut").click();
+    await signOut(page);
     const after = everything();
     expect(Object.keys(before)).toEqual(expect.arrayContaining(gone));
     for (const key of gone) delete before[key];
