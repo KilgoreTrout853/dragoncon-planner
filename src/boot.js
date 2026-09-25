@@ -10,6 +10,7 @@ import {
 import { follows, replaceFollows, saveFollows } from "./follows.js";
 import { scroller, syncHeaderHeight } from "./scroll.js";
 import { setRenderer } from "./bus.js";
+import { onSyncTrigger, onSyncWorkerMessage } from "./sync.js";
 import { onAppInstalled, onBeforeInstallPrompt } from "./now.js";
 import { onScrollSpy } from "./explore.js";
 import {
@@ -130,6 +131,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", onWorkerMessage);
+    navigator.serviceWorker.addEventListener("message", onSyncWorkerMessage);
     window.addEventListener("load", onLoadRegisterWorker);
   }
 
@@ -138,7 +140,15 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.addEventListener("visibilitychange", onVisibleRecheck);
   window.addEventListener("pageshow", onPageShow);
 
+  /* Sync runs on every return to the page, ungated, on coming back online,
+     and once the schedule is loaded; no timer (docs/sync/contract.md,
+     section 5). Without a backend and a session it does nothing. */
+  document.addEventListener("visibilitychange", onSyncTrigger);
+  window.addEventListener("pageshow", onSyncTrigger);
+  window.addEventListener("online", onSyncTrigger);
+
   const ready = load(data);
+  ready.then(onSyncTrigger);
   return {
     state, render, now, setTimeOverride,
     picks: {get: () => picks, set: ids => { replacePicks(ids); savePicks(); }},

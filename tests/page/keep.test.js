@@ -3,9 +3,12 @@
    backend the page sends nothing and keeps no session. With one - a fake of
    the Auth server, tests/helpers/backend.js - the email step reaches
    "signed in as" by every door, says each failure in plain words and
-   leaves the plan alone, and every request is pinned as it is sent. New
-   tests, not rows of tests/PORT-LEDGER.md, so their titles carry no
-   harness line. */
+   leaves the plan alone, and every request is pinned as it is sent. A step
+   that succeeds starts a sync run too (docs/sync/contract.md, section 5),
+   whose requests sync.test.js pins; here the email step's conversation is
+   read from the Auth requests, and "nothing else" names every kind the
+   page sent. New tests, not rows of tests/PORT-LEDGER.md, so their titles
+   carry no harness line. */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
 import { CODE, fakeBackend } from "../helpers/backend.js";
@@ -13,13 +16,23 @@ import { CODE, fakeBackend } from "../helpers/backend.js";
 const el = id => document.getElementById(id);
 const read = key => JSON.parse(window.localStorage.getItem(key));
 const everything = () => Object.fromEntries(Object.keys(window.localStorage).map(k => [k, window.localStorage.getItem(k)]));
+/* the requests to the Auth server alone: the email step's conversation */
+const authOf = fake => fake.requests.filter(r => r.path.startsWith("/auth/"));
+/* Sign out as a reader taps it, done when the button is back: it sends what
+   waits first (docs/sync/contract.md, section 1, as built). */
+async function signOut(page) {
+  el("keepSignOut").click();
+  await page.until(() => !el("keepSignOut").disabled, 5000, "the sign-out");
+}
 
 /* The email step as a reader drives it: a value typed into a field and its
-   form sent, done when the step is no longer busy. */
+   form sent, done when the step is no longer busy and the sync run it
+   started has settled, so no run of one test meets the next one's knobs. */
 async function step(page, form, field, value) {
   el(field).value = value;
   el(form).dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   await page.until(() => !el("keepSend").disabled, 5000, `the answer to ${form}`);
+  await page.app.syncSettled();
 }
 const JSON_HEADERS = key => ({ apikey: key, "Content-Type": "application/json" });
 
@@ -59,7 +72,7 @@ describe("a build with no backend", () => {
 
 describe("every request the page makes, exactly as it is sent", () => {
   let page, app, handle, fake, session;
-  const requests = () => fake.requests;
+  const requests = () => fake.requests, auth = () => authOf(fake);
 
   beforeAll(async () => {
     fake = fakeBackend();
@@ -88,7 +101,7 @@ describe("every request the page makes, exactly as it is sent", () => {
     const fresh = read(`dc${app.YY}.session`);
     expect(fresh.access_token).not.toBe(session.access_token);
     expect(fresh.user.id).toBe(session.user.id);
-    expect(requests().slice(1)).toEqual([
+    expect(auth().slice(1)).toEqual([
       { method: "PUT", path: "/auth/v1/user", headers: { ...JSON_HEADERS(fake.key), Authorization: `Bearer ${session.access_token}` }, body: { email: "new@example.test" } },
       { method: "POST", path: "/auth/v1/token?grant_type=refresh_token", headers: JSON_HEADERS(fake.key), body: { refresh_token: session.refresh_token } },
       { method: "PUT", path: "/auth/v1/user", headers: { ...JSON_HEADERS(fake.key), Authorization: `Bearer ${fresh.access_token}` }, body: { email: "new@example.test" } },
@@ -100,7 +113,7 @@ describe("every request the page makes, exactly as it is sent", () => {
   });
   it("verify: POST /auth/v1/verify, email_change, with no token; the same user, now with the email", async () => {
     await step(page, "keepCodeForm", "keepCode", CODE);
-    expect(requests().at(-1)).toEqual({ method: "POST", path: "/auth/v1/verify", headers: JSON_HEADERS(fake.key),
+    expect(auth().at(-1)).toEqual({ method: "POST", path: "/auth/v1/verify", headers: JSON_HEADERS(fake.key),
       body: { type: "email_change", email: "new@example.test", token: CODE } });
     const signedIn = read(`dc${app.YY}.session`);
     expect(signedIn.user).toEqual({ id: session.user.id, email: "new@example.test", is_anonymous: false });
@@ -109,26 +122,28 @@ describe("every request the page makes, exactly as it is sent", () => {
     expect(el("keepWho").textContent).toBe("new@example.test");
     session = signedIn;
   });
-  it("sign out: POST /auth/v1/logout?scope=local as the user, with no body", () => {
-    el("keepSignOut").click();
-    expect(requests().at(-1)).toEqual({ method: "POST", path: "/auth/v1/logout?scope=local",
+  it("sign out: POST /auth/v1/logout?scope=local as the user, with no body", async () => {
+    await signOut(page);
+    expect(auth().at(-1)).toEqual({ method: "POST", path: "/auth/v1/logout?scope=local",
       headers: { apikey: fake.key, Authorization: `Bearer ${session.access_token}` }, body: undefined });
   });
   it("recover, with no session: POST /auth/v1/otp, create_user false, then verify with type email; signed in as the address's user", async () => {
-    const before = requests().length;
+    const before = auth().length;
     await step(page, "keepEmailForm", "keepEmail", "ada@example.test");
     await step(page, "keepCodeForm", "keepCode", CODE);
-    expect(requests().slice(before)).toEqual([
+    expect(auth().slice(before)).toEqual([
       { method: "POST", path: "/auth/v1/otp", headers: JSON_HEADERS(fake.key), body: { email: "ada@example.test", create_user: false } },
       { method: "POST", path: "/auth/v1/verify", headers: JSON_HEADERS(fake.key), body: { type: "email", email: "ada@example.test", token: CODE } },
     ]);
     expect(read(`dc${app.YY}.session`).user).toMatchObject({ email: "ada@example.test", is_anonymous: false });
     expect(el("keepWho").textContent).toBe("ada@example.test");
   });
-  it("and nothing else: six requests, and every one to the backend's address", () => {
-    expect(new Set(requests().map(r => `${r.method} ${r.path}`))).toEqual(new Set([
+  it("and nothing else: the email step's six requests and a sync run's three reads, every one to the backend's address", () => {
+    const kind = r => `${r.method} ${r.path.startsWith("/rest/") ? r.path.split("?")[0] : r.path}`;
+    expect(new Set(requests().map(kind))).toEqual(new Set([
       "POST /auth/v1/signup", "PUT /auth/v1/user", "POST /auth/v1/token?grant_type=refresh_token",
       "POST /auth/v1/verify", "POST /auth/v1/logout?scope=local", "POST /auth/v1/otp",
+      "GET /rest/v1/crews", "GET /rest/v1/picks", "GET /rest/v1/follows",
     ]));
   });
 });
@@ -147,11 +162,12 @@ describe("the email step, from no session to signed in", () => {
 
   it("an address no one holds, with no session: recover finds no one, so the phone mints a user and adds it - one screen, one code", async () => {
     await step(page, "keepEmailForm", "keepEmail", "  new@example.test ");
-    expect(fake.requests.map(r => `${r.method} ${r.path}`)).toEqual(["POST /auth/v1/otp", "POST /auth/v1/signup", "PUT /auth/v1/user"]);
-    expect(fake.requests[0].body).toEqual({ email: "new@example.test", create_user: false });
+    const auth = authOf(fake);
+    expect(auth.map(r => `${r.method} ${r.path}`)).toEqual(["POST /auth/v1/otp", "POST /auth/v1/signup", "PUT /auth/v1/user"]);
+    expect(auth[0].body).toEqual({ email: "new@example.test", create_user: false });
     const minted = read(`dc${app.YY}.session`);
     expect(minted.user.is_anonymous).toBe(true);
-    expect(fake.requests[2].headers.Authorization).toBe(`Bearer ${minted.access_token}`);
+    expect(auth[2].headers.Authorization).toBe(`Bearer ${minted.access_token}`);
     expect(el("keepSentTo").textContent).toBe("new@example.test");
   });
   it("an anonymous user is offered no Sign out, and signOut() leaves it be", () => {
@@ -180,12 +196,13 @@ describe("the email step, from no session to signed in", () => {
     expect(el("keepNote").textContent).toBe("");
     expect(read(`dc${app.YY}.session`).user).toMatchObject({ email: "new@example.test", is_anonymous: false });
   });
-  it("Sign out removes the session key and nothing else", () => {
+  it("Sign out, with nothing waiting to send, removes the session key and sync's own four, and nothing of the plan", async () => {
+    const gone = ["session", "outbox", "syncStamp", "crew", "crewPicks"].map(name => `dc${app.YY}.${name}`);
     const before = everything();
-    el("keepSignOut").click();
+    await signOut(page);
     const after = everything();
-    expect(Object.keys(before)).toContain(`dc${app.YY}.session`);
-    delete before[`dc${app.YY}.session`];
+    expect(Object.keys(before)).toEqual(expect.arrayContaining(gone));
+    for (const key of gone) delete before[key];
     expect(after).toEqual(before);
     expect(Object.keys(after)).toContain(`dc${app.YY}.picks`);
     expect(el("keepOut").hidden).toBe(false);
@@ -208,9 +225,9 @@ describe("recover from an anonymous session", () => {
   it("add answers that someone holds the address, so the step falls through to recover, and the phone signs in as them", async () => {
     const anonymous = await app.ensureUser();
     await step(page, "keepEmailForm", "keepEmail", "ada@example.test");
-    expect(fake.requests.map(r => `${r.method} ${r.path}`)).toEqual(["POST /auth/v1/signup", "PUT /auth/v1/user", "POST /auth/v1/otp"]);
+    expect(authOf(fake).map(r => `${r.method} ${r.path}`)).toEqual(["POST /auth/v1/signup", "PUT /auth/v1/user", "POST /auth/v1/otp"]);
     await step(page, "keepCodeForm", "keepCode", CODE);
-    expect(fake.requests.at(-1).body).toEqual({ type: "email", email: "ada@example.test", token: CODE });
+    expect(authOf(fake).at(-1).body).toEqual({ type: "email", email: "ada@example.test", token: CODE });
     const session = read(`dc${app.YY}.session`);
     expect(session.user).toEqual({ id: held.id, email: "ada@example.test", is_anonymous: false });
     expect(session.user.id).not.toBe(anonymous.user.id);
@@ -253,7 +270,7 @@ describe("a session lost on the way", () => {
     fake.refuse(lost.access_token);
     fake.revoke(lost.refresh_token);
     await step(page, "keepEmailForm", "keepEmail", "new@example.test");
-    expect(fake.requests.map(r => `${r.method} ${r.path}`)).toEqual(["POST /auth/v1/signup", "PUT /auth/v1/user",
+    expect(authOf(fake).map(r => `${r.method} ${r.path}`)).toEqual(["POST /auth/v1/signup", "PUT /auth/v1/user",
       "POST /auth/v1/token?grant_type=refresh_token", "POST /auth/v1/otp", "POST /auth/v1/signup", "PUT /auth/v1/user"]);
     const session = read(`dc${app.YY}.session`);
     expect(session.user.id).not.toBe(lost.user.id);
@@ -266,7 +283,7 @@ describe("a refused token, and another tab", () => {
   const SESSION = () => `dc${app.YY}.session`;
   const keep = s => window.localStorage.setItem(SESSION(), JSON.stringify({ access_token: s.access_token, refresh_token: s.refresh_token,
     user: { id: s.user.id, email: s.user.email, is_anonymous: s.user.is_anonymous } }));
-  const sent = from => fake.requests.slice(from).map(r => `${r.method} ${r.path} ${r.headers.Authorization || ""}`.trim());
+  const sent = from => authOf(fake).slice(from).map(r => `${r.method} ${r.path} ${r.headers.Authorization || ""}`.trim());
 
   beforeAll(async () => {
     fake = fakeBackend();
@@ -278,7 +295,7 @@ describe("a refused token, and another tab", () => {
   afterAll(() => page.cleanup());
 
   it("a token another tab has refreshed already is used as it stands, with no refresh of this tab's own", async () => {
-    const other = fake.issue(session.user.id), from = fake.requests.length;
+    const other = fake.issue(session.user.id), from = authOf(fake).length;
     fake.refuse(session.access_token);
     fake.onRequest = r => { if (r.path === "/auth/v1/user" && r.headers.Authorization === `Bearer ${session.access_token}`) keep(other); };
     await step(page, "keepEmailForm", "keepEmail", "new@example.test");
@@ -288,7 +305,7 @@ describe("a refused token, and another tab", () => {
     session = read(SESSION());
   });
   it("a refresh refused while another tab refreshed meanwhile takes that tab's session, and drops nothing", async () => {
-    const other = fake.issue(session.user.id), from = fake.requests.length;
+    const other = fake.issue(session.user.id), from = authOf(fake).length;
     fake.refuse(session.access_token);
     fake.revoke(session.refresh_token);
     fake.onRequest = r => { if (r.path.startsWith("/auth/v1/token")) keep(other); };

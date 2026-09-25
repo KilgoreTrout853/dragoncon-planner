@@ -85,10 +85,12 @@ PR #55, with #53.
   away.
 - **Every request** carries `apikey`, the public key; one with a body,
   `Content-Type: application/json`; one made as the user, `Authorization:
-  Bearer` and the session's access token. Nothing else: the page asks for
-  no API version, and reads an error's code from `code` where that is a
-  string - the Auth server's newer shape, and PostgREST's - and from
-  `error_code` otherwise. There are six:
+  Bearer` and the session's access token; and sync's two upserts,
+  PostgREST's `Prefer`. Nothing else: the page asks for no API version,
+  and reads an error's code from `code` where that is a string - the Auth
+  server's newer shape, and PostgREST's - and from `error_code` otherwise.
+  There are eleven, the email step's six and sync's five (section 5, as
+  built):
 
 | Request | Method and path | As the user | Body | Expects |
 |---|---|---|---|---|
@@ -98,6 +100,14 @@ PR #55, with #53.
 | Verify | `POST /auth/v1/verify` | no | `{"type", "email", "token"}`, the type `email_change` after add and `email` after recover | 200 and a session; or 403 `otp_expired` |
 | Refresh | `POST /auth/v1/token?grant_type=refresh_token` | no | `{"refresh_token"}` | 200 and a session; or 400, 401, 403 or 404, and the session is lost |
 | Sign out | `POST /auth/v1/logout?scope=local` | yes | none | 204, not waited on |
+| Upsert picks | `POST /rest/v1/picks?on_conflict=user_id,year,event_id`, with `Prefer: resolution=merge-duplicates,return=minimal` | yes | `[{"year", "event_id", "picked", "changed_at"}]`, a row per op, by key; no `user_id`, which is the caller's | 201 where a row was inserted, else 200, and no body; a failure keeps the ops |
+| Upsert follows | `POST /rest/v1/follows?on_conflict=user_id,year,kind,key`, with the same `Prefer` | yes | `[{"year", "kind", "key", "followed", "changed_at"}]` | as the picks' |
+| Crews | `GET /rest/v1/crews?select=id,name,creator,crew_members(user_id,display_name)&year=eq.<year>` | yes | none | 200: the caller's crews of the year, their members embedded |
+| Pull picks | `GET /rest/v1/picks?select=user_id,event_id,picked,changed_at,synced_at&year=eq.<year>&synced_at=gt.<since>&order=synced_at.asc,user_id.asc,event_id.asc&limit=1000&offset=<n>` | yes | none | 200: one's own rows and crewmates' of the year, 1,000 at most |
+| Pull follows | `GET /rest/v1/follows?select=kind,key,followed,changed_at,synced_at&year=eq.<year>&synced_at=gt.<since>&order=synced_at.asc,kind.asc,key.asc&limit=1000&offset=<n>` | yes | none | 200: one's own rows, 1,000 at most |
+
+`<since>` is the watermark less a minute, URL-encoded; a first pull has
+none, and neither has the picks' when a crew has gained anyone.
 
 - **A refused token.** A request made as the user and refused for its
   token - a 401, or a 403 with `bad_jwt` or `session_not_found` - takes
@@ -115,9 +125,20 @@ PR #55, with #53.
   through to recover. A session lost on the way - an anonymous user the
   cleanup took - is dropped, and the step starts again with none. One
   code either way, typed in and confirmed; then "Signed in as" the
-  address, and Sign out, offered only to a user with an email, which
-  removes the session key and nothing else. Recover signs in and no more:
-  carrying the phone's plan up is sync's (section 5).
+  address, and Sign out, offered only to a user with an email. Since sync
+  (PR #56), Sign out first sends every change still waiting: it lets any
+  run or send under way finish - a run a trigger starts meanwhile too -
+  then makes a try of its own. If any change still waits after that try,
+  it refuses, and removes neither the session nor sync's four keys; a line
+  in the Keep section, under sync's status, says "N changes are waiting to
+  send; connect and try again" - "1 change is" for one - counting afresh
+  each time it is drawn, and gone once a drain has left nothing waiting,
+  whether or not the line was drawn then. Only with the outbox empty does
+  Sign out remove the session key and sync's four, and nothing of the plan
+  (section 5, as built). A session lost on the way - its refresh refused -
+  leaves nothing to sign out of: sync's keys are forgotten, as with no
+  session, and the note says the phone was signed out. Recover signs in,
+  and sync then carries the phone's plan up (section 5, as built).
 - **Failures in plain words,** and local state untouched: offline; the
   captcha - "Signing in needs a check this app can't show yet. Please try
   again later.", with no widget (#53); anonymous sign-ins switched off;
@@ -125,7 +146,7 @@ PR #55, with #53.
   code; a code or an address that does not look like one, refused before
   a request; an address the server cannot mail; and a session lost.
 - **`wallClock()`,** in `src/time.js`: the real clock whatever `?now=`
-  says, for sync stamps; nothing calls it yet.
+  says, for sync stamps; `src/outbox.js` is its one caller.
 - **The tests.** `tests/page/keep.test.js` pins each request above as it
   is sent, against a fake of the Auth server (`tests/helpers/backend.js`),
   and drives every door and failure; `tests/page/settings.test.js` pins
@@ -135,7 +156,9 @@ PR #55, with #53.
   asking for nothing but the schedule, and the next site's build, given a
   backend, signing in and keeping `dc26.session.next`; and
   `tests/worker.test.js` the worker passing the backend's requests
-  untouched.
+  untouched. Since sync, a step that succeeds starts a sync run too, and
+  `keep.test.js` reads the email step's conversation from the Auth
+  requests; sync's own are pinned by its tests (section 5, as built).
 
 ## 2. The data model
 
@@ -266,8 +289,9 @@ migration.
 - **`flags`** is seeded by the migration, not by `seed.sql`, so a hosted
   project has it: `push_enabled` false and `crew_size_cap` 25, each a
   one-row update to change.
-- **The indexes:** `picks` and `follows` by user and `changed_at`,
-  `crew_members` by user, `schedule_events` by year and start.
+- **The indexes:** `picks` and `follows` by user and `changed_at` - by
+  user and `synced_at` since sync's migration, below - `crew_members` by
+  user, `schedule_events` by year and start.
   `schedule_changes` by year and run is its primary key's leading
   columns, and has no index of its own.
 - **The triggers** on `picks` and `follows`: `*_1_clamp`, before insert
@@ -275,6 +299,19 @@ migration.
   unless the stamp is strictly newer, so the client's upsert updates
   nothing. A table's before triggers fire in name order, so the clamp runs
   first and latest-wins compares clamped stamps.
+- **Sync's migration,** the second,
+  `20260925204917_picks_follows_sync.sql` (section 5, as built):
+  - `synced_at` on `picks` and `follows`, the row's `clock_timestamp()`,
+    set by a third trigger, `*_3_synced`, on every insert and on every
+    update latest-wins accepts; after it by name, so a write latest-wins
+    turns away - it returns no row, and no later trigger fires - keeps the
+    stamp it had;
+  - `user_id` the caller's by default, `auth.uid()`: the client never
+    sends it;
+  - `*_0_keys`, before update and first by name, which refuses a change of
+    any key column, 42501, whatever the stamp (section 3, as built);
+  - the indexes by user and `synced_at` in place of those by user and
+    `changed_at`, which nothing reads any more.
 
 ## 3. Security
 
@@ -328,7 +365,14 @@ The same migration (PR #54).
   that test. `service_role` keeps Supabase's grants, for the jobs.
 - **Grants to `authenticated`.** On `picks` and `follows`: select, insert,
   and an update of `picked` or `followed` and `changed_at` alone; no
-  delete. On `crews` and `crew_members`: select, delete, and an update of
+  delete. Sync's migration adds an update of the key columns - `year` and
+  `event_id`, and `year`, `kind` and `key` - because PostgREST's upsert
+  names every column of its payload in its `SET`, and Postgres checks the
+  grant on each before it knows whether a row conflicts: without it the
+  upsert is refused, a new key's too (checked against PostgREST 14.5 on
+  the CLI's local stack). The key trigger keeps them as they are, so a
+  pick still never moves to another event. `user_id` and `synced_at` stay
+  ungranted, so a payload that names either is refused. On `crews` and `crew_members`: select, delete, and an update of
   `name` or `display_name` alone. On `push_subscriptions`: select, insert,
   delete, and an update of its keys and `last_seen_at`. On the five job
   tables: nothing.
@@ -355,10 +399,10 @@ The same migration (PR #54).
   Their errors: 42501, not signed in or not the creator; P0002, no crew
   has that invite; 53400, the crew is full; 22023, no such year; 23514, a
   name out of bounds, from the table's check.
-- **The tests,** nine files under `supabase/tests/`, each one transaction
+- **The tests,** ten files under `supabase/tests/`, each one transaction
   rolled back: `00_structure`, `01_anon`, `02_stranger`, `03_member`,
-  `04_stamps`, `05_rpcs`, `06_job_tables`, `07_cascades` and
-  `08_push_subscriptions`. A test user is a row inserted into
+  `04_stamps`, `05_rpcs`, `06_job_tables`, `07_cascades`,
+  `08_push_subscriptions` and, with sync's migration, `09_sync`. A test user is a row inserted into
   `auth.users`. The test acts as that user through the `authenticated`
   role and a `request.jwt.claims` naming them, which `auth.uid()` reads,
   and as anon through `set local role anon`. A mutation pass - every
@@ -400,7 +444,7 @@ PR #54.
 
 ## 5. Sync rules
 
-#53: decided, not built; the sync PR builds it (ROADMAP, tentpole 4).
+#53, built by the sync PR, PR #56 (ROADMAP, tentpole 4); as built, below.
 
 - **What syncs.** Picks and follows, one's own rows, both ways, and
   nothing else: no settings (#50), and neither the pick news nor the
@@ -452,6 +496,125 @@ PR #54.
   behavioural test that clamps a follow's stamp, which PR #54 left to the
   structure test.
 
+### Sync rules, as built
+
+PR #56, with #53.
+
+- **Two modules,** in #29's order: `src/outbox.js`, an eighteenth leaf
+  after `time`, and `src/sync.js`, after the bus. The doors hand the
+  outbox their changes, and a module imports only the modules before it,
+  so the outbox sits below `picks` and `follows`; the pull applies rows to
+  both and asks for a redraw, so `sync` sits above the bus. Nothing but
+  `render()` calls upward, so a drain the outbox starts after a tap is
+  followed by no pull: the pull follows the drains `sync` runs, and after
+  a tap it comes at the next trigger.
+- **The doors.** `savePicks()` and `saveFollows()` each keep a copy of
+  what they last saved - read with the module, and for follows after the
+  shape filter, so a follow it drops, never synced, is no change - and
+  hand the outbox every key gained or lost since: a star or a follow an
+  add, an unstar or an unfollow a tombstone. A save that changed nothing
+  records nothing; no call site changed. `reconcilePicks()`'s changes are
+  a save like any other: a gone pick a tombstone, a merged one a tombstone
+  and an add for its survivor. A pull goes through neither door:
+  `applyPulledPicks()` and `applyPulledFollows()` change the state and
+  move the saved copy with it, so nothing pulled is sent back.
+- **A pick this schedule never showed.** A pick whose id no event has or
+  names in its `was`, and that has no snapshot, stays in the plan, unseen,
+  until the schedule knows it. In a live year an event leaves the file
+  only by a merge (#47), so such a pick was made on another device
+  against a newer schedule; dropped as gone, its tombstone would unpick it
+  on every device. A pick with a snapshot whose event has gone leaves as
+  before. Mine's badge counts `picks.size`, so it counts such a pick
+  meanwhile.
+- **The outbox,** `storageKey("outbox")`: `{user, ops}`, `ops` by table
+  and key - a pick by event id, a follow by `kind:key` - each `{on, at}`,
+  `at` from `wallClock()` and never the same moment twice from one page,
+  so two changes to a key in a millisecond cannot tie. A later change to a
+  key replaces its op. No session, no outbox, and ops kept for one user
+  are never sent as another's.
+- **The drain** is one upsert per table, its rows by key and no `user_id`
+  among them (section 1, as built). Success clears each key it sent unless
+  a newer op took its place meanwhile. A failure keeps them all, and the
+  drain tries again after 5 seconds, doubling to 5 minutes and staying
+  there; a success starts the wait at 5 again. One drain at a time. A tap
+  starts one, but not inside a failure's wait; a trigger does, at once. A
+  refusal is kept, retried and shown like any failure, never dropped.
+- **A run,** `runSync()`: the drain, then the pull. After the load; on
+  `visibilitychange` and `pageshow`, ungated; on `online` and the worker's
+  `schedule-online`; and after the email step sends a code, which may have
+  minted the phone's user, and after it confirms one. No timer. One run at
+  a time: a trigger during one asks for one more after it, however many
+  there are.
+- **The pull** holds the drains while it reads and applies - the one out
+  finishes first - so no pulled row lands on a change drained in between,
+  and a tap meanwhile waits as an op. It reads the crews, with their
+  members, then the picks and the follows newer than the watermark less a
+  minute, 1,000 rows a request - Supabase's most, hosted and in
+  `supabase/config.toml` - until a request comes back short. When a crew
+  has gained anyone since the last run, the picks are read whole, since a
+  newcomer's are older than the watermark. Then, with no wait between: the
+  reader's own rows are applied unless a pending op holds the key;
+  crewmates' picks go to `storageKey("crewPicks")`, `{user: {event:
+  true}}`, a crewmate's unstar taking the entry out and a departed member
+  taking all of theirs; the crews to `storageKey("crew")`, `[{id, name,
+  creator, members: [{user_id, display_name}]}]`, data alone for the crew
+  screens; and the watermark to `storageKey("syncStamp")`, `{user, picks,
+  follows}`, each the newest `synced_at` its table's read returned, as the
+  server wrote it.
+- **The watermark stops at a held row.** A row of the reader's own that a
+  pending op holds is passed over, and the watermark goes no later than
+  it, so the next pull reads it again, and applies the server's value if
+  the op, drained, lost to a newer stamp. A watermark past it would leave
+  the phone holding a change the server turned away. The rule above, "the
+  newest `synced_at` seen", did not say so; this is the rule as built.
+  **Its cost when a refusal lasts.** The client builds no row the
+  database's checks refuse, so a lasting refusal is a whole request's: a
+  grant or a schema out of step with the client. It is retried and shown,
+  never dropped (the drain, above). The drain sends a table in one
+  request, all or none, the picks before the follows, and stops at the
+  first refused. So while the refusal lasts every waiting change of the
+  refused table waits with it, and every later one joins them; when the
+  picks are refused the follows wait too, and crewmates see none of the
+  reader's later picks, while a refusal of the follows alone lets the
+  picks through. Each waiting key keeps the phone's value, never the
+  server's. Where the reads still work - a missing update grant, say -
+  the watermark of each table with waiting keys stops at the earliest row
+  a pull reads for any of them, so every pull then reads again everything
+  written since, page after page, a read that only grows while the
+  refusal lasts. Where they do not - a project this PR's migration has
+  not reached, whose tables have no `synced_at` to read by - no pull
+  succeeds at all, so no watermark moves and nothing from the server
+  reaches the phone, crewmates' picks included. Sign out is refused
+  meanwhile (section 1, as built), and the status line names the refusal.
+- **The owner.** A run whose session's user is not the watermark's - a
+  mint, a recover, a sign-in in another tab - starts the outbox afresh for
+  them, with the whole local plan as adds stamped at once, which is
+  recover's union (section 1), and starts the watermark and the crew's
+  two keys again. With no session a run forgets all four keys, and so does
+  Sign out, once nothing waits to be sent (section 1, as built), so the
+  next sign-in, even as the same user, sends the whole plan again.
+- **The status line,** under Keep your plan's heading, with a session
+  alone: "Synced just now"; "N changes waiting"; "Offline, N changes
+  waiting", or "Offline, nothing waiting"; or the last failure in plain
+  words - a server's error, "The server had a problem. Your changes are
+  safe on this phone, and will be sent again.", and a refusal, "The server
+  turned your changes away. They're kept on this phone, and will be sent
+  again." Under it, after a refused Sign out and while changes still
+  wait, the refusal's line (section 1, as built). A run redraws both; a
+  drain the outbox starts on its own does not, until the next run or the
+  next time Settings opens.
+- **What never syncs:** settings, the views, `pickInfo` and the pick news.
+- **The tests.** `tests/page/sync.test.js`: the doors and the upsert
+  pinned as sent, coalescing, the stamps and `?now=`, one drain at a time,
+  the backoff and its cap, the status line, mint, recover and sign out.
+  `tests/page/sync-pull.test.js`: the pull's requests pinned, own rows and
+  crewmates', the watermark and its overlap, a held row and the watermark
+  stopping at it, a departed member and a newcomer, each trigger, the
+  drains held during a pull, paging and reconcile. Both run against
+  `tests/helpers/backend.js`, whose PostgREST half was checked against the
+  real one; pgTAP's `09_sync.test.sql` holds the migration. A mutation
+  pass over the doors, the outbox and the pull is not committed.
+
 ## 6. The mirror job — to follow
 
 The Actions job that writes `schedule_events` and `schedule_changes` after
@@ -478,8 +641,9 @@ it).
   #50); how many minutes is unset.
 - Recording searches that return nothing, anonymously, in 2027: #36's
   privacy question for this tentpole.
-- The Auth project's two limits, for the operations track (#50): the
-  built-in mailer sends only to the organisation's own addresses, a few
-  an hour, so production needs a mail server of its own; and anonymous
-  sign-ins are capped at 30 an hour per IP by default, while a hotel's
-  Wi-Fi puts many phones behind one address.
+- The Auth project's two limits. The built-in mailer sends only to the
+  organisation's own addresses, a few an hour; custom email is not the
+  operations track's but the six-digit code's prerequisite (#25's note;
+  ROADMAP, Checklist). And anonymous sign-ins are capped at 30 an hour per
+  IP by default, while a hotel's Wi-Fi puts many phones behind one
+  address: for the operations track (#50).

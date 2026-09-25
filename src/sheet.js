@@ -19,6 +19,7 @@ import { picks, replacePicks, savePicks } from "./picks.js";
 import { CELEB_BADGE, rowHTML } from "./ui.js";
 import { pageScrollTo, pageScrollTop } from "./scroll.js";
 import { requestRender } from "./bus.js";
+import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut } from "./sync.js";
 import { MAP_HOTELS, mapDay } from "./map.js";
 
 /* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
@@ -44,11 +45,16 @@ function fillSettings() {
    Done, and there only when the build has a backend - with none, the panel
    is the 2026 app's. One screen for add and recover: the address and Send
    code, then the code and Confirm; once the session has an email, who it
-   is and Sign out. Drawn once, the first time it is shown, and after that
-   only shown and hidden, so a half-typed address survives a redraw. */
+   is and Sign out. Under the heading, with a session alone, sync's lines
+   (sync.js): synced, what is waiting, or what went wrong; and, while a
+   refused Sign out still has changes to send, how many. Drawn once,
+   the first time it is shown, and after that only shown and hidden, so a
+   half-typed address survives a redraw. */
 const keepEl = document.getElementById("keep");
 let keepNote = "", keepBusy = false;
 const KEEP_HTML = `<h3>Keep your plan</h3>
+  <p class="keep-sync" id="keepSync" role="status" hidden></p>
+  <p class="keep-sync" id="keepWaiting" role="status" hidden></p>
   <div id="keepOut">
     <p>Add your email, and a new phone gets this plan back. We send a six-digit code; there's no password.</p>
     <form id="keepEmailForm" novalidate>
@@ -78,7 +84,9 @@ function fillKeep() {
   document.getElementById("keepSentTo").textContent = sentTo;
   document.getElementById("keepSend").disabled = keepBusy;
   document.getElementById("keepConfirm").disabled = keepBusy;
+  document.getElementById("keepSignOut").disabled = keepBusy;
   document.getElementById("keepNote").textContent = keepNote;
+  fillSyncStatus();
 }
 
 function eventSheetHTML(ev) {
@@ -225,7 +233,9 @@ function onResetPicks() { if (confirm("Remove everything from my schedule?")) { 
 
 /* The email step's two forms, Send code and Confirm. A failure is said in
    plain words and changes nothing kept; a second tap while a request is out
-   does nothing. */
+   does nothing. Each that succeeds starts a sync run, not waited on: a code
+   sent may have minted the phone's user, and a code confirmed may have
+   signed it in as another, and either way the plan goes up. */
 async function onKeepSubmit(e) {
   e.preventDefault();
   if (keepBusy) return;
@@ -238,9 +248,11 @@ async function onKeepSubmit(e) {
       await sendCode(document.getElementById("keepEmail").value);
       document.getElementById("keepCode").value = "";
       keepNote = "Check your email for the code.";
+      runSync();
     } else if (form === "keepCodeForm") {
       await confirmCode(document.getElementById("keepCode").value);
       document.getElementById("keepCode").value = "";
+      runSync();
     }
   } catch (err) {
     keepNote = plainMessage(err);
@@ -249,12 +261,33 @@ async function onKeepSubmit(e) {
     fillKeep();
   }
 }
-/* And Sign out, which only a user signed in with an email is shown. */
-function onKeepClick(e) {
-  if (!e.target.closest("#keepSignOut")) return;
-  signOut();
-  keepNote = "Signed out. Your plan stays on this phone.";
+/* And Sign out, which only a user signed in with an email is shown. What
+   waits to be sent goes first: if anything still waits after the try, the
+   sign-out is refused, and sync's line under the status says how much,
+   while the session and sync's keys stay as they are. Only with the outbox
+   empty does it go, sync's own keys with the session, so a later sign-in,
+   even as the same user, sends the whole plan again; the plan itself stays.
+   A session lost on the way leaves nothing to sign out of, and says so. A
+   second tap meanwhile does nothing. */
+async function onKeepClick(e) {
+  if (!e.target.closest("#keepSignOut") || keepBusy) return;
+  keepBusy = true;
+  keepNote = "";
   fillKeep();
+  try {
+    const waiting = await sendBeforeSignOut();
+    if (!signedInAs()) {
+      forgetSync();
+      keepNote = plainMessage({code: "session_lost"});
+    } else if (!waiting) {
+      signOut();
+      forgetSync();
+      keepNote = "Signed out. Your plan stays on this phone.";
+    }
+  } finally {
+    keepBusy = false;
+    fillKeep();
+  }
 }
 
 export {

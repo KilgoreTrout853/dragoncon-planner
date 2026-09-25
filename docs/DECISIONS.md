@@ -308,7 +308,7 @@ its own assumptions.
 feature. Until Playwright, offline and install are verified by hand on the
 dev site.
 
-### 25. Supabase is the backend — Decided, not built (2026-09-17) — amended by #50: the mirror two tables written after merge by an Actions job, the pipeline writing no Postgres and no venues mirrored; realtime out of 2027, a pull since a watermark instead; sign-in lazy, the bot check the project's setting, off, and the cleanup built; identity by #51, the schema and its security by #52
+### 25. Supabase is the backend — Decided, not built (2026-09-17) — amended by #50: the mirror two tables written after merge by an Actions job, the pipeline writing no Postgres and no venues mirrored; realtime out of 2027, a pull since a watermark instead; sign-in lazy, the bot check the project's setting, off, and the cleanup built; identity by #51, the schema and its security by #52; the email templates can be edited only with custom SMTP, so custom email is a prerequisite of the six-digit code, not an operations item: the dev project sends through Resend's test sender, and production needs a domain verified there (ROADMAP, Checklist)
 **Decided:** #9's working assumption is confirmed. Two hosted projects,
 dev and production; the schema lives as migration files in
 `supabase/migrations/`, applied by the CLI and changed only through PRs;
@@ -425,7 +425,7 @@ mode now also covers moved partitions. The map needs one persistent SVG
 mutated in place rather than the innerHTML rebuild in `src/app.js` — a
 constraint on step 4's module split.
 
-### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53)
+### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53); an eighteenth, `outbox`, after `time`, and `sync` after the bus (#53)
 **Decided:** The client's modules stand in one order, and `src/boot.js` is
 its root. The order is the array `ORDER` in `tests/rules/imports.test.js` -
 the fourteen leaves, then `scroll` and the `bus`, the five views, then
@@ -1332,7 +1332,7 @@ seconds apart land in stamp order. Crew presence, pings and realtime wait
 for spring, and the mirror trails a scrape by its merge. The crowd factor
 is set again on each device.
 
-### 51. Identity: lazy, anonymous, recovered by email — Decided, not built (2026-09-25) — built by PR #55 but for recover's union, which is sync's (#53): `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the widget amended by #53, a plain message until the project turns the captcha on
+### 51. Identity: lazy, anonymous, recovered by email — Decided, not built (2026-09-25) — built by PR #55 but for recover's union, which is sync's (#53): `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the widget amended by #53, a plain message until the project turns the captcha on; recover's union built by PR #56, as sync's change of owner (`contract.md`, section 5, as built)
 **Decided:** #8 as #25 and #50 amend it; `docs/sync/contract.md`,
 section 1, has the detail.
 - No server user until the first tap that needs one: joining or creating
@@ -1370,7 +1370,7 @@ plan (#8). A recovering phone's crew membership stays behind until the
 person rejoins. A stamp ignores the simulated clock, so a test under
 `?now=` stamps the real time.
 
-### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built)
+### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built)
 **Decided:** Ten tables in Supabase's Postgres, row-level security on
 every one, and three RPCs; `docs/sync/contract.md`, sections 2-4, has the
 columns, the policies and the tests.
@@ -1430,7 +1430,7 @@ and pytest, and `database` one more job on every pull request. A crew
 whose creator is gone can no longer regenerate its invite or remove
 anyone.
 
-### 53. The fetch layer, the captcha, and the sync rules — Decided, not built (2026-09-25) — the fetch layer and the captcha's plain message built by PR #55: `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built)
+### 53. The fetch layer, the captcha, and the sync rules — Decided, not built (2026-09-25) — the fetch layer and the captcha's plain message built by PR #55: `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the sync rules built by PR #56: `src/outbox.js`, `src/sync.js` and a second migration, the watermark stopping at a row a pending op holds (`contract.md`, section 5, as built)
 **Decided:** How the client talks to the backend, what it says when a
 captcha is demanded, and how it will move picks and follows;
 `docs/sync/contract.md` has the detail, in section 1, as built, and

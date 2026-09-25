@@ -44,8 +44,9 @@ select results_eq(
 select results_eq(
   $$ select t.tgname::text collate "default" from pg_trigger t
      where t.tgrelid in ('public.picks'::regclass, 'public.follows'::regclass) and not t.tgisinternal order by 1 $$,
-  $$ values ('follows_1_clamp'), ('follows_2_latest_wins'), ('picks_1_clamp'), ('picks_2_latest_wins') $$,
-  'picks and follows each carry the clamp, then latest-wins, in that order by name');
+  $$ values ('follows_0_keys'), ('follows_1_clamp'), ('follows_2_latest_wins'), ('follows_3_synced'),
+            ('picks_0_keys'), ('picks_1_clamp'), ('picks_2_latest_wins'), ('picks_3_synced') $$,
+  'picks and follows each carry the key guard, the clamp, latest-wins and synced_at, in that order by name');
 
 -- A later migration's table reaches neither role until it grants by name.
 create table public.probe (x integer);

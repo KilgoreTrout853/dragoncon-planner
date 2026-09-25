@@ -551,9 +551,10 @@ describe("vite build", () => {
 
   /* A build with a backend (DECISIONS #51, #53): the next site's, stamped and
      given the two constants. Nothing calls the backend on load; the email
-     step, driven as a reader drives it, signs in against a fake of the Auth
-     server (tests/helpers/backend.js) and keeps the session under the
-     channel's key. */
+     step, driven as a reader drives it, signs in against a fake of the
+     backend (tests/helpers/backend.js) and keeps the session under the
+     channel's key; and a star, once signed in, reaches the server as the
+     user's pick (docs/sync/contract.md, section 5). */
   describe("the built page, stamped with a channel and given a backend, signs in by email", () => {
     let built, dom;
     const fake = fakeBackend(), errors = [];
@@ -599,7 +600,20 @@ describe("vite build", () => {
       expect(JSON.parse(win.localStorage.getItem("dc26.session.next")).user).toMatchObject({ email: "new@example.test", is_anonymous: false });
       expect(win.localStorage.getItem("dc26.session")).toBe(null);
       expect(Object.keys(win.localStorage).filter(k => !k.endsWith(".next"))).toEqual([]);
-      expect(fake.requests.map(r => `${r.method} ${r.path}`)).toEqual(["POST /auth/v1/otp", "POST /auth/v1/signup", "PUT /auth/v1/user", "POST /auth/v1/verify"]);
+      expect(fake.requests.filter(r => r.path.startsWith("/auth/")).map(r => `${r.method} ${r.path}`))
+        .toEqual(["POST /auth/v1/otp", "POST /auth/v1/signup", "PUT /auth/v1/user", "POST /auth/v1/verify"]);
+    });
+    it("and syncs: a star reaches the server as the user's pick, and sync's keys end .next too", async () => {
+      const win = dom.window, doc = win.document;
+      const star = doc.querySelector("#view-now .row .star"), id = star.closest(".row").dataset.id;
+      star.click();
+      await until(() => fake.rows("picks").some(r => r.event_id === id), "the star at the server");
+      const user = JSON.parse(win.localStorage.getItem("dc26.session.next")).user.id;
+      expect(fake.rows("picks").find(r => r.event_id === id)).toMatchObject({ user_id: user, year: 2026, picked: true });
+      expect(fake.requests.filter(r => r.method === "POST" && r.path.startsWith("/rest/v1/")).map(r => r.headers.Prefer))
+        .toEqual(["resolution=merge-duplicates,return=minimal"]);
+      expect(JSON.parse(win.localStorage.getItem("dc26.syncStamp.next")).user).toBe(user);
+      expect(Object.keys(win.localStorage).filter(k => !k.endsWith(".next"))).toEqual([]);
     });
     it("no uncaught error fired", () => {
       expect(errors).toEqual([]);
