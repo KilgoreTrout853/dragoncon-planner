@@ -1,7 +1,7 @@
-import { SEASON, YEAR, YY } from "./season.js";
+import { SEASON, YEAR } from "./season.js";
 import { dayOf, pad, toDate } from "./util.js";
 import { readSession, writeSession } from "./storage.js";
-import { BUILD } from "./build.js";
+import { storageKey } from "./build.js";
 
 /* ==================================================================
    Time. Every read of the current moment goes through now() - the header
@@ -43,10 +43,10 @@ const DAY_LABEL = Object.fromEntries(CON_DAYS.map(day => [day, DAY_LONG[day].sli
    and the day Search and the Map open on outside con week. */
 const FIRST_FULL_DAY = CON_DAYS[1];
 
-/* Per channel: the next site shares this origin, and sessionStorage with it,
-   so a clock simulated there must not follow the reader to the live site in
-   the same tab. */
-const TIME_OVERRIDE_KEY = `dc${YY}.timeOverride${BUILD.channel ? "." + BUILD.channel : ""}`;
+/* Per channel, as every key is (storageKey()): the next site shares this
+   origin, and sessionStorage with it, so a clock simulated there must not
+   follow the reader to the live site in the same tab. */
+const TIME_OVERRIDE_KEY = storageKey("timeOverride");
 let timeOverride = null;                     // a Date, or null for the wall clock
 const parseMoment = raw => { const d = raw ? new Date(raw) : null; return d && !isNaN(d) ? d : null; };
 

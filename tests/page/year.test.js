@@ -65,6 +65,13 @@ describe("the year under test", () => {
       expect(Object.keys(window.localStorage).filter(k => !k.startsWith(`dc${app.YY}.`))).toEqual([]);
       expect(Object.keys(window.sessionStorage).filter(k => !k.startsWith(`dc${app.YY}.`))).toEqual([]);
     });
+    it("and, unstamped, none carries a channel: every key is storageKey()'s, dc<YY>. and a name", () => {
+      expect(app.storageKey("picks")).toBe(`dc${app.YY}.picks`);
+      const plain = new RegExp(`^dc${app.YY}\\.[A-Za-z]+$`);
+      const keys = [...Object.keys(window.localStorage), ...Object.keys(window.sessionStorage)];
+      expect(keys.length).toBeGreaterThan(0);
+      expect(keys.filter(k => !plain.test(k))).toEqual([]);
+    });
   });
 
   describe("CON is the season file's", () => {

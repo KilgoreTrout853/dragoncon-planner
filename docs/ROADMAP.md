@@ -115,7 +115,7 @@ Pipeline shape is closed. What it leaves, carried:
   start and the last end; they move into `season.json` once 2027's
   schedule shows its own (#49).
 
-Identity and sync opens in design once PR 2 is running (#37).
+Identity and sync opened in design on 2026-09-24 (#37).
 
 The Postgres mirror (#27) is the seam: Pipeline shape ends at writing JSON,
 and the mirror is designed with Identity and sync's schema and row-level
@@ -169,6 +169,8 @@ sketches continue on the side, in chat; a Places PR beyond what the
 pipeline absorbs takes a free review slot.
 
 ### 4. Identity and sync — in design (opened 2026-09-24, after Pipeline shape closed at PR #50; the recon is `docs/sync/recon.md`)
+
+1. The channel in the key (#39) - built.
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the

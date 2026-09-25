@@ -105,7 +105,7 @@ gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next
 
 `DC_YEAR` names the year the client is built for: four digits, 2026 unless set, and a year with no `data/<year>/events.v2.json` does not build. A build for another year stamps it into the worker, the page's name and the manifest, and keys everything it stores by the year, so it starts with none of 2026's picks, follows or settings (DECISIONS #49). The next site moves to 2027 by a line of its workflow, once 2027's first run has written the file (ROADMAP, Checklist).
 
-One origin also means one localStorage: in an ordinary browser tab the next site reads the same picks and settings as the live one, while both are built for the same year. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected. The simulated clock is the exception: its session key carries the channel, so a `?now=` opened on the next site does not follow you to the live site in the same tab.
+One origin also means one localStorage, so the storage keys carry the channel as the cache name does - `dc26.picks.next` on the next site where the live one keeps `dc26.picks` - and the next site keeps a plan of its own. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected.
 
 ## Offline
 
