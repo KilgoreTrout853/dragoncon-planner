@@ -12,10 +12,11 @@ The stages, in order: fetch (scraper.fetch) gives source.json; ids (ids_stage.as
 and the mint), tags.cache.jsonl and data/registry/works.json; build (events_v2.build), events.v2.json; and the diff
 (diff_stage.diff), changes.jsonl's new lines and changed_at. --to stops after fetch, ids or tag and writes what exists
 so far: the build's file goes only with the diff's lines (#42, #47). --from starts at ids, tag or build, reads what it
-skips from the committed files and keeps the committed fetched_at; its own stamp goes on its lines and changed_at.
---limit is the fetch's, --requests the tag stage's cap for this run, and --force runs outside the season window,
-where a run otherwise stops before it starts, writing nothing (#48). No run targets a frozen season, --force or not
-(#46).
+skips from the committed files and keeps the committed fetched_at and fetch_code_hash: its rows are the committed
+source.json's, so its fetch_code_changed is false (#47); its own stamp goes on its lines and changed_at. --limit is
+the fetch's, --requests the tag stage's cap for this run, and --force runs outside the season window, where a run
+otherwise stops before it starts, writing nothing (#48). No run targets a frozen season, --force or not (#46), and
+once the year's events.v2.json exists a --to run that fetches is refused, --force or not (#44).
 
 The edges, each in one place. The clock is read once, as the run starts (now(): UTC, whole seconds), and that is the
 run's stamp, and a fetch's fetched_at. The code's SHA is PIPELINE_SHA where the workflow sets it, its checkout's
@@ -33,11 +34,13 @@ committed bytes, or the run is fatal. The build runs twice: on the stages' rows,
 (events_v2.live_inputs) on the texts about to be written, the build CI checks; the two must agree byte for byte. A run
 that changes nothing writes nothing, last-run.json included.
 
-Fatal (#44), writing nothing and exiting 2: a frozen season; an input that does not load, the snapshot's among them;
-a stage's error - the fetch's, the ids stage's, the build's, the diff's, a registry the mint's rows break - and any
-other exception; the change log's prefix check; the two builds differing. A degraded run commits, each degradation a
-counter in last-run.json. On Actions a fault counter above zero prints a ::warning:: line, and a curation counter a
-::notice:: line, so that the rooms still to curate, every hour, do not drown a fault.
+Fatal (#44), writing nothing and exiting 2: a frozen season; a --to run that fetches, once the year's events.v2.json
+exists, since it would move source.json past that file and the next run's diff could not tell the source's changes
+from the code's; an input that does not load, the snapshot's among them; a stage's error - the fetch's, the ids
+stage's, the build's, the diff's, a registry the mint's rows break - and any other exception; the change log's prefix
+check; the two builds differing. A degraded run commits, each degradation a counter in last-run.json. On Actions a
+fault counter above zero prints a ::warning:: line, and a curation counter a ::notice:: line, so that the rooms still
+to curate, every hour, do not drown a fault.
 
 Every run leaves its result object - the outcome, the error, the files written, last-run.json's fields, and the names
 behind the counters - in pipeline-result.json in the system's temp folder, never in the tree, and `summary --format
@@ -132,8 +135,9 @@ def git_sha():
 
 def fetch_code_hash():
     """The sha256 of scraper.py, tag_key.py and requirements.txt, their bytes one after another: the fetch's code,
-    which the attribution cannot see (#47; contract.md, `last-run.json`). A run whose hash is not the last committed
-    run's sets fetch_code_changed."""
+    which the attribution cannot see (#47; contract.md, `last-run.json`). Only a run that fetches reads it, and sets
+    fetch_code_changed where it is not the hash last-run.json holds, the last fetching run's; a run that does not fetch
+    keeps that hash, as it keeps fetched_at, and so records false."""
     h = hashlib.sha256()
     for name in FETCH_CODE:
         with open(os.path.join(HERE, name), "rb") as f:
@@ -244,6 +248,11 @@ def run(args, stamp, started, result):
     result["year"] = season["year"]
     if season["frozen"]:
         raise Fatal(f"{args.season} is frozen (DECISIONS #46): no run targets a frozen year")
+    v2_file = os.path.join(folder, "events.v2.json")
+    if args.to and not args.from_stage and os.path.exists(v2_file):
+        raise Fatal(f"--to {args.to} is refused: {v2_file} exists, and a run that fetches must go on to the build and "
+                    "the diff, or the next run's diff could not tell the source's changes this one fetched from the "
+                    "code's (DECISIONS #44)")
     inside, note = in_window(season, stamp)
     if note:
         say(f"warning: {note}")
@@ -253,7 +262,6 @@ def run(args, stamp, started, result):
 
     stamp_s = stamp.isoformat()
     sha = git_sha()
-    code_hash = fetch_code_hash()
     venues = load_venues(os.path.join(folder, "venues.json"))
     reg = registry.load(REGISTRY)
     snapshot = read_snapshot(folder)
@@ -273,6 +281,7 @@ def run(args, stamp, started, result):
 
     # fetch: the source's rows, the previous file's carried; or, from a later stage, the committed file's
     if "fetch" in ran:
+        code_hash = fetch_code_hash()
         previous = {row["source_id"]: row for row in before["rows"]} if before else {}
         fetched = scraper.fetch(season, previous, limit=args.limit or 0)
         rows, failures, fetched_at = fetched.rows, fetched.failures, stamp_s
@@ -287,6 +296,7 @@ def run(args, stamp, started, result):
             raise Fatal(f"--from {args.from_stage} reads the committed source.json and keeps last-run.json's "
                         f"fetched_at, and {path('source.json' if before is None else 'last-run.json')} is absent")
         rows, failures, fetched_at = before["rows"], before["failures"], last["fetched_at"]
+        code_hash = last["fetch_code_hash"]   # kept as fetched_at is: no fetch, so fetch_code_changed is false (#47)
 
     # ids: our id on every row, and the new ledger; or, where the stage is skipped, the committed ledger's ids
     if "ids" in ran:
@@ -549,7 +559,8 @@ def parse_args(argv):
     sub = ap.add_subparsers(dest="command", required=True)
     r = sub.add_parser("run", help="run the stages and write what changed, all or nothing")
     r.add_argument("--season", required=True, help="the year's season.json, e.g. data/2027/season.json")
-    r.add_argument("--to", choices=TO, help="stop after this stage, and write what exists so far")
+    r.add_argument("--to", choices=TO, help="stop after this stage, and write what exists so far; with no --from, "
+                   "refused once the year's events.v2.json exists")
     r.add_argument("--from", dest="from_stage", choices=FROM,
                    help="start at this stage, reading what it skips from the committed files")
     r.add_argument("--limit", type=positive, help="the fetch's: only the first N listings, in page order")

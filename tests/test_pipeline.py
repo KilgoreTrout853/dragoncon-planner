@@ -443,6 +443,24 @@ def test_to_ids_writes_the_source_the_ledger_and_last_run_json_with_no_tag_block
         0, S2, S2, {"kinds": {"added": 3}, "causes": {"source": 3}})
 
 
+def test_a_to_run_that_fetches_is_refused_once_the_year_s_events_v2_json_exists(year):
+    code, result = year.run("--to", "ids")            # a season's first runs, before the file: each commits
+    assert (code, result["outcome"], names(result)) == (0, "committed", ["source.json", "ids.jsonl", "last-run.json"])
+    code, result = year.run("--to", "tag", at=T2)
+    assert (code, result["outcome"]) == (0, "committed")
+    year.run(at=T3)                                   # the first full run writes events.v2.json
+    year.listed["c3"] = raw("c3", "Trek Trivia", "Marriott A707")    # a change a --to run would fetch
+    before, fetches = year.stat(), year.fetches
+    for args in (("--to", "fetch"), ("--to", "ids"), ("--to", "tag", "--force")):
+        code, result = year.run(*args, at=T4)
+        assert (code, result["outcome"], result["files"]) == (2, "fatal", [])
+        assert result["error"].startswith(f"--to {args[1]} is refused: ") and "events.v2.json exists" in result["error"]
+    assert year.stat() == before and year.temps() == [] and year.fetches == fetches
+    # --from is unaffected: from the tag stage to it, nothing is fetched, and here nothing is left to tag
+    code, result = year.run("--from", "tag", "--to", "tag", at=T4)
+    assert (code, result["outcome"]) == (0, "nothing changed")
+
+
 def test_from_build_keeps_fetched_at_and_uses_its_own_stamp(year):
     year.run()
     venues = json.loads((year.folder / "venues.json").read_text(encoding="utf-8"))
@@ -523,6 +541,44 @@ def test_fetch_code_changed_flips_when_the_hash_differs_from_the_last_committed_
     year.listed["c3"] = raw("c3", "Trek Trivia", "Marriott A")
     year.run(at=T4)
     assert json.loads(year.read()["last-run.json"])["fetch_code_changed"] is False
+
+
+def test_a_run_that_does_not_fetch_keeps_the_committed_fetch_code_hash_and_the_next_fetch_takes_the_flag(
+        year, monkeypatch):
+    hashed = []                     # the hash each run read of the fetch's code
+    monkeypatch.setattr(pipeline, "fetch_code_hash", lambda: hashed.append(year.hash) or year.hash)
+    venues = json.loads((year.folder / "venues.json").read_text(encoding="utf-8"))
+
+    def show_location(hotel):       # a build-side edit, so that a run that does not fetch commits
+        venues["hotels"][hotel]["display"] = "location"
+        (year.folder / "venues.json").write_text(json.dumps(venues), encoding="utf-8")
+
+    def flag():
+        last = json.loads(year.read()["last-run.json"])
+        return last["fetch_code_hash"], last["fetch_code_changed"]
+
+    def logged(stamp):
+        return [(x["id"], x["kind"], x["cause"]) for x in lines(year.read()["changes.jsonl"]) if x["run"] == stamp]
+
+    year.run()
+    assert flag() == ("h1", False)                            # a season's first run
+    year.hash = "h2"                                          # the scraper changes, on a commit of its own
+    monkeypatch.setenv("PIPELINE_SHA", "sha-two")
+    show_location(1)
+    code, result = year.run("--from", "build", at=T2)         # no fetch: the committed hash kept, and false
+    assert (code, result["outcome"], flag()) == (0, "committed", ("h1", False))
+    assert logged(S2) == [("c3", "place", "code")]
+    # the change reaches a row, the new scraper reading c3's description; the last run's landing moved the head
+    year.listed["c3"] = raw("c3", "Trek Trivia", "Courtland Grand Athens", description="Read by the new scraper.")
+    monkeypatch.setenv("PIPELINE_SHA", "sha-three")
+    code, result = year.run(at=T3)                            # the next run that fetches takes the flag ...
+    assert (code, result["outcome"], flag()) == (0, "committed", ("h2", True))
+    assert logged(S3) == [("c3", "description", "source")]    # ... on a line the attribution reads as the source's
+    monkeypatch.setenv("PIPELINE_SHA", "sha-four")
+    show_location(0)
+    code, result = year.run("--from", "build", at=T4)         # and a run that does not fetch after it: false again
+    assert (code, result["outcome"], flag()) == (0, "committed", ("h2", False))
+    assert hashed == ["h1", "h2"]                             # hashed by the two fetching runs alone
 
 
 def test_the_fetch_code_hash_is_the_sha256_of_the_three_files_bytes_one_after_another():
