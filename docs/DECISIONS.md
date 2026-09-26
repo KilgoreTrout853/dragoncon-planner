@@ -308,7 +308,7 @@ its own assumptions.
 feature. Until Playwright, offline and install are verified by hand on the
 dev site.
 
-### 25. Supabase is the backend — Decided, not built (2026-09-17) — amended by #50: the mirror two tables written after merge by an Actions job, the pipeline writing no Postgres and no venues mirrored; realtime out of 2027, a pull since a watermark instead; sign-in lazy, the bot check the project's setting, off, and the cleanup built; identity by #51, the schema and its security by #52; the email templates can be edited only with custom SMTP, so custom email is a prerequisite of the six-digit code, not an operations item: the dev project sends through Resend's test sender, and production needs a domain verified there (ROADMAP, Checklist)
+### 25. Supabase is the backend — Decided, not built (2026-09-17) — amended by #50: the mirror two tables written after merge by an Actions job, the pipeline writing no Postgres and no venues mirrored; realtime out of 2027, a pull since a watermark instead; sign-in lazy, the bot check the project's setting, off, and the cleanup built; identity by #51, the schema and its security by #52; the email templates can be edited only with custom SMTP, so custom email is a prerequisite of the six-digit code, not an operations item: the dev project sends through Resend's test sender, and production needs a domain verified there (ROADMAP, Checklist); the push sender built by #55 as drawn here: one Edge Function, `push`, which pg_cron calls through pg_net every minute - only while `flags.push_enabled` is true, which the cron job reads itself - its gate a secret header, not the gateway's JWT check; starts-soon by PR #59
 **Decided:** #9's working assumption is confirmed. Two hosted projects,
 dev and production; the schema lives as migration files in
 `supabase/migrations/`, applied by the CLI and changed only through PRs;
@@ -825,7 +825,7 @@ live site drops `next`'s work and axis follows. The worker's update notice
 keys on `generated_at`, which every rebuild of `events.v2.json` keeps
 (ROADMAP, Held).
 
-### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50)
+### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55)
 **Decided:** Leave-by is retired: no `leave by <time>` countdown on any
 screen, and no leave-by push.
 - The plan keeps what is true of the plan rather than the person: a walk
@@ -1137,7 +1137,7 @@ is what keeps an event's tags stable.
 tagged again and can change works. The request cap is a guess, to be tuned
 in August.
 
-### 47. The change log (builds #20 as narrowed by #40) — Decided, not built (2026-09-22) — built by PR 7b: `diff_stage.py`, the attribution built by the caller (`events_v2.attribution()`) from the snapshot of the previous files, one cause per id and kind, `source` winning where the code and the source both changed it; `merged` read from the survivors' `was`, the diff reading no ledger, and the snapshot's fatal rule the orchestrator's; `people` and `tracks` compared as sets, `from` and `to` sorted; the prefix check PR 8's workflow step; the attribution sees the build's code and data, not the fetch's, and `last-run.json`'s `fetch_code_changed` is PR 8's (`contract.md`, The diff, as built); the prefix check built by PR 8 as the orchestrator's, where it writes, and `fetch_code_changed` by a hash of the fetch's code, not a git diff (`contract.md`, `last-run.json`); its consumer, since #54, the mirror job and then the push job, which reads the flag per line: a line of the run `last-run.json` describes takes its flag, and a line of an earlier run the mirror had not yet written is written `true`; and the flag is the committing run's, not the fetching run's, until a pipeline pull request of its own moves it (#54; ROADMAP, Flags); moved by PR #58: a run that does not fetch keeps the committed `fetch_code_hash`, as it keeps `fetched_at`, and records the flag `false`, so a fetching run's flag compares its code with the last fetching run's; and a `--to` run that fetches is refused once the year's `events.v2.json` exists (#44), so the attribution's previous rows are always those the committed file was built from (`contract.md`, `last-run.json`)
+### 47. The change log (builds #20 as narrowed by #40) — Decided, not built (2026-09-22) — built by PR 7b: `diff_stage.py`, the attribution built by the caller (`events_v2.attribution()`) from the snapshot of the previous files, one cause per id and kind, `source` winning where the code and the source both changed it; `merged` read from the survivors' `was`, the diff reading no ledger, and the snapshot's fatal rule the orchestrator's; `people` and `tracks` compared as sets, `from` and `to` sorted; the prefix check PR 8's workflow step; the attribution sees the build's code and data, not the fetch's, and `last-run.json`'s `fetch_code_changed` is PR 8's (`contract.md`, The diff, as built); the prefix check built by PR 8 as the orchestrator's, where it writes, and `fetch_code_changed` by a hash of the fetch's code, not a git diff (`contract.md`, `last-run.json`); its consumer, since #54, the mirror job and then the push job, which reads the flag per line: a line of the run `last-run.json` describes takes its flag, and a line of an earlier run the mirror had not yet written is written `true`; and the flag is the committing run's, not the fetching run's, until a pipeline pull request of its own moves it (#54; ROADMAP, Flags); moved by PR #58: a run that does not fetch keeps the committed `fetch_code_hash`, as it keeps `fetched_at`, and records the flag `false`, so a fetching run's flag compares its code with the last fetching run's; and a `--to` run that fetches is refused once the year's `events.v2.json` exists (#44), so the attribution's previous rows are always those the committed file was built from (`contract.md`, `last-run.json`); the push job is to send pick-changed for a `source` line of a run whose flag is false alone: a `code` line is suppressed too (#55, PR B)
 **Decided:** `changes.jsonl` is append-only, one line per change to an
 event: the run's stamp, the code's SHA, the event's id, the kind, from and
 to, and the cause, sorted by run, id and kind.
@@ -1286,7 +1286,7 @@ read the rest. 18:00 and 19:00 are a guess for 2027 until its schedule
 shows. The icons draw 2026 in their pixels, which no stamp reaches
 (ROADMAP, Checklist).
 
-### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on; the mirror built by #54: `mirror.yml`, on a push that changes a year's three files, hourly in the season's window and by hand, under the `dev` or the `production` Environment
+### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on; the mirror built by #54: `mirror.yml`, on a push that changes a year's three files, hourly in the season's window and by hand, under the `dev` or the `production` Environment; the push job's first pull request built by #55, PR #59: starts-soon, queue-shaped, the kill switch read by the cron job, by `push_due()` and by the function
 **Decided:** Identity and sync is built smaller than #8, #10, #25 and #27
 drew it; `docs/sync/contract.md` has the design.
 - **The mirror** is two tables, `schedule_events` and `schedule_changes`,
@@ -1370,7 +1370,7 @@ plan (#8). A recovering phone's crew membership stays behind until the
 person rejoins. A stamp ignores the simulated clock, so a test under
 `?now=` stamps the real time.
 
-### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built); the mirror job's migration (#54) makes `schedule_events.start` and `end` nullable, as the file's may be, and grants `service_role` the mirror's three tables by name; and a line's `fetch_code_changed` is its run's from `last-run.json`, or `true` for an earlier run the mirror had not yet written (`contract.md`, section 6)
+### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built); the mirror job's migration (#54) makes `schedule_events.start` and `end` nullable, as the file's may be, and grants `service_role` the mirror's three tables by name; and a line's `fetch_code_changed` is its run's from `last-run.json`, or `true` for an earlier run the mirror had not yet written (`contract.md`, section 6); the push job's migration (#55) makes `push_sent` a queue - `sent_at` nullable with no default, a row without it a claim, and `claimed_at` - and grants `service_role` select, insert, update and delete on `push_sent`, select and delete on `push_subscriptions`, select on `flags`, and `push_due()`'s execution, by name (`contract.md`, section 7)
 **Decided:** Ten tables in Supabase's Postgres, row-level security on
 every one, and three RPCs; `docs/sync/contract.md`, sections 2-4, has the
 columns, the policies and the tests.
@@ -1497,7 +1497,7 @@ on in a hurry waits for a pull request. Two tabs of one phone: the last
 save wins, accepted for 2027. The sync PR has one more migration to
 write and test.
 
-### 54. The mirror job — Decided, not built (2026-09-25) — built by PR #57; its flag's source moved by PR #58, as its last bullet had it: a `--from` run keeps the committed `fetch_code_hash` and records `false`, and a `--to` run that fetches is refused once the year's `events.v2.json` exists (#44), so only a fetching run - a full run, or a season's first, to the ids stage - records a new hash and the flag
+### 54. The mirror job — Decided, not built (2026-09-25) — built by PR #57; its flag's source moved by PR #58, as its last bullet had it: a `--from` run keeps the committed `fetch_code_hash` and records `false`, and a `--to` run that fetches is refused once the year's `events.v2.json` exists (#44), so only a fetching run - a full run, or a season's first, to the ids stage - records a new hash and the flag; `mirror_state` is to gain `tz`, the con's zone, which the mirror is to write, for pick-changed's times (#55, PR B)
 **Decided:** A job of its own on Actions copies a year's committed
 schedule into `schedule_events`, `schedule_changes` and `mirror_state`
 (#50); `docs/sync/contract.md`, section 6, has the detail.
@@ -1566,3 +1566,80 @@ roles by default, so every later migration's table is granted by name, or
 reaches no role, locally as on production. The fake PostgREST is the only
 automated check of the requests, since CI's `database` job runs no
 PostgREST; it was checked against the real one by hand.
+
+### 55. The push job — Decided, not built (2026-09-26) — starts-soon built by PR #59; pick-changed, PR B, to follow
+**Decided:** The push job runs inside the Supabase project, as #25 drew
+it: pg_cron calls one Edge Function, `push`, through pg_net, every minute,
+and a SQL function decides what is due while the function sends it.
+Queue-shaped from its first pull request, which carries the kill switch
+(#50); `docs/sync/contract.md`, section 7, has the detail.
+- **Not a third Actions job.** GitHub documents its schedule event as best
+  effort - delayed under load, a five-minute floor, runs dropped - and its
+  terms name a serverless application run on Actions as a disproportionate
+  burden. The mirror is a publish step and stays on Actions (#54); a
+  sender on the minute is a runtime service.
+- **The split.** `push_due()`, in SQL, decides and claims; the function
+  sends. The logic lives where pgTAP is.
+- **The queue.** `push_sent` holds a claim per user, kind and key, its
+  `sent_at` null until sent, and `claimed_at`. `push_due()` claims by an
+  insert that skips a key already held, and returns what it claimed, so
+  two runs that overlap cannot both take a row. The sender acks a claim
+  when a browser took the push; releases it when every browser answered
+  429, a 5xx or nothing; prunes a browser on 404 or 410, and deletes a
+  claim whose every browser was gone. A claim still unsent five minutes
+  after it was made is a crashed run's, and is released first.
+- **The kill switch.** `flags.push_enabled`, read by the cron job's own
+  SQL - off, there is no call, and no Vault row is read - by `push_due()`,
+  which then returns nothing, and by the function, for its summary. It is
+  the season's window too: on at the freeze, off after the con (ROADMAP,
+  Checklist).
+- **The clock.** `push_due(at default now(), dry default false)`: the
+  function passes on an `at` its request names, the cron sends none, and
+  `dry` claims nothing. #12's rule, on the server.
+- **Starts-soon.** Due where the pick is picked, the event is not removed,
+  not cancelled and has a start (#54), `start - 15 min <= at < start`, and
+  the user has a browser; the key is the event's id, the year the
+  event's. The lead time is 15 minutes, one constant, the value #40 and
+  #50 left open. The minutes are counted as the push is sent, so a late
+  run gives a shorter warning, never a stale one. A user's picks that
+  share a start fold into one push, one claim a pick: one start, one count
+  of minutes and one TTL, the seconds until the start. Urgency high.
+- **The payload,** one shape: `{kind, year, event_ids, title, body}`. One
+  pick: its title, and `Starts in N min · <hotel> <room>`. A fold:
+  `N picks start in M min`, and one line an event,
+  `<title> · <hotel> <room>`. The worker, Delivery's, builds any URL from
+  `event_ids`.
+- **The caller.** The function refuses any request without an
+  `x-push-secret` header equal to its `PUSH_SECRET`, whatever Supabase's
+  JWT setting; the gateway's JWT check is off for it.
+- **Libraries.** PostgREST by `fetch`, as #53. Web Push by `npm:web-push`
+  3.6.7, its request built by `generateRequestDetails` and sent by
+  `fetch`.
+- **The cron job** posts with a 30-second timeout, so that pg_net keeps
+  the run's own answer; and a second job deletes pg_cron's run records
+  older than a week, which pg_cron never deletes.
+- **Pick-changed,** PR B's: one push per user per run and event, folding
+  `cancelled`, `uncancelled`, `time`, `place`, `removed` and `restored`,
+  and never `title`, `description`, `people`, `tracks` or `merged`; sent
+  only for a `source` line of a run whose `fetch_code_changed` is false -
+  a `code` line is suppressed too - where the pick is still picked, the
+  run is after the pick's `changed_at`, the event starts in the future or
+  has no start, and the run is within six hours; its times in the con's
+  zone, from a `tz` column the mirror is to write to `mirror_state`.
+
+**Why:** #25 chose the project's per-minute scheduler because GitHub's
+cron cannot be one, and a minute is starts-soon's grain. A rule in SQL is
+held by pgTAP, as #52's are, and a claim made by the insert itself holds
+against a run that overlaps. With the switch read in the job, a project
+whose switch is off makes no call and reads no secret, all year. With the
+gateway's JWT check on, any `apikey` passes it - the public publishable
+key among them - so it cannot be the gate; a secret the function checks
+is. A late push that says less time is true, and one that says the time
+it would have said is not.
+**Cost:** A push that fails between its send and its ack is sent again
+five minutes later. A fourth migration; a function in Deno, #25's third
+runtime; and its four secrets and two Vault rows on each project, set by
+hand (ROADMAP, Checklist). pg_cron's records: 1,440 runs a day, a week
+kept. The function's logic is tested in Node against fakes; the runtime
+was checked on the CLI's local stack, and a real push service and a real
+browser only by the hand test.
