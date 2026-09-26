@@ -1137,7 +1137,7 @@ is what keeps an event's tags stable.
 tagged again and can change works. The request cap is a guess, to be tuned
 in August.
 
-### 47. The change log (builds #20 as narrowed by #40) — Decided, not built (2026-09-22) — built by PR 7b: `diff_stage.py`, the attribution built by the caller (`events_v2.attribution()`) from the snapshot of the previous files, one cause per id and kind, `source` winning where the code and the source both changed it; `merged` read from the survivors' `was`, the diff reading no ledger, and the snapshot's fatal rule the orchestrator's; `people` and `tracks` compared as sets, `from` and `to` sorted; the prefix check PR 8's workflow step; the attribution sees the build's code and data, not the fetch's, and `last-run.json`'s `fetch_code_changed` is PR 8's (`contract.md`, The diff, as built); the prefix check built by PR 8 as the orchestrator's, where it writes, and `fetch_code_changed` by a hash of the fetch's code, not a git diff (`contract.md`, `last-run.json`)
+### 47. The change log (builds #20 as narrowed by #40) — Decided, not built (2026-09-22) — built by PR 7b: `diff_stage.py`, the attribution built by the caller (`events_v2.attribution()`) from the snapshot of the previous files, one cause per id and kind, `source` winning where the code and the source both changed it; `merged` read from the survivors' `was`, the diff reading no ledger, and the snapshot's fatal rule the orchestrator's; `people` and `tracks` compared as sets, `from` and `to` sorted; the prefix check PR 8's workflow step; the attribution sees the build's code and data, not the fetch's, and `last-run.json`'s `fetch_code_changed` is PR 8's (`contract.md`, The diff, as built); the prefix check built by PR 8 as the orchestrator's, where it writes, and `fetch_code_changed` by a hash of the fetch's code, not a git diff (`contract.md`, `last-run.json`); its consumer, since #54, the mirror job and then the push job, which reads the flag per line: a line of the run `last-run.json` describes takes its flag, and a line of an earlier run the mirror had not yet written is written `true`; and the flag is the committing run's, not the fetching run's, until a pipeline pull request of its own moves it (#54; ROADMAP, Flags)
 **Decided:** `changes.jsonl` is append-only, one line per change to an
 event: the run's stamp, the code's SHA, the event's id, the kind, from and
 to, and the cause, sorted by run, id and kind.
@@ -1286,7 +1286,7 @@ read the rest. 18:00 and 19:00 are a guess for 2027 until its schedule
 shows. The icons draw 2026 in their pixels, which no stamp reaches
 (ROADMAP, Checklist).
 
-### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on
+### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on; the mirror built by #54: `mirror.yml`, on a push that changes a year's three files, hourly in the season's window and by hand, under the `dev` or the `production` Environment
 **Decided:** Identity and sync is built smaller than #8, #10, #25 and #27
 drew it; `docs/sync/contract.md` has the design.
 - **The mirror** is two tables, `schedule_events` and `schedule_changes`,
@@ -1370,7 +1370,7 @@ plan (#8). A recovering phone's crew membership stays behind until the
 person rejoins. A stamp ignores the simulated clock, so a test under
 `?now=` stamps the real time.
 
-### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built)
+### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built); the mirror job's migration (#54) makes `schedule_events.start` and `end` nullable, as the file's may be, and grants `service_role` the mirror's three tables by name; and a line's `fetch_code_changed` is its run's from `last-run.json`, or `true` for an earlier run the mirror had not yet written (`contract.md`, section 6)
 **Decided:** Ten tables in Supabase's Postgres, row-level security on
 every one, and three RPCs; `docs/sync/contract.md`, sections 2-4, has the
 columns, the policies and the tests.
@@ -1496,3 +1496,73 @@ apart lose the session to the server's reuse detection. A captcha turned
 on in a hurry waits for a pull request. Two tabs of one phone: the last
 save wins, accepted for 2027. The sync PR has one more migration to
 write and test.
+
+### 54. The mirror job — Decided, not built (2026-09-25) — built by PR #57
+**Decided:** A job of its own on Actions copies a year's committed
+schedule into `schedule_events`, `schedule_changes` and `mirror_state`
+(#50); `docs/sync/contract.md`, section 6, has the detail.
+- **The trigger.** `.github/workflows/mirror.yml`: a push to `next` or
+  `main` that changes a year's `events.v2.json`, `changes.jsonl` or
+  `last-run.json`; hourly at `47 * * * *`, inside the season's window
+  alone, so a failed mirror heals within the hour during the con; and by
+  hand, naming a season. Not `workflow_run`: Scrape ends when it opens its
+  pull request, and auto-merge lands it later. `next` and `main` alone,
+  each checked out as it stands, so a re-run mirrors the head; one run at a
+  time for a project and a season; the Environment `production` on `main`
+  and `dev` otherwise, recording no deployment.
+- **The transport.** `mirror.py`: Python, `requests` over PostgREST as the
+  service role, and no new dependency. An `sb_secret_` key goes on `apikey`
+  alone, a legacy JWT as the bearer too; the key is checked before any
+  request and never printed. Every write is strict and counted.
+- **The writes.** The watermark read first; the events upserted, and those
+  the file no longer holds deleted - in a live year only an id a `merged`
+  line names; the lines after the watermark; the watermark written last.
+  The table equals the file. No transaction: each step is idempotent. A
+  commit older than the one last mirrored writes nothing. A connection
+  lost, a 429 or a 5xx is tried three times in all.
+- **The flag.** A line of the run `last-run.json` describes takes its
+  `fetch_code_changed`; a line of an earlier run the mirror had not yet
+  written is written `true`, and a warning names the run. The change lines
+  are upserted with merge-duplicates, not inserted ignoring duplicates:
+  the lines after the watermark are sent together, so a run's lines carry
+  one flag, which only moves from `false` to `true`. The push job reads the
+  flag per line.
+- **Nulls.** A third migration makes `schedule_events.start` and `end`
+  nullable, and the mirror writes a null time as the file has it. The push
+  job sends no starts-soon for an event with no start.
+- **The grants.** The same migration grants `service_role` select, insert,
+  update and delete on `schedule_events`, `schedule_changes` and
+  `mirror_state`, by name, so a production project gets them by migration,
+  not by its defaults. `supabase/config.toml` turns the local database's
+  defaults off, `auto_expose_new_tables = false`, so `00_structure` pins
+  the migration's grants, not the defaults.
+- **The flag's source.** The flag is the committing run's, not the
+  fetching run's (`pipeline.py`): a committed `--from` or `--to` run takes
+  it from the next run that fetches. A pipeline pull request of its own
+  follows this one: a `--from` run keeps the committed `fetch_code_hash`,
+  as it keeps `fetched_at`, so only a fetching run records a new hash and
+  the flag (ROADMAP, Flags).
+
+**Why:** #50: the mirror stays off the path of the pipeline, which runs
+unattended through con weekend, and off the site's. A time kept from
+before would make a starts-soon push at a time the source no longer
+states, the wrong push #47 exists to prevent, so the table holds the
+file's null. With duplicates ignored, a run half written and completed
+after the next scrape landed would carry `false` and `true` at once. A
+re-run of an old job on its own commit, after a newer one had written its
+events but not the watermark, would take the tables back; the head cannot.
+Supabase's API keys guide sends a secret key on `apikey`, not as a bearer.
+A project made since 2026-05-30 grants a new table to no Data API role,
+`service_role` included, so a grant left to the defaults would fail the
+first mirror on production; and with the local defaults on, a test could
+not tell the migration's grant from them.
+**Cost:** A run the mirror did not write while `last-run.json` described it
+is flagged, and its pick-changed pushes suppressed: after a failed mirror
+completed late, and every earlier run of the season at a project's first
+mirror - production's, at the freeze. One more workflow, an hourly job in
+the season, a third migration, and two Environments' variable and secret
+to keep. The local database no longer grants a new table to the Data API
+roles by default, so every later migration's table is granted by name, or
+reaches no role, locally as on production. The fake PostgREST is the only
+automated check of the requests, since CI's `database` job runs no
+PostgREST; it was checked against the real one by hand.

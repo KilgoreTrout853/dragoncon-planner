@@ -1,0 +1,82 @@
+name: Mirror
+
+# The schedule mirror (DECISIONS #50, #54; docs/sync/contract.md, section 6): a year's committed events.v2.json,
+# changes.jsonl and last-run.json copied into the Supabase project's schedule_events, schedule_changes and
+# mirror_state, where the push job reads them. The pipeline never learns Supabase exists, and nothing waits on this:
+# if it fails, the scrape, CI and the site carry on. A push that changes one of the three files - a scrape's pull
+# request landing, a squash merge on next or a merge commit on main - mirrors the default season, as does the hourly
+# re-mirror inside the season's window, which heals a failed run within the hour during the con; a dispatch names its
+# season. Not workflow_run: Scrape ends when it opens its pull request, and auto-merge lands it later.
+on:
+  push:
+    branches: [next, main]
+    paths:
+      - data/*/events.v2.json
+      - data/*/changes.jsonl
+      - data/*/last-run.json
+  schedule:
+    - cron: "47 * * * *"
+  workflow_dispatch:
+    inputs:
+      season:
+        description: The season file
+        type: string
+        default: data/2027/season.json
+
+permissions:
+  contents: read
+
+# One run at a time for a project and a season: a second waits, and a third replaces a second still waiting, which
+# loses nothing, since every run mirrors the branch as it stands. Another branch's run, which the job skips, keeps a
+# group of its own, so it never replaces one of next's.
+concurrency:
+  group: mirror-${{ (github.ref_name == 'main' && 'production') || (github.ref_name == 'next' && 'dev') || github.ref_name }}-${{ inputs.season || 'data/2027/season.json' }}
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    # next's files go to the dev project and main's to production. Another branch's never: its runs never landed.
+    if: github.ref_name == 'next' || github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    # The environment's variable and secret, with no deployment recorded for each run.
+    environment:
+      name: ${{ github.ref_name == 'main' && 'production' || 'dev' }}
+      deployment: false
+    env:
+      SEASON: ${{ inputs.season || 'data/2027/season.json' }}
+    steps:
+      # The branch as it stands, not the commit that started the run: a re-run mirrors the head, whose log holds every
+      # earlier commit's lines, and never takes the tables back.
+      - id: checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # The hourly re-mirror runs inside the season's window alone, as the scrape does; a push or a dispatch runs
+      # whenever it comes.
+      - id: window
+        name: Season window
+        if: github.event_name == 'schedule'
+        run: |
+          window=$(python pipeline.py window --season "$SEASON")
+          echo "$window"
+          echo "window=$window" >> "$GITHUB_OUTPUT"
+          if [ "$window" != "in window" ]; then
+            echo "Outside the season window of \`$SEASON\`: nothing mirrored." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Mirror
+        if: github.event_name != 'schedule' || steps.window.outputs.window == 'in window'
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          MIRROR_SHA: ${{ steps.checkout.outputs.commit }}
+        run: python mirror.py --season "$SEASON" --summary "$GITHUB_STEP_SUMMARY"

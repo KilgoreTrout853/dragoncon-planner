@@ -1,9 +1,10 @@
 # Identity and sync: the data contract
 
-The design note for Identity and sync: DECISIONS #50-#53, in the detail a
+The design note for Identity and sync: DECISIONS #50-#54, in the detail a
 pull request needs. Written 2026-09-25, before any of it was built:
-sections 1-4 first, section 5 with the client's identity (PR #55), and
-6-8 as their design is done. The evidence is
+sections 1-4 first, section 5 with the client's identity (PR #55), section
+6 with the mirror job (PR #57), and 7-8 as their design is done. The
+evidence is
 `recon.md`, beside this file, the client as the design found it. Where an
 entry has the detail, this note points at it rather than saying it twice.
 What the note does not settle is under Open, at the end. A change of
@@ -171,7 +172,7 @@ none, and neither has the picks' when a crew has gained anyone.
 | `crews` | `create_crew`, `regenerate_invite`; the creator's plain update of the name, and delete | its members | A crew and its invite token. |
 | `crew_members` | `create_crew`, `join_crew`; a plain update of one's own display name; a plain delete to leave or remove | the crew's members | A membership, with its display name. |
 | `push_subscriptions` | the client, as its user | its user; the push job | One row per browser endpoint. |
-| `schedule_events` | the mirror job | the push job | The year's events, the fields the push job reads. |
+| `schedule_events` | the mirror job | the push job; the mirror job, its ids | The year's events, the fields the push job reads. |
 | `schedule_changes` | the mirror job | the push job | The change log's lines, with their year and each run's `fetch_code_changed`. |
 | `push_sent` | the push job | the push job | What was sent to whom: the idempotence ledger. |
 | `mirror_state` | the mirror job | the mirror job | One row per year: how far the mirror has read. |
@@ -219,11 +220,13 @@ year, and a dead one is pruned when a send to it fails.
 - `schedule_events`: year, id, title, start, end, hotel, room, removed,
   cancelled. `start` and `end` are `timestamptz`, converted at mirror time
   from the file's local times in the con's zone, `season.json`'s `tz`,
-  America/New_York.
+  America/New_York, and null where the file's are (section 6).
 - `schedule_changes`: `year`, and the `changes.jsonl` line as it is -
   `run`, `sha`, `id`, `kind`, `from`, `to`, `cause`
   (`docs/pipeline/contract.md`, The change log) - plus the run's
-  `fetch_code_changed`, from `last-run.json`.
+  `fetch_code_changed`: `last-run.json`'s, for the lines of the run it
+  describes, and `true` for an earlier run's the mirror had not yet
+  written (section 6).
 - Both are written by the mirror job after a scrape's pull request merges
   (section 6; #50). The pipeline never learns Supabase exists.
 - The mirror always mirrors. Suppression is the push job's, by the flag:
@@ -237,7 +240,7 @@ year, and a dead one is pruned when a send to it fails.
   `sent_at`: the push job's idempotence ledger. It carries `year` because
   retention deletes by year.
 - `mirror_state`: one row per year - `last_run`, `last_sha` and
-  `updated_at`, how far the mirror has read; section 6 may add columns.
+  `updated_at`, how far the mirror has read; section 6 adds none.
 - `flags`: name and value; two, `push_enabled`, the kill switch, and
   `crew_size_cap`. Whether a captcha is required is not a flag but the
   Supabase project's setting (section 1).
@@ -280,7 +283,8 @@ migration.
   are never empty.
 - **The types.** Every stamp is `timestamptz`: `changed_at`, and
   `schedule_changes.run`, the line's value in the database's type; `start`
-  and `end` too. `from` and `to` are `jsonb`, and the subscription's two
+  and `end` too, nullable since the mirror's migration, below. `from` and
+  `to` are `jsonb`, and the subscription's two
   keys are `p256dh` and `auth`. `end`, `from` and `to` are reserved words,
   quoted in SQL.
 - **The invite token** defaults to `new_invite_token()`: 16 random bytes
@@ -312,6 +316,12 @@ migration.
     any key column, 42501, whatever the stamp (section 3, as built);
   - the indexes by user and `synced_at` in place of those by user and
     `changed_at`, which nothing reads any more.
+- **The mirror's migration,** the third,
+  `20260926005152_mirror_times.sql` (section 6, as built):
+  `schedule_events.start` and `end` nullable, as the file's may be; and
+  `service_role` granted select, insert, update and delete on
+  `schedule_events`, `schedule_changes` and `mirror_state`, by name
+  (section 3, as built).
 
 ## 3. Security
 
@@ -362,7 +372,16 @@ The same migration (PR #54).
   Postgres's own default and cannot be revoked for one schema, so each
   function revokes it by name. `00_structure.test.sql` holds the list of
   what each role reaches, and a later migration that adds to it changes
-  that test. `service_role` keeps Supabase's grants, for the jobs.
+  that test. A project made since 2026-05-30 grants a new table to no
+  Data API role by default, `service_role` included, so a job's grants are
+  made by migration, by name, like every other: the mirror's migration
+  grants `service_role` select, insert, update and delete on
+  `schedule_events`, `schedule_changes` and `mirror_state`, and a
+  production project gets them by migration, whatever its defaults (#54;
+  section 6). `push_sent` and `flags`, the push job's, have no such grant
+  yet. `supabase/config.toml` turns the local database's defaults off to
+  match (section 4, as built), so `00_structure` holds the migration's
+  grants, not the defaults.
 - **Grants to `authenticated`.** On `picks` and `follows`: select, insert,
   and an update of `picked` or `followed` and `changed_at` alone; no
   delete. Sync's migration adds an update of the key columns - `year` and
@@ -432,9 +451,13 @@ PR #54.
   does, since its binary is about 150 MB.
 - **`supabase/config.toml`** is `supabase init`'s: the project
   `dragoncon-planner`, Postgres 17, and storage and realtime turned off,
-  since nothing uses them and `db start` then pulls neither image. The
-  hosted projects are to match it (#50, operations). `supabase/.gitignore`
-  is the CLI's own.
+  since nothing uses them and `db start` then pulls neither image. Since
+  the mirror job (#54), `auto_expose_new_tables` is off too: like a hosted
+  project made since 2026-05-30, the local database - and CI's - grants a
+  new table to no Data API role, so the migrations' grants are the only
+  ones, and pgTAP pins them rather than the defaults. The hosted projects
+  are to match it (#50, operations). `supabase/.gitignore` is the CLI's
+  own.
 - **The commands,** from the repo root with Docker running:
   `npm --prefix supabase run start` starts the database alone and applies
   the migrations and `seed.sql`; `npm --prefix supabase test` runs pgTAP
@@ -615,17 +638,188 @@ PR #56, with #53.
   real one; pgTAP's `09_sync.test.sql` holds the migration. A mutation
   pass over the doors, the outbox and the pull is not committed.
 
-## 6. The mirror job — to follow
+## 6. The mirror job
 
-The Actions job that writes `schedule_events` and `schedule_changes` after
-a scrape merges: its trigger, what it reads, `mirror_state`, and how it
-fails.
+#54, as #50 has it: the schedule's two tables, written after a scrape's
+pull request lands, from three committed files - `events.v2.json`,
+`changes.jsonl` and `last-run.json` (`docs/pipeline/contract.md`). The
+pipeline never learns Supabase exists, and the mirror is off its path and
+off the site's: if it fails, nothing else waits.
+
+- **The trigger.** `.github/workflows/mirror.yml`, `Mirror`, three ways:
+  - a push to `next` or `main` that changes a year's `events.v2.json`,
+    `changes.jsonl` or `last-run.json`: a scrape's pull request landing,
+    by a squash merge on `next` or a merge commit on `main` (#48). Not
+    `workflow_run`: Scrape ends when it opens its pull request, and
+    auto-merge lands it later;
+  - hourly at `47 * * * *`, thirty minutes off Scrape's, inside the
+    season's window alone - `python pipeline.py window`, as `scrape.yml`
+    asks it - so it costs nothing off-season and heals a failed mirror
+    within the hour during the con;
+  - by hand, `workflow_dispatch`, with `season`, by default
+    `data/2027/season.json`.
+
+  A push and the hourly run mirror the default season, and a dispatch the
+  one it names; a season's first mirror, and 2026's, is a dispatch. Only
+  `next` and `main` run it: another branch's runs never landed. One run at
+  a time for a project and a season, none cancelled once running. It reads
+  the repository alone. The branch is checked out as it stands, not the
+  commit that started the run, and `MIRROR_SHA` is the checkout's commit:
+  a re-run mirrors the head, whose log holds every earlier commit's lines,
+  and never takes the tables back. The job runs under a GitHub Environment
+  by branch - `production` on `main`, `dev` otherwise - recording no
+  deployment, and reads its variable `SUPABASE_URL` and its secret
+  `SUPABASE_SERVICE_KEY`. Python 3.13 from `requirements.txt`, as the scrape
+  runs; the job summary: the events upserted, the rows deleted, the change
+  lines written, and any run flagged.
+- **The transport.** `mirror.py`, over PostgREST as the service role,
+  which bypasses row-level security - the job tables have no policies, by
+  design - but not its table grants, which the mirror's migration gives
+  it by name. `requests`, already pinned: no new
+  dependency. The key is the project's secret key, `sb_secret_`, sent as
+  `apikey` alone, as Supabase's API keys guide directs, or a legacy
+  `service_role` JWT, sent as `apikey` and as the bearer. It is checked
+  before any request - stripped, and refused unless it is one of the two,
+  a publishable or anon key among the refused, the message naming the
+  variable alone - and never printed: every message is redacted of it.
+  `SUPABASE_URL` is the project's https origin, or http on this machine,
+  for the CLI's local stack.
+- **What it writes, in this order.** The invariant: `schedule_events` for
+  the year equals the file, a null time included.
+  1. `mirror_state` is read first. A watermark later than this log's last
+     run means the commit is older than the one last mirrored, and the job
+     stops before any write rather than take the tables back.
+  2. `schedule_events`: every event, removed ones too - year, id, title,
+     start, end, hotel, room, removed, `true` only where the event carries
+     it, and cancelled - upserted on (year, id), 1,000 a request. Then the
+     year's ids are read back, 1,000 a page, and those the file no longer
+     holds are deleted, 100 a request - rare, since in a live year an
+     event leaves the file only by a merge (#43, #47). So an id to delete
+     that no `merged` line names stops the job, and nothing is deleted.
+  3. `schedule_changes`: the log's lines later than the watermark, all of
+     them where there is no row, each the line as it is, `from` and `to`
+     null where it has none, plus `year` and `fetch_code_changed`,
+     upserted on (year, run, id, kind), 1,000 a request.
+  4. `mirror_state`, last: `last_run` the log's last run, null with no
+     log; `last_sha` the commit mirrored; `updated_at` sent, since a
+     column's default does not fire again on an upsert's update.
+
+  No transaction: each step is idempotent and the watermark comes last, so
+  a run that fails partway is completed by the next.
+- **The flag.** `last-run.json` describes the last committed run alone. A
+  line of that run takes its `fetch_code_changed`; a line of any earlier
+  run the mirror had not yet written is written `true`, fail-safe (#47) - a
+  suppressed push is cheaper than a push for our own bug - and a warning
+  names each such run. The lines after the watermark are always sent
+  together, and a line sent again is written again whole, so a run's lines
+  carry one value, which only moves from `false` to `true` as newer runs
+  land. The push job reads the flag per line. So a run the mirror did not
+  write while `last-run.json` described it is flagged: after a failed
+  mirror completed once the next scrape has landed, and, at a project's
+  first mirror - production's, at the freeze - every earlier run of the
+  season. The exact recovery is a re-run before the next scrape lands. And
+  one inherited from the pipeline: the flag is the run that committed, not
+  the run that fetched (`pipeline.py`), so a committed `--from` or `--to`
+  run takes it from the next fetching run - until a pipeline pull request
+  of its own moves it (#54; ROADMAP, Flags).
+- **Times and nulls.** `start` and `end` are the file's local times, to the
+  minute; `season.json`'s `tz` is attached through zoneinfo, and each is
+  sent with its offset. A time the file holds null - the fetch writes one
+  where the source's date does not parse, and an end where a listing gives
+  neither a duration nor a time range - is mirrored null: a time kept
+  from before would make a starts-soon push at a time the source no longer
+  states, the wrong push #47 exists to prevent. The push job sends no
+  starts-soon for an event with no start (section 7). A zone that will not
+  load stops the job: the mirror never guesses one.
+- **How it ends.** `events.v2.json` absent - a season before its first
+  full run - is nothing to mirror: exit 0, with a note. A frozen season
+  (#46) mirrors its events alone, `last_run` null; a live one needs its
+  change log and `last-run.json` beside the file (#42, #44). A file there
+  and unreadable exits 1 before any request, sending nothing: not JSON, a
+  line with a key or a kind the log does not write, a line twice, an event
+  whose id is missing or held twice, a time not local to the minute, and
+  an empty list of events, which would delete the year. A request that
+  fails for want of a connection, a 429 or a 5xx is tried three times in
+  all, after 5 and 15 seconds, since every request is idempotent - a
+  DELETE tried again may count fewer rows, those an earlier try deleted
+  before its answer was lost; any other failure exits 1 with the status
+  and the server's body.
+
+### The mirror job, as built
+
+PR #57, with #54.
+
+- **`mirror.py`,** at the repo root. `read_year()` reads and checks a
+  season's files; three pure functions make the rows -
+  `event_rows(doc, season)`, `change_rows(lines, since, last_run, *,
+  year)`, which returns the rows and the runs flagged, and
+  `ids_to_delete(in_table, in_file)` - and one small class, `Rest`, sends
+  every request, over a `requests.Session` a test replaces. `--dry-run`
+  reads and checks the files and prints the events and the lines - every
+  line, the watermark not read; `3,459 events, 0 lines` for 2026 - sending
+  nothing and needing no key. `--summary PATH` appends the job summary: the
+  events upserted, the rows deleted, the change lines written, the
+  watermark before and after, the commit, and the runs flagged. On Actions
+  one `::warning::` names the flagged runs, the first 20 of them, and a
+  failure is an `::error::`.
+- **The migration,** the third, `20260926005152_mirror_times.sql`:
+  `schedule_events.start` and `end` nullable, and `service_role` granted
+  select, insert, update and delete on the three tables.
+- **Every request** carries `apikey`, and for a JWT alone `Authorization:
+  Bearer`; one with a body, `Content-Type: application/json`; and each
+  write, `Prefer` with `handling=strict` - PostgREST otherwise ignores a
+  preference it does not know, and a slip in `resolution` would make the
+  upsert a plain insert - and `count=exact`, whose `Content-Range: */N`
+  must be the rows sent, since a slip in the `in` list would otherwise
+  match nothing, and say nothing. Queries are encoded by `requests`, never
+  joined by hand. The statuses are PostgREST 14.5's, the dev project's:
+
+| Request | Method and path | `Prefer` | Body | Expects |
+|---|---|---|---|---|
+| The watermark | `GET /rest/v1/mirror_state?select=last_run,last_sha&year=eq.<year>` | - | - | 200: `[]` or one row |
+| Events | `POST /rest/v1/schedule_events?on_conflict=year,id` | `handling=strict,resolution=merge-duplicates,return=minimal,count=exact` | up to 1,000 rows, each with all nine columns | 201 where a row went in, else 200; `*/N`, N the rows |
+| The ids | `GET /rest/v1/schedule_events?select=id&year=eq.<year>&order=id.asc&limit=1000&offset=<n>` | - | - | 200: a page; the offset moves by the rows returned, until a page returns none |
+| A delete | `DELETE /rest/v1/schedule_events?year=eq.<year>&id=in.("<id>",...)` | `handling=strict,return=minimal,count=exact` | - | 204; `*/N`, N the ids |
+| Change lines | `POST /rest/v1/schedule_changes?on_conflict=year,run,id,kind` | as the events' | up to 1,000 rows: `{year, run, sha, id, kind, from, to, cause, fetch_code_changed}` | as the events' |
+| The watermark, written | `POST /rest/v1/mirror_state?on_conflict=year` | as the events' | `[{year, last_run, last_sha, updated_at}]` | as the events' |
+
+- **A batch.** Every row of a batch has the same keys - PostgREST refuses
+  mixed keys, 400 `PGRST102` - so a line with no `from` or `to` sends
+  null, which lands as SQL null; a key the table lacks is 400 `PGRST204`.
+  A key twice in one batch is refused before the request, an event's id
+  and a line's run, id and kind alike, since a merge refuses a batch that
+  holds one (21000).
+- **The `in` list.** Each id is double-quoted, `"` and `\` escaped with a
+  backslash: an id can hold a dot, `<source_id>.<n>` (#43), and PostgREST
+  reserves the comma, the dot, the colon and the parentheses. 100 ids keep
+  a request line near 4 KB, under the gateway's 8 KB.
+- **jsonb** keeps a line's values, not its bytes: an object's keys come
+  back reordered, and a stamp in UTC. A reader compares values.
+- **The tests.** `tests/test_mirror.py`, in CI's `pipeline` job: the rows;
+  the job against a fake PostgREST that answers as 14.5 does, every
+  request recorded - the order, the batches, the ids read whole under a
+  smaller max rows, a second run sending no line, the guard, the deletes a
+  merge allows and their quoting, 100 a request, a count short of the rows
+  sent, a DELETE tried again after its first try landed, the flag moving
+  to `true` on a re-send, both key forms and the key in no URL, body or
+  output - one the server echoes across the cut included - the retries,
+  the strict `Prefer`, the frozen year, the absent file, the refusals, the
+  dry run and the summary - and the committed 2026 file converted whole,
+  3,459 rows. The fake reads an `in` list as PostgREST 14.5's parser does,
+  a parenthesis not quoted ending it. It was checked against a real
+  PostgREST, 14.5 on the CLI's local stack, with both key forms, step by
+  step: each request's status and count, and the tables after.
+  `00_structure.test.sql` holds the nullable times and the migration's
+  grants to `service_role`, which with the local defaults off nothing else
+  gives: without the grant, that test fails. A mutation pass over `mirror.py`, 50 mutants each failing a test,
+  is not committed.
 
 ## 7. The push job — to follow
 
 The queue-shaped sender: pick-changed from `schedule_changes`, suppressed
-by `fetch_code_changed`; starts-soon by one lead time set in its call
-(#40, #50); `push_sent`, the kill switch, and a dead endpoint pruned.
+by `fetch_code_changed`, read per line (#54); starts-soon by one lead time
+set in its call (#40, #50), and none for an event with no start (#54);
+`push_sent`, the kill switch, and a dead endpoint pruned.
 
 ## 8. Crews — to follow
 
