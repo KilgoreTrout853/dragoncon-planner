@@ -2,9 +2,11 @@
 -- sections 2-4): row-level security on every table, the flags seeded, and the
 -- whole list of what anon and authenticated may reach - which every later
 -- migration grants into by name. Functions that belong to an extension (pgTAP's
--- among them) are left out of the lists.
+-- among them) are left out of the lists. And the mirror's tables as the mirror
+-- job needs them (#54; contract, section 6): an event's times may be null, and
+-- service_role holds the four privileges the mirror's migration grants it.
 begin;
-select plan(9);
+select plan(12);
 
 select is(
   (select count(*)::int from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind = 'r'),
@@ -47,6 +49,19 @@ select results_eq(
   $$ values ('follows_0_keys'), ('follows_1_clamp'), ('follows_2_latest_wins'), ('follows_3_synced'),
             ('picks_0_keys'), ('picks_1_clamp'), ('picks_2_latest_wins'), ('picks_3_synced') $$,
   'picks and follows each carry the key guard, the clamp, latest-wins and synced_at, in that order by name');
+select col_is_null('public', 'schedule_events', 'start', 'schedule_events.start may be null, as the file''s may');
+select col_is_null('public', 'schedule_events', 'end', 'schedule_events.end may be null, as the file''s may');
+-- The mirror's migration grants service_role select, insert, update and delete
+-- on its three tables, by name. With auto_expose_new_tables off in config.toml
+-- nothing else grants them, so this holds the migration's grant, not a default.
+-- has_table_privilege with a list is true for any one of them, so each is asked
+-- alone.
+select is_empty(
+  $$ select t, p
+     from unnest(array['public.schedule_events', 'public.schedule_changes', 'public.mirror_state']) as t,
+          unnest(array['select', 'insert', 'update', 'delete']) as p
+     where not has_table_privilege('service_role', t, p) $$,
+  'service_role holds select, insert, update and delete on the mirror''s three tables');
 
 -- A later migration's table reaches neither role until it grants by name.
 create table public.probe (x integer);
