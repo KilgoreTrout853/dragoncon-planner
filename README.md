@@ -19,6 +19,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `public/manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS and a preview card in chats. |
 | `make_icons.py` | Renders the PNG icons and the preview image from the design in `public/icon.svg`. Needs Pillow; fetches the font once. |
 | `.github/workflows/scrape.yml` | Runs the pipeline hourly in the season's window, and by hand, and lands each run that changed a file by pull request, with auto-merge. See The scrape workflow. |
+| `mirror.py`, `.github/workflows/mirror.yml` | Copies a year's committed schedule and change log into the Supabase project, for the push job: on a push that changes them, hourly in the season's window, and by hand. See The mirror. |
 | `vite.config.js`, `build/vite-dc.js` | The build. `DC_YEAR` names the year the client is for, 2026 unless set; with `DC_CHANNEL=next` it stamps the output as a dev build, for the `next` branch's site; `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name its backend, and without them it has none. |
 | `tests/` | The pipeline's tests (pytest) and the client's (Vitest): units, rules over the source, the page in jsdom, the real schedule, the build. Not optional — run them before you push. |
 | `docs/` | `ARCHITECTURE.md`, what the system is; `DECISIONS.md`, what was decided and why; `VISION.md` and `ROADMAP.md`, what 2027 is for and in what order; `discover/`, the Discover design, its censuses and its review records; `venues/`, the floor-plan checklist and the room census; `SPLIT-MANIFEST.md`, the record of the module split. |
@@ -167,3 +168,14 @@ Hosted by Core-apps at `https://app.core-apps.com/dragoncon26`. Day pages are `e
 A run that changed a committed file lands by pull request (DECISIONS #48): it commits as schedule-bot to a `schedule/<stamp>` branch off the target, opens a pull request into the target with the run's summary as its body, closes the bot's older open ones as superseded, and turns on auto-merge, so the pull request merges once CI passes. A run that changed nothing, or a fatal one, commits nothing, and a fatal one fails the job. Each fault - a failed page, an input past the request cap, an event untagged - shows as a warning on the run, and the rooms still to curate as notices. Two runs never overlap: a second waits for the first.
 
 The client is built for one year, `DC_YEAR`'s, 2026 unless set (DECISIONS #49): the next site moves to 2027 once the season's first run past the ids stage has written `data/2027/events.v2.json`, and `main` at the freeze (ROADMAP, Checklist). The 2026 file stays where it is.
+
+## The mirror
+
+`mirror.py` copies a year's committed `events.v2.json`, and the change log's lines since it last ran, into the Supabase project's `schedule_events` and `schedule_changes`, where the push job is to read them (DECISIONS #54; `docs/sync/contract.md`, section 6). The pipeline never learns of it, and nothing waits on it: a run that fails is completed by the next.
+
+```bash
+python mirror.py --season data/2026/season.json --dry-run   # read and check the files, send nothing: 3,459 events, 0 lines
+python mirror.py --season data/2027/season.json             # with SUPABASE_URL and SUPABASE_SERVICE_KEY set
+```
+
+`.github/workflows/mirror.yml` runs it when a push to `next` or `main` changes a year's `events.v2.json`, `changes.jsonl` or `last-run.json` - a scrape's pull request landing - hourly at 47 minutes past inside the season's window, and by hand (Actions → Mirror → Run workflow) with a `season`. On `next` it runs under the `dev` Environment and on `main` under `production`, each holding its project's `SUPABASE_URL` variable and `SUPABASE_SERVICE_KEY` secret, the project's secret key, which the job never prints.

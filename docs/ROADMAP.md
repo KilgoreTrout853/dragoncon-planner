@@ -182,8 +182,10 @@ pipeline absorbs takes a free review slot.
    `synced_at`, the key columns' grant and the trigger that keeps them
    (`docs/sync/contract.md`, section 5, as built) - built.
 6. The mirror job: `schedule_events` and `schedule_changes`, written
-   after a scrape's pull request merges (`docs/sync/contract.md`,
-   section 6).
+   after a scrape's pull request merges, hourly in the season's window and
+   by hand, and a third migration - the events' times nullable, and the
+   mirror's three tables granted to `service_role` by name
+   (`docs/sync/contract.md`, section 6, as built) - built.
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
@@ -232,6 +234,13 @@ Open here, unscheduled (#40):
   schedule.
 - The listing-only pre-check, held as a fallback against 403 pushback
   (#48).
+- `fetch_code_changed` lands on the committing run, not the fetching one
+  (`pipeline.py`; #54): a committed `--from` or `--to` run takes the flag,
+  and the next run that fetches records `false`, though its lines carry
+  the fetch's change. A pipeline pull request of its own, after the
+  mirror's: a `--from` run keeps the committed `fetch_code_hash`, as it
+  keeps `fetched_at`, so only a fetching run records a new hash and the
+  flag.
 
 ## Checklist
 
@@ -262,6 +271,20 @@ Steps taken by hand, beside the PRs rather than in them:
   the `dragoncon-planner-next` repository's workflow, set by hand as
   repository variables, not secrets - the key is the public one, and the
   build refuses a secret (#53).
+- For the mirror job (#54): the `dev` Environment's variable
+  `SUPABASE_URL` and secret `SUPABASE_SERVICE_KEY`, the dev project's -
+  set 2026-09-25; and `dev`'s deployment branches restricted to `next`, so
+  a workflow on another branch cannot read the dev project's secret key.
+  After the mirror's pull request merges, its migration pushed to the dev
+  project before the first run, as each migration is (#52).
+- Before the freeze merge brings `mirror.yml` to `main`: the `production`
+  Environment, its deployment branches `main` alone, with the production
+  project's `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` (#54).
+- A season's first mirror is a dispatch of Mirror, `season` its season
+  file, and 2026's too; and after the first bot landing on `next`, a
+  Mirror run started by the push confirmed - no document says an
+  auto-merge the bot's token turned on starts one - with a dispatch as the
+  fallback (#54).
 - At the season start, once the first run past the ids stage has written
   `data/2027/events.v2.json`: `DC_YEAR=2027` on `next`, in the next site's
   build - the `dragoncon-planner-next` repository's workflow (#49).

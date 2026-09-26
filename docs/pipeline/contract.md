@@ -25,9 +25,9 @@ client build; there is no pointer file.
 | `source.json` | fetch | the merge, for tag and build; fetch's next run, for the rows it carries; the attribution build, for a code cause (The diff, as built) | The raw rows and the failures, below. |
 | `ids.jsonl` | the ids stage | the merge; the ids stage's next run; the attribution build, for a code cause | The ledger, below. |
 | `tags.cache.jsonl` | the tag stage | build; the tag stage's next run; another year's seed | One answer per input, as names (#34). |
-| `events.v2.json` | the orchestrator, after the diff: build's file, with the diff's `changed_at` | the client; the diff; census v2, on demand | The v2 file, below. |
-| `changes.jsonl` | the orchestrator, after the diff: the diff's lines | the mirror and the push job (Identity and sync); a windowed copy for the client (Delivery) | The change log, below. |
-| `last-run.json` | the orchestrator, with each commit | the next run, for its stamps, SHA and `fetch_code_hash`; build's live front door, for the stamps; CI, for the stamps and `changes_logged`; the mirror job (Identity and sync), for `fetch_code_changed` | The stamps and the summary of the last run that committed, below. |
+| `events.v2.json` | the orchestrator, after the diff: build's file, with the diff's `changed_at` | the client; the diff; census v2, on demand; the mirror job (Identity and sync) | The v2 file, below. |
+| `changes.jsonl` | the orchestrator, after the diff: the diff's lines | the mirror job, whose table the push job reads (Identity and sync); a windowed copy for the client (Delivery) | The change log, below. |
+| `last-run.json` | the orchestrator, with each commit | the next run, for its stamps, SHA and `fetch_code_hash`; build's live front door, for the stamps; CI, for the stamps and `changes_logged`; the mirror job (Identity and sync), for `stamp` and `fetch_code_changed` | The stamps and the summary of the last run that committed, below. |
 | `drawings/` | a person | the building view (#28); never the resolver | One file per hotel level, keyed by level and room ids (#45). |
 
 `data/registry/` is unchanged (#42): cross-year, edited by people, and
