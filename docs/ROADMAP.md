@@ -234,13 +234,6 @@ Open here, unscheduled (#40):
   schedule.
 - The listing-only pre-check, held as a fallback against 403 pushback
   (#48).
-- `fetch_code_changed` lands on the committing run, not the fetching one
-  (`pipeline.py`; #54): a committed `--from` or `--to` run takes the flag,
-  and the next run that fetches records `false`, though its lines carry
-  the fetch's change. A pipeline pull request of its own, after the
-  mirror's: a `--from` run keeps the committed `fetch_code_hash`, as it
-  keeps `fetched_at`, so only a fetching run records a new hash and the
-  flag.
 
 ## Checklist
 

@@ -718,10 +718,12 @@ off the site's: if it fails, nothing else waits.
   mirror completed once the next scrape has landed, and, at a project's
   first mirror - production's, at the freeze - every earlier run of the
   season. The exact recovery is a re-run before the next scrape lands. And
-  one inherited from the pipeline: the flag is the run that committed, not
-  the run that fetched (`pipeline.py`), so a committed `--from` or `--to`
-  run takes it from the next fetching run - until a pipeline pull request
-  of its own moves it (#54; ROADMAP, Flags).
+  the flag is the fetching run's (`docs/pipeline/contract.md`,
+  `last-run.json`; PR #58): a run that does not fetch keeps the committed
+  hash and records `false`, since its lines cannot carry the fetch's
+  effects, and a `--to` run that fetches is refused once the year's
+  `events.v2.json` exists, so the flag lands on the full run whose lines
+  carry the change.
 - **Times and nulls.** `start` and `end` are the file's local times, to the
   minute; `season.json`'s `tz` is attached through zoneinfo, and each is
   sent with its offset. A time the file holds null - the fetch writes one
