@@ -1,0 +1,259 @@
+/* The push job's sender (DECISIONS #55; docs/sync/contract.md, section 7). pg_cron calls it every minute,
+   through pg_net, while the kill switch is on. A run checks the caller's secret, reads the switch, asks
+   push_due() for what is due - claimed for this run - folds a user's picks that share a start into one push,
+   sends each push to each of the user's browsers, and then acks, releases and prunes. This file has no runtime
+   of its own: index.js hands it the environment, fetch, the Web Push encoder and the clock, so that
+   tests/unit/push.test.js runs it in Node. */
+
+export const KIND = "starts-soon";
+export const SEND_TIMEOUT_MS = 10000;   // one push service's answer
+export const IN_FLIGHT = 50;            // sends at once
+export const FOLD_LINES = 10;           // a fold's body lists this many events, then how many more
+const WRITE = "handling=strict,return=minimal,count=exact";
+
+/* A browser that exists nowhere: its key is a real P-256 point, whose private half was thrown away. The
+   encoder signs and encrypts a push to it before a run claims anything, so VAPID keys it refuses fail the run
+   there, and a refusal later can only be the one browser's. */
+export const PROBE_SUBSCRIPTION = {
+  endpoint: "https://push.invalid/probe",
+  keys: { p256dh: "BGtUhZTj-9kPgfbakxPcoGSnpx30bZCkcofMeArca7VV3uAApReHEWifVY0TS7L4ED4bUuwKAp8CM2oZHnhR28Q",
+          auth: "mUXv3gHnJOcu5KiIs0i_aQ" },
+};
+
+/* The service key as PostgREST takes it (#54): an sb_secret_ key on apikey alone, a legacy JWT as the bearer
+   too. The runtime's default secret key, else its legacy service-role key; null with neither. */
+export function serviceHeaders(env) {
+  let key;
+  try {
+    key = JSON.parse(env.SUPABASE_SECRET_KEYS || "{}").default;
+  } catch {
+    key = undefined;
+  }
+  key = key || env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) return null;
+  return key.split(".").length === 3 ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key };
+}
+
+/* The caller's secret against ours, in time that does not depend on where they differ. */
+export function sameSecret(given, ours) {
+  if (typeof given !== "string" || !ours || given.length !== ours.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ours.length; i++) diff |= given.charCodeAt(i) ^ ours.charCodeAt(i);
+  return diff === 0;
+}
+
+/* An event's place as a push shows it: the hotel and the room, whichever it has. */
+export function place(row) {
+  return [row.hotel, row.room].filter(Boolean).join(" ");
+}
+
+/* push_due()'s rows - one a user's claimed pick - folded: one push per user and start, its rows in the order
+   push_due() gave them. */
+export function fold(rows) {
+  const pushes = new Map();
+  for (const row of rows) {
+    const key = `${row.user_id} ${Date.parse(row.start)}`;
+    if (!pushes.has(key)) {
+      pushes.set(key, { user_id: row.user_id, year: row.year, start: row.start, rows: [], endpoints: row.endpoints });
+    }
+    pushes.get(key).rows.push(row);
+  }
+  return [...pushes.values()];
+}
+
+/* A push's payload and its TTL at `now`, in milliseconds. The minutes are counted as it is sent, so a late run
+   gives a shorter warning, never a stale one; one start, so one count and one TTL for a fold. */
+export function message(push, now) {
+  const left = Date.parse(push.start) - now;
+  const minutes = Math.ceil(left / 60000);
+  const { rows } = push;
+  let title, body;
+  if (rows.length === 1) {
+    const where = place(rows[0]);
+    title = rows[0].title;
+    body = (minutes > 0 ? `Starts in ${minutes} min` : "Starting now") + (where ? ` · ${where}` : "");
+  } else {
+    title = minutes > 0 ? `${rows.length} picks start in ${minutes} min` : `${rows.length} picks start now`;
+    const lines = rows.slice(0, FOLD_LINES).map((row) => (place(row) ? `${row.title} · ${place(row)}` : row.title));
+    if (rows.length > FOLD_LINES) lines.push(`and ${rows.length - FOLD_LINES} more`);
+    body = lines.join("\n");
+  }
+  return {
+    payload: { kind: KIND, year: push.year, event_ids: rows.map((row) => row.event_id), title, body },
+    ttl: Math.max(0, Math.floor(left / 1000)),
+  };
+}
+
+/* What one push service's answer means: sent; dead, the browser gone, so pruned; retry, the claim released for
+   the next minute - a 429, a 5xx, or no answer at all (0); or refused, which is ours: VAPID or the request. */
+export function verdict(status) {
+  if (status >= 200 && status < 300) return "sent";
+  if (status === 404 || status === 410) return "dead";
+  if (status === 0 || status === 429 || status >= 500) return "retry";
+  return "refused";
+}
+
+/* A PostgREST `in` list: each value double-quoted, `"` and `\` escaped (#54, the mirror's rule). */
+export function inList(values) {
+  return `(${values.map((value) => `"${String(value).replace(/[\\"]/g, (c) => `\\${c}`)}"`).join(",")})`;
+}
+
+/* The request's body: nothing, or an object with `at`, an ISO date and time with its offset, and `dry`. */
+export function parseBody(text) {
+  const body = text.trim() ? JSON.parse(text) : {};
+  if (body === null || typeof body !== "object" || Array.isArray(body)) throw new Error("the body is a JSON object");
+  if (body.at !== undefined
+      && (typeof body.at !== "string" || !/(?:Z|[+-]\d\d:\d\d)$/.test(body.at) || Number.isNaN(Date.parse(body.at)))) {
+    throw new Error("at is an ISO date and time with its offset");
+  }
+  if (body.dry !== undefined && typeof body.dry !== "boolean") throw new Error("dry is true or false");
+  return { at: body.at, dry: body.dry === true };
+}
+
+async function pool(items, limit, work) {
+  const results = new Array(items.length);
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await work(items[i]);
+    }
+  });
+  await Promise.all(runners);
+  return results;
+}
+
+const json = (body, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+
+/* The function's handler. `env` is the runtime's environment; `fetch` sends; `encode(subscription, payload,
+   {ttl, urgency})` returns a push's request - endpoint, method, headers and body - encrypted and signed;
+   `clock()` is milliseconds; `log` takes a line. */
+export function makeHandler({ env, fetch, encode, clock, log }) {
+  const key = serviceHeaders(env);
+  const rest = `${env.SUPABASE_URL}/rest/v1`;
+
+  async function call(method, path, body, prefer) {
+    const headers = { ...key, ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+                      ...(prefer ? { Prefer: prefer } : {}) };
+    const res = await fetch(`${rest}${path}`,
+      { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`${method} /rest/v1${path.split("?")[0]} answered ${res.status}: ${text.slice(0, 500)}`);
+    return { text, count: Number((res.headers.get("content-range") || "").split("/")[1]) || 0 };
+  }
+
+  const claims = (push) => new URLSearchParams({ user_id: `eq.${push.user_id}`, kind: `eq.${KIND}`,
+    key: `in.${inList(push.rows.map((row) => row.event_id))}`, sent_at: "is.null" });
+
+  return async function handle(req) {
+    const started = clock();
+    if (req.method !== "POST") return json({ error: "POST only" }, 405);
+    if (!env.PUSH_SECRET) {
+      log("push: PUSH_SECRET is not set");
+      return json({ error: "PUSH_SECRET is not set" }, 500);
+    }
+    if (!sameSecret(req.headers.get("x-push-secret"), env.PUSH_SECRET)) return json({ error: "refused" }, 401);
+    if (!key) {
+      log("push: no service key");
+      return json({ error: "no service key: SUPABASE_SECRET_KEYS has no default and SUPABASE_SERVICE_ROLE_KEY is unset" },
+                  500);
+    }
+    try {
+      encode(PROBE_SUBSCRIPTION, "{}", { ttl: 0, urgency: "high" });
+    } catch (err) {
+      log(`push: the encoder refuses our VAPID keys: ${err.message}`);
+      return json({ error: `the encoder refuses our VAPID keys: ${err.message}` }, 500);
+    }
+    let asked;
+    try {
+      asked = parseBody(await req.text());
+    } catch (err) {
+      return json({ error: err.message }, 400);
+    }
+
+    const summary = { off: false, due: 0, sent: 0, released: 0, pruned: 0 };
+    const refused = [];
+    try {
+      const flag = JSON.parse((await call("GET", "/flags?select=value&name=eq.push_enabled")).text)[0];
+      if (!flag || flag.value !== true) {
+        summary.off = true;
+        log(`push: ${JSON.stringify(summary)}`);
+        return json(summary);
+      }
+      const args = { ...(asked.at ? { at: asked.at } : {}), ...(asked.dry ? { dry: true } : {}) };
+      const rows = JSON.parse((await call("POST", "/rpc/push_due", args)).text);
+      summary.due = rows.length;
+      const base = asked.at ? Date.parse(asked.at) : started;
+      const now = () => base + (clock() - started);
+      const pushes = fold(rows);
+
+      if (asked.dry) {
+        const preview = pushes.map((push) => {
+          const { payload, ttl } = message(push, now());
+          return { user_id: push.user_id, event_ids: payload.event_ids, title: payload.title, body: payload.body, ttl,
+                   browsers: push.endpoints.length };
+        });
+        log(`push: dry ${JSON.stringify(summary)}`);
+        return json({ ...summary, dry: true, pushes: preview });
+      }
+
+      // One message a push, made as its first send starts; then every browser of every push, IN_FLIGHT at once.
+      const sends = pushes.flatMap((push) => push.endpoints.map((to) => ({ push, to })));
+      const made = new Map();
+      const answers = await pool(sends, IN_FLIGHT, async ({ push, to }) => {
+        if (!made.has(push)) made.set(push, message(push, now()));
+        const { payload, ttl } = made.get(push);
+        let request;
+        try {
+          request = encode({ endpoint: to.endpoint, keys: { p256dh: to.p256dh, auth: to.auth } }, JSON.stringify(payload),
+                           { ttl, urgency: "high" });
+        } catch (err) {
+          log(`push: a browser's keys are unusable, so it is pruned: ${err.message}`);
+          return { push, to, status: 404 };
+        }
+        try {
+          const res = await fetch(request.endpoint, { method: request.method, headers: request.headers,
+            body: request.body, redirect: "error", signal: AbortSignal.timeout(SEND_TIMEOUT_MS) });
+          const text = res.status >= 400 ? (await res.text()).slice(0, 500) : "";
+          return { push, to, status: res.status, text };
+        } catch (err) {
+          return { push, to, status: 0, text: err.message };
+        }
+      });
+
+      const dead = new Set();
+      for (const push of pushes) {
+        const mine = answers.filter((a) => a.push === push);
+        const verdicts = mine.map((a) => verdict(a.status));
+        for (const a of mine) {
+          if (verdict(a.status) === "dead") dead.add(a.to.endpoint);
+          if (verdict(a.status) === "refused") {
+            refused.push(a);
+            log(`push: ${new URL(a.to.endpoint).origin} refused a push, ${a.status}: ${a.text}`);
+          }
+        }
+        if (verdicts.includes("sent")) {
+          summary.sent += (await call("PATCH", `/push_sent?${claims(push)}`,
+            { sent_at: new Date(clock()).toISOString() }, WRITE)).count;
+        } else {
+          summary.released += (await call("DELETE", `/push_sent?${claims(push)}`, undefined, WRITE)).count;
+        }
+      }
+      for (const endpoint of dead) {
+        summary.pruned += (await call("DELETE", `/push_subscriptions?${new URLSearchParams({ endpoint: `eq.${endpoint}` })}`,
+          undefined, WRITE)).count;
+      }
+    } catch (err) {
+      log(`push: ${err.message} ${JSON.stringify(summary)}`);
+      return json({ ...summary, error: err.message }, 500);
+    }
+    if (refused.length) {
+      const error = `${refused.length} push(es) refused by the push service: our VAPID keys or our request`;
+      log(`push: ${error} ${JSON.stringify(summary)}`);
+      return json({ ...summary, error }, 500);
+    }
+    log(`push: ${JSON.stringify(summary)}`);
+    return json(summary);
+  };
+}
