@@ -698,7 +698,7 @@ indented two spaces, its keys in this order (PR 8):
 | `fetched_at` | The stamp of the last run that fetched: `events.v2.json`'s `generated_at`. A `--from` run keeps it. |
 | `changed_at` | The stamp of the last run that moved the digest, the diff's (#47). A run that stops before the diff keeps it; a season's first such run, with none to keep, writes its own stamp, which the build's live front door needs. |
 | `sha` | The code's SHA: `PIPELINE_SHA`, the workflow's checkout, or `git rev-parse HEAD`. |
-| `fetch_code_hash`, `fetch_code_changed` | Below. |
+| `fetch_code_hash`, `fetch_code_changed` | The fetch's code, hashed, as of the last run that fetched - a `--from` run keeps it, as it keeps `fetched_at` - and whether this run fetched with other code: `false` on a run that does not fetch. Below. |
 | `changes_logged` | The lines the run added to the change log (#47); 0 where it stopped before the diff. |
 | `digest` | `events.v2.json`'s, as the commit leaves the file; `null` before a season's first build. |
 | `season` | The year. |
@@ -750,14 +750,20 @@ frozen year they are pipeline faults. The venue counters - hotels unknown,
 rooms unresolved - are curation state, reported and never held; PR 6
 built the test that way, `tests/test_zero_hold.py`.
 
-**`fetch_code_hash`** (PR 8). The attribution sees the build's code and
-data, not the fetch's (The diff, as built). So each run records
-`fetch_code_hash`, the sha256 of `scraper.py`, `tag_key.py` and
-`requirements.txt`, their bytes one after another, and
-`fetch_code_changed: true` where it is not the last committed run's -
-`false` on a season's first run. No git diff: the orchestrator's one git
-call is `rev-parse HEAD`, and the workflow, which sets `PIPELINE_SHA` from
-its checkout, makes none. That run's lines still read as the diff finds
+**`fetch_code_hash`** (PR 8; PR #58). The attribution sees the build's
+code and data, not the fetch's (The diff, as built). So a run that
+fetches records `fetch_code_hash`, the sha256 of `scraper.py`,
+`tag_key.py` and `requirements.txt`, their bytes one after another, and
+`fetch_code_changed: true` where it is not the hash `last-run.json` holds,
+the last fetching run's - `false` on a season's first run. A run that
+does not fetch - a `--from` run - keeps that hash, as it keeps
+`fetched_at`, and records `false`: its rows are the committed
+`source.json`'s, so its lines cannot carry the fetch's effects. And a
+`--to` run that fetches is refused once the year's `events.v2.json`
+exists (The run, as built), so the flag lands on the full run whose lines
+carry the change. No git diff: the orchestrator's one git call is
+`rev-parse HEAD`, and the workflow, which sets `PIPELINE_SHA` from its
+checkout, makes none. A flagged run's lines still read as the diff finds
 them; the push job reads the flag and suppresses that run. Identity and
 sync's design gets the same sentence when it opens.
 
@@ -794,11 +800,12 @@ the run's own stamp aside (#44; The run, as built).
   `changed_at`. `--from` starts at a later stage and reads what it skips
   from the committed files: the rows from `source.json`; their ids from the
   committed ledger, which must already hold them, through the build's live
-  front door (`events_v2.live_inputs`); `fetched_at` from `last-run.json`,
-  kept. The run's own stamp goes on its lines and `changed_at`. `--limit`
-  is the fetch's and `--requests` the tag stage's cap for the run. Outside
-  the season window a run stops before it starts, writing nothing, unless
-  `--force`; no run targets a frozen season (#46).
+  front door (`events_v2.live_inputs`); `fetched_at` and `fetch_code_hash`
+  from `last-run.json`, kept, so its `fetch_code_changed` is false
+  (`last-run.json`, above). The run's own stamp goes on its lines and
+  `changed_at`. `--limit` is the fetch's and `--requests` the tag stage's
+  cap for the run. Outside the season window a run stops before it starts,
+  writing nothing, unless `--force`; no run targets a frozen season (#46).
 - `window --season <season.json>`: `in window` or `out of window`, exit 0
   either way. The window's dates are the season's local days, read in its
   `tz` through zoneinfo; where that zone cannot be loaded - Windows without
@@ -849,8 +856,12 @@ through the live front door on the texts about to be written -
 `source.json`, the ledger, the cache and `last-run.json` - which is the
 build CI checks. The two must be equal, byte for byte.
 
-**Fatal**, writing nothing and exiting 2: a frozen season; an input that
-does not load; a stage's error - the fatal column above - or any other
+**Fatal**, writing nothing and exiting 2: a frozen season; a `--to` run
+that fetches, once the year's `events.v2.json` exists - a season's first,
+to the ids stage, comes before it - since it would move `source.json`
+past that file, and the next run's diff could not tell the source's
+changes from the code's (The diff, as built; PR #58); an input that does
+not load; a stage's error - the fatal column above - or any other
 exception; a registry the mint's rows break; the prefix check; the two
 builds differing. A degraded run commits, and exits 0, as do a run that
 changes nothing and one outside the window.

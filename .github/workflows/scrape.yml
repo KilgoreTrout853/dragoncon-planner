@@ -15,7 +15,7 @@ on:
         type: boolean
         default: false
       to:
-        description: Stop after fetch, ids or tag; empty runs every stage
+        description: Stop after fetch, ids or tag (refused once the year's events.v2.json exists); empty runs every stage
         type: string
         default: ""
       limit:
