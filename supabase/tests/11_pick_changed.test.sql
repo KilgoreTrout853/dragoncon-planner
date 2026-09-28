@@ -117,14 +117,15 @@ create temp table dry_at as select * from public.push_due('2026-09-03 12:00+00',
 -- What is due, and in what order ------------------------------------------------------
 select results_eq(
   $$ select kind, key from public.push_due('2026-09-03 12:00+00', true) $$,
-  $$ values ('pick-changed', '2026-09-03T06:00:00Z|pc-horizon'), ('pick-changed', '2026-09-03T10:00:00Z|pc-twice'),
+  $$ values ('starts-soon', 'pc-soon'),
+            ('pick-changed', '2026-09-03T06:00:00Z|pc-horizon'), ('pick-changed', '2026-09-03T10:00:00Z|pc-twice'),
             ('pick-changed', '2026-09-03T11:00:00Z|pc-restored'), ('pick-changed', '2026-09-03T11:00:00Z|pc-both'),
             ('pick-changed', '2026-09-03T11:00:00Z|pc-cancelled'), ('pick-changed', '2026-09-03T11:00:00Z|pc-place'),
             ('pick-changed', '2026-09-03T11:00:00Z|pc-removed'), ('pick-changed', '2026-09-03T11:00:00Z|pc-time'),
             ('pick-changed', '2026-09-03T11:00:00Z|pc-twice'), ('pick-changed', '2026-09-03T11:00:00Z|pc-uncancelled'),
-            ('pick-changed', '2026-09-03T11:00:00Z|pc-unscheduled'), ('pick-changed', '2026-09-03T12:00:00Z|pc-at'),
-            ('pick-changed', '2026-09-03T11:00:00Z|pc-cancelled'), ('starts-soon', 'pc-soon') $$,
-  'the rows by kind, user, run, the event''s start - unknown last - and title');
+            ('pick-changed', '2026-09-03T11:00:00Z|pc-unscheduled'), ('pick-changed', '2026-09-03T11:00:00Z|pc-cancelled'),
+            ('pick-changed', '2026-09-03T12:00:00Z|pc-at') $$,
+  'starts-soon first; pick-changed by run, then user; inside a push by the event''s start - unknown last - and title');
 select results_eq(
   $$ select event_id, changes from dry_at
      where user_id = 'a0000000-0000-4000-a000-000000000011'
