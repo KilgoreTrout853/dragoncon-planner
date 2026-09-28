@@ -3,8 +3,8 @@
 The design note for Identity and sync: DECISIONS #50-#55, in the detail a
 pull request needs. Written 2026-09-25, before any of it was built:
 sections 1-4 first, section 5 with the client's identity (PR #55), section
-6 with the mirror job (PR #57), section 7 with the push job (PRs #59 and
-#60), and 8 as its design is done. The evidence is
+6 with the mirror job (PR #57), section 7 with the push job (PRs #59, #60
+and #61), and 8 as its design is done. The evidence is
 `recon.md`, beside this file, the client as the design found it. Where an
 entry has the detail, this note points at it rather than saying it twice.
 What the note does not settle is under Open, at the end. A change of
@@ -336,6 +336,10 @@ migration.
   `20260928154158_pick_changed.sql` (section 7, Pick-changed, as built):
   `push_due()` replaced, to return both kinds, and its grants made again as
   they were. No table changes.
+- **The batch's migration,** the sixth, `20260928193428_push_batch.sql`
+  (section 7, The batch, as built): `push_due()` replaced in place, by
+  `create or replace`, to claim a batch at a time; the same signature and
+  return type, so its grants stand. No table changes.
 
 ## 3. Security
 
@@ -397,7 +401,8 @@ The same migration (PR #54).
   `push_subscriptions` and select on `flags`, and `push_due()` is
   executable by `service_role` alone (#55; section 7, as built); pick-changed's
   migration makes the function again with the same grants, and reads
-  `schedule_changes` as its owner, so the sender needs no grant on it.
+  `schedule_changes` as its owner, so the sender needs no grant on it; the
+  batch's replaces it in place, by `create or replace`, which keeps them.
   `supabase/config.toml` turns the local database's defaults off to
   match (section 4, as built), so `00_structure` holds the migration's
   grants, not the defaults.
@@ -437,18 +442,19 @@ The same migration (PR #54).
   Their errors: 42501, not signed in or not the creator; P0002, no crew
   has that invite; 53400, the crew is full; 22023, no such year; 23514, a
   name out of bounds, from the table's check.
-- **The tests,** twelve files under `supabase/tests/`, each one transaction
-  rolled back: `00_structure`, `01_anon`, `02_stranger`, `03_member`,
-  `04_stamps`, `05_rpcs`, `06_job_tables`, `07_cascades`,
-  `08_push_subscriptions`, with sync's migration `09_sync`, with the
-  push job's `10_push` (section 7, as built), and with pick-changed's
-  `11_pick_changed`. A test user is a row inserted into
-  `auth.users`. The test acts as that user through the `authenticated`
-  role and a `request.jwt.claims` naming them, which `auth.uid()` reads,
-  and as anon through `set local role anon`. A mutation pass - every
-  policy dropped, each helper dropped and made to answer yes, each stamp
-  trigger dropped, a grant to anon and one to `authenticated` on a job
-  table - failed at least one test each; it is not committed.
+- **The tests,** thirteen files under `supabase/tests/`, each one
+  transaction rolled back: `00_structure`, `01_anon`, `02_stranger`,
+  `03_member`, `04_stamps`, `05_rpcs`, `06_job_tables`, `07_cascades`,
+  `08_push_subscriptions`, with sync's migration `09_sync`, with the push
+  job's `10_push` (section 7, as built), with pick-changed's
+  `11_pick_changed`, and with the batch's `12_batch`. A test user is a row
+  inserted into `auth.users`. The test acts as that user through the
+  `authenticated` role and a `request.jwt.claims` naming them, which
+  `auth.uid()` reads, and as anon through `set local role anon`. A
+  mutation pass - every policy dropped, each helper dropped and made to
+  answer yes, each stamp trigger dropped, a grant to anon and one to
+  `authenticated` on a job table - failed at least one test each; it is
+  not committed.
 
 ## 4. Migrations
 
@@ -844,7 +850,8 @@ PR #57, with #54.
 
 #55, as #50 has it: queue-shaped from its first pull request, which
 carries the kill switch. Both kinds are built: starts-soon by PR #59 and
-pick-changed by PR #60, each with its "as built" below.
+pick-changed by PR #60, each with its "as built" below; and the batch, by
+PR #61, which claims and sends them a batch at a time.
 
 - **Where it runs.** Inside the Supabase project (#25): pg_cron calls one
   Edge Function, `push`, through pg_net, every minute. Not a third Actions
@@ -856,10 +863,12 @@ pick-changed by PR #60, each with its "as built" below.
 - **The split.** A SQL function, `push_due()`, decides what is due and
   claims it; the function sends. The logic lives where pgTAP is.
 - **The queue.** `push_sent` holds a claim per user, kind and key, its
-  `sent_at` null until the push is sent. `push_due()` claims what is due
-  by an insert that skips a key already held, `on conflict do nothing`,
-  and returns what it claimed, so two runs that overlap cannot both take
-  a row. The sender acks a claim, setting `sent_at`, when a browser took
+  `sent_at` null until the push is sent. `push_due()` claims what is due,
+  up to a batch - PostgREST answers an RPC with 1,000 rows at most, so a
+  call claims no more than it can return (The batch, as built) - by an
+  insert that skips a key already held, `on conflict do nothing`, and
+  returns what it claimed, so two runs that overlap cannot both take a
+  row. The sender acks a claim, setting `sent_at`, when a browser took
   the push; releases it, deleting it, when every browser answered 429, a
   5xx or nothing, so that the next minute retries; prunes a subscription
   on 404 or 410, and deletes a claim whose every browser was gone. A
@@ -934,7 +943,9 @@ PR #59, with #55: starts-soon.
     minute counted as one - and `endpoints`, the user's browsers,
     `[{endpoint, p256dh, auth}]` by endpoint; the rows by user, start,
     title and id. A claim's `claimed_at` is `at`. Replaced by the fifth
-    migration, which returns both kinds (Pick-changed, as built, below);
+    migration, which returns both kinds (Pick-changed, as built, below),
+    and in place by the sixth, which claims a batch at a time (The batch,
+    as built, below);
   - the grants: `service_role` select, insert, update and delete on
     `push_sent`, select and delete on `push_subscriptions`, and select on
     `flags`; nothing to an app role;
@@ -976,12 +987,16 @@ PR #59, with #55: starts-soon.
   use, is pruned. A 401, a 403 or any other 4xx is a refusal, and ours:
   logged with the push service's origin, the status and its body, and the
   run answers 500. A fold's body lists ten events at most, then `and N more`,
-  so that a push stays well inside the 4 KB a push service takes.
+  so that a push stays well inside the 4 KB a push service takes. Since
+  the batch, a run asks `push_due()` again until a call comes back empty
+  or a limit ends the run, and a push no browser took is released when the
+  run ends (The batch, as built, below).
 - **Its answer,** and its log's one line: `{off, due, sent, released, pruned}`,
   counted in claims - `pruned` in browsers - from PostgREST's
   `Content-Range`. A failed run adds `error`. `dry` sends and writes
   nothing, and adds `pushes`: each push's user, `event_ids`, title, body,
-  TTL and number of browsers.
+  TTL and number of browsers. Since the batch it carries `batches` too,
+  and `stopped` where a limit ended the run (The batch, as built, below).
 - **Every request** to PostgREST carries the key, and a write
   `Prefer: handling=strict,return=minimal,count=exact`; an `in` list
   quotes each id as the mirror's does (section 6, as built). PostgREST
@@ -990,7 +1005,7 @@ PR #59, with #55: starts-soon.
 | Request | Method and path | Body | Expects |
 |---|---|---|---|
 | The switch | `GET /rest/v1/flags?select=value&name=eq.push_enabled` | - | 200: `[{"value": true}]`, or not |
-| Due | `POST /rest/v1/rpc/push_due` | `{}`, or `{"at": <ISO>, "dry": true}` | 200: the rows above |
+| Due | `POST /rest/v1/rpc/push_due` | `{}`, or `{"at": <ISO>, "dry": true}` | 200: the rows above, a batch of them since the batch |
 | Ack | `PATCH /rest/v1/push_sent?user_id=eq.<user>&kind=eq.<kind>&key=in.("<key>",...)&sent_at=is.null` | `{"sent_at": <the clock, ISO>}` | 204, `*/N` |
 | Release | `DELETE /rest/v1/push_sent?<the same filter>` | - | 204, `*/N` |
 | Prune | `DELETE /rest/v1/push_subscriptions?endpoint=eq.<endpoint>` | - | 204, `*/N` |
@@ -1028,13 +1043,14 @@ PR #59, with #55: starts-soon.
   section states the rule; and 41 of 41 of `push.js`, three of them of the
   mixed run, failed a Vitest test.
 - **Run end to end** on the CLI's local stack, with the runtime the hosted
-  project runs (edge-runtime 1.76.2) and PostgREST 14.5, and a stand-in
-  push service: the cron job called the function through pg_net with no
-  JWT; a user with one browser that took the push and one gone was acked
-  and pruned; one whose browser answered 503 was released, and claimed
-  again the next minute; one with two picks at one start got one push,
-  and both were acked; a 403 released the claim and failed the run, the
-  service's answer in the log; every push sent decrypted, with its
+  project runs (edge-runtime 1.76.2; the hosted project answered as 1.76.0
+  when the batch timed it, The batch, as built) and PostgREST 14.5, and a
+  stand-in push service: the cron job called the function through pg_net
+  with no JWT; a user with one browser that took the push and one gone was
+  acked and pruned; one whose browser answered 503 was released, and
+  claimed again the next minute; one with two picks at one start got one
+  push, and both were acked; a 403 released the claim and failed the run,
+  the service's answer in the log; every push sent decrypted, with its
   browser's keys, to the payload above, its VAPID signature checked; and
   with the switch off, the job's run read nothing and sent nothing.
 - **The hand test,** on dev after the merge, and again on production at
@@ -1091,7 +1107,9 @@ PR #60, with #55.
   `kind`, `key`, `user_id`, `year`, `event_id`, `title`, `start`, `hotel`,
   `room`, `minutes_until`, `run`, `changes` and `endpoints`, the rows by
   kind, user, run, the event's start - an unknown start last - title and
-  id.
+  id. Replaced in place by the sixth migration: a fourth constant, `batch`,
+  and the rows starts-soon first, pick-changed by run and then user (The
+  batch, as built, below).
   - A starts-soon row is the spine's, its `key` the event's id, its `run`
     and `changes` null.
   - A pick-changed row is a user's pick whose event one run changed. Its
@@ -1107,13 +1125,15 @@ PR #60, with #55.
     whose event the mirror does not hold is never due.
   - Either kind is due only for a user with a browser, as starts-soon was.
   - **The claim.** One insert, the one statement of a call, claims every
-    due row of both kinds, `on conflict do nothing`, and the call returns
-    only what it inserted. So the keys of one push - a user's picks at one
-    start, or a user's picks one run changed - are claimed together, carry
-    one `claimed_at`, go stale and are released together, and are acked or
-    released by the sender in one request; and a key sent once never comes
-    back, so no part of a push is sent twice. A claim holds its own kind
-    alone.
+    due row of both kinds up to the batch - PostgREST answers an RPC with
+    1,000 rows at most, so since the sixth migration a call claims no more
+    than it can return (The batch, as built, below) - `on conflict do
+    nothing`, and the call returns only what it inserted. So the keys of
+    one push - a user's picks at one start, or a user's picks one run
+    changed - are claimed together, carry one `claimed_at`, go stale and
+    are released together, and are acked or released by the sender in one
+    request; and a key sent once never comes back, so no part of a push is
+    sent twice. A claim holds its own kind alone.
 - **The zone.** `mirror_state.tz`, decided for pick-changed's times (#54,
   #55), was found unneeded and not added. A change line's `from` and `to`
   are the file's wall-clock strings, already the con's clock, and nothing a
@@ -1224,6 +1244,196 @@ PR #60, with #55.
   `picked` false, a newer stamp, so a device that pulled them unstars them
   - delete the test's `push_sent` rows, and keep the loaded lines.
 
+### The batch, as built
+
+PR #61, with #55.
+
+- **Why.** PostgREST answers an RPC with at most `max_rows` rows - 1,000,
+  in `supabase/config.toml` and on the hosted project alike - and cuts
+  the rest from the end of the function's own order, while the function
+  runs to its end: on the CLI's local stack a function that wrote 1,001
+  rows and returned them was answered with 1,000, `Content-Range`
+  `0-999/1001`, and all 1,001 were written; a `limit` cannot raise it.
+  The fifth migration's `push_due()` claimed every due row, so past 1,000
+  the rest were claimed and never sent until the stale release, five
+  minutes on, and cut again each time they were claimed again while more
+  than 1,000 were due: a starts-soon push could miss its window. And the
+  function encrypted every push it was given in one request, against
+  Supabase's 2 seconds of CPU a request.
+- **The migration,** the sixth, `20260928193428_push_batch.sql`:
+  `push_due()` replaced by `create or replace`, with the same signature
+  and return type, so its owner and grants stand - `service_role`'s alone.
+  `security definer` and the search path are said again, since the
+  statement sets them: left out, they are lost while the grants stay
+  (checked). A fourth constant beside `lead_time`, `horizon` and `stale`:
+  `batch`, 200 rows. No table changes; the two cron jobs are the spine's.
+  - **What is left out first.** A due row whose key is held - sent, or
+    claimed and not yet stale - is left out before the batch is cut, in a
+    real call and a dry one alike. A starts-soon pick stays due by its
+    rule until its start, so a batch cut first would fill with keys the
+    insert then skips, and come back empty with work waiting.
+  - **The unit is a push:** a user's rows of one kind, year and moment -
+    the start for starts-soon, the run for pick-changed - which is
+    `push.js`'s fold. Pushes are taken in order: starts-soon before
+    pick-changed; starts-soon by start, soonest first, and pick-changed by
+    run, oldest first; then by user and year. They are taken while their
+    rows stay within `batch`, and the first push whole even when it alone
+    is more, so a call claims at most 200 rows, or one push, whichever is
+    more, and never cuts one. A push the batch cannot take whole waits for
+    the next call, and so does every push after it. A push's place and the
+    rows taken up to its end are windows over the rows themselves, one
+    order key a push.
+  - **The claim** is the fifth's - one insert, `on conflict do nothing`,
+    at `at` - over the batch alone, and the call returns its rows in the
+    order it took them, inside a push by start - an unknown start last -
+    title and id. The stale release is still first, every call but a dry
+    one. `dry` returns the batch a call would claim, and nothing more.
+- **The function.** `push.js` asks `push_due()`, with the same arguments
+  every call, until a call comes back empty - empty, not short: with whole
+  pushes a full batch can be under 200 rows - or a limit is met. Two
+  constants: `BATCHES`, 2, the calls that bring rows in a run; and
+  `BUDGET_MS`, 20,000, after which no call but the first is made. Each
+  batch is folded and sent, and every answer read before its first write;
+  then the pushes a browser took are acked and the gone browsers pruned,
+  before the next call. `dry` calls once.
+- **A push no browser took** - each of its browsers answering 429, a 5xx
+  or nothing, refusing it, or gone - is held: its claims stay until the
+  run ends, and are released then, once, a push at a time - on the way
+  out of an error too, since the answers are read before any write, so a
+  write that fails still leaves every such push of its batch held. A
+  release deletes the claim, so the push is due again at once, and first
+  in the order; released with its batch, it would be claimed by the run's
+  next call and sent again seconds later, into the 429 or the outage that
+  turned it away. Held, it is retried the next minute and not the next
+  batch, as the queue has it. A refusal does not end the run: the refused
+  push is held like the others, and the run answers 500 at its end, as it
+  did.
+- **Its answer,** and its log line: `{off, batches, due, sent, released,
+  pruned}`, and `stopped`, `"batches"` or `"time"` - the ceiling's where
+  both are met - where a limit ended the run: that the limit was met, not
+  that more was due; a run whose second batch was the last of the work
+  says so too. `batches` counts the calls that brought rows: none with the
+  switch off, one for a dry run, or none with nothing due. Every count is
+  summed over the run. An error keeps the acks made before it and answers
+  500 with the summary so far. The switch turned off mid-run ends the loop
+  at its next call, `off` still false.
+- **The ceiling, and what it rests on.** A batch's CPU is the encoder's:
+  `npm:web-push` encrypts and signs once a push a browser. Timed with the
+  push function's own encoder, 200 calls at a time: on the hosted dev
+  project - us-east-1, edge-runtime 1.76.0 - 0.75 to 0.86 ms a call; on
+  the author's laptop, the same code in edge-runtime 1.76.2, 0.51 to 0.57
+  ms, so hosted is 1.5 times the laptop. On the laptop, the whole of
+  `push.js` in a worker held to 2 seconds of CPU, a batch of 200 one-row
+  pushes to two browsers each - 400 encrypted sends, their acks and the
+  call - took about 350 ms of the worker's CPU; two batches 680 ms, three
+  970, five 1,500 to 1,630. At hosted's 1.5 times, two batches are about
+  1.0 second of the 2, with room for what else a run spends, and three
+  about 1.5. So `BATCHES` is 2 and the batch stays 200: 400 rows a minute.
+  The bound assumes two browsers a user; a user's browsers are not
+  capped, and each is a send. A change to `BATCHES` or `batch` starts
+  from these figures.
+- **The worst case** is a bound, not a figure: the budget, plus one
+  batch, plus the run's releases. A batch is at most its browsers' sends,
+  in rounds of `IN_FLIGHT`, 50, each round at most `SEND_TIMEOUT_MS`, 10
+  seconds; then an ack a push a browser took and a prune a browser gone,
+  one after another. The releases are a request a held push, one after
+  another, once the calls are done. The requests to PostgREST carry no
+  timeout of their own, so the bound holds while PostgREST answers. At two
+  browsers a user a batch is at most 400 sends, eight rounds, 80 seconds;
+  a user's browsers are not capped, so neither are a batch's rounds. A run
+  that passes 30 seconds loses its answer in `net._http_response` - pg_net
+  gives up waiting - and the log line alone has it; on the CLI's local
+  stack the runtime finished a run whose caller had hung up, and hosted
+  was not checked. A run that outlived `stale`, five minutes, could have
+  another run release and claim its held push, and its own release then
+  delete the other's fresh claim; the budget keeps a run of two-browser
+  users far inside it.
+- **What the ceiling leaves** is claimed the next minute, starts-soon
+  first. A starts-soon row is due only until its start, so a backlog
+  growing faster than 400 rows a minute sends the latest late, or not at
+  all; pick-changed waits up to its six hours.
+- **Known limits,** older than the batch, named here since the batch
+  takes a push whole. A push is acked and released in one request, its
+  every key in an `in` list, and the gateway refuses a request line of
+  about 8 KB: on the local stack 118 pick-changed keys passed and 119 were
+  refused, 414, and 196 starts-soon keys passed and 197 were refused. An
+  ack refused so comes after the push was sent: its claims, and those of
+  the pushes a browser took after it in its batch, are left to the stale
+  release, and sent again; a release refused so leaves that push to the
+  stale release. And `event_ids` lists every event of a push, so a push of
+  more than some 70 to 100 events outgrows the 4 KB a push service takes,
+  and is refused, 413. In 2026's data pick-changed stays far below both,
+  at most 15 events of the push kinds changed by one run; starts-soon
+  stays under the ack's limit, at most 113 events sharing a start, but a
+  user who had picked more than some 70 of the 113 would outgrow the
+  4 KB. A push of more than 1,000 rows would meet the 1,000-row cap again,
+  whole push or not. Chunking the acks and bounding `event_ids` is Open.
+- **Overlapping calls.** Two calls at the same instant compute the same
+  batch; the second one's insert waits on the first's, skips every key,
+  and comes back empty while more may wait. Its run ends there, and the
+  other run, or the next minute, takes the rest: empty means nothing this
+  call could claim, not nothing due.
+- **The tests.** pgTAP's `12_batch.test.sql`: 201 one-row pushes - 200
+  claimed and returned, dry the same batch, the 201st by the next call; a
+  two-row push that would take the batch past 200, waiting whole, with
+  every push after it; a first push of 201 rows taken whole; who waits at
+  the line - a pick-changed push behind 200 starts-soon ones, a later
+  start and a newer run though their users come first, and a user's
+  second year's push of the same run; the order a call returns; a stale
+  claim released first, every call, and claimed again inside the batch;
+  a held key - sent, or claimed exactly five minutes before - taking no
+  place; a key another run claims between the call's read and its insert,
+  a trigger standing in for that run, skipped and not returned; the stale
+  release made with the switch off; and events of one start and one title
+  by id, planned so that only the tie-break can order them.
+  `11_pick_changed`'s order follows - starts-soon first, then
+  pick-changed by run and user - and `10_push` and `00_structure` are
+  unchanged. Vitest's `tests/unit/push.test.js`: the two limits; a batch
+  sent, acked and pruned before the next call; the ceiling; the budget at
+  its edge, and the first call made however late; both limits met at
+  once, said as the ceiling; a push nobody took released after the last
+  call, and once; a refusal that does not end the run; a run the time
+  ended, which still releases what it holds; dry's one call; the same
+  arguments every call; an error in the second batch, or in its call,
+  that keeps the first batch's acks and releases what the run holds; a
+  failing ack that still leaves the batch's later untaken push held; and
+  a release that fails at the run's end, the rest released on the way out.
+  Mutation passes, not committed: 100 of 103 mutants of the migration -
+  each rule of `push_due()` the earlier passes held, and the batch's
+  constant, its cut, each term of its window, the held filter, the claim
+  and the answer's order - failed a pgTAP test. The three left are
+  equivalent: the spine's `start is not null`; `rank()` for
+  `dense_rank()`, the same where every push has its own key; and the
+  answer matching a claim of the other kind, which needs an event id
+  holding a run and a bar, as no source issues. 135 of 137 of `push.js`
+  failed a Vitest test; the two left are equivalent too: the ceiling's
+  `===` as `>=`, since the count never passes it, and the pool's runners
+  not capped at the sends, the spare ones starting none.
+- **Run end to end** on the CLI's local stack, beside the repository's,
+  with PostgREST 14.5, edge-runtime 1.76.2 and a stand-in push service, at
+  the real clock, twice, the second on the final migration: 430 users each
+  with a pick starting twelve minutes on - one browser answering 503 and
+  one 410 - and 30 users with a pick one run had changed an hour before.
+  The first cron run took two batches, 400 rows, and stopped at the
+  ceiling,
+  `{"off":false,"batches":2,"due":400,"sent":398,"released":2,"pruned":1,"stopped":"batches"}`:
+  the 410's push released with the 503's when the run ended, its browser
+  pruned after the first batch, in 1.6 to 1.9 seconds, most of them the
+  acks, a PATCH a push, one after another. The next minute's run took the
+  rest in one batch - the 503's push first, then the last 30 starts-soon
+  pushes, then the 30 pick-changed - and an empty call,
+  `{"off":false,"batches":1,"due":61,"sent":60,"released":1,"pruned":0}`;
+  each run after it, the 503's push alone, released at its end. No browser
+  had a push twice in a run, pg_net kept every run's answer, and every
+  push sent decrypted, with its browser's keys, to the payload its kind
+  makes. `push_due()` took 7 ms a call with 460 due, 20 with 2,000 and 35
+  with 4,000, on tables never analysed. A first draft joined each row back
+  to its push's rank, which Postgres planned on such tables as a nested
+  loop, a second a call at 2,000 due.
+- **No hand test:** the loop is the local run's to prove. After the merge
+  the dev project takes the sixth migration and the function, and the
+  switch stays off.
+
 ## 8. Crews — to follow
 
 The crew screens: create, join by the link, leave, remove, regenerate the
@@ -1239,6 +1449,9 @@ it).
   `push_due()` (#55; section 7).
 - Recording searches that return nothing, anonymously, in 2027: #36's
   privacy question for this tentpole.
+- A push's acks chunked, and its `event_ids` bounded, so that a push of
+  more than some 70 to 100 events can be sent and acked (section 7, The
+  batch, as built, Known limits): a follow-up, not built.
 - The Auth project's two limits. The built-in mailer sends only to the
   organisation's own addresses, a few an hour; custom email is not the
   operations track's but the six-digit code's prerequisite (#25's note;
