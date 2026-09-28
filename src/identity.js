@@ -5,8 +5,9 @@ import { BackendError, callBackend, callBackendAsUser, dropSession, keepSession,
    phone is to the backend, and the email step that keeps a plan. No user
    until the first tap that needs one; that tap mints an anonymous user,
    who is the device. The email step is one screen, one field and a
-   six-digit code, for add and recover alike, and it is the one caller of
-   ensureUser() until crews and notifications need a user too. Nothing here
+   six-digit code, for add and recover alike. ensureUser()'s callers are
+   the email step and a crew's create and join (crews.js), and will be
+   notifications' too. Nothing here
    runs on load. Every request is backend.js's, and so is keeping the
    session; recover signs in and no more - carrying the plan up is sync's.
    ================================================================== */

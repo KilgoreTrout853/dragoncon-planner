@@ -16,8 +16,16 @@
    the reads, narrowed as row-level security narrows them - one's own
    rows, and the picks of anyone who shares a crew of that year - ordered,
    filtered and paged as the page asks, at most maxRows a request; and the
-   crews with their members. Checked against a real PostgREST, 14.5, on the
-   CLI's local stack.
+   crews with their members and their tokens, the oldest first. The three
+   RPCs (docs/sync/contract.md, sections 3 and 8): create_crew and join_crew
+   answer the crew, one object, and regenerate_invite the new token, a JSON
+   string; their errors carry the status PostgREST gives each code - P0002
+   and 53400 are 500, 42501 403, 22023 and 23514 400. And the two deletes,
+   judged as the policies judge them: a member leaves, and the creator, while
+   a member, removes anyone and deletes the crew, its memberships with it;
+   anything else deletes nothing, and every delete answers 204 with no body,
+   as row-level security does. Checked against a real PostgREST, 14.5, on
+   the CLI's local stack.
 
    Knobs a test sets: captcha (the project demands a captcha token),
    anonymousOff (anonymous sign-ins switched off), offline (the network is
@@ -25,14 +33,15 @@
    returns {status, code} for the server to answer with, or nothing),
    defer (a test of each request: one it holds is not answered, nor acted
    on, until release()), onRequest (called with each request as it arrives
-   - another tab, acting meanwhile), maxRows, and clockOffset (ms the
-   server's clock is ahead of the test's). held(email) makes a user who already holds an address;
+   - another tab, acting meanwhile), maxRows, clockOffset (ms the
+   server's clock is ahead of the test's) and flags (crew_size_cap, which
+   join_crew reads; absent, a crew takes no one). held(email) makes a user who already holds an address;
    issue(id) a session for a user, as another tab would hold it;
    refuse(token) makes the server refuse an access token as expired;
    revoke(token) kills a refresh token. write(user, table, row) is a write
    by another device or a crewmate, judged as the page's are; crew(...),
-   join(...) and leave(...) make and change crews; rows(table) is what the
-   server holds. */
+   join(...) and leave(...) make and change crews behind the page's back;
+   rows(table) is what the server holds, "crews" among them. */
 export const CODE = "123456";
 
 export function fakeBackend({ url = "https://backend.test", key = "sb_publishable_test" } = {}) {
@@ -41,6 +50,8 @@ export function fakeBackend({ url = "https://backend.test", key = "sb_publishabl
   let n = 0;
   const tables = { picks: [], follows: [] }, crews = [], deferred = [];
   let lastStamp = 0;
+  /* an invite as the server makes one: 22 url-safe characters */
+  const newToken = () => `tok${String(++n).padStart(19, "0")}`;
 
   const answer = (status, body) => ({ ok: status >= 200 && status < 300, status, text: async () => (body === undefined ? "" : JSON.stringify(body)) });
   /* the Auth server's error, in the shape it answers a request with no API version */
@@ -134,18 +145,91 @@ export function fakeBackend({ url = "https://backend.test", key = "sb_publishabl
     return answer(200, rows.slice(offset, offset + limit).map(r => Object.fromEntries(columns.map(c => [c, r[c]]))));
   }
 
-  /* The caller's crews of a year, with their members embedded. */
+  /* The caller's crews of a year, the oldest first, with their tokens and
+     their members embedded. */
   function readCrews(user, params, address) {
     const year = /^eq\.(\d+)$/.exec(params.get("year") || "");
-    if (params.get("select") !== "id,name,creator,crew_members(user_id,display_name)" || [...params.keys()].length !== 2 || !year) nothingAnswers("GET", address);
-    const mine = crews.filter(c => c.year === Number(year[1]) && c.members.some(m => m.user_id === user.id));
-    return answer(200, mine.map(c => ({ id: c.id, name: c.name, creator: c.creator,
+    if (params.get("select") !== "id,name,creator,invite_token,crew_members(user_id,display_name)" || params.get("order") !== "created_at.asc,id.asc"
+        || [...params.keys()].length !== 3 || !year) nothingAnswers("GET", address);
+    const mine = crews.filter(c => c.year === Number(year[1]) && c.members.some(m => m.user_id === user.id))
+      .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    return answer(200, mine.map(c => ({ id: c.id, name: c.name, creator: c.creator, invite_token: c.invite_token,
       crew_members: c.members.map(m => ({ user_id: m.user_id, display_name: m.display_name })) })));
+  }
+
+  /* A crew as the database makes one: an id, its token, created_at the
+     server's clock. */
+  function makeCrew({ year, name, creator, members }) {
+    const c = { id: `00000000-0000-4000-b000-${String(++n).padStart(12, "0")}`, year, name, invite_token: newToken(), creator,
+      created_at: stamp(), members: members.map(([user_id, display_name]) => ({ user_id, display_name })) };
+    crews.push(c);
+    return c;
+  }
+  /* The crew as an RPC returns it: the table's row, one object. */
+  const crewRow = c => ({ id: c.id, year: c.year, name: c.name, invite_token: c.invite_token, creator: c.creator, created_at: c.created_at });
+  /* btrim(), which trims spaces alone, and the tables' checks: already
+     trimmed, and 1 to max characters, counted by code point. */
+  const btrim = v => String(v).replace(/^ +| +$/g, "");
+  const fits = (v, max) => v === btrim(v) && [...v].length >= 1 && [...v].length <= max;
+  const nameCheck = table => restFail(400, "23514", table === "crews" ? 'new row for relation "crews" violates check constraint "crews_name_check"'
+    : 'new row for relation "crew_members" violates check constraint "crew_members_display_name_check"');
+
+  /* The three RPCs, each with the arguments its signature names and no
+     others. A security definer's rules, not row-level security's:
+     regenerate_invite asks only that the caller be the creator. */
+  const ARGS = { create_crew: ["display_name", "name", "year"], join_crew: ["display_name", "token"], regenerate_invite: ["crew_id"] };
+  function rpc(name, user, params, body, address) {
+    if (!ARGS[name] || [...params.keys()].length || !body || Array.isArray(body) || Object.keys(body).sort().join() !== ARGS[name].join()) nothingAnswers("POST", address);
+    if (name === "create_crew") {
+      if (!Number.isInteger(body.year) || body.year < 2026 || body.year > 2099) return restFail(400, "22023", `no such year: ${body.year}`);
+      const crewName = btrim(body.name), displayName = btrim(body.display_name);
+      if (!fits(crewName, 40)) return nameCheck("crews");
+      if (!fits(displayName, 24)) return nameCheck("crew_members");
+      return answer(200, crewRow(makeCrew({ year: body.year, name: crewName, creator: user.id, members: [[user.id, displayName]] })));
+    }
+    if (name === "join_crew") {
+      const c = crews.find(x => x.invite_token === body.token);
+      if (!c) return restFail(500, "P0002", "no crew has that invite");
+      if (c.members.some(m => m.user_id === user.id)) return answer(200, crewRow(c));
+      const cap = fake.flags && fake.flags.crew_size_cap;
+      if (c.members.length >= (Number.isInteger(cap) ? cap : 0)) return restFail(500, "53400", "the crew is full");
+      const displayName = btrim(body.display_name);
+      if (!fits(displayName, 24)) return nameCheck("crew_members");
+      c.members.push({ user_id: user.id, display_name: displayName });
+      return answer(200, crewRow(c));
+    }
+    const c = crews.find(x => x.id === body.crew_id && x.creator === user.id);
+    if (!c) return restFail(403, "42501", "only the crew's creator can do that");
+    c.invite_token = newToken();
+    return answer(200, c.invite_token);
+  }
+
+  /* The two deletes, a row by its key, judged as the policies judge them: a
+     crew and its members are read by its members alone, so the creator
+     removes and deletes only while one; what the caller may not delete is
+     not deleted, and the answer is the same 204. */
+  function remove(table, user, params, address) {
+    const eq = key => { const m = /^eq\.(.+)$/.exec(params.get(key) || ""); return m ? m[1] : null; };
+    const keys = [...params.keys()].sort().join();
+    if (table === "crew_members" && keys === "crew_id,user_id" && eq("crew_id") && eq("user_id")) {
+      const c = crews.find(x => x.id === eq("crew_id")), target = eq("user_id");
+      if (c && c.members.some(m => m.user_id === user.id) && (target === user.id || c.creator === user.id)) {
+        c.members = c.members.filter(m => m.user_id !== target);
+      }
+      return answer(204);
+    }
+    if (table === "crews" && keys === "id" && eq("id")) {
+      const at = crews.findIndex(x => x.id === eq("id"));
+      if (at >= 0 && crews[at].creator === user.id && crews[at].members.some(m => m.user_id === user.id)) crews.splice(at, 1);
+      return answer(204);
+    }
+    nothingAnswers("DELETE", address);
   }
 
   const fake = {
     url, key, requests, users,
     captcha: false, anonymousOff: false, offline: false, fail: null, defer: null, onRequest: null, maxRows: 1000, clockOffset: 0,
+    flags: { crew_size_cap: 25 },
     release: () => { deferred.splice(0).forEach(resolve => resolve()); },
     held: email => newUser(email, false),
     issue: id => session(users.get(id)),
@@ -159,13 +243,8 @@ export function fakeBackend({ url = "https://backend.test", key = "sb_publishabl
       judge(table, whole);
       return { ...tables[table].find(r => sameKey(table, r, whole)) };
     },
-    rows: table => tables[table].map(r => ({ ...r })),
-    crew: ({ year = 2026, name = "Crew", creator, members }) => {
-      const c = { id: `00000000-0000-4000-b000-${String(++n).padStart(12, "0")}`, year, name, creator,
-        members: members.map(([user_id, display_name]) => ({ user_id, display_name })) };
-      crews.push(c);
-      return c;
-    },
+    rows: table => (table === "crews" ? crews.map(c => ({ ...c, members: c.members.map(m => ({ ...m })) })) : tables[table].map(r => ({ ...r }))),
+    crew: ({ year = 2026, name = "Crew", creator, members }) => makeCrew({ year, name, creator, members }),
     join: (crew, userId, name) => { crew.members.push({ user_id: userId, display_name: name }); },
     leave: (crew, userId) => { crew.members = crew.members.filter(m => m.user_id !== userId); },
   };
@@ -189,6 +268,8 @@ export function fakeBackend({ url = "https://backend.test", key = "sb_publishabl
       if (init.method === "POST" && KEYS[table]) return upsert(table, user, params, headers, body, address);
       if (init.method === "GET" && KEYS[table]) return readRows(table, user, params, address);
       if (init.method === "GET" && table === "crews") return readCrews(user, params, address);
+      if (init.method === "POST" && table.startsWith("rpc/")) return rpc(table.slice("rpc/".length), user, params, body, address);
+      if (init.method === "DELETE") return remove(table, user, params, address);
       nothingAnswers(init.method, address);
     }
     const captchaMissing = fake.captcha && !(body && body.gotrue_meta_security && body.gotrue_meta_security.captcha_token);

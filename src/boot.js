@@ -1,6 +1,7 @@
 import { loadJSON } from "./storage.js";
 import { IS_IOS } from "./platform.js";
 import { devMarkHTML, storageKey } from "./build.js";
+import { readJoinLink } from "./crews.js";
 import { state } from "./state.js";
 import { initTimeOverride, now } from "./time.js";
 import { events, meta } from "./data.js";
@@ -60,6 +61,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.documentElement.classList.toggle("bigtext", !!loadJSON(storageKey("bigtext"), false));
   document.body.insertAdjacentHTML("beforeend", devMarkHTML());
   initTimeOverride();
+  readJoinLink();
 
   scroller.addEventListener("scroll", onScrollSpy, {passive: true});
 

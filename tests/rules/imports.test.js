@@ -2,11 +2,12 @@
 /* The shape of the module graph under src/ (DECISIONS #29; how it came
    about is docs/SPLIT-MANIFEST.md). src/boot.js is the root: it imports the
    others, and only main.js imports it. ORDER is the order the others may
-   depend on one another in - the eighteen leaves, the backend, identity and
-   the outbox among them (DECISIONS #53), then scroll, the bus, sync and the
-   five views, then the sheet, loading, the shell and dispatch - each only
-   on npm packages and on the modules before it, so there is no cycle to
-   find; and each of the year's two data files, which the build resolves
+   depend on one another in - the nineteen leaves, the backend, identity and
+   the outbox among them (DECISIONS #53) and crews (#56), then scroll, the
+   bus, sync and the five views, then the sheet, loading, the shell and
+   dispatch - each only on npm packages and on the modules before it, so
+   there is no cycle to find; and each of the year's two data files, which
+   the build resolves
    (DECISIONS #49), is imported by the one module that owns it. dispatch is
    last, and the root alone imports it. A new module goes into ORDER at the
    lowest place its imports allow. These are new tests, not rows of
@@ -18,7 +19,7 @@ import { describe, expect, it } from "vitest";
 import { parseAst } from "vite";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const ORDER = ["season", "util", "storage", "platform", "build", "backend", "identity", "state", "time", "outbox", "venues", "data", "picks", "follows", "ics", "leave", "search", "ui",
+const ORDER = ["season", "util", "storage", "platform", "build", "backend", "identity", "crews", "state", "time", "outbox", "venues", "data", "picks", "follows", "ics", "leave", "search", "ui",
   "scroll", "bus", "sync", "now", "browse", "explore", "map", "mine",
   "sheet", "loading", "shell", "dispatch"];
 const PACKAGES = Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).dependencies || {});

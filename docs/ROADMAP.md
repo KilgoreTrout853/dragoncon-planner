@@ -199,6 +199,13 @@ pipeline absorbs takes a free review slot.
    starts-soon first, under PostgREST's 1,000 rows, and the sender asking
    again, two batches a run at most (`docs/sync/contract.md`, section 7,
    The batch, as built; PR #61) - built.
+8. Crews, the client's layer: `src/crews.js` - create, join, leave,
+   remove, delete and a new invite, each one request as the user and
+   nothing written on the phone; the invite link, read at boot and kept for the
+   tab's session until a screen takes it; the readers for who's going and
+   the overlay; and the crews read's invite token (`docs/sync/contract.md`,
+   section 8, as built; #56; PR #62) - built. The screens are Where things
+   live's.
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
@@ -217,10 +224,25 @@ of a push subscription, and Pages from Actions (#26).
 Open: `index.html` needs `mobile-web-app-capable` beside the Apple meta
 (Chrome's deprecation warning, 2026-09-25).
 
+Open: an invite link tapped on an iPhone opens the browser, not the
+home-screen app, whose storage is its own, so an installed reader who taps
+one joins as the browser's user. The crew screens need a field to paste the
+link into, which `readInvite()` reads (#56), and the behaviour is to be
+confirmed on a phone with the install flow (`docs/sync/contract.md`, Open).
+
 ### 6. Where things live — not opened; opens last
 
 The UI's information architecture. There are five tabs today; For you,
 crews, a filter sheet and the building view need homes. No decisions yet.
+
+Waiting for a home:
+
+- The crew screens: create, join - with a field to paste a link into
+  (Delivery) - your crews, who's going, and the overlay's look. Their data
+  and actions are built (`src/crews.js`; #56; `docs/sync/contract.md`,
+  section 8).
+- The notifications toggle.
+- The install nudge (below).
 
 The Now tab, mini-bar and map's next-pick card drop the leave-by countdown
 and keep the walk estimate and tight bands (#40).

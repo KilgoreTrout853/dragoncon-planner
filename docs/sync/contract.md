@@ -1,10 +1,10 @@
 # Identity and sync: the data contract
 
-The design note for Identity and sync: DECISIONS #50-#55, in the detail a
+The design note for Identity and sync: DECISIONS #50-#56, in the detail a
 pull request needs. Written 2026-09-25, before any of it was built:
 sections 1-4 first, section 5 with the client's identity (PR #55), section
 6 with the mirror job (PR #57), section 7 with the push job (PRs #59, #60
-and #61), and 8 as its design is done. The evidence is
+and #61), and section 8 with crews' client layer (PR #62). The evidence is
 `recon.md`, beside this file, the client as the design found it. Where an
 entry has the detail, this note points at it rather than saying it twice.
 What the note does not settle is under Open, at the end. A change of
@@ -66,7 +66,8 @@ the same PR.
 PR #55, with #53.
 
 - **Two modules,** after `build` in #29's order - `build`, `backend`,
-  `identity`, `state`, `time`. `src/backend.js` holds the backend's
+  `identity`, `state`, `time`; since PR #62 `crews` stands between
+  `identity` and `state` (section 8, as built). `src/backend.js` holds the backend's
   address and public key, every request, and the session.
   `src/identity.js` holds `ensureUser()`, the email step and sign out.
 - **The constants.** `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` reach the
@@ -90,8 +91,8 @@ PR #55, with #53.
   PostgREST's `Prefer`. Nothing else: the page asks for no API version,
   and reads an error's code from `code` where that is a string - the Auth
   server's newer shape, and PostgREST's - and from `error_code` otherwise.
-  There are eleven, the email step's six and sync's five (section 5, as
-  built):
+  There are seventeen: the email step's six, sync's five (section 5, as
+  built) and crews' six (section 8, as built):
 
 | Request | Method and path | As the user | Body | Expects |
 |---|---|---|---|---|
@@ -103,9 +104,15 @@ PR #55, with #53.
 | Sign out | `POST /auth/v1/logout?scope=local` | yes | none | 204, not waited on |
 | Upsert picks | `POST /rest/v1/picks?on_conflict=user_id,year,event_id`, with `Prefer: resolution=merge-duplicates,return=minimal` | yes | `[{"year", "event_id", "picked", "changed_at"}]`, a row per op, by key; no `user_id`, which is the caller's | 201 where a row was inserted, else 200, and no body; a failure keeps the ops |
 | Upsert follows | `POST /rest/v1/follows?on_conflict=user_id,year,kind,key`, with the same `Prefer` | yes | `[{"year", "kind", "key", "followed", "changed_at"}]` | as the picks' |
-| Crews | `GET /rest/v1/crews?select=id,name,creator,crew_members(user_id,display_name)&year=eq.<year>` | yes | none | 200: the caller's crews of the year, their members embedded |
+| Crews | `GET /rest/v1/crews?select=id,name,creator,invite_token,crew_members(user_id,display_name)&year=eq.<year>&order=created_at.asc,id.asc` | yes | none | 200: the caller's crews of the year, the oldest first, their invite tokens with them and their members embedded |
 | Pull picks | `GET /rest/v1/picks?select=user_id,event_id,picked,changed_at,synced_at&year=eq.<year>&synced_at=gt.<since>&order=synced_at.asc,user_id.asc,event_id.asc&limit=1000&offset=<n>` | yes | none | 200: one's own rows and crewmates' of the year, 1,000 at most |
 | Pull follows | `GET /rest/v1/follows?select=kind,key,followed,changed_at,synced_at&year=eq.<year>&synced_at=gt.<since>&order=synced_at.asc,kind.asc,key.asc&limit=1000&offset=<n>` | yes | none | 200: one's own rows, 1,000 at most |
+| Create a crew | `POST /rest/v1/rpc/create_crew` | yes | `{"year", "name", "display_name"}`, the names trimmed | 200 and the crew, one object, its token with it; or 400 `22023`, 400 `23514` |
+| Join a crew | `POST /rest/v1/rpc/join_crew` | yes | `{"token", "display_name"}` | 200 and the crew, unchanged to a member already in it; or 500 `P0002`, 500 `53400`, 400 `23514` |
+| A new invite | `POST /rest/v1/rpc/regenerate_invite` | yes | `{"crew_id"}` | 200 and the new token, a JSON string; or 403 `42501` |
+| Leave | `DELETE /rest/v1/crew_members?crew_id=eq.<crew>&user_id=eq.<the reader>` | yes | none | 204, whether or not row-level security let a row go |
+| Remove a member | `DELETE /rest/v1/crew_members?crew_id=eq.<crew>&user_id=eq.<member>` | yes | none | 204, as leave's |
+| Delete a crew | `DELETE /rest/v1/crews?id=eq.<crew>` | yes | none | 204, as leave's; the memberships go with the crew |
 
 `<since>` is the watermark less a minute, URL-encoded; a first pull has
 none, and neither has the picks' when a crew has gained anyone.
@@ -118,7 +125,8 @@ none, and neither has the picks' when a crew has gained anyone.
   next try. No clock is read for any of it.
 - **`ensureUser()`** returns the session, or signs in anonymously, with
   one request however many callers ask while it is out. Nothing calls it
-  on load; its one caller is the email step.
+  on load; its callers are the email step and, since PR #62, a crew's
+  create and join (section 8, as built).
 - **The email step** is Settings' "Keep your plan", between Advanced and
   Done, and only on a build with a backend. Send code: with no session,
   recover, and an address no one holds mints the anonymous user and adds
@@ -207,6 +215,9 @@ none, and neither has the picks' when a crew has gained anyone.
   `joined_at`; its primary key is crew and user. The name lives on the
   membership, not on the user, whose row holds nothing personal (#8). A
   membership's year is its crew's.
+- **The invite link** is the site's own address with `?join=<year>.<token>`
+  for its query: the crew's token, and the year, so that a build of another
+  year refuses the link before any request (section 8, as built).
 - A star means going; there is no maybe.
 
 ### Push subscriptions
@@ -601,19 +612,21 @@ PR #56, with #53.
 - **The pull** holds the drains while it reads and applies - the one out
   finishes first - so no pulled row lands on a change drained in between,
   and a tap meanwhile waits as an op. It reads the crews, with their
-  members, then the picks and the follows newer than the watermark less a
-  minute, 1,000 rows a request - Supabase's most, hosted and in
-  `supabase/config.toml` - until a request comes back short. When a crew
+  members - and, since PR #62, their invite tokens, the oldest crew first
+  (section 8, as built) - then the picks and the follows newer than the
+  watermark less a minute, 1,000 rows a request - Supabase's most, hosted
+  and in `supabase/config.toml` - until a request comes back short. When a crew
   has gained anyone since the last run, the picks are read whole, since a
   newcomer's are older than the watermark. Then, with no wait between: the
   reader's own rows are applied unless a pending op holds the key;
   crewmates' picks go to `storageKey("crewPicks")`, `{user: {event:
   true}}`, a crewmate's unstar taking the entry out and a departed member
   taking all of theirs; the crews to `storageKey("crew")`, `[{id, name,
-  creator, members: [{user_id, display_name}]}]`, data alone for the crew
-  screens; and the watermark to `storageKey("syncStamp")`, `{user, picks,
-  follows}`, each the newest `synced_at` its table's read returned, as the
-  server wrote it.
+  creator, invite_token, members: [{user_id, display_name}]}]`, which the
+  crew screens draw from - the two keys `src/crews.js`'s since PR #62, and
+  written through it (section 8, as built); and the watermark to
+  `storageKey("syncStamp")`, `{user, picks, follows}`, each the newest
+  `synced_at` its table's read returned, as the server wrote it.
 - **The watermark stops at a held row.** A row of the reader's own that a
   pending op holds is passed over, and the watermark goes no later than
   it, so the next pull reads it again, and applies the server's value if
@@ -1434,11 +1447,151 @@ PR #61, with #55.
   the dev project takes the sixth migration and the function, and the
   switch stays off.
 
-## 8. Crews — to follow
+## 8. Crews
 
-The crew screens: create, join by the link, leave, remove, regenerate the
-invite, the overlay on the timeline, and who's going (#10, as #50 narrows
-it).
+#10, as #50 narrows it: create, join by the link, leave, remove, regenerate
+the invite, the overlay of crewmates' picks on the timeline, and who's
+going. #56 has the client's rulings; this section is the client's layer,
+PR #62, which has no screen. The screens - create, join, your crews,
+who's going and the overlay's look - are Where things live's (ROADMAP).
+
+- **The creator cannot leave;** the creator's Leave is Delete crew. The
+  policies let a creator delete their own membership (section 3, as
+  built), and `creator` stays set when it goes, so a creator who left could
+  still regenerate the invite from outside - that alone, since removing a
+  member and deleting the crew read the crew as a member, and from outside
+  answer 204 with nothing deleted (checked on the CLI's local stack).
+  Handing a crew over is the spring's, only if a crew asks.
+- **Who does what.** Any member may share the invite link. The creator
+  alone regenerates it, removes a member and deletes the crew. A member
+  removed can join again by the link they still hold until the creator
+  makes a new one, so a removal that is meant to hold is followed by a new
+  invite: the screens' to offer.
+- **Several crews** a user, with no cap on how many. The readers take the
+  union of all of them, a person once.
+- **Renaming a crew and editing one's display name:** the policies allow
+  both (section 3); neither is built now.
+- **A crew action never writes local state on success.** The server's
+  answer is the truth, and the next pull brings it, so section 1's rule -
+  a crew action fails visibly and leaves local state untouched - holds by
+  construction.
+
+### Crews, the client, as built
+
+PR #62, with #56.
+
+- **The module,** `src/crews.js`, a nineteenth leaf after `identity`, the
+  lowest place its imports allow (#29). It owns `storageKey("crew")` and
+  `storageKey("crewPicks")`, moved out of `sync.js`: the pull asks
+  `crewGained()` whether a crew has gained anyone, writes both keys through
+  `applyPulledCrews()` - the crews as read, a departed member's picks
+  dropped, a crewmate's star kept and an unstar taken out - and forgets
+  both through `forgetCrews()`, at a change of owner and with no session
+  (section 5, as built). It reads its keys when asked, never as it is
+  imported. It imports nothing above it and runs no sync: a screen's
+  handler runs `runSync()` after an action, as the email step's does after
+  it sends a code.
+- **The actions,** each one request made as the user (section 1, as
+  built), answered by the server, and writing nothing on the phone:
+
+  | Action | Request | Answer |
+  |---|---|---|
+  | `createCrew(name, displayName)` | `ensureUser()`, then `POST /rest/v1/rpc/create_crew`, `{"year", "name", "display_name"}` | the crew, one object, its token with it |
+  | `joinCrew(invite, displayName)` | `ensureUser()`, then `POST /rest/v1/rpc/join_crew`, `{"token", "display_name"}` | the crew, unchanged to a member already in it |
+  | `newInvite(crewId)` | `POST /rest/v1/rpc/regenerate_invite`, `{"crew_id"}` | the new token |
+  | `leaveCrew(crewId)` | `DELETE /rest/v1/crew_members?crew_id=eq.<crew>&user_id=eq.<the reader>` | nothing, 204 |
+  | `removeMember(crewId, userId)` | `DELETE /rest/v1/crew_members?crew_id=eq.<crew>&user_id=eq.<member>` | nothing, 204 |
+  | `deleteCrew(crewId)` | `DELETE /rest/v1/crews?id=eq.<crew>` | nothing, 204; the memberships go with the crew |
+
+  Create and join are section 1's first taps that need a user: with no
+  session each mints one first, and one that then fails keeps the user it
+  minted, as the email step does - the plan is untouched. The names are
+  checked before any request, trimmed, as the tables' checks have them: a
+  crew's 1 to 40 characters and a display name 1 to 24, counted by code
+  point as Postgres's `char_length` counts them - forty emoji are a name.
+  Postgres's `btrim` trims spaces alone, and the client trims all white
+  space, so what it sends the checks hold.
+- **Refused in the client:** the creator's leave, and the creator removing
+  themselves, which is a leave; the creator's actions asked by anyone
+  else; and an action on a crew the phone does not hold, whose creator it
+  cannot know. The client's refusal is a courtesy - it says why before a
+  request is spent - and the policy is the wall: a stale list sends the
+  request, and the server refuses it or deletes nothing. The creator's
+  leave is the one exception, since the policies allow it: there the
+  client's refusal is #56's rule, and the only check. A delete
+  row-level security turns away answers 204 as one that deletes a row
+  does, so the answer cannot tell the two apart; the refusals keep a
+  reader from meeting that silence.
+- **The words,** `crewMessage()`, which falls back to identity's
+  `plainMessage()` for the rest - offline, signing in, the session:
+
+  | Failure | Status | Words |
+  |---|---|---|
+  | `P0002`, no crew has that invite | 500 | That invite doesn't work any more - ask for a new link. |
+  | `53400`, the crew is full | 500 | That crew is full. |
+  | `42501` from `regenerate_invite`, and the client's own refusal | 403, or none | Only the crew's creator can do that. |
+  | a crew's name out of bounds | none | A crew's name is 1 to 40 characters. |
+  | a display name out of bounds | none | Your name in the crew is 1 to 24 characters. |
+  | a link from another year | none | That invite is for another year's con - ask for a new link. |
+  | not an invite | none | That doesn't look like an invite link. |
+  | the creator leaving | none | You made this crew, so you can't leave it - you can delete it instead. |
+
+  `22023` and `23514`, both 400, reach no reader: the year is the
+  build's, and the names are checked first.
+- **The link.** `inviteLink(crew)` is the page's address with
+  `?join=<year>.<token>` for its query - a query, like `?now=`, and the
+  year in it, so that a build of another year refuses the link before any
+  request. It is built by `new URL("?join=<year>.<token>",
+  location.href)`: #15's rule, which the lint holds, forbids deciding by
+  the address, and this reads the address only to point the link back at
+  the site the sharer is on, so it is no way round that rule. The sharer's
+  `?now=` and hash stay behind. `readJoinLink()`, which `boot()` calls
+  beside `initTimeOverride()`, reads the parameter, takes it out of the
+  address by `replaceState` - `?now=` and the hash left as they were - and
+  keeps the invite under `storageKey("join")`, in session storage, until a
+  screen takes it: `pendingJoin()` and `takePendingJoin()`, so that a
+  reload before the join lands does not lose it. The address wins over
+  what the session kept. With no backend the parameter goes and nothing is
+  kept: the 2026 app knows no crews. Nothing here joins; a screen does.
+  `readInvite()` reads an invite from the kept `<year>.<token>` or from a
+  pasted link, for a home-screen app a tapped link never reaches (Open).
+  Offline, the worker serves a page load with a query from its cache; it
+  keeps each page it fetched under the address it was asked for, so an
+  invite's address stays in the phone's cache, as a `?now=` address does,
+  until the worker's cache is replaced. The address is rebuilt whole, its
+  query replaced, rather than from its path, since a path that begins
+  `//` would read as another host and the rewrite would throw at boot.
+- **The readers,** pure reads of the two keys, for the two surfaces:
+  - `goingTo(eventId)`: the crewmates, in any of the reader's crews, whose
+    picks hold the event - `{user_id, display_name}`, a person once, the
+    name from the first crew in the list that holds them, ordered by name.
+    Never the reader, whose star already says they are going.
+  - `crewmatesByEvent()`: the overlay's map, a `Map` from event id to the
+    same list, for every event a crewmate starred.
+  - `isCreator(crew)`, and `myCrews()`, the list as kept: `[{id, name,
+    creator, invite_token, members}]`.
+
+  The crews read gains `invite_token`, which any member may read by policy,
+  so that every member's phone can share the link; and it is ordered,
+  `created_at` and then id, the oldest first, since an update moves a row
+  in an unordered read - a rotation did, on the CLI's local stack - and
+  the first crew would move with it.
+- **The tests.** `tests/page/crews.test.js`: each action pinned as it is
+  sent, with nothing kept on the phone; create and join minting with no
+  session, and not with one; every failure in its words, with what it sent
+  and nothing kept; the link read, taken out of the address, kept and
+  taken, across a reload and over a kept one, another year's refused, and
+  nothing kept with no backend; `readInvite()`; the readers - the union
+  across two crews, a person once, the first crew's name, a departed member
+  gone, a crewmate who leaves one of two crews, nothing with no crews - and
+  `joinCrew()` then `runSync()` bringing the new crew's picks whole,
+  older than the watermark. `tests/page/sync-pull.test.js` pins the crews
+  read. The fake, `tests/helpers/backend.js`, answers the three RPCs and
+  the two deletes as the policies judge them; a scenario of the crews'
+  requests, replayed against the CLI's local stack - PostgREST 14.5 - and
+  against the fake, got the same status and body from each, but for an
+  error's `details`, which the client never reads. A mutation pass over
+  `crews.js` is not committed. No pgTAP: the schema did not change.
 
 ## Open
 
@@ -1458,3 +1611,9 @@ it).
   ROADMAP, Checklist). And anonymous sign-ins are capped at 30 an hour per
   IP by default, while a hotel's Wi-Fi puts many phones behind one
   address: for the operations track (#50).
+- An invite link tapped on an iPhone opens the browser, not the
+  home-screen app, whose storage is its own, so an installed reader who
+  taps one joins as the browser's user. The crew screens need a field to
+  paste the link into - `readInvite()` takes one (section 8, as built) -
+  and the behaviour is to be confirmed on a phone, with Delivery's install
+  flow (ROADMAP).

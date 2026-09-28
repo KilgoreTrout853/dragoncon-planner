@@ -106,7 +106,7 @@ backend at all. A backend that is down should degrade to 2026 behaviour, not
 to a blank screen.
 **Cost:** A sync/conflict rule (outbox proposed) still has to be designed.
 
-### 10. Crews are coordination, not conversation — Decided, not built (2026-09-05) — its build narrowed for 2027 by #50: create, join, leave, remove, the invite, the overlay and who's going; the Now board deferred to Where things live, share-a-day a link with no backend, pings the spring's
+### 10. Crews are coordination, not conversation — Decided, not built (2026-09-05) — its build narrowed for 2027 by #50: create, join, leave, remove, the invite, the overlay and who's going; the Now board deferred to Where things live, share-a-day a link with no backend, pings the spring's; the client's layer built by #56, PR #62: `src/crews.js`, the six actions, the invite link and the readers for the overlay and who's going - the screens Where things live's
 **Decided:** No in-app chat, ever. WhatsApp stays the chat. In scope: crew
 picks overlaid on the timeline, "who's going" per panel, a crew Now board,
 status pings tied to a pick, one-tap share-a-day. Build order: picks →
@@ -425,7 +425,7 @@ mode now also covers moved partitions. The map needs one persistent SVG
 mutated in place rather than the innerHTML rebuild in `src/app.js` — a
 constraint on step 4's module split.
 
-### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53); an eighteenth, `outbox`, after `time`, and `sync` after the bus (#53)
+### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53); an eighteenth, `outbox`, after `time`, and `sync` after the bus (#53); a nineteenth, `crews`, after `identity` (#56)
 **Decided:** The client's modules stand in one order, and `src/boot.js` is
 its root. The order is the array `ORDER` in `tests/rules/imports.test.js` -
 the fourteen leaves, then `scroll` and the `bus`, the five views, then
@@ -1286,7 +1286,7 @@ read the rest. 18:00 and 19:00 are a guess for 2027 until its schedule
 shows. The icons draw 2026 in their pixels, which no stamp reaches
 (ROADMAP, Checklist).
 
-### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on; the mirror built by #54: `mirror.yml`, on a push that changes a year's three files, hourly in the season's window and by hand, under the `dev` or the `production` Environment; the push job's first pull request built by #55, PR #59: starts-soon, queue-shaped, the kill switch read by the cron job, by `push_due()` and by the function
+### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on; the mirror built by #54: `mirror.yml`, on a push that changes a year's three files, hourly in the season's window and by hand, under the `dev` or the `production` Environment; the push job's first pull request built by #55, PR #59: starts-soon, queue-shaped, the kill switch read by the cron job, by `push_due()` and by the function; crews' client layer built by #56, PR #62: `src/crews.js`, with no screen - the screens are Where things live's
 **Decided:** Identity and sync is built smaller than #8, #10, #25 and #27
 drew it; `docs/sync/contract.md` has the design.
 - **The mirror** is two tables, `schedule_events` and `schedule_changes`,
@@ -1370,7 +1370,7 @@ plan (#8). A recovering phone's crew membership stays behind until the
 person rejoins. A stamp ignores the simulated clock, so a test under
 `?now=` stamps the real time.
 
-### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built); the mirror job's migration (#54) makes `schedule_events.start` and `end` nullable, as the file's may be, and grants `service_role` the mirror's three tables by name; and a line's `fetch_code_changed` is its run's from `last-run.json`, or `true` for an earlier run the mirror had not yet written (`contract.md`, section 6); the push job's migration (#55) makes `push_sent` a queue - `sent_at` nullable with no default, a row without it a claim, and `claimed_at` - and grants `service_role` select, insert, update and delete on `push_sent`, select and delete on `push_subscriptions`, select on `flags`, and `push_due()`'s execution, by name (`contract.md`, section 7); pick-changed's migration (#55) replaces `push_due()`, its grants made again as they were, and changes no table (`contract.md`, section 7, Pick-changed, as built); the batch's migration (#55) replaces it in place, by `create or replace`, which keeps its grants, and changes no table (`contract.md`, section 7, The batch, as built)
+### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built); the mirror job's migration (#54) makes `schedule_events.start` and `end` nullable, as the file's may be, and grants `service_role` the mirror's three tables by name; and a line's `fetch_code_changed` is its run's from `last-run.json`, or `true` for an earlier run the mirror had not yet written (`contract.md`, section 6); the push job's migration (#55) makes `push_sent` a queue - `sent_at` nullable with no default, a row without it a claim, and `claimed_at` - and grants `service_role` select, insert, update and delete on `push_sent`, select and delete on `push_subscriptions`, select on `flags`, and `push_due()`'s execution, by name (`contract.md`, section 7); pick-changed's migration (#55) replaces `push_due()`, its grants made again as they were, and changes no table (`contract.md`, section 7, Pick-changed, as built); the batch's migration (#55) replaces it in place, by `create or replace`, which keeps its grants, and changes no table (`contract.md`, section 7, The batch, as built); the RPCs' errors reach the client as PostgREST answers them - `P0002` and `53400` 500, `42501` 403, `22023` and `23514` 400 - and a delete that row-level security turns away answers 204, as one that deletes does; the policies let a creator delete their own membership, and `creator` stays set, so a creator who left could still regenerate the invite from outside, though not remove anyone or delete the crew, and the client refuses the creator's leave (#56; `contract.md`, section 8, as built)
 **Decided:** Ten tables in Supabase's Postgres, row-level security on
 every one, and three RPCs; `docs/sync/contract.md`, sections 2-4, has the
 columns, the policies and the tests.
@@ -1643,3 +1643,66 @@ hand (ROADMAP, Checklist). pg_cron's records: 1,440 runs a day, a week
 kept. The function's logic is tested in Node against fakes; the runtime
 was checked on the CLI's local stack, and a real push service and a real
 browser only by the hand test.
+
+### 56. Crews, the client's layer — Standing (2026-09-28)
+**Decided:** The client's half of crews is built before any crew screen:
+one module, `src/crews.js`, with no screen; the screens are Where things
+live's. `docs/sync/contract.md`, section 8, has the detail.
+- **The creator cannot leave;** the creator's Leave is Delete crew. The
+  policies let a creator delete their own membership, and `creator` stays
+  set when it goes, so a creator who left could still regenerate the
+  invite from outside - that alone: removing a member and deleting the
+  crew read the crew as a member, and from outside delete nothing (checked
+  on the CLI's local stack). Handing a crew over is the spring's, only if a
+  crew asks.
+- **Who does what.** Any member may share the invite link; the creator
+  alone regenerates it, removes a member and deletes the crew. The client
+  refuses the rest before any request, as a courtesy; the policies are the
+  wall.
+- **Several crews a user,** with no cap on how many. The readers take the
+  union of all of them, a person once, by the name the first crew that
+  holds them gives, and the crews are read oldest first, so that crew
+  stays the first.
+- **Renaming a crew and editing one's display name:** the policies allow
+  both; neither is built now.
+- **A crew action never writes local state on success.** The server's
+  answer is the truth, and the next pull brings it, so #51's rule - fails
+  visibly, local state untouched - holds by construction. Create and join
+  mint a user first when there is none (#51): the first taps that need
+  one.
+- **The module** is a nineteenth leaf, after `identity`, the lowest place
+  its imports allow (#29). It owns the crews' two keys, which `sync`
+  writes and forgets through it, as it writes picks and follows through
+  their owners; it reads them when asked, never as it is imported. Six
+  actions, each one request as the user; `crewMessage()`, the codes' words
+  and its own; the invite link; and the readers, who's going and the
+  overlay's map, crewmates alone - never the reader, whose star already
+  says they are going.
+- **The link** is the site's address with `?join=<year>.<token>` for its
+  query, so a build of another year refuses it before any request. It is
+  built from the page's own address, read only to point the link back at
+  the site the sharer is on, which #15's rule - never decide by the
+  address - allows. `boot()` reads it beside the time override, takes it
+  out of the address and keeps it for the tab's session until a screen
+  takes it; with no backend it goes and nothing is kept. A pasted link
+  joins as a tapped one does: an iPhone opens a tapped link in the
+  browser, not the home-screen app, whose storage is its own - to be
+  confirmed on a phone (`contract.md`, Open).
+
+**Why:** #50 narrowed crews for 2027 to create, join, leave, remove, the
+invite, the overlay and who's going, and Where things live opens last
+(#30), so the data and the actions come first, pinned by tests, as #52
+had the policies tested before any screen leaned on them. A creator who
+has left can no longer see the crew but can still hand out its keys, so
+the client keeps the creator in. With nothing written locally there is
+one truth, the server's, and no local copy to roll back when a request
+fails. The year in the link: a build is for one year (#49), and a crew of
+another year is not this year's.
+**Cost:** A crew cannot change hands, and one whose creator is gone keeps
+no one who can regenerate its invite or remove anyone (#52's Cost). A
+change shows on the phone only once a sync run has pulled it, a round
+trip after the action. The client's refusals repeat the policies and
+could drift from them; where they do, the policy wins. A create or a join
+that mints and then fails leaves an anonymous user with no crew, for the
+cleanup. An installed iPhone reader joins by pasting the link, not by
+tapping it.
