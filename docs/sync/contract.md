@@ -1595,8 +1595,9 @@ PR #62, with #56.
 
 ## Open
 
-- How stale an anonymous user must be before the cleanup deletes it
-  (section 2).
+- ~~How stale an anonymous user must be before the cleanup deletes it
+  (section 2).~~ The operations track's, with the cleanup, which is not
+  built: its first pull request (ROADMAP, tentpole 4).
 - ~~Starts-soon's lead time: one value, set in the push job's call (#40,
   #50); how many minutes is unset.~~ 15 minutes, one constant in
   `push_due()` (#55; section 7).
@@ -1605,12 +1606,14 @@ PR #62, with #56.
 - A push's acks chunked, and its `event_ids` bounded, so that a push of
   more than some 70 to 100 events can be sent and acked (section 7, The
   batch, as built, Known limits): a follow-up, not built.
-- The Auth project's two limits. The built-in mailer sends only to the
+- ~~The Auth project's two limits. The built-in mailer sends only to the
   organisation's own addresses, a few an hour; custom email is not the
   operations track's but the six-digit code's prerequisite (#25's note;
   ROADMAP, Checklist). And anonymous sign-ins are capped at 30 an hour per
   IP by default, while a hotel's Wi-Fi puts many phones behind one
-  address: for the operations track (#50).
+  address: for the operations track (#50).~~ The operations track's:
+  production's sender domain and its limit on anonymous sign-ins
+  (ROADMAP, tentpole 4).
 - An invite link tapped on an iPhone opens the browser, not the
   home-screen app, whose storage is its own, so an installed reader who
   taps one joins as the browser's user. The crew screens need a field to
