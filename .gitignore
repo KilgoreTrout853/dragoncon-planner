@@ -19,3 +19,6 @@ dist/
 # Third-party floor plans kept locally, never committed (reference/README.md)
 reference/*
 !reference/README.md
+
+# What a person's tools write for their own inspection, never committed (tools/replay_changes_2026.py)
+tools/out/

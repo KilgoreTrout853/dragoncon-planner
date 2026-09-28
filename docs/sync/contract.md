@@ -3,8 +3,8 @@
 The design note for Identity and sync: DECISIONS #50-#55, in the detail a
 pull request needs. Written 2026-09-25, before any of it was built:
 sections 1-4 first, section 5 with the client's identity (PR #55), section
-6 with the mirror job (PR #57), section 7 with the push job (PR #59), and
-8 as its design is done. The evidence is
+6 with the mirror job (PR #57), section 7 with the push job (PRs #59 and
+#60), and 8 as its design is done. The evidence is
 `recon.md`, beside this file, the client as the design found it. Where an
 entry has the detail, this note points at it rather than saying it twice.
 What the note does not settle is under Open, at the end. A change of
@@ -243,7 +243,8 @@ year, and a dead one is pruned when a send to it fails.
   says when it was made.
 - `mirror_state`: one row per year - `last_run`, `last_sha` and
   `updated_at`, how far the mirror has read; section 6 adds none. Section
-  7's pick-changed is to add `tz`, the con's zone, for its times.
+  7's pick-changed was to add `tz`, the con's zone, for its times, and was
+  found to need none (section 7, Pick-changed, as built).
 - `flags`: name and value; two, `push_enabled`, the kill switch, and
   `crew_size_cap`. Whether a captcha is required is not a flag but the
   Supabase project's setting (section 1).
@@ -331,6 +332,10 @@ migration.
   row written without it is a claim, and `claimed_at`, not null, `now()`
   by default; `push_due()`; its grants to `service_role` (section 3, as
   built); and two cron jobs, the push and a cleanup of pg_cron's records.
+- **Pick-changed's migration,** the fifth,
+  `20260928154158_pick_changed.sql` (section 7, Pick-changed, as built):
+  `push_due()` replaced, to return both kinds, and its grants made again as
+  they were. No table changes.
 
 ## 3. Security
 
@@ -390,7 +395,9 @@ The same migration (PR #54).
   section 6). The push job's migration grants `service_role` select,
   insert, update and delete on `push_sent`, select and delete on
   `push_subscriptions` and select on `flags`, and `push_due()` is
-  executable by `service_role` alone (#55; section 7, as built).
+  executable by `service_role` alone (#55; section 7, as built); pick-changed's
+  migration makes the function again with the same grants, and reads
+  `schedule_changes` as its owner, so the sender needs no grant on it.
   `supabase/config.toml` turns the local database's defaults off to
   match (section 4, as built), so `00_structure` holds the migration's
   grants, not the defaults.
@@ -430,11 +437,12 @@ The same migration (PR #54).
   Their errors: 42501, not signed in or not the creator; P0002, no crew
   has that invite; 53400, the crew is full; 22023, no such year; 23514, a
   name out of bounds, from the table's check.
-- **The tests,** eleven files under `supabase/tests/`, each one transaction
+- **The tests,** twelve files under `supabase/tests/`, each one transaction
   rolled back: `00_structure`, `01_anon`, `02_stranger`, `03_member`,
   `04_stamps`, `05_rpcs`, `06_job_tables`, `07_cascades`,
-  `08_push_subscriptions`, with sync's migration `09_sync`, and with the
-  push job's `10_push` (section 7, as built). A test user is a row inserted into
+  `08_push_subscriptions`, with sync's migration `09_sync`, with the
+  push job's `10_push` (section 7, as built), and with pick-changed's
+  `11_pick_changed`. A test user is a row inserted into
   `auth.users`. The test acts as that user through the `authenticated`
   role and a `request.jwt.claims` naming them, which `auth.uid()` reads,
   and as anon through `set local role anon`. A mutation pass - every
@@ -835,8 +843,8 @@ PR #57, with #54.
 ## 7. The push job
 
 #55, as #50 has it: queue-shaped from its first pull request, which
-carries the kill switch. Starts-soon is built (PR #59, below); pick-changed
-is decided here, and built by the pull request after it, PR B.
+carries the kill switch. Both kinds are built: starts-soon by PR #59 and
+pick-changed by PR #60, each with its "as built" below.
 
 - **Where it runs.** Inside the Supabase project (#25): pg_cron calls one
   Edge Function, `push`, through pg_net, every minute. Not a third Actions
@@ -897,7 +905,10 @@ is decided here, and built by the pull request after it, PR B.
   a flagged run's is - the pick is still picked, the line's run is after
   the pick's `changed_at`, the event's start is in the future or null, and
   the run is within six hours. Its times are in the con's zone, from a
-  `tz` column the mirror is to write to `mirror_state` (#54).
+  `tz` column the mirror is to write to `mirror_state` (#54). As built,
+  the column was found unneeded, and the fold is one push per user and run,
+  across every event of theirs the run changed (Pick-changed, as built,
+  below).
 
 ### The push job, as built
 
@@ -922,7 +933,8 @@ PR #59, with #55: starts-soon.
     `room`, `minutes_until` - the whole minutes to the start, a part
     minute counted as one - and `endpoints`, the user's browsers,
     `[{endpoint, p256dh, auth}]` by endpoint; the rows by user, start,
-    title and id. A claim's `claimed_at` is `at`;
+    title and id. A claim's `claimed_at` is `at`. Replaced by the fifth
+    migration, which returns both kinds (Pick-changed, as built, below);
   - the grants: `service_role` select, insert, update and delete on
     `push_sent`, select and delete on `push_subscriptions`, and select on
     `flags`; nothing to an app role;
@@ -979,7 +991,7 @@ PR #59, with #55: starts-soon.
 |---|---|---|---|
 | The switch | `GET /rest/v1/flags?select=value&name=eq.push_enabled` | - | 200: `[{"value": true}]`, or not |
 | Due | `POST /rest/v1/rpc/push_due` | `{}`, or `{"at": <ISO>, "dry": true}` | 200: the rows above |
-| Ack | `PATCH /rest/v1/push_sent?user_id=eq.<user>&kind=eq.starts-soon&key=in.("<id>",...)&sent_at=is.null` | `{"sent_at": <the clock, ISO>}` | 204, `*/N` |
+| Ack | `PATCH /rest/v1/push_sent?user_id=eq.<user>&kind=eq.<kind>&key=in.("<key>",...)&sent_at=is.null` | `{"sent_at": <the clock, ISO>}` | 204, `*/N` |
 | Release | `DELETE /rest/v1/push_sent?<the same filter>` | - | 204, `*/N` |
 | Prune | `DELETE /rest/v1/push_subscriptions?endpoint=eq.<endpoint>` | - | 204, `*/N` |
 
@@ -1060,9 +1072,157 @@ self.addEventListener("push", (event) => {
   `<project URL>/functions/v1/push` with the header `x-push-secret`, the
   body `{"dry": true, "at": "<start - 10 min, ISO>"}`: the answer previews
   the push. POST it again without `dry`: the notification arrives,
-  `Starts in 10 min · <hotel> <room>`. POST once more: `sent` is 0, the
-  claim acked. Last, turn the switch off, and delete the test's
-  `push_sent` row and the subscription.
+  `Starts in 10 min · <hotel> <room>`. If even DevTools' Push shows
+  nothing with permission granted, the operating system is hiding the
+  browser's notifications. POST once more: `sent` is 0, the claim acked.
+  Last, turn the switch off, and delete the test's `push_sent` row and the
+  subscription.
+
+### Pick-changed, as built
+
+PR #60, with #55.
+
+- **The migration,** the fifth, `20260928154158_pick_changed.sql`:
+  `push_due()` dropped and made again, since its return type grows - the
+  same `(at, dry)`, the same grants, and no table changed. Three constants
+  are named at its top: `lead_time`, 15 minutes, starts-soon's; `horizon`,
+  6 hours, pick-changed's; and `stale`, 5 minutes, when an unsent claim is
+  a crashed run's. It returns one row per user and thing a push tells:
+  `kind`, `key`, `user_id`, `year`, `event_id`, `title`, `start`, `hotel`,
+  `room`, `minutes_until`, `run`, `changes` and `endpoints`, the rows by
+  kind, user, run, the event's start - an unknown start last - title and
+  id.
+  - A starts-soon row is the spine's, its `key` the event's id, its `run`
+    and `changes` null.
+  - A pick-changed row is a user's pick whose event one run changed. Its
+    `key` is the run in UTC to the second, a bar and the event's id -
+    `2026-09-01T21:33:33Z|c32d19e7750818e0eb903f152adb7af0` - its `changes`
+    the event's lines of that run, each `{kind, from, to}` as the change
+    log has them, and its `minutes_until` null. A line counts where its
+    kind is one of the six, its `cause` is `source` and its run's
+    `fetch_code_changed` false; `at - horizon <= run <= at`, the upper edge
+    so that an `at` named in the past never meets a later run's lines; the
+    pick is picked, stamped before the run; and the event's start is after
+    `at`, or unknown. The line's event is joined by year and id, so a line
+    whose event the mirror does not hold is never due.
+  - Either kind is due only for a user with a browser, as starts-soon was.
+  - **The claim.** One insert, the one statement of a call, claims every
+    due row of both kinds, `on conflict do nothing`, and the call returns
+    only what it inserted. So the keys of one push - a user's picks at one
+    start, or a user's picks one run changed - are claimed together, carry
+    one `claimed_at`, go stale and are released together, and are acked or
+    released by the sender in one request; and a key sent once never comes
+    back, so no part of a push is sent twice. A claim holds its own kind
+    alone.
+- **The zone.** `mirror_state.tz`, decided for pick-changed's times (#54,
+  #55), was found unneeded and not added. A change line's `from` and `to`
+  are the file's wall-clock strings, already the con's clock, and nothing a
+  push shows is a `timestamptz`: the event's `start` serves the due test,
+  the order and the TTL alone. The function says the strings as they are -
+  the weekday from the date, the 12-hour time from `HH:MM`, put together by
+  hand - with no zone and no `Intl`. A push that ever shows a `timestamptz`,
+  the current start say, is the column's extension: the mirror writes it
+  from `season.json`, and the function formats in it.
+- **The function.** `push.js` folds a user's pick-changed rows into one
+  push per year and run, each row in `push_due()`'s order; starts-soon's
+  fold is the spine's. A change is said so:
+
+| Change | Said |
+|---|---|
+| `cancelled`, `uncancelled` | `Cancelled`, `No longer cancelled` |
+| `removed`, `restored` | `Removed from the schedule`, `Back on the schedule` |
+| `time`, its start moved | `Moved: Sat 2:30 PM → Sat 3:00 PM`, a side with no start `Time TBD` |
+| `time`, its start the same | `Ends: Sat 8:00 PM → Sat 6:00 PM`, a side with no end `Time TBD` |
+| `place` | `Room: Hyatt Regency V → Hilton Grand`, the hotel and the room, whichever it has, `TBD` for neither |
+
+  An event's changes of one run are told in this order - cancelled or
+  uncancelled, removed or restored, time, place - joined by ` · `. One
+  event: its title, and its changes. Several: `N of your picks changed`,
+  and a line an event, `<title> — <changes>`, ten at most, then
+  `and N more`. The payload is the spine's one shape, its `kind`
+  `pick-changed`; urgency normal; the TTL the seconds until the earliest
+  start among its events, never below zero, or 86,400 where none has a
+  start. The sender acks and releases a push's claims by its kind and their
+  keys, as `push_due()` made them, and the dry preview gives each push's
+  `kind`.
+- **Known gap: merged.** A pick on an id merged into another stays on the
+  old id until the client re-points it through `was` on open (#43, #49);
+  the survivor's own lines then apply, and until then its changes send no
+  push.
+- **The rehearsal.** `tools/replay_changes_2026.py` rebuilds 2026's change
+  log from `main`'s history: the 34 versions replayed as
+  `tools/replay_2026.py` replays them, each built by `events_v2.build()` on
+  2026's inputs and diffed by `diff_stage.diff()` against the one before -
+  v1 a season's first run - its lines stamped with the version's
+  `generated_at` and its commit's SHA, and a run flagged where a
+  `scraper.py` commit comes before it: v5, v9, v12 and v34. 4,009 lines in
+  26 runs, all `source`, 653,506 bytes, in about 25 seconds, written to
+  `tools/out/`, which git ignores. With `--load` it upserts them into a
+  project's `schedule_changes` for 2026, by `mirror.py`'s own client and the
+  names it reads, refusing where the year holds no events, and reports the
+  lines whose id `schedule_events` does not hold: 45, on 21 ids - the two
+  James Callis sessions, whose ids the replay keeps from before their gap
+  (`docs/pipeline/replay-2026.md`, section 1), and 19 events the source
+  dropped and never listed again, which the replay carries removed and the
+  frozen file does not hold. A pick on one is never due. 2026 is frozen,
+  so the mirror never meets the loaded lines - it reads no change log for a
+  frozen season, and writes and deletes none - and the horizon keeps a real
+  run, at the real clock, from ever sending one.
+- **The tests.** pgTAP's `11_pick_changed.test.sql`: each of the six kinds
+  due and every other kind not; a `code` line and a flagged run's
+  suppressed; a pick unstarred, or starred at or after the run; an event
+  started, or starting at `at`, and one with no start due; the horizon at
+  six hours and a second more, a run at `at` and one a second after; one
+  row per user, run and event, its title line left out; the key, written in
+  UTC whatever the session's zone, the row, the endpoints and the order; a user with no browser, another year's pick
+  or event of the same id, and a line whose event the mirror lacks; the
+  claim - every key at `at`, a second call, a claim holding its own kind
+  alone - and a push's stale claims released and claimed again together,
+  one out of the horizon not claimed again; and starts-soon's rows beside
+  them, `10_push` unchanged. Vitest's `tests/unit/push.test.js`: every
+  word above, the weekday whatever zone the runtime is in, the fold, the
+  TTL and the urgency, a run of both kinds acked and released each by its
+  own kind and keys, and the dry preview. `tests/test_replay_changes_2026.py`
+  runs the tool on `tests/mini_history.py`. Mutation passes, not
+  committed: 72 of 74 mutants of the migration failed a pgTAP test, the
+  two left equivalent - the spine's `start is not null`, and the claim's
+  match on kind among what one call claimed, since a starts-soon key is an
+  event id and a pick-changed key holds a run and a bar, so the two never
+  meet; 79 of 79 of `push.js` failed a Vitest test; and 21 of 22 of the
+  tool failed a pytest one, the one left its second redaction of an error
+  `mirror.py`'s client has already redacted.
+- **Run end to end** on the CLI's local stack, with PostgREST 14.5,
+  edge-runtime 1.76.2 and a stand-in push service, at the real clock: one
+  user's two picks one run changed - one moved and re-roomed, its title
+  line beside them, one cancelled - and a third starting in eleven minutes;
+  another's pick restored, to a browser answering 503; a third's pick two
+  runs changed; a fourth's flagged line and `code` line. The dry call
+  previewed five pushes; the cron's next run answered
+  `{"off":false,"due":6,"sent":5,"released":1,"pruned":1}` - the fold,
+  `2 of your picks changed`, to both of the first user's browsers, one of
+  them 410 and pruned, the starts-soon push beside it at urgency high, the
+  two runs' pushes one each, the 503 released, nothing for the flagged and
+  `code` lines - and the run after it claimed the released push again and
+  released it again. Every push sent decrypted, with its browser's keys, to
+  the payload above, its VAPID signature checked, its TTL and urgency its
+  kind's.
+- **The hand test,** on dev after the merge, once the rehearsal's lines are
+  loaded and the tester has a browser subscribed (the hand test above).
+  Give the tester three picks by SQL, each stamped `2026-09-01T00:00Z`,
+  before every run: v2's move of "Producing Puppet Short Films and Puppet
+  Media" (`c32d19e7750818e0eb903f152adb7af0`), v31's cancellation of "The
+  Temporal Formal" (`c32d19e7750818e0eb903f152aced30a`), and v12's removal
+  of "On the Mothman Trail" (`c32d19e7750818e0eb903f152ac55882`), in a
+  flagged run. Turn the switch on. POST with `at` a minute after v2's run,
+  dry: the preview is `Moved: Fri 2:30 PM → Fri 10:00 AM`; again without
+  `dry`: the push arrives; once more: `sent` is 0. `at` a minute after
+  v31's run: `Cancelled`. `at` a minute after v12's run: nothing - the
+  event is held, starts after `at` and was picked before the run, so the
+  flag alone suppresses it. v9's `restored` lines cannot show the flag:
+  they are the Callis sessions, which `schedule_events` does not hold.
+  Last, turn the switch off, write the three picks back as tombstones -
+  `picked` false, a newer stamp, so a device that pulled them unstars them
+  - delete the test's `push_sent` rows, and keep the loaded lines.
 
 ## 8. Crews — to follow
 

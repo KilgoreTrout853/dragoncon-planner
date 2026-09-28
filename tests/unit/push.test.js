@@ -5,8 +5,8 @@
    entry, index.js, is the hand test's. */
 import { describe, expect, it } from "vitest";
 import {
-  FOLD_LINES, KIND, PROBE_SUBSCRIPTION, fold, inList, makeHandler, message, parseBody, place, sameSecret,
-  serviceHeaders, verdict,
+  CHANGE_ORDER, FOLD_LINES, NO_START_TTL, PICK_CHANGED, PROBE_SUBSCRIPTION, STARTS_SOON, fold, inList, makeHandler, message,
+  parseBody, place, sameSecret, sayChange, sayChanges, sayTime, serviceHeaders, verdict,
 } from "../../supabase/functions/push/push.js";
 
 const API = "http://kong:8000";
@@ -24,8 +24,12 @@ const ADA_1 = { endpoint: "https://fcm.example/send/ada-1", p256dh: "k1", auth: 
 const ADA_2 = { endpoint: "https://updates.example/wpush/ada-2", p256dh: "k2", auth: "a2" };
 const BO_1 = { endpoint: "https://fcm.example/send/bo-1", p256dh: "k3", auth: "a3" };
 
-const row = (over = {}) => ({ user_id: ADA, year: 2027, event_id: "e1", title: "Due Panel", start: START, hotel: "Hyatt",
-                              room: "Regency V", minutes_until: 10, endpoints: [ADA_1], ...over });
+/* A starts-soon row as push_due() returns one: its key the event's id. */
+function row(over = {}) {
+  const r = { kind: STARTS_SOON, user_id: ADA, year: 2027, event_id: "e1", title: "Due Panel", start: START, hotel: "Hyatt",
+              room: "Regency V", minutes_until: 10, run: null, changes: null, endpoints: [ADA_1], ...over };
+  return { key: r.event_id, ...r };
+}
 
 /* A run's world: PostgREST's answers, each push service's, the encoder and the clock. `push` maps an endpoint to
    its status, or to an Error for no answer; `rpcTakes` moves the clock while push_due() runs. */
@@ -141,8 +145,8 @@ describe("the pure parts", () => {
   it("makes one push's message: the event's title and where, and the minutes counted as it is sent", () => {
     const at = Date.parse(START) - 9.5 * 60000;
     expect(message(fold([row()])[0], at)).toEqual({
-      payload: { kind: KIND, year: 2027, event_ids: ["e1"], title: "Due Panel", body: "Starts in 10 min · Hyatt Regency V" },
-      ttl: 570 });
+      payload: { kind: STARTS_SOON, year: 2027, event_ids: ["e1"], title: "Due Panel", body: "Starts in 10 min · Hyatt Regency V" },
+      ttl: 570, urgency: "high" });
     expect(message(fold([row({ hotel: null, room: null })])[0], at).payload.body).toBe("Starts in 10 min");
     const late = message(fold([row()])[0], Date.parse(START) + 1000);
     expect([late.payload.body, late.ttl]).toEqual(["Starting now · Hyatt Regency V", 0]);
@@ -151,7 +155,7 @@ describe("the pure parts", () => {
   it("makes a fold's message: how many picks start, and one line an event", () => {
     const rows = [row({ event_id: "e1", title: "Also Panel", hotel: "Marriott", room: null }), row({ event_id: "e2" })];
     const { payload, ttl } = message(fold(rows)[0], Date.parse(START) - 5 * 60000);
-    expect(payload).toEqual({ kind: KIND, year: 2027, event_ids: ["e1", "e2"], title: "2 picks start in 5 min",
+    expect(payload).toEqual({ kind: STARTS_SOON, year: 2027, event_ids: ["e1", "e2"], title: "2 picks start in 5 min",
                               body: "Also Panel · Marriott\nDue Panel · Hyatt Regency V" });
     expect(ttl).toBe(300);
     expect(message(fold(rows)[0], Date.parse(START)).payload.title).toBe("2 picks start now");
@@ -245,8 +249,10 @@ describe("the handler: the switch and push_due()", () => {
     expect(await res.json()).toEqual({
       off: false, due: 2, sent: 0, released: 0, pruned: 0, dry: true,
       pushes: [
-        { user_id: ADA, event_ids: ["e1"], title: "Due Panel", body: "Starts in 8 min · Hyatt Regency V", ttl: 480, browsers: 2 },
-        { user_id: BO, event_ids: ["e1"], title: "Due Panel", body: "Starts in 8 min · Hyatt Regency V", ttl: 480, browsers: 1 },
+        { kind: STARTS_SOON, user_id: ADA, event_ids: ["e1"], title: "Due Panel", body: "Starts in 8 min · Hyatt Regency V",
+          ttl: 480, browsers: 2 },
+        { kind: STARTS_SOON, user_id: BO, event_ids: ["e1"], title: "Due Panel", body: "Starts in 8 min · Hyatt Regency V",
+          ttl: 480, browsers: 1 },
       ],
     });
     expect([w.sends(), w.writes(), w.encoded]).toEqual([[], [], []]);
@@ -269,7 +275,7 @@ describe("the handler: sending", () => {
       { endpoint: ADA_1.endpoint, keys: { p256dh: "k1", auth: "a1" } },
       { endpoint: ADA_2.endpoint, keys: { p256dh: "k2", auth: "a2" } },
     ]);
-    expect(w.encoded[0].payload).toEqual({ kind: KIND, year: 2027, event_ids: ["e1"], title: "Due Panel",
+    expect(w.encoded[0].payload).toEqual({ kind: STARTS_SOON, year: 2027, event_ids: ["e1"], title: "Due Panel",
                                            body: "Starts in 10 min · Hyatt Regency V" });
     expect(w.encoded[0].options).toEqual({ ttl: 600, urgency: "high" });
     expect(w.sends().map((s) => [s.url, s.method, s.body, s.redirect, s.signal instanceof AbortSignal])).toEqual([
@@ -420,5 +426,178 @@ describe("the handler: sending", () => {
     const w = world({ rows: [row(), row({ user_id: BO, endpoints: [BO_1] })], push: { [BO_1.endpoint]: 410 } });
     await w.post("");
     expect(w.logs).toEqual(['push: {"off":false,"due":2,"sent":1,"released":1,"pruned":1}']);
+  });
+});
+
+/* A pick-changed row as push_due() returns one: a user's pick that one run changed, its key the run in UTC and the
+   event's id, its changes the event's lines of that run, each {kind, from, to}. */
+const RUN = "2027-09-03T11:00:00+00:00";
+function changedRow(over = {}) {
+  const r = { kind: PICK_CHANGED, user_id: ADA, year: 2027, event_id: "e1", title: "Due Panel", start: START, hotel: "Hyatt",
+              room: "Regency V", minutes_until: null, run: RUN, changes: [{ kind: "cancelled", from: null, to: null }],
+              endpoints: [ADA_1], ...over };
+  return { key: `${new Date(Date.parse(r.run)).toISOString().slice(0, 19)}Z|${r.event_id}`, ...r };
+}
+const time = (from, to) => ({ kind: "time", from, to });
+const at = (start, end) => ({ start, end });
+
+describe("pick-changed: what a push says", () => {
+  it("says a wall-clock time as its weekday and 12-hour time, from the string alone", () => {
+    expect(sayTime("2026-09-04T14:30")).toBe("Fri 2:30 PM");
+    expect(sayTime("2026-09-06T00:00")).toBe("Sun 12:00 AM");
+    expect(sayTime("2026-09-05T12:00")).toBe("Sat 12:00 PM");
+    expect(sayTime("2026-09-02T09:05")).toBe("Wed 9:05 AM");
+    expect(sayTime("2026-09-07T23:59")).toBe("Mon 11:59 PM");
+    expect(sayTime("2028-02-29T13:00")).toBe("Tue 1:00 PM");
+    expect(sayTime(null)).toBeNull();
+    expect(sayTime(undefined)).toBeNull();
+    expect(sayTime("soon")).toBe("soon");
+  });
+
+  it("gives the date's own weekday whatever zone the runtime is in: the string is never read as an instant", () => {
+    const was = process.env.TZ;
+    try {
+      for (const zone of ["Pacific/Kiritimati", "Pacific/Pago_Pago", "UTC"]) {
+        process.env.TZ = zone;
+        expect([sayTime("2026-09-04T23:30"), sayTime("2026-09-05T00:30")], zone).toEqual(["Fri 11:30 PM", "Sat 12:30 AM"]);
+      }
+    } finally {
+      if (was === undefined) delete process.env.TZ;
+      else process.env.TZ = was;
+    }
+  });
+
+  it("says each kind a push tells", () => {
+    expect(["cancelled", "uncancelled", "removed", "restored"].map((kind) => sayChange({ kind, from: null, to: null })))
+      .toEqual(["Cancelled", "No longer cancelled", "Removed from the schedule", "Back on the schedule"]);
+  });
+
+  it("says a time line as the start moving, Time TBD for a start unknown, or the end where the start stayed", () => {
+    expect(sayChange(time(at("2026-09-04T14:30", "2026-09-04T15:30"), at("2026-09-04T15:00", "2026-09-04T16:00"))))
+      .toBe("Moved: Fri 2:30 PM → Fri 3:00 PM");
+    expect(sayChange(time(at("2026-09-05T17:30", "2026-09-05T18:30"), at("2026-09-06T17:30", "2026-09-06T18:30"))))
+      .toBe("Moved: Sat 5:30 PM → Sun 5:30 PM");
+    expect(sayChange(time(at("2026-09-04T14:30", "2026-09-04T15:30"), at(null, null))))
+      .toBe("Moved: Fri 2:30 PM → Time TBD");
+    expect(sayChange(time(at(null, null), at("2026-09-04T15:00", "2026-09-04T16:00"))))
+      .toBe("Moved: Time TBD → Fri 3:00 PM");
+    expect(sayChange(time(at("2026-09-05T14:00", "2026-09-05T20:00"), at("2026-09-05T14:00", "2026-09-05T18:00"))))
+      .toBe("Ends: Sat 8:00 PM → Sat 6:00 PM");
+    expect(sayChange(time(at("2026-09-05T14:00", "2026-09-05T20:00"), at("2026-09-05T14:00", null))))
+      .toBe("Ends: Sat 8:00 PM → Time TBD");
+  });
+
+  it("says a place line as the hotel and the room, whichever it has, and TBD for neither", () => {
+    const room = (from, to) => sayChange({ kind: "place", from, to });
+    expect(room({ hotel: "Marriott", room: "A708" }, { hotel: "Courtland Grand", room: "Atlanta 1-2" }))
+      .toBe("Room: Marriott A708 → Courtland Grand Atlanta 1-2");
+    expect(room({ hotel: "Hyatt", room: null }, { hotel: "Hilton", room: "Grand" })).toBe("Room: Hyatt → Hilton Grand");
+    expect(room({ hotel: "Hyatt", room: "Regency V" }, { hotel: null, room: null })).toBe("Room: Hyatt Regency V → TBD");
+    expect(room(null, { hotel: "Hilton", room: "Grand" })).toBe("Room: TBD → Hilton Grand");
+  });
+
+  it("tells an event's changes of one run in their order, joined, whatever order they came in", () => {
+    expect(CHANGE_ORDER).toEqual(["cancelled", "uncancelled", "removed", "restored", "time", "place"]);
+    const changes = [{ kind: "place", from: { hotel: "Hyatt", room: "Regency V" }, to: { hotel: "Hilton", room: "Grand" } },
+                     { kind: "removed", from: null, to: null },
+                     time(at("2026-09-04T14:30", "2026-09-04T15:30"), at("2026-09-04T16:00", "2026-09-04T17:00")),
+                     { kind: "uncancelled", from: null, to: null }];
+    expect(sayChanges(changes)).toBe(
+      "No longer cancelled · Removed from the schedule · Moved: Fri 2:30 PM → Fri 4:00 PM · Room: Hyatt Regency V → Hilton Grand");
+    expect(sayChanges([{ kind: "restored", from: null, to: null }])).toBe("Back on the schedule");
+  });
+
+  it("makes one event's push: its title, its changes, until its start, at normal urgency", () => {
+    const changes = [time(at("2027-09-03T10:30", "2027-09-03T11:30"), at("2027-09-03T11:00", "2027-09-03T12:00"))];
+    expect(message(fold([changedRow({ changes })])[0], CLOCK)).toEqual({
+      payload: { kind: PICK_CHANGED, year: 2027, event_ids: ["e1"], title: "Due Panel",
+                 body: "Moved: Fri 10:30 AM → Fri 11:00 AM" },
+      ttl: 600, urgency: "normal" });
+  });
+
+  it("makes a fold's push: how many picks changed, and a line an event, its title and its changes", () => {
+    const rows = [changedRow({ event_id: "e1", title: "Also Panel" }),
+                  changedRow({ event_id: "e2", changes: [{ kind: "place", from: { hotel: "Hyatt", room: "Regency V" },
+                                                          to: { hotel: "Hilton", room: "Grand" } },
+                                                        { kind: "removed", from: null, to: null }] })];
+    const { payload } = message(fold(rows)[0], CLOCK);
+    expect(payload).toEqual({ kind: PICK_CHANGED, year: 2027, event_ids: ["e1", "e2"], title: "2 of your picks changed",
+                              body: "Also Panel — Cancelled\nDue Panel — Removed from the schedule · Room: Hyatt Regency V → Hilton Grand" });
+    const many = Array.from({ length: FOLD_LINES + 2 }, (_, i) => changedRow({ event_id: `e${i}`, title: `Panel ${i}` }));
+    const big = message(fold(many)[0], CLOCK).payload;
+    expect(big.title).toBe(`${FOLD_LINES + 2} of your picks changed`);
+    expect(big.event_ids).toHaveLength(FOLD_LINES + 2);
+    expect(big.body.split("\n")).toHaveLength(FOLD_LINES + 1);
+    expect(big.body.split("\n").slice(-2)).toEqual([`Panel ${FOLD_LINES - 1} — Cancelled`, "and 2 more"]);
+  });
+
+  it("lives until the earliest start of its events, a day where none is known, and never below zero", () => {
+    const rows = [changedRow({ event_id: "e1", start: "2027-09-03T16:00:00+00:00" }), changedRow({ event_id: "e2" }),
+                  changedRow({ event_id: "e3", start: null })];
+    expect(message(fold(rows)[0], CLOCK).ttl).toBe(600);
+    expect(message(fold(rows)[0], CLOCK + 500).ttl).toBe(599);
+    expect(message(fold([changedRow({ start: null })])[0], CLOCK).ttl).toBe(NO_START_TTL);
+    expect(NO_START_TTL).toBe(86400);
+    expect(message(fold(rows)[0], Date.parse(START) + 1000).ttl).toBe(0);
+  });
+
+  it("folds a user's rows of one run into one push; another run, another user or the other kind is another", () => {
+    const later = "2027-09-03T12:00:00+00:00";
+    const pushes = fold([changedRow({ event_id: "e1" }), changedRow({ event_id: "e2", run: "2027-09-03T11:00:00Z" }),
+                         changedRow({ event_id: "e1", run: later }), changedRow({ user_id: BO, endpoints: [BO_1] }),
+                         changedRow({ event_id: "e4", year: 2028 }), row({ event_id: "e3" })]);
+    expect(pushes.map((p) => [p.kind, p.user_id, p.year, p.rows.map((r) => r.event_id)])).toEqual([
+      [PICK_CHANGED, ADA, 2027, ["e1", "e2"]], [PICK_CHANGED, ADA, 2027, ["e1"]], [PICK_CHANGED, BO, 2027, ["e1"]],
+      [PICK_CHANGED, ADA, 2028, ["e4"]], [STARTS_SOON, ADA, 2027, ["e3"]]]);
+    expect(pushes[1]).toMatchObject({ run: later, endpoints: [ADA_1] });
+  });
+});
+
+describe("the handler: pick-changed", () => {
+  it("sends a pick-changed push at normal urgency, living until the earliest start, and acks its keys", async () => {
+    const w = world({ rows: [changedRow({ event_id: "e1", title: "Also Panel" }),
+                             changedRow({ event_id: "e2", start: "2027-09-03T16:00:00+00:00",
+                                          changes: [time(at("2027-09-03T11:00", "2027-09-03T12:00"),
+                                                         at("2027-09-03T12:00", "2027-09-03T13:00"))] })] });
+    const res = await w.post("");
+    expect(w.encoded.map((e) => [e.payload, e.options])).toEqual([[
+      { kind: PICK_CHANGED, year: 2027, event_ids: ["e1", "e2"], title: "2 of your picks changed",
+        body: "Also Panel — Cancelled\nDue Panel — Moved: Fri 11:00 AM → Fri 12:00 PM" },
+      { ttl: 600, urgency: "normal" }]]);
+    expect(w.writes().map((r) => [r.method, r.path, claimsOf(r), r.headers.Prefer])).toEqual([
+      ["PATCH", "/rest/v1/push_sent", { user_id: `eq.${ADA}`, kind: "eq.pick-changed",
+                                        key: 'in.("2027-09-03T11:00:00Z|e1","2027-09-03T11:00:00Z|e2")', sent_at: "is.null" },
+       WRITE]]);
+    expect(await res.json()).toEqual({ off: false, due: 2, sent: 2, released: 0, pruned: 0 });
+  });
+
+  it("sends each kind as its own push in one run, and acks each by its own kind and keys", async () => {
+    const w = world({ rows: [changedRow({ start: null }), row({ event_id: "e9", title: "Soon Panel" })] });
+    const res = await w.post("");
+    expect(w.encoded.map((e) => [e.payload.kind, e.payload.title, e.options])).toEqual([
+      [PICK_CHANGED, "Due Panel", { ttl: NO_START_TTL, urgency: "normal" }],
+      [STARTS_SOON, "Soon Panel", { ttl: 600, urgency: "high" }]]);
+    expect(w.writes().map((r) => [claimsOf(r).kind, claimsOf(r).key])).toEqual([
+      ["eq.pick-changed", 'in.("2027-09-03T11:00:00Z|e1")'], ["eq.starts-soon", 'in.("e9")']]);
+    expect(await res.json()).toEqual({ off: false, due: 2, sent: 2, released: 0, pruned: 0 });
+  });
+
+  it("releases a pick-changed push no browser took, for the next minute, by its own kind and keys", async () => {
+    const w = world({ rows: [changedRow(), row({ event_id: "e9", endpoints: [ADA_2] })], push: { [ADA_1.endpoint]: 503 } });
+    const res = await w.post("");
+    expect(w.writes().map((r) => [r.method, claimsOf(r).kind, claimsOf(r).key])).toEqual([
+      ["DELETE", "eq.pick-changed", 'in.("2027-09-03T11:00:00Z|e1")'], ["PATCH", "eq.starts-soon", 'in.("e9")']]);
+    expect([res.status, await res.json()]).toEqual([200, { off: false, due: 2, sent: 1, released: 1, pruned: 0 }]);
+  });
+
+  it("with dry, shows each push with its kind, and sends and writes nothing", async () => {
+    const w = world({ rows: [changedRow({ changes: [{ kind: "restored", from: null, to: null }] }), row({ event_id: "e9" })] });
+    const res = await w.post(JSON.stringify({ at: "2027-09-03T14:52:00Z", dry: true }));
+    expect((await res.json()).pushes).toEqual([
+      { kind: PICK_CHANGED, user_id: ADA, event_ids: ["e1"], title: "Due Panel", body: "Back on the schedule", ttl: 480,
+        browsers: 1 },
+      { kind: STARTS_SOON, user_id: ADA, event_ids: ["e9"], title: "Due Panel", body: "Starts in 8 min · Hyatt Regency V",
+        ttl: 480, browsers: 1 }]);
+    expect([w.sends(), w.writes(), w.encoded]).toEqual([[], [], []]);
   });
 });

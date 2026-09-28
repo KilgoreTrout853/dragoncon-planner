@@ -189,9 +189,12 @@ pipeline absorbs takes a free review slot.
 7. The push job, first: starts-soon - `push_due()` and the queue in
    `push_sent`, the `push` Edge Function that pg_cron calls through pg_net
    every minute while the kill switch is on, and a fourth migration
-   (`docs/sync/contract.md`, section 7, as built; #55) - built. Then PR B:
-   pick-changed, its fold of kinds, `mirror_state.tz` and the 2026
-   rehearsal tool.
+   (`docs/sync/contract.md`, section 7, as built; #55) - built. Then
+   pick-changed: `push_due()` replaced by a fifth migration to claim both
+   kinds, the fold of a run's changes per user, and the 2026 rehearsal
+   tool, `tools/replay_changes_2026.py` (`docs/sync/contract.md`, section
+   7, Pick-changed, as built; PR #60) - built. `mirror_state.tz`, decided
+   for it, was found unneeded.
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
@@ -294,6 +297,16 @@ Steps taken by hand, beside the PRs rather than in them:
   values kept in a password manager and the file deleted, and
   `flags.push_enabled` turned on in Table Editor for the hand test
   (`docs/sync/contract.md`, section 7, as built) and off after it.
+- For pick-changed on dev (#55), after its pull request merges, by Claude
+  Code: the fifth migration pushed and the function deployed again; then
+  the rehearsal - `python tools/replay_changes_2026.py --load`, from a
+  clone with `main`'s history, the service key from an env file outside
+  the repository - which loads 2026's change log into `schedule_changes`
+  and reports 45 lines whose event `schedule_events` does not hold. Then
+  the hand test (`docs/sync/contract.md`, section 7, Pick-changed, as
+  built): a browser subscribed again, three picks by SQL, the switch on for
+  it and off after, the picks written back as tombstones and the test's
+  `push_sent` rows deleted; the loaded lines kept.
 - For the push job on production, in the operations track, before the
   freeze: its own VAPID pair, with `VAPID_SUBJECT` a `mailto:` - a push
   service that needs to reach the sender cannot use a page - and its own
