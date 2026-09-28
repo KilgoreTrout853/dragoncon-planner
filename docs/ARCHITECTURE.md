@@ -57,8 +57,9 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/dispatch.js`, `shell.js`, `loading.js`, `sheet.js` | The four modules above the views: the handlers that span modules; `render()` and what is on screen whatever the tab; loading, freshness and offline; the bottom sheet. |
 | `src/now.js`, `browse.js`, `explore.js`, `map.js`, `mine.js` | The five views, one per tab (`browse` is the Search tab). |
 | `src/scroll.js`, `bus.js` | The scroller and the header's measurement; how a module below the shell asks for a redraw. |
-| `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
-| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The eighteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
+| `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data, read and written through `crews.js`; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
+| `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the six crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens will draw from, who's going and the overlay's map. No screen: those are Where things live's. A leaf. |
+| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The nineteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own three plugins: `dcYear`, the year `DC_YEAR` names - its define and its two data modules, in the dev server, the build and Vitest alike (DECISIONS #49); `dcBackend`, the backend `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name, or none - its two defines, in the same three places, and the guard on them (#53); and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy. |
@@ -91,7 +92,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `draft_people.py` | Drafts people into `people.json` with a model, for review (DECISIONS #31): everyone on a `guests: celebrity` event, skipped when the registry already resolves the name or the sidecar records a rejection, so a second run calls nothing. Reuses `tag_events.py`'s two transports; Opus by full id, `claude-opus-5`, on the API and on Claude Code alike (see Sharp edges). `--parents` is a second, narrow pass that gives each work it minted a parent from the registry. Nothing it writes is reviewed. |
 | `tools/` | Tools a person runs, not part of the build and never copied into `dist/`. `review-people.html` + `review-people.js` are pages opened from disk - no server, no network - and the review for `draft_people.py`'s output: one card a person, tier and credit controls, and an export of the three files formatted as the drafter writes them. The state changes are pure functions in the `.js`, which is a classic script - no import, no export - because a browser refuses an ES module over `file://`. `tag_pilot.py` is the tag stage's pilot: `sample` picks about 150 inputs, and `compare` reports how runs of the tag stage into scratch caches agree - runs made against 2026 before it was frozen; a later pilot runs on a live copy, as its docstring says. It string-matches work names against event text to choose test events, which the tag stage must never do, so nothing on the tag or build path imports it. `sample_v2.py` makes `tests/sample-events.json`, the page tests' v2 fixture, from the v1 sample: each event in the file's shape, its place from the venues step against `data/2026/venues.json`, people and facets from the parse stage, the five tagged events' fandoms as works and topics as axes, one parent chain for a roll-up, and the works block. `schedule_history.py` walks every commit on `main` that touched the 2026 schedule, diffs each version against the one before by id and by the dedupe's key, adds scrape.yml's runs where `gh` can list them, and writes `docs/pipeline/history-2026.md`. `room_census.py` reads every location of the frozen schedule through the venues step, `venues_stage.py`, against `data/2026/venues.json`, and writes `docs/venues/census-2026.md`, the off-season coverage report (#45): each hotel's strings as the step reads them, the curation worklist, the rooms no string reaches and the rules' firings. It has no grammar of its own, and writes neither input. `replay_2026.py` replays the ids stage over the 2026 versions `schedule_history.py` reads - each converted to raw rows and carried as the fetch carries them, the ledger in a temp folder - and writes `docs/pipeline/replay-2026.md`: which frozen ids ours differ from and how, #43's named checks, each version's counts and the UNSURE pairs. None of the three reports is held fresh by CI. `replay_changes_2026.py` rebuilds 2026's change log from the same history, which nothing else writes: each replayed version built by `events_v2.build()` and diffed by `diff_stage.diff()` against the one before, a run flagged `fetch_code_changed` where a `scraper.py` commit comes before it. It writes the log to `tools/out/`, which git ignores, and with `--load` upserts it into a project's `schedule_changes` for 2026 by `mirror.py`'s client, so that pick-changed can be rehearsed on a real season (DECISIONS #55; `docs/sync/contract.md`, section 7, Pick-changed, as built). |
 | `make_icons.py` | Renders the PNG icons and the preview image into `public/`. One-off; needs Pillow. |
-| `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test, with no backend or with a fake one, and as it cleans up lets a sync run finish and stops the drains; `backend.js` is that fake, of the Supabase Auth server and of PostgREST over the four synced tables - judging an upsert as the database's triggers and grants do, narrowing a read as row-level security does - keeping every request it is sent; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
+| `tests/helpers/` | `page.js` boots the app in Vitest's jsdom for a page test, with no backend or with a fake one, and as it cleans up lets a sync run finish and stops the drains; `backend.js` is that fake, of the Supabase Auth server and of PostgREST over the four synced tables - judging an upsert as the database's triggers and grants do, narrowing a read as row-level security does, and answering the three crew RPCs and the two deletes as the policies judge them, with the statuses the real PostgREST gives - keeping every request it is sent; `act.js` is the few gestures the page tests share (type, tap, touch, watch for mutations). |
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
 | `tests/unit/` | Vitest: pure exports, imported by name from the module that holds them, with no page; and the push function's logic, `supabase/functions/push/push.js`, run in Node against a fake PostgREST, fake push services and a clock the test moves (`push.test.js`). |
 | `tests/rules/` | Vitest: rules over the text of `src/styles.css` and of every module under `src/`, and over the module graph (`imports.test.js`). |
@@ -140,7 +141,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `CLAUDE.md` | Standing rules for Claude Code sessions. |
 | `docs/` | This file, DECISIONS.md and VISION.md; ROADMAP.md, the order of the 2027 work by tentpole (DECISIONS #30); SPLIT-MANIFEST.md, the record of how the one-file script became the modules; and `discover/`: the two censuses, `census-2026.md` of v1's tags and `census-v2-2026.md` of the v2 file, which CI holds fresh; `parse-2026.md`, above; `registry-2026.md`, the record of the seed review, whose script is retired; `works-review-2.json` and `people-review-1.json`, the review records - what each review decided, applied by a one-off script outside the repo; and `schema-v2.md`, the design note for the registries and tags v2 (#31-#34, #38, #39), built: the pipeline half - the parse stage, the registries, the tag stage and `events.v2.json` - and the client switch. |
 | `docs/pipeline/` | Pipeline shape (ROADMAP tentpole 1): `contract.md`, the design note for DECISIONS #41-#48 - the 2027 pipeline's files, with their writers and readers, the raw row, the ledger, the change log and the stages - decided, and built so far for `season.json` and `venues.json` (ROADMAP, PR 2), `source.json`, the fetch (PR 3), `ids.jsonl`, the ids stage (PR 4), `events.v2.json`, the build (PR 6), `tags.cache.jsonl`, the tag stage (PR 7a), and `changes.jsonl`'s lines, the diff (PR 7b); its evidence, `history-2026.md`, how the 2026 schedule changed from commit to commit on `main` and how scrape.yml ran, written by `tools/schedule_history.py`; and `replay-2026.md`, the ids stage run over that history by `tools/replay_2026.py`, #43's verification. Both are records, not held fresh by CI: a shallow checkout has no history, and the history will not change. |
-| `docs/sync/` | Identity and sync (ROADMAP tentpole 4), in design: `recon.md`, the client as it stood when the design opened, `next` at c860f38 - every key it stores and whether each is expected to sync, every site that changes picks or follows, the clock, the refresh hooks, install and notifications, the channel stamp, a change log for 2026 sized, and the backend's absence - a record, written by hand, not held fresh by CI; and `contract.md`, the design note for DECISIONS #50-#55 - identity, the data model, security and migrations, the sync rules, the mirror job and the push job, each with its "as built" (PRs #54, #55, #56, #57, #59, #60 and #61), and crews to follow. |
+| `docs/sync/` | Identity and sync (ROADMAP tentpole 4), in design: `recon.md`, the client as it stood when the design opened, `next` at c860f38 - every key it stores and whether each is expected to sync, every site that changes picks or follows, the clock, the refresh hooks, install and notifications, the channel stamp, a change log for 2026 sized, and the backend's absence - a record, written by hand, not held fresh by CI; and `contract.md`, the design note for DECISIONS #50-#56 - identity, the data model, security and migrations, the sync rules, the mirror job, the push job and crews' client layer, each with its "as built" (PRs #54, #55, #56, #57, #59, #60, #61 and #62). |
 | `docs/venues/` | The venues curation (DECISIONS #21, #27, #28, #45): `README.md`, the floor-plan checklist, kept by hand - every hotel × level where programming happens, which published floor plan covers the level, our local copy of it and the state of our own drawing, with the notes on plans and drawings; `drawings/`, our schematics, one draft so far; and `census-2026.md`, the room census - every location of the frozen schedule read by the venues step against `data/2026/venues.json`, with the curation worklist, written by `tools/room_census.py`. The rooms, aliases and level notes are the venues file's; `registry.json` is retired (#45). The census is a record, not held fresh by CI: an edit to the venues file leaves it stale until the script runs again. |
 | `reference/` | Local copies of other people's drawings, gitignored but for its README: the hotels' floor plans in `plans/`, at the paths `docs/venues/README.md` records, and screenshots of single levels in `shots/`, used as an underlay to trace our own shapes against (#28). Never committed - none of it is ours. |
 
@@ -396,16 +397,16 @@ a reviewer, and each review's decisions are committed as a record in
 
 ## The client: modules and their order
 
-One program in thirty-one modules under `src/`, and `main.js`, the entry.
+One program in thirty-two modules under `src/`, and `main.js`, the entry.
 The markup it drives is in `index.html` and the CSS in `src/styles.css`.
 
 The modules stand in one order, which is the array `ORDER` in
 `tests/rules/imports.test.js`, with `boot.js` as the root above it:
 
 ```
-season  util  storage  platform  build  backend  identity  state  time
-outbox  venues  data  picks  follows  ics  leave  search  ui
-                                                       the eighteen leaves
+season  util  storage  platform  build  backend  identity  crews  state
+time  outbox  venues  data  picks  follows  ics  leave  search  ui
+                                                       the nineteen leaves
 scroll  bus  sync
 now  browse  explore  map  mine                        the five views
 sheet  loading  shell  dispatch
@@ -431,7 +432,15 @@ every request to it, by `fetch`, and the session it keeps under
 `storageKey("session")`, refreshed only when the server refuses its token
 (DECISIONS #53). `identity`: `ensureUser()`, which mints the anonymous user
 at the first tap that needs one, the email step - add and recover by one
-code - and sign out (#51). `state`: `settings` and `state`.
+code - and sign out (#51). `crews`: the reader's crews and their
+crewmates' picks as the last pull kept them, under `storageKey("crew")`
+and `storageKey("crewPicks")`, which `sync` writes and forgets through it;
+the six crew actions, each one request as the user and nothing written on
+the phone, with their failures in plain words; the invite link, which
+`boot()` reads and keeps for the tab's session under `storageKey("join")`;
+and the readers for who's going and the overlay, crewmates alone (#56).
+It reads its keys when asked, never as it is imported. `state`:
+`settings` and `state`.
 `time`: `now()`, the override, `CON` - the season file's days - and the
 days' names, `conPhase()`, `conDayKey()`, `effectiveNow()`. `outbox`: what
 the doors have changed and the server has not yet taken - one op per
@@ -473,14 +482,15 @@ registered. Only `render()` goes over it.
 
 **`sync`** is sync's run (DECISIONS #53; `docs/sync/contract.md`,
 section 5, as built): `runSync()` drains the outbox, then pulls - the
-crews, then the picks and the follows since the watermark - and applies
-the reader's own rows through the owners' functions and crewmates' picks
-to its own key; the change of owner, which seeds the outbox with the whole
-plan; `sendBeforeSignOut()`, Sign out's send of what waits, which lets
-every run and drain under way finish, makes a try of its own, and says how
-much still waits; and two lines in Keep your plan, the status and, after a
-refused Sign out, what still waits. It stands above the bus,
-because a pull that changed the plan asks for a redraw. The outbox stands
+crews, the oldest first with their invite tokens, then the picks and the
+follows since the watermark - and applies the reader's own rows through
+the owners' functions, and the crews and the crewmates' picks through
+`crews`, which keeps them; the change of owner, which seeds the outbox
+with the whole plan; `sendBeforeSignOut()`, Sign out's send of what
+waits, which lets every run and drain under way finish, makes a try of its
+own, and says how much still waits; and two lines in Keep your plan, the
+status and, after a refused Sign out, what still waits. It stands above
+the bus, because a pull that changed the plan asks for a redraw. The outbox stands
 below `picks` and `follows`, whose doors call it, so a drain it starts
 after a tap is followed by no pull: the next trigger's run pulls.
 
@@ -547,10 +557,12 @@ with its snapshots and news (`picks`) and `follows` (`follows`); in
 
 `boot()` first registers `render()` on the bus, so that a module below the
 shell can ask for a redraw; then it applies the saved text size, inserts the
-dev-build mark, reads the time override, and registers every listener, timer
-and observer in a fixed order, which is `boot()`'s own, top to bottom:
-listeners on one element fire in the order they were added. It writes none
-of them. Each handler is a named function, imported from the module that
+dev-build mark, reads the time override and the invite link - which it
+takes out of the address and keeps for a crew screen (`crews`) - and
+registers every listener, timer and observer in a fixed order, which is
+`boot()`'s own, top to bottom: listeners on one element fire in the order
+they were added. It writes none of them. Each handler is a named function,
+imported from the module that
 owns the state it writes (`sheet`, `loading`, `shell`, `explore`, `now`), or
 from `scroll` or `dispatch`. What `boot()` still holds inline is the four
 conditions that decide whether a registration is made at all -
@@ -648,7 +660,7 @@ section 1, as built). Under its heading, with a session, is one line of
 sync's: synced, what is waiting, offline, or the last failure in plain
 words (`contract.md`, section 5, as built).
 
-**Stored keys.** Everything is `localStorage` but the last row. Every key
+**Stored keys.** Everything is `localStorage` but the last two rows. Every key
 carries the build's year, `<yy>` its last two digits, so a build for a new
 year starts with none of the last one's (DECISIONS #49); and on a build
 stamped with a channel every key ends `.<channel>` - `dc<yy>.picks.next` on
@@ -667,9 +679,10 @@ its origin (#39). `storageKey()` in `build.js` names them all.
 | `dc<yy>.session` | `backend` | `backend` | The backend's session: its two tokens and the user's id, email and `is_anonymous`. Only on a build with a backend, and only from the first tap that needs a user (DECISIONS #51, #53) |
 | `dc<yy>.outbox` | `outbox` | `outbox` | What the server has not yet taken: `{user, ops}`, an op per changed pick or follow. Only with a backend and a session, like the three below; Sign out, once nothing waits to be sent, and a run with no session remove all four (DECISIONS #53) |
 | `dc<yy>.syncStamp` | `sync` | `sync` | The pull's watermark, the server's `synced_at` for each table: `{user, picks, follows}` |
-| `dc<yy>.crew` | `sync` | `sync` | The reader's crews of the year, with their members, as the last pull read them: data alone, for the crew screens |
-| `dc<yy>.crewPicks` | `sync` | `sync` | Crewmates' picks, by user and then event |
+| `dc<yy>.crew` | `crews` | `crews`, for `sync`'s pull | The reader's crews of the year, the oldest first, with their members and invite tokens, as the last pull read them: what the crew screens draw from (DECISIONS #56) |
+| `dc<yy>.crewPicks` | `crews` | `crews`, for `sync`'s pull | Crewmates' picks, by user and then event |
 | `dc<yy>.timeOverride` (`sessionStorage`) | `time` | `time` | The simulated clock |
+| `dc<yy>.join` (`sessionStorage`) | `crews` | `crews` | An invite link's `<year>.<token>`, kept from the address for the tab's session until a crew screen takes it; only on a build with a backend |
 
 ## Offline
 
