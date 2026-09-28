@@ -168,7 +168,11 @@ shape's venue resolution (#37, #45). The building view's drawings and
 sketches continue on the side, in chat; a Places PR beyond what the
 pipeline absorbs takes a free review slot.
 
-### 4. Identity and sync — in design (opened 2026-09-24, after Pipeline shape closed at PR #50; the recon is `docs/sync/recon.md`)
+### 4. Identity and sync — built (PRs #51-#62, six migrations, the contract's sections 1-8); the operations track trailing (#50)
+
+Opened in design on 2026-09-24, after Pipeline shape closed at PR #50. The
+design is DECISIONS #50-#56 and `docs/sync/contract.md`, sections 1-8, each
+with its as built; the evidence is `docs/sync/recon.md`.
 
 1. The channel in the key (#39) - built.
 2. Docs: `docs/sync/contract.md` sections 1-4, DECISIONS #50-#52 - built.
@@ -214,23 +218,103 @@ VISION's Keep, Coordinate and Tell me.
 
 Push sending is two types, pick-changed and starts-soon (#40).
 
-### 5. Delivery — not opened
+The operations track trails, run beside the rest and gating none of it
+(#50). What it still has to do, each line with where it came from; the
+Checklist, below, keeps the history:
 
-How the app reaches a phone and stays current: `sw.js` and its cache version
-(#4), hashed assets against the single file (#23), the IIFE-or-module sharp
-edge (ARCHITECTURE.md), Playwright (#24), the install flow, the client side
-of a push subscription, and Pages from Actions (#26).
+- `ubuntu-24.04` in place of `ubuntu-latest` in the three workflows,
+  `ci.yml`, `scrape.yml` and `mirror.yml`, before 2026-10-19, when GitHub
+  starts moving `ubuntu-latest` to Ubuntu 26 (the notice on every job's
+  run; actions/runner-images#14748).
+- The `dev` Environment's deployment branches restricted to `next`, so
+  that a workflow on another branch cannot read the dev project's secret
+  key (Checklist; #54).
+- The dev project's keep-alive: a weekly request, since a free project
+  pauses after about a week idle (#25; #50).
+- The dev project's "Automatically expose new tables" off and its grants
+  exactly the migrations': the extra rights `service_role` holds by the
+  old defaults revoked by hand, since turning the setting off changes
+  nothing already granted (`docs/sync/contract.md`, section 4, as built;
+  #54).
+- The cleanup of stale anonymous users, the track's first pull request: a
+  scheduled job, by a migration, deleting only those in no crew and
+  holding no subscription, and how stale that is (`docs/sync/contract.md`,
+  section 2 and Open; #25, #50, #52).
+- The production project, and the workflow that migrates it: dev takes
+  each migration by hand, production by a workflow (#50, #52;
+  `docs/sync/contract.md`, section 4).
+- Production's plan: Pro for August and September, for backups and no
+  pausing, and free otherwise, when the keep-alive covers it too - about
+  $50 a year (#25; #50).
+- Production's "Automatically expose new tables" off, as
+  `supabase/config.toml`'s `auto_expose_new_tables` is, and its grants
+  exactly the migrations' - the lists `00_structure.test.sql` and
+  `10_push.test.sql` hold (`docs/sync/contract.md`, sections 3 and 4, as
+  built; #54, #55).
+- A domain verified at Resend for production's custom SMTP, without which
+  the email templates cannot be edited, so production's six-digit code
+  needs it; the dev project sends through Resend's test sender (#25's
+  note; Checklist).
+- Production's Auth, by hand, before it serves the email step: custom
+  SMTP through that domain, the Magic Link and Change Email Address
+  templates sending `{{ .Token }}`, an OTP length of 6, anonymous sign-ins
+  on, and Confirm email on, an invariant on every project (#51, #53;
+  Checklist; `docs/sync/contract.md`, section 1).
+- Production's limit on anonymous sign-ins, 30 an hour per IP by default,
+  set for a hotel's Wi-Fi, which puts many phones behind one address
+  (`docs/sync/contract.md`, Open).
+- At 2027's season start, the first mirror a dispatch of Mirror with that
+  season's file; and after the first bot landing on `next`, a Mirror run
+  started by the push confirmed, with a dispatch as the fallback
+  (Checklist; #54).
+- Before the freeze merge brings `mirror.yml` to `main`: the `production`
+  Environment, its deployment branches `main` alone, with the production
+  project's `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` (Checklist; #54).
+- Before the freeze, the push job on production: its own VAPID pair, with
+  `VAPID_SUBJECT` a `mailto:`, and its own `PUSH_SECRET` - the four
+  function secrets - and Vault's two rows, `project_url` and
+  `push_secret`; and the function deployed (Checklist; #55;
+  `docs/sync/contract.md`, section 7, as built).
+- Before the freeze, `database` required on the `main` ruleset beside
+  `client` and `pipeline`: the Checklist's line names those two, written
+  before the `database` job existed (Checklist; #48, #52).
+- At the freeze, the build that publishes `main` given production's
+  `DC_SUPABASE_URL` and `DC_SUPABASE_KEY`, as the next site's build is
+  given the dev project's - variables, not secrets, since the key is the
+  public one and the build refuses a secret (Checklist, which names the
+  next site's alone; #53).
+- At the freeze, production's first mirror: the freeze merge's push
+  starting Mirror under `production` confirmed, with a dispatch as the
+  fallback, and every earlier run of the season flagged, by design (#54's
+  Cost; `docs/sync/contract.md`, section 6). Then the push job's hand test
+  repeated on production, which reads a pick's start from
+  `schedule_events` (Checklist, which lists it before the freeze;
+  `docs/sync/contract.md`, section 7, as built: "again on production at
+  the freeze").
+- Production's `flags.push_enabled` on at the freeze and off after the
+  con (#55; Checklist).
 
-Open: `index.html` needs `mobile-web-app-capable` beside the Apple meta
-(Chrome's deprecation warning, 2026-09-25).
+### The scope pass — not a tentpole (#57); in the design slot now
 
-Open: an invite link tapped on an iPhone opens the browser, not the
-home-screen app, whose storage is its own, so an installed reader who taps
-one joins as the browser's user. The crew screens need a field to paste the
-link into, which `readInvite()` reads (#56), and the behaviour is to be
-confirmed on a phone with the install flow (`docs/sync/contract.md`, Open).
+Its list is the union of three sources: VISION's pillars; every item
+DECISIONS or this file defers, holds, or names as the spring's, not built,
+or open; and the design chat's catalogue, Part A, which the pass brings
+into the repo. Every wanted feature on it is given a fuller description,
+passed through VISION's test - does it help someone plan or coordinate -
+and given a verdict: 2027, checkpoint candidate, or out. A description is
+what the test needs, not a design: a feature is still specified when its
+tentpole opens. A walk through the official 2026 app on a phone gives one
+row a feature, each marked planning, coordination or reference, and the
+pass writes a rule for reference content, which VISION's Not doing bans
+only by implication. A DECISIONS entry comes of the pass only for a
+change to VISION. The pass adds to the spring checkpoint's list, and the
+checkpoint still cuts from the bottom.
 
-### 6. Where things live — not opened; opens last
+Its output is two files: `docs/scope-2027.md`, Part A, the list and its
+verdicts; and `docs/official-app-2026.md`, Part B, the walk. Where things
+live opens with it.
+
+### 5. Where things live — not opened; opens with the scope pass's output (#57)
 
 The UI's information architecture. There are five tabs today; For you,
 crews, a filter sheet and the building view need homes. No decisions yet.
@@ -252,6 +336,26 @@ Open here, unscheduled (#40):
 - Crew status pings. The build order stays picks → presence → pings (#10).
 - When the install nudge is shown: a standing line on Now, or at the
   moment it earns itself.
+
+### 6. Delivery — not opened; last (#57)
+
+How the app reaches a phone and stays current: `sw.js` and its cache version
+(#4), hashed assets against the single file (#23), the IIFE-or-module sharp
+edge (ARCHITECTURE.md), Playwright (#24), the install flow, the client side
+of a push subscription, and Pages from Actions (#26).
+
+Playwright (#24) may come forward as a standalone pull request in a free
+execution slot (#57): a real-browser test earns its place under a UI
+reshaping, and depends on nothing else here.
+
+Open: `index.html` needs `mobile-web-app-capable` beside the Apple meta
+(Chrome's deprecation warning, 2026-09-25).
+
+Open: an invite link tapped on an iPhone opens the browser, not the
+home-screen app, whose storage is its own, so an installed reader who taps
+one joins as the browser's user. The crew screens need a field to paste the
+link into, which `readInvite()` reads (#56), and the behaviour is to be
+confirmed on a phone with the install flow (`docs/sync/contract.md`, Open).
 
 ## Held
 

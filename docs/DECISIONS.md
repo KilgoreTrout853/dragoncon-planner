@@ -277,7 +277,7 @@ execute `<script type="module">`, so the inlined script is emitted as a
 classic script (or the test loader strips the attribute). Two toolchains:
 Python owns the pipeline, Node owns the client.
 
-### 24. Vitest and pytest; ESLint with two rules (three since 2026-09-19: `no-unused-vars`); Playwright deferred — Built (2026-09-18) — pgTAP for the database, in a `database` CI job, by #52
+### 24. Vitest and pytest; ESLint with two rules (three since 2026-09-19: `no-unused-vars`); Playwright deferred — Built (2026-09-18) — pgTAP for the database, in a `database` CI job, by #52; Playwright may come forward as a standalone pull request before Delivery, by #57
 **Decided:** Vitest (jsdom environment) for the client, run by `npm test`;
 pytest for the pipeline, run by `python -m pytest tests/` (the existing
 test files are already pytest-shaped; only the manual `__main__` runners
@@ -308,7 +308,7 @@ its own assumptions.
 feature. Until Playwright, offline and install are verified by hand on the
 dev site.
 
-### 25. Supabase is the backend — Decided, not built (2026-09-17) — amended by #50: the mirror two tables written after merge by an Actions job, the pipeline writing no Postgres and no venues mirrored; realtime out of 2027, a pull since a watermark instead; sign-in lazy, the bot check the project's setting, off, and the cleanup built; identity by #51, the schema and its security by #52; the email templates can be edited only with custom SMTP, so custom email is a prerequisite of the six-digit code, not an operations item: the dev project sends through Resend's test sender, and production needs a domain verified there (ROADMAP, Checklist); the push sender built by #55 as drawn here: one Edge Function, `push`, which pg_cron calls through pg_net every minute - only while `flags.push_enabled` is true, which the cron job reads itself - its gate a secret header, not the gateway's JWT check; starts-soon by PR #59
+### 25. Supabase is the backend — Decided, not built (2026-09-17) — amended by #50: the mirror two tables written after merge by an Actions job, the pipeline writing no Postgres and no venues mirrored; realtime out of 2027, a pull since a watermark instead; sign-in lazy, the bot check the project's setting, off, and the cleanup built; identity by #51, the schema and its security by #52; the email templates can be edited only with custom SMTP, so custom email is a prerequisite of the six-digit code, not an operations item: the dev project sends through Resend's test sender, and production needs a domain verified there (ROADMAP, Checklist); the push sender built by #55 as drawn here: one Edge Function, `push`, which pg_cron calls through pg_net every minute - only while `flags.push_enabled` is true, which the cron job reads itself - its gate a secret header, not the gateway's JWT check; starts-soon by PR #59; the cleanup not yet built - the operations track's first pull request (#57; ROADMAP, tentpole 4)
 **Decided:** #9's working assumption is confirmed. Two hosted projects,
 dev and production; the schema lives as migration files in
 `supabase/migrations/`, applied by the CLI and changed only through PRs;
@@ -481,7 +481,7 @@ from below costs an indirection, and throws if it is asked for before
 to look for an architecture; ARCHITECTURE.md repeats it and has to be kept
 in step.
 
-### 30. Tentpoles order the 2027 work — Standing (2026-09-20) — the order after Discover is #37's
+### 30. Tentpoles order the 2027 work — Standing (2026-09-20) — the order after Discover is #37's; a scope pass, a named step that is not a tentpole, takes the design slot after Identity and sync (#57)
 **Decided:** `docs/ROADMAP.md` names six tentpoles: pipeline shape,
 Discover, Places, identity and sync, delivery, where things live. Each
 opens with a design chat that ends in DECISIONS entries, a data contract
@@ -693,7 +693,7 @@ blind spots; the rubric and the sample check are the guard. Real users'
 searches are the missing input. Recording searches that return nothing,
 anonymously, in 2027 is a privacy question for Identity and sync.
 
-### 37. Pipeline shape follows Discover — Standing (2026-09-22) — outreach deferred by #41; search tuning held until the first pass of the whole app (ROADMAP, Held, 2026-09-22)
+### 37. Pipeline shape follows Discover — Standing (2026-09-22) — outreach deferred by #41; search tuning held until the first pass of the whole app (ROADMAP, Held, 2026-09-22); the order after Identity and sync is #57's: the scope pass, then Where things live, Delivery last
 **Decided:** The tentpoles (#30) go in this order: Discover (PR 6), then
 Pipeline shape, whose design opens while PR 6 executes, then Identity and
 sync, then Delivery; Where things live last, as now.
@@ -1286,7 +1286,7 @@ read the rest. 18:00 and 19:00 are a guess for 2027 until its schedule
 shows. The icons draw 2026 in their pixels, which no stamp reaches
 (ROADMAP, Checklist).
 
-### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on; the mirror built by #54: `mirror.yml`, on a push that changes a year's three files, hourly in the season's window and by hand, under the `dev` or the `production` Environment; the push job's first pull request built by #55, PR #59: starts-soon, queue-shaped, the kill switch read by the cron job, by `push_due()` and by the function; crews' client layer built by #56, PR #62: `src/crews.js`, with no screen - the screens are Where things live's
+### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on; the mirror built by #54: `mirror.yml`, on a push that changes a year's three files, hourly in the season's window and by hand, under the `dev` or the `production` Environment; the push job's first pull request built by #55, PR #59: starts-soon, queue-shaped, the kill switch read by the cron job, by `push_due()` and by the function; crews' client layer built by #56, PR #62: `src/crews.js`, with no screen - the screens are Where things live's; the tentpole built by PRs #51-#62, and the operations track trailing - the cleanup of stale anonymous users its first pull request - its list in ROADMAP, tentpole 4
 **Decided:** Identity and sync is built smaller than #8, #10, #25 and #27
 drew it; `docs/sync/contract.md` has the design.
 - **The mirror** is two tables, `schedule_events` and `schedule_changes`,
@@ -1706,3 +1706,51 @@ could drift from them; where they do, the policy wins. A create or a join
 that mints and then fails leaves an anonymous user with no crew, for the
 cleanup. An installed iPhone reader joins by pasting the link, not by
 tapping it.
+
+### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28)
+**Decided:** After Identity and sync the design slot goes to a scope pass;
+Where things live opens with its output, and Delivery comes last. This
+amends #37's order and adds to #30 a step that is not a tentpole;
+`docs/ROADMAP.md` follows it.
+- **The scope pass** is a named step, not a tentpole (#30). It runs in the
+  design slot, now.
+- **Its list** is the union of three sources: VISION's pillars; every item
+  DECISIONS or ROADMAP defers, holds, or names as the spring's, not built,
+  or open - pings, the Now board and share-a-day (#50), a crew's transfer
+  and rename and the paste field (#56), and their like, such as
+  hide-my-plan and guest bios; and the design chat's catalogue, Part A,
+  which the pass brings into the repo.
+- **Its verdicts.** Every wanted feature on the list is given a fuller
+  description, passed through VISION's test - does it help someone plan
+  or coordinate - and given a verdict: 2027, checkpoint candidate, or out,
+  written in `docs/scope-2027.md`, Part A. A description is what the test
+  needs, not a design: a feature is still specified when its tentpole
+  opens (#30).
+- **The official app.** A walk through the official 2026 app on a phone
+  makes `docs/official-app-2026.md`, Part B, beside it: one row a feature,
+  each marked planning, coordination or reference. The pass writes a rule
+  for reference content, which VISION's Not doing now bans only by
+  implication.
+- **The guardrail:** the pass adds to the spring checkpoint's list, and
+  the checkpoint still cuts from the bottom (#18). A DECISIONS entry comes
+  of the pass only for a change to VISION.
+- **Where things live** opens with the pass's output, before Delivery.
+  The crew screens (#56), Delivery's notifications toggle and the install
+  nudge wait for homes there (ROADMAP).
+- **Delivery last.** Playwright (#24) may come forward as a standalone
+  pull request in a free execution slot. Places' building view keeps
+  #37's rule: a free review slot when its sketches are ready.
+
+**Why:** Where things live gives a home to everything the app does, so it
+opens once the pass has said what that is. The crew screens, the
+notifications toggle and the install nudge all need homes; Delivery is
+technical - it neither needs the pass's list nor feeds it - so building
+its two screens first would build them into a UI about to be redrawn. A
+real-browser test earns its place under a UI reshaping, and Playwright
+depends on nothing else in Delivery, so it need not wait for the rest.
+The design slot is free now: Identity and sync is built, and its
+operations track - the cleanup of stale anonymous users its first pull
+request - gates nothing (#50).
+**Cost:** The worker's cache version (#4), hashed assets (#23) and Pages
+from Actions (#26) land last, nearest the freeze, and the freeze date is
+still unset (#30): that is the risk.
