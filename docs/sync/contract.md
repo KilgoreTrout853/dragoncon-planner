@@ -994,23 +994,27 @@ PR #59, with #55: starts-soon.
   and a `mailto:` on production, where a push service may need to reach
   the sender. Locally they are in `supabase/functions/.env`, which git
   ignores.
-- **The tests.** pgTAP's `10_push.test.sql`, 37: the extensions and the
-  two jobs, the gate in the push job's command, the grants, and
-  `push_due()` - the switch; the window's edges, due at 15 minutes before
-  the start and not at 16, nor at the start or after; a part minute
-  counted as one; each thing never due; the endpoints; the claim; a second
-  call; dry; a claim five minutes old holding, and a stale one released
-  while a sent one stays; and `at`'s default. `00_structure` holds
-  `push_sent`'s columns. Vitest's `tests/unit/push.test.js`, 31, runs
-  `push.js` in Node against a fake PostgREST, fake push services, a fake
-  encoder and a clock it moves: the gate, the switch, the RPC's arguments,
-  dry, the fold and its words, the minutes and the TTL as it sends, each
-  answer's write, the 500s, the quoting and the summary. A mutation pass
-  is not committed: 46 of 47 mutants of the migration - each rule of
-  `push_due()`, the grants, the two jobs and the columns - failed a pgTAP
-  test, the one left the clause `start is not null`, which is equivalent,
-  since a null start meets no window, and is kept because this section
-  states the rule; and 38 of 38 of `push.js` failed a Vitest test.
+- **The tests.** pgTAP's `10_push.test.sql`: the extensions and the two
+  jobs, the gate in the push job's command, the grants, and `push_due()` -
+  the switch; the window's edges, due at 15 minutes before the start and
+  not at 16, nor at the start or after; a part minute counted as one; each
+  thing never due; the endpoints; the claim; a second call; dry; a claim
+  five minutes old holding, and a stale one released while a sent one
+  stays; and `at`'s default. `00_structure` holds `push_sent`'s columns.
+  Vitest's `tests/unit/push.test.js` runs `push.js` in Node against a fake
+  PostgREST, fake push services, a fake encoder and a clock it moves: the
+  gate, the switch, the RPC's arguments, dry, the fold and its words, the
+  minutes and the TTL as it sends, each answer's write, the 500s, the
+  quoting and the summary - and a mixed run, one push service refusing a
+  push while another takes its own, in either order: the push taken is
+  acked and only the refused released before the run answers 500, so no
+  push a browser took is sent again while the keys are being fixed. A
+  mutation pass is not committed: 46 of 47 mutants of the migration - each
+  rule of `push_due()`, the grants, the two jobs and the columns - failed a
+  pgTAP test, the one left the clause `start is not null`, which is
+  equivalent, since a null start meets no window, and is kept because this
+  section states the rule; and 41 of 41 of `push.js`, three of them of the
+  mixed run, failed a Vitest test.
 - **Run end to end** on the CLI's local stack, with the runtime the hosted
   project runs (edge-runtime 1.76.2) and PostgREST 14.5, and a stand-in
   push service: the cron job called the function through pg_net with no
