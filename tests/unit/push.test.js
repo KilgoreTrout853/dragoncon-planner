@@ -375,7 +375,28 @@ describe("the handler: sending", () => {
     const w = world({ rows: [row({ endpoints: [ADA_1, ADA_2] })], push: { [ADA_2.endpoint]: 403 } });
     const res = await w.post("");
     expect(res.status).toBe(500);
-    expect(w.writes().map((r) => r.method)).toEqual(["PATCH"]);
+    expect(await res.json()).toEqual({ off: false, due: 1, sent: 1, released: 0, pruned: 0,
+      error: "1 push(es) refused by the push service: our VAPID keys or our request" });
+    expect(w.writes().map((r) => [r.method, claimsOf(r)])).toEqual([
+      ["PATCH", { user_id: `eq.${ADA}`, kind: "eq.starts-soon", key: 'in.("e1")', sent_at: "is.null" }],
+    ]);
+  });
+
+  it("where one push service refuses a push and another takes its own, acks the one taken, releases only the refused, "
+     + "and then fails the run - whichever comes first", async () => {
+    const bo = row({ user_id: BO, event_id: "e2", title: "Bo Panel", endpoints: [BO_1] });   // fcm.example: 403
+    const ada = row({ endpoints: [ADA_2] });                                               // updates.example: 201
+    const ack = ["PATCH", { user_id: `eq.${ADA}`, kind: "eq.starts-soon", key: 'in.("e1")', sent_at: "is.null" }];
+    const release = ["DELETE", { user_id: `eq.${BO}`, kind: "eq.starts-soon", key: 'in.("e2")', sent_at: "is.null" }];
+    for (const [rows, writes] of [[[bo, ada], [release, ack]], [[ada, bo], [ack, release]]]) {
+      const w = world({ rows, push: { [BO_1.endpoint]: 403 } });
+      const res = await w.post("");
+      expect(res.status).toBe(500);
+      expect(await res.json()).toEqual({ off: false, due: 2, sent: 1, released: 1, pruned: 0,
+        error: "1 push(es) refused by the push service: our VAPID keys or our request" });
+      expect(w.writes().map((r) => [r.method, claimsOf(r)])).toEqual(writes);
+      expect(w.logs).toContain("push: https://fcm.example refused a push, 403: the service says 403");
+    }
   });
 
   it("prunes a browser whose keys the encoder cannot use", async () => {
