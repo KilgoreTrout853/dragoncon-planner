@@ -5,8 +5,9 @@
    entry, index.js, is the hand test's. */
 import { describe, expect, it } from "vitest";
 import {
-  CHANGE_ORDER, FOLD_LINES, NO_START_TTL, PICK_CHANGED, PROBE_SUBSCRIPTION, STARTS_SOON, fold, inList, makeHandler, message,
-  parseBody, place, sameSecret, sayChange, sayChanges, sayTime, serviceHeaders, verdict,
+  BATCHES, BUDGET_MS, CHANGE_ORDER, FOLD_LINES, IN_FLIGHT, NO_START_TTL, PICK_CHANGED, PROBE_SUBSCRIPTION, SEND_TIMEOUT_MS,
+  STARTS_SOON, fold, inList, makeHandler, message, parseBody, place, sameSecret, sayChange, sayChanges, sayTime,
+  serviceHeaders, verdict,
 } from "../../supabase/functions/push/push.js";
 
 const API = "http://kong:8000";
@@ -31,13 +32,15 @@ function row(over = {}) {
   return { key: r.event_id, ...r };
 }
 
-/* A run's world: PostgREST's answers, each push service's, the encoder and the clock. `push` maps an endpoint to
-   its status, or to an Error for no answer; `rpcTakes` moves the clock while push_due() runs. */
-function world({ env = ENV, flag = [{ value: true }], rows = [], push = {}, rest = {}, unusable = [],
+/* A run's world: PostgREST's answers, each push service's, the encoder and the clock. push_due() answers each call
+   with the next of `batches` - `rows` alone, unless given - and then with nothing. `push` maps an endpoint to its
+   status, or to an Error for no answer; `rpcTakes` moves the clock while push_due() runs. */
+function world({ env = ENV, flag = [{ value: true }], rows = [], batches = [rows], push = {}, rest = {}, unusable = [],
                  probeRefused = null, rpcTakes = 0, sendTakes = 0 } = {}) {
   const requests = [];
   const encoded = [];
   const logs = [];
+  const answers = [...batches];
   let time = CLOCK;
   const reply = (status, body = "", headers = {}) =>
     new Response(status === 204 ? null : body, { status, headers: { "Content-Type": "application/json", ...headers } });
@@ -53,7 +56,7 @@ function world({ env = ENV, flag = [{ value: true }], rows = [], push = {}, rest
       if (route === "GET /rest/v1/flags") return reply(200, JSON.stringify(flag));
       if (route === "POST /rest/v1/rpc/push_due") {
         time += rpcTakes;
-        return reply(200, JSON.stringify(rows));
+        return reply(200, JSON.stringify(answers.shift() ?? []));
       }
       if (route === "PATCH /rest/v1/push_sent" || route === "DELETE /rest/v1/push_sent") {
         return reply(204, "", { "Content-Range": `*/${keysIn(u.searchParams)}` });
@@ -82,7 +85,14 @@ function world({ env = ENV, flag = [{ value: true }], rows = [], push = {}, rest
   const rpcs = () => requests.filter((r) => r.path === "/rest/v1/rpc/push_due");
   const sends = () => requests.filter((r) => !r.url.startsWith(API));
   const writes = () => requests.filter((r) => r.url.startsWith(API) && r.method !== "GET" && !r.path.includes("/rpc/"));
-  return { requests, encoded, logs, post, rpcs, sends, writes, handle, advance: (ms) => { time += ms; } };
+  // Every request after the switch, in order, as a word: due, send <endpoint>, ack, release or prune.
+  const steps = () => requests.slice(1).map((r) => {
+    if (r.path === "/rest/v1/rpc/push_due") return "due";
+    if (!r.url.startsWith(API)) return `send ${r.url}`;
+    if (r.path === "/rest/v1/push_subscriptions") return "prune";
+    return r.method === "PATCH" ? "ack" : "release";
+  });
+  return { requests, encoded, logs, post, rpcs, sends, writes, steps, handle, advance: (ms) => { time += ms; } };
 }
 
 const claimsOf = (req) => Object.fromEntries(req.query);
@@ -120,6 +130,7 @@ describe("the pure parts", () => {
     expect([404, 410].map(verdict)).toEqual(["dead", "dead"]);
     expect([0, 429, 500, 502, 503].map(verdict)).toEqual(["retry", "retry", "retry", "retry", "retry"]);
     expect([400, 401, 403, 413].map(verdict)).toEqual(["refused", "refused", "refused", "refused"]);
+    expect([299, 300, 304].map(verdict)).toEqual(["sent", "refused", "refused"]);   // a 3xx that reaches it: redirects throw
   });
 
   it("takes a body of nothing, or an object with an ISO `at` and a boolean `dry`", () => {
@@ -212,10 +223,11 @@ describe("the handler: the switch and push_due()", () => {
     for (const flag of [[{ value: false }], [], [{ value: "true" }]]) {
       const w = world({ flag, rows: [row()] });
       const res = await w.post("");
-      expect([res.status, await res.json()]).toEqual([200, { off: true, due: 0, sent: 0, released: 0, pruned: 0 }]);
+      expect([res.status, await res.json()])
+        .toEqual([200, { off: true, batches: 0, due: 0, sent: 0, released: 0, pruned: 0 }]);
       expect(w.requests.map((r) => `${r.method} ${r.url}`))
         .toEqual([`GET ${API}/rest/v1/flags?select=value&name=eq.push_enabled`]);
-      expect(w.logs).toEqual(['push: {"off":true,"due":0,"sent":0,"released":0,"pruned":0}']);
+      expect(w.logs).toEqual(['push: {"off":true,"batches":0,"due":0,"sent":0,"released":0,"pruned":0}']);
     }
   });
 
@@ -247,7 +259,7 @@ describe("the handler: the switch and push_due()", () => {
     const w = world({ rows: [row({ endpoints: [ADA_1, ADA_2] }), row({ user_id: BO, endpoints: [BO_1] })] });
     const res = await w.post(JSON.stringify({ at: "2027-09-03T14:52:00Z", dry: true }));
     expect(await res.json()).toEqual({
-      off: false, due: 2, sent: 0, released: 0, pruned: 0, dry: true,
+      off: false, batches: 1, due: 2, sent: 0, released: 0, pruned: 0, dry: true,
       pushes: [
         { kind: STARTS_SOON, user_id: ADA, event_ids: ["e1"], title: "Due Panel", body: "Starts in 8 min · Hyatt Regency V",
           ttl: 480, browsers: 2 },
@@ -321,7 +333,7 @@ describe("the handler: sending", () => {
       ["PATCH", "/rest/v1/push_sent", { user_id: `eq.${BO}`, kind: "eq.starts-soon", key: 'in.("e2")',
                                         sent_at: "is.null" }, WRITE],
     ]);
-    expect(await res.json()).toEqual({ off: false, due: 3, sent: 3, released: 0, pruned: 0 });
+    expect(await res.json()).toEqual({ off: false, batches: 1, due: 3, sent: 3, released: 0, pruned: 0 });
   });
 
   it("acks with the real clock, never the `at` it was given", async () => {
@@ -337,18 +349,18 @@ describe("the handler: sending", () => {
       ["PATCH", "/rest/v1/push_sent", { user_id: `eq.${ADA}`, kind: "eq.starts-soon", key: 'in.("e1")', sent_at: "is.null" }],
       ["DELETE", "/rest/v1/push_subscriptions", { endpoint: `eq.${ADA_2.endpoint}` }],
     ]);
-    expect(await res.json()).toEqual({ off: false, due: 1, sent: 1, released: 0, pruned: 1 });
+    expect(await res.json()).toEqual({ off: false, batches: 1, due: 1, sent: 1, released: 0, pruned: 1 });
   });
 
   it("where every browser is gone, prunes each and deletes the claim", async () => {
     const w = world({ rows: [row({ endpoints: [ADA_1, ADA_2] })], push: { [ADA_1.endpoint]: 404, [ADA_2.endpoint]: 410 } });
     const res = await w.post("");
     expect(w.writes().map((r) => [r.method, r.path])).toEqual([
-      ["DELETE", "/rest/v1/push_sent"], ["DELETE", "/rest/v1/push_subscriptions"], ["DELETE", "/rest/v1/push_subscriptions"],
+      ["DELETE", "/rest/v1/push_subscriptions"], ["DELETE", "/rest/v1/push_subscriptions"], ["DELETE", "/rest/v1/push_sent"],
     ]);
-    expect(claimsOf(w.writes()[0])).toEqual({ user_id: `eq.${ADA}`, kind: "eq.starts-soon", key: 'in.("e1")',
+    expect(claimsOf(w.writes()[2])).toEqual({ user_id: `eq.${ADA}`, kind: "eq.starts-soon", key: 'in.("e1")',
                                               sent_at: "is.null" });
-    expect(await res.json()).toEqual({ off: false, due: 1, sent: 0, released: 1, pruned: 2 });
+    expect(await res.json()).toEqual({ off: false, batches: 1, due: 1, sent: 0, released: 1, pruned: 2 });
   });
 
   it("releases the claim for the next minute on a 429, a 5xx or no answer, and prunes only the gone", async () => {
@@ -359,8 +371,8 @@ describe("the handler: sending", () => {
       const res = await w.post("");
       expect(res.status).toBe(200);
       expect(w.writes().map((r) => [r.method, r.path])).toEqual([
-        ["DELETE", "/rest/v1/push_sent"],
         ...(answers.includes(410) ? [["DELETE", "/rest/v1/push_subscriptions"]] : []),
+        ["DELETE", "/rest/v1/push_sent"],
       ]);
     }
   });
@@ -370,7 +382,7 @@ describe("the handler: sending", () => {
       const w = world({ rows: [row()], push: { [ADA_1.endpoint]: status } });
       const res = await w.post("");
       expect(res.status).toBe(500);
-      expect(await res.json()).toEqual({ off: false, due: 1, sent: 0, released: 1, pruned: 0,
+      expect(await res.json()).toEqual({ off: false, batches: 1, due: 1, sent: 0, released: 1, pruned: 0,
         error: "1 push(es) refused by the push service: our VAPID keys or our request" });
       expect(w.writes().map((r) => [r.method, r.path])).toEqual([["DELETE", "/rest/v1/push_sent"]]);
       expect(w.logs).toContain(`push: https://fcm.example refused a push, ${status}: the service says ${status}`);
@@ -381,26 +393,26 @@ describe("the handler: sending", () => {
     const w = world({ rows: [row({ endpoints: [ADA_1, ADA_2] })], push: { [ADA_2.endpoint]: 403 } });
     const res = await w.post("");
     expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({ off: false, due: 1, sent: 1, released: 0, pruned: 0,
+    expect(await res.json()).toEqual({ off: false, batches: 1, due: 1, sent: 1, released: 0, pruned: 0,
       error: "1 push(es) refused by the push service: our VAPID keys or our request" });
     expect(w.writes().map((r) => [r.method, claimsOf(r)])).toEqual([
       ["PATCH", { user_id: `eq.${ADA}`, kind: "eq.starts-soon", key: 'in.("e1")', sent_at: "is.null" }],
     ]);
   });
 
-  it("where one push service refuses a push and another takes its own, acks the one taken, releases only the refused, "
-     + "and then fails the run - whichever comes first", async () => {
+  it("where one push service refuses a push and another takes its own, acks the one taken, releases only the refused "
+     + "as the run ends, and then fails the run - whichever comes first", async () => {
     const bo = row({ user_id: BO, event_id: "e2", title: "Bo Panel", endpoints: [BO_1] });   // fcm.example: 403
     const ada = row({ endpoints: [ADA_2] });                                               // updates.example: 201
     const ack = ["PATCH", { user_id: `eq.${ADA}`, kind: "eq.starts-soon", key: 'in.("e1")', sent_at: "is.null" }];
     const release = ["DELETE", { user_id: `eq.${BO}`, kind: "eq.starts-soon", key: 'in.("e2")', sent_at: "is.null" }];
-    for (const [rows, writes] of [[[bo, ada], [release, ack]], [[ada, bo], [ack, release]]]) {
+    for (const rows of [[bo, ada], [ada, bo]]) {
       const w = world({ rows, push: { [BO_1.endpoint]: 403 } });
       const res = await w.post("");
       expect(res.status).toBe(500);
-      expect(await res.json()).toEqual({ off: false, due: 2, sent: 1, released: 1, pruned: 0,
+      expect(await res.json()).toEqual({ off: false, batches: 1, due: 2, sent: 1, released: 1, pruned: 0,
         error: "1 push(es) refused by the push service: our VAPID keys or our request" });
-      expect(w.writes().map((r) => [r.method, claimsOf(r)])).toEqual(writes);
+      expect(w.writes().map((r) => [r.method, claimsOf(r)])).toEqual([ack, release]);
       expect(w.logs).toContain("push: https://fcm.example refused a push, 403: the service says 403");
     }
   });
@@ -410,10 +422,48 @@ describe("the handler: sending", () => {
     const res = await w.post("");
     expect(w.sends()).toEqual([]);
     expect(w.writes().map((r) => [r.method, r.path])).toEqual([
-      ["DELETE", "/rest/v1/push_sent"], ["DELETE", "/rest/v1/push_subscriptions"],
+      ["DELETE", "/rest/v1/push_subscriptions"], ["DELETE", "/rest/v1/push_sent"],
     ]);
-    expect(await res.json()).toEqual({ off: false, due: 1, sent: 0, released: 1, pruned: 1 });
+    expect(await res.json()).toEqual({ off: false, batches: 1, due: 1, sent: 0, released: 1, pruned: 1 });
     expect(w.logs[0]).toContain("a browser's keys are unusable");
+  });
+
+  it("sends Prefer on every write: the ack, the prune and the release", async () => {
+    const w = world({ rows: [row({ endpoints: [ADA_1, ADA_2] }), row({ user_id: BO, event_id: "e2", endpoints: [BO_1] })],
+                      push: { [ADA_1.endpoint]: 410, [ADA_2.endpoint]: 503 } });
+    await w.post("");
+    expect(w.writes().map((r) => [r.method, r.path, r.headers.Prefer])).toEqual([
+      ["PATCH", "/rest/v1/push_sent", WRITE], ["DELETE", "/rest/v1/push_subscriptions", WRITE],
+      ["DELETE", "/rest/v1/push_sent", WRITE]]);
+  });
+
+  it("sends IN_FLIGHT at once and never more, however many browsers a batch has", async () => {
+    expect([IN_FLIGHT, SEND_TIMEOUT_MS]).toEqual([50, 10000]);
+    const rows = Array.from({ length: 120 }, (_, i) =>
+      row({ user_id: `c0000000-0000-4000-a000-${String(i).padStart(12, "0")}`, event_id: `e${i}`,
+            endpoints: [{ endpoint: `https://fcm.example/send/u${i}`, p256dh: `k${i}`, auth: `a${i}` }] }));
+    let inFlight = 0;
+    let peak = 0;
+    let calls = 0;
+    const fetch = async (url) => {
+      const u = new URL(url);
+      if (u.origin === API) {
+        if (u.pathname === "/rest/v1/flags") return new Response('[{"value": true}]', { status: 200 });
+        if (u.pathname === "/rest/v1/rpc/push_due") return new Response(JSON.stringify(calls++ ? [] : rows), { status: 200 });
+        return new Response(null, { status: 204, headers: { "Content-Range": "*/1" } });
+      }
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      inFlight -= 1;
+      return new Response("", { status: 201 });
+    };
+    const handle = makeHandler({ env: ENV, fetch, clock: () => CLOCK, log: () => {},
+      encode: (s, payload) => ({ endpoint: s.endpoint, method: "POST", headers: {}, body: payload }) });
+    const res = await handle(new Request("https://edge.example/functions/v1/push",
+      { method: "POST", headers: { "x-push-secret": SECRET }, body: "" }));
+    expect((await res.json()).sent).toBe(120);
+    expect(peak).toBe(IN_FLIGHT);
   });
 
   it("quotes the keys it acks, whatever an id holds", async () => {
@@ -425,7 +475,7 @@ describe("the handler: sending", () => {
   it("logs one line a run, its summary", async () => {
     const w = world({ rows: [row(), row({ user_id: BO, endpoints: [BO_1] })], push: { [BO_1.endpoint]: 410 } });
     await w.post("");
-    expect(w.logs).toEqual(['push: {"off":false,"due":2,"sent":1,"released":1,"pruned":1}']);
+    expect(w.logs).toEqual(['push: {"off":false,"batches":1,"due":2,"sent":1,"released":1,"pruned":1}']);
   });
 });
 
@@ -568,36 +618,218 @@ describe("the handler: pick-changed", () => {
       ["PATCH", "/rest/v1/push_sent", { user_id: `eq.${ADA}`, kind: "eq.pick-changed",
                                         key: 'in.("2027-09-03T11:00:00Z|e1","2027-09-03T11:00:00Z|e2")', sent_at: "is.null" },
        WRITE]]);
-    expect(await res.json()).toEqual({ off: false, due: 2, sent: 2, released: 0, pruned: 0 });
+    expect(await res.json()).toEqual({ off: false, batches: 1, due: 2, sent: 2, released: 0, pruned: 0 });
   });
 
   it("sends each kind as its own push in one run, and acks each by its own kind and keys", async () => {
-    const w = world({ rows: [changedRow({ start: null }), row({ event_id: "e9", title: "Soon Panel" })] });
+    const w = world({ rows: [row({ event_id: "e9", title: "Soon Panel" }), changedRow({ start: null })] });
     const res = await w.post("");
     expect(w.encoded.map((e) => [e.payload.kind, e.payload.title, e.options])).toEqual([
-      [PICK_CHANGED, "Due Panel", { ttl: NO_START_TTL, urgency: "normal" }],
-      [STARTS_SOON, "Soon Panel", { ttl: 600, urgency: "high" }]]);
+      [STARTS_SOON, "Soon Panel", { ttl: 600, urgency: "high" }],
+      [PICK_CHANGED, "Due Panel", { ttl: NO_START_TTL, urgency: "normal" }]]);
     expect(w.writes().map((r) => [claimsOf(r).kind, claimsOf(r).key])).toEqual([
-      ["eq.pick-changed", 'in.("2027-09-03T11:00:00Z|e1")'], ["eq.starts-soon", 'in.("e9")']]);
-    expect(await res.json()).toEqual({ off: false, due: 2, sent: 2, released: 0, pruned: 0 });
+      ["eq.starts-soon", 'in.("e9")'], ["eq.pick-changed", 'in.("2027-09-03T11:00:00Z|e1")']]);
+    expect(await res.json()).toEqual({ off: false, batches: 1, due: 2, sent: 2, released: 0, pruned: 0 });
   });
 
   it("releases a pick-changed push no browser took, for the next minute, by its own kind and keys", async () => {
-    const w = world({ rows: [changedRow(), row({ event_id: "e9", endpoints: [ADA_2] })], push: { [ADA_1.endpoint]: 503 } });
+    const w = world({ rows: [row({ event_id: "e9", endpoints: [ADA_2] }), changedRow()], push: { [ADA_1.endpoint]: 503 } });
     const res = await w.post("");
     expect(w.writes().map((r) => [r.method, claimsOf(r).kind, claimsOf(r).key])).toEqual([
-      ["DELETE", "eq.pick-changed", 'in.("2027-09-03T11:00:00Z|e1")'], ["PATCH", "eq.starts-soon", 'in.("e9")']]);
-    expect([res.status, await res.json()]).toEqual([200, { off: false, due: 2, sent: 1, released: 1, pruned: 0 }]);
+      ["PATCH", "eq.starts-soon", 'in.("e9")'], ["DELETE", "eq.pick-changed", 'in.("2027-09-03T11:00:00Z|e1")']]);
+    expect([res.status, await res.json()])
+      .toEqual([200, { off: false, batches: 1, due: 2, sent: 1, released: 1, pruned: 0 }]);
   });
 
   it("with dry, shows each push with its kind, and sends and writes nothing", async () => {
-    const w = world({ rows: [changedRow({ changes: [{ kind: "restored", from: null, to: null }] }), row({ event_id: "e9" })] });
+    const w = world({ rows: [row({ event_id: "e9" }), changedRow({ changes: [{ kind: "restored", from: null, to: null }] })] });
     const res = await w.post(JSON.stringify({ at: "2027-09-03T14:52:00Z", dry: true }));
     expect((await res.json()).pushes).toEqual([
-      { kind: PICK_CHANGED, user_id: ADA, event_ids: ["e1"], title: "Due Panel", body: "Back on the schedule", ttl: 480,
-        browsers: 1 },
       { kind: STARTS_SOON, user_id: ADA, event_ids: ["e9"], title: "Due Panel", body: "Starts in 8 min · Hyatt Regency V",
-        ttl: 480, browsers: 1 }]);
+        ttl: 480, browsers: 1 },
+      { kind: PICK_CHANGED, user_id: ADA, event_ids: ["e1"], title: "Due Panel", body: "Back on the schedule", ttl: 480,
+        browsers: 1 }]);
     expect([w.sends(), w.writes(), w.encoded]).toEqual([[], [], []]);
+  });
+});
+
+/* One-row pushes for users from `from`, each with a browser of its own, as a batch of push_due()'s rows. */
+const USER = (i) => `c0000000-0000-4000-a000-${String(i).padStart(12, "0")}`;
+const BROWSER = (i) => ({ endpoint: `https://fcm.example/send/u${i}`, p256dh: `k${i}`, auth: `a${i}` });
+const batch = (from, n) =>
+  Array.from({ length: n }, (_, i) => row({ user_id: USER(from + i), event_id: `e${from + i}`, endpoints: [BROWSER(from + i)] }));
+const sendTo = (i) => `send ${BROWSER(i).endpoint}`;
+
+describe("the handler: batches", () => {
+  it("takes rows from push_due() twice a run at most, and stops asking after twenty seconds", () => {
+    expect([BATCHES, BUDGET_MS]).toEqual([2, 20000]);
+  });
+
+  it("asks again after a batch until a call comes back empty, the batch sent, acked and pruned before the next call",
+     async () => {
+    const w = world({ batches: [batch(1, 2), []], push: { [BROWSER(2).endpoint]: 410 } });
+    const res = await w.post("");
+    expect(w.steps()).toEqual(["due", sendTo(1), sendTo(2), "ack", "prune", "due", "release"]);
+    expect(await res.json()).toEqual({ off: false, batches: 1, due: 2, sent: 1, released: 1, pruned: 1 });
+  });
+
+  it("stops at the ceiling: BATCHES calls, their rows summed, the run marked stopped by it, in the answer and the log",
+     async () => {
+    const w = world({ batches: [batch(1, 2), batch(3, 3), batch(6, 1)] });
+    const res = await w.post("");
+    expect(w.rpcs()).toHaveLength(2);
+    expect(w.steps()).toEqual(["due", sendTo(1), sendTo(2), "ack", "ack", "due", sendTo(3), sendTo(4), sendTo(5),
+                               "ack", "ack", "ack"]);
+    const summary = { off: false, batches: 2, due: 5, sent: 5, released: 0, pruned: 0, stopped: "batches" };
+    expect([res.status, await res.json()]).toEqual([200, summary]);
+    expect(w.logs).toEqual([`push: ${JSON.stringify(summary)}`]);
+  });
+
+  it("makes no call after the first once the run has taken BUDGET_MS, and says the time stopped it", async () => {
+    const late = world({ batches: [batch(1, 1), batch(2, 1)], rpcTakes: BUDGET_MS });
+    const res = await late.post("");
+    expect(late.rpcs()).toHaveLength(1);
+    expect(await res.json()).toEqual({ off: false, batches: 1, due: 1, sent: 1, released: 0, pruned: 0, stopped: "time" });
+    const inTime = world({ batches: [batch(1, 1), batch(2, 1)], rpcTakes: BUDGET_MS - 1 });
+    expect(await (await inTime.post("")).json())
+      .toEqual({ off: false, batches: 2, due: 2, sent: 2, released: 0, pruned: 0, stopped: "batches" });
+    let slow;
+    slow = world({ batches: [batch(1, 1)], rest: { "GET /rest/v1/flags": () => {
+      slow.advance(BUDGET_MS);
+      return new Response('[{"value": true}]', { status: 200 });
+    } } });
+    expect(await (await slow.post("")).json())
+      .toEqual({ off: false, batches: 1, due: 1, sent: 1, released: 0, pruned: 0, stopped: "time" });
+    expect(slow.rpcs()).toHaveLength(1);   // the first call is made however long the run took to reach it
+  });
+
+  it("holds a push no browser took until the run ends: released after the last call, once, so no later call takes it",
+     async () => {
+    const w = world({ batches: [[...batch(1, 1), ...batch(2, 1)], batch(3, 1)], push: { [BROWSER(1).endpoint]: 503 } });
+    const res = await w.post("");
+    expect(w.steps()).toEqual(["due", sendTo(1), sendTo(2), "ack", "due", sendTo(3), "ack", "release"]);
+    expect(claimsOf(w.writes().at(-1))).toEqual({ user_id: `eq.${USER(1)}`, kind: "eq.starts-soon", key: 'in.("e1")',
+                                                  sent_at: "is.null" });
+    expect(await res.json())
+      .toEqual({ off: false, batches: 2, due: 3, sent: 2, released: 1, pruned: 0, stopped: "batches" });
+  });
+
+  it("releases every push no browser took as the run ends, each once, and counts them all", async () => {
+    const w = world({ batches: [batch(1, 2), batch(3, 1)],
+                      push: { [BROWSER(1).endpoint]: 503, [BROWSER(3).endpoint]: 429 } });
+    const res = await w.post("");
+    expect(w.steps()).toEqual(["due", sendTo(1), sendTo(2), "ack", "due", sendTo(3), "release", "release"]);
+    expect(w.writes().filter((r) => r.method === "DELETE").map((r) => claimsOf(r).user_id))
+      .toEqual([`eq.${USER(1)}`, `eq.${USER(3)}`]);
+    expect(await res.json())
+      .toEqual({ off: false, batches: 2, due: 3, sent: 1, released: 2, pruned: 0, stopped: "batches" });
+  });
+
+  it("says the ceiling stopped a run that met both limits at once", async () => {
+    const w = world({ batches: Array.from({ length: BATCHES + 1 }, (_, i) => batch(i + 1, 1)), rpcTakes: BUDGET_MS / BATCHES });
+    const res = await w.post("");
+    expect(w.rpcs()).toHaveLength(BATCHES);
+    expect((await res.json()).stopped).toBe("batches");
+  });
+
+  it("where the time ends the run, still releases what it holds, and fails it for a refusal", async () => {
+    const w = world({ batches: [batch(1, 2), batch(3, 1)], rpcTakes: BUDGET_MS,
+                      push: { [BROWSER(1).endpoint]: 503, [BROWSER(2).endpoint]: 403 } });
+    const res = await w.post("");
+    expect(w.steps()).toEqual(["due", sendTo(1), sendTo(2), "release", "release"]);
+    expect([res.status, await res.json()]).toEqual([500, { off: false, batches: 1, due: 2, sent: 0, released: 2, pruned: 0,
+      stopped: "time", error: "1 push(es) refused by the push service: our VAPID keys or our request" }]);
+  });
+
+  it("goes on after a refusal, releases the refused as the run ends, and then fails the run", async () => {
+    const w = world({ batches: [[...batch(1, 1), ...batch(2, 1)], batch(3, 1)], push: { [BROWSER(1).endpoint]: 403 } });
+    const res = await w.post("");
+    expect(w.steps()).toEqual(["due", sendTo(1), sendTo(2), "ack", "due", sendTo(3), "ack", "release"]);
+    expect([res.status, await res.json()]).toEqual([500, { off: false, batches: 2, due: 3, sent: 2, released: 1, pruned: 0,
+      stopped: "batches", error: "1 push(es) refused by the push service: our VAPID keys or our request" }]);
+  });
+
+  it("with dry, calls once and shows the first batch alone", async () => {
+    const w = world({ batches: [batch(1, 2), batch(3, 1)] });
+    const res = await w.post(JSON.stringify({ at: "2027-09-03T14:50:00Z", dry: true }));
+    expect(w.rpcs()).toHaveLength(1);
+    const answer = await res.json();
+    expect([answer.batches, answer.due, answer.pushes.map((p) => p.user_id), answer.stopped])
+      .toEqual([1, 2, [USER(1), USER(2)], undefined]);
+    expect([w.sends(), w.writes()]).toEqual([[], []]);
+    const empty = world();
+    expect(await (await empty.post('{"dry": true}')).json())
+      .toEqual({ off: false, batches: 0, due: 0, sent: 0, released: 0, pruned: 0, dry: true, pushes: [] });
+  });
+
+  it("asks every call with the same arguments: the `at` it was given, or none", async () => {
+    const given = world({ batches: [batch(1, 1)] });
+    await given.post(JSON.stringify({ at: "2027-09-03T14:50:00Z" }));
+    const none = world({ batches: [batch(1, 1)] });
+    await none.post("");
+    expect([given.rpcs().map((r) => JSON.parse(r.body)), none.rpcs().map((r) => JSON.parse(r.body))])
+      .toEqual([[{ at: "2027-09-03T14:50:00Z" }, { at: "2027-09-03T14:50:00Z" }], [{}, {}]]);
+  });
+
+  it("on an error in the second batch, keeps the first batch's acks, releases what it holds, and answers 500 with the "
+     + "summary so far", async () => {
+    let acks = 0;
+    const failSecondAck = { "PATCH /rest/v1/push_sent": (req) => (++acks === 2
+      ? new Response('{"message":"boom"}', { status: 503 })
+      : new Response(null, { status: 204, headers: { "Content-Range": `*/${req.query.get("key").split(",").length}` } })) };
+    const w = world({ batches: [[...batch(1, 1), ...batch(2, 1)], batch(3, 1)], push: { [BROWSER(2).endpoint]: 503 },
+                      rest: failSecondAck });
+    const res = await w.post("");
+    expect(w.steps()).toEqual(["due", sendTo(1), sendTo(2), "ack", "due", sendTo(3), "ack", "release"]);
+    expect([res.status, await res.json()]).toEqual([500, { off: false, batches: 2, due: 3, sent: 1, released: 1, pruned: 0,
+      error: 'PATCH /rest/v1/push_sent answered 503: {"message":"boom"}' }]);
+
+    const rpcFails = world({ batches: [batch(1, 1)], push: { [BROWSER(1).endpoint]: 503 },
+      rest: { "POST /rest/v1/rpc/push_due": (() => {
+        let calls = 0;
+        return () => (++calls === 1 ? new Response(JSON.stringify(batch(1, 1)), { status: 200 })
+          : new Response('{"message":"gone"}', { status: 500 }));
+      })() } });
+    const failed = await rpcFails.post("");
+    expect(rpcFails.steps()).toEqual(["due", sendTo(1), "due", "release"]);
+    expect([failed.status, await failed.json()]).toEqual([500, { off: false, batches: 1, due: 1, sent: 0, released: 1,
+      pruned: 0, error: 'POST /rest/v1/rpc/push_due answered 500: {"message":"gone"}' }]);
+  });
+
+  it("where an ack fails, still releases each push of its batch that nobody took, though it came after", async () => {
+    let acks = 0;
+    const failSecondAck = { "PATCH /rest/v1/push_sent": () => (++acks === 2
+      ? new Response('{"message":"boom"}', { status: 503 })
+      : new Response(null, { status: 204, headers: { "Content-Range": "*/1" } })) };
+    const w = world({ batches: [batch(1, 3)], push: { [BROWSER(3).endpoint]: 503 }, rest: failSecondAck });
+    const res = await w.post("");
+    expect(w.steps()).toEqual(["due", sendTo(1), sendTo(2), sendTo(3), "ack", "ack", "release"]);
+    expect(claimsOf(w.writes().at(-1)).user_id).toBe(`eq.${USER(3)}`);
+    expect([res.status, await res.json()]).toEqual([500, { off: false, batches: 1, due: 3, sent: 1, released: 1, pruned: 0,
+      error: 'PATCH /rest/v1/push_sent answered 503: {"message":"boom"}' }]);
+  });
+
+  it("where the release at the run's end fails, releases each held push once, the rest on the way out", async () => {
+    let deletes = 0;
+    const w = world({ batches: [batch(1, 2)], push: { [BROWSER(1).endpoint]: 503, [BROWSER(2).endpoint]: 503 },
+      rest: { "DELETE /rest/v1/push_sent": () => (++deletes === 1 ? new Response('{"message":"busy"}', { status: 503 })
+        : new Response(null, { status: 204, headers: { "Content-Range": "*/1" } })) } });
+    const res = await w.post("");
+    expect(w.steps()).toEqual(["due", sendTo(1), sendTo(2), "due", "release", "release"]);
+    expect(w.writes().map((r) => claimsOf(r).user_id)).toEqual([`eq.${USER(1)}`, `eq.${USER(2)}`]);
+    expect([res.status, await res.json()]).toEqual([500, { off: false, batches: 1, due: 2, sent: 0, released: 1, pruned: 0,
+      error: 'DELETE /rest/v1/push_sent answered 503: {"message":"busy"}' }]);
+  });
+
+  it("answers 500 with the run's own error when the release on the way out fails too", async () => {
+    let calls = 0;
+    const w = world({ push: { [BROWSER(1).endpoint]: 503 }, rest: {
+      "POST /rest/v1/rpc/push_due": () => (++calls === 1 ? new Response(JSON.stringify(batch(1, 1)), { status: 200 })
+        : new Response('{"message":"gone"}', { status: 500 })),
+      "DELETE /rest/v1/push_sent": () => new Response('{"message":"also gone"}', { status: 503 }) } });
+    const res = await w.post("");
+    expect(w.steps()).toEqual(["due", sendTo(1), "due", "release"]);
+    expect([res.status, await res.json()]).toEqual([500, { off: false, batches: 1, due: 1, sent: 0, released: 0, pruned: 0,
+      error: 'POST /rest/v1/rpc/push_due answered 500: {"message":"gone"}' }]);
   });
 });

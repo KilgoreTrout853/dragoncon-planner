@@ -1,15 +1,20 @@
 /* The push job's sender (DECISIONS #55; docs/sync/contract.md, section 7). pg_cron calls it every minute,
    through pg_net, while the kill switch is on. A run checks the caller's secret, reads the switch, asks
-   push_due() for what is due - claimed for this run - folds the rows into pushes, sends each push to each of the
-   user's browsers, and then acks, releases and prunes. Two kinds: starts-soon, a user's picks that share a start
-   folded into one push; and pick-changed, a user's picks that one scrape run changed. This file has no runtime of
-   its own: index.js hands it the environment, fetch, the Web Push encoder and the clock, so that
-   tests/unit/push.test.js runs it in Node. */
+   push_due() for what is due - one batch, claimed for this run - folds the rows into pushes, sends each push to
+   each of the user's browsers, acks what a browser took and prunes the browsers gone; then asks again, until a
+   call comes back empty, BATCHES calls have brought rows, or the run has taken BUDGET_MS. A push no browser took
+   is released when the run ends, not when its batch does, so that no later call of the run claims it again: it is
+   retried the next minute. Two kinds: starts-soon, a user's picks that share a start folded into one push; and
+   pick-changed, a user's picks that one scrape run changed. This file has no runtime of its own: index.js hands it
+   the environment, fetch, the Web Push encoder and the clock, so that tests/unit/push.test.js runs it in Node. */
 
 export const STARTS_SOON = "starts-soon";
 export const PICK_CHANGED = "pick-changed";
 export const SEND_TIMEOUT_MS = 10000;   // one push service's answer
 export const IN_FLIGHT = 50;            // sends at once
+export const BATCHES = 2;               // push_due() calls a run takes rows from: 2 x 200 rows, two browsers a user,
+                                        // ~1 s of the 2 s of CPU hosted (contract section 7, The batch, as built)
+export const BUDGET_MS = 20000;         // no call after the first once a run has taken this long
 export const FOLD_LINES = 10;           // a fold's body lists this many events, then how many more
 export const NO_START_TTL = 86400;      // seconds: a pick-changed push none of whose events has a start known
 // The order an event's changes are told in, when one run changed several things about it (#55).
@@ -93,8 +98,8 @@ export function sayChanges(changes) {
 }
 
 /* push_due()'s rows - one a user's claimed pick, or a user's pick one run changed - folded into pushes, each row
-   kept in the order push_due() gave it: starts-soon, one push per user and start; pick-changed, one per user and
-   run. */
+   kept in the order push_due() gave it: starts-soon, one push per user and start; pick-changed, one per user, year
+   and run. */
 export function fold(rows) {
   const pushes = new Map();
   for (const row of rows) {
@@ -242,33 +247,15 @@ export function makeHandler({ env, fetch, encode, clock, log }) {
       return json({ error: err.message }, 400);
     }
 
-    const summary = { off: false, due: 0, sent: 0, released: 0, pruned: 0 };
+    const summary = { off: false, batches: 0, due: 0, sent: 0, released: 0, pruned: 0 };
     const refused = [];
-    try {
-      const flag = JSON.parse((await call("GET", "/flags?select=value&name=eq.push_enabled")).text)[0];
-      if (!flag || flag.value !== true) {
-        summary.off = true;
-        log(`push: ${JSON.stringify(summary)}`);
-        return json(summary);
-      }
-      const args = { ...(asked.at ? { at: asked.at } : {}), ...(asked.dry ? { dry: true } : {}) };
-      const rows = JSON.parse((await call("POST", "/rpc/push_due", args)).text);
-      summary.due = rows.length;
-      const base = asked.at ? Date.parse(asked.at) : started;
-      const now = () => base + (clock() - started);
-      const pushes = fold(rows);
+    const held = [];   // pushes no browser took: their claims kept until the run ends, so no later call takes them
+    const base = asked.at ? Date.parse(asked.at) : started;
+    const now = () => base + (clock() - started);
 
-      if (asked.dry) {
-        const preview = pushes.map((push) => {
-          const { payload, ttl } = message(push, now());
-          return { kind: push.kind, user_id: push.user_id, event_ids: payload.event_ids, title: payload.title,
-                   body: payload.body, ttl, browsers: push.endpoints.length };
-        });
-        log(`push: dry ${JSON.stringify(summary)}`);
-        return json({ ...summary, dry: true, pushes: preview });
-      }
-
-      // One message a push, made as its first send starts; then every browser of every push, IN_FLIGHT at once.
+    // One batch's pushes: one message a push, made as its first send starts; every browser of every push, IN_FLIGHT
+    // at once; then each push acked where a browser took it, else held, and the browsers gone pruned.
+    async function send(pushes) {
       const sends = pushes.flatMap((push) => push.endpoints.map((to) => ({ push, to })));
       const made = new Map();
       const answers = await pool(sends, IN_FLIGHT, async ({ push, to }) => {
@@ -292,7 +279,9 @@ export function makeHandler({ env, fetch, encode, clock, log }) {
         }
       });
 
+      // Every push's answers read before any write, so that a write that fails leaves each push nobody took held.
       const dead = new Set();
+      const took = [];
       for (const push of pushes) {
         const mine = answers.filter((a) => a.push === push);
         const verdicts = mine.map((a) => verdict(a.status));
@@ -303,18 +292,72 @@ export function makeHandler({ env, fetch, encode, clock, log }) {
             log(`push: ${new URL(a.to.endpoint).origin} refused a push, ${a.status}: ${a.text}`);
           }
         }
-        if (verdicts.includes("sent")) {
-          summary.sent += (await call("PATCH", `/push_sent?${claims(push)}`,
-            { sent_at: new Date(clock()).toISOString() }, WRITE)).count;
-        } else {
-          summary.released += (await call("DELETE", `/push_sent?${claims(push)}`, undefined, WRITE)).count;
-        }
+        (verdicts.includes("sent") ? took : held).push(push);
+      }
+      for (const push of took) {
+        summary.sent += (await call("PATCH", `/push_sent?${claims(push)}`,
+          { sent_at: new Date(clock()).toISOString() }, WRITE)).count;
       }
       for (const endpoint of dead) {
         summary.pruned += (await call("DELETE", `/push_subscriptions?${new URLSearchParams({ endpoint: `eq.${endpoint}` })}`,
           undefined, WRITE)).count;
       }
+    }
+
+    // The held pushes' claims released, a push at a time, for the next minute.
+    async function release() {
+      while (held.length) {
+        const push = held.shift();
+        summary.released += (await call("DELETE", `/push_sent?${claims(push)}`, undefined, WRITE)).count;
+      }
+    }
+
+    try {
+      const flag = JSON.parse((await call("GET", "/flags?select=value&name=eq.push_enabled")).text)[0];
+      if (!flag || flag.value !== true) {
+        summary.off = true;
+        log(`push: ${JSON.stringify(summary)}`);
+        return json(summary);
+      }
+      // Every call the same arguments: the `at` the request named, or none, and `dry`.
+      const args = { ...(asked.at ? { at: asked.at } : {}), ...(asked.dry ? { dry: true } : {}) };
+      const due = async () => JSON.parse((await call("POST", "/rpc/push_due", args)).text);
+
+      if (asked.dry) {
+        const rows = await due();
+        summary.batches = rows.length ? 1 : 0;
+        summary.due = rows.length;
+        const preview = fold(rows).map((push) => {
+          const { payload, ttl } = message(push, now());
+          return { kind: push.kind, user_id: push.user_id, event_ids: payload.event_ids, title: payload.title,
+                   body: payload.body, ttl, browsers: push.endpoints.length };
+        });
+        log(`push: dry ${JSON.stringify(summary)}`);
+        return json({ ...summary, dry: true, pushes: preview });
+      }
+
+      for (;;) {
+        if (summary.batches === BATCHES) {
+          summary.stopped = "batches";
+          break;
+        }
+        if (summary.batches > 0 && clock() - started >= BUDGET_MS) {
+          summary.stopped = "time";
+          break;
+        }
+        const rows = await due();
+        if (!rows.length) break;
+        summary.batches += 1;
+        summary.due += rows.length;
+        await send(fold(rows));
+      }
+      await release();
     } catch (err) {
+      try {
+        await release();
+      } catch {
+        // what is still held is released five minutes on, as a crashed run's
+      }
       log(`push: ${err.message} ${JSON.stringify(summary)}`);
       return json({ ...summary, error: err.message }, 500);
     }

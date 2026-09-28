@@ -194,7 +194,11 @@ pipeline absorbs takes a free review slot.
    kinds, the fold of a run's changes per user, and the 2026 rehearsal
    tool, `tools/replay_changes_2026.py` (`docs/sync/contract.md`, section
    7, Pick-changed, as built; PR #60) - built. `mirror_state.tz`, decided
-   for it, was found unneeded.
+   for it, was found unneeded. Then the batch: `push_due()` replaced in
+   place by a sixth migration to claim a batch at a time, whole pushes and
+   starts-soon first, under PostgREST's 1,000 rows, and the sender asking
+   again, two batches a run at most (`docs/sync/contract.md`, section 7,
+   The batch, as built; PR #61) - built.
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
@@ -307,6 +311,12 @@ Steps taken by hand, beside the PRs rather than in them:
   built): a browser subscribed again, three picks by SQL, the switch on for
   it and off after, the picks written back as tombstones and the test's
   `push_sent` rows deleted; the loaded lines kept.
+- For the batch on dev (#55), after its pull request merges, by Claude
+  Code: the sixth migration pushed, a dry run first, and the function
+  deployed again; the switch stays off, and a call without the secret
+  answers 401, with it `{off: true}`. No hand test: the local end-to-end
+  run is the batch's (`docs/sync/contract.md`, section 7, The batch, as
+  built).
 - For the push job on production, in the operations track, before the
   freeze: its own VAPID pair, with `VAPID_SUBJECT` a `mailto:` - a push
   service that needs to reach the sender cannot use a page - and its own
