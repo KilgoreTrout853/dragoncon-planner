@@ -4,9 +4,12 @@
 -- migration grants into by name. Functions that belong to an extension (pgTAP's
 -- among them) are left out of the lists. And the mirror's tables as the mirror
 -- job needs them (#54; contract, section 6): an event's times may be null, and
--- service_role holds the four privileges the mirror's migration grants it.
+-- service_role holds the four privileges the mirror's migration grants it. And
+-- push_sent as the push job's queue (#55; contract, section 7): a row is a claim
+-- until it is sent, and says when it was claimed; the push job's grants are
+-- 10_push.test.sql's.
 begin;
-select plan(12);
+select plan(16);
 
 select is(
   (select count(*)::int from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind = 'r'),
@@ -62,6 +65,10 @@ select is_empty(
           unnest(array['select', 'insert', 'update', 'delete']) as p
      where not has_table_privilege('service_role', t, p) $$,
   'service_role holds select, insert, update and delete on the mirror''s three tables');
+select col_is_null('public', 'push_sent', 'sent_at', 'push_sent.sent_at may be null: a claim, not yet sent');
+select col_hasnt_default('public', 'push_sent', 'sent_at', 'and has no default, so a row written without it is a claim');
+select col_not_null('public', 'push_sent', 'claimed_at', 'push_sent.claimed_at is never null');
+select col_default_is('public', 'push_sent', 'claimed_at', 'now()', 'and defaults to now()');
 
 -- A later migration's table reaches neither role until it grants by name.
 create table public.probe (x integer);

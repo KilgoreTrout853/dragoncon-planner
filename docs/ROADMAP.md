@@ -186,6 +186,12 @@ pipeline absorbs takes a free review slot.
    by hand, and a third migration - the events' times nullable, and the
    mirror's three tables granted to `service_role` by name
    (`docs/sync/contract.md`, section 6, as built) - built.
+7. The push job, first: starts-soon - `push_due()` and the queue in
+   `push_sent`, the `push` Edge Function that pg_cron calls through pg_net
+   every minute while the kill switch is on, and a fourth migration
+   (`docs/sync/contract.md`, section 7, as built; #55) - built. Then PR B:
+   pick-changed, its fold of kinds, `mirror_state.tz` and the 2026
+   rehearsal tool.
 
 What is synced, the outbox and the conflict rule, the Postgres schema and
 row-level security, the crew permission model, and push sending (the
@@ -278,6 +284,22 @@ Steps taken by hand, beside the PRs rather than in them:
   Mirror run started by the push confirmed - no document says an
   auto-merge the bot's token turned on starts one - with a dispatch as the
   fallback (#54).
+- For the push job on dev (#55), after its pull request merges, by
+  Claude Code: the migration pushed and the function deployed
+  (`supabase functions deploy push`); the four function secrets -
+  `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, the site's
+  https URL, and `PUSH_SECRET` - set by `supabase secrets set --env-file`
+  from the file generated for them; and Vault's `project_url` and
+  `push_secret` set by `vault.create_secret`. Then by hand: the file's
+  values kept in a password manager and the file deleted, and
+  `flags.push_enabled` turned on in Table Editor for the hand test
+  (`docs/sync/contract.md`, section 7, as built) and off after it.
+- For the push job on production, in the operations track, before the
+  freeze: its own VAPID pair, with `VAPID_SUBJECT` a `mailto:` - a push
+  service that needs to reach the sender cannot use a page - and its own
+  `PUSH_SECRET`; the same four secrets and two Vault rows; the function
+  deployed; the hand test repeated; and `flags.push_enabled` on at the
+  freeze, off after the con (#55).
 - At the season start, once the first run past the ids stage has written
   `data/2027/events.v2.json`: `DC_YEAR=2027` on `next`, in the next site's
   build - the `dragoncon-planner-next` repository's workflow (#49).

@@ -1,10 +1,10 @@
 # Identity and sync: the data contract
 
-The design note for Identity and sync: DECISIONS #50-#54, in the detail a
+The design note for Identity and sync: DECISIONS #50-#55, in the detail a
 pull request needs. Written 2026-09-25, before any of it was built:
 sections 1-4 first, section 5 with the client's identity (PR #55), section
-6 with the mirror job (PR #57), and 7-8 as their design is done. The
-evidence is
+6 with the mirror job (PR #57), section 7 with the push job (PR #59), and
+8 as its design is done. The evidence is
 `recon.md`, beside this file, the client as the design found it. Where an
 entry has the detail, this note points at it rather than saying it twice.
 What the note does not settle is under Open, at the end. A change of
@@ -238,9 +238,12 @@ year, and a dead one is pruned when a send to it fails.
 
 - `push_sent`: user, year, kind - `starts-soon` or `pick-changed` - key,
   `sent_at`: the push job's idempotence ledger. It carries `year` because
-  retention deletes by year.
+  retention deletes by year. Since the push job (section 7) it is the
+  queue too: a row with no `sent_at` is a claim, unsent, and `claimed_at`
+  says when it was made.
 - `mirror_state`: one row per year - `last_run`, `last_sha` and
-  `updated_at`, how far the mirror has read; section 6 adds none.
+  `updated_at`, how far the mirror has read; section 6 adds none. Section
+  7's pick-changed is to add `tz`, the con's zone, for its times.
 - `flags`: name and value; two, `push_enabled`, the kill switch, and
   `crew_size_cap`. Whether a captcha is required is not a flag but the
   Supabase project's setting (section 1).
@@ -322,6 +325,12 @@ migration.
   `service_role` granted select, insert, update and delete on
   `schedule_events`, `schedule_changes` and `mirror_state`, by name
   (section 3, as built).
+- **The push job's migration,** the fourth,
+  `20260926224454_push_spine.sql` (section 7, as built): the pg_cron and
+  pg_net extensions; `push_sent.sent_at` nullable with no default, so a
+  row written without it is a claim, and `claimed_at`, not null, `now()`
+  by default; `push_due()`; its grants to `service_role` (section 3, as
+  built); and two cron jobs, the push and a cleanup of pg_cron's records.
 
 ## 3. Security
 
@@ -378,8 +387,11 @@ The same migration (PR #54).
   grants `service_role` select, insert, update and delete on
   `schedule_events`, `schedule_changes` and `mirror_state`, and a
   production project gets them by migration, whatever its defaults (#54;
-  section 6). `push_sent` and `flags`, the push job's, have no such grant
-  yet. `supabase/config.toml` turns the local database's defaults off to
+  section 6). The push job's migration grants `service_role` select,
+  insert, update and delete on `push_sent`, select and delete on
+  `push_subscriptions` and select on `flags`, and `push_due()` is
+  executable by `service_role` alone (#55; section 7, as built).
+  `supabase/config.toml` turns the local database's defaults off to
   match (section 4, as built), so `00_structure` holds the migration's
   grants, not the defaults.
 - **Grants to `authenticated`.** On `picks` and `follows`: select, insert,
@@ -418,10 +430,11 @@ The same migration (PR #54).
   Their errors: 42501, not signed in or not the creator; P0002, no crew
   has that invite; 53400, the crew is full; 22023, no such year; 23514, a
   name out of bounds, from the table's check.
-- **The tests,** ten files under `supabase/tests/`, each one transaction
+- **The tests,** eleven files under `supabase/tests/`, each one transaction
   rolled back: `00_structure`, `01_anon`, `02_stranger`, `03_member`,
   `04_stamps`, `05_rpcs`, `06_job_tables`, `07_cascades`,
-  `08_push_subscriptions` and, with sync's migration, `09_sync`. A test user is a row inserted into
+  `08_push_subscriptions`, with sync's migration `09_sync`, and with the
+  push job's `10_push` (section 7, as built). A test user is a row inserted into
   `auth.users`. The test acts as that user through the `authenticated`
   role and a `request.jwt.claims` naming them, which `auth.uid()` reads,
   and as anon through `set local role anon`. A mutation pass - every
@@ -457,7 +470,10 @@ PR #54.
   new table to no Data API role, so the migrations' grants are the only
   ones, and pgTAP pins them rather than the defaults. The hosted projects
   are to match it (#50, operations). `supabase/.gitignore` is the CLI's
-  own.
+  own. Since the push job (#55) it declares the push function,
+  `[functions.push]`, with the gateway's JWT check off - the function's
+  own secret header is the gate - and its entry, `index.js` (section 7,
+  as built).
 - **The commands,** from the repo root with Docker running:
   `npm --prefix supabase run start` starts the database alone and applies
   the migrations and `seed.sql`; `npm --prefix supabase test` runs pgTAP
@@ -816,12 +832,237 @@ PR #57, with #54.
   gives: without the grant, that test fails. A mutation pass over `mirror.py`, 50 mutants each failing a test,
   is not committed.
 
-## 7. The push job — to follow
+## 7. The push job
 
-The queue-shaped sender: pick-changed from `schedule_changes`, suppressed
-by `fetch_code_changed`, read per line (#54); starts-soon by one lead time
-set in its call (#40, #50), and none for an event with no start (#54);
-`push_sent`, the kill switch, and a dead endpoint pruned.
+#55, as #50 has it: queue-shaped from its first pull request, which
+carries the kill switch. Starts-soon is built (PR #59, below); pick-changed
+is decided here, and built by the pull request after it, PR B.
+
+- **Where it runs.** Inside the Supabase project (#25): pg_cron calls one
+  Edge Function, `push`, through pg_net, every minute. Not a third Actions
+  job: GitHub documents its schedule event as best effort - delayed under
+  load, a five-minute floor, runs dropped - and its terms name a
+  serverless application run on Actions as a disproportionate burden. The
+  mirror is a publish step and stays on Actions (section 6); a sender on
+  the minute is a runtime service.
+- **The split.** A SQL function, `push_due()`, decides what is due and
+  claims it; the function sends. The logic lives where pgTAP is.
+- **The queue.** `push_sent` holds a claim per user, kind and key, its
+  `sent_at` null until the push is sent. `push_due()` claims what is due
+  by an insert that skips a key already held, `on conflict do nothing`,
+  and returns what it claimed, so two runs that overlap cannot both take
+  a row. The sender acks a claim, setting `sent_at`, when a browser took
+  the push; releases it, deleting it, when every browser answered 429, a
+  5xx or nothing, so that the next minute retries; prunes a subscription
+  on 404 or 410, and deletes a claim whose every browser was gone. A
+  claim still unsent five minutes after it was made is a crashed run's,
+  and `push_due()` releases it first.
+- **The kill switch.** `flags.push_enabled`, read three times: by the cron
+  job's own SQL, so that with it off there is no call at all; inside
+  `push_due()`, which then returns nothing; and by the function, so that
+  its summary's `off` is true. It is the season's window too: on at the
+  freeze, off after the con (ROADMAP, Checklist).
+- **The clock.** `push_due(at timestamptz default now(), dry boolean default false)`.
+  The function passes on an `at` its request's body names, and the cron
+  sends none; `dry` claims and releases nothing, and returns what a call
+  would claim. It is #12's clock with a dev override, on the server: `at`
+  is also when a claim is made, and so when it goes stale. `sent_at` is
+  the real clock.
+- **Starts-soon.** Due where the pick is picked; the event is not
+  removed, not cancelled, and has a start (#54); `start - 15 min <= at < start`;
+  and the user holds at least one browser. The key is the event's id,
+  the year the event's. The lead time, 15 minutes, is one constant in
+  `push_due()`, the value #40 and #50 left open. The function counts the
+  minutes as it sends - from `at`, or the clock, with the time the run has
+  taken added - so a late run gives a shorter warning, never a stale one.
+  A user's picks that share a start fold into one push, one claim a pick;
+  one start, so one count of minutes and one TTL, the seconds until the
+  start. Urgency high.
+- **The payload,** one shape: `{kind, year, event_ids, title, body}`. One
+  pick: the event's title, and the body `Starts in N min · <hotel> <room>`.
+  A fold: the title `N picks start in M min`, and the body one line an
+  event, `<title> · <hotel> <room>`. The worker (Delivery's) builds any
+  URL from `event_ids`; nothing here touches the client.
+- **The caller.** The function refuses any request without an
+  `x-push-secret` header equal to its `PUSH_SECRET`, whatever Supabase's
+  JWT setting. pg_net sends that header and no JWT, and the gateway's JWT
+  check is off for the function.
+- **Libraries.** PostgREST by `fetch`, as #53: no library. Web Push by
+  one, since VAPID and aes128gcm are not worth writing by hand.
+- **Pick-changed,** decided, and PR B's. One push per user per run and
+  event, folding the kinds `cancelled`, `uncancelled`, `time`, `place`,
+  `removed` and `restored`, and never `title`, `description`, `people`,
+  `tracks` or `merged`. Sent only where the line's `cause` is `source` and
+  its run's `fetch_code_changed` is false - a `code` line is suppressed as
+  a flagged run's is - the pick is still picked, the line's run is after
+  the pick's `changed_at`, the event's start is in the future or null, and
+  the run is within six hours. Its times are in the con's zone, from a
+  `tz` column the mirror is to write to `mirror_state` (#54).
+
+### The push job, as built
+
+PR #59, with #55: starts-soon.
+
+- **The migration,** the fourth, `20260926224454_push_spine.sql`:
+  - `create extension if not exists pg_cron with schema pg_catalog`, and
+    pg_net likewise `with schema extensions`: the schemas Supabase names.
+    Both are in the image's preloaded libraries, locally and hosted, and
+    `postgres` may create both - checked on the CLI's local stack, whose
+    Postgres is the dev project's, 17.6.1.166, with pg_cron 1.6.4 and
+    pg_net 0.20.4;
+  - `push_sent.sent_at` nullable with no default, so that a row written
+    without it is a claim, and `claimed_at`, a `timestamptz`, not null,
+    `now()` by default;
+  - `push_due(at, dry)`: plpgsql, security definer, owned by `postgres`,
+    its `search_path` pinned to `public`, executable by `service_role`
+    alone. Unless `dry`, it releases the stale claims first, those with
+    `claimed_at < at - interval '5 minutes'` and no `sent_at`. With the
+    switch off it returns nothing. Else one row per user and event it
+    claimed: `user_id`, `year`, `event_id`, `title`, `start`, `hotel`,
+    `room`, `minutes_until` - the whole minutes to the start, a part
+    minute counted as one - and `endpoints`, the user's browsers,
+    `[{endpoint, p256dh, auth}]` by endpoint; the rows by user, start,
+    title and id. A claim's `claimed_at` is `at`;
+  - the grants: `service_role` select, insert, update and delete on
+    `push_sent`, select and delete on `push_subscriptions`, and select on
+    `flags`; nothing to an app role;
+  - two cron jobs, both run as `postgres`. `push`, every minute, posts to
+    Vault's `project_url` with `/functions/v1/push` after it, the header
+    `x-push-secret` from Vault's `push_secret`, an empty JSON body and a
+    30-second timeout, so that `net._http_response` keeps the run's own
+    answer for six hours - where `flags.push_enabled` is true. With the
+    switch off the post's arguments are never evaluated: no Vault row is
+    read and nothing is sent. With it on and Vault empty the run fails,
+    and `cron.job_run_details` says why. `cron-history`, daily at 04:00
+    UTC, deletes pg_cron's run records older than seven days, every job's,
+    switch or no switch: pg_cron deletes none, and a job a minute is 1,440
+    records a day.
+- **The function,** `supabase/functions/push/`: `push.js`, the logic,
+  which imports nothing; and `index.js`, the runtime's half, which hands
+  it the environment, `fetch`, the clock and the encoder -
+  `npm:web-push@3.6.7`'s `generateRequestDetails`, which encrypts (RFC
+  8291, aes128gcm) and signs (RFC 8292) and leaves the sending to `fetch`,
+  since its `sendNotification` goes through `node:https`. `config.toml`'s
+  `[functions.push]` turns the gateway's JWT check off and names `index.js`
+  as the entry. With the check on, the gateway passes any `apikey`, the
+  public publishable key among them (checked on the CLI's local stack), so
+  it could not be the gate.
+- **A run,** in order. A POST only, else 405. `PUSH_SECRET` unset, 500. A
+  missing or wrong `x-push-secret`, compared in constant time, 401. The
+  service key is the runtime's default in `SUPABASE_SECRET_KEYS`, sent on
+  `apikey` alone, else its legacy `SUPABASE_SERVICE_ROLE_KEY`, sent as the
+  bearer too (#54's rule); with neither, 500. The encoder signs and
+  encrypts a push to a browser that exists nowhere, so VAPID keys it
+  refuses are a 500 before anything is claimed. A body it cannot read,
+  400: it takes nothing, or `{at, dry}`, `at` an ISO date and time with
+  its offset. Then the switch, and with it off `{off: true}` and nothing
+  more; then `push_due()`, the fold, and each push to each of its user's
+  browsers, 50 at once, each with a 10-second timeout and redirects
+  refused. Per push: where a browser took it, acked; else, where one
+  refused it, released, and the run fails; else released, for the next
+  minute. A browser answering 404 or 410, or whose keys the encoder cannot
+  use, is pruned. A 401, a 403 or any other 4xx is a refusal, and ours:
+  logged with the push service's origin, the status and its body, and the
+  run answers 500. A fold's body lists ten events at most, then `and N more`,
+  so that a push stays well inside the 4 KB a push service takes.
+- **Its answer,** and its log's one line: `{off, due, sent, released, pruned}`,
+  counted in claims - `pruned` in browsers - from PostgREST's
+  `Content-Range`. A failed run adds `error`. `dry` sends and writes
+  nothing, and adds `pushes`: each push's user, `event_ids`, title, body,
+  TTL and number of browsers.
+- **Every request** to PostgREST carries the key, and a write
+  `Prefer: handling=strict,return=minimal,count=exact`; an `in` list
+  quotes each id as the mirror's does (section 6, as built). PostgREST
+  14.5's answers:
+
+| Request | Method and path | Body | Expects |
+|---|---|---|---|
+| The switch | `GET /rest/v1/flags?select=value&name=eq.push_enabled` | - | 200: `[{"value": true}]`, or not |
+| Due | `POST /rest/v1/rpc/push_due` | `{}`, or `{"at": <ISO>, "dry": true}` | 200: the rows above |
+| Ack | `PATCH /rest/v1/push_sent?user_id=eq.<user>&kind=eq.starts-soon&key=in.("<id>",...)&sent_at=is.null` | `{"sent_at": <the clock, ISO>}` | 204, `*/N` |
+| Release | `DELETE /rest/v1/push_sent?<the same filter>` | - | 204, `*/N` |
+| Prune | `DELETE /rest/v1/push_subscriptions?endpoint=eq.<endpoint>` | - | 204, `*/N` |
+
+  And to each browser, `POST <endpoint>` with web-push's headers - `TTL`,
+  `Urgency: high`, `Content-Encoding: aes128gcm` and
+  `Authorization: vapid t=<JWT>, k=<public key>` - and the encrypted
+  payload.
+- **The secrets.** The function's `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+  `VAPID_SUBJECT` and `PUSH_SECRET`, set by `supabase secrets set`; and
+  Vault's `project_url` and `push_secret`, for the cron job, set by
+  `vault.create_secret`. `VAPID_SUBJECT` is the site's https URL on dev,
+  and a `mailto:` on production, where a push service may need to reach
+  the sender. Locally they are in `supabase/functions/.env`, which git
+  ignores.
+- **The tests.** pgTAP's `10_push.test.sql`: the extensions and the two
+  jobs, the gate in the push job's command, the grants, and `push_due()` -
+  the switch; the window's edges, due at 15 minutes before the start and
+  not at 16, nor at the start or after; a part minute counted as one; each
+  thing never due; the endpoints; the claim; a second call; dry; a claim
+  five minutes old holding, and a stale one released while a sent one
+  stays; and `at`'s default. `00_structure` holds `push_sent`'s columns.
+  Vitest's `tests/unit/push.test.js` runs `push.js` in Node against a fake
+  PostgREST, fake push services, a fake encoder and a clock it moves: the
+  gate, the switch, the RPC's arguments, dry, the fold and its words, the
+  minutes and the TTL as it sends, each answer's write, the 500s, the
+  quoting and the summary - and a mixed run, one push service refusing a
+  push while another takes its own, in either order: the push taken is
+  acked and only the refused released before the run answers 500, so no
+  push a browser took is sent again while the keys are being fixed. A
+  mutation pass is not committed: 46 of 47 mutants of the migration - each
+  rule of `push_due()`, the grants, the two jobs and the columns - failed a
+  pgTAP test, the one left the clause `start is not null`, which is
+  equivalent, since a null start meets no window, and is kept because this
+  section states the rule; and 41 of 41 of `push.js`, three of them of the
+  mixed run, failed a Vitest test.
+- **Run end to end** on the CLI's local stack, with the runtime the hosted
+  project runs (edge-runtime 1.76.2) and PostgREST 14.5, and a stand-in
+  push service: the cron job called the function through pg_net with no
+  JWT; a user with one browser that took the push and one gone was acked
+  and pruned; one whose browser answered 503 was released, and claimed
+  again the next minute; one with two picks at one start got one push,
+  and both were acked; a 403 released the claim and failed the run, the
+  service's answer in the log; every push sent decrypted, with its
+  browser's keys, to the payload above, its VAPID signature checked; and
+  with the switch off, the job's run read nothing and sent nothing.
+- **The hand test,** on dev after the merge, and again on production at
+  the freeze. First serve these two files from `http://localhost:<port>`,
+  a secure context, in a desktop browser, allow notifications, and copy
+  the three values the page prints:
+
+```html
+<!-- subscribe.html -->
+<!doctype html><meta charset="utf-8"><title>Push subscribe</title><pre id="out">...</pre>
+<script type="module">
+  const KEY = "<the project's VAPID public key>";
+  const raw = Uint8Array.from(atob(KEY.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+  const reg = await navigator.serviceWorker.register("sw.js");
+  await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: raw });
+  const { endpoint, keys } = sub.toJSON();
+  document.getElementById("out").textContent =
+    JSON.stringify({ endpoint, p256dh: keys.p256dh, auth: keys.auth }, null, 2);
+</script>
+```
+
+```js
+// sw.js
+self.addEventListener("push", (event) => {
+  const data = event.data ? event.data.json() : {};
+  event.waitUntil(self.registration.showNotification(data.title || "Push", { body: data.body || "" }));
+});
+```
+
+  Then, in Table Editor, add a `push_subscriptions` row with the three
+  values and the tester's `user_id`, read from `picks`; choose one of the
+  tester's picks, and read its event's `start` from `schedule_events`;
+  and turn `flags.push_enabled` on. POST the function,
+  `<project URL>/functions/v1/push` with the header `x-push-secret`, the
+  body `{"dry": true, "at": "<start - 10 min, ISO>"}`: the answer previews
+  the push. POST it again without `dry`: the notification arrives,
+  `Starts in 10 min · <hotel> <room>`. POST once more: `sent` is 0, the
+  claim acked. Last, turn the switch off, and delete the test's
+  `push_sent` row and the subscription.
 
 ## 8. Crews — to follow
 
@@ -833,8 +1074,9 @@ it).
 
 - How stale an anonymous user must be before the cleanup deletes it
   (section 2).
-- Starts-soon's lead time: one value, set in the push job's call (#40,
-  #50); how many minutes is unset.
+- ~~Starts-soon's lead time: one value, set in the push job's call (#40,
+  #50); how many minutes is unset.~~ 15 minutes, one constant in
+  `push_due()` (#55; section 7).
 - Recording searches that return nothing, anonymously, in 2027: #36's
   privacy question for this tentpole.
 - The Auth project's two limits. The built-in mailer sends only to the

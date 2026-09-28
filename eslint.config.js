@@ -65,6 +65,19 @@ export default [
     },
   },
 
+  /* The push job's Edge Function runs in Deno, on the platform's web globals and its own `Deno` - not in Node
+     and not in a page's window (DECISIONS #55). */
+  {
+    files: ["supabase/functions/**/*.js"],
+    languageOptions: {
+      globals: {
+        Deno: "readonly",
+        ...Object.fromEntries(Object.keys(globals.node)
+          .filter(name => !(name in globals.browser)).map(name => [name, "off"])),
+      },
+    },
+  },
+
   /* The year the build defines, read in one place (DECISIONS #49). */
   {
     files: ["src/season.js"],
