@@ -2,9 +2,10 @@
    reads the crews, then the picks and follows newer than the watermark - a
    minute's overlap, a page at a time, the picks whole when a crew gains
    anyone - and applies the reader's own rows unless a pending op holds the
-   key, the crewmates' picks under crewPicks, and the server's synced_at as
-   the watermark. It runs once for each trigger, with the drains held while
-   it reads and applies. reconcilePicks()'s changes go out as ordinary ops.
+   key, the crews and the crewmates' picks through crews.js, which keeps them
+   under crew and crewPicks, and the server's synced_at as the watermark. It
+   runs once for each trigger, with the drains held while it reads and
+   applies. reconcilePicks()'s changes go out as ordinary ops.
    Against the fake backend, tests/helpers/backend.js. New tests, not rows
    of tests/PORT-LEDGER.md, so their titles carry no harness line. */
 import fs from "node:fs";
@@ -61,7 +62,7 @@ describe("the pull", () => {
   it("the open run reads the crews, then the picks and the follows whole: exactly these requests", () => {
     const AS_ADA = { apikey: fake.key, Authorization: `Bearer ${token}` };
     expect(fake.requests).toEqual([
-      { method: "GET", path: `/rest/v1/crews?select=id,name,creator,crew_members(user_id,display_name)&year=eq.${YEAR}`, headers: AS_ADA, body: undefined },
+      { method: "GET", path: `/rest/v1/crews?select=id,name,creator,invite_token,crew_members(user_id,display_name)&year=eq.${YEAR}&order=created_at.asc,id.asc`, headers: AS_ADA, body: undefined },
       { method: "GET", path: `/rest/v1/picks?select=user_id,event_id,picked,changed_at,synced_at&year=eq.${YEAR}&order=synced_at.asc,user_id.asc,event_id.asc&limit=1000&offset=0`, headers: AS_ADA, body: undefined },
       { method: "GET", path: `/rest/v1/follows?select=kind,key,followed,changed_at,synced_at&year=eq.${YEAR}&order=synced_at.asc,kind.asc,key.asc&limit=1000&offset=0`, headers: AS_ADA, body: undefined },
     ]);
@@ -79,7 +80,7 @@ describe("the pull", () => {
   });
   it("a crewmate's picks go under crewPicks, by user and then event, and the crew under crew; no one else's", () => {
     expect(read("crewPicks")).toEqual({ [bo.id]: { [X]: true } });
-    expect(read("crew")).toEqual([{ id: crew.id, name: "The crew", creator: ada.id,
+    expect(read("crew")).toEqual([{ id: crew.id, name: "The crew", creator: ada.id, invite_token: crew.invite_token,
       members: [{ user_id: ada.id, display_name: "Ada" }, { user_id: bo.id, display_name: "Bo" }] }]);
   });
   it("the watermark is the server's synced_at, a year ahead of the phone's clock, per table", () => {

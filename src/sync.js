@@ -3,6 +3,7 @@ import { loadJSON, removeJSON, saveJSON } from "./storage.js";
 import { storageKey } from "./build.js";
 import { callBackendAsUser, hasBackend, storedSession } from "./backend.js";
 import { plainMessage } from "./identity.js";
+import { applyPulledCrews, crewGained, forgetCrews } from "./crews.js";
 import {
   clearOutbox, drainNow, drainsSettled, holdDrains, outboxState, pendingKeys, releaseDrains, seedOutbox,
 } from "./outbox.js";
@@ -32,11 +33,12 @@ import { requestRender } from "./bus.js";
    pending op holds is passed over, and the watermark stops at it, so it is
    read again once the op has drained. Supabase answers at most 1,000
    rows a request, so a read pages. The crews are read first, with their
-   members, under storageKey("crew") - data alone; the crew screens are
-   their own pull requests - and when a crew has gained anyone since the last
-   run the picks are read whole, since a newcomer's picks are older than the
-   watermark. Crewmates' picks go under storageKey("crewPicks"), by user and
-   then event, and a departed member's are dropped.
+   members and their invite tokens, the oldest first, and when a crew has
+   gained anyone since the last run the picks are read whole, since a
+   newcomer's picks are older than the watermark. The crews and the
+   crewmates' picks are kept by crews.js, which the pull writes them
+   through, as it writes the reader's own rows through the owners of picks
+   and follows; a departed member's picks are dropped there.
 
    The owner: when the session's user is not the one the watermark was
    kept for - a mint, a recover, a sign-in in another tab - the outbox is
@@ -45,7 +47,7 @@ import { requestRender } from "./bus.js";
    again. With no session they are all forgotten, so the next sign-in, even
    as the same user, sends the whole plan again.
    ================================================================== */
-const STAMP_KEY = storageKey("syncStamp"), CREW_KEY = storageKey("crew"), CREW_PICKS_KEY = storageKey("crewPicks");
+const STAMP_KEY = storageKey("syncStamp");
 const OVERLAP_MS = 60000, PAGE = 1000;
 
 let running = null;      // the run in flight
@@ -89,16 +91,14 @@ function adopt(user) {
   seedOutbox(user, {picks: [...picks], follows: follows.map(followId)});
   const stamp = {user, picks: null, follows: null};
   saveJSON(STAMP_KEY, stamp);
-  removeJSON(CREW_KEY);
-  removeJSON(CREW_PICKS_KEY);
+  forgetCrews();
   return stamp;
 }
 /* No session: nothing of sync's is kept. */
 function forgetSync() {
   clearOutbox();
   removeJSON(STAMP_KEY);
-  removeJSON(CREW_KEY);
-  removeJSON(CREW_PICKS_KEY);
+  forgetCrews();
   lastRun = null;
   refusedAt = null;
   fillSyncStatus();
@@ -126,20 +126,19 @@ function watermark(rows, passed, last) {
   for (const r of passed) if (new Date(r.synced_at) < new Date(mark)) mark = r.synced_at;
   return mark;
 }
-const matesOf = (crew, user) => new Set(crew.flatMap(c => c.members.map(m => m.user_id)).filter(id => id !== user));
 
 /* Read, then apply, with the drains held throughout: the crews, the picks -
    whole if a crew gained anyone - and the follows; then, in one go with no
-   wait between, the reader's own rows that no pending op holds, the
-   crewmates' picks, and the watermark. */
+   wait between, the reader's own rows that no pending op holds, the crews
+   and the crewmates' picks, and the watermark. The crews come oldest
+   first, so the first crew to hold a crewmate stays the first. */
 async function pull(user, stamp) {
   await holdDrains();
   try {
-    const crews = await callBackendAsUser(`/rest/v1/crews?select=id,name,creator,crew_members(user_id,display_name)&year=eq.${YEAR}`, {method: "GET"});
-    const crew = (crews || []).map(c => ({id: c.id, name: c.name, creator: c.creator,
+    const crews = await callBackendAsUser(`/rest/v1/crews?select=id,name,creator,invite_token,crew_members(user_id,display_name)&year=eq.${YEAR}&order=created_at.asc,id.asc`, {method: "GET"});
+    const crew = (crews || []).map(c => ({id: c.id, name: c.name, creator: c.creator, invite_token: c.invite_token,
       members: (c.crew_members || []).map(m => ({user_id: m.user_id, display_name: m.display_name}))}));
-    const mates = matesOf(crew, user), before = matesOf(loadJSON(CREW_KEY, []) || [], user);
-    const gained = [...mates].some(id => !before.has(id));
+    const gained = crewGained(crew, user);
     const pickRows = await readAll("picks", "user_id,event_id,picked,changed_at,synced_at", "user_id.asc,event_id.asc", gained ? null : stamp.picks);
     const followRows = await readAll("follows", "kind,key,followed,changed_at,synced_at", "kind.asc,key.asc", stamp.follows);
 
@@ -147,15 +146,7 @@ async function pull(user, stamp) {
     const heldPicks = own.filter(r => pending.picks.has(r.event_id)), heldFollows = followRows.filter(r => pending.follows.has(`${r.kind}:${r.key}`));
     const picksChanged = applyPulledPicks(own.filter(r => !pending.picks.has(r.event_id)));
     const followsChanged = applyPulledFollows(followRows.filter(r => !pending.follows.has(`${r.kind}:${r.key}`)));
-    const theirs = loadJSON(CREW_PICKS_KEY, {}) || {};
-    for (const id of Object.keys(theirs)) if (!mates.has(id)) delete theirs[id];
-    for (const r of pickRows) {
-      if (r.user_id === user || !mates.has(r.user_id)) continue;
-      const going = theirs[r.user_id] || (theirs[r.user_id] = {});
-      if (r.picked) going[r.event_id] = true; else delete going[r.event_id];
-    }
-    saveJSON(CREW_KEY, crew);
-    saveJSON(CREW_PICKS_KEY, theirs);
+    applyPulledCrews(crew, pickRows, user);
     saveJSON(STAMP_KEY, {user, picks: watermark(pickRows, heldPicks, stamp.picks), follows: watermark(followRows, heldFollows, stamp.follows)});
     if (picksChanged || followsChanged) requestRender();
   } finally {
