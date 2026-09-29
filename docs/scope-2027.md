@@ -60,7 +60,7 @@ with the entry's number; deferred, a doc puts it off and says until when -
 a tentpole, the spring, past 2027; open, a doc names it or asks about it,
 and nothing has ruled on it; untouched, no doc mentions it. State is as
 the sweep found it (PR #68), before the verdicts; #59 and #60 decide W32,
-W38 to W42 and W45.
+W38 to W42 and W45. W46 is Part B's, added after the sweep.
 
 | id | feature | sources | state | description | test | verdict |
 |---|---|---|---|---|---|---|
@@ -73,14 +73,14 @@ W38 to W42 and W45.
 | W7 | The parsed facets and a game's play on screen: extra fee, sold out, sign-up, minimum age, part, repeats; format and level | #32, #39; schema-v2, Facets | open | The parsed facets on the row and the sheet - extra fee, sold out, sign-up, minimum age, part N, repeats (since PR #20) - and the tagger's play on a gaming event, its format and level (since PR #25). Read by no screen; some reach the reader only as the title's own words (SOLD OUT, $$, Part 2). | plan: yes | 2027 |
 | W8 | Topics as a Search filter | cat. P7 | untouched | The four topic axes as a search filter. | plan: yes | merged into W13 |
 | W9 | Search results grouped by day | cat. P8 | untouched | Ranked results regrouped under day headers. The no-query listing is by day already; grouping ranked results breaks the ranking. | plan: marginal | out - breaks the ranking; the no-query view is grouped already |
-| W10 | Recent and pinned searches on the empty state | cat. P9 | untouched | With the search box empty, Search also shows the last few queries; one can be pinned. Local storage only. | plan: a convenience | checkpoint, rank 4 |
+| W10 | Recent and pinned searches on the empty state | cat. P9 | untouched | With the search box empty, Search also shows the last few queries; one can be pinned. Local storage only. | plan: a convenience | checkpoint, rank 5 |
 | W11 | A day heat strip in Search | cat. P10 | untouched | A thin bar under the day chips, a segment an hour, darker where more matching events start. Its meaning was never settled. | plan: unclear | out - the picks reading is Mine's timeline; the matches reading is unwanted for now |
 | W12 | Swipe to star, swipe between days | cat. P11 | untouched | Swipe a row to star; swipe between days. | none | out - accidental stars; day navigation is Where things live's question |
 | W13 | A filter sheet with a count badge | ROADMAP, Where things live; cat. P12 | open | The filters leave the chip rows for a sheet opened by one button whose badge counts the active filters; the sheet holds the day - unless Where things live keeps it by the box (W12) - hotel, kind, type, fandom, track, the photo-and-screening hide (B3), the topic axes (W8) and the facet flags (W7). | plan: yes | 2027 |
 | W14 | Kind icons on rows | cat. P13 | untouched | An icon per row for its kind. | none | out - a row-design detail, Where things live's |
-| W15 | Onboarding: pick your fandoms | cat. P14 | untouched | A first-run screen asking which works to follow, to seed For you. | plan: seeds W3 | checkpoint, rank 8 - in tension with the ladder's rule against prompting before the app has shown its worth; W16 does the job by showing |
+| W15 | Onboarding: pick your fandoms | cat. P14 | untouched | A first-run screen asking which works to follow, to seed For you. | plan: seeds W3 | checkpoint, rank 9 - in tension with the ladder's rule against prompting before the app has shown its worth; W16 does the job by showing |
 | W16 | A curated zero state, so the app explains itself to strangers | VISION, Who it is for; cat. P15 | open | With nothing starred the app shows a curated first screen, something worth looking at, so a stranger understands it in one screen. | plan: yes, for newcomers | 2027 |
-| W17 | A pre-con "help me plan", behind a flag, as an experiment | VISION, Not doing; #22; cat. P17 | open | A pre-con "help me plan" over the schedule, conversational, behind a flag: an experiment, never a dependency (#22). | plan: yes | checkpoint, rank 5 - the con-day app must not depend on it |
+| W17 | A pre-con "help me plan", behind a flag, as an experiment | VISION, Not doing; #22; cat. P17 | open | A pre-con "help me plan" over the schedule, conversational, behind a flag: an experiment, never a dependency (#22). | plan: yes | checkpoint, rank 6 - the con-day app must not depend on it |
 | W18 | Level and "how to get there" on rows and the event sheet | VISION, the stretch; #21, #45; cat. P18 | decided | Each row and the event sheet name the room's level and a one-line "how to get there", from the pipeline's venues data, which ships first and improves them on its own (#21); no "how to get there" line exists yet. | plan: yes | 2027 (#21) |
 | W19 | The crew screens: create, join by the link, your crews, the invite shared or renewed, leave, remove, delete | VISION, the ladder and Coordinate; #10, #50, #56, #57; ROADMAP, Where things live; sync contract, section 8; cat. C1 | decided | The screens for the crew actions #50 kept and `src/crews.js` built (B30; #56): create, join by the link, the reader's crews, the invite shared or renewed, leave, remove, delete. The join step says, in one sentence, that joining shares your name and your stars with everyone in the crew. W28's name edit merged in: #50 has none, and the policies allow it but no action sends one yet (#56). | coordinate: yes | 2027 (#50) |
 | W20 | Join by pasting the link, for an installed iPhone app that a tapped link never reaches | #56, #57; ROADMAP, Where things live and Delivery; sync contract, section 8 and Open | decided | A field in the crew screens that takes a pasted invite link and joins as a tapped one does, for the installed iPhone app a tapped link never reaches - to be confirmed on a phone (#56). | coordinate: yes | 2027 (#56) |
@@ -89,11 +89,11 @@ W38 to W42 and W45.
 | W23 | The crew Now board | VISION, Coordinate; #10, #50; cat. C4 | deferred, to Where things live | One screen: each crewmate, and what they have picked for now and next, from their picks and never from their location (#5). Its data is kept (B30) - crewmates' picks, pulled - and no now-and-next reader is built; the screen is one Where things live invents rather than rearranges, and its shape is open. | coordinate: yes | 2027 |
 | W24 | Status pings tied to a pick | VISION, Coordinate; #10, #40, #50; ROADMAP, Where things live; cat. C5 | deferred, to the spring | One tap on a pick - on my way, here, running late, skipping - that crewmates see on the board and on that pick. Tied to a pick, not free text. Seen at the next open until W35. | coordinate: yes | checkpoint, rank 2 - usage unknown; ask the crew before the checkpoint |
 | W25 | Share a day in one tap, by a link that needs no backend | VISION, Coordinate; #10, #50, #57; cat. C6, C7 | decided | One tap shares a day's picks as a link that needs no backend (#10, #50). | coordinate: yes | 2027 (#10, #50) |
-| W26 | Hand a crew over | #56, #57; sync contract, section 8 | deferred, to the spring, and only if a crew asks | The creator makes another member the creator. | coordinate: an edge case | checkpoint, rank 7 - #56 holds it for the spring, only if a crew asks |
+| W26 | Hand a crew over | #56, #57; sync contract, section 8 | deferred, to the spring, and only if a crew asks | The creator makes another member the creator. | coordinate: an edge case | checkpoint, rank 8 - #56 holds it for the spring, only if a crew asks |
 | W27 | Rename a crew | #56, #57; sync contract, sections 3 and 8 | open | Rename a crew after create. | coordinate: marginal | out - delete and recreate covers it, though every member rejoins by a new link; the policies allow a rename (#56); reopen if a crew asks |
 | W28 | Change your name in a crew | #56; sync contract, sections 3 and 8 | open | Edit your own display name on your membership row. | coordinate: yes | merged into W19 |
-| W29 | Hide my plan | #57 | open | Stay in a crew but keep your picks from it, or from one member; one table and one policy clause. | coordinate: a privacy control | checkpoint, rank 9 - leaving (for the creator, deleting) is the control; the join step's sentence, W19's, is the contract |
-| W30 | A recover that brings your crews and notifications across | #51; sync contract, section 1 | open | Signing in with an existing email on a phone whose anonymous user has crews carries those memberships across, instead of leaving them to rejoin by link. | keep: yes, narrowly | checkpoint, rank 6 |
+| W29 | Hide my plan | #57 | open | Stay in a crew but keep your picks from it, or from one member; one table and one policy clause. | coordinate: a privacy control | checkpoint, rank 10 - leaving (for the creator, deleting) is the control; the join step's sentence, W19's, is the contract |
+| W30 | A recover that brings your crews and notifications across | #51; sync contract, section 1 | open | Signing in with an existing email on a phone whose anonymous user has crews carries those memberships across, instead of leaving them to rejoin by link. | keep: yes, narrowly | checkpoint, rank 7 |
 | W31 | Settings that sync across your devices | #27, #32, #50 | deferred, past 2027 | The crowd factor and the photo-session and screening hide (B3) carried between devices. | keep | out - settings do not sync in 2027 (#50) |
 | W32 | A short "what we store" page | cat. F11 | untouched | One page behind the gear, in three parts. What we store: what the phone holds, what the server holds once the phone has a user - at its first crew, notification or email - what a crew sees, and what today's controls delete and what they leave: Remove all unstars, leaving a tombstone on the server for each pick, and Sign out removes the session and keeps the plan. About this app. The links: one to Dragon Con's official site and app. | no - reference, about the app (#59) | 2027 (#59) |
 | W33 | Where the 2026 app and its archive live after the cutover | cat. F10 | untouched | Where the frozen 2026 app is reachable once the live link is 2027. | none | out - a cutover decision, ROADMAP's Checklist |
@@ -109,6 +109,7 @@ W38 to W42 and W45.
 | W43 | Accessibility, properly | VISION, Who it is for and What this is built to learn; cat. F2 | open | Every screen with labels for screen readers, focus order, contrast, reduced motion and tap targets; larger text exists (B18), and reduced motion and some labels do in part. | who it is for: a property, not a feature | 2027, as a requirement on Where things live's screens, checked by Playwright when it comes |
 | W44 | A calendar alarm in the `.ics` export, a fixed lead time before each pick, for people who never install and so never get a push | cat. P16, recast by the design chat, 2026-09-29 | untouched | Each exported event carries an alarm a fixed lead before it starts, so people who never install still get an alert from their calendar app. | plan and tell me: yes | 2027 |
 | W45 | Delete my account, from the "what we store" page | #59; the design chat's pass, 2026-09-29 | untouched | One call that removes the user's rows and the auth user, from the "what we store" page (W32). | keep, and what a public link owes | 2027 (#59), beside W32 |
+| W46 | Your own schedule items | Part B, `docs/official-app-2026.md`, section 3 | untouched | A title, a place and a time that is not on the con's schedule - a dinner reservation, a meeting place, a shuttle - on the same timeline as the picks and in the same clash check. A pick today is an event id, so a personal item is a new shape in picks, sync and the timeline. | plan: yes | checkpoint, rank 4 |
 
 ## 3. Verdicts
 
@@ -149,12 +150,13 @@ And the pass's:
 1. W4, similar events, computed in the pipeline
 2. W24, status pings tied to a pick
 3. W35, crew pings by push, after W24
-4. W10, recent and pinned searches
-5. W17, a pre-con "help me plan", behind a flag
-6. W30, a recover that brings a phone's crews across
-7. W26, hand a crew over
-8. W15, onboarding: pick your fandoms
-9. W29, hide my plan
+4. W46, your own schedule items
+5. W10, recent and pinned searches
+6. W17, a pre-con "help me plan", behind a flag
+7. W30, a recover that brings a phone's crews across
+8. W26, hand a crew over
+9. W15, onboarding: pick your fandoms
+10. W29, hide my plan
 
 **Out:**
 
