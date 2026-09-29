@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Building view · motion sketch, round 6</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<style>
+  /* The app's own tokens (src/styles.css), so the sketch is judged in the app's skin. */
+  :root {
+    --ink: #171A33; --surface: #22264A; --raised: #2B3060; --line: #3A3F70;
+    --text: #F3EFE4; --muted: #A5A9C9; --dim: #6F739A;
+    --gold: #F3C64B; --gold-ink: #2A2200; --warn: #FF8A7A;
+    --h-Marriott: #F0705D; --h-Hyatt: #55B7DD; --h-Hilton: #79D19B; --h-Courtland: #C797F5;
+    --h-Westin: #F5A63F; --h-Mart: #C6DC6B; --park: #3FA34D;
+    --font: "Barlow Semi Condensed", "Avenir Next Condensed", "Roboto Condensed", system-ui, sans-serif;
+    --page: #E9E7DF;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #0C0E1E; } }
+  :root[data-theme="dark"] { --page: #0C0E1E; }
+
+  * { box-sizing: border-box; }
+  html { background: var(--page); -webkit-text-size-adjust: 100%; }
+  body { margin: 0; font-family: var(--font); font-size: 1.0625rem; line-height: 1.3; color: var(--text); background: var(--page);
+         -webkit-tap-highlight-color: transparent; }
+  .phone { max-width: 430px; margin: 0 auto; min-height: 100dvh; background: var(--ink); }
+  @media (min-width: 460px) { .phone { border-left: 1px solid var(--line); border-right: 1px solid var(--line); } }
+
+  .hdr { padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 8px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .hdr h1 { margin: 0; font-size: 1rem; font-weight: 700; }
+  .hdr span { font-size: .8125rem; color: var(--dim); font-weight: 600; }
+
+  .stage { position: sticky; top: 0; z-index: 2; background: var(--ink); padding: 12px 14px 8px; border-bottom: 1px solid var(--line); }
+  svg.map { display: block; width: 100%; height: auto; touch-action: manipulation; }
+
+  .map-ground { fill: var(--surface); }
+  .map-street { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
+  .map-street.faint { stroke-width: 2; opacity: .55; }
+  .map-street-label { font-family: var(--font); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; fill: var(--dim); }
+  .map-bridge { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 4; stroke-linecap: round; }
+
+  .hotel { cursor: pointer; }
+  .hotel.park { cursor: default; }
+  .hotel:focus { outline: none; }
+  .hotel:focus-visible .face rect { stroke-width: 3; }
+  .tilt { transform-box: fill-box; transform-origin: 50% 50%; }
+  .plate > .tilt > rect { fill: color-mix(in srgb, var(--h) 12%, var(--ink)); stroke: var(--h); stroke-width: 1.5; }
+  .plate.face > .tilt > rect { fill: color-mix(in srgb, var(--h) 18%, var(--surface)); }
+  .park .plate.face > .tilt > rect { fill: color-mix(in srgb, var(--h) 12%, var(--surface)); }
+  .plate:not(.face) { opacity: 0; }
+  .name { font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: .06em; fill: var(--h); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .name.long { font-size: 9.5px; letter-spacing: .04em; }
+  .park .name { font-size: 9px; }
+  .lvl { font-family: var(--font); font-size: 6.5px; font-weight: 600; fill: var(--muted); text-anchor: start; dominant-baseline: central; opacity: 0; pointer-events: none; }
+  .dot { fill: var(--gold); stroke: var(--ink); stroke-width: .8; opacity: 0; pointer-events: none; transform-box: fill-box; transform-origin: 50% 50%; }
+  .pill rect { fill: var(--gold); }
+  .pill text { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--gold-ink); text-anchor: middle; dominant-baseline: central; }
+  .flash { fill: #fff; opacity: 0; pointer-events: none; }
+
+  /* The level's top-down drawing: built once inside its plate at frame size, shrunk to the plate's footprint.
+     The drop-in only moves the camera close enough to read it. */
+  .plan { pointer-events: none; }
+  .plan .outline { fill: var(--surface); stroke: var(--h); stroke-width: 2; stroke-linejoin: round; opacity: 0; }
+  .plan .room.mine { pointer-events: auto; cursor: pointer; }
+  .room.ball rect.blk { fill: color-mix(in srgb, var(--h) 10%, var(--surface)); stroke: color-mix(in srgb, var(--h) 70%, var(--surface)); stroke-width: 1.4; }
+  .room.ball line { stroke: color-mix(in srgb, var(--h) 70%, var(--surface)); stroke-width: 1; stroke-dasharray: 4 3; opacity: .85; }
+  .room.ball .sec { font-family: var(--font); font-size: 15px; font-weight: 700; fill: var(--h); text-anchor: middle; dominant-baseline: central; }
+  .room.ball .cap { font-family: var(--font); font-size: 6.5px; font-weight: 700; fill: var(--h); letter-spacing: .12em; text-anchor: start; }
+  .room.ball .col { font-family: var(--font); font-size: 5.5px; font-weight: 600; fill: var(--muted); letter-spacing: .1em; text-anchor: middle; }
+  .room.ball .corr { font-family: var(--font); font-size: 6px; font-weight: 500; fill: var(--dim); text-anchor: middle; dominant-baseline: central; }
+  .room.open rect { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; }
+  .runbox { fill: none; stroke: color-mix(in srgb, var(--h) 70%, var(--surface)); stroke-width: 1.4; }
+  .runline { stroke: color-mix(in srgb, var(--h) 70%, var(--surface)); stroke-width: 1; stroke-dasharray: 4 3; opacity: .85; }
+  .room.part rect { stroke: none; }
+  .room.open text { fill: var(--dim); font-weight: 500; }
+  .plan .title { font-family: var(--font); font-size: 14px; font-weight: 700; fill: var(--text); opacity: 0; }
+  .plan .title tspan { fill: var(--h); }
+  .room { opacity: 0; transform-box: fill-box; transform-origin: 50% 50%; }
+  .room rect { fill: color-mix(in srgb, var(--h) 16%, var(--surface)); stroke: color-mix(in srgb, var(--h) 70%, var(--surface)); stroke-width: 1.2; }
+  .room text { font-family: var(--font); font-weight: 600; fill: var(--text); text-anchor: middle; dominant-baseline: central; }
+  .room.mine rect { fill: var(--gold); stroke: var(--gold); }
+  .room.mine text { fill: var(--gold-ink); font-weight: 700; }
+  .room.aux rect { fill: none; stroke: color-mix(in srgb, var(--muted) 45%, transparent); stroke-dasharray: 3 3; }
+  .room.aux text { fill: var(--dim); font-weight: 500; }
+  .plan .note { font-family: var(--font); font-size: 7px; font-weight: 600; fill: var(--dim); opacity: 0; }
+  .lm { opacity: 0; }
+  .lm path, .lm rect, .lm line { stroke: var(--muted); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .lm path, .lm rect { stroke: var(--gold); }
+  .lm text { font-family: var(--font); font-size: 7px; font-weight: 600; fill: var(--gold); text-anchor: middle; }
+
+  /* The event card, in the app's hero style. */
+  .card { margin: 10px 14px 0; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 5px; }
+  .card[hidden] { display: none; }
+  .ckicker { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .ctitle { font-size: 1.1875rem; font-weight: 700; line-height: 1.2; }
+  .ctitle::before { content: "★ "; color: var(--gold); }
+  .cmeta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .875rem; color: var(--muted); }
+  .rchip { display: inline-flex; align-items: baseline; gap: 5px; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: .8125rem;
+           background: color-mix(in srgb, var(--h) 18%, transparent); color: var(--h); border: 1px solid color-mix(in srgb, var(--h) 45%, transparent); }
+  .cwho { font-size: .875rem; color: var(--muted); line-height: 1.3; }
+  .cleave { font-size: .9375rem; font-weight: 700; color: var(--gold); }
+
+  /* The level rail: screen space, outside the camera. */
+  .rail { opacity: 0; pointer-events: none; }
+  .rail.on { pointer-events: auto; }
+  .rail-bar { cursor: pointer; }
+  .rail-bar rect { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+  .rail-bar.cur rect { fill: color-mix(in srgb, var(--gold) 22%, var(--surface)); stroke: var(--gold); }
+  .rail-bar text { font-family: var(--font); font-size: 6.5px; font-weight: 700; fill: var(--muted); text-anchor: middle; dominant-baseline: central; }
+  .rail-bar.cur text { fill: var(--gold); }
+
+  .bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; }
+  .btn { height: 40px; padding: 0 14px; border-radius: 10px; font: inherit; font-weight: 600; font-size: .9375rem; border: 0; cursor: pointer;
+         background: var(--raised); color: var(--text); border: 1px solid var(--line); }
+  .btn.gold { background: var(--gold); color: var(--gold-ink); border-color: var(--gold); }
+  .status { flex: 1; min-width: 0; font-size: .875rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .status b { color: var(--text); font-weight: 700; }
+  .readout { padding: 6px 14px 2px; font-size: .8125rem; color: var(--dim); font-variant-numeric: tabular-nums; line-height: 1.5; }
+  .readout b { color: var(--gold); font-weight: 700; }
+  .hint { padding: 4px 14px 0; font-size: .875rem; color: var(--muted); }
+
+  .knobs { padding: 6px 14px 40px; }
+  .knobs h2 { margin: 20px 0 6px; font-size: .9375rem; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; align-items: baseline; }
+  .knobs h2 button { background: none; border: 0; color: var(--dim); font: inherit; font-size: .8125rem; cursor: pointer; padding: 0; }
+  .knob { display: grid; grid-template-columns: 7.5rem 1fr 3.6rem; align-items: center; gap: 10px; min-height: 40px; border-top: 1px solid var(--line); }
+  .knob label { font-size: .9375rem; }
+  .knob output { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); font-size: .9375rem; }
+  .knob input[type=range] { width: 100%; accent-color: var(--gold); margin: 0; }
+  .knob select { width: 100%; height: 34px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: .9375rem; padding: 0 8px; }
+  .knob.wide { grid-template-columns: 7.5rem 1fr; }
+  .knob small { display: block; color: var(--dim); font-size: .75rem; font-weight: 500; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="hdr"><h1>Building view</h1><span>motion sketch · round 6 · placed from the con map</span></div>
+
+  <div class="stage">
+    <svg class="map" viewBox="-3 111 385 305" role="group" aria-label="Schematic map of the con hotels, not to scale" id="map"></svg>
+  </div>
+
+  <div class="card" id="card" hidden></div>
+
+  <div class="bar">
+    <button class="btn gold" id="replay" type="button">Replay</button>
+    <button class="btn" id="back" type="button">Back</button>
+    <div class="status" id="status">Tap a hotel</div>
+  </div>
+  <div class="readout" id="readout"></div>
+  <div class="hint">Tap the Hilton: five levels, placed from Dragon Con's own map. Picks on the Galleria and the 2nd floor; tap a gold room for its card.</div>
+
+  <div class="knobs" id="knobs">
+    <h2>Drop-in <button type="button" data-reset="drop">Reset</button></h2>
+    <div class="knob"><label for="drop">Drop</label><input type="range" id="drop" min="300" max="900" step="10"><output for="drop"></output></div>
+    <div class="knob wide"><label for="dropEase">Drop easing</label><select id="dropEase"></select></div>
+    <div class="knob wide"><label for="others">Other levels<small>while one is open</small></label><select id="others"><option value="fade">fade away</option><option value="rail">collapse into a rail</option></select></div>
+    <div class="knob wide"><label for="resolve">Dots become rooms</label><select id="resolve"><option value="grow">slide and grow</option><option value="fade">plain fade</option></select></div>
+    <div class="knob"><label for="roomStagger">Room stagger</label><input type="range" id="roomStagger" min="10" max="60" step="5"><output for="roomStagger"></output></div>
+    <div class="knob"><label for="roomCap">Room stagger cap<small>total, however many rooms</small></label><input type="range" id="roomCap" min="100" max="600" step="20"><output for="roomCap"></output></div>
+    <div class="knob"><label for="lmDelay">Landmark delay<small>after the last room</small></label><input type="range" id="lmDelay" min="0" max="400" step="20"><output for="lmDelay"></output></div>
+
+    <h2>Projection <button type="button" data-reset="proj">Reset</button></h2>
+    <div class="knob"><label for="levels">Levels</label><input type="range" id="levels" min="2" max="10" step="1"><output for="levels"></output></div>
+    <div class="knob"><label for="skew">Skew angle</label><input type="range" id="skew" min="0" max="45" step="1"><output for="skew"></output></div>
+    <div class="knob"><label for="squash">Squash</label><input type="range" id="squash" min="0.3" max="1" step="0.05"><output for="squash"></output></div>
+    <div class="knob"><label for="gap">Plate gap</label><input type="range" id="gap" min="6" max="24" step="1"><output for="gap"></output></div>
+    <div class="knob"><label for="zoom">Zoom</label><input type="range" id="zoom" min="1.4" max="3" step="0.1"><output for="zoom"></output></div>
+    <div class="knob"><label for="landing">Landing height<small>where the roof lands</small></label><input type="range" id="landing" min="0.15" max="0.55" step="0.01"><output for="landing"></output></div>
+
+    <h2>Timing <button type="button" data-reset="time">Reset</button></h2>
+    <div class="knob"><label for="lift">Lift</label><input type="range" id="lift" min="200" max="900" step="10"><output for="lift"></output></div>
+    <div class="knob wide"><label for="liftEase">Lift easing</label><select id="liftEase"></select></div>
+    <div class="knob"><label for="overlap">Overlap<small>extrude starts this far into the lift</small></label><input type="range" id="overlap" min="0" max="100" step="5"><output for="overlap"></output></div>
+    <div class="knob"><label for="plate">Plate</label><input type="range" id="plate" min="150" max="600" step="10"><output for="plate"></output></div>
+    <div class="knob wide"><label for="plateEase">Plate easing</label><select id="plateEase"></select></div>
+    <div class="knob"><label for="stagger">Stagger</label><input type="range" id="stagger" min="10" max="80" step="5"><output for="stagger"></output></div>
+    <div class="knob"><label for="cap">Stagger cap<small>total, however many levels</small></label><input type="range" id="cap" min="100" max="500" step="10"><output for="cap"></output></div>
+    <div class="knob"><label for="dim">Hotels fade to</label><input type="range" id="dim" min="5" max="100" step="5"><output for="dim"></output></div>
+    <div class="knob"><label for="groundDim">Streets fade to</label><input type="range" id="groundDim" min="0" max="100" step="5"><output for="groundDim"></output></div>
+    <div class="knob"><label for="ret">Return takes<small>of the way-in time</small></label><input type="range" id="ret" min="0.4" max="1" step="0.05"><output for="ret"></output></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---- Geometry, verbatim from src/app.js ---------------------------------
+  const VIEW = {x: -3, y: 111, w: 385, h: 305}, MAP_W = 380;
+  const STREETS = {Peachtree: 110, Courtland: 296};
+  const HOTELS = {
+    "AmericasMart":    {x: 12,  y: 216, w: 72, h: 64, label: "MART",      hue: "var(--h-Mart)",      picks: 0, style: "mart"},
+    "Westin":          {x: 48,  y: 332, w: 60, h: 56, label: "WESTIN",    hue: "var(--h-Westin)",    picks: 0, style: "westin"},
+    "Hyatt":           {x: 120, y: 222, w: 60, h: 56, label: "HYATT",     hue: "var(--h-Hyatt)",     picks: 2, style: "hyatt"},
+    "Marriott":        {x: 190, y: 222, w: 60, h: 56, label: "MARRIOTT",  hue: "var(--h-Marriott)",  picks: 3, style: "marriott"},
+    "Hilton":          {x: 307, y: 222, w: 60, h: 56, label: "HILTON",    hue: "var(--h-Hilton)",    picks: 1, style: "hilton"},
+    "Courtland Grand": {x: 300, y: 347, w: 60, h: 56, label: "COURTLAND", hue: "var(--h-Courtland)", picks: 0, long: true, style: "courtland"},
+    "Hardy Ivy Park":  {x: 117, y: 124, w: 60, h: 24, label: "HARDY IVY", hue: "var(--park)",        park: true},
+  };
+  const BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
+  const DOTS_BY_LEVEL = {1: 2, 3: 1};              // fake picks by level index, counted from the bottom
+  const PICK_ROOMS = {2: [1, 6], 1: [4]};           // which fake rooms those dots become
+
+  // ---- Real levels. Sizes in feet from the hotel's own capacity tables; placement inferred, unverified. ----
+  const LEVELS_BY_HOTEL = {Hilton: ["Galleria", "1st Floor", "2nd Floor", "3rd Floor", "4th Floor"]};   // bottom to top
+  const DOTS_BY_HOTEL = {Hilton: {0: 1, 2: 1}};                                                            // by level index
+  const R = (id, x, y, w, h) => ({id, x, y, w, h});
+  const LEVEL_DATA = {
+    "Hilton|Galleria": {extent: {"x": 0, "y": 0, "w": 300, "h": 370}, picks: [{"rooms": ["Galleria 5"], "event": {"title": "The BritTrack Presents a Sing-along: George Michael & Spice Girls", "day": "Sunday", "time": "7:00 – 8:00 PM", "hotel": "Hilton", "room": "Galleria 5", "track": "BritTrack", "who": "Bring your voice, your commitment, and a working knowledge of the hand gestures.", "leave": "leave the Hyatt by 6:38"}}], rooms: [{"id": "Galleria 4", "cx": 77, "cy": 73, "w": 73, "h": 43, "rot": 0}, {"id": "Galleria 1", "cx": 225, "cy": 50, "w": 50, "h": 58, "rot": 0}, {"id": "Galleria 5", "cx": 84, "cy": 167, "w": 94, "h": 63, "rot": 0}, {"id": "Galleria 8", "cx": 58, "cy": 326, "w": 34, "h": 51, "rot": 0}], runs: [{"id": "Galleria 7-Galleria 6", "cx": 84, "cy": 235, "L": 94, "depth": 64, "rot": 0, "parts": [{"id": "Galleria 7", "len": 47, "off": 0.0, "cx": 60.5, "cy": 235.0}, {"id": "Galleria 6", "len": 47, "off": 47.0, "cx": 107.5, "cy": 235.0}]}, {"id": "Galleria 2-Galleria 3", "cx": 225, "cy": 198, "L": 87, "depth": 51, "rot": 90, "parts": [{"id": "Galleria 2", "len": 56, "off": 0.0, "cx": 225.0, "cy": 182.5}, {"id": "Galleria 3", "len": 31, "off": 56.0, "cx": 225.0, "cy": 226.0}]}], ballrooms: [], open: [{"name": "Hallway", "cx": 160, "cy": 182, "w": 18, "h": 150, "rot": 0}], landmarks: [{"name": "Escalators up to the lobby", "x": 240, "y": 300, "glyph": "<path d=\"M-14 8 L0 -6 M-6 8 L8 -6 M2 8 L16 -6\"/>"}, {"name": "Elevators", "x": 240, "y": 345, "glyph": "<rect x=\"-9\" y=\"-5\" width=\"18\" height=\"10\" rx=\"1.5\"/><path d=\"M-3 -2 L-3 2 M3 -2 L3 2\"/>"}]},
+    "Hilton|1st Floor": {extent: {"x": 0, "y": 0, "w": 330, "h": 320}, picks: [], rooms: [], runs: [], ballrooms: [{"id": "Crystal Ballroom", "name": "CRYSTAL BALLROOM", "x": 170.5, "y": 59.5, "w": 55, "h": 75, "vlines": [26], "hlines": [28, 47], "sections": [["A", 0, 0, 26, 28], ["F", 26, 0, 29, 28], ["B", 0, 28, 26, 19], ["E", 26, 28, 29, 19], ["C", 0, 47, 26, 28], ["D", 26, 47, 29, 28]], "corridor": null, "columns": []}], open: [{"name": "Foyer", "cx": 240, "cy": 97, "w": 24, "h": 80, "rot": 0}, {"name": "Main Lobby", "cx": 120, "cy": 258, "w": 150, "h": 70, "rot": 0}, {"name": "Patio", "cx": 300, "cy": 97, "w": 44, "h": 60, "rot": 0}], landmarks: [{"name": "Escalators down to the Galleria", "x": 212, "y": 262, "glyph": "<path d=\"M-14 8 L0 -6 M-6 8 L8 -6 M2 8 L16 -6\"/>"}, {"name": "Escalators up to 2nd", "x": 140, "y": 202, "glyph": "<path d=\"M-14 8 L0 -6 M-6 8 L8 -6 M2 8 L16 -6\"/>"}, {"name": "Elevators", "x": 130, "y": 165, "glyph": "<rect x=\"-9\" y=\"-5\" width=\"18\" height=\"10\" rx=\"1.5\"/><path d=\"M-3 -2 L-3 2 M3 -2 L3 2\"/>"}, {"name": "Accessible lift", "x": 252, "y": 156, "glyph": "<rect x=\"-9\" y=\"-5\" width=\"18\" height=\"10\" rx=\"1.5\"/><path d=\"M-3 -2 L-3 2 M3 -2 L3 2\"/>"}, {"name": "John Portman entrance", "x": 165, "y": 312, "glyph": "<path d=\"M-11 -7 V7 H11 V-7 M0 -7 V7 M-11 7 H11\"/>"}]},
+    "Hilton|2nd Floor": {extent: {"x": 0, "y": 0, "w": 400, "h": 400}, picks: [{"rooms": ["209", "210", "211"], "event": {"title": "Medicine vs. Medical Television", "day": "Saturday", "time": "5:30 – 6:30 PM", "hotel": "Hilton", "room": "209-211", "track": "Science", "who": "Topher Hunter (moderator), Robert E Hampson, Kali Holder, Em Kat Lewis, Savannah Miller", "leave": "leave the Marriott by 5:12"}}], rooms: [{"id": "208", "cx": 87, "cy": 194, "w": 34, "h": 25, "rot": 61}, {"id": "202", "cx": 121, "cy": 341, "w": 45, "h": 25, "rot": 32}, {"id": "203", "cx": 90, "cy": 355, "w": 40, "h": 26, "rot": 34}], runs: [{"id": "211-209", "cx": 53, "cy": 132, "L": 108, "depth": 27, "rot": 61, "parts": [{"id": "211", "len": 40, "off": 0.0, "cx": 36.5, "cy": 102.3}, {"id": "210", "len": 34, "off": 40.0, "cx": 54.5, "cy": 134.6}, {"id": "209", "len": 34, "off": 74.0, "cx": 70.9, "cy": 164.4}]}, {"id": "212-214", "cx": 102, "cy": 108, "L": 102, "depth": 25, "rot": 61, "parts": [{"id": "212", "len": 38, "off": 0.0, "cx": 86.5, "cy": 80.0}, {"id": "213", "len": 30, "off": 38.0, "cx": 103.0, "cy": 109.7}, {"id": "214", "len": 34, "off": 68.0, "cx": 118.5, "cy": 137.7}]}, {"id": "204-207", "cx": 63, "cy": 294, "L": 145, "depth": 25, "rot": -59, "parts": [{"id": "204", "len": 40, "off": 0.0, "cx": 36.0, "cy": 339.0}, {"id": "205", "len": 31, "off": 40.0, "cx": 54.2, "cy": 308.6}, {"id": "206", "len": 35, "off": 71.0, "cx": 71.2, "cy": 280.3}, {"id": "207", "len": 39, "off": 106.0, "cx": 90.3, "cy": 248.6}]}], ballrooms: [{"id": "Grand Ballroom", "name": "GRAND BALLROOM", "x": 180.5, "y": 20.5, "w": 135, "h": 145, "vlines": [53, 80], "hlines": [86], "sections": [["D", 0, 0, 53, 86], ["C", 0, 86, 53, 59], ["A", 80, 0, 55, 86], ["B", 80, 86, 55, 59]], "corridor": [53, 0, 27, 145], "columns": [["WEST", 0, 53], ["EAST", 80, 55]]}, {"id": "Salon", "name": "SALON", "x": 200.5, "y": 293.0, "w": 151, "h": 98, "vlines": [75.5], "hlines": [], "sections": [["West", 0, 0, 75.5, 98], ["East", 75.5, 0, 75.5, 98]], "corridor": null, "columns": []}], open: [{"name": "Pre-function", "cx": 248, "cy": 212, "w": 190, "h": 60, "rot": 0}, {"name": "Elevator lobby", "cx": 130, "cy": 222, "w": 44, "h": 44, "rot": 0}], landmarks: [{"name": "Escalators", "x": 300, "y": 205, "glyph": "<path d=\"M-14 8 L0 -6 M-6 8 L8 -6 M2 8 L16 -6\"/>"}, {"name": "Elevators", "x": 160, "y": 252, "glyph": "<rect x=\"-9\" y=\"-5\" width=\"18\" height=\"10\" rx=\"1.5\"/><path d=\"M-3 -2 L-3 2 M3 -2 L3 2\"/>"}, {"name": "Convention information", "x": 215, "y": 236, "glyph": "<circle r=\"7\"/><path d=\"M0 -1 V4 M0 -4 V-3.2\"/>"}, {"name": "Skybridge to the Marriott", "x": 30, "y": 220, "glyph": "<path d=\"M-14 4 Q0 -8 14 4 M-14 4 V-1 M14 4 V-1\"/>"}]},
+    "Hilton|3rd Floor": {extent: {"x": 0, "y": 0, "w": 400, "h": 230}, picks: [], rooms: [{"id": "315", "cx": 137, "cy": 107, "w": 35, "h": 25, "rot": -28}], runs: [{"id": "301-305", "cx": 265, "cy": 133, "L": 229, "depth": 26, "rot": 0, "parts": [{"id": "301", "len": 37, "off": 0.0, "cx": 169.0, "cy": 133.0}, {"id": "302", "len": 48, "off": 37.0, "cx": 211.5, "cy": 133.0}, {"id": "303", "len": 48, "off": 85.0, "cx": 259.5, "cy": 133.0}, {"id": "304", "len": 48, "off": 133.0, "cx": 307.5, "cy": 133.0}, {"id": "305", "len": 48, "off": 181.0, "cx": 355.5, "cy": 133.0}]}, {"id": "306-308", "cx": 244, "cy": 186, "L": 78, "depth": 23, "rot": 0, "parts": [{"id": "306", "len": 26, "off": 0.0, "cx": 218.0, "cy": 186.0}, {"id": "307", "len": 26, "off": 26.0, "cx": 244.0, "cy": 186.0}, {"id": "308", "len": 26, "off": 52.0, "cx": 270.0, "cy": 186.0}]}, {"id": "309-312", "cx": 75, "cy": 95, "L": 106, "depth": 24, "rot": 59, "parts": [{"id": "309", "len": 26, "off": 0.0, "cx": 54.4, "cy": 60.7}, {"id": "310", "len": 27, "off": 26.0, "cx": 68.0, "cy": 83.4}, {"id": "311", "len": 27, "off": 53.0, "cx": 82.0, "cy": 106.6}, {"id": "312", "len": 26, "off": 80.0, "cx": 95.6, "cy": 129.3}]}, {"id": "313-314", "cx": 125, "cy": 60, "L": 52, "depth": 25, "rot": 60, "parts": [{"id": "313", "len": 26, "off": 0.0, "cx": 118.5, "cy": 48.7}, {"id": "314", "len": 26, "off": 26.0, "cx": 131.5, "cy": 71.3}]}], ballrooms: [], open: [{"name": "Elevator lobby", "cx": 112, "cy": 178, "w": 44, "h": 44, "rot": 0}], landmarks: [{"name": "Elevators", "x": 140, "y": 195, "glyph": "<rect x=\"-9\" y=\"-5\" width=\"18\" height=\"10\" rx=\"1.5\"/><path d=\"M-3 -2 L-3 2 M3 -2 L3 2\"/>"}, {"name": "Escalators", "x": 165, "y": 180, "glyph": "<path d=\"M-14 8 L0 -6 M-6 8 L8 -6 M2 8 L16 -6\"/>"}]},
+    "Hilton|4th Floor": {extent: {"x": 0, "y": 0, "w": 300, "h": 170}, picks: [], rooms: [], runs: [{"id": "401-403", "cx": 190, "cy": 62, "L": 75, "depth": 27, "rot": 0, "parts": [{"id": "401", "len": 25, "off": 0.0, "cx": 165.0, "cy": 62.0}, {"id": "402", "len": 25, "off": 25.0, "cx": 190.0, "cy": 62.0}, {"id": "403", "len": 25, "off": 50.0, "cx": 215.0, "cy": 62.0}]}, {"id": "406-407", "cx": 176, "cy": 110, "L": 54, "depth": 26, "rot": 0, "parts": [{"id": "406", "len": 28, "off": 0.0, "cx": 163.0, "cy": 110.0}, {"id": "407", "len": 26, "off": 28.0, "cx": 190.0, "cy": 110.0}]}, {"id": "404-405", "cx": 239, "cy": 110, "L": 54, "depth": 26, "rot": 0, "parts": [{"id": "404", "len": 28, "off": 0.0, "cx": 226.0, "cy": 110.0}, {"id": "405", "len": 26, "off": 28.0, "cx": 253.0, "cy": 110.0}]}], ballrooms: [], open: [{"name": "Elevator lobby", "cx": 58, "cy": 85, "w": 44, "h": 44, "rot": 0}], landmarks: [{"name": "Elevators", "x": 100, "y": 125, "glyph": "<rect x=\"-9\" y=\"-5\" width=\"18\" height=\"10\" rx=\"1.5\"/><path d=\"M-3 -2 L-3 2 M3 -2 L3 2\"/>"}, {"name": "Escalators", "x": 125, "y": 108, "glyph": "<path d=\"M-14 8 L0 -6 M-6 8 L8 -6 M2 8 L16 -6\"/>"}]},
+  };
+
+  // ---- Fake level plans: plan space is 300 x 280, mapped onto the 60 x 56 block ----
+  const PW = 300, PH = 280;
+  const OUTLINE = "M12 12 H288 V196 H196 V268 H12 Z";
+  const ROOM_BOXES = [[24,44,76,44],[108,44,76,44],[192,44,84,44],[24,100,76,44],[108,100,76,44],[192,100,84,44],[24,156,76,28],[108,156,76,28],[192,156,84,28],[24,208,76,52]];
+  const LANDMARKS = [
+    {name: "Escalators", x: 146, y: 234, glyph: '<path d="M-14 8 L0 -6 M-6 8 L8 -6 M2 8 L16 -6"/>'},
+    {name: "Elevators",  x: 242, y: 188, glyph: '<rect x="-9" y="-5" width="18" height="10" rx="1.5"/><path d="M-3 -2 L-3 2 M3 -2 L3 2"/>'},
+    {name: "Skybridge",  x: 262, y: 22,  glyph: '<path d="M-14 4 Q0 -8 14 4 M-14 4 V-2 M14 4 V-2"/>'},
+  ];
+  const HYATT_ROOMS = ["Regency V", "Regency VI", "Regency VII", "Hanover A", "Hanover B", "Hanover C", "Hanover D", "Piedmont", "Roswell", "Learning Ctr"];
+  function roomNames(style, n) {
+    switch (style) {
+      case "marriott":  return ROOM_BOXES.map((_, i) => `${n >= 4 ? "A" : "M"}${n}${String(i + 1).padStart(2, "0")}`);
+      case "hyatt":     return HYATT_ROOMS;
+      case "hilton":    return [2, 3, 4, 5, 6, 9, 10, 11, 12, 13].map(k => `${n}${String(k).padStart(2, "0")}`);
+      case "westin":    return ROOM_BOXES.map((_, i) => i < 6 ? `Chastain ${"ABCDEF"[i]}` : `Augusta ${i - 5}`);
+      case "courtland": return ROOM_BOXES.map((_, i) => `Atlanta ${i + 1}`);
+      default:          return ROOM_BOXES.map((_, i) => `Hall ${i + 1}`);
+    }
+  }
+
+  // ---- Knobs ---------------------------------------------------------------
+  const EASES = {
+    "ease-out-quint": "cubic-bezier(.22,1,.36,1)",
+    "ease-out-cubic": "cubic-bezier(.33,1,.68,1)",
+    "overshoot":      "cubic-bezier(.34,1.56,.64,1)",
+    "ease-in-out":    "cubic-bezier(.65,0,.35,1)",
+  };
+  const DEFAULTS = {
+    drop: {drop: 550, dropEase: "ease-out-quint", others: "fade", resolve: "grow", roomStagger: 25, roomCap: 300, lmDelay: 120},
+    proj: {levels: 5, skew: 30, squash: 0.5, gap: 13, zoom: 2.2, landing: 0.28},
+    time: {lift: 450, liftEase: "ease-out-quint", overlap: 60, plate: 300, plateEase: "ease-out-quint", stagger: 30, cap: 250, dim: 20, groundDim: 10, ret: 0.65},
+  };
+  const FMT = {
+    levels: v => v, skew: v => v + "°", squash: v => (+v).toFixed(2), gap: v => v, zoom: v => (+v).toFixed(1) + "×", landing: v => Math.round(v * 100) + "%",
+    lift: v => v + " ms", overlap: v => v + "%", plate: v => v + " ms", stagger: v => v + " ms", cap: v => v + " ms", dim: v => v + "%", groundDim: v => v + "%", ret: v => Math.round(v * 100) + "%",
+    drop: v => v + " ms", roomStagger: v => v + " ms", roomCap: v => v + " ms", lmDelay: v => v + " ms",
+  };
+  const STORE = "dc-motion-r3";
+  const K = Object.assign({}, DEFAULTS.drop, DEFAULTS.proj, DEFAULTS.time);
+  try { Object.assign(K, JSON.parse(localStorage.getItem(STORE) || "{}")); } catch (e) {}
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(K)); } catch (e) {} };
+
+  // ---- Stage: built once from the data; animations only flip state on it ----
+  const svg = document.getElementById("map");
+  const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  const rad = d => d * Math.PI / 180;
+
+  function street(name, x, faint) {
+    return `<line class="map-street${faint ? " faint" : ""}" x1="${x}" y1="${VIEW.y}" x2="${x}" y2="${VIEW.y + VIEW.h}"/>
+      <text class="map-street-label" transform="translate(${x - 7} 212) rotate(-90)">${name} St</text>`;
+  }
+  function bridge([a, b]) {
+    const A = HOTELS[a], B = HOTELS[b], beside = Math.abs(A.y - B.y) < A.h;
+    const [x1, y1, x2, y2] = beside ? [A.x + A.w, A.y + A.h / 2, B.x, B.y + B.h / 2] : [A.x + A.w / 2, A.y + A.h, B.x + B.w / 2, B.y];
+    return `<line class="map-bridge" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  }
+  function pill(b, n) {
+    if (!n) return "";
+    const w = n > 9 ? 30 : 22, h = 18, cx = Math.min(b.x + b.w - 2, MAP_W - 2 - w / 2), cy = b.y + 2;
+    return `<g class="pill"><rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="${h / 2}"/><text x="${cx}" y="${cy}">${n}</text></g>`;
+  }
+  const levelsOf = (name, N) => LEVELS_BY_HOTEL[name] || Array.from({length: N}, (_, i) => i === 0 ? "Lobby" : `Level ${i + 1}`);
+  const levelName = (name, j, N) => levelsOf(name, N)[N - 1 - j];
+  const levelShort = (name, j, N) => { const n = levelName(name, j, N); return n === "Lobby" ? "L" : n === "Galleria" ? "G" : n.replace(/^(\d)\w+ Floor$/, "$1").replace("Level ", ""); };
+  const dotsAt = (name, i) => (DOTS_BY_HOTEL[name] || DOTS_BY_LEVEL)[i] || 0;
+  const fontFor = (w, h, s) => Math.max(6.5, Math.min(10, h * .62, w * 1.75 / Math.max(1, s.length))).toFixed(1);
+
+  /* The level's drawing, in plan space (300 wide), placed on the block by one static transform.
+     Returns the SVG and, for each pick, its centre in hotel-local coordinates for the dot to travel to. */
+  function planSVG(name, b, j, N) {
+    const lvl = levelName(name, j, N), real = LEVEL_DATA[`${name}|${lvl}`];
+    let planW = PW, planH = PH, body = "", picks = [];
+    if (real) {
+      const f = PW / real.extent.w; planH = real.extent.h * f;
+      const P = v => (v * f).toFixed(1), T = (cx, cy, rot) => rot ? ` transform="rotate(${rot} ${P(cx)} ${P(cy)})"` : "";
+      const pickOf = id => real.picks.findIndex(p => p.rooms.includes(id));
+      body += `<rect class="outline" x="0" y="0" width="${PW}" height="${planH.toFixed(1)}" rx="6"/>`;
+      body += `<text class="title" x="10" y="${(planH - 8).toFixed(1)}">${esc(lvl)} <tspan>· ${b.label}</tspan></text>`;
+      real.open.forEach(o => {
+        body += `<g${T(o.cx, o.cy, o.rot)}><g class="room open aux" data-pick="-1"><rect x="${P(o.cx - o.w / 2)}" y="${P(o.cy - o.h / 2)}" width="${P(o.w)}" height="${P(o.h)}" rx="3"/><text x="${P(o.cx)}" y="${P(o.cy)}" style="font-size:${fontFor(o.w * f, o.h * f, o.name)}px">${esc(o.name)}</text></g></g>`;
+      });
+      real.ballrooms.forEach(bl => {
+        const bx = bl.x * f, by = bl.y * f, bw = bl.w * f, bh = bl.h * f;
+        let inner = `<rect class="blk" x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="2.5"/>`;
+        bl.vlines.forEach(v => { inner += `<line x1="${(bx + v * f).toFixed(1)}" y1="${by.toFixed(1)}" x2="${(bx + v * f).toFixed(1)}" y2="${(by + bh).toFixed(1)}"/>`; });
+        bl.hlines.forEach(h => { inner += `<line x1="${bx.toFixed(1)}" y1="${(by + h * f).toFixed(1)}" x2="${(bx + bw).toFixed(1)}" y2="${(by + h * f).toFixed(1)}"/>`; });
+        bl.sections.forEach(([nm, sx, sy, sw, sh]) => { inner += `<text class="sec" x="${(bx + (sx + sw / 2) * f).toFixed(1)}" y="${(by + (sy + sh / 2) * f).toFixed(1)}"${nm.length > 1 ? ' style="font-size:11px"' : ""}>${esc(nm)}</text>`; });
+        if (bl.corridor) { const [cx0, cy0, cw, ch] = bl.corridor, cx = bx + (cx0 + cw / 2) * f, cy = by + (cy0 + ch / 2) * f; inner += `<text class="corr" x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" transform="rotate(-90 ${cx.toFixed(1)} ${cy.toFixed(1)})">Corridor</text>`; }
+        bl.columns.forEach(([nm, sx, sw]) => { inner += `<text class="col" x="${(bx + (sx + sw / 2) * f).toFixed(1)}" y="${(by + 8).toFixed(1)}">${nm}</text>`; });
+        inner += `<text class="cap" x="${(bx + 4).toFixed(1)}" y="${(by - 4).toFixed(1)}">${esc(bl.name)}</text>`;
+        body += `<g class="room ball" data-id="${esc(bl.id)}" data-pick="-1">${inner}</g>`;
+      });
+      real.rooms.forEach(r => {
+        const pi = pickOf(r.id), x = r.cx - r.w / 2, y = r.cy - r.h / 2;
+        body += `<g${T(r.cx, r.cy, r.rot)}><g class="room${pi >= 0 ? " mine" : ""}" data-id="${esc(r.id)}" data-pick="${pi}"><rect x="${P(x)}" y="${P(y)}" width="${P(r.w)}" height="${P(r.h)}" rx="2"/><text x="${P(r.cx)}" y="${P(r.cy)}" style="font-size:${fontFor(r.w * f, r.h * f, r.id)}px">${esc(r.id)}</text></g></g>`;
+      });
+      real.runs.forEach(ru => {
+        const x0 = ru.cx - ru.L / 2, y0 = ru.cy - ru.depth / 2; let inner = "";
+        ru.parts.forEach((pt, i) => {
+          const pi = pickOf(pt.id), px = x0 + pt.off;
+          inner += `<g class="room part${pi >= 0 ? " mine" : ""}" data-id="${esc(pt.id)}" data-pick="${pi}"><rect x="${P(px)}" y="${P(y0)}" width="${P(pt.len)}" height="${P(ru.depth)}" rx="1"/><text x="${P(px + pt.len / 2)}" y="${P(ru.cy)}" style="font-size:${fontFor(pt.len * f, ru.depth * f, pt.id)}px">${esc(pt.id)}</text></g>`;
+          if (i) inner += `<line class="runline" x1="${P(px)}" y1="${P(y0)}" x2="${P(px)}" y2="${P(y0 + ru.depth)}"/>`;
+        });
+        body += `<g${T(ru.cx, ru.cy, ru.rot)}>${inner}<rect class="runbox" x="${P(x0)}" y="${P(y0)}" width="${P(ru.L)}" height="${P(ru.depth)}" rx="2.5"/></g>`;
+      });
+      real.landmarks.forEach((l, i) => { body += `<g class="lm" data-i="${i}" transform="translate(${P(l.x)} ${P(l.y)})">${l.glyph}<text y="17">${l.name}</text></g>`; });
+      const allRooms = [...real.rooms, ...real.runs.flatMap(ru => ru.parts.map(pt => ({id: pt.id, cx: pt.cx, cy: pt.cy})))];
+      picks = real.picks.map(p => {
+        const rs = allRooms.filter(r => p.rooms.includes(r.id));
+        return {x: rs.reduce((a, r) => a + r.cx, 0) / rs.length * f, y: rs.reduce((a, r) => a + r.cy, 0) / rs.length * f};
+      });
+    } else {
+      const n = Math.max(1, levelsOf(name, N).length - j), names = roomNames(b.style, n);
+      const pickIdx = PICK_ROOMS[dotsAt(name, N - 1 - j)] || [];
+      body += `<path class="outline" d="${OUTLINE}"/>`;
+      body += `<text class="title" x="24" y="30">${esc(lvl)} <tspan>· ${b.label}</tspan></text>`;
+      body += `<text class="note" x="24" y="42">placeholder plan</text>`;
+      ROOM_BOXES.forEach(([x, y, w, h], i) => {
+        const pi = pickIdx.indexOf(i);
+        body += `<g class="room${pi >= 0 ? " mine" : ""}" data-pick="${pi}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/><text x="${x + w / 2}" y="${y + h / 2}" style="font-size:${fontFor(w, h, names[i])}px">${esc(names[i])}</text></g>`;
+      });
+      LANDMARKS.forEach((l, i) => { body += `<g class="lm" data-i="${i}" transform="translate(${l.x} ${l.y})">${l.glyph}<text y="18">${l.name}</text></g>`; });
+      picks = pickIdx.map(i => { const [x, y, w, h] = ROOM_BOXES[i]; return {x: x + w / 2, y: y + h / 2}; });
+    }
+    // fit the plan onto the block, letterboxed
+    const k = Math.min(b.w / planW, b.h / planH), ox = (b.w - planW * k) / 2, oy = (b.h - planH * k) / 2;
+    const svg = `<g class="plan" transform="translate(${(b.x + ox).toFixed(2)} ${(b.y + oy).toFixed(2)}) scale(${k.toFixed(4)})">${body}</g>`;
+    return {svg, picks: picks.map(p => ({x: b.x + ox + p.x * k, y: b.y + oy + p.y * k}))};
+  }
+  /* One hotel: N plates, index 0 is the roof (the block itself), N-1 the lobby. Deeper plates first. */
+  function hotelSVG(name, b) {
+    const N = b.park ? 1 : levelsOf(name, K.levels).length, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    const rightEdge = cx + b.w / 2 + Math.tan(rad(K.skew)) * (b.h * K.squash) / 2 + 5;
+    let plates = "", labels = "", dots = "";
+    for (let j = N - 1; j >= 0; j--) {
+      const ty = K.gap * j, plan = b.park ? null : planSVG(name, b, j, N);
+      plates += `<g class="plate${j === 0 ? " face" : ""}" data-j="${j}" data-ty="${ty}"><g class="tilt"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.park ? 6 : 10}"/>${plan ? plan.svg : ""}</g></g>`;
+      if (!b.park) {
+        labels += `<text class="lvl" data-j="${j}" data-ty="${ty}" x="${rightEdge}" y="${cy}">${levelName(name, j, N)}</text>`;
+        const k = dotsAt(name, N - 1 - j);
+        for (let i = 0; i < k; i++) {
+          const t = plan.picks[i] || {x: cx, y: cy};
+          dots += `<circle class="dot" data-j="${j}" data-i="${i}" data-ty="${ty}" data-rx="${t.x.toFixed(2)}" data-ry="${t.y.toFixed(2)}" cx="${cx + (i - (k - 1) / 2) * 9}" cy="${cy}" r="3.4"/>`;
+        }
+      }
+    }
+    return `<g class="hotel${b.park ? " park" : ""}" data-hotel="${esc(name)}" style="--h:${b.hue}" ${b.park ? "" : 'role="button" tabindex="0"'} aria-label="${esc(name)}">
+      ${plates}${labels}${dots}
+      <text class="name${b.long ? " long" : ""}" x="${cx}" y="${cy}">${b.label}</text>
+      ${pill(b, b.picks)}
+      <rect class="flash" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="10"/>
+    </g>`;
+  }
+  const RAIL = {x: VIEW.x + VIEW.w - 36, w: 28, top: VIEW.y + 26, bottom: VIEW.y + VIEW.h - 26};
+  function railSVG(name, b) {
+    if (b.park) return "";
+    const N = levelsOf(name, K.levels).length, step = (RAIL.bottom - RAIL.top) / N, h = Math.min(16, step - 3);
+    let bars = "";
+    for (let j = 0; j < N; j++) {
+      const y = RAIL.top + step * j + (step - h) / 2;
+      bars += `<g class="rail-bar" data-j="${j}"><rect x="${RAIL.x}" y="${y}" width="${RAIL.w}" height="${h}" rx="3"/><text x="${RAIL.x + RAIL.w / 2}" y="${y + h / 2}">${levelShort(name, j, N)}</text></g>`;
+    }
+    return `<g class="rail" data-hotel="${esc(name)}" style="--h:${b.hue}">${bars}</g>`;
+  }
+  function buildStage() {
+    svg.innerHTML = `<rect class="map-ground" x="${VIEW.x}" y="${VIEW.y}" width="${VIEW.w}" height="${VIEW.h}" rx="14"/>
+      <g class="camera">
+        <g class="ground">${street("Peachtree", STREETS.Peachtree)}${street("Courtland", STREETS.Courtland, true)}${BRIDGES.map(bridge).join("")}</g>
+        ${Object.entries(HOTELS).map(([n, b]) => hotelSVG(n, b)).join("")}
+      </g>
+      ${Object.entries(HOTELS).map(([n, b]) => railSVG(n, b)).join("")}`;
+  }
+
+  // ---- State: two layers, each one reversible set of animations ----------------
+  let open = null, level = null, lastName = "Hilton", lastJ = 2, chainTo = null, pendingLevel = null;
+  const $ = id => document.getElementById(id);
+  const hotelEl = name => svg.querySelector(`.hotel[data-hotel="${CSS.escape(name)}"]`);
+
+  /* Pad every animation to one span T with delay + endDelay and fill: both, so the set reverses as an exact mirror. */
+  function run(specs) {
+    const T = Math.max(...specs.map(s => s.delay + s.duration));
+    return {T, anims: specs.map(s => s.el.animate(s.keyframes, {delay: s.delay, duration: s.duration, endDelay: T - s.delay - s.duration, easing: s.easing, fill: "both"}))};
+  }
+
+  // Layer 1: the lift and the extrude (round 1)
+  function start(name) {
+    const b = HOTELS[name], g = hotelEl(name);
+    const N = levelsOf(name, K.levels).length, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    const L = K.lift, D = K.plate, E0 = K.overlap / 100 * L;
+    const desc = N - 1, sEff = desc > 1 ? Math.min(K.stagger, K.cap / (desc - 1)) : K.stagger;
+    const liftEase = EASES[K.liftEase], plateEase = EASES[K.plateEase];
+    const tx = VIEW.x + VIEW.w / 2, ty = VIEW.y + VIEW.h * K.landing, S = K.zoom;
+    const specs = [];
+    const add = (el, keyframes, delay, duration, easing) => specs.push({el, keyframes, delay, duration, easing});
+
+    add(svg.querySelector(".camera"),
+      [{transform: `translate(${cx}px, ${cy}px) scale(1) translate(${-cx}px, ${-cy}px)`},
+       {transform: `translate(${tx}px, ${ty}px) scale(${S}) translate(${-cx}px, ${-cy}px)`}], 0, L, liftEase);
+    g.querySelectorAll(".tilt").forEach(t => add(t, [{transform: "skewX(0deg) scaleY(1)"}, {transform: `skewX(${-K.skew}deg) scaleY(${K.squash})`}], 0, L, liftEase));
+    add(g.querySelector(".name"), [{transform: "translateY(0px)"}, {transform: `translateY(${-(b.h * K.squash / 2 + 9)}px)`}], 0, L, liftEase);
+    const p = g.querySelector(".pill"); if (p) add(p, [{opacity: 1}, {opacity: 0}], 0, L * .5, "linear");
+    add(g.querySelector(".flash"), [{opacity: 0}, {opacity: .3, offset: .3}, {opacity: 0}], 0, 160, "linear");
+    svg.querySelectorAll(".camera > .hotel").forEach(el => { if (el !== g) add(el, [{opacity: 1}, {opacity: K.dim / 100}], 0, L * .6, "linear"); });
+    add(svg.querySelector(".camera > .ground"), [{opacity: 1}, {opacity: K.groundDim / 100}], 0, L * .6, "linear");
+
+    g.querySelectorAll(".plate:not(.face)").forEach(pl => {
+      const j = +pl.dataset.j, d = E0 + (j - 1) * sEff;
+      add(pl, [{transform: "translateY(0px)", opacity: 0}, {opacity: 1, offset: .35}, {transform: `translateY(${pl.dataset.ty}px)`, opacity: 1}], d, D, plateEase);
+    });
+    g.querySelectorAll(".lvl").forEach(t => {
+      const j = +t.dataset.j, d = j === 0 ? E0 : E0 + (j - 1) * sEff;
+      add(t, [{transform: "translateY(0px)", opacity: 0}, {opacity: 1, offset: .6}, {transform: `translateY(${t.dataset.ty}px)`, opacity: 1}], d, D, plateEase);
+    });
+    g.querySelectorAll(".dot").forEach(c => {
+      const j = +c.dataset.j, d = (j === 0 ? E0 : E0 + (j - 1) * sEff) + .75 * D;
+      add(c, [{transform: "translateY(0px)", opacity: 0}, {transform: `translateY(${c.dataset.ty}px)`, opacity: 0, offset: .01}, {transform: `translateY(${c.dataset.ty}px)`, opacity: 1}], d, 200, "linear");
+    });
+
+    const {T, anims} = run(specs), master = anims[0];
+    master.onfinish = () => {
+      if (master.playbackRate < 0) { cleanupOpen(); return; }
+      setStatus(`<b>${name}</b> open`);
+      if (chainTo !== null) { const j = chainTo; chainTo = null; dropIn(j); }
+    };
+    open = {name, anims, master, dir: 1, T, cam: {tx, ty, S, cx, cy}};
+    lastName = name;
+    setStatus(`lifting the <b>${name}</b>`);
+  }
+  function cleanupOpen() {
+    if (!open) return;
+    open.anims.forEach(a => a.cancel());
+    open = null;
+    setStatus("Tap a hotel");
+  }
+
+  // Layer 2: the drop-in, laid over layer 1's settled state
+  function dropIn(j) {
+    if (!open || level) return;
+    const {name, cam} = open, b = HOTELS[name], g = hotelEl(name), N = levelsOf(name, K.levels).length;
+    const plate = g.querySelector(`.plate[data-j="${j}"]`), tyj = +plate.dataset.ty;
+    const Dd = K.drop, ease = EASES[K.dropEase], rs = K.roomStagger, rail = K.others === "rail";
+    const margin = 12, railW = rail ? 44 : 0;
+    const S2 = Math.min((VIEW.w - 2 * margin - railW) / b.w, (VIEW.h - 2 * margin) / b.h);
+    const lx = VIEW.x + (VIEW.w - railW) / 2, ly = VIEW.y + VIEW.h / 2;
+    const specs = [];
+    const add = (el, keyframes, delay, duration, easing) => specs.push({el, keyframes, delay, duration, easing});
+
+    // the camera goes from the stack to the level; the plate flattens under it
+    add(svg.querySelector(".camera"),
+      [{transform: `translate(${cam.tx}px, ${cam.ty}px) scale(${cam.S}) translate(${-cam.cx}px, ${-cam.cy}px)`},
+       {transform: `translate(${lx}px, ${ly}px) scale(${S2}) translate(${-cam.cx}px, ${-(cam.cy + tyj)}px)`}], 0, Dd, ease);
+    add(plate.querySelector(".tilt"), [{transform: `skewX(${-K.skew}deg) scaleY(${K.squash})`}, {transform: "skewX(0deg) scaleY(1)"}], 0, Dd, ease);
+    // everything that belongs to the stack, not the level, goes
+    g.querySelectorAll(".plate, .lvl, .name").forEach(el => { if (el !== plate) add(el, [{opacity: getComputedStyle(el).opacity}, {opacity: 0}], 0, Dd * .5, "linear"); });
+    // the plate's rectangle becomes the level's outline
+    add(plate.querySelector(".tilt > rect"), [{opacity: 1}, {opacity: 0}], Dd * .55, Dd * .45, "linear");
+    ["outline", "title"].forEach(c => { const el = plate.querySelector(`.plan .${c}`); if (el) add(el, [{opacity: 0}, {opacity: 1}], Dd * .5, Dd * .5, "linear"); });
+    // rooms fan in from the escalator outward, stagger capped; your rooms arrive when their dot does
+    const rooms = [...plate.querySelectorAll(".room")];
+    const lm0 = plate.querySelector(".lm"), m = lm0 && lm0.getAttribute("transform").match(/translate\(([-\d.]+) ([-\d.]+)\)/);
+    const centre = el => { const bb = el.querySelector("rect").getBBox(); return {x: bb.x + bb.width / 2, y: bb.y + bb.height / 2}; };
+    const o = m ? {x: +m[1], y: +m[2]} : {x: 0, y: 0};
+    const order = rooms.map((r, i) => ({r, i, d: Math.hypot(centre(r).x - o.x, centre(r).y - o.y)})).sort((a, b) => a.d - b.d);
+    const rsEff = rooms.length > 1 ? Math.min(rs, K.roomCap / (rooms.length - 1)) : rs;
+    let roomsEnd = Dd * .6;
+    order.forEach(({r}, i) => {
+      const mine = r.classList.contains("mine"), grow = mine && K.resolve === "grow";
+      const d = grow ? Dd : Dd * .6 + i * rsEff, dur = grow ? 150 : 220;
+      add(r, [{opacity: 0, transform: grow ? "scale(1)" : "scale(.85)"}, {opacity: 1, transform: "scale(1)"}], d, dur, EASES["ease-out-cubic"]);
+      roomsEnd = Math.max(roomsEnd, d + dur);
+    });
+    // the dots: slide to their room and grow into it, or just go
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    g.querySelectorAll(".dot").forEach(c => {
+      const dj = +c.dataset.j;
+      if (dj !== j) { add(c, [{opacity: 1}, {opacity: 0}], 0, Dd * .4, "linear"); return; }
+      if (K.resolve !== "grow") { add(c, [{opacity: 1}, {opacity: 0}], 0, Dd * .5, "linear"); return; }
+      const dx = +c.dataset.rx - +c.getAttribute("cx"), dy = +c.dataset.ry + tyj - +c.getAttribute("cy");
+      add(c, [{transform: `translate(0px, ${tyj}px) scale(1)`, opacity: 1},
+              {transform: `translate(${dx}px, ${dy}px) scale(2.6)`, opacity: 1, offset: .7},
+              {transform: `translate(${dx}px, ${dy}px) scale(2.6)`, opacity: 0}], Dd * .3, Dd, ease);
+    });
+    // landmarks last
+    plate.querySelectorAll(".lm").forEach((l, i) => add(l, [{opacity: 0}, {opacity: 1}], roomsEnd + K.lmDelay + i * 60, 250, "linear"));
+    // the rail, in screen space
+    const railEl = svg.querySelector(`.rail[data-hotel="${CSS.escape(name)}"]`);
+    railEl.querySelectorAll(".rail-bar").forEach(bar => bar.classList.toggle("cur", +bar.dataset.j === j));
+    railEl.classList.toggle("on", rail);
+    if (rail) add(railEl, [{opacity: 0, transform: "translateX(30px)"}, {opacity: 1, transform: "translateX(0px)"}], Dd * .4, Dd * .5, ease);
+
+    const {T, anims} = run(specs), master = anims[0];
+    master.onfinish = () => {
+      if (master.playbackRate < 0) { cleanupLevel(); return; }
+      setStatus(`<b>${name}</b> · ${levelName(name, j, N)}`);
+    };
+    level = {j, anims, master, dir: 1, T};
+    lastJ = j;
+    setStatus(`dropping into ${levelName(name, j, N)}`);
+  }
+  function cleanupLevel() {
+    if (!level) return;
+    closeCard();
+    level.anims.forEach(a => a.cancel());
+    svg.querySelectorAll(".rail.on").forEach(r => r.classList.remove("on"));
+    level = null;
+    if (open) setStatus(`<b>${open.name}</b> open`);
+    if (pendingLevel !== null) { const j = pendingLevel; pendingLevel = null; dropIn(j); }
+  }
+  function flip(layer) {
+    if (layer === level && layer.dir > 0) closeCard();
+    layer.dir = -layer.dir;
+    const rate = layer.dir > 0 ? 1 : -(1 / K.ret);
+    layer.anims.forEach(a => { a.playbackRate = rate; a.play(); });
+    setStatus(layer.dir > 0 ? "going in" : "coming back");
+  }
+  const settled = layer => layer && layer.dir > 0 && layer.master.playState === "finished";
+
+  function tapHotel(name, plateJ) {
+    if (HOTELS[name].park) return;
+    if (!open) return start(name);
+    if (open.name !== name) return;                    // one hotel at a time
+    if (level) return flip(level);                     // in the level: toggle it
+    if (settled(open) && plateJ !== null) return dropIn(plateJ);
+    flip(open);                                        // mid-flight, or a tap off the plates
+  }
+  function tapRail(j) {
+    if (!level) return;
+    if (j === level.j) return;
+    if (!settled(level)) return;
+    pendingLevel = j; flip(level);
+  }
+  function setStatus(html) { $("status").innerHTML = html; }
+  let cardOpen = null;
+  function openCard(pick) {
+    const ev = pick.event, card = $("card");
+    card.innerHTML = `<div class="ckicker">${esc(ev.day)} · ${esc(ev.time)}</div><div class="ctitle">${esc(ev.title)}</div>
+      <div class="cmeta"><span class="rchip" style="--h:var(--h-${esc(ev.hotel)})"><span>${esc(ev.hotel)}</span><span>${esc(ev.room)}</span></span><span>${esc(ev.track)}</span></div>
+      <div class="cwho">${esc(ev.who)}</div><div class="cleave">${esc(ev.leave)}</div>`;
+    card.hidden = false;
+    card.animate([{opacity: 0, transform: "translateY(10px)"}, {opacity: 1, transform: "translateY(0)"}], {duration: 220, easing: EASES["ease-out-cubic"]});
+    cardOpen = pick;
+  }
+  function closeCard() { if (!cardOpen) return; $("card").hidden = true; cardOpen = null; }
+  function tapRoom(el) {
+    if (!level || !settled(level)) return false;
+    const real = LEVEL_DATA[`${open.name}|${levelName(open.name, level.j, levelsOf(open.name, K.levels).length)}`];
+    const pick = real && real.picks[+el.dataset.pick];
+    if (!pick) return false;
+    cardOpen === pick ? closeCard() : openCard(pick);
+    return true;
+  }
+
+  // ---- Readout: the numbers the design note will carry --------------------------
+  function readout() {
+    const N = K.levels, desc = N - 1, sEff = desc > 1 ? Math.min(K.stagger, K.cap / (desc - 1)) : K.stagger;
+    const E0 = K.overlap / 100 * K.lift, lastPlate = desc ? E0 + (desc - 1) * sEff + K.plate : K.lift;
+    const stack = Math.max(K.lift, lastPlate);
+    const nRooms = 16, rsEff = Math.min(K.roomStagger, K.roomCap / (nRooms - 1));
+    const lvl = K.drop * .6 + (nRooms - 1) * rsEff + 220, lms = lvl + K.lmDelay + 60 + 250;
+    const capped = (desc > 1 && sEff < K.stagger ? ` · plate stagger capped to ${Math.round(sEff)} ms` : "") + (rsEff < K.roomStagger ? ` · room stagger capped to ${rsEff.toFixed(0)} ms for ${nRooms} rooms` : "");
+    $("readout").innerHTML = `Stack readable at <b>${Math.round(stack)} ms</b>, return ${Math.round(stack * K.ret)} ms${capped}<br>Hilton L2 readable at <b>${Math.round(lvl)} ms</b>, landmarks by ${Math.round(lms)} ms, return ${Math.round(lms * K.ret)} ms`;
+  }
+
+  // ---- Wiring ----------------------------------------------------------------------
+  svg.addEventListener("click", e => {
+    const bar = e.target.closest(".rail-bar"); if (bar) return tapRail(+bar.dataset.j);
+    const room = e.target.closest(".room.mine"); if (room && tapRoom(room)) return;
+    const g = e.target.closest(".hotel"); if (!g) return;
+    const pl = e.target.closest(".plate");
+    tapHotel(g.dataset.hotel, pl ? +pl.dataset.j : null);
+  });
+  svg.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const g = e.target.closest(".hotel"); if (!g) return;
+    e.preventDefault(); tapHotel(g.dataset.hotel, open && open.name === g.dataset.hotel ? levelsOf(g.dataset.hotel, K.levels).length - 1 : null);
+  });
+  function cleanupAll() { cleanupLevel(); cleanupOpen(); }
+  $("replay").addEventListener("click", () => { const n = open ? open.name : lastName, j = level ? level.j : lastJ; cleanupAll(); if (j !== null) chainTo = j; start(n); });
+  $("back").addEventListener("click", () => { if (cardOpen) return closeCard(); if (level) { if (level.dir > 0) flip(level); } else if (open && open.dir > 0) flip(open); });
+
+  const inputs = [...document.querySelectorAll("#knobs input, #knobs select")];
+  function reflect() {
+    inputs.forEach(i => { i.value = K[i.id]; const o = i.parentElement.querySelector("output"); if (o) o.value = FMT[i.id](K[i.id]); });
+    readout();
+  }
+  function rebuild() {
+    const n = open ? open.name : null, j = level ? level.j : null;
+    cleanupAll(); buildStage(); readout();
+    if (n) { if (j !== null) chainTo = j; start(n); }
+  }
+  Object.keys(EASES).forEach(k => ["liftEase", "plateEase", "dropEase"].forEach(id => { const o = document.createElement("option"); o.value = k; o.textContent = k; $(id).appendChild(o); }));
+  inputs.forEach(i => {
+    i.addEventListener("input", () => { K[i.id] = i.type === "range" ? +i.value : i.value; const o = i.parentElement.querySelector("output"); if (o) o.value = FMT[i.id](K[i.id]); readout(); });
+    i.addEventListener("change", () => { K[i.id] = i.type === "range" ? +i.value : i.value; save(); rebuild(); });
+  });
+  document.querySelectorAll("[data-reset]").forEach(btn => btn.addEventListener("click", () => {
+    Object.assign(K, DEFAULTS[btn.dataset.reset]); save(); reflect(); rebuild();
+  }));
+
+  buildStage(); reflect();
+})();
+</script>
+</body>
+</html>
