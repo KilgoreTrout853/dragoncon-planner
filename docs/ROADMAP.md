@@ -322,7 +322,7 @@ and given a verdict: 2027, checkpoint candidate, or out. A description is
 what the test needs, not a design: a feature is still specified when its
 tentpole opens. A walk through the official 2026 app on a phone gives one
 row a feature, each marked planning, coordination or reference, and the
-pass writes a rule for reference content, which VISION's Not doing bans
+pass writes a rule for reference content, which VISION's Not doing banned
 only by implication. A DECISIONS entry comes of the pass only for a
 change to VISION. The pass adds to the spring checkpoint's list, and the
 checkpoint still cuts from the bottom.

@@ -108,7 +108,7 @@ W38 to W42 and W45.
 | W42 | Guest bios | VISION, Not doing; #57 | open | A celebrity's reviewed "known for" line beside their name on an event and on a person's page; no photos, no full bios. The data is to be the registry's. | plan: yes - it decides whether to pick the panel | 2027 (#59) |
 | W43 | Accessibility, properly | VISION, Who it is for and What this is built to learn; cat. F2 | open | Every screen with labels for screen readers, focus order, contrast, reduced motion and tap targets; larger text exists (B18), and reduced motion and some labels do in part. | who it is for: a property, not a feature | 2027, as a requirement on Where things live's screens, checked by Playwright when it comes |
 | W44 | A calendar alarm in the `.ics` export, a fixed lead time before each pick, for people who never install and so never get a push | cat. P16, recast by the design chat, 2026-09-29 | untouched | Each exported event carries an alarm a fixed lead before it starts, so people who never install still get an alert from their calendar app. | plan and tell me: yes | 2027 |
-| W45 | Delete my account, from the "what we store" page | #59; the design chat's pass, 2026-09-29 | untouched | One call that removes the user's rows and the auth user, from the "what we store" page (W32). | keep, and what a public link owes | 2027, beside W32 |
+| W45 | Delete my account, from the "what we store" page | #59; the design chat's pass, 2026-09-29 | untouched | One call that removes the user's rows and the auth user, from the "what we store" page (W32). | keep, and what a public link owes | 2027 (#59), beside W32 |
 
 ## 3. Verdicts
 
