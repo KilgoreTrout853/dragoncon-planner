@@ -75,7 +75,9 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
   floor with Overlook. A data PR to fold the level into Sixth Floor, with a census diff.
 - **Courtland Grand · levels unknown** — no hotel plan found; the con's map shows three floors, enough to name the
   levels in a data PR.
-- **AmericasMart** — several buildings, each with floors; Dragon Con's exhibitor map is the real source. Not searched yet.
+- **AmericasMart** — several buildings, each with floors; Dragon Con's map of each building is under
+  `reference/dragoncon/`, a picture with no room outlines; its exhibitor maps were not captured. The Mart's drawing is
+  W41's, as sources allow (DECISIONS #60).
 - **Hardy Ivy Park** — outdoor; no levels, no plan needed
 
 ## Adding an alias

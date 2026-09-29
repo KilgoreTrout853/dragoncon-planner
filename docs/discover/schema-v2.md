@@ -538,12 +538,13 @@ Embedding a typed query at runtime stays out (#22).
 ## The profile
 
 On the device, and keyed by the same ids as the data: follows, mutes, and
-weights computed from stars. Weights sync only as settings, and only after
-the email upgrade (#8, #25). Since the client switch (#39) a follow is
-stored by id - a work, an axis value as `<axis>:<value>`, a person - or, for
-a track, by its name. v1's fandom, topic and person follows were not
-mapped: they fall away as the stored list is read, because their kind or
-their key is not one the client keeps. A track follow stays.
+weights computed from stars. Weights are recomputed from the picks and
+follows, which sync, and settings do not sync in 2027 (#50). Since the
+client switch (#39) a follow is stored by id - a work, an axis value as
+`<axis>:<value>`, a person - or, for a track, by its name. v1's fandom,
+topic and person follows were not mapped: they fall away as the stored list
+is read, because their kind or their key is not one the client keeps. A
+track follow stays.
 
 ## About, and with the cast
 

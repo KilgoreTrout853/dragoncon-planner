@@ -2,8 +2,9 @@
 
 One file per hotel level, `<hotel>-<level>.json`, where `<hotel>` is the hotel's `hotel` key in `venues.json` folded
 to lower case and `<level>` is the level's `id` there. The file holds geometry only: what to draw, in feet, north up.
-Names, aliases and notes stay in `venues.json`; the app and `tools/render_drawings.py` look a level's name up there.
-Every drawn room is a room id of that level, so a schedule reading that lands on a room can light its shape.
+Names, aliases and notes stay in `venues.json`; `tools/render_drawings.py` looks a level's name up there, and the app
+will, from W38 (DECISIONS #60). Every drawn room is a room id of that level, so a schedule reading that lands on a room
+can light its shape.
 
 The drawings are ours (DECISIONS #28). Sizes come from the hotels' published capacity tables; placement and
 orientation come from reading Dragon Con's own map for where each room sits (`reference/dragoncon/maps.json`,
@@ -40,5 +41,5 @@ the con does not use). The test `tests/test_drawings.py` holds the file to this:
 ## Rendering
 
 `python tools/render_drawings.py [--png]` draws every file here to `docs/venues/drawings/<hotel>-<level>.svg` at
-2 px per foot with sizes printed, for checking by eye. That renderer documents the data; the app's stage builder is
-its own code and reads the same files.
+2 px per foot with sizes printed, for checking by eye. That renderer documents the data; the app's stage builder will be
+its own code and will read the same files, from W38 (DECISIONS #60).
