@@ -29,12 +29,13 @@ takes from the bottom (#18):
 1. W4, similar events, computed in the pipeline.
 2. W24, status pings tied to a pick.
 3. W35, crew pings by push, after W24.
-4. W10, recent and pinned searches.
-5. W17, a pre-con "help me plan", behind a flag.
-6. W30, a recover that brings a phone's crews across.
-7. W26, hand a crew over.
-8. W15, onboarding: pick your fandoms.
-9. W29, hide my plan.
+4. W46, your own schedule items.
+5. W10, recent and pinned searches.
+6. W17, a pre-con "help me plan", behind a flag.
+7. W30, a recover that brings a phone's crews across.
+8. W26, hand a crew over.
+9. W15, onboarding: pick your fandoms.
+10. W29, hide my plan.
 
 The building view, W38 to W41, ranks above every one: if the checkpoint
 must cut a 2027 row, not these (#60).
@@ -311,7 +312,7 @@ Checklist, below, keeps the history:
 - Production's `flags.push_enabled` on at the freeze and off after the
   con (#55; Checklist).
 
-### The scope pass — not a tentpole (#57); done (PR #69), its verdicts in; Part B to follow in a pull request of its own
+### The scope pass — not a tentpole (#57); done (PRs #69 and #70), its verdicts in and Part B landed; closed
 
 Its list is the union of three sources: VISION's pillars; every item
 DECISIONS or this file defers, holds, or names as the spring's, not built,
@@ -337,8 +338,9 @@ tests and verdicts, and section 3, the verdicts - 2027, the spring
 checkpoint's candidates in rank order, and out; and DECISIONS #59, the
 rule for reference content, and #60, the building view a 2027
 commitment, with the VISION changes they make. Part B,
-`docs/official-app-2026.md`, the walk, follows in a pull request of its
-own.
+`docs/official-app-2026.md`, the walk, landed by PR #70, and added W46,
+your own schedule items, to the spring checkpoint's candidates. With it the
+pass is closed.
 
 `docs/scope-2027.md`'s W44, a calendar alarm on each exported event, is
 2027: a small standalone pull request, for a free execution slot (#57).
