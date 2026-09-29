@@ -312,7 +312,8 @@ checkpoint still cuts from the bottom.
 
 Its output is two files: `docs/scope-2027.md`, Part A, the list and its
 verdicts; and `docs/official-app-2026.md`, Part B, the walk. Where things
-live opens with it.
+live opens with it. `docs/scope-2027.md` itself opens with an inventory of
+what the app does on `next` today, read before the list.
 
 ### 5. Where things live — not opened; opens with the scope pass's output (#57)
 
