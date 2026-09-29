@@ -1,16 +1,22 @@
 # reference/ — local copies of other people's drawings
 
 Everything in this folder except this file is gitignored. The hotels' floor plans and Dragon Con's
-maps are theirs; we keep copies here for tracing placement and never commit them.
+maps are theirs; we keep copies here for placing our own drawings and never commit them (DECISIONS #28).
 
 Layout:
 
     reference/
       plans/      hotel floor-plan PDFs, named <hotel>-<source>-<year>.pdf (paths are recorded in docs/venues/README.md)
       shots/      screenshots of single levels, named <hotel>-<level>.png, for use as a drawing underlay
-      dragoncon/  the con's own maps, if we ever get them
+      dragoncon/  the official app's maps: one PNG per venue with every floor on it, and maps.json, which records
+                  where the app outlines each room (Dragon Con's room name, polygon in image pixels, door points,
+                  2026 event count). Its own README.md says what was captured and how. maps.json is the placement
+                  data our drawings are read against; the PNGs are for the eye only.
 
 .gitignore carries these two lines:
 
     reference/*
     !reference/README.md
+
+A new clone has none of it. To rebuild: the PDFs are linked from docs/venues/README.md; the con's maps are at
+app.core-apps.com/dragoncon26/maps, and reference/dragoncon/README.md describes the capture.
