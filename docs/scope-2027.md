@@ -58,59 +58,133 @@ lists.
 State: decided, a DECISIONS entry commits to it, and its verdict reads 2027
 with the entry's number; deferred, a doc puts it off and says until when -
 a tentpole, the spring, past 2027; open, a doc names it or asks about it,
-and nothing has ruled on it; untouched, no doc mentions it.
+and nothing has ruled on it; untouched, no doc mentions it. State is as
+the sweep found it (PR #68), before the verdicts; #59 and #60 decide W32,
+W38 to W42 and W45.
 
 | id | feature | sources | state | description | test | verdict |
 |---|---|---|---|---|---|---|
-| W1 | An overlap warning when you star: "you can't make both" | VISION, Plan; cat. P1 | open | | | |
-| W2 | Alternatives in the same slot when a pick is cancelled or moved | VISION, Plan; #40; cat. P2 | decided | | | 2027 (#40) |
-| W3 | A real For you, from follows and similarity | VISION, Plan; #32, #50; ROADMAP, Where things live; cat. P3 | open | | | |
-| W4 | Similar events, their similarity computed in the pipeline | VISION, Plan; #22; cat. P4 | open | | | |
-| W5 | Mutes, in the on-device profile beside follows | #32; schema-v2, The profile | decided | | | 2027 (#32) |
-| W6 | "With the cast" in search and the Following feed, as on a work's page | #32, #39; schema-v2, About, and with the cast | decided | | | 2027 (#32) |
-| W7 | The parsed facets and a game's play on screen: extra fee, sold out, sign-up, minimum age, part, repeats; format and level | #32, #39; schema-v2, Facets | open | | | |
-| W8 | Topics as a Search filter | cat. P7 | untouched | | | |
-| W9 | Search results grouped by day | cat. P8 | untouched | | | |
-| W10 | Recent and pinned searches on the empty state | cat. P9 | untouched | | | |
-| W11 | A day heat strip in Search | cat. P10 | untouched | | | |
-| W12 | Swipe to star, swipe between days | cat. P11 | untouched | | | |
-| W13 | A filter sheet with a count badge | ROADMAP, Where things live; cat. P12 | open | | | |
-| W14 | Kind icons on rows | cat. P13 | untouched | | | |
-| W15 | Onboarding: pick your fandoms | cat. P14 | untouched | | | |
-| W16 | A curated zero state, so the app explains itself to strangers | VISION, Who it is for; cat. P15 | open | | | |
-| W17 | A pre-con "help me plan", behind a flag, as an experiment | VISION, Not doing; #22; cat. P17 | open | | | |
-| W18 | Level and "how to get there" on rows and the event sheet | VISION, the stretch; #21, #45; cat. P18 | decided | | | 2027 (#21) |
-| W19 | The crew screens: create, join by the link, your crews, the invite shared or renewed, leave, remove, delete | VISION, the ladder and Coordinate; #10, #50, #56, #57; ROADMAP, Where things live; sync contract, section 8; cat. C1 | decided | | | 2027 (#50) |
-| W20 | Join by pasting the link, for an installed iPhone app that a tapped link never reaches | #56, #57; ROADMAP, Where things live and Delivery; sync contract, section 8 and Open | decided | | | 2027 (#56) |
-| W21 | Crew picks on your timeline | VISION, the ladder and Coordinate; #10, #50, #56; ROADMAP, Where things live; sync contract, section 8; cat. C2 | decided | | | 2027 (#50) |
-| W22 | Who's going, per event | VISION, the ladder and Coordinate; #10, #50, #56; ROADMAP, Where things live; sync contract, section 8; cat. C3 | decided | | | 2027 (#50) |
-| W23 | The crew Now board | VISION, Coordinate; #10, #50; cat. C4 | deferred, to Where things live | | | |
-| W24 | Status pings tied to a pick | VISION, Coordinate; #10, #40, #50; ROADMAP, Where things live; cat. C5 | deferred, to the spring | | | |
-| W25 | Share a day in one tap, by a link that needs no backend | VISION, Coordinate; #10, #50, #57; cat. C6, C7 | decided | | | 2027 (#10, #50) |
-| W26 | Hand a crew over | #56, #57; sync contract, section 8 | deferred, to the spring, and only if a crew asks | | | |
-| W27 | Rename a crew | #56, #57; sync contract, sections 3 and 8 | open | | | |
-| W28 | Change your name in a crew | #56; sync contract, sections 3 and 8 | open | | | |
-| W29 | Hide my plan | #57 | open | A member keeps their picks from one crew, or one person in it, while staying a member; one table and one policy clause; not built. | | |
-| W30 | A recover that brings your crews and notifications across | #51; sync contract, section 1 | open | | | |
-| W31 | Settings that sync across your devices | #27, #32, #50 | deferred, past 2027 | | | |
-| W32 | A short "what we store" page | cat. F11 | untouched | | | |
-| W33 | Where the 2026 app and its archive live after the cutover | cat. F10 | untouched | | | |
-| W34 | Turn on notifications, and see them: the toggle, the browser's subscription and the worker's push handler | VISION, the ladder and Tell me; #20, #40, #51, #55, #57; ROADMAP, Where things live and Delivery; cat. T1 | decided | | | 2027 (#20) |
-| W35 | Crew pings by push | VISION, Tell me; #20, #50; cat. C8 | deferred, to the spring | | | |
-| W36 | An install flow good enough that iPhone users finish it | VISION, Tell me and Risks worth naming; ROADMAP, Delivery; cat. T5 | deferred, to Delivery | | | |
-| W37 | The install nudge as data safety, and when it shows | VISION, What done looks like and Risks worth naming; #25, #40; ROADMAP, Where things live; cat. K8 | open | | | |
-| W38 | The building view: a hotel's levels, the reader's picks lit | VISION, the stretch; #21, #28; ROADMAP, Places and Where things live; cat. B2 | deferred, gated at the spring checkpoint | | | |
-| W39 | The top-down level view: rooms in place, landmarks, a tap for what is on | VISION, the stretch; #28, #45, #58; ROADMAP, Places; cat. B3 | deferred, gated at the spring checkpoint | | | |
-| W40 | The animation between the views | VISION, the stretch; #21, #28; cat. B6 | deferred, built last | | | |
-| W41 | The building view for the Westin, the Courtland Grand and the Mart | #28; ROADMAP, Pipeline shape; cat. B7 | open | | | |
-| W42 | Guest bios | VISION, Not doing; #57 | open | | | |
-| W43 | Accessibility, properly | VISION, Who it is for and What this is built to learn; cat. F2 | open | | | |
-| W44 | A calendar alarm in the `.ics` export, a fixed lead time before each pick, for people who never install and so never get a push | cat. P16, recast by the design chat, 2026-09-29 | untouched | | | |
+| W1 | An overlap warning when you star: "you can't make both" | VISION, Plan; cat. P1 | open | At the moment of starring, the sheet says when the new pick overlaps another or can't be reached from one, and rows that clash with the plan carry a mark. Today a clash shows only afterwards: side by side on Mine's timeline, and as a line between one pick and the next in Mine's list and Now's rest of the day (B10, B12). Two stars in one slot stay allowed; the warning informs. | plan: yes | 2027 |
+| W2 | Alternatives in the same slot when a pick is cancelled or moved | VISION, Plan; #40; cat. P2 | decided | When a pick is cancelled or moved, the events in the time it vacated are offered in its place; a different slot is a different plan (#40). | plan: yes | 2027 (#40) |
+| W3 | A real For you, from follows and similarity | VISION, Plan; #32, #50; ROADMAP, Where things live; cat. P3 | open | A ranked list of unstarred events the reader probably wants, each with its reason (a follow, a starred work, an axis), minus what clashes with the plan. The first version ranks from the profile #32 decided (follows, mutes, and the weights computed from stars); later improvements to tags and registries, and search tuning (#36), raise the ranking without changing the feature. Its home is Where things live's. | plan: yes | 2027 |
+| W4 | Similar events, their similarity computed in the pipeline | VISION, Plan; #22; cat. P4 | open | For each event the pipeline computes its four nearest thematic neighbours (same people, same work, same kind) and ships the list; the sheet shows three or four "more like this". The same list for everyone; For you's "like your picks" comes only from this. Costs pipeline work and, measured on 2026's file, about half a megabyte uncompressed, some 100 KB compressed. | plan: yes, weakly on its own | checkpoint, rank 1 |
+| W5 | Mutes, in the on-device profile beside follows | #32; schema-v2, The profile | decided | Mutes, kept by id in the on-device profile beside follows and the weights computed from stars (#32). | plan: yes | 2027 (#32) |
+| W6 | "With the cast" in search and the Following feed, as on a work's page | #32, #39; schema-v2, About, and with the cast | decided | Following or searching a work lists the events about it first, then a separate "with the cast" group linked by credits, photo and signing kinds hidden there unless asked for (#32); built on a work's page alone (#39). | plan: yes | 2027 (#32) |
+| W7 | The parsed facets and a game's play on screen: extra fee, sold out, sign-up, minimum age, part, repeats; format and level | #32, #39; schema-v2, Facets | open | The parsed facets on the row and the sheet - extra fee, sold out, sign-up, minimum age, part N, repeats (since PR #20) - and the tagger's play on a gaming event, its format and level (since PR #25). Read by no screen; some reach the reader only as the title's own words (SOLD OUT, $$, Part 2). | plan: yes | 2027 |
+| W8 | Topics as a Search filter | cat. P7 | untouched | The four topic axes as a search filter. | plan: yes | merged into W13 |
+| W9 | Search results grouped by day | cat. P8 | untouched | Ranked results regrouped under day headers. The no-query listing is by day already; grouping ranked results breaks the ranking. | plan: marginal | out - breaks the ranking; the no-query view is grouped already |
+| W10 | Recent and pinned searches on the empty state | cat. P9 | untouched | With the search box empty, Search also shows the last few queries; one can be pinned. Local storage only. | plan: a convenience | checkpoint, rank 4 |
+| W11 | A day heat strip in Search | cat. P10 | untouched | A thin bar under the day chips, a segment an hour, darker where more matching events start. Its meaning was never settled. | plan: unclear | out - the picks reading is Mine's timeline; the matches reading is unwanted for now |
+| W12 | Swipe to star, swipe between days | cat. P11 | untouched | Swipe a row to star; swipe between days. | none | out - accidental stars; day navigation is Where things live's question |
+| W13 | A filter sheet with a count badge | ROADMAP, Where things live; cat. P12 | open | The filters leave the chip rows for a sheet opened by one button whose badge counts the active filters; the sheet holds the day - unless Where things live keeps it by the box (W12) - hotel, kind, type, fandom, track, the photo-and-screening hide (B3), the topic axes (W8) and the facet flags (W7). | plan: yes | 2027 |
+| W14 | Kind icons on rows | cat. P13 | untouched | An icon per row for its kind. | none | out - a row-design detail, Where things live's |
+| W15 | Onboarding: pick your fandoms | cat. P14 | untouched | A first-run screen asking which works to follow, to seed For you. | plan: seeds W3 | checkpoint, rank 8 - in tension with the ladder's rule against prompting before the app has shown its worth; W16 does the job by showing |
+| W16 | A curated zero state, so the app explains itself to strangers | VISION, Who it is for; cat. P15 | open | With nothing starred the app shows a curated first screen, something worth looking at, so a stranger understands it in one screen. | plan: yes, for newcomers | 2027 |
+| W17 | A pre-con "help me plan", behind a flag, as an experiment | VISION, Not doing; #22; cat. P17 | open | A pre-con "help me plan" over the schedule, conversational, behind a flag: an experiment, never a dependency (#22). | plan: yes | checkpoint, rank 5 - the con-day app must not depend on it |
+| W18 | Level and "how to get there" on rows and the event sheet | VISION, the stretch; #21, #45; cat. P18 | decided | Each row and the event sheet name the room's level and a one-line "how to get there", from the pipeline's venues data, which ships first and improves them on its own (#21); no "how to get there" line exists yet. | plan: yes | 2027 (#21) |
+| W19 | The crew screens: create, join by the link, your crews, the invite shared or renewed, leave, remove, delete | VISION, the ladder and Coordinate; #10, #50, #56, #57; ROADMAP, Where things live; sync contract, section 8; cat. C1 | decided | The screens for the crew actions #50 kept and `src/crews.js` built (B30; #56): create, join by the link, the reader's crews, the invite shared or renewed, leave, remove, delete. The join step says, in one sentence, that joining shares your name and your stars with everyone in the crew. W28's name edit merged in: #50 has none, and the policies allow it but no action sends one yet (#56). | coordinate: yes | 2027 (#50) |
+| W20 | Join by pasting the link, for an installed iPhone app that a tapped link never reaches | #56, #57; ROADMAP, Where things live and Delivery; sync contract, section 8 and Open | decided | A field in the crew screens that takes a pasted invite link and joins as a tapped one does, for the installed iPhone app a tapped link never reaches - to be confirmed on a phone (#56). | coordinate: yes | 2027 (#56) |
+| W21 | Crew picks on your timeline | VISION, the ladder and Coordinate; #10, #50, #56; ROADMAP, Where things live; sync contract, section 8; cat. C2 | decided | Crewmates' picks overlaid on the reader's timeline, from the pull's copy (#50; B30). | coordinate: yes | 2027 (#50) |
+| W22 | Who's going, per event | VISION, the ladder and Coordinate; #10, #50, #56; ROADMAP, Where things live; sync contract, section 8; cat. C3 | decided | On each event, the crewmates who starred it; a star means going (#50, #52; B30). | coordinate: yes | 2027 (#50) |
+| W23 | The crew Now board | VISION, Coordinate; #10, #50; cat. C4 | deferred, to Where things live | One screen: each crewmate, and what they have picked for now and next, from their picks and never from their location (#5). Its data is kept (B30) - crewmates' picks, pulled - and no now-and-next reader is built; the screen is one Where things live invents rather than rearranges, and its shape is open. | coordinate: yes | 2027 |
+| W24 | Status pings tied to a pick | VISION, Coordinate; #10, #40, #50; ROADMAP, Where things live; cat. C5 | deferred, to the spring | One tap on a pick - on my way, here, running late, skipping - that crewmates see on the board and on that pick. Tied to a pick, not free text. Seen at the next open until W35. | coordinate: yes | checkpoint, rank 2 - usage unknown; ask the crew before the checkpoint |
+| W25 | Share a day in one tap, by a link that needs no backend | VISION, Coordinate; #10, #50, #57; cat. C6, C7 | decided | One tap shares a day's picks as a link that needs no backend (#10, #50). | coordinate: yes | 2027 (#10, #50) |
+| W26 | Hand a crew over | #56, #57; sync contract, section 8 | deferred, to the spring, and only if a crew asks | The creator makes another member the creator. | coordinate: an edge case | checkpoint, rank 7 - #56 holds it for the spring, only if a crew asks |
+| W27 | Rename a crew | #56, #57; sync contract, sections 3 and 8 | open | Rename a crew after create. | coordinate: marginal | out - delete and recreate covers it, though every member rejoins by a new link; the policies allow a rename (#56); reopen if a crew asks |
+| W28 | Change your name in a crew | #56; sync contract, sections 3 and 8 | open | Edit your own display name on your membership row. | coordinate: yes | merged into W19 |
+| W29 | Hide my plan | #57 | open | Stay in a crew but keep your picks from it, or from one member; one table and one policy clause. | coordinate: a privacy control | checkpoint, rank 9 - leaving (for the creator, deleting) is the control; the join step's sentence, W19's, is the contract |
+| W30 | A recover that brings your crews and notifications across | #51; sync contract, section 1 | open | Signing in with an existing email on a phone whose anonymous user has crews carries those memberships across, instead of leaving them to rejoin by link. | keep: yes, narrowly | checkpoint, rank 6 |
+| W31 | Settings that sync across your devices | #27, #32, #50 | deferred, past 2027 | The crowd factor and the photo-session and screening hide (B3) carried between devices. | keep | out - settings do not sync in 2027 (#50) |
+| W32 | A short "what we store" page | cat. F11 | untouched | One page behind the gear, in three parts. What we store: what the phone holds, what the server holds once the phone has a user - at its first crew, notification or email - what a crew sees, and what today's controls delete and what they leave: Remove all unstars, leaving a tombstone on the server for each pick, and Sign out removes the session and keeps the plan. About this app. The links: one to Dragon Con's official site and app. | no - reference, about the app (#59) | 2027 (#59) |
+| W33 | Where the 2026 app and its archive live after the cutover | cat. F10 | untouched | Where the frozen 2026 app is reachable once the live link is 2027. | none | out - a cutover decision, ROADMAP's Checklist |
+| W34 | Turn on notifications, and see them: the toggle, the browser's subscription and the worker's push handler | VISION, the ladder and Tell me; #20, #40, #51, #55, #57; ROADMAP, Where things live and Delivery; cat. T1 | decided | A toggle that subscribes the browser, its subscription stored, and the worker's handler that shows #20's two pushes, leave-by replaced by starts-soon (#40): pick-changed and starts-soon. | tell me: yes | 2027 (#20) |
+| W35 | Crew pings by push | VISION, Tell me; #20, #50; cat. C8 | deferred, to the spring | A ping arrives as a push, by the push job; realtime (#50) would only speed W24's pings to an open app. | tell me: yes | checkpoint, rank 3 - after W24 |
+| W36 | An install flow good enough that iPhone users finish it | VISION, Tell me and Risks worth naming; ROADMAP, Delivery; cat. T5 | deferred, to Delivery | When the app asks a Safari reader to install, what it says, and how it walks them through Share → Add to Home Screen; carries W37's copy (losing your stars, not signal) and trigger (a standing line on Now, or the moment it earns itself). Mechanics are Delivery's. | keep and tell me: gates both | 2027 |
+| W37 | The install nudge as data safety, and when it shows | VISION, What done looks like and Risks worth naming; #25, #40; ROADMAP, Where things live; cat. K8 | open | The nudge's copy and trigger. | as W36 | merged into W36 |
+| W38 | The building view: a hotel's levels, the reader's picks lit | VISION, the stretch; #21, #28; ROADMAP, Places and Where things live; cat. B2 | deferred, gated at the spring checkpoint | Tap a hotel on the map: a side view of its levels, the reader's picks lit. Data in venues.json; the Hilton's five levels drawn, not yet in one frame. | plan: yes | 2027 (#60) - ranked above every checkpoint candidate |
+| W39 | The top-down level view: rooms in place, landmarks, a tap for what is on | VISION, the stretch; #28, #45, #58; ROADMAP, Places; cat. B3 | deferred, gated at the spring checkpoint | Tap a level: top-down, rooms in place, landmarks, tap a room for what's on. | plan: yes | 2027 (#60), with W38 |
+| W40 | The animation between the views | VISION, the stretch; #21, #28; cat. B6 | deferred, built last | The motion between the views; PR #67's sketch is the record. | as W38 | 2027 (#60), last of W38 to W40 |
+| W41 | The building view for the Westin, the Courtland Grand and the Mart | #28; ROADMAP, Pipeline shape; cat. B7 | open | The same for the Westin, the Courtland Grand and the Mart. | plan: yes | 2027 (#60), after W38 to W40, as sources allow - the Westin's plan predates its renovation, the Courtland Grand has none, the Mart's is an exhibitor map; the source is the author's own drawing and a walk of the grounds |
+| W42 | Guest bios | VISION, Not doing; #57 | open | A celebrity's reviewed "known for" line beside their name on an event and on a person's page; no photos, no full bios. The data is to be the registry's. | plan: yes - it decides whether to pick the panel | 2027 (#59) |
+| W43 | Accessibility, properly | VISION, Who it is for and What this is built to learn; cat. F2 | open | Every screen with labels for screen readers, focus order, contrast, reduced motion and tap targets; larger text exists (B18), and reduced motion and some labels do in part. | who it is for: a property, not a feature | 2027, as a requirement on Where things live's screens, checked by Playwright when it comes |
+| W44 | A calendar alarm in the `.ics` export, a fixed lead time before each pick, for people who never install and so never get a push | cat. P16, recast by the design chat, 2026-09-29 | untouched | Each exported event carries an alarm a fixed lead before it starts, so people who never install still get an alert from their calendar app. | plan and tell me: yes | 2027 |
+| W45 | Delete my account, from the "what we store" page | #59; the design chat's pass, 2026-09-29 | untouched | One call that removes the user's rows and the auth user, from the "what we store" page (W32). | keep, and what a public link owes | 2027, beside W32 |
 
 ## 3. Verdicts
 
-The design chat fills this section, and section 2's description, test and
-verdict columns: 2027, checkpoint candidate, or out (#57).
+The design chat's pass over section 2: every row not already decided
+passed through VISION's test and given a verdict (#57); a decided row's
+verdict is its entry's. A merged row's verdict is the row it joined.
+
+**2027.** The ten decided rows:
+
+- W2, alternatives in the same slot (#40)
+- W5, mutes, and W6, "with the cast" in search and the feed (#32)
+- W18, level and "how to get there" (#21)
+- W19, the crew screens, W28's name edit in it (#50)
+- W20, join by pasting the link (#56)
+- W21, crew picks on your timeline, and W22, who's going (#50)
+- W25, share a day by a link (#10, #50)
+- W34, turn on notifications, and see them (#20)
+
+And the pass's:
+
+- W1, the overlap warning when you star
+- W3, For you
+- W7, the parsed facets on screen
+- W13, the filter sheet, W8's topic axes in it
+- W16, the zero state
+- W44, a calendar alarm in the export
+- W23, the crew Now board
+- W32, the "what we store" page (#59), and W45, delete my account, on
+  it
+- W36, the install flow, W37's copy and trigger in it
+- W38, W39, W40 and W41, the building view (#60)
+- W42, a guest's "known for" line (#59)
+- W43, accessibility, a requirement on Where things live's screens
+
+**Checkpoint candidates**, in rank order; the cut takes from the bottom
+(#18):
+
+1. W4, similar events, computed in the pipeline
+2. W24, status pings tied to a pick
+3. W35, crew pings by push, after W24
+4. W10, recent and pinned searches
+5. W17, a pre-con "help me plan", behind a flag
+6. W30, a recover that brings a phone's crews across
+7. W26, hand a crew over
+8. W15, onboarding: pick your fandoms
+9. W29, hide my plan
+
+**Out:**
+
+- W9, search results grouped by day: it breaks the ranking, and the
+  no-query view is grouped already.
+- W11, a day heat strip: the picks reading is Mine's timeline, and the
+  matches reading is unwanted for now.
+- W12, swipe to star and between days: accidental stars, and day
+  navigation is Where things live's question.
+- W14, kind icons on rows: a row-design detail, Where things live's.
+- W27, rename a crew: delete and recreate covers it, though every member
+  rejoins by a new link; the policies allow a rename (#56); reopen if a
+  crew asks.
+- W31, settings that sync: settings do not sync in 2027 (#50).
+- W33, where the 2026 app lives after the cutover: a cutover decision,
+  ROADMAP's Checklist.
+
+**Notes:**
+
+- W3 is a floor: later work on tags and registries, and search tuning
+  (#36), keeps raising its ranking without changing the feature.
+- W23's screen shape is open, for Where things live.
+- W24's usage is unknown: a question for the crew before the checkpoint.
+- W38 to W41 rank above every checkpoint candidate, by the author's
+  ruling: if the checkpoint must cut a 2027 row, not these (#60). W41
+  goes as sources allow: the Westin's plan predates its renovation, the
+  Courtland Grand has none and the Mart's is an exhibitor map, so its
+  source is the author's own drawing and a walk of the grounds.
+- W43 is 2027: the spring cut from the bottom of VISION's learning list
+  does not take its item 7, accessibility.
 
 ## Appendix A. The catalogue, as brought in
 
