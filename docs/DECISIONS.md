@@ -396,7 +396,7 @@ so a build-time import is the right cadence.
 file forward each year. One Vite config line to import from outside
 `src/`. Supersedes #6's "one constant" — the buffer becomes data.
 
-### 28. The building view goes to the room: a top-down level view, floor plans as reference — Decided, not built (2026-09-18) — its room resolution to be built by #45, which moves each level's drawing out of the venues file into `data/2027/drawings/`; its level drawings built by #58: one file per level, geometry only, keyed by the venues file's room ids, the Hilton's five levels first
+### 28. The building view goes to the room: a top-down level view, floor plans as reference — Decided, not built (2026-09-18) — its room resolution to be built by #45, which moves each level's drawing out of the venues file into `data/2027/drawings/`; its level drawings built by #58: one file per level, geometry only, keyed by the venues file's room ids, the Hilton's five levels first; 2026-09-29: round 6 of the sketch is kept at docs/prototypes/ as a record (PR #67). Nothing in the app reads it; the principle stands.
 **Decided:** Supersedes the drawing half of #21; the venues file (#21, #27)
 stays pipeline-owned and still ships first. The building view gains a third
 layer: tap a level in a hotel's stack and it drops to a top-down view of that
