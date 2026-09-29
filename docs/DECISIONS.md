@@ -37,7 +37,7 @@ every starred pick breaks. Duplicate listings (a panel in both the panel and
 gaming feeds) collapse to the smallest id so a pick survives a re-scrape,
 but that is a workaround, not stability by design. See #7.
 
-### 3. Tags come from Claude, keyed by event id, preserved across scrapes — Standing (2026); to be superseded by #32 (shape, keying) and #33 (where tags are written)
+### 3. Tags come from Claude, keyed by event id, preserved across scrapes — Standing (2026); to be superseded by #32 (shape, keying) and #33 (where tags are written); superseded on `next` by #32 and #33, built by #39; `main` keeps it
 **Decided:** `tag_events.py` sends untagged events to Claude (Haiku) and
 writes `tags` (fandoms, kind, topics, adult, guests) back into `events.json`.
 The scraper carries existing tags over by id on each refresh; only new
@@ -1707,7 +1707,7 @@ that mints and then fails leaves an anonymous user with no crew, for the
 cleanup. An installed iPhone reader joins by pasting the link, not by
 tapping it.
 
-### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28) — the runner pin, PR #64, went first, for GitHub's date
+### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28) — the runner pin, PR #64, went first, for GitHub's date; the built inventory, `docs/scope-2027.md`'s section 1, added as a source and read before the wanted list
 **Decided:** After Identity and sync the design slot goes to a scope pass;
 Where things live opens with its output, and Delivery comes last. This
 amends #37's order and adds to #30 a step that is not a tentpole;
