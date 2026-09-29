@@ -16,14 +16,16 @@ app.core-apps.com/dragoncon26.
 section, unauthenticated). The iPhone app, walked on 2026-09-29 (the
 signed-in half: My Schedule, settings, reminders, sync, profile, friends,
 alerts, the notes editor, the day filter, offline, the home screen, and the
-phone's own Settings page for the app). The author used his own app at the
-con, not this one, so what a shared schedule looks like on the receiving
+phone's own Settings page for the app). The author used the planner, not
+this app, at the con, so what a shared schedule looks like on the receiving
 end and whether any push reached a phone during the con were not observed;
 Appendix A lists every unobserved cell.
 
 **The three categories.** Planning: helps a person decide what to do and
 when. Coordination: helps people do it together. Reference: read, not acted
-on - hours, policies, links, bios, documents (#59).
+on - hours, policies, links, bios, documents (#59). The Keep table's rows
+serve the plan by holding it and are marked keep; Bluetooth is a
+permission, not a feature, marked "-".
 
 **Reading the "ours" column.** A B-id or W-id is `docs/scope-2027.md`'s: B,
 built on `next`; W, wanted, with its verdict there. "None" with "out" is a
@@ -44,8 +46,9 @@ Everything is a peer of everything else. Vendor halls sit beside My
 Schedule; Policies beside What's On Now. That is what a platform that must
 fit every convention looks like: a section for each thing the vendor can
 do, and no opinion about which ones matter on a Saturday afternoon. Ours
-has five tabs for the hourly loop and a gear for the rest; the count of
-destinations in section 2 is the number Where things live has to place.
+has five tabs for the hourly loop and a gear for the rest; section 2 shows
+how many destinations that grid holds; Where things live places ours, which
+are fewer.
 
 ## 2. The features
 
@@ -53,17 +56,17 @@ destinations in section 2 is the number Where things live has to place.
 
 | feature | where | how it works | category | ours |
 |---|---|---|---|---|
-| Browse by day | Events | Six days, Sep 2 to 7, each grouped by start time. A row is a star, the title and the time range: no room, no hotel. | planning | B1: our row leads with the hotel and room. |
-| Browse by track | Events | The track list, then a track's events. | planning | B3, the track select. |
+| Browse by day | Events | Six days, Sep 2 to 7, each grouped by start time. A row is a star, the title and the time range: no room, no hotel. | planning | B1: our row carries the hotel and room on the line under the title; theirs shows neither. |
+| Browse by track | Events | The track list, then a track's events. | planning | B15, Explore's track tiles, a page per track; B3's select in Search. |
 | Filter events | Events, the filter icon | A multi-select of tracks with counts, Cancel and Apply. Tracks only, as far as seen (Appendix A). | planning | B3; W13 is the sheet. |
 | Gaming as its own type | Gaming Events | Gaming is a separate "Entertainment" type with its own track list and day view. | planning | B3, the type chip. |
 | Universal search | the search icon | One box across events, speakers, exhibitors and maps. | planning | B1, B4: events and people, with the con's synonyms. |
 | The event page | any event | Location (hotel and room as text; a link to the map pin in the web view, not tappable on the iPhone), Date, Duration, the description, a Tracks chip, a Rate Event button, and a rail: share, notes, rate, star, help. | planning | B5. |
 | Star, "add to schedule" | the event page, any row | Toggles. If the event overlaps a pick a toast says so for about four seconds, then nothing records it anywhere. No reminder prompt, no notify option. | planning | B6; W1 is the warning that stays. |
-| My Schedule | My Schedule | A day at a time on an hour grid, with a list toggle. Two overlapping picks are drawn side by side with no mark; the room is on the block. | planning | B12, Mine, which draws the same picture. |
+| My Schedule | My Schedule | A day at a time on an hour grid, with a list toggle. Two overlapping picks are drawn side by side with no mark; the room is on the block. | planning | B12, Mine: the timeline draws the same picture, and Mine's list and Now's rest of the day also say by how many minutes one pick overlaps the next; a clash across hotels carries the tight-walk mark. The official app says nothing once its toast is gone. |
 | Add your own schedule item | My Schedule, the plus | Title (required), Location, Notes, Date and Length (60 minutes by default): a non-con appointment on the same timeline. | planning | none. The one Part B candidate: see section 3. |
 | What's On Now | the alarm-clock icon; a home tile | On now and coming up soon, with an explainer dialog on first use. Empty after the con. | planning | B7, B8: Now, and the next hour. |
-| Share an event | the rail | The phone's share sheet. | coordination | B27, the link preview; W25 shares a day. |
+| Share an event | the rail | The phone's share sheet. | coordination | none. No per-event share exists; the sheet's Add to calendar is the closest. W25 shares a day. |
 | Rate an event | the event page | A rating per event, open until the end of the month after the con. | reference: feedback to the con | none; out. |
 | Notes per event | the rail; a home tile | A plain text box per event with an email-it icon; View All Notes in Settings; a switch to show notes on maps. Notes never sync between devices. | reference: personal | none; out. A notes app exists. |
 | Session check-in | the event page, while live | "Verification is available once a session has started" (web view); absent after the con. | reference | none; out. |
@@ -82,7 +85,7 @@ destinations in section 2 is the number Where things live has to place.
 |---|---|---|---|---|
 | Multi Device Sync | Settings | An email and password account, "used across all devices to establish that they are all being used by the same person"; First Device or Additional Device. Syncs My Schedule and exhibitor bookmarks, not notes. | keep | B23: an email and a six-digit code, no password; B24 the status line. |
 | Email My Show Summary | Settings | Emails the reader their schedule. | keep | B13, the calendar export; W25. |
-| Offline | - | The schedule, a day's list and an event page all open in airplane mode. | live | B22. |
+| Offline | - | The schedule, a day's list and an event page all open in airplane mode. | keep | B22. |
 | Delete My Account | Settings | Removes the account. | keep | W45. |
 
 ### Coordination
@@ -91,7 +94,7 @@ destinations in section 2 is the number Where things live has to place.
 |---|---|---|---|---|
 | Friends | the Message Center; a home tile | Add a friend by request; requests pending, awaiting, accepted, declined; a friend can see your schedule and you theirs. The receiving end was not observed. | coordination | B30, crews by link: no requests, no graph (VISION). |
 | Attendees | a home tile; My Profile | An opt-in directory, searchable A to Z; the profile's checkbox is unticked by default. | coordination | none; out. VISION has no social graph. |
-| My Profile | Settings | First and last name public; email friends-only; title, company, phone and three social URLs, friends-only; all stored on the vendor's server; a Public / Friends Only legend. | reference | B23 holds nothing personal but an email; W32 says so. |
+| My Profile | Settings | First and last name public; email friends-only; title, company, phone and three social URLs, friends-only; all stored on the vendor's server; a Public / Friends Only legend. | reference | B23 holds an email and nothing else personal; a crew holds the display name you give it (B30). W32 says so. |
 | Status | the Message Center | "What are you doing right now?" - a free-text post to friends, tied to nothing. | coordination | W24, a ping tied to a pick. |
 | Messages, meetings, an activity feed, likes | the Message Center's strings | Present as template strings only; not switched on for Dragon Con. | coordination | none; out. |
 | Invite Your Friends | Settings | Shares the app. | coordination | B27, the link; not a feature. |
@@ -100,7 +103,7 @@ destinations in section 2 is the number Where things live has to place.
 
 | feature | where | how it works | category | ours |
 |---|---|---|---|---|
-| Maps | Maps; a home tile | Seventeen: each hotel, both AmericasMart buildings, the three vendor-hall floors, the Art Show, Artists Alley, the Walk of Fame, the convention footprint, three shuttle maps. A hotel is Dragon Con's own per-floor drawing with every room labelled by track and number and an Areas of Interest list per floor. | planning | B14, the map, hotel by hotel; W18 puts the level on the row; W38 to W41 are our own level drawings, from the layout facts, never traced (the drawings stay under `reference/`, never in the repo). |
+| Maps | Maps; a home tile | Seventeen: each hotel, both AmericasMart buildings, the three vendor-hall floors, the Art Show, Artists Alley, the Walk of Fame, the convention footprint, three shuttle maps. A hotel is Dragon Con's own per-floor drawing with every room labelled by track and number and an Areas of Interest list per floor. | planning | B14, the map, hotel by hotel; W18 puts the level on the row; the building view, W38 to W41, is built on our own level drawings (#58, `data/2027/drawings/`), from the layout facts, never traced. |
 | Room pins | Maps; the event page's Location in the web view | A room is a tappable pin; an event's Location opens its hotel's map at that pin. | planning | none today; W18, then W39. |
 | Route-finding | Maps | A route between any two points on the plan. | planning | B10 knows the walk between hotels, not between rooms; out for rooms. |
 | Locate Me | a home tile | Sets your position by typing the room or exhibitor you are near. No GPS: the phone's Settings page for the app lists no Location permission at all. | planning | none; out (#5). Their no-GPS choice matches ours. |
@@ -110,7 +113,7 @@ destinations in section 2 is the number Where things live has to place.
 
 | feature | where | how it works | category | ours |
 |---|---|---|---|---|
-| Speakers | Speakers; a home tile | A to Z and search; a page is a bio and Related Sessions, each with the person's role and its own star. | planning and reference | B4, B16: people are searchable and followable; W42 is the two-line "known for" (#59). Full bios: out. |
+| Speakers | Speakers; a home tile | A to Z and search; a page is a bio and Related Sessions, each with the person's role and its own star. | planning and reference | B4, B16: people are searchable and followable; B15's person page; W42 is the two-line "known for" (#59). Full bios: out. |
 | Exhibitors | Exhibitors; a home tile | A to Z, search, browse by category, bookmarks, and the vendor-hall floor maps behind them. | reference | none; out (VISION, Not doing). |
 | Show Documents | a home tile | Twenty-one PDFs: rack cards per day, large-print schedules, the gaming guide, both video-room schedules, streaming, shuttle maps, hours. | reference | none; out. The one link points here (#59). |
 | Hours of Operation | a home tile | Registration and venue hours. | reference | none; out; the one link. |
@@ -146,9 +149,10 @@ timeline. Proposed as W46, state untouched, source Part B.
   reasons from, which #5 rules out. Notably, the official app asks for no
   Location permission either.
 - **Where things live.** Twenty tiles is what no product opinion looks
-  like. Section 2 has fourteen planning rows, six coordination and
-  thirteen reference; ours puts the planning rows on five tabs, the
-  coordination rows with crews, and reference behind the gear.
+  like. Section 2 has seventeen planning rows, six coordination, twelve
+  reference and four keep; ours puts the planning rows on five tabs, the
+  coordination rows with crews, attached reference one tap from its object,
+  about-the-app behind the gear, and the rest behind the one link (#59).
 
 ## 4. Quality, for the record
 
@@ -175,8 +179,8 @@ Not features, but what "not very good" meant on the day:
 
 ## Appendix B. Sources on disk
 
-Dragon Con's own maps - the eight hotel and Mart drawings and the
-convention footprint - and `maps.json` with their room polygons for the
-Hilton, the Hyatt and the Marriott are kept under `reference/dragoncon/` on
-the author's machine, gitignored, as reference for our own level drawings
-(#58): facts are used, their rendering never is.
+Dragon Con's own maps - seven drawings - the five hotels and the Mart's two
+buildings - plus the convention footprint - and `maps.json` with their room
+polygons for the Hilton, the Hyatt and the Marriott are kept under
+`reference/dragoncon/` on the author's machine, gitignored, as reference
+for our own level drawings (#58): facts are used, their rendering never is.
