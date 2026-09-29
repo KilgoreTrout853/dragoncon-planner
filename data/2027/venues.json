@@ -283,7 +283,7 @@
         },
         {
           "id": "l1",
-          "name": "Level 1",
+          "name": "1st Floor",
           "order": 1,
           "rooms": [
             "Crystal A",
@@ -293,23 +293,24 @@
             "Crystal E",
             "Crystal F"
           ],
-          "aliases": {},
-          "notes": []
-        },
-        {
-          "id": "lobby",
-          "name": "Lobby",
-          "order": 2,
-          "rooms": [],
-          "aliases": {},
+          "aliases": {
+            "crystal ballroom": [
+              "Crystal A",
+              "Crystal B",
+              "Crystal C",
+              "Crystal D",
+              "Crystal E",
+              "Crystal F"
+            ]
+          },
           "notes": [
-            "escalators up to Level 2"
+            "street level: the Main Lobby and the Crystal Ballroom; escalators down to the Galleria and up to the 2nd Floor"
           ]
         },
         {
           "id": "l2",
-          "name": "Level 2",
-          "order": 3,
+          "name": "2nd Floor",
+          "order": 2,
           "rooms": [
             "201",
             "202",
@@ -344,13 +345,20 @@
             "Salon East",
             "Salon West"
           ],
-          "aliases": {},
-          "notes": []
+          "aliases": {
+            "salon": [
+              "Salon West",
+              "Salon East"
+            ]
+          },
+          "notes": [
+            "the ballroom floor: Grand Ballroom (A-D; Grand West = D+C, Grand East = A+B) and the Salon at the core, breakout rooms in two angled wings to the west"
+          ]
         },
         {
           "id": "l3",
-          "name": "Level 3",
-          "order": 4,
+          "name": "3rd Floor",
+          "order": 3,
           "rooms": [
             "301",
             "302",
@@ -373,8 +381,8 @@
         },
         {
           "id": "l4",
-          "name": "Level 4",
-          "order": 5,
+          "name": "4th Floor",
+          "order": 4,
           "rooms": [
             "401",
             "402",
@@ -389,7 +397,10 @@
         }
       ],
       "unplaced": {
-        "Steps B": "a Dragon Con name, not the hotel's; level unknown"
+        "Steps B": "a Dragon Con name, not the hotel's; level unknown",
+        "Steps A": "a Dragon Con name, not the hotel's; level unknown",
+        "Steps E": "a Dragon Con name, not the hotel's; level unknown",
+        "Steps G": "a Dragon Con name, not the hotel's; level unknown"
       }
     },
     {

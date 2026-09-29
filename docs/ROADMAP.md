@@ -97,7 +97,7 @@ seam a feed would plug into (#41). The sequence:
 Pipeline shape is closed. What it leaves, carried:
 
 - The alias worklist: the room strings the venues step reads at the hotel
-  alone, 686 of 2026's events (`docs/venues/census-2026.md`, section 4),
+  alone, 547 of 2026's events (`docs/venues/census-2026.md`, section 4),
   each an alias or a room to curate (#45).
 - Curation gaps (#45): the Westin's current, post-renovation floor plan
   (`docs/venues/README.md`); the Marriott's Atrium and Marquis note
