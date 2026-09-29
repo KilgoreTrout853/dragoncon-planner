@@ -740,7 +740,7 @@ kinds (PR 8). A fault is a `::warning::`: `fetch.failures` and
 `tag.stopped`, `tag.unanswered` and `tag.mint_failed`; `build.untagged`,
 `build.unresolved_names`, `build.unknown_tracks` and
 `build.hotels_unknown`. A curation counter is a `::notice::`:
-`build.rooms_unresolved`, 686 on 2026's build, and `fetch.removed` and
+`build.rooms_unresolved`, 547 on 2026's build, and `fetch.removed` and
 `fetch.repaired`, which the carried rows and the repair on every page keep
 above zero all season. So a warning stays a fault, and nobody learns to
 read past one every hour. A fatal run is an `::error::`.

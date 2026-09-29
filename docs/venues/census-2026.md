@@ -7,11 +7,11 @@ A record, not held fresh by CI: an edit to the venues file leaves it stale until
 ## 0. Headline
 
 1. Events: 3,459, at 9 hotels; distinct readings of a room string: 177.
-2. By place: `exact` 970 (28.0%), 38 strings; `alias` 0 (0.0%), 0 strings; `rule` 693 (20.0%), 54 strings; `level` 981 (28.4%), 20 strings; `hotel` 730 (21.1%), 53 strings; `none` 85 (2.5%), 12 strings.
-3. The run's venue counters on this schedule: rooms unresolved 686 - the strings read at the hotel alone (section 4); hotels unknown 5 - the locations no key begins. Not counted: 44 events at an unplaced room of the venues file, read at its hotel, and the 981 events placed at a level, by design.
+2. By place: `exact` 970 (28.0%), 38 strings; `alias` 51 (1.5%), 3 strings; `rule` 693 (20.0%), 54 strings; `level` 981 (28.4%), 20 strings; `hotel` 679 (19.6%), 50 strings; `none` 85 (2.5%), 12 strings.
+3. The run's venue counters on this schedule: rooms unresolved 547 - the strings read at the hotel alone (section 4); hotels unknown 5 - the locations no key begins. Not counted: 132 events at an unplaced room of the venues file, read at its hotel, and the 981 events placed at a level, by design.
 4. Split again: 2 events of a placeless hotel, read at a placed one (section 4).
-5. Alias hits: 0 events, in 0 strings.
-6. Rooms of the venues file: 218 on levels, and 1 unplaced room. Reached by a reading: 103; by none: 115 (section 5).
+5. Alias hits: 51 events, in 3 strings.
+6. Rooms of the venues file: 218 on levels, and 4 unplaced rooms. Reached by a reading: 111; by none: 107 (section 5).
 
 ## 1. Hotels
 
@@ -21,7 +21,7 @@ Events by place, per hotel as the stage reads it: `exact`, a room of the venues 
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Marriott | 4 | 34 | 607 | 20 | 343 | 0 | 119 | 0 | 145 | 0 |
 | Hyatt | 6 | 54 | 499 | 36 | 195 | 0 | 268 | 0 | 36 | 0 |
-| Hilton | 6 | 68 | 739 | 36 | 334 | 0 | 210 | 0 | 195 | 0 |
+| Hilton | 5 | 68 | 739 | 36 | 334 | 51 | 210 | 0 | 144 | 0 |
 | Courtland Grand | 1 | 2 | 151 | 9 | 52 | 0 | 0 | 0 | 99 | 0 |
 | Westin | 8 | 54 | 309 | 19 | 14 | 0 | 56 | 20 | 219 | 0 |
 | AmericasMart | 6 | 6 | 1,033 | 43 | 32 | 0 | 40 | 961 | 0 | 0 |
@@ -49,7 +49,7 @@ Each rule of the grammar, in the order the stage tries it, with the strings and 
 | number and letters | `203BC` (AmericasMart) | 1 | 18 |
 | slash list | - | 0 | 0 |
 | word pair | `International North-South` (Hyatt) | 1 | 5 |
-| doubled | `Hanover C-E Hanover C-E` (Hyatt) | 1 | 2 |
+| doubled | `Hanover C-E Hanover C-E` (Hyatt) | 2 | 3 |
 | leading The | `The Learning Center` (Hyatt) | 1 | 17 |
 | hotel initials | `H-Piedmont` (Hyatt) | 1 | 28 |
 | partitions | `Atrium Ballroom` (Marriott) | 3 | 79 |
@@ -135,23 +135,23 @@ The room string the stage read - the location less its hotel's key - with its pl
 | `Steps B` | 44 | hotel | - | - | unplaced |
 | `203` | 43 | exact | l2 | `203` | - |
 | `Galleria 5` | 41 | exact | galleria | `Galleria 5` | - |
-| `Steps A` | 37 | hotel | - | - | no reading |
+| `Steps A` | 37 | hotel | - | - | unplaced |
 | `Galleria 6` | 36 | exact | galleria | `Galleria 6` | - |
 | `212-214` | 35 | rule | l2 | `212`, `213`, `214` | numeric run |
 | `Galleria 2-3` | 33 | rule | galleria | `Galleria 2`, `Galleria 3` | number run |
 | `313-314` | 32 | rule | l3 | `313`, `314` | numeric run |
 | `209-211` | 31 | rule | l2 | `209`, `210`, `211` | numeric run |
-| `Steps E` | 31 | hotel | - | - | no reading |
+| `Steps E` | 31 | hotel | - | - | unplaced |
 | `Galleria 7` | 30 | exact | galleria | `Galleria 7` | - |
-| `Crystal Ballroom` | 29 | hotel | - | - | no reading |
+| `Crystal Ballroom` | 29 | alias | l1 | `Crystal A`, `Crystal B`, `Crystal C`, `Crystal D`, `Crystal E`, `Crystal F` | - |
 | `302-304` | 28 | rule | l3 | `302`, `303`, `304` | numeric run |
 | `Galleria 1` | 27 | exact | galleria | `Galleria 1` | - |
 | `204-207` | 26 | rule | l2 | `204`, `205`, `206`, `207` | numeric run |
 | `Galleria 4` | 26 | exact | galleria | `Galleria 4` | - |
 | `309-312` | 21 | rule | l3 | `309`, `310`, `311`, `312` | numeric run |
 | `Grand East` | 21 | exact | l2 | `Grand East` | - |
-| `Salon` | 21 | hotel | - | - | no reading |
-| `Steps G` | 20 | hotel | - | - | no reading |
+| `Salon` | 21 | alias | l2 | `Salon West`, `Salon East` | - |
+| `Steps G` | 20 | hotel | - | - | unplaced |
 | `Grand West` | 19 | exact | l2 | `Grand West` | - |
 | `Galleria 8` | 18 | exact | galleria | `Galleria 8` | - |
 | `301` | 7 | exact | l3 | `301` | - |
@@ -165,7 +165,7 @@ The room string the stage read - the location less its hotel's key - with its pl
 | `315` | 2 | exact | l3 | `315` | - |
 | `12th` | 1 | hotel | - | - | no reading |
 | `212-214 Hilton, 3rd floor outdoor deck` | 1 | hotel | - | - | no reading |
-| `Crystal Ballroom Crystal Ballroom` | 1 | hotel | - | - | no reading |
+| `Crystal Ballroom Crystal Ballroom` | 1 | alias | l1 | `Crystal A`, `Crystal B`, `Crystal C`, `Crystal D`, `Crystal E`, `Crystal F` | doubled |
 | `Galleria 2-3 Hallway Just outside Galleria 2-3` | 1 | hotel | - | - | no reading |
 
 ### Courtland Grand - 151 events, 9 strings
@@ -285,29 +285,24 @@ The room string the stage read - the location less its hotel's key - with its pl
 
 ## 4. The worklist
 
-### Read at the hotel alone - rooms unresolved, 686
+### Read at the hotel alone - rooms unresolved, 547
 
 No reading, or the hotel alone: counted by the run as rooms unresolved. An alias, a room or a key in the venues file is what moves one.
 
 | hotel | string | events | why |
 | --- | --- | ---: | --- |
-| Hilton | `Steps A` | 37 | no reading |
 | Hardy Ivy Park | `Ivy Structure` | 35 | no reading |
-| Hilton | `Steps E` | 31 | no reading |
 | Marriott | `M103-M105` | 31 | no reading |
 | Courtland Grand | `Macon` | 30 | no reading |
 | Hyatt | `Concourse` | 30 | no reading |
-| Hilton | `Crystal Ballroom` | 29 | no reading |
 | Westin | `Augusta E-H` | 28 | no reading |
 | Westin | `Chastain DE` | 28 | no reading |
 | Marriott | `A706` | 26 | no reading |
 | Marriott | `A707` | 25 | no reading |
 | Westin | `Peachtree 1-2` | 25 | no reading |
 | Courtland Grand | `Augusta` | 23 | no reading |
-| Hilton | `Salon` | 21 | no reading |
 | Marriott | `A704` | 21 | no reading |
 | Westin | `Chastain F` | 21 | no reading |
-| Hilton | `Steps G` | 20 | no reading |
 | Westin | `Augusta 1-2` | 20 | no reading |
 | Westin | `Augusta A-B` | 20 | no reading |
 | Westin | `Chastain H-I-J` | 20 | no reading |
@@ -331,7 +326,6 @@ No reading, or the hotel alone: counted by the run as rooms unresolved. An alias
 | Hardy Ivy Park | `Terraces` | 1 | no reading |
 | Hilton | `12th` | 1 | no reading |
 | Hilton | `212-214 Hilton, 3rd floor outdoor deck` | 1 | no reading |
-| Hilton | `Crystal Ballroom Crystal Ballroom` | 1 | no reading |
 | Hilton | `Galleria 2-3 Hallway Just outside Galleria 2-3` | 1 | no reading |
 | Hyatt | `Centennial II-IV Table outside the room` | 1 | no reading |
 | Hyatt | `Grand Hall Main Floor` | 1 | no reading |
@@ -351,6 +345,9 @@ Rooms the venues file knows but places on no level: read at their hotel, and not
 | hotel | string | events |
 | --- | --- | ---: |
 | Hilton | `Steps B` | 44 |
+| Hilton | `Steps A` | 37 |
+| Hilton | `Steps E` | 31 |
+| Hilton | `Steps G` | 20 |
 
 ### Locations no key begins - hotels unknown, 5
 
@@ -386,10 +383,10 @@ Per level, the rooms a reading names - exactly, by an alias or by a rule - and t
 | Hyatt | International Tower · LL2 (`tower-ll2`) | 8 | 7 | `Embassy H` |
 | Hyatt | International Tower · LL1 (`tower-ll1`) | 2 | 2 | - |
 | Hilton | Galleria (`galleria`) | 8 | 8 | - |
-| Hilton | Level 1 (`l1`) | 6 | 0 | `Crystal A`, `Crystal B`, `Crystal C`, `Crystal D`, `Crystal E`, `Crystal F` |
-| Hilton | Level 2 (`l2`) | 32 | 14 | `201`, `208`, `215`, `216`, `217`, `218`, `219`, `220`, `221`, `222`, `223`, `224`, `Grand Ballroom A`, `Grand Ballroom B`, `Grand Ballroom C`, `Grand Ballroom D`, `Salon East`, `Salon West` |
-| Hilton | Level 3 (`l3`) | 15 | 15 | - |
-| Hilton | Level 4 (`l4`) | 7 | 2 | `401`, `402`, `403`, `406`, `407` |
+| Hilton | 1st Floor (`l1`) | 6 | 6 | - |
+| Hilton | 2nd Floor (`l2`) | 32 | 16 | `201`, `208`, `215`, `216`, `217`, `218`, `219`, `220`, `221`, `222`, `223`, `224`, `Grand Ballroom A`, `Grand Ballroom B`, `Grand Ballroom C`, `Grand Ballroom D` |
+| Hilton | 3rd Floor (`l3`) | 15 | 15 | - |
+| Hilton | 4th Floor (`l4`) | 7 | 2 | `401`, `402`, `403`, `406`, `407` |
 | Courtland Grand | levels unknown (`unknown`) | 2 | 2 | - |
 | Westin | Chastain (level unknown) (`chastain`) | 2 | 2 | - |
 | Westin | Sixth Floor (`f6`) | 14 | 1 | `International`, `International Boardroom`, `American`, `Vinings I`, `Vinings II`, `A`, `B`, `C`, `D`, `E`, `F`, `G`, `H` |
@@ -413,10 +410,14 @@ Notes on the levels:
 - Hyatt, Lobby Level (`lobby`): `registration and the atrium; no programming rooms known`
 - Hyatt, International Tower · LL2 (`tower-ll2`): `two levels below the lobby, in the International Tower; reached from the ACC`
 - Hilton, Galleria (`galleria`): `directly under the lobby; Galleria 1-8 are the hotel's own partitions`
-- Hilton, Lobby (`lobby`): `escalators up to Level 2`
+- Hilton, 1st Floor (`l1`): `street level: the Main Lobby and the Crystal Ballroom; escalators down to the Galleria and up to the 2nd Floor`
+- Hilton, 2nd Floor (`l2`): `the ballroom floor: Grand Ballroom (A-D; Grand West = D+C, Grand East = A+B) and the Salon at the core, breakout rooms in two angled wings to the west`
 - Courtland Grand, levels unknown (`unknown`): `(55 meeting rooms in two towers; list unknown)`
 - Westin, Chastain (level unknown) (`chastain`): `Chastain A … J (confirm)`
 
 Unplaced rooms:
 
+- Hilton: `Steps A` - a Dragon Con name, not the hotel's; level unknown
 - Hilton: `Steps B` - a Dragon Con name, not the hotel's; level unknown
+- Hilton: `Steps E` - a Dragon Con name, not the hotel's; level unknown
+- Hilton: `Steps G` - a Dragon Con name, not the hotel's; level unknown
