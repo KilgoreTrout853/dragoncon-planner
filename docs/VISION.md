@@ -83,7 +83,7 @@ push are a spring decision, not a 2027 commitment. On iPhone, push only
 reaches an installed app — which is why the top rung of the ladder is
 "installed."
 
-### Stretch: the building view
+### The building view, committed for 2027 (#60)
 A per-hotel view: tap a hotel on the map and it opens into its levels,
 your picks lit; tap a level and it drops to a top-down view of it (#28),
 rooms as blocks in their real relative positions, escalators, elevators
@@ -91,8 +91,8 @@ and skybridge doors marked; tap a room for what is on there. Data first
 (#21): a pipeline-owned venues file mapping every room string to a hotel,
 a level, and a one-line "how to get there," which improves every row and
 the detail sheet before any drawing exists. Schematic: blocks and landmarks,
-our own drawings, hotel plans as reference. Gated on the foundation and
-Coordinate landing by the spring checkpoint. The animation is built last.
+our own drawings, hotel plans as reference. Committed for 2027 (#60): the
+spring checkpoint no longer gates it. The animation is built last.
 
 ## Not doing
 
@@ -106,8 +106,13 @@ Coordinate landing by the spring checkpoint. The animation is built last.
 - Public crowd-sourced line or capacity status. Too sparse at a few
   hundred users to trust. Crew-scoped, it is a status ping, already in
   Pillar 2.
-- Photos, costumes, the vendor halls, guest bios — anything the official
-  app does that is not schedule.
+- Photos, costumes, the vendor halls — anything the official app does
+  that is not schedule.
+- Reference content — anything a person reads rather than acts on —
+  except attached to a planning object or about the app (#59). Attached:
+  one tap from an event, a person on it, a room or a crew, and short
+  enough to read there. About the app: behind the gear. Never a tab, a
+  tile or a feed; one link points at the official app for the rest.
 - Native apps. It is a PWA.
 
 ## What done looks like
@@ -150,7 +155,8 @@ scope cut takes from the bottom.
 - **Push on iPhone** only works installed. If people do not install,
   Pillar 5 reaches nobody. The install nudge earns its place.
 - **The building view** is the kind of feature that eats a month happily.
-  It has a budget and a gate.
+  It is committed (#60): something else gives first, decided at the
+  checkpoint.
 - **One developer.** Every pillar has to be finishable alone; the spring
   checkpoint exists to prove that or cut.
 - **Partnership drift.** Building for Dragon Con's imagined requirements

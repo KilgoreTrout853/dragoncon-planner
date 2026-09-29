@@ -21,6 +21,24 @@ is specified when its tentpole opens, not before.
 The con is Labor Day weekend 2027. The spring checkpoint and the freeze are
 unset. There are no other dates.
 
+## The spring checkpoint
+
+Its candidates, `docs/scope-2027.md`'s section 3 in rank order; the cut
+takes from the bottom (#18):
+
+1. W4, similar events, computed in the pipeline.
+2. W24, status pings tied to a pick.
+3. W35, crew pings by push, after W24.
+4. W10, recent and pinned searches.
+5. W17, a pre-con "help me plan", behind a flag.
+6. W30, a recover that brings a phone's crews across.
+7. W26, hand a crew over.
+8. W15, onboarding: pick your fandoms.
+9. W29, hide my plan.
+
+The building view, W38 to W41, ranks above every one: if the checkpoint
+must cut a 2027 row, not these (#60).
+
 ## The tentpoles
 
 ### 1. Pipeline shape — built (#41-#49); closed
@@ -164,9 +182,8 @@ Where a room is: the venues file, room resolution, and the building view
 down to the level. Rests on #21, #27 and #28. The venues registry is
 retired into the venues file, `data/<year>/venues.json` (Pipeline shape's
 PR 2), and the room census is done (PR #33); room resolution is Pipeline
-shape's venue resolution (#37, #45). The building view's drawings and
-sketches continue on the side, in chat; a Places PR beyond what the
-pipeline absorbs takes a free review slot.
+shape's venue resolution (#37, #45). The building view is 2027 (#60): its
+drawings a side lane, its screens Where things live's, with the map.
 
 ### 4. Identity and sync — built (PRs #51-#62, six migrations, the contract's sections 1-8); the operations track trailing (#50)
 
@@ -294,7 +311,7 @@ Checklist, below, keeps the history:
 - Production's `flags.push_enabled` on at the freeze and off after the
   con (#55; Checklist).
 
-### The scope pass — not a tentpole (#57); in the design slot now
+### The scope pass — not a tentpole (#57); done (PR #69), its verdicts in; Part B to follow in a pull request of its own
 
 Its list is the union of three sources: VISION's pillars; every item
 DECISIONS or this file defers, holds, or names as the spring's, not built,
@@ -305,7 +322,7 @@ and given a verdict: 2027, checkpoint candidate, or out. A description is
 what the test needs, not a design: a feature is still specified when its
 tentpole opens. A walk through the official 2026 app on a phone gives one
 row a feature, each marked planning, coordination or reference, and the
-pass writes a rule for reference content, which VISION's Not doing bans
+pass writes a rule for reference content, which VISION's Not doing banned
 only by implication. A DECISIONS entry comes of the pass only for a
 change to VISION. The pass adds to the spring checkpoint's list, and the
 checkpoint still cuts from the bottom.
@@ -315,12 +332,23 @@ verdicts; and `docs/official-app-2026.md`, Part B, the walk. Where things
 live opens with it. `docs/scope-2027.md` itself opens with an inventory of
 what the app does on `next` today, read before the list.
 
+Done by PR #69: `docs/scope-2027.md`'s section 2 given its descriptions,
+tests and verdicts, and section 3, the verdicts - 2027, the spring
+checkpoint's candidates in rank order, and out; and DECISIONS #59, the
+rule for reference content, and #60, the building view a 2027
+commitment, with the VISION changes they make. Part B,
+`docs/official-app-2026.md`, the walk, follows in a pull request of its
+own.
+
+`docs/scope-2027.md`'s W44, a calendar alarm on each exported event, is
+2027: a small standalone pull request, for a free execution slot (#57).
+
 ### 5. Where things live — not opened; opens with the scope pass's output (#57)
 
 The UI's information architecture. There are five tabs today; For you,
 crews, a filter sheet and the building view need homes. No decisions yet.
 
-Waiting for a home:
+Waiting for a home (a W-id is `docs/scope-2027.md`'s):
 
 - The crew screens: create, join - with a field to paste a link into
   (Delivery) - your crews, who's going, and the overlay's look. Their data
@@ -328,15 +356,35 @@ Waiting for a home:
   section 8).
 - The notifications toggle.
 - The install nudge (below).
+- W1: the overlap warning at the moment of starring, and a mark on rows
+  that clash with the plan.
+- W3: For you, ranked first from the profile (#32).
+- W7: the parsed facets on the row and the sheet.
+- W13: the filter sheet, one button with a count badge, W8's topic axes
+  and W7's facet flags in it.
+- W16: the zero state, which shows a stranger the app in one screen.
+- W23: the crew Now board, invented here rather than rearranged; its
+  shape is open.
+- W32: the "what we store" page behind the gear, in three parts - what we
+  store, about this app, and the links: one to Dragon Con's official site
+  and app (#59) - and W45, delete my account, on it.
+- W42: a guest's "known for" line, on an event and on a person's page
+  (#59).
+- The building view's screens, W38 to W41, with the map (#60).
+
+A requirement on every screen here, not a home: W43, accessibility -
+labels for screen readers, focus order, contrast, reduced motion and tap
+targets - checked by Playwright when it comes.
 
 The Now tab, mini-bar and map's next-pick card drop the leave-by countdown
 and keep the walk estimate and tight bands (#40).
 
 Open here, unscheduled (#40):
 
-- Crew status pings. The build order stays picks → presence → pings (#10).
-- When the install nudge is shown: a standing line on Now, or at the
-  moment it earns itself.
+- Crew status pings (W24, a checkpoint candidate). The build order stays
+  picks → presence → pings (#10).
+- When the install nudge is shown (W36, W37 folded in): a standing line
+  on Now, or at the moment it earns itself.
 
 ### 6. Delivery — not opened; last (#57)
 
@@ -344,6 +392,10 @@ How the app reaches a phone and stays current: `sw.js` and its cache version
 (#4), hashed assets against the single file (#23), the IIFE-or-module sharp
 edge (ARCHITECTURE.md), Playwright (#24), the install flow, the client side
 of a push subscription, and Pages from Actions (#26).
+
+The install flow is W36 (`docs/scope-2027.md`), 2027, W37 folded in: its
+mechanics are Delivery's; what it says and when it shows are the install
+nudge's, waiting for a home in Where things live (#40, #57).
 
 Playwright (#24) may come forward as a standalone pull request in a free
 execution slot (#57): a real-browser test earns its place under a UI
