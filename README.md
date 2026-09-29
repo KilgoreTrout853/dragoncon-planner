@@ -51,7 +51,7 @@ pip install -r requirements.txt
 python -m pytest tests/          # the pipeline: scraper, parse, tag and build stages, registries
 ```
 
-CI runs the same commands on every pull request (`.github/workflows/ci.yml`), and `next` takes no pull request until both of its jobs pass.
+CI runs the same commands on every pull request (`.github/workflows/ci.yml`), and a third job, `database`, runs the schema's pgTAP tests; `next` takes no pull request until all three pass.
 
 The page tests boot the source in jsdom against `tests/sample-events.json` (558 synthetic events in the v2 shape, deterministic, which `python tools/sample_v2.py` makes from `tests/sample-events.v1.json`; CI checks it is fresh); `tests/real-data.test.js` boots it once more against the real `data/2026/events.v2.json`, because ranking questions are meaningless against synthetic rows. `docs/ARCHITECTURE.md` says how the suite is put together.
 

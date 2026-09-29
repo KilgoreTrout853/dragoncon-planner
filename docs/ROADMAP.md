@@ -222,10 +222,10 @@ The operations track trails, run beside the rest and gating none of it
 (#50). What it still has to do, each line with where it came from; the
 Checklist, below, keeps the history:
 
-- `ubuntu-24.04` in place of `ubuntu-latest` in the three workflows,
+- ~~`ubuntu-24.04` in place of `ubuntu-latest` in the three workflows,
   `ci.yml`, `scrape.yml` and `mirror.yml`, before 2026-10-19, when GitHub
   starts moving `ubuntu-latest` to Ubuntu 26 (the notice on every job's
-  run; actions/runner-images#14748).
+  run; actions/runner-images#14748).~~ Done by PR #64.
 - The `dev` Environment's deployment branches restricted to `next`, so
   that a workflow on another branch cannot read the dev project's secret
   key (Checklist; #54).
@@ -236,7 +236,7 @@ Checklist, below, keeps the history:
   old defaults revoked by hand, since turning the setting off changes
   nothing already granted (`docs/sync/contract.md`, section 4, as built;
   #54).
-- The cleanup of stale anonymous users, the track's first pull request: a
+- The cleanup of stale anonymous users, the track's next pull request: a
   scheduled job, by a migration, deleting only those in no crew and
   holding no subscription, and how stale that is (`docs/sync/contract.md`,
   section 2 and Open; #25, #50, #52).

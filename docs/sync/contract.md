@@ -1597,7 +1597,7 @@ PR #62, with #56.
 
 - ~~How stale an anonymous user must be before the cleanup deletes it
   (section 2).~~ The operations track's, with the cleanup, which is not
-  built: its first pull request (ROADMAP, tentpole 4).
+  built: its next pull request (ROADMAP, tentpole 4).
 - ~~Starts-soon's lead time: one value, set in the push job's call (#40,
   #50); how many minutes is unset.~~ 15 minutes, one constant in
   `push_due()` (#55; section 7).

@@ -765,7 +765,9 @@ carry the change. No git diff: the orchestrator's one git call is
 `rev-parse HEAD`, and the workflow, which sets `PIPELINE_SHA` from its
 checkout, makes none. A flagged run's lines still read as the diff finds
 them; the push job reads the flag and suppresses that run. Identity and
-sync's design gets the same sentence when it opens.
+sync's design says the same (`docs/sync/contract.md`, section 2, The
+schedule mirror), and its push job, as built, counts a line only where its
+run's flag is false (section 7, Pick-changed, as built).
 
 ## The stages
 

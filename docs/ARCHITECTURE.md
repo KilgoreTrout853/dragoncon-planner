@@ -772,7 +772,7 @@ compares the head of `next` (`git ls-remote`) with the sha in its
 `deployed.txt`. When they differ, or the run was manual, it checks `next`
 out, builds it (Node setup, then `npm ci && npm run build`) with
 `DC_CHANNEL=next` (no `DC_BUILD`, so the build id is the checkout's short
-sha) and the backend's two variables, once they are set there by hand
+sha) and the backend's two variables, the dev project's, set there by hand
 (ROADMAP, Checklist), publishes the output folder to its `gh-pages`
 branch as an orphan commit (`peaceiris/actions-gh-pages`), and commits
 the deployed sha to
@@ -946,8 +946,8 @@ A third job, `database` (DECISIONS #52), installs the Supabase CLI with
 `npm ci --prefix supabase` - `supabase/`'s own lockfile, never the root's -
 starts the local database with the migrations and the seed applied, and
 runs the pgTAP tests. Docker is already running on GitHub's Ubuntu runners.
-It is not a required check until its first green run, when it is added to
-the `next` ruleset by hand (ROADMAP, Checklist).
+It is a required check too, by its job id like the other two: it was added
+to the `next` ruleset by hand after its first green run (ROADMAP, Checklist).
 
 ## Branches
 
@@ -956,9 +956,9 @@ the `next` ruleset by hand (ROADMAP, Checklist).
   deleted or force-pushed, and nobody bypasses it.
 - `next` — development, and the repo's default branch for the off-season.
   Ruleset `next - PR only`, active: a pull request is required (no
-  approvals), squash is the only merge method, the checks `client` and
-  `pipeline` must pass, the branch cannot be deleted or force-pushed, and
-  only the repository admin can bypass it.
+  approvals), squash is the only merge method, the checks `client`,
+  `pipeline` and `database` must pass, the branch cannot be deleted or
+  force-pushed, and only the repository admin can bypass it.
 - Feature branches target `next`. GitHub deletes a head branch when its pull
   request merges, and a squash commit takes the pull request's title (the
   commit's, when there is only one), with the branch's commit messages as
