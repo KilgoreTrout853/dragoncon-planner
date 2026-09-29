@@ -179,8 +179,8 @@ Not features, but what "not very good" meant on the day:
 
 ## Appendix B. Sources on disk
 
-Dragon Con's own maps - seven drawings - the five hotels and the Mart's two
-buildings - plus the convention footprint - and `maps.json` with their room
+Dragon Con's own maps (seven drawings - the five hotels and the Mart's two
+buildings - plus the convention footprint) and `maps.json` with their room
 polygons for the Hilton, the Hyatt and the Marriott are kept under
 `reference/dragoncon/` on the author's machine, gitignored, as reference
 for our own level drawings (#58): facts are used, their rendering never is.
