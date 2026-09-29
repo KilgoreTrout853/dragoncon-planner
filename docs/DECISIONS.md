@@ -396,7 +396,7 @@ so a build-time import is the right cadence.
 file forward each year. One Vite config line to import from outside
 `src/`. Supersedes #6's "one constant" — the buffer becomes data.
 
-### 28. The building view goes to the room: a top-down level view, floor plans as reference — Decided, not built (2026-09-18) — its room resolution to be built by #45, which moves each level's drawing out of the venues file into `data/2027/drawings/`
+### 28. The building view goes to the room: a top-down level view, floor plans as reference — Decided, not built (2026-09-18) — its room resolution to be built by #45, which moves each level's drawing out of the venues file into `data/2027/drawings/`; its level drawings built by #58: one file per level, geometry only, keyed by the venues file's room ids, the Hilton's five levels first
 **Decided:** Supersedes the drawing half of #21; the venues file (#21, #27)
 stays pipeline-owned and still ships first. The building view gains a third
 layer: tap a level in a hotel's stack and it drops to a top-down view of that
@@ -1042,7 +1042,7 @@ it.
 build tolerant, the test that holds 2026's counters at zero is the
 off-season guard.
 
-### 45. Venue resolution (builds #21, #27, #28) — Decided, not built (2026-09-22) — built by PR 5: `venues_stage.py`, the split, the grammar and the report as `contract.md` has them
+### 45. Venue resolution (builds #21, #27, #28) — Decided, not built (2026-09-22) — built by PR 5: `venues_stage.py`, the split, the grammar and the report as `contract.md` has them; its drawings built by #58: `data/<year>/drawings/<hotel>-<level>.json`, geometry only, keyed by level and room ids
 **Decided:** `data/2027/venues.json` holds runtime data only, curated by
 hand, one copy a year (#27):
 - Per hotel: its keys (the prefixes the source writes), `short`, `group`,
@@ -1754,3 +1754,24 @@ request - gates nothing (#50).
 **Cost:** The worker's cache version (#4), hashed assets (#23) and Pages
 from Actions (#26) land last, nearest the freeze, and the freeze date is
 still unset (#30): that is the risk.
+
+### 58. Level drawings are data, one file per level — Standing (2026-09-28)
+**Decided:** Level drawings are data:
+`data/<year>/drawings/<hotel>-<level>.json`, one file per level, geometry
+only (feet, north up), every drawn room a room id of that level in
+`venues.json`; composites and groups say how rooms combine; names come
+from `venues.json`. `tools/render_drawings.py` draws them for docs; the
+app's stage builder will read the same files. Sizes from the hotels'
+published tables, placement from Dragon Con's map, nothing of theirs
+copied (#28).
+
+**Why:** #45 put each level's drawing in `data/2027/drawings/`, keyed by
+level and room ids, and #28 made a drawing data the client builds once
+and only lights. A schedule reading lands on a room id, so a shape keyed
+by one can be lit; a name kept once, in `venues.json`, cannot disagree
+with a drawing.
+**Cost:** A room renamed, split or removed in `venues.json` leaves its
+drawing wrong until the file follows; `tests/test_drawings.py` is the
+guard. Each level is its own frame, so the levels do not stack until a
+hotel's elevator cores line up. The renders are a record, redrawn by
+hand, not held fresh by CI.

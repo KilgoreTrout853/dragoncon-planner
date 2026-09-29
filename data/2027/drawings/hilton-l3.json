@@ -1,0 +1,233 @@
+{
+  "hotel": "Hilton",
+  "level": "l3",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 400,
+    "h": 230
+  },
+  "rooms": [
+    {
+      "id": "301",
+      "cx": 169.0,
+      "cy": 133.0,
+      "w": 37,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "302",
+      "cx": 211.5,
+      "cy": 133.0,
+      "w": 48,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "303",
+      "cx": 259.5,
+      "cy": 133.0,
+      "w": 48,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "304",
+      "cx": 307.5,
+      "cy": 133.0,
+      "w": 48,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "305",
+      "cx": 355.5,
+      "cy": 133.0,
+      "w": 48,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "306",
+      "cx": 218.0,
+      "cy": 186.0,
+      "w": 26,
+      "h": 23,
+      "rot": 0
+    },
+    {
+      "id": "307",
+      "cx": 244.0,
+      "cy": 186.0,
+      "w": 26,
+      "h": 23,
+      "rot": 0
+    },
+    {
+      "id": "308",
+      "cx": 270.0,
+      "cy": 186.0,
+      "w": 26,
+      "h": 23,
+      "rot": 0
+    },
+    {
+      "id": "309",
+      "cx": 54.4,
+      "cy": 60.7,
+      "w": 26,
+      "h": 24,
+      "rot": 59
+    },
+    {
+      "id": "310",
+      "cx": 68.0,
+      "cy": 83.4,
+      "w": 27,
+      "h": 24,
+      "rot": 59
+    },
+    {
+      "id": "311",
+      "cx": 82.0,
+      "cy": 106.6,
+      "w": 27,
+      "h": 24,
+      "rot": 59
+    },
+    {
+      "id": "312",
+      "cx": 95.6,
+      "cy": 129.3,
+      "w": 26,
+      "h": 24,
+      "rot": 59
+    },
+    {
+      "id": "313",
+      "cx": 118.5,
+      "cy": 48.7,
+      "w": 26,
+      "h": 25,
+      "rot": 60
+    },
+    {
+      "id": "314",
+      "cx": 131.5,
+      "cy": 71.3,
+      "w": 26,
+      "h": 25,
+      "rot": 60
+    },
+    {
+      "id": "315",
+      "cx": 137,
+      "cy": 107,
+      "w": 35,
+      "h": 25,
+      "rot": -28
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "301–305",
+      "kind": "run",
+      "rooms": [
+        "301",
+        "302",
+        "303",
+        "304",
+        "305"
+      ],
+      "outline": {
+        "cx": 265,
+        "cy": 133,
+        "w": 229,
+        "h": 26,
+        "rot": 0
+      }
+    },
+    {
+      "name": "306–308",
+      "kind": "run",
+      "rooms": [
+        "306",
+        "307",
+        "308"
+      ],
+      "outline": {
+        "cx": 244,
+        "cy": 186,
+        "w": 78,
+        "h": 23,
+        "rot": 0
+      }
+    },
+    {
+      "name": "309–312",
+      "kind": "run",
+      "rooms": [
+        "309",
+        "310",
+        "311",
+        "312"
+      ],
+      "outline": {
+        "cx": 75,
+        "cy": 95,
+        "w": 106,
+        "h": 24,
+        "rot": 59
+      }
+    },
+    {
+      "name": "313–314",
+      "kind": "run",
+      "rooms": [
+        "313",
+        "314"
+      ],
+      "outline": {
+        "cx": 125,
+        "cy": 60,
+        "w": 52,
+        "h": 25,
+        "rot": 60
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Elevator lobby",
+      "cx": 112,
+      "cy": 178,
+      "w": 44,
+      "h": 44,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "Elevators",
+      "x": 140,
+      "y": 195
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalators",
+      "x": 165,
+      "y": 180
+    }
+  ],
+  "streets": [],
+  "sources": [
+    "sizes: the hotel's 2024 group sales playbook capacity tables (reference/plans/hilton-playbook-2024.pdf)",
+    "placement and orientation: Dragon Con's own map, room polygons in reference/dragoncon/maps.json (DECISIONS #28: read for position only, nothing copied)"
+  ],
+  "notes": [
+    "301–305 in one long row, 306–308 under it, the wing rooms 309–315 angled to the north-west"
+  ]
+}
