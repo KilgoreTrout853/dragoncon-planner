@@ -341,7 +341,7 @@ an email-upgraded user recovers. VISION.md's "one that did not still keeps
 what it had" is qualified in this PR, and the install nudge is now a
 data-safety measure, not only a push enabler.
 
-### 26. CI on every PR; `next` becomes PR-only with required checks — Decided, not built (2026-09-17) — built: CI, the required checks, the `next` ruleset, the deploy repo's build command, Dependabot and `.gitattributes`; open: Pages from Actions (Delivery); `scrape.yml`'s PR path decided by #48; a third job, `database`, to be added with the schema (#52), and required on `next` after its first green run (ROADMAP, Checklist)
+### 26. CI on every PR; `next` becomes PR-only with required checks — Decided, not built (2026-09-17) — built: CI, the required checks, the `next` ruleset, the deploy repo's build command, Dependabot and `.gitattributes`; open: Pages from Actions (Delivery); `scrape.yml`'s PR path decided by #48; a third job, `database`, to be added with the schema (#52), and required on `next` after its first green run (ROADMAP, Checklist); `database` added by PR #54, and required on `next` since its first green run
 **Decided:** `.github/workflows/ci.yml` with two jobs matching the
 toolchain boundary: `client` (Node from `.nvmrc`, `npm ci` with cache,
 lint, test, build) and `pipeline` (Python, `requirements.txt`, pytest).
@@ -1707,7 +1707,7 @@ that mints and then fails leaves an anonymous user with no crew, for the
 cleanup. An installed iPhone reader joins by pasting the link, not by
 tapping it.
 
-### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28)
+### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28) — the runner pin, PR #64, went first, for GitHub's date
 **Decided:** After Identity and sync the design slot goes to a scope pass;
 Where things live opens with its output, and Delivery comes last. This
 amends #37's order and adds to #30 a step that is not a tentpole;

@@ -45,7 +45,7 @@ concurrency:
 
 jobs:
   scrape:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       SEASON: ${{ inputs.season || 'data/2027/season.json' }}
       TARGET: ${{ inputs.target || vars.SCRAPE_TARGET }}

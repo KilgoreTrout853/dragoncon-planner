@@ -37,7 +37,7 @@ jobs:
   mirror:
     # next's files go to the dev project and main's to production. Another branch's never: its runs never landed.
     if: github.ref_name == 'next' || github.ref_name == 'main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The environment's variable and secret, with no deployment recorded for each run.
     environment:
       name: ${{ github.ref_name == 'main' && 'production' || 'dev' }}

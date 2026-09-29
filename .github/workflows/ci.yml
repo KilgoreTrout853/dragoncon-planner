@@ -1,10 +1,9 @@
 name: CI
 
 # DECISIONS #26. One job per toolchain: Node owns the client, Python owns the
-# pipeline, and SQL the database (#52). The job ids `client` and `pipeline` are
-# the check names the ruleset on `next` requires - renaming either one un-gates
-# the branch; `database` joins them after its first green run, by hand
-# (ROADMAP, Checklist).
+# pipeline, and SQL the database (#52). The job ids `client`, `pipeline` and
+# `database` are the check names the ruleset on `next` requires - renaming any
+# one un-gates the branch.
 on:
   pull_request:
     branches: [next, main]
@@ -22,7 +21,7 @@ concurrency:
 
 jobs:
   client:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
@@ -36,7 +35,7 @@ jobs:
       - run: npm test
 
   pipeline:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
@@ -58,7 +57,7 @@ jobs:
   # Supabase CLI is supabase/'s own pinned dev dependency, never the root's; the
   # database runs in Docker, which GitHub's Ubuntu runners have running.
   database:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
