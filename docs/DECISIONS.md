@@ -184,7 +184,7 @@ as context. `docs/` begins with `DECISIONS.md` and `ARCHITECTURE.md` only.
 **Why:** A retro written from nothing is worse than none.
 **Cost:** Some 2026 lessons are lost. Accepted.
 
-### 18. The 2027 vision is planning and coordination; VISION.md holds it — Decided (2026-09-17)
+### 18. The 2027 vision is planning and coordination; VISION.md holds it — Decided (2026-09-17) — the checkpoint's candidates are `docs/scope-2027.md`'s section 3, in rank order (PR #69); the building view a 2027 commitment, not a stretch (#60)
 **Decided:** `docs/VISION.md` states what the app is for and what its
 author is building it to learn. One line: "the planning and coordination
 layer for Dragon Con." A feature is in only if it helps someone plan or
@@ -222,7 +222,7 @@ makes the top rung of the ladder real.
 buffer (#6) have to live somewhere both the client and the job can read,
 which is a step-3a question. Uninstalled iPhone users get nothing.
 
-### 21. Venues are pipeline-owned data; the building view is a stretch goal — Decided, not built (2026-09-17) — drawing half superseded by #28; the venues file stands via #27; the file and room resolution to be built by #45
+### 21. Venues are pipeline-owned data; the building view is a stretch goal — Decided, not built (2026-09-17) — drawing half superseded by #28; the venues file stands via #27; the file and room resolution to be built by #45; the building view a 2027 commitment by #60, its spring gate lifted and its animation no longer "if at all"
 **Decided:** A venues dataset (hotel → level → rooms, with aliases for the
 room strings the scraper produces and a one-line "how to get there") is
 owned by the pipeline, which resolves every event's room against it and
@@ -396,7 +396,7 @@ so a build-time import is the right cadence.
 file forward each year. One Vite config line to import from outside
 `src/`. Supersedes #6's "one constant" — the buffer becomes data.
 
-### 28. The building view goes to the room: a top-down level view, floor plans as reference — Decided, not built (2026-09-18) — its room resolution to be built by #45, which moves each level's drawing out of the venues file into `data/2027/drawings/`; its level drawings built by #58: one file per level, geometry only, keyed by the venues file's room ids, the Hilton's five levels first; 2026-09-29: round 6 of the sketch is kept at docs/prototypes/ as a record (PR #67). Nothing in the app reads it; the principle stands.
+### 28. The building view goes to the room: a top-down level view, floor plans as reference — Decided, not built (2026-09-18) — its room resolution to be built by #45, which moves each level's drawing out of the venues file into `data/2027/drawings/`; its level drawings built by #58: one file per level, geometry only, keyed by the venues file's room ids, the Hilton's five levels first; 2026-09-29: round 6 of the sketch is kept at docs/prototypes/ as a record (PR #67). Nothing in the app reads it; the principle stands. The building view is a 2027 commitment by #60, its spring gate lifted.
 **Decided:** Supersedes the drawing half of #21; the venues file (#21, #27)
 stays pipeline-owned and still ships first. The building view gains a third
 layer: tap a level in a hotel's stack and it drops to a top-down view of that
@@ -693,7 +693,7 @@ blind spots; the rubric and the sample check are the guard. Real users'
 searches are the missing input. Recording searches that return nothing,
 anonymously, in 2027 is a privacy question for Identity and sync.
 
-### 37. Pipeline shape follows Discover — Standing (2026-09-22) — outreach deferred by #41; search tuning held until the first pass of the whole app (ROADMAP, Held, 2026-09-22); the order after Identity and sync is #57's: the scope pass, then Where things live, Delivery last
+### 37. Pipeline shape follows Discover — Standing (2026-09-22) — outreach deferred by #41; search tuning held until the first pass of the whole app (ROADMAP, Held, 2026-09-22); the order after Identity and sync is #57's: the scope pass, then Where things live, Delivery last; the building view's spring condition in its Cost lifted by #60, which makes its screens Where things live's
 **Decided:** The tentpoles (#30) go in this order: Discover (PR 6), then
 Pipeline shape, whose design opens while PR 6 executes, then Identity and
 sync, then Delivery; Where things live last, as now.
@@ -1707,7 +1707,7 @@ that mints and then fails leaves an anonymous user with no crew, for the
 cleanup. An installed iPhone reader joins by pasting the link, not by
 tapping it.
 
-### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28) — the runner pin, PR #64, went first, for GitHub's date; the built inventory, `docs/scope-2027.md`'s section 1, added as a source and read before the wanted list
+### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28) — the runner pin, PR #64, went first, for GitHub's date; the built inventory, `docs/scope-2027.md`'s section 1, added as a source and read before the wanted list; the verdicts landed, `docs/scope-2027.md`'s sections 2 and 3, with #59 and #60 (PR #69); Places' building view is #60's: its drawings a side lane, its screens Where things live's; W44, the calendar alarm, a standalone pull request in a free execution slot, as Playwright may be
 **Decided:** After Identity and sync the design slot goes to a scope pass;
 Where things live opens with its output, and Delivery comes last. This
 amends #37's order and adds to #30 a step that is not a tentpole;
@@ -1775,3 +1775,63 @@ drawing wrong until the file follows; `tests/test_drawings.py` is the
 guard. Each level is its own frame, so the levels do not stack until a
 hotel's elevator cores line up. The renders are a record, redrawn by
 hand, not held fresh by CI.
+
+### 59. Reference content: attached, or about the app — Standing (2026-09-29)
+**Decided:** Reference content is anything a person reads rather than acts
+on: hours, policies, links, bios, documents. It is in the app in two forms,
+and no other.
+- **Attached:** one tap from a planning object - an event, a person on an
+  event, a room, a crew - and short enough to read there: a two-line
+  "known for" on a guest, the level on a room.
+- **About the app:** one page behind the gear, in three parts - what we
+  store, about this app, and the links: a one-line link to Dragon Con's
+  official site and app. Delete my account is on it (`docs/scope-2027.md`,
+  W32 and W45).
+- It never gets a tab, a tile or a feed. Everything else the official app
+  carries - photos, costumes, the vendor halls, show documents, social
+  media, the store, DCTV, publications - stays there, and the one link
+  points at it.
+- VISION's Not doing keeps its list and gains this rule; guest bios move
+  from banned to attached (W42).
+
+**Why:** A feature is in only if it helps someone plan or coordinate
+(#18), and Not doing banned reference content only by implication (#57).
+A line attached to a planning object serves the plan: a guest's "known
+for" decides whether to pick the panel (W42). About the app, it answers
+what the app keeps and where everything else is. The official app carries
+the rest, and one link reaches it.
+**Cost:** A reader who wants more than a line - a photo, a full bio, a
+show document - leaves for the official app. The "known for" line is to
+be the registry's, reviewed: `people.json` has no field for it today - the
+drafter's sidecar holds a draft line for 109 of `people.json`'s 111
+celebrities, unreviewed, which the loader ignores - and the client sees a
+person only through `events.v2.json`, whose shape has no place for it yet
+(#31).
+
+### 60. The building view is a 2027 commitment — Standing (2026-09-29)
+**Decided:** The building view is built in 2027. This lifts the spring
+gate of #21 and #28, which kept it in only if the foundation and
+Coordinate had landed by the spring checkpoint.
+- W38 to W41 (`docs/scope-2027.md`) are 2027, in that order: a hotel's
+  levels with the reader's picks lit, the top-down level view, the motion
+  between the views, and the same for the Westin, the Courtland Grand and
+  the Mart - W41 as sources allow.
+- They rank above every checkpoint candidate: if the checkpoint must cut
+  a 2027 row, it is not one of these.
+- The data half stays where Pipeline shape put it (#37, #45); the
+  drawings are a side lane (#37; their form #58); the screens are Where
+  things live's, with the map.
+
+**Why:** #28's reason stands: which level is necessary but not
+sufficient, and the question people ask is which end of the level and
+from which escalator. The ground is laid: the venues file holds the
+Marriott's, the Hyatt's and the Hilton's levels and rooms (#45), the
+Hilton's five are drawn (#58), and the motion is sketched (PR #67). And
+it is the part of 2027 its author most wants to build: VISION makes the
+plan ambitious on purpose, as a tool to learn, and this is where that
+ambition lives.
+**Cost:** It is the largest UI build of 2027, on top of Where things
+live's reshaping; something else gives first, decided at the checkpoint,
+not now. Before its screens: the Marriott's and the Hyatt's levels drawn,
+each hotel's levels put in one frame so that they stack (#58's Cost), and
+the map made one persistent SVG (#28's Cost).
