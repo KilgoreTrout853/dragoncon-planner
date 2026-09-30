@@ -22,6 +22,19 @@ describe("the Settings sheet", () => {
     it("ending in the build stamp from the page's last-modified time [791, and 1699]", () => {
       expect(readout).toMatch(/ · build \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/);
     });
+    /* What the bottom and the top of the page are laid out from (DECISIONS
+       #62), as scroll.js measured them, so a phone can be asked for them.
+       jsdom lays nothing out: the nav's 0 is ignored and its default stands. */
+    it("and what the nav and the header were measured at, after the insets", () => {
+      expect(readout).toMatch(/ · insets top .+, bottom .+ · --nav-h default, --hdr-h \d+px/);
+      const root = document.documentElement.style, hdr = root.getPropertyValue("--hdr-h");
+      root.setProperty("--nav-h", "105px"); root.setProperty("--hdr-h", "82px");
+      try {
+        expect(page.app.deviceLine()).toMatch(/ · --nav-h 105px, --hdr-h 82px( · |$)/);
+      } finally {
+        root.removeProperty("--nav-h"); root.setProperty("--hdr-h", hdr);
+      }
+    });
   });
 
   describe("polish 6: the everyday two up top and the rest under Advanced", () => {

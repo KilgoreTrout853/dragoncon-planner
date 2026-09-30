@@ -131,7 +131,9 @@ PR #74, with #62.
   derived rule, and no rule left that assumes the nav's height or adds
   the inset to it. None carries a ledger bracket.
 - **Measured** on the next site, after the merge: to follow the phone
-  check.
+  check. The device readout, under Settings, Advanced, says what
+  `--nav-h` and `--hdr-h` were measured at, or `default` for a nav not yet
+  measured (`build.js` `deviceLine()`).
 
 ## 2. Now
 
