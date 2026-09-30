@@ -345,7 +345,9 @@ pass is closed.
 `docs/scope-2027.md`'s W44, a calendar alarm on each exported event, is
 2027: a small standalone pull request, for a free execution slot (#57).
 
-### 5. Where things live — not opened; opens with the scope pass's output (#57)
+### 5. Where things live — in design (opened 2026-09-29)
+
+The recon: `docs/screens/recon.md`, the client's screens at `next` 7968d96.
 
 The UI's information architecture. There are five tabs today; For you,
 crews, a filter sheet and the building view need homes. No decisions yet.
