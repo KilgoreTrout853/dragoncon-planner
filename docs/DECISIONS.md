@@ -58,7 +58,7 @@ cache, but a UI fix should still land when there is signal.
 **Cost:** The cache name (`dc26-v4`) is bumped by hand when `index.html` or
 `sw.js` changes. Forget the bump and users keep the old page.
 
-### 5. No GPS, no location inference — Standing (2026-09-04) — leave-by half to be retired by #40; no-GPS stands
+### 5. No GPS, no location inference — Standing (2026-09-04) — leave-by half to be retired by #40; no-GPS stands; the leave-by half retired by PR #76
 **Decided:** The app never guesses where you are. "Leave by" is shown only
 when a pick is on now and the next pick is in a different hotel; otherwise
 just the start time and a walk estimate. Manual location chips, home base,
@@ -67,7 +67,7 @@ and GPS are all off the table.
 none.
 **Cost:** The Now tab can't warn you if you wandered off between picks.
 
-### 6. Leave-by uses a fixed 10-minute seating buffer; a con day ends at 5 AM — Standing (2026-09-01) — the seating-time half to be retired by #40, the constant kept as the tight-connection slack; the 5 AM day boundary stands
+### 6. Leave-by uses a fixed 10-minute seating buffer; a con day ends at 5 AM — Standing (2026-09-01) — the seating-time half to be retired by #40, the constant kept as the tight-connection slack; the 5 AM day boundary stands; the seating-time half retired by PR #76, the constant `SLACK_MIN`
 **Decided:** Walk estimate plus a constant 10 minutes to get seated. Events
 between midnight and 5 AM belong to the previous day.
 **Why:** Simple, predictable, matches how people actually talk about "Saturday
@@ -369,7 +369,7 @@ PR with auto-merge on green, or run as a bypass actor — pipeline work,
 forced by this decision. The line-ending change is a one-time noisy
 commit.
 
-### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17) — by #40 the shared `leaveBy` module becomes the tight-connection helper; the buffer becomes the slack; the walk table's home unchanged; an unknown hotel to degrade to Other rather than fail the run (#44); the file to be built by #45; the client's import built by #49: `virtual:venues`, and `src/venues.js`'s constants gone; the mirror narrowed by #50: no venues in Postgres, and the pipeline writes none; the crowd factor per device, not synced (#50)
+### 27. Walk table, buffer and hotel identity live in the venues file; one shared leave-by formula — Decided, not built (2026-09-17) — by #40 the shared `leaveBy` module becomes the tight-connection helper; the buffer becomes the slack; the walk table's home unchanged; an unknown hotel to degrade to Other rather than fail the run (#44); the file to be built by #45; the client's import built by #49: `virtual:venues`, and `src/venues.js`'s constants gone; the mirror narrowed by #50: no venues in Postgres, and the pipeline writes none; the crowd factor per device, not synced (#50); the tight-connection helper built by PR #76 as `src/walk.js`'s `connection()`, which the hero and the gap line both read
 **Decided:** #21's venues file (`data/2027/venues.json`, per-year as #13
 set for events) also holds hotel identity (keys as used in `events.json`,
 short names, groups), the walk matrix, the seating buffer from #6, and the
@@ -425,7 +425,7 @@ mode now also covers moved partitions. The map needs one persistent SVG
 mutated in place rather than the innerHTML rebuild in `src/app.js` — a
 constraint on step 4's module split.
 
-### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53); an eighteenth, `outbox`, after `time`, and `sync` after the bus (#53); a nineteenth, `crews`, after `identity` (#56); `mine` renamed `plans` in the fifth view's place (#62)
+### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53); an eighteenth, `outbox`, after `time`, and `sync` after the bus (#53); a nineteenth, `crews`, after `identity` (#56); `mine` renamed `plans` in the fifth view's place (#62); `leave` renamed `walk` in its place (#40, PR #76)
 **Decided:** The client's modules stand in one order, and `src/boot.js` is
 its root. The order is the array `ORDER` in `tests/rules/imports.test.js` -
 the fourteen leaves, then `scroll` and the `bus`, the five views, then
@@ -825,7 +825,7 @@ live site drops `next`'s work and axis follows. The worker's update notice
 keys on `generated_at`, which every rebuild of `events.v2.json` keeps
 (ROADMAP, Held).
 
-### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55); its client half - no leave-by on the hero, the mini-bar or the map card, the slack renamed `SLACK_MIN`, `leave.js` renamed `walk.js` and `currentLocation()` deleted, so that the app no longer says where the reader is - to be built by PR 3 of Where things live's sequence (ROADMAP, tentpole 5; `docs/screens/contract.md`, section 12); when the install nudge shows decided by #65
+### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55); its client half - no leave-by on the hero, the mini-bar or the map card, the slack renamed `SLACK_MIN`, `leave.js` renamed `walk.js` and `currentLocation()` deleted, so that the app no longer says where the reader is - to be built by PR 3 of Where things live's sequence (ROADMAP, tentpole 5; `docs/screens/contract.md`, section 12); when the install nudge shows decided by #65; its client half built by PR #76: no leave-by on the hero, the mini-bar or the map card - the hero says the walk to the next pick and the band `walk.js` `connection()` gives the pair, as the gap line between their rows does - `SLACK_MIN`, `walk.js`, and `currentLocation()` deleted, so the app no longer says where the reader is (`docs/screens/contract.md`, sections 2 and 12, as built)
 **Decided:** Leave-by is retired: no `leave by <time>` countdown on any
 screen, and no leave-by push.
 - The plan keeps what is true of the plan rather than the person: a walk
@@ -1216,7 +1216,7 @@ take pull requests only.
 costs nothing, since it commits nothing (#44). About a minute of CI a run.
 A token to rotate every year.
 
-### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12)
+### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12); renamed by PR #76
 **Decided:** The client is built for one year, `DC_YEAR`'s (#42), and
 reads that year's contract: its `events.v2.json`, and at build its
 `season.json` and `venues.json`. Plumbing and parity, as #39 was;
@@ -1984,7 +1984,7 @@ needs it then. The sheet is where a row's words have room.
 row's parts. The clash check is new: `gapHTML()` sees only the pick
 before, and the helper's home is the row pull request's to propose.
 
-### 65. The install nudge earns itself — Decided, not built (2026-09-30)
+### 65. The install nudge earns itself — Decided, not built (2026-09-30) — built by PR #76: `now.js` `nudgeVisible()` asks for a pick (`docs/screens/contract.md`, section 2, as built)
 **Decided:** The install nudge stays where it is - the top of Now, its
 three wordings, the seven-day snooze (`docs/screens/recon.md`, section 7)
 - and shows only while the reader has a pick (`picks.size > 0`), never

@@ -59,7 +59,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/scroll.js`, `bus.js` | The scroller and the header's measurement; how a module below the shell asks for a redraw. |
 | `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data, read and written through `crews.js`; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
 | `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the six crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens will draw from, who's going and the overlay's map. No screen: those are Where things live's. A leaf. |
-| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `leave.js`, `search.js`, `ui.js` | The nineteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
+| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `ui.js` | The nineteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own three plugins: `dcYear`, the year `DC_YEAR` names - its define and its two data modules, in the dev server, the build and Vitest alike (DECISIONS #49); `dcBackend`, the backend `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name, or none - its two defines, in the same three places, and the guard on them (#53); and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy. |
@@ -146,7 +146,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `docs/pipeline/` | Pipeline shape (ROADMAP tentpole 1): `contract.md`, the design note for DECISIONS #41-#48 - the 2027 pipeline's files, with their writers and readers, the raw row, the ledger, the change log and the stages - decided, and built so far for `season.json` and `venues.json` (ROADMAP, PR 2), `source.json`, the fetch (PR 3), `ids.jsonl`, the ids stage (PR 4), `events.v2.json`, the build (PR 6), `tags.cache.jsonl`, the tag stage (PR 7a), and `changes.jsonl`'s lines, the diff (PR 7b); its evidence, `history-2026.md`, how the 2026 schedule changed from commit to commit on `main` and how scrape.yml ran, written by `tools/schedule_history.py`; and `replay-2026.md`, the ids stage run over that history by `tools/replay_2026.py`, #43's verification. Both are records, not held fresh by CI: a shallow checkout has no history, and the history will not change. |
 | `docs/prototypes/` | Throwaway sketches kept as a record: `building-view-motion-r6.html`, round 6 of the building view's motion sketch (DECISIONS #28; PR #67), one standalone page that nothing in the app, the build or the tests reads, its level data a hand copy superseded by `data/2027/drawings/`; and `README.md`, which says so. Not held fresh by CI. |
 | `docs/scope-2027.md` | The scope pass (DECISIONS #57), by hand: section 1, what the app does on `next` today, one row a feature; section 2, every feature wanted for 2027 - VISION's, those the docs defer, hold or leave open, and the design chat's catalogue's, and Part B's - each with its sources, its state, and the design chat's description, test and verdict; section 3, the verdicts: 2027, the spring checkpoint's candidates in rank order, and out; and two appendices, the catalogue as brought in, and what the sweep found and left out. A record, not held fresh by CI. |
-| `docs/screens/` | Where things live (ROADMAP tentpole 5): `recon.md`, the client's screens as they stood when the design opened, `next` at 7968d96 - the shell, the five tabs top to bottom, the sheet's three panels, the row and its callers, leave-by and the walk on screen, routes and stored keys, the stranger's view, crews' seam, the layout and what pins the screens - a record, written by hand, not held fresh by CI; and `contract.md`, the design note for DECISIONS #62-#66 - the tabs, each screen's as built, as designed and what it moves, the row, the entry points and their backs, the removals, what waits on data, and each wanted feature's one home - decided, not yet built; ROADMAP, tentpole 5, has its pull requests. |
+| `docs/screens/` | Where things live (ROADMAP tentpole 5): `recon.md`, the client's screens as they stood when the design opened, `next` at 7968d96 - the shell, the five tabs top to bottom, the sheet's three panels, the row and its callers, leave-by and the walk on screen, routes and stored keys, the stranger's view, crews' seam, the layout and what pins the screens - a record, written by hand, not held fresh by CI; and `contract.md`, the design note for DECISIONS #62-#66 - the tabs, each screen's as built, as designed and what it moves, the row, the entry points and their backs, the removals, what waits on data, and each wanted feature's one home - decided, and built so far for the shell (section 1, PR #74) and the quieter Now (sections 2 and 12, PR #76), each with its "as built"; ROADMAP, tentpole 5, has its pull requests. |
 | `docs/sync/` | Identity and sync (ROADMAP tentpole 4), built, its operations track trailing: `recon.md`, the client as it stood when the design opened, `next` at c860f38 - every key it stores and whether each is expected to sync, every site that changes picks or follows, the clock, the refresh hooks, install and notifications, the channel stamp, a change log for 2026 sized, and the backend's absence - a record, written by hand, not held fresh by CI; and `contract.md`, the design note for DECISIONS #50-#56 - identity, the data model, security and migrations, the sync rules, the mirror job, the push job and crews' client layer, each with its "as built" (PRs #54, #55, #56, #57, #59, #60, #61 and #62). |
 | `docs/venues/` | The venues curation (DECISIONS #21, #27, #28, #45, #58): `README.md`, the floor-plan checklist, kept by hand - every hotel × level where programming happens, which published floor plan covers the level, our local copy of it, what Dragon Con's own map shows of it and the state of our own drawing, with the notes on plans and drawings; `drawings/`, the level drawings of `data/2027/drawings/` as `tools/render_drawings.py` draws them, for checking by eye - sizes from the hotels' tables, placement from the con's map, held locally under `reference/dragoncon/` - the Hilton's five levels so far; and `census-2026.md`, the room census - every location of the frozen schedule read by the venues step against `data/2026/venues.json`, with the curation worklist, written by `tools/room_census.py`. The rooms, aliases and level notes are the venues file's, and the drawings' geometry is `data/2027/drawings/`'s; `registry.json` is retired (#45). The census and the drawings are records, not held fresh by CI: an edit to the venues file or a drawing leaves them stale until their script runs again. |
 | `reference/` | Local copies of other people's drawings, gitignored but for its README, which says how a new clone rebuilds them: the hotels' floor plans in `plans/`, at the paths `docs/venues/README.md` records; screenshots of single levels in `shots/`, for a drawing's underlay; and the official Dragon Con app's maps in `dragoncon/` - one PNG per venue with every floor on it, and `maps.json`, where the app outlines each room: Dragon Con's room name, the polygon in image pixels, the door points and the 2026 event count. `maps.json` is the placement our drawings are read against, and the PNGs are for the eye only (#28). Never committed - none of it is ours. |
@@ -412,7 +412,7 @@ The modules stand in one order, which is the array `ORDER` in
 
 ```
 season  util  storage  platform  build  backend  identity  crews  state
-time  outbox  venues  data  picks  follows  ics  leave  search  ui
+time  outbox  venues  data  picks  follows  ics  walk  search  ui
                                                        the nineteen leaves
 scroll  bus  sync
 now  browse  explore  map  plans                       the five views
@@ -454,7 +454,7 @@ the doors have changed and the server has not yet taken - one op per
 changed key, stamped by `wallClock()` - under `storageKey("outbox")`, and
 the drain that sends it, one upsert per table, one at a time, with its
 backoff (DECISIONS #53). `venues`: hotel
-identity, the `WALK` table, the slack, `walkMin()`, `placeHTML()`, all from
+identity, the `WALK` table, the slack, `SLACK_MIN`, `walkMin()`, `placeHTML()`, all from
 the year's venues file, inlined at build as `virtual:venues`. `data`:
 `DATA_URL`, the schedule as the app holds it (`events`, `byId`, `meta`) -
 `byId` holds the removed events too, `events` never - the file's works
@@ -468,7 +468,11 @@ and their doors, `savePicks()` and `saveFollows()`, which hand the outbox
 every key changed since the last save; `applyPulledPicks()` and
 `applyPulledFollows()` are how a pull changes them without sending them
 back.
-`ics`: the calendar export. `leave`: leave-by. `search`: the two MiniSearch
+`ics`: the calendar export. `walk`: the walk between picks - the walk
+estimate from the pick before, and the tight-connection flag between two
+picks in a row, `connection()`, which the Now tab's hero and the gap line
+between rows both read (DECISIONS #40); nothing in it says where the
+reader is, or when to leave. `search`: the two MiniSearch
 indexes (MiniSearch is an npm dependency, pinned to 7.2.0), the reading of a
 query, the ranking, and `AXIS_LABELS`, the only place an axis slug becomes a
 label. `ui`:
@@ -630,17 +634,20 @@ was told; one whose time or room moved is re-snapshotted. Each is reported
 once (DECISIONS #49). The report (`dc<yy>.pickNews`) shows on Now and Plans
 until dismissed.
 
-**Now tab.** Hero card for the current pick with a leave-by line when the
-next pick is in another hotel (walk estimate + the slack, 10 min), then the rest of the
-day's picks, then "On now" and upcoming groups. A minute tick re-renders
-only what changed. Until the app is installed the tab opens with the install
-nudge, before and during the con - never after it, and when it shows is to
-change by DECISIONS #65; after the con the tab is the record of the reader's
-picks.
+**Now tab.** Hero card for the pick that is on, or the next: a ring counting
+to its end or its start, and one line - when it ends, then the next pick
+today and the walk to it, or the band `walk.js` `connection()` gives the
+pair, the one the gap line between their rows gives; or, with nothing on,
+when it starts and the walk from the pick before (DECISIONS #40). Never when
+to leave. Then the rest of the day's picks, then "On now" and upcoming
+groups. A minute tick re-renders only what changed. While the reader has a
+pick and until the app is installed, the tab opens with the install nudge
+(DECISIONS #65), before and during the con - never after it; after the con
+the tab is the record of the reader's picks.
 
-**Mini-bar.** The shell's: the next pick and its leave-by, above the nav on
-Search, Explore and Plans. Not on Now or Map, which say the same thing
-themselves, and not once the con is over.
+**Mini-bar.** The shell's: the next pick and how long until it starts, "in
+47 min", above the nav on Search, Explore and Plans. Not on Now or Map,
+which say the same thing themselves, and not once the con is over.
 
 **Plans.** Timeline view by default (con day ends 5 AM), list view as an
 option. Export to `.ics`, remove all. A pick on an event the source
