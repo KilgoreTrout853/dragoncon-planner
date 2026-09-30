@@ -106,7 +106,7 @@ backend at all. A backend that is down should degrade to 2026 behaviour, not
 to a blank screen.
 **Cost:** A sync/conflict rule (outbox proposed) still has to be designed.
 
-### 10. Crews are coordination, not conversation — Decided, not built (2026-09-05) — its build narrowed for 2027 by #50: create, join, leave, remove, the invite, the overlay and who's going; the Now board deferred to Where things live, share-a-day a link with no backend, pings the spring's; the client's layer built by #56, PR #62: `src/crews.js`, the six actions, the invite link and the readers for the overlay and who's going - the screens Where things live's
+### 10. Crews are coordination, not conversation — Decided, not built (2026-09-05) — its build narrowed for 2027 by #50: create, join, leave, remove, the invite, the overlay and who's going; the Now board deferred to Where things live, share-a-day a link with no backend, pings the spring's; the client's layer built by #56, PR #62: `src/crews.js`, the six actions, the invite link and the readers for the overlay and who's going - the screens Where things live's; its screens placed by #62: the crew Now board a section of Now, one line a crewmate, and in 2027 the overlay Plans' Crew segment of per-person lists, lanes on the reader's timeline open (`docs/screens/contract.md`, sections 2, 5 and 14)
 **Decided:** No in-app chat, ever. WhatsApp stays the chat. In scope: crew
 picks overlaid on the timeline, "who's going" per panel, a crew Now board,
 status pings tied to a pick, one-tap share-a-day. Build order: picks →
@@ -277,7 +277,7 @@ execute `<script type="module">`, so the inlined script is emitted as a
 classic script (or the test loader strips the attribute). Two toolchains:
 Python owns the pipeline, Node owns the client.
 
-### 24. Vitest and pytest; ESLint with two rules (three since 2026-09-19: `no-unused-vars`); Playwright deferred — Built (2026-09-18) — pgTAP for the database, in a `database` CI job, by #52; Playwright may come forward as a standalone pull request before Delivery, by #57
+### 24. Vitest and pytest; ESLint with two rules (three since 2026-09-19: `no-unused-vars`); Playwright deferred — Built (2026-09-18) — pgTAP for the database, in a `database` CI job, by #52; Playwright may come forward as a standalone pull request before Delivery, by #57; Playwright is to check #66's requirements when it comes
 **Decided:** Vitest (jsdom environment) for the client, run by `npm test`;
 pytest for the pipeline, run by `python -m pytest tests/` (the existing
 test files are already pytest-shaped; only the manual `__main__` runners
@@ -396,7 +396,7 @@ so a build-time import is the right cadence.
 file forward each year. One Vite config line to import from outside
 `src/`. Supersedes #6's "one constant" — the buffer becomes data.
 
-### 28. The building view goes to the room: a top-down level view, floor plans as reference — Decided, not built (2026-09-18) — its room resolution to be built by #45, which moves each level's drawing out of the venues file into `data/2027/drawings/`; its level drawings built by #58: one file per level, geometry only, keyed by the venues file's room ids, the Hilton's five levels first; 2026-09-29: round 6 of the sketch is kept at docs/prototypes/ as a record (PR #67). Nothing in the app reads it; the principle stands. The building view is a 2027 commitment by #60, its spring gate lifted.
+### 28. The building view goes to the room: a top-down level view, floor plans as reference — Decided, not built (2026-09-18) — its room resolution to be built by #45, which moves each level's drawing out of the venues file into `data/2027/drawings/`; its level drawings built by #58: one file per level, geometry only, keyed by the venues file's room ids, the Hilton's five levels first; 2026-09-29: round 6 of the sketch is kept at docs/prototypes/ as a record (PR #67). Nothing in the app reads it; the principle stands. The building view is a 2027 commitment by #60, its spring gate lifted. A hotel with level data lifts to its levels when tapped, and one without keeps the hotel sheet (#62; `docs/screens/contract.md`, sections 6 and 8).
 **Decided:** Supersedes the drawing half of #21; the venues file (#21, #27)
 stays pipeline-owned and still ships first. The building view gains a third
 layer: tap a level in a hotel's stack and it drops to a top-down view of that
@@ -481,7 +481,7 @@ from below costs an indirection, and throws if it is asked for before
 to look for an architecture; ARCHITECTURE.md repeats it and has to be kept
 in step.
 
-### 30. Tentpoles order the 2027 work — Standing (2026-09-20) — the order after Discover is #37's; a scope pass, a named step that is not a tentpole, takes the design slot after Identity and sync (#57)
+### 30. Tentpoles order the 2027 work — Standing (2026-09-20) — the order after Discover is #37's; a scope pass, a named step that is not a tentpole, takes the design slot after Identity and sync (#57); Where things live opened 2026-09-29 (PR #72), its tabs #62's
 **Decided:** `docs/ROADMAP.md` names six tentpoles: pipeline shape,
 Discover, Places, identity and sync, delivery, where things live. Each
 opens with a design chat that ends in DECISIONS entries, a data contract
@@ -517,7 +517,7 @@ because fame is not in a blurb.
 rename or merge keeps an alias, because follows are stored by id. An
 unreviewed work can be wrong until someone looks.
 
-### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's; its golden-query gate replaced by #36; PR 6 built by #38 and #39, the cast group on a work's page only; its weights do not sync as settings in 2027: For-you's are recomputed from picks and follows, which sync (#50)
+### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's; its golden-query gate replaced by #36; PR 6 built by #38 and #39, the cast group on a work's page only; its weights do not sync as settings in 2027: For-you's are recomputed from picks and follows, which sync (#50); For you's home is the top of Explore (#62; `docs/screens/contract.md`, section 4)
 **Decided:** Supersedes #3's tag shape and its keying by event id, when
 built. Parse what the source states; closed lists for what the model fills;
 every link says why.
@@ -693,7 +693,7 @@ blind spots; the rubric and the sample check are the guard. Real users'
 searches are the missing input. Recording searches that return nothing,
 anonymously, in 2027 is a privacy question for Identity and sync.
 
-### 37. Pipeline shape follows Discover — Standing (2026-09-22) — outreach deferred by #41; search tuning held until the first pass of the whole app (ROADMAP, Held, 2026-09-22); the order after Identity and sync is #57's: the scope pass, then Where things live, Delivery last; the building view's spring condition in its Cost lifted by #60, which makes its screens Where things live's
+### 37. Pipeline shape follows Discover — Standing (2026-09-22) — outreach deferred by #41; search tuning held until the first pass of the whole app (ROADMAP, Held, 2026-09-22); the order after Identity and sync is #57's: the scope pass, then Where things live, Delivery last; the building view's spring condition in its Cost lifted by #60, which makes its screens Where things live's; Where things live opened 2026-09-29, its tabs #62's
 **Decided:** The tentpoles (#30) go in this order: Discover (PR 6), then
 Pipeline shape, whose design opens while PR 6 executes, then Identity and
 sync, then Delivery; Where things live last, as now.
@@ -825,7 +825,7 @@ live site drops `next`'s work and axis follows. The worker's update notice
 keys on `generated_at`, which every rebuild of `events.v2.json` keeps
 (ROADMAP, Held).
 
-### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55)
+### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55); its client half - no leave-by on the hero, the mini-bar or the map card, the slack renamed `SLACK_MIN`, `leave.js` renamed `walk.js` and `currentLocation()` deleted, so that the app no longer says where the reader is - to be built by PR 3 of Where things live's sequence (ROADMAP, tentpole 5; `docs/screens/contract.md`, section 12); when the install nudge shows decided by #65
 **Decided:** Leave-by is retired: no `leave by <time>` countdown on any
 screen, and no leave-by push.
 - The plan keeps what is true of the plan rather than the person: a walk
@@ -1216,7 +1216,7 @@ take pull requests only.
 costs nothing, since it commits nothing (#44). About a minute of CI a run.
 A token to rotate every year.
 
-### 49. The client switch, by year — Standing (2026-09-24)
+### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12)
 **Decided:** The client is built for one year, `DC_YEAR`'s (#42), and
 reads that year's contract: its `events.v2.json`, and at build its
 `season.json` and `venues.json`. Plumbing and parity, as #39 was;
@@ -1286,7 +1286,7 @@ read the rest. 18:00 and 19:00 are a guess for 2027 until its schedule
 shows. The icons draw 2026 in their pixels, which no stamp reaches
 (ROADMAP, Checklist).
 
-### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on; the mirror built by #54: `mirror.yml`, on a push that changes a year's three files, hourly in the season's window and by hand, under the `dev` or the `production` Environment; the push job's first pull request built by #55, PR #59: starts-soon, queue-shaped, the kill switch read by the cron job, by `push_due()` and by the function; crews' client layer built by #56, PR #62: `src/crews.js`, with no screen - the screens are Where things live's; the tentpole built by PRs #51-#62, and the operations track trailing - the cleanup of stale anonymous users its first pull request - its list in ROADMAP, tentpole 4
+### 50. Identity and sync, reassessed: five narrowings — Standing (2026-09-25) — the captcha widget deferred by #53: a plain message until the project turns the captcha on; the mirror built by #54: `mirror.yml`, on a push that changes a year's three files, hourly in the season's window and by hand, under the `dev` or the `production` Environment; the push job's first pull request built by #55, PR #59: starts-soon, queue-shaped, the kill switch read by the cron job, by `push_due()` and by the function; crews' client layer built by #56, PR #62: `src/crews.js`, with no screen - the screens are Where things live's; the tentpole built by PRs #51-#62, and the operations track trailing - the cleanup of stale anonymous users its first pull request - its list in ROADMAP, tentpole 4; the crew screens' home is Plans, crew a dimension of every tab (#62); in 2027 the overlay is Plans' Crew segment of per-person lists, and lanes on the reader's timeline are open (`docs/screens/contract.md`, sections 5 and 14)
 **Decided:** Identity and sync is built smaller than #8, #10, #25 and #27
 drew it; `docs/sync/contract.md` has the design.
 - **The mirror** is two tables, `schedule_events` and `schedule_changes`,
@@ -1644,7 +1644,7 @@ kept. The function's logic is tested in Node against fakes; the runtime
 was checked on the CLI's local stack, and a real push service and a real
 browser only by the hand test.
 
-### 56. Crews, the client's layer — Standing (2026-09-28)
+### 56. Crews, the client's layer — Standing (2026-09-28) — its screens' home is Plans, who's going the event sheet's (#62)
 **Decided:** The client's half of crews is built before any crew screen:
 one module, `src/crews.js`, with no screen; the screens are Where things
 live's. `docs/sync/contract.md`, section 8, has the detail.
@@ -1707,7 +1707,7 @@ that mints and then fails leaves an anonymous user with no crew, for the
 cleanup. An installed iPhone reader joins by pasting the link, not by
 tapping it.
 
-### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28) — the runner pin, PR #64, went first, for GitHub's date; the built inventory, `docs/scope-2027.md`'s section 1, added as a source and read before the wanted list; the verdicts landed, `docs/scope-2027.md`'s sections 2 and 3, with #59 and #60 (PR #69); Places' building view is #60's: its drawings a side lane, its screens Where things live's; W44, the calendar alarm, a standalone pull request in a free execution slot, as Playwright may be; Part B landed, `docs/official-app-2026.md` (PR #70)
+### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28) — the runner pin, PR #64, went first, for GitHub's date; the built inventory, `docs/scope-2027.md`'s section 1, added as a source and read before the wanted list; the verdicts landed, `docs/scope-2027.md`'s sections 2 and 3, with #59 and #60 (PR #69); Places' building view is #60's: its drawings a side lane, its screens Where things live's; W44, the calendar alarm, a standalone pull request in a free execution slot, as Playwright may be; Part B landed, `docs/official-app-2026.md` (PR #70); Where things live opened with the pass's output, the recon PR #72
 **Decided:** After Identity and sync the design slot goes to a scope pass;
 Where things live opens with its output, and Delivery comes last. This
 amends #37's order and adds to #30 a step that is not a tentpole;
@@ -1776,7 +1776,7 @@ guard. Each level is its own frame, so the levels do not stack until a
 hotel's elevator cores line up. The renders are a record, redrawn by
 hand, not held fresh by CI.
 
-### 59. Reference content: attached, or about the app — Standing (2026-09-29) — the Cost's gap in the data closed by #61: `known_for` is a reviewed field of `people.json`, and `events.v2.json` carries it in a `people` block; the line's screen is Where things live's
+### 59. Reference content: attached, or about the app — Standing (2026-09-29) — the Cost's gap in the data closed by #61: `known_for` is a reviewed field of `people.json`, and `events.v2.json` carries it in a `people` block; the line's screen is Where things live's; the gear page's shape is `docs/screens/contract.md`'s section 9
 **Decided:** Reference content is anything a person reads rather than acts
 on: hours, policies, links, bios, documents. It is in the app in two forms,
 and no other.
@@ -1808,7 +1808,7 @@ celebrities, unreviewed, which the loader ignores - and the client sees a
 person only through `events.v2.json`, whose shape has no place for it yet
 (#31).
 
-### 60. The building view is a 2027 commitment — Standing (2026-09-29)
+### 60. The building view is a 2027 commitment — Standing (2026-09-29) — its screens are `docs/screens/contract.md`'s section 6
 **Decided:** The building view is built in 2027. This lifts the spring
 gate of #21 and #28, which kept it in only if the foundation and
 Coordinate had landed by the spring checkpoint.
@@ -1836,7 +1836,7 @@ not now. Before its screens: the Marriott's and the Hyatt's levels drawn,
 each hotel's levels put in one frame so that they stack (#58's Cost), and
 the map made one persistent SVG (#28's Cost).
 
-### 61. Known for is registry data, a people block in v2 — Standing (2026-09-30)
+### 61. Known for is registry data, a people block in v2 — Standing (2026-09-30) — the line's screen is `docs/screens/contract.md`'s section 7
 **Decided:** W42's line (#59) is a field of the registry, reviewed, and
 reaches the client in a block of `events.v2.json`, on #38's pattern.
 - `people.json` gains an optional `known_for`: one plain line, a string,
@@ -1876,3 +1876,153 @@ line moves the digest and `changed_at` with no line in the change log, as a
 works-block edit does. 2026's file is rebuilt with an empty block now and
 rebuilt again when the lines are reviewed. The line pass is a second review
 of 113 people, four of them with no draft.
+
+### 62. The five tabs; crew is a dimension, not a place — Decided, not built (2026-09-30)
+**Decided:** The bar keeps five tabs, in today's positions: Now, Search,
+Explore, Map and Plans - what is on, what to find, what to discover, where,
+and my day and my crew's. Plans replaces Mine in its slot, fifth, with the
+pick-count badge. `docs/screens/contract.md` has the detail.
+- **Crew is a dimension at every scope, not a place:** the hour on Now, a
+  crew section; the day on Plans, its Crew segment; the building on the
+  Map, crewmates' picks counted per hotel; the event on the sheet, who's
+  going. Crew management - create, join, the invite, leave, remove,
+  delete - lives on Plans, in its crew header.
+- **In 2027 the overlay** of crewmates' picks (#10, #50) is Plans' Crew
+  segment, per-person lists of one day; lanes on the reader's own timeline
+  are open.
+- **The opening tab** follows the con's phase (`time.js` `conPhase()`):
+  Explore before the con, Now during it, and Now after it, the record of
+  the reader's picks as today. A `#explore=` link still opens its page,
+  and a kept `?join=` opens Plans' join step, in any phase: the invite wins
+  over the opening tab.
+- **Provisional, with a tripwire.** If placing the homes shows that Now
+  cannot hold its load above the fold, that crew management does not fit
+  Plans' header, that For you and the Following feed read as two versions
+  of one thing, or that something has no natural home or entry point: one
+  of these redesigns the tab it falls on, two redesign the bar, and six
+  tabs is the fallback.
+- Amends #56: the crew screens' home is Plans - their management and the
+  crew's day - and who's going is the event sheet's.
+
+**Why:** The scope pass sent the official app's long tail to one link
+(#57, #59), so nothing pushes a menu. "What is everyone up to today?" is
+day-scoped and needs a tab. Search and Explore are two modes over one
+subject, and a merge collapses them; Mine and a crew tab are one shape
+over two subjects, and a merge only adds a subject. Before the con nothing
+is on, and Explore is what a stranger can use; during it, Now is the
+question.
+**Cost:** Mine's name goes from the tab, its view, its module and its
+badge, and from every test that selects them (`docs/screens/recon.md`,
+section 10), by hand; the row's `mine` class, the `"mine"` list and
+`"mineView"` mean the reader's own and keep their names. Plans carries the
+reader's day, the crew's and the crew's management: the tab the tripwire
+watches most. Before the con a reader opens on Explore, not on Now's
+preview.
+
+### 63. One home, any number of entry points — Decided, not built (2026-09-30)
+**Decided:** Every item in `docs/screens/contract.md` has one home, the
+screen that owns its state, and any number of entry points: taps from
+context that open the home's own state with parameters - the Map focused
+on a hotel, an Explore page for a chip - never a second copy of it.
+- An entry point sets the home's state and shows it; it draws nothing of
+  its own.
+- Back is designed for each entry point, and the contract's section 11
+  names it: the app has no router, and the tab, the sheet and the hash are
+  its navigation state (`docs/screens/recon.md`, section 6).
+- A crew is an overlay wherever it appears, with one screen for its
+  management (#62).
+
+**Why:** The map should open from the event a person is reading. One home
+keeps one copy of an item's state and one set of tests; the same rule
+keeps crews an overlay everywhere and one screen for management.
+**Cost:** Each entry point is a state change and a designed way back, and
+some homes gain state they do not hold today - the Map a focused hotel.
+The browser's own Back plays no part: the hash is written by
+`replaceState`, so nothing the app does adds history. The back from an
+Explore page is "← Explore", to the grid, wherever the page was opened
+from: one tap from the event, accepted.
+
+### 64. The row and the gap line — Decided, not built (2026-09-30)
+**Decided:** A row is at most three lines, and the walk between two events
+is said between their rows.
+- **Line 1:** the star, the title and the state tags - Cancelled, Removed
+  from the schedule, Celebrity.
+- **Line 2:** the day's label where the caller asks for it (`showDay`),
+  the time as "2:30–3:30 PM", then hotel · room · level, the level where
+  the venues data has it (W18).
+- **Line 3,** only when anything is present, in this order: the track's
+  label, or "Gaming", muted; W7's facet flags; the pick's overlap flag;
+  then the caller's context - Now's status, the Following feed's labels by
+  time.
+- **The one exception:** Search's ranked results keep their two-line
+  snippet under line 3. It is the result's anatomy - why it matched - not
+  the row's.
+- **Overlap (W1):** a picked row that overlaps another pick carries
+  "Overlaps `<title>`" as a flag on line 3 wherever the row appears. The
+  flag appears at the moment of starring, on a row or in the sheet, and
+  persists; an unstarred row carries none. The event sheet also says it in
+  a line of its own, with the times, at the moment of starring - a line,
+  not a toast. The check is over every pick, not the consecutive pair.
+- **Between rows:** the walk and the two tight bands are said on
+  `leave.js` `gapHTML()`'s line (`docs/screens/recon.md`, section 5),
+  never on a row, and the gap line keeps saying the overlap between rows
+  on Now and Plans.
+- **Facets** are flags on a row and words on the sheet.
+- **The sheet's chips and place line are entry points** (#63): a track or
+  work chip opens its Explore page; the place line opens the Map on that
+  hotel, and on the room once the building view exists (#60).
+- **Who's going** is a line on the sheet, from `crews.js` `goingTo()`; in
+  2027 it taps nowhere.
+
+**Why:** The recon found a row carrying up to thirteen elements
+(section 4) and a walk that was already said between rows, where it
+belongs: a walk is true of two events, not one. An overlap is true of the
+pick itself, wherever it is listed, and a reader deciding whether to star
+needs it then. The sheet is where a row's words have room.
+**Cost:** Every row's markup changes, and with it the tests that read a
+row's parts. The clash check is new: `gapHTML()` sees only the pick
+before, and the helper's home is the row pull request's to propose.
+
+### 65. The install nudge earns itself — Decided, not built (2026-09-30)
+**Decided:** The install nudge stays where it is - the top of Now, its
+three wordings, the seven-day snooze (`docs/screens/recon.md`, section 7)
+- and shows only while the reader has a pick (`picks.size > 0`), never
+before. Unstar everything and it goes: there is nothing to keep. The
+wordings and the snooze are unchanged. The install flow's mechanics are
+Delivery's (#57; W36).
+
+**Why:** VISION's ladder - each screen makes the next rung obvious
+without nagging - and a nudge over an empty plan is nagging. A pick is
+what the home screen keeps: Safari deletes an uninstalled site's storage
+after seven days without a visit (#25).
+**Cost:** A stranger who never stars is never asked to install. It
+settles #40's open question - a standing line on Now, or the moment it
+earns itself - as the second.
+
+### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30)
+**Decided:** Every screen Where things live touches meets these, and none
+of them has a screen of its own (W43):
+- a label on every new control;
+- focus moved into the sheet when it opens and back to what opened it
+  when it closes, and Escape closes it - neither is true today
+  (`docs/screens/recon.md`, section 3);
+- tap targets of 44 px;
+- contrast on the map's lit rooms;
+- `prefers-reduced-motion` honoured: the building view's lift and level
+  swap show their end states with no animation under it, and there is no
+  switch of our own;
+- Larger text (B18) leaves the map alone, as it does today, and the
+  building view inherits that.
+
+Playwright checks them when it comes (#24, #57); until then each pull
+request's description says how it met them.
+
+**Why:** VISION's learning item 7, which the spring cut does not take
+(`docs/scope-2027.md`, section 3, Notes). A requirement on every screen
+cannot wait for a screen of its own, and a reshaping is when it is
+cheapest.
+**Cost:** Controls under 44 px today - the chips and the notices' buttons
+at 38, the Type control, Mine's action strip and the view toggle at 40 -
+grow in the pull request that touches them, and the style rules that pin
+their heights move with them. Until Playwright, "met" is a pull request's
+word.
