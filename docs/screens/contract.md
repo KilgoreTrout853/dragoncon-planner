@@ -130,10 +130,26 @@ PR #74, with #62.
   alone. `tests/rules/style.test.js`: the root's two defaults and each
   derived rule, and no rule left that assumes the nav's height or adds
   the inset to it. None carries a ledger bracket.
-- **Measured** on the next site, after the merge: to follow the phone
-  check. The device readout, under Settings, Advanced, says what
-  `--nav-h` and `--hdr-h` were measured at, or `default` for a nav not yet
-  measured (`build.js` `deviceLine()`).
+- **Measured** on the next site, build 22fd291, after the merge, from the
+  device readout under Settings, Advanced, which says what `--nav-h` and
+  `--hdr-h` were measured at, or `default` for a nav not yet measured
+  (`build.js` `deviceLine()`):
+
+  | Where | Viewport | Insets, top / bottom | `--safe-bottom` | `--nav-h` | `--hdr-h` |
+  |---|---|---|---|---|---|
+  | Safari on an iPhone, a browser tab | 402×714, screen 402×874 | 0 / 0 | 0px, the inset under the cap | 71px | 63px |
+  | Desktop Chromium - the Claude app's built-in browser, Chrome 152 - at 1280×800 | 1280×800 | 0 / 0 | 0px | 71px | 63px |
+  | The home-screen app on an iPhone | - | not yet measured; the readout gives the raw inset, before the cap | expected 34px, `boot()`'s cap | expected 105px | - |
+
+  Both measured copies agree with the root's default, 71 px and no inset,
+  and on the desktop copy the end spacer computes to 76 px, as it did when
+  it was written in by hand. The Safari tab's bottom inset is 0 because
+  the browser's toolbar owns that edge of the screen. The home-screen copy
+  draws to the edge, so its `--safe-bottom` is expected at `boot()`'s cap
+  of 34 px and its nav at 105 px; those are to be added here once
+  measured. The phone check passed: the five labels in order, the badge on
+  Plans, the mini-bar flush on the nav with the dev-build mark lifted above
+  it, and the map filling to the nav with its card below.
 
 ## 2. Now
 
