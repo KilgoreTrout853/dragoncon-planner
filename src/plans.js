@@ -73,8 +73,10 @@ function timelineDayHTML(dayKey, list, now) {
   let links = "";
   for (let i = 1; i < live.length; i++) {
     const prev = live[i - 1], next = live[i];
-    if (prev.hotel === next.hotel) continue;
+    /* A stream is not walked to or from: no walk, no band, no link - the
+       rule the hero and the gap line keep (DECISIONS #40). */
     const walk = walkMin(prev.hotel, next.hotel);
+    if (prev.hotel === next.hotel || !walk) continue;
     const gap = minutesBetween(prev._e, next._s);
     const y1 = top(prev._e.getTime()), y2 = top(next._s.getTime());
     const height = Math.max(18, y2 - y1);

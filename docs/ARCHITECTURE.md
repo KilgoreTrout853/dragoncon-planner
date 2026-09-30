@@ -654,7 +654,8 @@ option. Export to `.ics`, remove all. A pick on an event the source
 dropped is drawn here and nowhere else, where its time puts it, struck and
 marked "Removed from the schedule", with no gap line or walk link to or
 from it; the export leaves it out, and its sheet offers no calendar
-(DECISIONS #49).
+(DECISIONS #49). A stream has no walk, so no walk link runs to or from it
+either (DECISIONS #40).
 
 **Map.** Schematic SVG of the host hotels, Peachtree and Courtland streets,
 and the three skybridges. Per-hotel pick-count pills for the selected day; a

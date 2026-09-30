@@ -37,15 +37,19 @@ function walkEstimate(next) {
 /* The tight-connection flag between two picks in a row (#40): the gap from
    the end of one to the start of the next, against the walk between them.
    An overlap is a band for any pair, a stream included: it is time, not
-   walking. A pair with no walk - a stream either side - has no other band,
-   and no connection: null. Otherwise the band is "cant", the gap under the
-   walk; "tight", under the walk and the slack; or null. One building is
-   walked at its own minutes, so a short gap inside it is flagged too. The
-   hero and the gap line both read this, so the app holds one opinion about
-   a pair. */
+   walking, and it is the two picks' intersection, the earlier end less the
+   later start, so a short pick inside a long one overlaps by its own
+   length. This is the one computation of an overlap (#64). A pair with no
+   walk - a stream either side - has no other band, and no connection:
+   null. Otherwise the band is "cant", the gap under the walk; "tight",
+   under the walk and the slack; or null. One building is walked at its own
+   minutes, so a short gap inside it is flagged too. The hero and the gap
+   line both read this, so the app holds one opinion about a pair. */
 function connection(prev, next) {
   const walk = walkMin(prev.hotel, next.hotel), gap = minutesBetween(prev._e, next._s);
-  if (next._s < prev._e) return {walk, gap, band: "overlap", overlap: minutesBetween(next._s, prev._e)};
+  if (next._s < prev._e) {
+    return {walk, gap, band: "overlap", overlap: minutesBetween(Math.max(prev._s, next._s), Math.min(prev._e, next._e))};
+  }
   if (!walk) return null;
   return {walk, gap, band: gap < walk ? "cant" : gap < walk + SLACK_MIN ? "tight" : null};
 }

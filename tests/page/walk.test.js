@@ -13,6 +13,8 @@ import { bootPage } from "../helpers/page.js";
 
 const SLACK_MIN = 10;                         // the venues file's slack_min: the tight band (DECISIONS #40)
 const minutes = (a, b) => Math.round((b - a) / 60000);
+/* an overlap is the two picks' intersection: the earlier end less the later start */
+const overlapOf = (a, b) => minutes(Math.max(a._s, b._s), Math.min(a._e, b._e));
 
 /* gapHTML() as it stood before it read connection() - next at e8fbfe9,
    src/leave.js - word for word, with the slack it read then: the pin that
@@ -191,7 +193,7 @@ describe("the walk between picks, on the hero, the mini-bar and the map's card",
     });
     it("overlapping: by how much, in warn", () => {
       const p = got.overlap;
-      expect(p.r.line).toBe(`${at2(p)}: overlaps by ${minutes(p.next._s, p.on._e)} min`);
+      expect(p.r.line).toBe(`${at2(p)}: overlaps by ${overlapOf(p.on, p.next)} min`);
       expect(p.r.warn).toBe(true);
     });
     it("in one building, a gap under its own minutes is banded as between two", () => {
@@ -208,7 +210,7 @@ describe("the walk between picks, on the hero, the mini-bar and the map's card",
     it("and the gap line under the hero gives each pair the same band", () => {
       expect(got.tight.r.gap).toEqual({ cls: "gap", text: `${got.tight.gap} min gap, ${app.hotelShort(got.tight.on.hotel)} to ${app.hotelShort(got.tight.next.hotel)} about ${got.tight.walk} min. Tight but doable` });
       expect(got.cant.r.gap.cls).toBe("gap tight");
-      expect(got.overlap.r.gap).toEqual({ cls: "gap overlap", text: `Overlaps the one above by ${minutes(got.overlap.next._s, got.overlap.on._e)} min` });
+      expect(got.overlap.r.gap).toEqual({ cls: "gap overlap", text: `Overlaps the one above by ${overlapOf(got.overlap.on, got.overlap.next)} min` });
       expect(got.sameCant.r.gap).toEqual({ cls: "gap tight", text: `${got.sameCant.gap} min to get there, same building is about ${got.sameCant.walk} min at con pace` });
       expect(got.sameNone.r.gap).toBe(null);
     });
@@ -241,10 +243,38 @@ describe("the walk between picks, on the hero, the mini-bar and the map's card",
       expect(after.r.nextRing).toBe(false);
     });
     it("overlapping the pick on: the hero says by how much, in warn, as the gap line does", () => {
-      const ov = minutes(stream._s, overlapping.on._e);
+      const ov = overlapOf(overlapping.on, stream);
       expect(overlapping.r.line).toBe(`ends ${f(overlapping.on._e)} · then ${stream.title} at ${f(stream._s)}: overlaps by ${ov} min`);
       expect(overlapping.r.warn).toBe(true);
       expect(overlapping.r.gap).toEqual({ cls: "gap overlap", text: `Overlaps the one above by ${ov} min` });
+    });
+  });
+
+  /* An overlap is the two picks' intersection, the earlier end less the
+     later start: a short pick inside a long one overlaps by its own length,
+     not by the time to the long one's end. The fixture has such a pair on
+     Thursday; the clock moves to a minute after the long one starts. */
+  describe("a pick inside the one that is on", () => {
+    let pair, r;
+    beforeAll(() => {
+      const pad = n => String(n).padStart(2, "0"), all = handle.events.filter(onMap);
+      for (const a of all) {
+        const b = all.find(e => e.hotel !== a.hotel && e._cd === a._cd && e._s > new Date(a._s.getTime() + 60000) && e._e < a._e);
+        if (b) { pair = { on: a, next: b }; break; }
+      }
+      const t = new Date(pair.on._s.getTime() + 60000);
+      setPicks([pair.on.id, pair.next.id]);
+      handle.setTimeOverride(`${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}T${pad(t.getHours())}:${pad(t.getMinutes())}`);
+      r = read();
+    });
+    afterAll(() => { setPicks([]); handle.setTimeOverride("2026-09-05T13:05"); });
+
+    it("overlaps by its own length, on the hero and the gap line alike, not by the time to the end of the one that is on", () => {
+      const own = minutes(pair.next._s, pair.next._e);
+      expect(own).toBeLessThan(minutes(pair.next._s, pair.on._e));
+      expect(r.line).toBe(`ends ${f(pair.on._e)} · then ${app.hotelShort(pair.next.hotel)} at ${f(pair.next._s)}: overlaps by ${own} min`);
+      expect(r.warn).toBe(true);
+      expect(r.gap).toEqual({ cls: "gap overlap", text: `Overlaps the one above by ${own} min` });
     });
   });
 
@@ -279,11 +309,15 @@ describe("the walk between picks, on the hero, the mini-bar and the map's card",
 
   /* Ruling on stop 1: gapHTML() reads its band from connection(), and its
      output is what it was, byte for byte, pinned here against the old code -
-     but for a pair with no walk that does not overlap. Over every pair of
-     the fixture's events a few hours apart, and, since the fixture's times
-     are on the half hour and never make a tight pair in one building, over
-     made pairs at every gap from a 40-minute overlap to 40 minutes apart. */
-  it("the gap line says what it said before, over every nearby pair and every gap, but for a stream's pair that does not overlap, where it now says nothing", () => {
+     but for two named exceptions: a pair with no walk that does not overlap,
+     which said "about 0 min. Tight but doable" and says nothing now; and a
+     pick inside the one above, whose overlap is now the two picks'
+     intersection, its own length, not the time to the other's end. Over
+     every pair of the fixture's events a few hours apart, and, since the
+     fixture's times are on the half hour and never make a tight pair in one
+     building, over made pairs at every gap from a 40-minute overlap to 40
+     minutes apart, and a half hour inside four. */
+  it("the gap line says what it said before, over every nearby pair and every gap, but for a stream's pair that does not overlap and a pick inside another", () => {
     const seen = new Set();
     let pairs = 0;
     const kind = (html, a, b) => {
@@ -301,6 +335,12 @@ describe("the walk between picks, on the hero, the mini-bar and the map's card",
         seen.add("a stream within the slack, now nothing");
         return;
       }
+      if (b._s < a._e && b._e < a._e) {
+        expect(before, name).toBe(`<div class="gap overlap">Overlaps the one above by ${minutes(b._s, a._e)} min</div>`);
+        expect(now, name).toBe(`<div class="gap overlap">Overlaps the one above by ${minutes(b._s, b._e)} min</div>`);
+        seen.add("a pick inside the one above, now their intersection");
+        return;
+      }
       expect(now, name).toBe(before);
       seen.add(kind(before, a, b));
     };
@@ -312,9 +352,10 @@ describe("the walk between picks, on the hero, the mini-bar and the map's card",
     };
     for (const [one, two] of [["Hyatt", "Hyatt"], ["Hyatt", "Hilton"], ["Hilton", "Streaming"], ["Streaming", "Hyatt"], ["Streaming", "Streaming"]]) {
       for (let gap = -40; gap <= 40; gap++) compare(made(one, 0, 60), made(two, 60 + gap, 60), `${one} to ${two}, ${gap} min apart`);
+      compare(made(one, 0, 240), made(two, 60, 30), `${one} to ${two}, a half hour inside four`);
     }
     expect(pairs).toBeGreaterThan(20000);
-    expect([...seen].sort()).toEqual(["a stream within the slack, now nothing", "none", "overlap", "overlap, a stream", "tight", "tight, one building",
-      "under the walk", "under the walk, one building"]);
+    expect([...seen].sort()).toEqual(["a pick inside the one above, now their intersection", "a stream within the slack, now nothing", "none", "overlap",
+      "overlap, a stream", "tight", "tight, one building", "under the walk", "under the walk, one building"]);
   });
 });
