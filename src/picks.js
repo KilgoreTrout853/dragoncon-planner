@@ -76,7 +76,7 @@ function mergedInto(id) {
    - A pick whose id left the file for a merge moves to the survivor; any
      other with a snapshot leaves the plan, and stays in the news; one with
      none, which this schedule never showed, waits for it (below).
-   - A pick whose event the source dropped stays in the plan, marked in Mine;
+   - A pick whose event the source dropped stays in the plan, marked in Plans;
      its snapshot remembers it was reported (DECISIONS #49).
    - A moved one stays in the plan and its snapshot moves with it.
    The news keeps until it is dismissed. A survivor is checked once, whether

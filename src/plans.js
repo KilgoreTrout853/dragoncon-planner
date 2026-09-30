@@ -7,7 +7,7 @@ import { pickNewsHTML, picks } from "./picks.js";
 import { gapHTML } from "./leave.js";
 import { rowHTML } from "./ui.js";
 
-/* ---- Mine --------------------------------------------------------- */
+/* ---- Plans -------------------------------------------------------- */
 /* Side-by-side columns for anything that overlaps in time. Events are
    grouped into clusters that genuinely collide, and each cluster is
    given only as many columns as it actually needs. */

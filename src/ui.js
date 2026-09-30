@@ -16,7 +16,7 @@ function rowHTML(ev, opts = {}) {
   const s = fmt(ev._s), e = fmt(ev._e);
   const mine = picks.has(ev.id), open = state.sheetId === ev.id;
   const status = opts.status ? `<span class="status">${esc(opts.status)}</span>` : "";
-  /* A removed event is drawn only as a pick, in Mine (DECISIONS #49), and is
+  /* A removed event is drawn only as a pick, in Plans (DECISIONS #49), and is
      marked as a cancelled one is. */
   const cls = ["row", mine ? "mine" : "", open ? "open" : "", ev.cancelled ? "cancelled" : "", ev.removed ? "removed" : ""].filter(Boolean).join(" ");
   const hl = opts.terms ? highlighter(opts.terms) : (x => esc(x));
