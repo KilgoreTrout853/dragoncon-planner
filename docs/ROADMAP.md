@@ -381,7 +381,9 @@ execution slot (#57), which can run before any of this.
      the header: a small follow-up.
 5. Crew everywhere: who's going on the sheet, crewmates' picks counted per
    hotel on the Map, the crew section on Now; and W25, Share a day, in
-   Plans' action strip (contract, sections 2, 5, 6 and 7).
+   Plans' action strip (contract, sections 2, 5, 6 and 7). The crew
+   redraw's gate (PR #77) widens to every tab that then draws a crew, or
+   is lifted once Explore's filter box is kept across a redraw (Flags).
 6. The filter sheet, W13 (contract, section 3).
 7. The row and the sheet (#64): the three lines, the facets, W1's flag and
    line, the chips and the place line as entry points at the hotel's
