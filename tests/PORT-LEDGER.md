@@ -13,7 +13,13 @@ lost its same-program case in #13. Those four rows and that sentence are correct
 `data/2026/events.v2.json`; both rows are corrected below. Amended in the client switch by year (2026-09-24, DECISIONS #49),
 for three rows whose titles name what changed: 1290's cache is v6, 1313's worker clears its site's caches of any year, by the whole
 name, and 1315's worker announces a new schedule by its digest, generated_at deciding only where a copy has none; the three rows are
-corrected below. The tables' counts are as of 4b-ii, and
+corrected below. Amended in the bar (2026-09-30, DECISIONS #62), for the tab
+Mine became Plans: `page/mine.test.js` is `page/plans.test.js` in every row
+that names it; the titles that named the tab name Plans - 449, 498, 672,
+741, 917, 1658 and 1970 - and 934's says what it pins, the five ids;
+1631's loop takes `plans`, 1733's rewrite names Plans' timeline, and the
+four control-strip rules, 436 to 445, read `.plans-actions`, their titles
+unchanged. The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
@@ -110,8 +116,8 @@ Four call sites never execute on the sample fixture. They are `it.skip` with the
 | line | file | PR | reason |
 |---:|---|---|---|
 | 366 | `page/search.test.js` | 4b-ii | the sample fixture has no person whose suggestion count differs with photo sessions hidden (the harness's `if` was never true) |
-| 470 | `page/mine.test.js` | 4b-ii | the sample fixture never gives this test a pick of 152 minutes or more, so no .tl-block.long exists to read |
-| 499 | `page/mine.test.js` | 4b-ii | the sample fixture has no event starting within five minutes of the first pick's end in another hotel, so no tight pair is starred |
+| 470 | `page/plans.test.js` | 4b-ii | the sample fixture never gives this test a pick of 152 minutes or more, so no .tl-block.long exists to read |
+| 499 | `page/plans.test.js` | 4b-ii | the sample fixture has no event starting within five minutes of the first pick's end in another hotel, so no tight pair is starred |
 | 1283 | `build.test.js` | 4b-i | the catch arm of 1282; it runs only when sw.js fails to parse, and then 1282 has already failed |
 
 ## Handle-addition proposals
@@ -196,7 +202,7 @@ Sites are call sites that survive (port + rewrite) plus what splitting adds; mer
 | `tests/page/ics.test.js` | 4b-ii | 4 | 4 |  | sample | jsdom |  |
 | `tests/page/leave.test.js` | 4b-ii | 20 | 20 |  | sample | jsdom |  |
 | `tests/page/map.test.js` | 4b-ii | 96 | 96 |  | sample | jsdom |  |
-| `tests/page/mine.test.js` | 4b-ii | 19 | 19 | 2 | sample | jsdom |  |
+| `tests/page/plans.test.js` | 4b-ii | 19 | 19 | 2 | sample | jsdom |  |
 | `tests/page/minibar.test.js` | 4b-ii | 17 | 17 |  | sample | jsdom |  |
 | `tests/page/now.test.js` | 4b-ii | 34 | 34 |  | sample | jsdom |  |
 | `tests/page/nudge.test.js` | 4b-ii | 6 | 6 |  | sample | jsdom |  |
@@ -431,38 +437,38 @@ One row per call site, in harness order, under the harness's own section comment
 
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
-| 433 | a | four controls in order (…) | `page/mine.test.js` | 4b-ii | handle | port |
-| 434 | a | actions above the view toggle | `page/mine.test.js` | 4b-ii | dom | port |
+| 433 | a | four controls in order (…) | `page/plans.test.js` | 4b-ii | handle | port |
+| 434 | a | actions above the view toggle | `page/plans.test.js` | 4b-ii | dom | port |
 | 436 | b css | the actions row is two equal columns | `rules/style.test.js` | 4b-i | rule | port |
 | 439 | b css | actions and toggle share a height (… vs …) | `rules/style.test.js` | 4b-i | rule | port |
 | 442 | b css | and a corner radius (… vs …) | `rules/style.test.js` | 4b-i | rule | port |
 | 445 | b css | and a gap (… vs …) | `rules/style.test.js` | 4b-i | rule | port |
-| 446 | a | with picks, both actions are live | `page/mine.test.js` | 4b-ii | dom | port |
+| 446 | a | with picks, both actions are live | `page/plans.test.js` | 4b-ii | dom | port |
 
 ### step 5: timeline is the default view on Mine
 
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
-| 449 | a | Mine defaults to the timeline | `page/mine.test.js` | 4b-ii | handle | port |
-| 450 | a | timeline grid renders | `page/mine.test.js` | 4b-ii | dom | port |
-| 451 | a | timeline draws a block per pick | `page/mine.test.js` | 4b-ii | handle | port |
-| 452 | a | hour ruler renders | `page/mine.test.js` | 4b-ii | dom | port |
-| 459 | a | block height tracks duration at 60px/hour (… vs …) | `page/mine.test.js` | 4b-ii | handle | port |
+| 449 | a | Plans defaults to the timeline | `page/plans.test.js` | 4b-ii | handle | port |
+| 450 | a | timeline grid renders | `page/plans.test.js` | 4b-ii | dom | port |
+| 451 | a | timeline draws a block per pick | `page/plans.test.js` | 4b-ii | handle | port |
+| 452 | a | hour ruler renders | `page/plans.test.js` | 4b-ii | dom | port |
+| 459 | a | block height tracks duration at 60px/hour (… vs …) | `page/plans.test.js` | 4b-ii | handle | port |
 | 461 | a | HOUR_PX is 60 | `unit/misc.test.js` | 4b-i | import | port |
-| 467 | a | long blocks flagged for fading (…) | `page/mine.test.js` | 4b-ii | handle | port |
-| 470 | a | a long block says when it runs to | `page/mine.test.js` | 4b-ii | dom | **skip** it.skip: the sample fixture never gives this test a pick of 152 minutes or more, so no .tl-block.long exists to read |
-| 473 | a | tapping a timeline block opens the event sheet | `page/mine.test.js` | 4b-ii | dom | port |
-| 489 | a | overlapping picks widen the cluster to … columns | `page/mine.test.js` | 4b-ii | handle | port |
-| 490 | a | overlapping picks land in different columns | `page/mine.test.js` | 4b-ii | handle | port |
+| 467 | a | long blocks flagged for fading (…) | `page/plans.test.js` | 4b-ii | handle | port |
+| 470 | a | a long block says when it runs to | `page/plans.test.js` | 4b-ii | dom | **skip** it.skip: the sample fixture never gives this test a pick of 152 minutes or more, so no .tl-block.long exists to read |
+| 473 | a | tapping a timeline block opens the event sheet | `page/plans.test.js` | 4b-ii | dom | port |
+| 489 | a | overlapping picks widen the cluster to … columns | `page/plans.test.js` | 4b-ii | handle | port |
+| 490 | a | overlapping picks land in different columns | `page/plans.test.js` | 4b-ii | handle | port |
 | 493 | a | 1am Sunday sits on Saturday's timeline | `unit/time.test.js` | 4b-i |  | **merge** with 247: identical claim and call: conDayKey(1 AM Sunday) is Saturday |
-| 496 | a | toggle switches to the list view | `page/mine.test.js` | 4b-ii | handle | port |
-| 497 | a | view choice persists | `page/mine.test.js` | 4b-ii | dom | port |
-| 498 | a | Mine lists picks | `page/mine.test.js` | 4b-ii | handle | port |
-| 499 | a | walk warning shown for tight transfer: | `page/mine.test.js` | 4b-ii | dom | **skip** it.skip: the sample fixture has no event starting within five minutes of the first pick's end in another hotel, so no tight pair is starred |
+| 496 | a | toggle switches to the list view | `page/plans.test.js` | 4b-ii | handle | port |
+| 497 | a | view choice persists | `page/plans.test.js` | 4b-ii | dom | port |
+| 498 | a | Plans lists picks | `page/plans.test.js` | 4b-ii | handle | port |
+| 499 | a | walk warning shown for tight transfer: | `page/plans.test.js` | 4b-ii | dom | **skip** it.skip: the sample fixture has no event starting within five minutes of the first pick's end in another hotel, so no tight pair is starred |
 | 506 | a | ICS export has events with TZ | `page/ics.test.js` | 4b-ii | dom | port |
-| 509 | a | clear all works | `page/mine.test.js` | 4b-ii | dom | port |
-| 510 | a | with nothing picked, both actions are disabled | `page/mine.test.js` | 4b-ii | dom | port |
-| 511 | a | and there is no view toggle to switch | `page/mine.test.js` | 4b-ii | dom | port |
+| 509 | a | clear all works | `page/plans.test.js` | 4b-ii | dom | port |
+| 510 | a | with nothing picked, both actions are disabled | `page/plans.test.js` | 4b-ii | dom | port |
+| 511 | a | and there is no view toggle to switch | `page/plans.test.js` | 4b-ii | dom | port |
 | 512 | b css | disabled buttons look disabled | `rules/style.test.js` | 4b-i | rule | port |
 | 516 | a | ranking: 'Video game costume contest' -> | `page/search.test.js` | 4b-ii | handle | port |
 | 517 | a | typing widens to all days | `page/search.test.js` | 4b-ii | handle | port |
@@ -522,7 +528,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 669 | a | at 1 AM Sunday, Search opens on the Saturday chip (…) | `page/time.test.js` | 4b-i | handle | port |
 | 670 | a | a small-hours Sunday event (…) is under Sat, not Sun | `page/time.test.js` | 4b-i | handle | port |
 | 671 | a | and its row is labelled Sat (…) | `page/time.test.js` | 4b-i | handle | port |
-| 672 | a | Mine's list and timeline file it under the same day (… / …) | `page/time.test.js` | 4b-i | handle | port |
+| 672 | a | Plans' list and timeline file it under the same day (… / …) | `page/time.test.js` | 4b-i | handle | port |
 | 674 | a | the sheet keeps the date and names the night (…) | `page/time.test.js` | 4b-i | handle | port |
 | 677 | a | the clock is back on Saturday afternoon | `page/time.test.js` | 4b-i | handle | port |
 
@@ -545,7 +551,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 737 | a | and both the vanished and the moved pick make the news (…) | `page/pick-news.test.js` | 4b-ii | provoke | **rewrite** seed dc26.picks and dc26.pickInfo in localStorage, then boot: load() runs reconcilePicks() itself, as a refresh would; two <li> in .pick-news |
 | 738 | a | Now names the vanished event and when it was (…) | `page/pick-news.test.js` | 4b-ii | provoke | **rewrite** seed dc26.picks and dc26.pickInfo in localStorage, then boot: load() runs reconcilePicks() itself, as a refresh would; Now's notice text |
 | 740 | a | and says where the moved one used to be | `page/pick-news.test.js` | 4b-ii | provoke | **rewrite** seed dc26.picks and dc26.pickInfo in localStorage, then boot: load() runs reconcilePicks() itself, as a refresh would; Now's notice text |
-| 741 | a | Mine shows the same notice | `page/pick-news.test.js` | 4b-ii | provoke | **rewrite** seed dc26.picks and dc26.pickInfo in localStorage, then boot: load() runs reconcilePicks() itself, as a refresh would; Mine's notice text |
+| 741 | a | Plans shows the same notice | `page/pick-news.test.js` | 4b-ii | provoke | **rewrite** seed dc26.picks and dc26.pickInfo in localStorage, then boot: load() runs reconcilePicks() itself, as a refresh would; Mine's notice text |
 | 742 | a | the news is stored, so it survives a reload | `page/pick-news.test.js` | 4b-ii | provoke | **rewrite** seed dc26.picks and dc26.pickInfo in localStorage, then boot: load() runs reconcilePicks() itself, as a refresh would; dc26.pickNews in localStorage has two entries |
 | 743 | a | the moved pick's snapshot now matches the new time | `page/pick-news.test.js` | 4b-ii | provoke | **rewrite** seed dc26.picks and dc26.pickInfo in localStorage, then boot: load() runs reconcilePicks() itself, as a refresh would; dc26.pickInfo in localStorage carries the new start |
 | 744 | a | and the vanished one's snapshot is gone | `page/pick-news.test.js` | 4b-ii | provoke | **rewrite** seed dc26.picks and dc26.pickInfo in localStorage, then boot: load() runs reconcilePicks() itself, as a refresh would; dc26.pickInfo in localStorage has no ghost-1 |
@@ -644,10 +650,10 @@ One row per call site, in harness order, under the harness's own section comment
 
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
-| 917 | a | the nav reads Now · Search · Explore · Map · Mine (…) | `page/shell.test.js` | 4b-ii | dom | port |
+| 917 | a | the nav reads Now · Search · Explore · Map · Plans (…) | `page/shell.test.js` | 4b-ii | dom | port |
 | 919 | a | five tabs | `page/shell.test.js` | 4b-ii | dom | port |
 | 933 | a | the word Browse is gone from what the reader sees | `page/shell.test.js` | 4b-ii | dom | port |
-| 934 | a | the internal identifiers are unchanged | `page/shell.test.js` | 4b-ii | dom | port |
+| 934 | a | the internal identifiers are `now`, `browse`, `explore`, `map`, `plans` | `page/shell.test.js` | 4b-ii | dom | port |
 | 936 | a | the For you tab is gone | `page/shell.test.js` | 4b-ii | dom | port |
 | 937 | a | and so is its view | `page/shell.test.js` | 4b-ii | dom | port |
 | 938 | d | and nothing in the source still refers to it | `page/shell.test.js` | 4b-ii |  | **delete** a grep of source and page for 'foryou'; 936-937 are the observable half (no tab, no view) |
@@ -1018,7 +1024,7 @@ One row per call site, in harness order, under the harness's own section comment
 
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
-| 1658 | a | with a pick later today the mini-bar shows on Search, Explore and Mine | `page/minibar.test.js` | 4b-ii | handle | port |
+| 1658 | a | with a pick later today the mini-bar shows on Search, Explore and Plans | `page/minibar.test.js` | 4b-ii | handle | port |
 | 1659 | a | but not on the Map, whose caption already says what is next, and the body res… | `page/minibar.test.js` | 4b-ii | handle | port |
 | 1660 | a | nor on Now, as before | `page/minibar.test.js` | 4b-ii | handle | port |
 
@@ -1061,9 +1067,9 @@ One row per call site, in harness order, under the harness's own section comment
 | 1726 | b css | every text size outside the map's SVG is in rem, so it follows the root | `rules/style.test.js` | 4b-i | rule | port |
 | 1727 | b css | the map's labels stay in the SVG's own units, scaled with the drawing rather … | `rules/style.test.js` | 4b-i | rule | port |
 | 1728 | b lint | and no inline pixel size hides in a template | `rules/source.test.js` | 4b-i | rule | port. over src/app.js and index.html. PR 5: stays a rule test (a template-literal content check is not worth a custom ESLint rule) |
-| 1729 | b css | timeline blocks that cannot hold their text give way by measurement: one-line… | `rules/style.test.js` | 4b-i | rule | port. split: two style rules stay; the two source regexes → provoke: stub a .tl-block's scrollHeight > clientHeight, render Mine: it gains .tight then .tighter. The split half in `page/mine.test.js` lands in 4b-ii |
+| 1729 | b css | timeline blocks that cannot hold their text give way by measurement: one-line… | `rules/style.test.js` | 4b-i | rule | port. split: two style rules stay; the two source regexes → provoke: stub a .tl-block's scrollHeight > clientHeight, render Mine: it gains .tight then .tighter. The split half in `page/plans.test.js` lands in 4b-ii |
 | 1732 | b css | the hour gutter is in rem and its labels never wrap | `rules/style.test.js` | 4b-i | rule | port |
-| 1733 | d | toggling re-measures the header and re-renders, so the timeline refits | `page/settings.test.js` | 4b-ii | provoke | **rewrite** with a pick on Mine's timeline and .hdr's rect stubbed, toggling Larger text re-measures --hdr-h and replaces the .tl-block nodes |
+| 1733 | d | toggling re-measures the header and re-renders, so the timeline refits | `page/settings.test.js` | 4b-ii | provoke | **rewrite** with a pick on Plans' timeline and .hdr's rect stubbed, toggling Larger text re-measures --hdr-h and replaces the .tl-block nodes |
 
 ### map card: the next pick under the map
 
@@ -1174,7 +1180,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 1965 | a | the map has no next-pick card and no rings | `page/archive.test.js` | 4b-ii | handle | port |
 | 1966 | a | the map still counts picks by hotel on its day chips | `page/archive.test.js` | 4b-ii | handle | port |
 | 1968 | a | an Explore page lists everything plainly | `page/archive.test.js` | 4b-ii | handle | port |
-| 1970 | a | Mine has no now-line, and export is still offered | `page/archive.test.js` | 4b-ii | handle | port |
+| 1970 | a | Plans has no now-line, and export is still offered | `page/archive.test.js` | 4b-ii | handle | port |
 | 1973 | a | dismissing hides the banner and remembers it for the year | `page/archive.test.js` | 4b-ii | handle | port |
 | 1975 | a | and it stays dismissed | `page/archive.test.js` | 4b-ii | handle | port |
 | 1978 | a | the minute tick leaves the archive list alone | `page/archive.test.js` | 4b-ii | handle | port |

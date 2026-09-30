@@ -80,6 +80,59 @@ numbers. Tests: `shell.test.js` [917] and [934], which pin the labels and
 ids; `style.test.js` [1640], which pins `#view-map`'s 76 px; the
 selectors of the tab, view and badge across `tests/page/`; `ORDER`. PR 2.
 
+### The shell, as built
+
+PR #74, with #62.
+
+- **The rename,** by hand: `data-tab="plans"` and its label, `#view-plans`,
+  `#plansBadge`, `src/plans.js` and `renderPlans()` - its private
+  timeline `renderPlansTimeline()` - and the action strip's class,
+  `.plans-actions`. `.row.mine`, `list: "mine"`, `state.mineView` and its
+  key `"mineView"` mean the reader's own and keep their names. The one
+  sentence a reader sees name the tab besides its label, the removed
+  pick's news, says it "stays in Plans, marked". `ORDER` has `plans` in
+  the fifth view's place; `tests/page/mine.test.js` is
+  `tests/page/plans.test.js`, and the port ledger is amended for it.
+- **`--nav-h`.** The root's default is `calc(71px + var(--safe-bottom))`,
+  the nav as it is laid out - its border, its padding, a 58 px button and
+  the inset - and `--minibar-h` is `48px`. `scroll.js` `syncNavHeight()`
+  writes the nav's measured height into `--nav-h` on the root, at the
+  header's moments - the frame after boot, resize, a turn of the phone,
+  load, the fonts - and on a `ResizeObserver` of its own on `.nav`; a 0,
+  from jsdom or a page not laid out, is ignored and the default stands.
+  The measured height already holds the safe-area inset, so nothing
+  derived from it adds `--safe-bottom` again: the brief that asked for a
+  `calc()` from the three had it wrong. The eight rules, each today's
+  value until a measurement lands:
+
+  | Rule | Is |
+  |---|---|
+  | `.minibar` `bottom` | `calc(var(--nav-h) - 1px)`, over the nav's top border |
+  | `main::after` | `calc(var(--nav-h) + 5px)` |
+  | `body.has-minibar main::after` | `calc(var(--nav-h) + 5px + var(--minibar-h))` |
+  | `.devmark` `bottom` | `calc(var(--nav-h) + 5px)` |
+  | `body.has-minibar .devmark` | `calc(var(--nav-h) + 5px + var(--minibar-h))` |
+  | `.update-pill` `bottom` | `calc(var(--nav-h) + 9px)` |
+  | `body.has-minibar .update-pill` | `calc(var(--nav-h) + 13px + var(--minibar-h))` |
+  | `#view-map` `height` | `calc(100dvh - var(--hdr-h, 63px) - var(--nav-h) - 5px)` |
+
+  The mini-bar's own height stays `48px`, a number jsdom can compute
+  ([239]), and a style rule holds it equal to `--minibar-h`.
+- **The opening tab.** `shell.js` `setOpeningTab()` sets `state.tab` to
+  `"explore"` while `time.js` `conPhase()` is `"before"` - earlier than
+  18:00 on the season file's first day - and to `"now"` otherwise.
+  `boot()` calls it after `initTimeOverride()`, so `?now=` decides it, and
+  before `load()`, where a valid `#explore=` still wins. A kept `?join=`
+  does nothing here yet (PR 4).
+- **The tests.** `tests/page/shell.test.js`: a boot at 12:00 on the con's
+  first day opens on Explore and one at 18:00 on Now; the nav measured
+  into `--nav-h` by its observer and at load, resize and a turn, a 0 left
+  alone. `tests/rules/style.test.js`: the root's two defaults and each
+  derived rule, and no rule left that assumes the nav's height or adds
+  the inset to it. None carries a ledger bracket.
+- **Measured** on the next site, after the merge: to follow the phone
+  check.
+
 ## 2. Now
 
 As built: the recon, section 2, Now; section 5; section 7, the nudge.

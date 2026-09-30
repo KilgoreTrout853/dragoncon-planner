@@ -425,7 +425,7 @@ mode now also covers moved partitions. The map needs one persistent SVG
 mutated in place rather than the innerHTML rebuild in `src/app.js` — a
 constraint on step 4's module split.
 
-### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53); an eighteenth, `outbox`, after `time`, and `sync` after the bus (#53); a nineteenth, `crews`, after `identity` (#56)
+### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53); an eighteenth, `outbox`, after `time`, and `sync` after the bus (#53); a nineteenth, `crews`, after `identity` (#56); `mine` renamed `plans` in the fifth view's place (#62)
 **Decided:** The client's modules stand in one order, and `src/boot.js` is
 its root. The order is the array `ORDER` in `tests/rules/imports.test.js` -
 the fourteen leaves, then `scroll` and the `bus`, the five views, then
@@ -1877,7 +1877,7 @@ works-block edit does. 2026's file is rebuilt with an empty block now and
 rebuilt again when the lines are reviewed. The line pass is a second review
 of 113 people, four of them with no draft.
 
-### 62. The five tabs; crew is a dimension, not a place — Decided, not built (2026-09-30)
+### 62. The five tabs; crew is a dimension, not a place — Decided, not built (2026-09-30) — the bar built by PR #74: the tab, its view, its module and its badge renamed `plans`, `--nav-h` measured and the bottom of the page laid out from it, and the opening tab by phase (`docs/screens/contract.md`, section 1, as built)
 **Decided:** The bar keeps five tabs, in today's positions: Now, Search,
 Explore, Map and Plans - what is on, what to find, what to discover, where,
 and my day and my crew's. Plans replaces Mine in its slot, fifth, with the
