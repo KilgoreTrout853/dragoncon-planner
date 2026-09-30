@@ -15,7 +15,7 @@ import { CON, conEnded, conPhase, DAY_LABEL, effectiveNow, isSimulated, now, set
 import { hotelVar, placeHTML } from "./venues.js";
 import { events } from "./data.js";
 import { picks, savePicks } from "./picks.js";
-import { currentLocation, leaveInfo, nextPickInConDay } from "./leave.js";
+import { nextPickInConDay } from "./walk.js";
 import {
   chipRowsRestore, chipRowsSnapshot, cssEsc, fitHeaderLine, pageScrollBy, pageScrollTo,
   syncHeaderHeight,
@@ -63,11 +63,8 @@ function renderMiniBar() {
     document.body.classList.remove("has-minibar");
     return;
   }
-  const info = leaveInfo(currentLocation(at), next, at);
-  const when = info && info.leaveBy
-    ? (info.late ? "leave now" : `leave by ${fmtShort(info.leaveBy)}`)
-    : `in ${fmtMins(minutesBetween(at, next._s))}`;
-  bar.classList.toggle("late", !!(info && info.late));
+  /* How long until it starts, and never when to leave (DECISIONS #40). */
+  const when = `in ${fmtMins(minutesBetween(at, next._s))}`;
   bar.innerHTML = `<span class="mb-body">
       <span class="mb-title">${esc(next.title)}</span>
       <span class="mb-room" style="--h:var(${hotelVar(next.hotel)})">${placeHTML(next)}</span>

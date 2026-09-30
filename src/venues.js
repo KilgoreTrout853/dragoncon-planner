@@ -23,10 +23,10 @@ const HOTEL_GROUP = Object.fromEntries(HOTELS.map(h => [h.hotel, h.group]));
    minutes of their own. */
 const WALK = VENUES.walk;
 const SAME_VENUE_MIN = VENUES.same_venue_min, UNKNOWN_PAIR_MIN = VENUES.unknown_pair_min;
-/* The slack on every leave-by and in the tight band (#40): lifts, crowds, one
-   wrong turn. The file calls it slack_min; the name here waits for Where
-   things live. */
-const LEAVE_BUFFER_MIN = VENUES.slack_min;
+/* The slack in the tight band (#40): lifts, crowds, one wrong turn. A gap
+   shorter than the walk and the slack is tight but doable. The file calls
+   it slack_min. */
+const SLACK_MIN = VENUES.slack_min;
 
 /* The source marks offsite venues with a leading "O ": "O Joystick Gamebar".
    The scraper now drops it; this covers data scraped before it did. */
@@ -65,6 +65,6 @@ const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hote
 const hotelPhrase = h => h === "Hardy Ivy Park" ? h : `the ${hotelShort(h)}`;
 
 export {
-  HOTEL_ORDER, WALK, LEAVE_BUFFER_MIN, cleanRoom, placeHTML, walkMin, hotelShort, hotelVar,
+  HOTEL_ORDER, WALK, SLACK_MIN, cleanRoom, placeHTML, walkMin, hotelShort, hotelVar,
   hotelGroup, hotelMatches, hotelPhrase,
 };

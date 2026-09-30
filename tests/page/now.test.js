@@ -213,11 +213,11 @@ describe("the Now tab", () => {
       });
     });
 
-    it("an on-now hero does not tell you to leave for a Sunday event [637]", () => {
+    it("an on-now hero with only a Sunday pick after it says when it ends, and names nothing next [637]", () => {
       setPicks([satOn.id, sun[0].id]);
       const hero = view().querySelector(".hero");
       expect(hero.querySelector(".hkicker").textContent).toBe("On now");
-      expect((hero.querySelector(".hthen") || { textContent: "" }).textContent).not.toMatch(/leave by/);
+      expect(hero.querySelector(".hwhen").textContent).toBe(`ends ${app.fmtShort(satOn._e)}`);
     });
   });
 

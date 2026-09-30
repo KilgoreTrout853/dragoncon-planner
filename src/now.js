@@ -10,17 +10,17 @@ import { IS_IOS, isStandalone } from "./platform.js";
 import { storageKey } from "./build.js";
 import { state } from "./state.js";
 import { CON, conDayKey, conEnded, DAY_LONG, effectiveNow, now } from "./time.js";
-import { hotelMatches, hotelPhrase, hotelShort, hotelVar, placeHTML } from "./venues.js";
+import { hotelMatches, hotelShort, hotelVar, placeHTML } from "./venues.js";
 import { events, hotelChips, isNoise } from "./data.js";
 import { pickNews, pickNewsHTML, picks } from "./picks.js";
-import { currentLocation, gapHTML, leaveInfo } from "./leave.js";
+import { connection, gapHTML, walkEstimate } from "./walk.js";
 import { chipHTML, rowHTML } from "./ui.js";
 import { cssEsc } from "./scroll.js";
 import { requestRender } from "./bus.js";
 
 /* ---- Now ---------------------------------------------------------- */
 const RING_R = 26, RING_C = 2 * Math.PI * RING_R;
-function ringHTML(fraction, minutes, late) {
+function ringHTML(fraction, minutes) {
   const f = Math.max(0, Math.min(1, fraction));
   const label = minutes >= 60 ? `${Math.floor(minutes / 60)}h` : `${Math.max(0, minutes)}`;
   return `<div class="ring"><svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
@@ -30,47 +30,53 @@ function ringHTML(fraction, minutes, late) {
     </svg><div class="num">${label}<small>${minutes >= 60 ? "" : "min"}</small></div></div>`;
 }
 
-function heroHTML(ev, now, onNow, thenNext) {
-  const from = currentLocation(now);
-  let kicker, leaveLine = "", thenLine = "", target, windowStart, late = false;
+/* What comes after the pick that is on: the next pick today and the
+   connection between the two, the band in the gap line's words - the gap
+   line under the hero is the same pair, and the app holds one opinion about
+   it (#40, #64). Never when to leave: that would say where the reader is. A
+   pair with no band says what is next and no more - by its building, or by
+   its title for a stream, which has none. */
+function thenHTML(on, next) {
+  const c = connection(on, next);
+  const name = esc(next.hotel === "Streaming" ? next.title : hotelShort(next.hotel));
+  const at = `then <b>${name}</b> at ${fmtShort(next._s)}`;
+  let then, warn = false;
+  if (!c || !c.band) then = c && on.hotel !== next.hotel ? `${at}, ~${c.walk} min walk` : `then ${name} next`;
+  else if (c.band === "overlap") { then = `${at}: overlaps by ${c.overlap} min`; warn = true; }
+  else if (c.band === "cant") { then = `${at}: ${c.gap} min to get there, ~${c.walk} min walk`; warn = true; }
+  else then = `${at}: ${c.gap} min gap, ~${c.walk} min walk. Tight but doable`;
+  return `<span class="hthen${warn ? " warn" : ""}"> &middot; ${then}</span>`;
+}
 
+/* The ring counts to the end of the pick that is on, else to the start of
+   the next. Its line: "ends 2:00 PM" and what comes after; or, with nothing
+   on, "starts 3:00 PM", and the walk from the pick before offered as an
+   estimate, not an instruction. */
+function heroHTML(ev, now, onNow, thenNext) {
+  let kicker, line, walkLine = "", target, windowStart;
   if (onNow) {
     kicker = "On now";
     target = ev._e;
     windowStart = ev._s;
-    const info = leaveInfo(from, thenNext, now);
-    if (info && info.leaveBy) {
-      /* The one case with a leave-by: we know where you are because you
-         are in something. Say which building. */
-      late = info.late;
-      const here = ev.hotel === "Other" ? esc(ev.room || "here") : esc(hotelPhrase(ev.hotel));
-      leaveLine = `<div class="hleave">${late ? `leave ${here} now` : `leave ${here} by ${fmtShort(info.leaveBy)}`}</div>`;
-      thenLine = `<div class="hthen">then: <b>${esc(hotelShort(thenNext.hotel))}</b> at ${fmtShort(thenNext._s)}</div>`;
-    } else {
-      leaveLine = `<div class="hleave">ends ${fmtShort(ev._e)}</div>`;
-      if (info) thenLine = `<div class="hthen">then: ${esc(hotelShort(thenNext.hotel))} next</div>`;
-    }
+    line = `ends ${fmtShort(ev._e)}${thenNext ? thenHTML(ev, thenNext) : ""}`;
   } else {
-    /* Nothing is on, so nowhere is known: no leave-by. The ring counts to
-       the start, and the walk from the previous pick is offered as an
-       estimate, not an instruction. */
     kicker = "Your next";
-    const info = leaveInfo(from, ev, now);
     target = ev._s;
     windowStart = new Date(ev._s.getTime() - 60 * 60000);
-    leaveLine = `<div class="hleave">starts ${fmtShort(ev._s)}</div>`;
-    thenLine = info && info.estimate ? `<div class="hthen hwalk">${esc(info.estimate.label)}</div>` : "";
+    line = `starts ${fmtShort(ev._s)}`;
+    const estimate = walkEstimate(ev);
+    if (estimate) walkLine = `<div class="hthen hwalk">${esc(estimate.label)}</div>`;
   }
   const total = Math.max(1, minutesBetween(windowStart, target));
   const leftMin = minutesBetween(now, target);
 
-  return `<button class="hero${late ? " late" : ""}" data-hero="${esc(ev.id)}">
-    ${ringHTML(leftMin / total, leftMin, late)}
+  return `<button class="hero" data-hero="${esc(ev.id)}">
+    ${ringHTML(leftMin / total, leftMin)}
     <div class="hbody">
       <div class="hkicker">${kicker}</div>
       <div class="htitle">${esc(ev.title)}</div>
       <div class="hroom" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</div>
-      ${leaveLine}${thenLine}
+      <div class="hwhen">${line}</div>${walkLine}
     </div>
   </button>`;
 }
@@ -206,15 +212,18 @@ function tickNow() {
 }
 
 /* Installing is the point for someone who arrived from a chat link: the
-   app works with no signal only once it is on the home screen. So the Now
+   app works with no signal only once it is on the home screen, and Safari
+   keeps an uninstalled site's storage for only seven days without a visit.
+   So once the reader has a pick - the thing the home screen keeps - the Now
    tab opens with a nudge until the app is installed, dismissible for a week
-   at a time. No user-agent sniffing: one honest iOS message covers Safari
-   and the in-app browsers, and Android gets the real install prompt when
-   the browser offers one. */
+   at a time; over an empty plan it would be nagging (DECISIONS #65). No
+   user-agent sniffing: one honest iOS message covers Safari and the in-app
+   browsers, and Android gets the real install prompt when the browser
+   offers one. */
 const NUDGE_SNOOZE_MS = 7 * 24 * 3600 * 1000;
 let installPrompt = null;
 function nudgeVisible() {
-  if (isStandalone()) return false;
+  if (isStandalone() || !picks.size) return false;
   const until = loadJSON(storageKey("nudgeSnoozedUntil"), 0);
   return !(until && now().getTime() < until);
 }

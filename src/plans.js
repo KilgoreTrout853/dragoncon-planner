@@ -4,7 +4,7 @@ import { conDayKey, DAY_LONG, now } from "./time.js";
 import { hotelVar, walkMin } from "./venues.js";
 import { byId } from "./data.js";
 import { pickNewsHTML, picks } from "./picks.js";
-import { gapHTML } from "./leave.js";
+import { gapHTML } from "./walk.js";
 import { rowHTML } from "./ui.js";
 
 /* ---- Plans -------------------------------------------------------- */

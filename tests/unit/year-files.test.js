@@ -8,8 +8,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { CON, CON_DAYS, conPhase, DAY_LABEL, DAY_LONG, effectiveNow, FIRST_FULL_DAY, setOverride } from "../../src/time.js";
 import { parseQuery } from "../../src/search.js";
-import { HOTEL_ORDER, hotelGroup, hotelShort, hotelVar, LEAVE_BUFFER_MIN, walkMin, WALK } from "../../src/venues.js";
-import { gapHTML } from "../../src/leave.js";
+import { HOTEL_ORDER, hotelGroup, hotelShort, hotelVar, SLACK_MIN, walkMin, WALK } from "../../src/venues.js";
+import { gapHTML } from "../../src/walk.js";
 import { settings } from "../../src/state.js";
 
 /* Hoisted with the mocks, which run before anything else in this file. */
@@ -69,7 +69,7 @@ describe("a venues file of other values", () => {
     expect(walkMin("Hyatt", "Other")).toBe(Math.round(20 * settings.crowd));
   });
   it("takes the slack from the file, and the tight band with it", () => {
-    expect(LEAVE_BUFFER_MIN).toBe(25);
+    expect(SLACK_MIN).toBe(25);
     const walk = walkMin("Marriott", "Hyatt");
     const prev = { hotel: "Marriott", _s: new Date("2027-09-04T13:00"), _e: new Date("2027-09-04T14:00"), _cd: "2027-09-04" };
     const after = gap => { const _s = new Date(prev._e.getTime() + gap * 60000); return { hotel: "Hyatt", _s, _e: new Date(_s.getTime() + 3600000), _cd: "2027-09-04" }; };

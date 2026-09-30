@@ -130,10 +130,10 @@ describe("the year under test", () => {
     it("the values are the ones the client held before it read the file, the Settings table in the same order", () => {
       expect(app.WALK).toEqual(BEFORE.walk);
       expect(Object.keys(app.WALK)).toEqual(Object.keys(BEFORE.walk));
-      expect([venues.same_venue_min, venues.unknown_pair_min, app.LEAVE_BUFFER_MIN]).toEqual([BEFORE.sameVenue, BEFORE.unknownPair, BEFORE.slack]);
+      expect([venues.same_venue_min, venues.unknown_pair_min, app.SLACK_MIN]).toEqual([BEFORE.sameVenue, BEFORE.unknownPair, BEFORE.slack]);
     });
     it("the tight band's slack is the file's slack_min", () => {
-      expect(app.LEAVE_BUFFER_MIN).toBe(venues.slack_min);
+      expect(app.SLACK_MIN).toBe(venues.slack_min);
       const day = app.CON_DAYS[3], walk = app.walkMin("Marriott", "Hyatt");
       const prev = { hotel: "Marriott", _s: new Date(`${day}T13:00`), _e: new Date(`${day}T14:00`), _cd: day };
       const after = gap => { const _s = new Date(prev._e.getTime() + gap * 60000); return { hotel: "Hyatt", _s, _e: new Date(_s.getTime() + 3600000), _cd: day }; };

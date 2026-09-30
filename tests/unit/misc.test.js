@@ -9,11 +9,11 @@ import { FOLLOW_KINDS } from "../../src/follows.js";
 import { HOUR_PX } from "../../src/plans.js";
 import { nudgeCopy } from "../../src/now.js";
 import { IS_IOS } from "../../src/platform.js";
-import { LEAVE_BUFFER_MIN } from "../../src/venues.js";
+import { SLACK_MIN } from "../../src/venues.js";
 
-describe("constants the layout and the leave-by depend on", () => {
-  it("leave-by: LEAVE_BUFFER_MIN is 10, the slack on every leave-by [116]", () => {
-    expect(LEAVE_BUFFER_MIN).toBe(10);
+describe("constants the layout and the tight band depend on", () => {
+  it("the slack: SLACK_MIN is 10, the slack in the tight band [116]", () => {
+    expect(SLACK_MIN).toBe(10);
   });
   it("the timeline: HOUR_PX is 60 [461]", () => {
     expect(HOUR_PX).toBe(60);
