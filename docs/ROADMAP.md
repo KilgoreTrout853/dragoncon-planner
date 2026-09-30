@@ -376,7 +376,7 @@ execution slot (#57), which can run before any of this.
 4. Plans, the crew: the header and its actions, join by a tapped and a
    pasted link, the My day | Crew segment and the crew's day, and the sync
    redraw on a crew change. A hand test with two browsers on dev (contract,
-   section 5).
+   section 5) - built (PR #77).
    - 4b. W28's `crews.js` action, one's own display name, and its place in
      the header: a small follow-up.
 5. Crew everywhere: who's going on the sheet, crewmates' picks counted per
@@ -436,9 +436,11 @@ Open: `index.html` needs `mobile-web-app-capable` beside the Apple meta
 
 Open: an invite link tapped on an iPhone opens the browser, not the
 home-screen app, whose storage is its own, so an installed reader who taps
-one joins as the browser's user. The crew screens need a field to paste the
-link into, which `readInvite()` reads (#56), and the behaviour is to be
-confirmed on a phone with the install flow (`docs/sync/contract.md`, Open).
+one joins as the browser's user. The join step has had a field to paste the
+link into since PR #77, which `readInvite()` reads (#56), and a pasted link
+joins the home-screen app's own user, another member; the behaviour is to be
+confirmed on a phone, by PR #77's hand test and with the install flow
+(`docs/sync/contract.md`, Open).
 
 ## Held
 
@@ -456,6 +458,12 @@ confirmed on a phone with the install flow (`docs/sync/contract.md`, Open).
   schedule.
 - The listing-only pre-check, held as a fallback against 403 pushback
   (#48).
+- A redraw rebuilds Explore's grid, and its filter box with it, so a pull
+  that changes the reader's own picks or follows - another device's -
+  takes the focus and the caret from a reader typing there; the text
+  stays. Search's box is kept across a redraw. PR #77 asks for a crew's
+  redraw only while Plans or the crew panel is on screen for this reason;
+  the picks path is as it was.
 
 ## Checklist
 

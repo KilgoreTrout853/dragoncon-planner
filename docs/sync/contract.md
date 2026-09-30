@@ -606,9 +606,12 @@ PR #56, with #53.
 - **A run,** `runSync()`: the drain, then the pull. After the load; on
   `visibilitychange` and `pageshow`, ungated; on `online` and the worker's
   `schedule-online`; and after the email step sends a code, which may have
-  minted the phone's user, and after it confirms one. No timer. One run at
-  a time: a trigger during one asks for one more after it, however many
-  there are.
+  minted the phone's user, and after it confirms one. Since PR #77, on a
+  tap on the Plans tab and a tap on its Crew segment, and after a crew
+  action in the crew panel, which waits for a run that began after the
+  action - `syncAfter()`, since a run already out may have read before the
+  action landed - and for how it ended. No timer. One run at a time: a
+  trigger during one asks for one more after it, however many there are.
 - **The pull** holds the drains while it reads and applies - the one out
   finishes first - so no pulled row lands on a change drained in between,
   and a tap meanwhile waits as an op. It reads the crews, with their
@@ -627,6 +630,16 @@ PR #56, with #53.
   written through it (section 8, as built); and the watermark to
   `storageKey("syncStamp")`, `{user, picks, follows}`, each the newest
   `synced_at` its table's read returned, as the server wrote it.
+- **The redraw.** A pull asks for one, on any tab, when the reader's own
+  picks or follows changed. Since PR #77 there are two more: a pull that
+  changed what a crew screen draws - a crew, its name, its token or its
+  members, compared by id since the read gives members in no order, or a
+  crewmate's stars, compared alone - and forgetting the crews at a change
+  of owner or with no session. Those two are asked only while Plans is the
+  tab or the crew panel is open: a redraw rebuilds Explore's grid, its
+  filter box with it, and a crewmate's star should not take the caret from
+  a reader typing there (ROADMAP, Flags). The tab's own draw shows the rest
+  when it is tapped.
 - **The watermark stops at a held row.** A row of the reader's own that a
   pending op holds is passed over, and the watermark goes no later than
   it, so the next pull reads it again, and applies the server's value if
@@ -1454,6 +1467,10 @@ the invite, the overlay of crewmates' picks on the timeline, and who's
 going. #56 has the client's rulings; this section is the client's layer,
 PR #62, which has no screen. The screens - create, join, your crews,
 who's going and the overlay's look - are Where things live's (ROADMAP).
+Since PR #77 they exist on Plans: the crew header, the crew panel -
+create, join by a tapped or a pasted link, and manage - and the crew's
+day (`docs/screens/contract.md`, section 5, as built); who's going is the
+event sheet's, still to come.
 
 - **The creator cannot leave;** the creator's Leave is Delete crew. The
   policies let a creator delete their own membership (section 3, as
@@ -1535,6 +1552,7 @@ PR #62, with #56.
   | a link from another year | none | That invite is for another year's con - ask for a new link. |
   | not an invite | none | That doesn't look like an invite link. |
   | the creator leaving | none | You made this crew, so you can't leave it - you can delete it instead. |
+  | a crew the phone no longer holds, since PR #77 | none | That crew isn't on this phone any more - it may have been deleted. |
 
   `22023` and `23514`, both 400, reach no reader: the year is the
   build's, and the names are checked first.
@@ -1554,7 +1572,10 @@ PR #62, with #56.
   what the session kept. With no backend the parameter goes and nothing is
   kept: the 2026 app knows no crews. Nothing here joins; a screen does.
   `readInvite()` reads an invite from the kept `<year>.<token>` or from a
-  pasted link, for a home-screen app a tapped link never reaches (Open).
+  pasted link, for a home-screen app a tapped link never reaches (Open) -
+  since PR #77 the last `join=` in what is pasted, since the message a
+  share sends names the crew before its link, and a name cannot stand in
+  for the link.
   Offline, the worker serves a page load with a query from its cache; it
   keeps each page it fetched under the address it was asked for, so an
   invite's address stays in the phone's cache, as a `?now=` address does,
@@ -1570,6 +1591,15 @@ PR #62, with #56.
     same list, for every event a crewmate starred.
   - `isCreator(crew)`, and `myCrews()`, the list as kept: `[{id, name,
     creator, invite_token, members}]`.
+  - Since PR #77, for the crew's day and the crew panel:
+    `crewmatePicks(userId)`, one crewmate's stars as the pull kept them,
+    none for the reader; and `myMembership(crew)`, the reader's own row in
+    a crew, `{user_id, display_name}`, or null.
+
+  Since PR #77 `applyPulledCrews()` says whether anything a crew screen
+  draws changed - the members compared by id, the stars alone - and
+  `forgetCrews()` whether anything was kept, for the pull's redraw
+  (section 5, as built).
 
   The crews read gains `invite_token`, which any member may read by policy,
   so that every member's phone can share the link; and it is ordered,
@@ -1616,7 +1646,9 @@ PR #62, with #56.
   (ROADMAP, tentpole 4).
 - An invite link tapped on an iPhone opens the browser, not the
   home-screen app, whose storage is its own, so an installed reader who
-  taps one joins as the browser's user. The crew screens need a field to
-  paste the link into - `readInvite()` takes one (section 8, as built) -
-  and the behaviour is to be confirmed on a phone, with Delivery's install
-  flow (ROADMAP).
+  taps one joins as the browser's user. The join step has had a field to
+  paste the link into since PR #77 - `readInvite()` reads it (section 8,
+  as built) - and a link pasted there joins the home-screen app's own
+  user, another member, since an invite serves anyone until it is
+  renewed. The behaviour is to be confirmed on a phone - PR #77's hand
+  test - with Delivery's install flow (ROADMAP).
