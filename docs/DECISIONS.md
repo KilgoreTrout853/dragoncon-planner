@@ -1957,12 +1957,13 @@ is said between their rows.
 - **The one exception:** Search's ranked results keep their two-line
   snippet under line 3. It is the result's anatomy - why it matched - not
   the row's.
-- **Overlap (W1):** a picked row that overlaps another pick carries
-  "Overlaps `<title>`" as a flag on line 3 wherever the row appears. The
-  flag appears at the moment of starring, on a row or in the sheet, and
-  persists; an unstarred row carries none. The event sheet also says it in
-  a line of its own, with the times, at the moment of starring - a line,
-  not a toast. The check is over every pick, not the consecutive pair.
+- **Overlap (W1):** a picked row that overlaps another pick carries a
+  flag on line 3 wherever the row appears: "Overlaps `<title>`" for one
+  clash, "Overlaps `<n>` picks" for more than one. The flag appears at the
+  moment of starring, on a row or in the sheet, and persists; an unstarred
+  row carries none. The event sheet also says it in a line of its own,
+  listing every pick it overlaps with the times, at the moment of
+  starring - a line, not a toast. The check is over every pick, not the consecutive pair.
 - **Between rows:** the walk and the two tight bands are said on
   `leave.js` `gapHTML()`'s line (`docs/screens/recon.md`, section 5),
   never on a row, and the gap line keeps saying the overlap between rows

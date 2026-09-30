@@ -111,8 +111,8 @@ As built: the recon, section 2, Now; section 5; section 7, the nudge.
 Moves: `now.js` `heroHTML()`, `nudgeVisible()`, `nowSignature()`,
 `renderNow()`; `picks.js` `pickNewsHTML()`. Tests: `nudge.test.js` [838]
 and [841], which boot with no picks and expect the nudge; `now.test.js`'s
-hero suite. PRs 3 (the hero) and 5 (the crew section); the nudge's rule
-(#65) and W2 are placed here and not yet in the sequence (ROADMAP).
+hero suite. PRs 3 (the hero and the nudge's gate), 5 (the crew section)
+and 8b (W2).
 
 ## 3. Search, and the filter sheet
 
@@ -169,8 +169,7 @@ Explore.
 Moves: `explore.js` `renderExploreGrid()`, `renderExplorePage()`,
 `followingHTML()`; `follows.js` (mutes); `search.js` `browseResults()`
 (the cast group). Tests: `explore.test.js`, `follows.test.js`,
-`spy.test.js`. PR 8, For you and the zero state; W5 and W6 are placed
-here and not yet in the sequence (ROADMAP).
+`spy.test.js`. PR 8.
 
 ## 5. Plans
 
@@ -269,11 +268,13 @@ As built, plus:
 - **Facets** (W7) in words.
 - **Who's going** (W22): a line, from `crews.js` `goingTo()`, for a reader
   in a crew; in 2027 it taps nowhere.
-- **The overlap** (W1): at the moment of starring, a line that names the
-  pick it overlaps and both times; a line, not a toast. The row's flag is
-  section 10's.
+- **The overlap** (W1): at the moment of starring, a line that lists
+  every pick it overlaps, each with its times; a line, not a toast. The
+  row's flag is section 10's.
 - **Add to calendar** with W44's alarm, a fixed lead before the start - the
-  same `ics.js` as Plans' Export, so both doors carry it.
+  same `ics.js` as Plans' Export, so both doors carry it. W44 is a
+  standalone pull request in a free execution slot (#57), outside the
+  sequence.
 - **Focus and Escape** (#66): focus into the sheet on open and back to what
   opened it on close, and Escape closes it, for every panel.
 
@@ -283,7 +284,8 @@ Moves: `sheet.js` `eventSheetHTML()`, `openSheet()`, `closeSheet()`;
 `dispatch.js` `onEventPanelClick()`; `data.js` (the people block);
 `explore.js` `renderExplorePage()` (the line); `ics.js`.
 Tests: `sheet.test.js`, `explore.test.js`'s "the detail sheet offers a way
-through to a person", `ics.test.js`. PRs 5 (who's going) and 7.
+through to a person", `ics.test.js`. PRs 5 (who's going) and 7; W44
+standalone.
 
 ## 8. The hotel sheet
 
@@ -334,7 +336,8 @@ caller; section 5, the gap line.
 | under 3, Search's ranked results only | The two-line snippet: the result's anatomy, why it matched | the snippet |
 
 - **The overlap flag** (W1): a picked row that overlaps another pick
-  carries "Overlaps `<title>`" on line 3 wherever the row appears; it
+  carries a flag on line 3 wherever the row appears - "Overlaps
+  `<title>`" for one clash, "Overlaps `<n>` picks" for more than one; it
   appears at the moment of starring, on a row or in the sheet, and
   persists; an unstarred row carries none. The check runs over every pick,
   not the consecutive pair `gapHTML()` sees; the helper's home is PR 7's
@@ -423,7 +426,6 @@ As built: the recon, section 8, what crews' readers offer today.
 - The Now board's shape beyond one line per crewmate (W23).
 - W16's source: a hand-curated file the pipeline validates, or a computed
   list - the Explore PR's call.
-- The overlap flag's words when a pick overlaps more than one other.
 - Which day Share a day shares, and its link's shape (W25).
 
 **Home of:** W24.

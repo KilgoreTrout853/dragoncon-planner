@@ -357,7 +357,9 @@ Five tabs in today's positions, Plans in Mine's slot (#62): Now, Search,
 Explore, Map, Plans. Crew is a dimension of every tab, not a place, and
 its management is Plans'. The bar is provisional, with a tripwire (#62).
 
-The sequence, each pull request small and shippable to the next site:
+The sequence, each pull request small and shippable to the next site.
+W44, the calendar alarm, is not in it: a standalone pull request in a free
+execution slot (#57), which can run before any of this.
 
 1. The docs: DECISIONS #62-#66 and `docs/screens/contract.md` - this pull
    request.
@@ -366,10 +368,11 @@ The sequence, each pull request small and shippable to the next site:
    counts the files) - `--nav-h` measured and the five numbers derived
    from it, and the opening tab by phase. Behaviour otherwise unchanged.
    A phone check on the next site (contract, section 1).
-3. Leave-by out (#40): the hero, the mini-bar, the map card; streams;
-   `SLACK_MIN`, `leave.js` → `walk.js`, `currentLocation()` deleted. A
-   hand check on the next site with a simulated clock (contract, section
-   12).
+3. The quieter Now: leave-by out (#40) - the hero, the mini-bar, the map
+   card; streams; `SLACK_MIN`, `leave.js` → `walk.js`,
+   `currentLocation()` deleted - and the install nudge's gate (#65). A
+   hand check on the next site with a simulated clock (contract, sections
+   2 and 12).
 4. Plans, the crew: the header and its actions, join by a tapped and a
    pasted link, the My day | Crew segment and the crew's day, and the sync
    redraw on a crew change. A hand test with two browsers on dev (contract,
@@ -383,9 +386,13 @@ The sequence, each pull request small and shippable to the next site:
 7. The row and the sheet (#64): the three lines, the facets, W1's flag and
    line, the chips and the place line as entry points at the hotel's
    grain, W18's level where the data is, W42's line once its review has
-   merged, W44's alarm (contract, sections 7 and 10).
+   merged (contract, sections 7 and 10).
 8. Explore's top: For you and the zero state, its source decided at its
-   design (contract, section 4).
+   design; W5's Mute beside Follow on a page; W6's cast group in Search and
+   in Following (contract, section 4).
+   - 8b. W2, the alternatives in the time a cancelled or moved pick
+     vacated, under the picks-changed notice on Now and Plans: its own
+     small pull request (contract, section 2).
 9. The gear: the about page, Delete my account with its migration, the
    notifications toggle's slot (contract, section 9).
 10. The building view (#60): a short sequence of its own, the drawings a
@@ -393,10 +400,6 @@ The sequence, each pull request small and shippable to the next site:
     section 6).
 11. An accessibility sweep (#66) of what the pull requests above left;
     then Playwright, from the execution slot.
-
-Placed by the contract and not yet in the sequence: the install nudge's
-rule (#65) and W2's alternatives (section 2); W5's mute and W6's cast
-group (section 4).
 
 The rename and the leave-by removal are the first two changes a reader
 sees: the group can tap the five tabs after PR 2 and the quieter Now after
