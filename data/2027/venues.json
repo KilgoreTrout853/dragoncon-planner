@@ -74,6 +74,9 @@
             "Marquis Ballroom D",
             "Imperial Ballroom A",
             "Imperial Ballroom B",
+            "M103",
+            "M104",
+            "M105",
             "M301",
             "M302",
             "M303"
@@ -81,9 +84,7 @@
           "aliases": {},
           "notes": [
             "room codes carry the level: M = Marquis",
-            "M101-M109 (confirm the run)",
-            "M2xx (confirm)",
-            "M304 (confirm the run)"
+            "also on the level, no 2026 programming: M101, M102, M106-M109, M201, M202, M304"
           ]
         },
         {
@@ -111,12 +112,19 @@
             "Atrium Ballroom A",
             "Atrium Ballroom B",
             "Atrium Ballroom C",
-            "Atrium Ballroom D"
+            "Atrium Ballroom D",
+            "A601",
+            "A602",
+            "A703",
+            "A704",
+            "A706",
+            "A707",
+            "A708"
           ],
           "aliases": {},
           "notes": [
             "A = Atrium",
-            "A601-A602 … A707 (confirm the runs)"
+            "also on the level, no 2026 programming: A701, A702, A705"
           ]
         }
       ],
@@ -184,10 +192,13 @@
             "Chicago B",
             "Chicago C",
             "Chicago D",
-            "Chicago E"
+            "Chicago E",
+            "Concourse"
           ],
           "aliases": {},
-          "notes": []
+          "notes": [
+            "Concourse: the pre-function area and its stage, scheduled like a room; the con's name for it"
+          ]
         },
         {
           "id": "ballroom",
@@ -418,16 +429,58 @@
       "display": "rest",
       "levels": [
         {
-          "id": "unknown",
-          "name": "levels unknown",
+          "id": "f1",
+          "name": "First Floor",
           "order": 0,
           "rooms": [
-            "Capitol Ballroom",
-            "Athens"
+            "Georgia Ballroom",
+            "North Capitol Ballroom",
+            "South Capitol Ballroom",
+            "Atlanta 1",
+            "Atlanta 2",
+            "Atlanta 3",
+            "Atlanta 4",
+            "Atlanta 5"
+          ],
+          "aliases": {
+            "capitol ballroom": [
+              "North Capitol Ballroom",
+              "South Capitol Ballroom"
+            ]
+          },
+          "notes": [
+            "the con's names, from its 2026 map"
+          ]
+        },
+        {
+          "id": "f2",
+          "name": "Second Floor",
+          "order": 1,
+          "rooms": [
+            "Athens",
+            "Augusta",
+            "Macon"
           ],
           "aliases": {},
           "notes": [
-            "(55 meeting rooms in two towers; list unknown)"
+            "the con's names, from its 2026 map"
+          ]
+        },
+        {
+          "id": "f3",
+          "name": "Third Floor",
+          "order": 2,
+          "rooms": [
+            "Grand Ballroom A",
+            "Grand Ballroom B",
+            "Grand Ballroom C",
+            "Grand Ballroom D",
+            "Grand Ballroom E",
+            "Grand Ballroom F"
+          ],
+          "aliases": {},
+          "notes": [
+            "the con's names, from its 2026 map"
           ]
         }
       ],
@@ -447,132 +500,99 @@
       "display": "rest",
       "levels": [
         {
-          "id": "chastain",
-          "name": "Chastain (level unknown)",
+          "id": "f6",
+          "name": "Sixth Floor",
           "order": 0,
           "rooms": [
             "Chastain 1",
-            "Chastain 2"
+            "Chastain 2",
+            "Chastain D",
+            "Chastain E",
+            "Chastain F",
+            "Chastain G",
+            "Chastain H",
+            "Chastain I",
+            "Chastain J",
+            "Overlook"
           ],
           "aliases": {},
           "notes": [
-            "Chastain A … J (confirm)"
+            "the con's names, from its 2026 map"
           ]
-        },
-        {
-          "id": "f6",
-          "name": "Sixth Floor",
-          "order": 1,
-          "rooms": [
-            "International",
-            "International Boardroom",
-            "American",
-            "Vinings I",
-            "Vinings II",
-            "Overlook",
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F",
-            "G",
-            "H"
-          ],
-          "aliases": {},
-          "notes": []
         },
         {
           "id": "f7",
           "name": "Seventh Floor",
-          "order": 2,
+          "order": 1,
           "rooms": [
-            "Augusta I",
-            "Augusta II",
-            "Augusta III",
-            "Atlanta Ballroom A",
-            "Atlanta Ballroom B",
-            "Atlanta Ballroom C",
-            "Atlanta Ballroom D",
-            "Atlanta Ballroom E",
-            "Atlanta Ballroom F"
+            "Augusta 1",
+            "Augusta 2",
+            "Augusta 3",
+            "Augusta A",
+            "Augusta B",
+            "Augusta C",
+            "Augusta D",
+            "Augusta E",
+            "Augusta F",
+            "Augusta G",
+            "Augusta H"
           ],
           "aliases": {},
-          "notes": []
+          "notes": [
+            "the con's names, from its 2026 map"
+          ]
         },
         {
           "id": "f8",
           "name": "Eighth Floor",
-          "order": 3,
+          "order": 2,
           "rooms": [
-            "Peachtree Ballroom A",
-            "Peachtree Ballroom B",
-            "Peachtree Ballroom C",
-            "Peachtree Ballroom D",
-            "Peachtree Ballroom E",
-            "Peachtree Ballroom F",
-            "Roswell I",
-            "Roswell II"
+            "Peachtree 1",
+            "Peachtree 2",
+            "Peachtree Ballroom"
           ],
           "aliases": {},
-          "notes": []
-        },
-        {
-          "id": "f9",
-          "name": "Ninth Floor",
-          "order": 4,
-          "rooms": [
-            "Peachtree G",
-            "Peachtree H"
-          ],
-          "aliases": {},
-          "notes": []
-        },
-        {
-          "id": "f10",
-          "name": "Tenth Floor",
-          "order": 5,
-          "rooms": [
-            "Plaza Ballroom A",
-            "Plaza Ballroom B",
-            "Plaza Ballroom C"
-          ],
-          "aliases": {},
-          "notes": []
+          "notes": [
+            "the con's names, from its 2026 map"
+          ]
         },
         {
           "id": "f12",
           "name": "Twelfth Floor",
-          "order": 6,
+          "order": 3,
           "rooms": [
-            "1201",
-            "1202",
-            "1203",
-            "1204",
-            "1205",
-            "1206",
-            "1207",
-            "1208"
+            "Piedmont 1",
+            "Piedmont 2",
+            "Piedmont 3",
+            "Piedmont 4",
+            "Piedmont 5",
+            "Piedmont 6",
+            "Piedmont 7",
+            "Piedmont 8"
           ],
           "aliases": {},
-          "notes": []
+          "notes": [
+            "the con's names, from its 2026 map"
+          ]
         },
         {
           "id": "f14",
           "name": "Fourteenth Floor",
-          "order": 7,
+          "order": 4,
           "rooms": [
-            "1401",
-            "1402",
-            "1403",
-            "1404",
-            "1405",
-            "1406",
-            "1407",
-            "1408"
+            "Ansley 1",
+            "Ansley 2",
+            "Ansley 3",
+            "Ansley 4",
+            "Ansley 5",
+            "Ansley 6",
+            "Ansley 7",
+            "Ansley 8"
           ],
           "aliases": {},
-          "notes": []
+          "notes": [
+            "the con's names, from its 2026 map"
+          ]
         }
       ],
       "unplaced": {}
@@ -663,7 +683,10 @@
       "placeless": false,
       "display": "rest",
       "levels": [],
-      "unplaced": {}
+      "unplaced": {
+        "Ivy Structure": "a Dragon Con name; the park has no levels",
+        "Terraces": "a Dragon Con name; the park has no levels"
+      }
     },
     {
       "hotel": "Streaming",
