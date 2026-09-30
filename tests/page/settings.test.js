@@ -22,6 +22,19 @@ describe("the Settings sheet", () => {
     it("ending in the build stamp from the page's last-modified time [791, and 1699]", () => {
       expect(readout).toMatch(/ · build \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/);
     });
+    /* What the bottom and the top of the page are laid out from (DECISIONS
+       #62), as scroll.js measured them, so a phone can be asked for them.
+       jsdom lays nothing out: the nav's 0 is ignored and its default stands. */
+    it("and what the nav and the header were measured at, after the insets", () => {
+      expect(readout).toMatch(/ · insets top .+, bottom .+ · --nav-h default, --hdr-h \d+px/);
+      const root = document.documentElement.style, hdr = root.getPropertyValue("--hdr-h");
+      root.setProperty("--nav-h", "105px"); root.setProperty("--hdr-h", "82px");
+      try {
+        expect(page.app.deviceLine()).toMatch(/ · --nav-h 105px, --hdr-h 82px( · |$)/);
+      } finally {
+        root.removeProperty("--nav-h"); root.setProperty("--hdr-h", hdr);
+      }
+    });
   });
 
   describe("polish 6: the everyday two up top and the rest under Advanced", () => {
@@ -94,15 +107,15 @@ describe("the Settings sheet", () => {
     it("toggling re-measures the header and re-renders, so the timeline refits [1733]", () => {
       handle.closeSheet();
       handle.picks.set([handle.events.find(e => e._e > handle.now()).id]);
-      handle.state.tab = "mine"; handle.state.mineView = "timeline"; handle.render();
-      const block = document.querySelector("#view-mine .tl-block");
+      handle.state.tab = "plans"; handle.state.mineView = "timeline"; handle.render();
+      const block = document.querySelector("#view-plans .tl-block");
       const hdr = document.querySelector(".hdr");
       hdr.getBoundingClientRect = () => ({ height: 77, top: 0, left: 0, right: 0, bottom: 77, width: 0 });
       handle.openSheet("settings");
       el("bigText").click();
       expect(document.documentElement.style.getPropertyValue("--hdr-h")).toBe("77px");
-      expect(document.querySelector("#view-mine .tl-block")).toBeTruthy();
-      expect(document.querySelector("#view-mine .tl-block")).not.toBe(block);
+      expect(document.querySelector("#view-plans .tl-block")).toBeTruthy();
+      expect(document.querySelector("#view-plans .tl-block")).not.toBe(block);
       el("bigText").click();
       delete hdr.getBoundingClientRect;
       handle.picks.set([]);

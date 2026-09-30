@@ -249,8 +249,8 @@ describe("vite build", () => {
           win.URL.createObjectURL = b => { blob = b; return "blob:x"; };
           win.URL.revokeObjectURL = () => {};
           win.HTMLAnchorElement.prototype.click = function () { name = this.download; };
-          doc.querySelector('.nav button[data-tab="mine"]').click();
-          doc.querySelector('#view-mine [data-act="ics"]').click();
+          doc.querySelector('.nav button[data-tab="plans"]').click();
+          doc.querySelector('#view-plans [data-act="ics"]').click();
           const text = await blob.text();
           expect(name).toBe("dragoncon-2027-my-schedule.ics");
           expect(text).toContain("X-WR-CALNAME:Dragon Con 2027");

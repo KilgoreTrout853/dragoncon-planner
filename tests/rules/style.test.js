@@ -44,26 +44,26 @@ describe("src/styles.css", () => {
 
   describe("the control strip: two rows of two, one footprint", () => {
     it("the actions row is two equal columns [436]", () => {
-      expect(css).toMatch(/\.mine-actions \{[^}]*grid-template-columns: 1fr 1fr/);
+      expect(css).toMatch(/\.plans-actions \{[^}]*grid-template-columns: 1fr 1fr/);
     });
     it("actions and toggle share a height [439]", () => {
-      const a = css.match(/\.mine-actions \.btn \{[^}]*height: (\d+)px/), b = css.match(/\.view-toggle button \{[^}]*height: (\d+)px/);
+      const a = css.match(/\.plans-actions \.btn \{[^}]*height: (\d+)px/), b = css.match(/\.view-toggle button \{[^}]*height: (\d+)px/);
       expect(a && a[1]).toBeTruthy();
       expect(a[1]).toBe(b && b[1]);
     });
     it("and a corner radius [442]", () => {
-      const a = css.match(/\.mine-actions \.btn \{[^}]*border-radius: (\d+)px/), b = css.match(/\.view-toggle button \{[^}]*border-radius: (\d+)px/);
+      const a = css.match(/\.plans-actions \.btn \{[^}]*border-radius: (\d+)px/), b = css.match(/\.view-toggle button \{[^}]*border-radius: (\d+)px/);
       expect(a && a[1]).toBeTruthy();
       expect(a[1]).toBe(b && b[1]);
     });
     it("and a gap [445]", () => {
-      const a = css.match(/\.mine-actions \{[^}]*gap: (\d+)px/), b = css.match(/\.view-toggle \{[^}]*gap: (\d+)px/);
+      const a = css.match(/\.plans-actions \{[^}]*gap: (\d+)px/), b = css.match(/\.view-toggle \{[^}]*gap: (\d+)px/);
       expect(a && a[1]).toBeTruthy();
       expect(a[1]).toBe(b && b[1]);
     });
   });
 
-  describe("step 5: timeline is the default view on Mine", () => {
+  describe("step 5: timeline is the default view on Plans", () => {
     it("disabled buttons look disabled [512]", () => {
       expect(css).toMatch(/\.btn\[disabled\] \{[^}]*opacity/);
     });
@@ -183,7 +183,7 @@ describe("src/styles.css", () => {
 
   describe("polish 2: sticky map chips, and a map that fits the screen", () => {
     it("width first: the SVG takes the content width and its own height, and shrinks, centred, only when the tab would not fit, down to a floor [1640]", () => {
-      expect(css).toMatch(/#view-map \{ display: flex; flex-direction: column; height: calc\(100dvh - var\(--hdr-h, 63px\) - 76px - var\(--safe-bottom\)\)/);
+      expect(css).toMatch(/#view-map \{ display: flex; flex-direction: column; height: calc\(100dvh - var\(--hdr-h, 63px\) - var\(--nav-h\) - 5px\)/);
       expect(css).toMatch(/\.map \{[^}]*flex: 0 1 auto/);
       expect(css).toMatch(/\.map \{[^}]*min-height: 200px/);
       expect(css).toMatch(/\.map \{[^}]*width: 100%/);
@@ -272,6 +272,43 @@ describe("src/styles.css", () => {
     });
     it("and it moves up above the mini-bar [1997]", () => {
       expect(css).toMatch(/body\.has-minibar \.devmark \{/);
+    });
+  });
+
+  /* New rules, not ledger rows (DECISIONS #62; docs/screens/contract.md,
+     section 1): what sits on the nav or clears it is laid out from its
+     measured height, which scroll.js writes into --nav-h. */
+  describe("the bottom of the page, laid out from the nav's height", () => {
+    it("the root's defaults are today's layout: the nav at 71px and the inset, the mini-bar at 48px", () => {
+      expect(css).toMatch(/:root \{[^}]*--nav-h: calc\(71px \+ var\(--safe-bottom\)\);/);
+      expect(css).toMatch(/:root \{[^}]*--minibar-h: 48px;/);
+    });
+    it("the mini-bar sits on the nav, over its top border", () => {
+      expect(css).toMatch(/\.minibar \{[^}]*bottom: calc\(var\(--nav-h\) - 1px\)/);
+    });
+    /* The bar's own height stays a number, which jsdom can compute ([239]);
+       what clears it reads --minibar-h, and the two are held equal. */
+    it("and its height is the one --minibar-h says", () => {
+      const own = css.match(/\.minibar \{[^}]*height: (\d+px)/), root = css.match(/--minibar-h: (\d+px);/);
+      expect(own && own[1]).toBeTruthy();
+      expect(own[1]).toBe(root && root[1]);
+    });
+    it("the end spacer clears the nav, and the mini-bar when it shows", () => {
+      expect(css).toMatch(/main::after \{[^}]*height: calc\(var\(--nav-h\) \+ 5px\)/);
+      expect(css).toMatch(/body\.has-minibar main::after \{ height: calc\(var\(--nav-h\) \+ 5px \+ var\(--minibar-h\)\)/);
+    });
+    it("the update pill clears the nav, and the mini-bar when it shows", () => {
+      expect(css).toMatch(/\.update-pill \{[^}]*bottom: calc\(var\(--nav-h\) \+ 9px\)/);
+      expect(css).toMatch(/body\.has-minibar \.update-pill \{ bottom: calc\(var\(--nav-h\) \+ 13px \+ var\(--minibar-h\)\)/);
+    });
+    it("the dev-build mark clears the nav, and the mini-bar when it shows", () => {
+      expect(css).toMatch(/\.devmark \{[^}]*bottom: calc\(var\(--nav-h\) \+ 5px\)/);
+      expect(css).toMatch(/body\.has-minibar \.devmark \{ bottom: calc\(var\(--nav-h\) \+ 5px \+ var\(--minibar-h\)\)/);
+    });
+    it("no rule assumes the nav's height any more, and none adds the inset to it a second time", () => {
+      expect(css).not.toMatch(/calc\((70|76|80|124|132)px \+ var\(--safe-bottom\)\)/);
+      expect(css).not.toMatch(/- 76px -/);
+      expect(css).not.toMatch(/var\(--nav-h\)[^;]*var\(--safe-bottom\)/);
     });
   });
 });

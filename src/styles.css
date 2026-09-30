@@ -26,6 +26,13 @@
   --park: #3FA34D;     /* Hardy Ivy Park on the map: a green that is not the Hilton's */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);        /* the status bar, on phones that draw under it */
+  /* The nav's height, the inset under it included: 1px of border, 6px of
+     padding, a 58px button, 6px more and the inset. scroll.js measures the
+     real one into this once it has one; until then this is it, and the
+     layout is what it always was. What sits on the nav or clears it is
+     derived from it, and never adds the inset a second time. */
+  --nav-h: calc(71px + var(--safe-bottom));
+  --minibar-h: 48px;
 }
 * { box-sizing: border-box; }
 /* No overscroll stretch. Android 12+ stretches the whole page layer when you
@@ -99,8 +106,8 @@ main {
    padding: a scroll container's top padding shifts where sticky children
    measure from, and Safari has not always scrolled its end padding. */
 main::before { content: ""; display: block; height: var(--hdr-h, 82px); }
-main::after { content: ""; display: block; height: calc(76px + var(--safe-bottom)); }
-body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
+main::after { content: ""; display: block; height: calc(var(--nav-h) + 5px); }
+body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h)); }
 .view { padding: 0 0 12px; }
 .section-title {
   padding: 18px 14px 6px; font-size: .9375rem; color: var(--muted); font-weight: 600;
@@ -118,7 +125,7 @@ body.has-minibar main::after { height: calc(124px + var(--safe-bottom)); }
    not fit the viewport does it shrink to fit, centred, down to a floor
    below which the tab scrolls with the chips pinned. The mini-bar never
    shows on this tab. */
-#view-map { display: flex; flex-direction: column; height: calc(100dvh - var(--hdr-h, 63px) - 76px - var(--safe-bottom)); }
+#view-map { display: flex; flex-direction: column; height: calc(100dvh - var(--hdr-h, 63px) - var(--nav-h) - 5px); }
 #view-map .controls-sticky { flex: none; }
 .map-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding: 12px 14px 0; }
 .map { display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px; }
@@ -341,10 +348,10 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .empty b { color: var(--text); }
 .more { margin: 14px; }
 /* Two rows of two on one grid: the actions take the view toggle's footprint,
-   so the top of Mine reads as one control strip rather than a stack of odd
+   so the top of Plans reads as one control strip rather than a stack of odd
    shapes. Export keeps its gold fill; it is the one you came here for. */
-.mine-actions { padding: 12px 14px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.mine-actions .btn { height: 40px; padding: 0 12px; border-radius: 10px; font-size: .9375rem; font-weight: 700; }
+.plans-actions { padding: 12px 14px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.plans-actions .btn { height: 40px; padding: 0 12px; border-radius: 10px; font-size: .9375rem; font-weight: 700; }
 .btn[disabled] { opacity: .45; }
 
 /* Bottom nav -------------------------------------------------------- */
@@ -458,7 +465,7 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 
 /* Sticky next-up bar: what's next while you're browsing something else */
 .minibar {
-  position: fixed; left: 0; right: 0; bottom: calc(70px + var(--safe-bottom)); z-index: 6;
+  position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) - 1px); z-index: 6;
   height: 48px; box-sizing: border-box; width: 100%; border: 0;
   padding: 0 max(14px, calc(50% - 366px)); font: inherit; color: var(--text); text-align: left;
   background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
@@ -471,17 +478,17 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 /* Sits above the nav and the next-up bar, never over the list you're reading. */
 .update-pill {
   position: fixed; left: 50%; transform: translateX(-50%); z-index: 8;
-  bottom: calc(80px + var(--safe-bottom));
+  bottom: calc(var(--nav-h) + 9px);
   border: 0; border-radius: 999px; padding: 9px 16px; font: inherit; font-size: .875rem; font-weight: 700;
   background: var(--gold); color: var(--gold-ink); box-shadow: 0 4px 16px rgba(0,0,0,.45); cursor: pointer;
   touch-action: none;
 }
-body.has-minibar .update-pill { bottom: calc(132px + var(--safe-bottom)); }
+body.has-minibar .update-pill { bottom: calc(var(--nav-h) + 13px + var(--minibar-h)); }
 .update-pill.settling { transition: transform .2s ease-out, opacity .2s ease-out; }
 /* The dev-build mark: only on a build stamped with a channel (the next site).
    Above the nav, clear of the mini-bar, and it takes no taps. */
-.devmark { position: fixed; right: 10px; bottom: calc(76px + var(--safe-bottom)); z-index: 7; pointer-events: none; padding: 3px 9px; border-radius: 999px; background: var(--warn); color: var(--ink); font-size: .6875rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; opacity: .85; }
-body.has-minibar .devmark { bottom: calc(124px + var(--safe-bottom)); }
+.devmark { position: fixed; right: 10px; bottom: calc(var(--nav-h) + 5px); z-index: 7; pointer-events: none; padding: 3px 9px; border-radius: 999px; background: var(--warn); color: var(--ink); font-size: .6875rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; opacity: .85; }
+body.has-minibar .devmark { bottom: calc(var(--nav-h) + 5px + var(--minibar-h)); }
 .minibar.late .mb-when { color: var(--warn); }
 
 

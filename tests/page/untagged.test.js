@@ -1,7 +1,7 @@
 /* An untagged event: the tag stage could not answer it, and it carries no
    tags key (DECISIONS #46). Every read of an event's tags goes through
    tagsOf() (DECISIONS #49), so such an event is found by its text, shows in
-   Now, Browse and Mine, and is under no work, axis or guests tile. 517 of the
+   Now, Browse and Plans, and is under no work, axis or guests tile. 517 of the
    sample's 558 events are untagged. The sample's two celebrity events name
    nobody, so this copy of it makes one more, with speakers, so that there are
    guests to be under. New tests, not rows of tests/PORT-LEDGER.md. */
@@ -61,10 +61,10 @@ describe("an untagged event", () => {
     expect(document.querySelector(`#view-now .row[data-id="${ev.id}"]`)).not.toBe(null);
     state.now.hotel = "All";
   });
-  it("is in Mine when picked", () => {
+  it("is in Plans when picked", () => {
     handle.picks.set([ev.id]);
-    show("mine");
-    expect(document.querySelector(`#view-mine [data-id="${ev.id}"], #view-mine [data-hero="${ev.id}"]`)).not.toBe(null);
+    show("plans");
+    expect(document.querySelector(`#view-plans [data-id="${ev.id}"], #view-plans [data-hero="${ev.id}"]`)).not.toBe(null);
     handle.picks.set([]);
   });
 

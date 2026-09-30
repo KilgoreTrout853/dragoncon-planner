@@ -9,7 +9,8 @@ code got there - each slice's plan as it was reviewed, then what was built -
 and it is kept because the reason for a placement is written here and
 nowhere else. It is not maintained. Its line numbers are those of a file
 that no longer exists (`src/app.js`, which became `src/boot.js`), and a name
-may have moved since.
+may have moved since. One has: `src/mine.js` became `src/plans.js`, the
+view renamed with its tab, on 2026-09-30 (PR #74, DECISIONS #62).
 
 The tools it describes, `tools/split/` - the scope-aware parser,
 `handlers.js`, `where.js`, `move.js`, `imports.js`, `partition.js` - were

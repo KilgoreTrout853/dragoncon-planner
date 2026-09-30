@@ -32,7 +32,7 @@ describe("the Now tab", () => {
   describe("starring from the list", () => {
     it("badge counts 1 pick [37]", () => {
       view().querySelector(".row .star").click();
-      expect(document.getElementById("mineBadge").textContent).toBe("1");
+      expect(document.getElementById("plansBadge").textContent).toBe("1");
     });
     it("pick persisted to localStorage [38, and 219, 1246]", () => {
       expect(JSON.parse(window.localStorage.getItem("dc26.picks"))).toHaveLength(1);

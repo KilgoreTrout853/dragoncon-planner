@@ -11,7 +11,7 @@ import { dayOf, esc, fmtMins, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON, saveJSON } from "./storage.js";
 import { storageKey } from "./build.js";
 import { state } from "./state.js";
-import { CON, conEnded, DAY_LABEL, effectiveNow, isSimulated, now, setOverride } from "./time.js";
+import { CON, conEnded, conPhase, DAY_LABEL, effectiveNow, isSimulated, now, setOverride } from "./time.js";
 import { hotelVar, placeHTML } from "./venues.js";
 import { events } from "./data.js";
 import { picks, savePicks } from "./picks.js";
@@ -24,7 +24,7 @@ import { renderNow } from "./now.js";
 import { cancelQueuedBrowseRender, renderBrowse } from "./browse.js";
 import { renderExplore } from "./explore.js";
 import { renderMap } from "./map.js";
-import { renderMine } from "./mine.js";
+import { renderPlans } from "./plans.js";
 import { updateFresh } from "./loading.js";
 
 /* ==================================================================
@@ -38,8 +38,8 @@ function render() {
   document.querySelectorAll(".nav button").forEach(b => b.dataset.tab === state.tab ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
   document.getElementById("brand").hidden = state.tab !== "now";
   syncHeaderHeight();          // the brand comes and goes with the tab, and the spacers follow the header
-  ["now", "browse", "explore", "map", "mine"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
-  const badge = document.getElementById("mineBadge");
+  ["now", "browse", "explore", "map", "plans"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
+  const badge = document.getElementById("plansBadge");
   badge.hidden = picks.size === 0; badge.textContent = picks.size;
   if (!events.length) return;
   const rows = chipRowsSnapshot();
@@ -47,7 +47,7 @@ function render() {
   if (state.tab === "browse") renderBrowse();
   if (state.tab === "explore") renderExplore();
   if (state.tab === "map") renderMap();
-  if (state.tab === "mine") renderMine();
+  if (state.tab === "plans") renderPlans();
   chipRowsRestore(rows);
   renderMiniBar();
 }
@@ -143,6 +143,13 @@ function togglePick(id, anchor) {
   if (Math.abs(delta) > 1) pageScrollBy(delta);
 }
 
+/* The tab the app opens on (DECISIONS #62): Explore before the con, when
+   nothing is on yet and the schedule is there to discover, and Now from its
+   start and after its end. The phase is the clock's, so ?now= decides it.
+   boot() calls this once the time override is read and before load(), where
+   a #explore= link still wins. */
+function setOpeningTab() { state.tab = conPhase() === "before" ? "explore" : "now"; }
+
 /* What boot() registers for the tab bar, the mini-bar, the larger-text switch
    and coming back to the tab. */
 function onNavClick(e) {
@@ -183,7 +190,7 @@ function edgeTouchMove(e) {
 }
 
 export {
-  render, renderMiniBar, updateClock, ARCHIVE_NOTICE_KEY, renderNotice, setTimeOverride,
+  render, renderMiniBar, updateClock, ARCHIVE_NOTICE_KEY, renderNotice, setTimeOverride, setOpeningTab,
   onSimChipClick, togglePick, onNavClick, onMiniBarClick, onBigTextChange, onVisibleRender,
   edgeTouchStart, edgeTouchMove,
 };

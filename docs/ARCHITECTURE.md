@@ -55,7 +55,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/main.js` | The entry: imports `styles.css`, then calls `boot()` from `boot.js`. |
 | `src/boot.js` | The root of the client: `boot()`, which wires the app and starts it, and nothing else. See Boot. |
 | `src/dispatch.js`, `shell.js`, `loading.js`, `sheet.js` | The four modules above the views: the handlers that span modules; `render()` and what is on screen whatever the tab; loading, freshness and offline; the bottom sheet. |
-| `src/now.js`, `browse.js`, `explore.js`, `map.js`, `mine.js` | The five views, one per tab (`browse` is the Search tab). |
+| `src/now.js`, `browse.js`, `explore.js`, `map.js`, `plans.js` | The five views, one per tab (`browse` is the Search tab). |
 | `src/scroll.js`, `bus.js` | The scroller and the header's measurement; how a module below the shell asks for a redraw. |
 | `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data, read and written through `crews.js`; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
 | `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the six crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens will draw from, who's going and the overlay's map. No screen: those are Where things live's. A leaf. |
@@ -415,7 +415,7 @@ season  util  storage  platform  build  backend  identity  crews  state
 time  outbox  venues  data  picks  follows  ics  leave  search  ui
                                                        the nineteen leaves
 scroll  bus  sync
-now  browse  explore  map  mine                        the five views
+now  browse  explore  map  plans                       the five views
 sheet  loading  shell  dispatch
                                                        boot.js, the root
 ```
@@ -479,8 +479,10 @@ the document or `navigator` as they are imported: `platform`, `build`,
 **`scroll`** holds the scroller (`main`, not the page), the sideways chip
 rows a redraw has to put back, `cssEsc`, and the header's measurement:
 `syncHeaderHeight()`, which sets `--hdr-h`, what the sticky filters park
-under, and `fitHeaderLine()`. `loading`, the `shell` and `boot()` all need
-the measurement, so it sits below all three. It imports nothing, and looks
+under, and `fitHeaderLine()`; and the nav's, `syncNavHeight()`, which sets
+`--nav-h`, what the mini-bar, the end spacer, the update pill, the dev-build
+mark and the Map are laid out from. `loading`, the `shell` and `boot()` all
+need the measurement, so it sits below all three. It imports nothing, and looks
 up `main` as it is imported. **`bus`** is how a module below the shell - a
 view, the sheet, loading - asks for the whole page to be redrawn without
 importing the shell: `requestRender()` calls the function `boot()`
@@ -526,7 +528,8 @@ the first draw over the bus. It looks up `#updatePill` as it is imported.
 
 **`shell`** is what is on screen whatever the tab: `render()`, which redraws
 the page from `state` and is what the bus calls; the header's clock, the
-notice and the mini-bar; `setTimeOverride()`; `togglePick()`; the iOS edge
+notice and the mini-bar; `setTimeOverride()`; `setOpeningTab()`, the tab the
+app opens on; `togglePick()`; the iOS edge
 guard; and the handlers for the tab bar, the mini-bar, the simulated-time
 chip, larger text, and the redraw on coming back to the tab. It imports the
 five views and `loading`; nothing below it imports it.
@@ -564,7 +567,8 @@ with its snapshots and news (`picks`) and `follows` (`follows`); in
 
 `boot()` first registers `render()` on the bus, so that a module below the
 shell can ask for a redraw; then it applies the saved text size, inserts the
-dev-build mark, reads the time override and the invite link - which it
+dev-build mark, reads the time override, sets the opening tab by it, reads
+the invite link - which it
 takes out of the address and keeps for a crew screen (`crews`) - and
 registers every listener, timer and observer in a fixed order, which is
 `boot()`'s own, top to bottom: listeners on one element fire in the order
@@ -593,10 +597,13 @@ internals: `state`, `render`, `now`, `setTimeOverride`, `picks` and `follows`
 
 ## What the client does
 
-**Tabs:** `now`, `browse`, `explore`, `map`, `mine` are the `data-tab` ids
+**Tabs:** `now`, `browse`, `explore`, `map`, `plans` are the `data-tab` ids
 the code and `state.tab` use. The labels the user sees are Now, Search,
-Explore, Map and Mine, in that order; only `browse` differs from its label.
-Mine also carries the pick-count badge, hidden at zero. Rendering is a
+Explore, Map and Plans, in that order; only `browse` differs from its label.
+Plans also carries the pick-count badge, hidden at zero. The app opens on
+Explore before the con and on Now from its start (`shell.js`
+`setOpeningTab()`, by `conPhase()`; DECISIONS #62), unless a `#explore=`
+link names a page. Rendering is a
 single `render()` that redraws the active view from `state`.
 
 **Time.** One `now()` function. A `?now=<ISO>` query parameter sets a
@@ -616,11 +623,11 @@ whose id was merged into another event - it is in that event's `was` -
 moves to it; one whose event vanished otherwise is dropped, where it has a
 snapshot - one with none, which this copy of the schedule never showed, a
 pick pulled from a device on a newer schedule, stays unseen until the
-schedule knows it, and Mine's badge, `picks.size`, counts it meanwhile
+schedule knows it, and Plans' badge, `picks.size`, counts it meanwhile
 (DECISIONS #53); one whose
 event the source dropped stays a pick, and its snapshot remembers that it
 was told; one whose time or room moved is re-snapshotted. Each is reported
-once (DECISIONS #49). The report (`dc<yy>.pickNews`) shows on Now and Mine
+once (DECISIONS #49). The report (`dc<yy>.pickNews`) shows on Now and Plans
 until dismissed.
 
 **Now tab.** Hero card for the current pick with a leave-by line when the
@@ -632,10 +639,10 @@ change by DECISIONS #65; after the con the tab is the record of the reader's
 picks.
 
 **Mini-bar.** The shell's: the next pick and its leave-by, above the nav on
-Search, Explore and Mine. Not on Now or Map, which say the same thing
+Search, Explore and Plans. Not on Now or Map, which say the same thing
 themselves, and not once the con is over.
 
-**Mine.** Timeline view by default (con day ends 5 AM), list view as an
+**Plans.** Timeline view by default (con day ends 5 AM), list view as an
 option. Export to `.ics`, remove all. A pick on an event the source
 dropped is drawn here and nowhere else, where its time puts it, struck and
 marked "Removed from the schedule", with no gap line or walk link to or
@@ -1000,7 +1007,8 @@ to the `next` ruleset by hand after its first green run (ROADMAP, Checklist).
 - `index.html`'s ids are an interface. `sheet.js` and `loading.js` look
   elements up by id as they are imported, and `scroll.js` looks up `main`:
   a renamed id is a `null` at import and a throw in `boot()`, in every page
-  test.
+  test. The Plans tab's are `data-tab="plans"`, `#view-plans` and
+  `#plansBadge`, Mine's until PR #74 (DECISIONS #62).
 - The root `index.html` is Vite's entry template, not a page. Serving the
   repo root with a static server does not run the app; use `npm run dev`,
   or build and serve `dist/` (`npm run preview`).

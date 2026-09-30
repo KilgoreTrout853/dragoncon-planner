@@ -72,7 +72,7 @@ describe("the pull", () => {
     expect(handle.follows.get()).toEqual([{ kind: "track", key: "Gaming" }]);
     expect(read("picks")).toEqual([Y]);
     expect(read("follows")).toEqual([{ kind: "track", key: "Gaming" }]);
-    expect(document.getElementById("mineBadge").textContent).toBe("1");
+    expect(document.getElementById("plansBadge").textContent).toBe("1");
   });
   it("and nothing goes back: applying a pull records no op", () => {
     expect(fake.requests.filter(r => r.method === "POST")).toEqual([]);
@@ -323,7 +323,7 @@ describe("reconcilePicks(), with a session", () => {
     expect([...handle.picks.get()].sort()).toEqual(["unseen-1", kept.id, survivor.id].sort());
     expect(fake.rows("picks").some(r => r.event_id === "unseen-1")).toBe(false);
   });
-  it("and Mine's badge counts it meanwhile", () => {
-    expect(document.getElementById("mineBadge").textContent).toBe("3");
+  it("and Plans' badge counts it meanwhile", () => {
+    expect(document.getElementById("plansBadge").textContent).toBe("3");
   });
 });

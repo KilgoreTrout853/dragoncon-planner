@@ -27,8 +27,11 @@ function devMarkHTML() {
 }
 
 /* What the phone is telling us, for the times a screenshot is not enough:
-   how the app was opened, the viewport against the screen, and the insets
-   the system reports before any cap of ours. */
+   how the app was opened, the viewport against the screen, the insets the
+   system reports before any cap of ours, and what scroll.js measured the nav
+   and the header at - the bottom and the top of the page are laid out from
+   them (DECISIONS #62) - or "default" where it has not measured yet. */
+const measured = name => document.documentElement.style.getPropertyValue(name).trim() || "default";
 function deviceLine() {
   const probe = document.createElement("div");
   probe.style.cssText = "position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)";
@@ -43,7 +46,7 @@ function deviceLine() {
      can read it, so "which build is this" is a glance rather than a guess. */
   const built = new Date(document.lastModified);
   const stamp = isNaN(built) ? "" : ` · build ${built.toISOString().slice(0, 16).replace("T", " ")} UTC`;
-  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets}${IS_IOS ? " · iOS" : ""}${BUILD.channel ? ` · ${BUILD.channel} build${BUILD.id ? " " + BUILD.id : ""}` : ""}${stamp}`;
+  return `${standalone ? "Home-screen app" : "Web page"} · viewport ${window.innerWidth}×${window.innerHeight}, visual ${vv}, screen ${scr} · insets ${insets} · --nav-h ${measured("--nav-h")}, --hdr-h ${measured("--hdr-h")}${IS_IOS ? " · iOS" : ""}${BUILD.channel ? ` · ${BUILD.channel} build${BUILD.id ? " " + BUILD.id : ""}` : ""}${stamp}`;
 }
 
 export { BUILD, storageKey, devMarkHTML, deviceLine };

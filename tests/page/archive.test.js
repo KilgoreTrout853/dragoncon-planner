@@ -106,10 +106,10 @@ describe("the morning after the last event", () => {
       expect(document.querySelector('#view-explore [data-act="explore-past"]')).toBe(null);
       expect(el("view-explore").textContent).not.toMatch(/still to come|already happened/i);
     });
-    it("Mine has no now-line, and export is still offered [1970]", () => {
-      state.explore.page = null; state.tab = "mine"; handle.render();
-      expect(document.querySelector("#view-mine .tl-now")).toBe(null);
-      expect(document.querySelector('#view-mine [data-act="ics"]').disabled).toBe(false);
+    it("Plans has no now-line, and export is still offered [1970]", () => {
+      state.explore.page = null; state.tab = "plans"; handle.render();
+      expect(document.querySelector("#view-plans .tl-now")).toBe(null);
+      expect(document.querySelector('#view-plans [data-act="ics"]').disabled).toBe(false);
     });
   });
 

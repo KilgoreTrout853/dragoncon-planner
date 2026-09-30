@@ -7,7 +7,7 @@ import { pickNewsHTML, picks } from "./picks.js";
 import { gapHTML } from "./leave.js";
 import { rowHTML } from "./ui.js";
 
-/* ---- Mine --------------------------------------------------------- */
+/* ---- Plans -------------------------------------------------------- */
 /* Side-by-side columns for anything that overlaps in time. Events are
    grouped into clusters that genuinely collide, and each cluster is
    given only as many columns as it actually needs. */
@@ -91,7 +91,7 @@ function timelineDayHTML(dayKey, list, now) {
   </div>`;
 }
 
-function renderMineTimeline(mine, now) {
+function renderPlansTimeline(mine, now) {
   const days = new Map();
   mine.forEach(ev => {
     const k = conDayKey(ev._s);
@@ -105,10 +105,10 @@ function renderMineTimeline(mine, now) {
    A pick on an event the source dropped stays in the plan until the reader
    takes it out, marked, and is on no other tab (DECISIONS #49). The calendar
    export takes the picks still on the schedule. */
-function renderMine() {
+function renderPlans() {
   const mine = [...byId.values()].filter(e => picks.has(e.id));
   const onSchedule = mine.filter(e => !e.removed).length;
-  let html = pickNewsHTML() + `<div class="mine-actions">
+  let html = pickNewsHTML() + `<div class="plans-actions">
     <button class="btn" data-act="ics" ${onSchedule ? "" : "disabled"}>Export to calendar</button>
     <button class="btn quiet" data-act="clear" ${mine.length ? "" : "disabled"}>Remove all</button>
   </div>`;
@@ -119,7 +119,7 @@ function renderMine() {
   if (!mine.length) {
     html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Search. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
   } else if (state.mineView === "timeline") {
-    html += renderMineTimeline(mine, now());
+    html += renderPlansTimeline(mine, now());
   } else {
     html += `<ul class="list">`;
     let lastDay = "", prev = null;
@@ -133,18 +133,18 @@ function renderMine() {
     });
     html += `</ul>`;
   }
-  document.getElementById("view-mine").innerHTML = html;
+  document.getElementById("view-plans").innerHTML = html;
   fitTimelineBlocks();
 }
 
 /* Measured, so it only acts where it has to; jsdom reports no heights and
    leaves every block alone. */
 function fitTimelineBlocks() {
-  document.querySelectorAll("#view-mine .tl-block").forEach(b => {
+  document.querySelectorAll("#view-plans .tl-block").forEach(b => {
     b.classList.remove("tight", "tighter");
     if (b.scrollHeight > b.clientHeight + 1) b.classList.add("tight");
     if (b.scrollHeight > b.clientHeight + 1) b.classList.add("tighter");
   });
 }
 
-export { HOUR_PX, layoutColumns, renderMine };
+export { HOUR_PX, layoutColumns, renderPlans };

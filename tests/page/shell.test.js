@@ -79,9 +79,9 @@ describe("the shell", () => {
       return out;
     };
 
-    it("the nav reads Now · Search · Explore · Map · Mine [917]", () => {
+    it("the nav reads Now · Search · Explore · Map · Plans [917]", () => {
       const labels = buttons().map(b => [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(""));
-      expect(labels.join(" · ")).toBe("Now · Search · Explore · Map · Mine");
+      expect(labels.join(" · ")).toBe("Now · Search · Explore · Map · Plans");
     });
     it("five tabs [919]", () => {
       expect(buttons()).toHaveLength(5);
@@ -89,8 +89,8 @@ describe("the shell", () => {
     it("the word Browse is gone from what the reader sees [933]", () => {
       expect(visibleText()).not.toMatch(/Browse/i);
     });
-    it("the internal identifiers are unchanged [934]", () => {
-      expect(buttons().map(b => b.dataset.tab).join(",")).toBe("now,browse,explore,map,mine");
+    it("the internal identifiers are `now`, `browse`, `explore`, `map`, `plans` [934]", () => {
+      expect(buttons().map(b => b.dataset.tab).join(",")).toBe("now,browse,explore,map,plans");
     });
     it("the For you tab is gone [936]", () => {
       expect(document.querySelector('.nav button[data-tab="foryou"]')).toBe(null);
@@ -132,7 +132,7 @@ describe("the shell", () => {
     it("above the line [1630]", () => {
       expect(el("brand").compareDocumentPosition(line()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
-    it.each(["browse", "explore", "map", "mine"])("and not on %s [1631]", tab => {
+    it.each(["browse", "explore", "map", "plans"])("and not on %s [1631]", tab => {
       state.tab = tab; handle.render();
       expect(el("brand").hidden).toBe(true);
       state.tab = "now"; handle.render();
@@ -173,16 +173,20 @@ describe("the shell", () => {
    re-measuring call in the source; here the header is given a height, the
    height is changed, and each moment is made to happen. */
 describe("the header's height is measured, not assumed", () => {
-  let page, observed, fontsReady, height = 60;
+  /* Each observer's callback by the element it observes: boot() observes the
+     header and the nav, each with its own. */
+  let page, fontsReady, height = 60, navHeight = 0;
+  const observed = new Map();
   const had = {};
 
   beforeAll(async () => {
     had.ResizeObserver = window.ResizeObserver;
-    window.ResizeObserver = globalThis.ResizeObserver = class { constructor(callback) { observed = { callback }; } observe(target) { observed.target = target; } disconnect() {} };
+    window.ResizeObserver = globalThis.ResizeObserver = class { constructor(callback) { this.callback = callback; } observe(target) { observed.set(target, this.callback); } disconnect() {} };
     had.fonts = Object.getOwnPropertyDescriptor(document, "fonts");
     Object.defineProperty(document, "fonts", { configurable: true, value: { ready: new Promise(resolve => { fontsReady = resolve; }) } });
     page = await bootPage();
     document.querySelector(".hdr").getBoundingClientRect = () => ({ height, width: 0, top: 0, left: 0, right: 0, bottom: height });
+    document.querySelector(".nav").getBoundingClientRect = () => ({ height: navHeight, width: 0, top: 0, left: 0, right: 0, bottom: navHeight });
   }, 30000);
   afterAll(async () => {
     await page.cleanup();
@@ -194,8 +198,9 @@ describe("the header's height is measured, not assumed", () => {
     expect(rootVar("--hdr-h")).toMatch(/^\d+px$/);
   });
   it("and re-measured when the header changes size [1266]", () => {
-    expect(observed.target).toBe(document.querySelector(".hdr"));
-    height = 71; observed.callback([]);
+    const callback = observed.get(document.querySelector(".hdr"));
+    expect(callback).toBeTruthy();
+    height = 71; callback([]);
     expect(rootVar("--hdr-h")).toBe("71px");
   });
   it("the header is re-measured when the freshness line changes it [1272]", () => {
@@ -215,6 +220,31 @@ describe("the header's height is measured, not assumed", () => {
     expect(rootVar("--hdr-h")).toBe("115px");
     height = 126; page.handle.state.tab = "now"; page.handle.render();
     expect(rootVar("--hdr-h")).toBe("126px");
+  });
+
+  /* The nav's height, beside the header's (DECISIONS #62;
+     docs/screens/contract.md, section 1): what the mini-bar, the end spacer,
+     the pill, the dev-build mark and the Map are laid out from. */
+  it("a nav that measures 0 - jsdom, a page not laid out - leaves the root's default standing", () => {
+    expect(rootVar("--nav-h")).toBe("");
+  });
+  it("the nav's height is measured into --nav-h when it changes size", () => {
+    const callback = observed.get(document.querySelector(".nav"));
+    expect(callback).toBeTruthy();
+    navHeight = 105; callback([]);
+    expect(rootVar("--nav-h")).toBe("105px");
+  });
+  it("and on the moments the header is measured: load, resize and a turn of the phone", () => {
+    navHeight = 71; window.dispatchEvent(new Event("load"));
+    expect(rootVar("--nav-h")).toBe("71px");
+    navHeight = 80; window.dispatchEvent(new Event("resize"));
+    expect(rootVar("--nav-h")).toBe("80px");
+    navHeight = 92; window.dispatchEvent(new Event("orientationchange"));
+    expect(rootVar("--nav-h")).toBe("92px");
+  });
+  it("and a later 0 changes nothing", () => {
+    navHeight = 0; window.dispatchEvent(new Event("resize"));
+    expect(rootVar("--nav-h")).toBe("92px");
   });
 });
 
@@ -239,5 +269,34 @@ describe("on an iPhone", () => {
     /* and a drag that began inside main is left to main */
     touch(document.getElementById("view-now"), "touchstart", { x: 100, y: 100 });
     expect(touch(document.getElementById("view-now"), "touchmove", { x: 100, y: 160 }).defaultPrevented).toBe(false);
+  });
+});
+
+/* The tab the app opens on follows the con's phase (DECISIONS #62): Explore
+   before the con, when nothing is on, and Now once it has begun. The phase is
+   the clock's, so ?now= decides it. */
+describe("opened before the con", () => {
+  let page;
+  beforeAll(async () => { page = await bootPage({ now: "2026-09-02T12:00" }); }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("the app opens on Explore", () => {
+    expect(page.handle.state.tab).toBe("explore");
+    expect(document.getElementById("view-explore").hidden).toBe(false);
+    expect(document.getElementById("view-now").hidden).toBe(true);
+    expect(document.querySelector('.nav button[aria-current="page"]').dataset.tab).toBe("explore");
+  });
+});
+
+describe("opened as the con begins", () => {
+  let page;
+  beforeAll(async () => { page = await bootPage({ now: "2026-09-02T18:00" }); }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("the app opens on Now", () => {
+    expect(page.handle.state.tab).toBe("now");
+    expect(document.getElementById("view-now").hidden).toBe(false);
+    expect(document.getElementById("view-explore").hidden).toBe(true);
+    expect(document.querySelector('.nav button[aria-current="page"]').dataset.tab).toBe("now");
   });
 });

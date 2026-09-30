@@ -100,7 +100,7 @@ function eventSheetHTML(ev) {
   const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
   const chips = [...(ev.tracks || []), ...directWorks(ev).map(id => (worksById.get(id) || {}).name).filter(Boolean)];
   const mature = tagsOf(ev).audience === "mature";
-  /* The calendar takes only what is on the schedule: Mine's export leaves a
+  /* The calendar takes only what is on the schedule: Plans' export leaves a
      removed pick out, and so does this, the other door to the same calendar
      (DECISIONS #49). A cancelled event keeps its button, as it always had. */
   const ics = ev.removed ? "" : `<button class="btn quiet" id="sheetICS">Add this to calendar</button>`;

@@ -20,7 +20,7 @@ import { parseAst } from "vite";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const ORDER = ["season", "util", "storage", "platform", "build", "backend", "identity", "crews", "state", "time", "outbox", "venues", "data", "picks", "follows", "ics", "leave", "search", "ui",
-  "scroll", "bus", "sync", "now", "browse", "explore", "map", "mine",
+  "scroll", "bus", "sync", "now", "browse", "explore", "map", "plans",
   "sheet", "loading", "shell", "dispatch"];
 const PACKAGES = Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).dependencies || {});
 /* The year's data files, as build/vite-dc.js resolves them, and the module each belongs to. */

@@ -94,7 +94,7 @@ function topWorks() {
    (DECISIONS #42). byId holds every event, the removed among them, in the
    same start order, so a pick on one still finds it; events holds the rest,
    and every list, count and index is taken from events - search, Browse,
-   Explore, the feeds, Now and the map never see a removed event. Only Mine
+   Explore, the feeds, Now and the map never see a removed event. Only Plans
    draws one, marked, and only if it is picked (DECISIONS #49). */
 function replaceSchedule(data) {
   meta = data;

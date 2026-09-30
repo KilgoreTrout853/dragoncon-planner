@@ -42,7 +42,7 @@ describe("the Map tab", () => {
 
     it("the Map tab shows its own view [1380]", () => {
       expect(map().hidden).toBe(false);
-      expect(el("view-mine").hidden).toBe(true);
+      expect(el("view-plans").hidden).toBe(true);
       expect(el("view-browse").hidden).toBe(true);
       expect(document.querySelector('.nav button[data-tab="map"]').getAttribute("aria-current")).toBe("page");
     });

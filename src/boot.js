@@ -9,7 +9,7 @@ import {
   clearNews, picks, reconcilePicks, replaceNews, replacePicks, savePickNews, savePicks,
 } from "./picks.js";
 import { follows, replaceFollows, saveFollows } from "./follows.js";
-import { scroller, syncHeaderHeight } from "./scroll.js";
+import { scroller, syncHeaderHeight, syncNavHeight } from "./scroll.js";
 import { setRenderer } from "./bus.js";
 import { onSyncTrigger, onSyncWorkerMessage } from "./sync.js";
 import { onAppInstalled, onBeforeInstallPrompt } from "./now.js";
@@ -26,7 +26,7 @@ import {
 } from "./loading.js";
 import {
   edgeTouchMove, edgeTouchStart, onBigTextChange, onMiniBarClick, onNavClick, onSimChipClick,
-  onVisibleRender, render, setTimeOverride,
+  onVisibleRender, render, setOpeningTab, setTimeOverride,
 } from "./shell.js";
 import {
   onApplyPreview, onClearPreview, onEventPanelClick, onHashChange, onHotelPanelClick,
@@ -61,6 +61,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.documentElement.classList.toggle("bigtext", !!loadJSON(storageKey("bigtext"), false));
   document.body.insertAdjacentHTML("beforeend", devMarkHTML());
   initTimeOverride();
+  setOpeningTab();
   readJoinLink();
 
   scroller.addEventListener("scroll", onScrollSpy, {passive: true});
@@ -103,15 +104,23 @@ export function boot({events: data, reload: reloadWith} = {}) {
      observer: ResizeObserver is delivered on the rendering lifecycle, so a page
      that isn't painting - a background tab, a hidden view - never hears about
      it. The first measurement also lands before the freshness line has any
-     text, which is 17px short. */
+     text, which is 17px short. The nav is measured at the same moments, and
+     observed for itself: its height is the safe-area inset's, which can
+     settle after launch with no resize to say so. */
   requestAnimationFrame(syncHeaderHeight);
+  requestAnimationFrame(syncNavHeight);
   window.addEventListener("resize", syncHeaderHeight);
+  window.addEventListener("resize", syncNavHeight);
   window.addEventListener("orientationchange", syncHeaderHeight);
+  window.addEventListener("orientationchange", syncNavHeight);
   window.addEventListener("load", syncHeaderHeight);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncHeaderHeight).catch(() => {});
+  window.addEventListener("load", syncNavHeight);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncHeaderHeight).then(syncNavHeight).catch(() => {});
   if (window.ResizeObserver) {
     const hdr = document.querySelector(".hdr");
     if (hdr) new ResizeObserver(syncHeaderHeight).observe(hdr);
+    const nav = document.querySelector(".nav");
+    if (nav) new ResizeObserver(syncNavHeight).observe(nav);
   }
 
   window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);

@@ -367,7 +367,7 @@ execution slot (#57), which can run before any of this.
    badge, and the tests' selectors (`docs/screens/recon.md`, section 10,
    counts the files) - `--nav-h` measured and the five numbers derived
    from it, and the opening tab by phase. Behaviour otherwise unchanged.
-   A phone check on the next site (contract, section 1).
+   A phone check on the next site (contract, section 1) - built (PR #74).
 3. The quieter Now: leave-by out (#40) - the hero, the mini-bar, the map
    card; streams; `SLACK_MIN`, `leave.js` → `walk.js`,
    `currentLocation()` deleted - and the install nudge's gate (#65). A
