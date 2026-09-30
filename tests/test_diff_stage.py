@@ -367,7 +367,7 @@ def test_attribution_on_the_current_inputs_is_the_current_build():
                         version=2)
     kept = copy.deepcopy((second, result.ledger))
     seen = v2.attribution(second, result.ledger, REG, cache, VENUES, version=2, thresholds=THRESHOLDS, stamp=T1)
-    assert list(seen) == ["digest", "works", "events"]
+    assert list(seen) == ["digest", "works", "people", "events"]
     assert (seen["digest"], seen["works"], seen["events"]) == (built["digest"], built["works"], built["events"])
     assert [e["id"] for e in seen["events"]] == ["a1", "c3", "d4"] and seen["works"][0]["id"] == "castle"
     assert (second, result.ledger) == kept

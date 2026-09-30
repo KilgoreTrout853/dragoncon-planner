@@ -169,6 +169,62 @@ describe("exported", () => {
   });
 });
 
+describe("known_for", () => {
+  /** Ada approved before the field existed; Joe unreviewed; Sena reviewed, her draft line "". */
+  function reviewed() {
+    const state = fixture();
+    state.people[0].reviewed = true;
+    state.people[0].credits = [{ work: "firefly", reviewed: true }];
+    state.people.push(person("sena-bryer", "Sena Bryer", "celebrity", [], true));
+    state.sidecar.people["sena-bryer"] = { name: "Sena Bryer", known_for: "", confidence: "high", events: [] };
+    return state;
+  }
+
+  it("a field starts from the person's own line, else the draft, and a draft of \"\" is none", () => {
+    const state = reviewed();
+    expect(R.lineOf(state, "ada-quill")).toBe("an actor");
+    expect(R.lineOf(state, "sena-bryer")).toBe("");
+    expect(R.lineOf(state, "nobody")).toBe("");
+    const lined = R.approveLine(state, "ada-quill", "Captain Mal on Firefly");
+    expect(R.lineOf(lined, "ada-quill")).toBe("Captain Mal on Firefly");
+  });
+
+  it("approve writes the line to the person, one plain line, and leaves the draft in the sidecar", () => {
+    const state = R.approve(fixture(), "joe-crowe", { tier: "creator", knownFor: "  host of\nSome  Podcast " });
+    expect(state.people.find(p => p.id === "joe-crowe").known_for).toBe("host of Some Podcast");
+    expect(state.sidecar.people["joe-crowe"].known_for).toBe("a podcaster");
+  });
+
+  it("a blank line never becomes known_for: \"\"", () => {
+    const blank = R.approve(fixture(), "joe-crowe", { tier: "creator", knownFor: "   " });
+    expect("known_for" in blank.people.find(p => p.id === "joe-crowe")).toBe(false);
+    const cleared = R.approveLine(R.approveLine(reviewed(), "ada-quill", "an actor"), "ada-quill", "");
+    expect("known_for" in cleared.people.find(p => p.id === "ada-quill")).toBe(false);
+  });
+
+  it("the line pass lists the reviewed with no line, and its approve touches nothing but the line", () => {
+    const state = reviewed();
+    expect(R.order(state, { noLine: true }).map(p => p.id)).toEqual(["ada-quill", "sena-bryer"]);
+    expect(R.progress(state).noLine).toBe(2);
+    const next = R.approveLine(state, "ada-quill", "an actor");
+    expect(R.order(next, { noLine: true }).map(p => p.id)).toEqual(["sena-bryer"]);
+    const { known_for: line, ...rest } = next.people.find(p => p.id === "ada-quill");
+    expect(line).toBe("an actor");
+    expect(rest).toEqual(state.people.find(p => p.id === "ada-quill"));
+    expect(next.works).toEqual(state.works);
+    expect(next.sidecar).toEqual(state.sidecar);
+  });
+
+  it("exports the line in the registry's key order, and only the row that gained one changes", () => {
+    const state = reviewed();
+    const before = R.toJson(R.exported(state).people).split("\n");
+    const lines = R.toJson(R.exported(R.approveLine(state, "ada-quill", "Plays Melinoë")).people).split("\n");
+    expect(lines.filter((l, i) => l !== before[i])).toEqual([
+      '  {"id": "ada-quill", "name": "Ada Quill", "aliases": [], "tier": "celebrity", "known_for": "Plays Melinoë", ' +
+      '"credits": [{"work": "firefly", "reviewed": true}], "reviewed": true},']);
+  });
+});
+
 describe("toJson", () => {
   it("writes a registry one entry a line, spaced as Python writes it", () => {
     // The drafter writes these files with json.dumps, which puts a space after every comma and

@@ -15,6 +15,9 @@ them and the tagger (PR 4) imports them. `WORK_KEYS` is the keys a work may have
 they are written: `draft_people.py` and the tag stage's mint write works.json in it, the review
 page (`tools/review-people.js`) keeps a copy that a test holds equal, and a key outside it is a
 problem. A row the tag stage mints carries `minted: {year, run}` (#46), which resolution ignores.
+`PERSON_KEYS` is the same for a person (#61), `draft_people.py` writing people.json in it and the
+review page keeping a copy; a person's optional `known_for` is W42's line, one plain line of at
+most `KNOWN_FOR_MAX` characters.
 Standard library, plus `parse_stage` for its folding. Report code is `census_v2.py`; nothing here
 writes a file or prints.
 """
@@ -42,6 +45,9 @@ MAX_AXIS_VALUES = 2
 # A work's keys, in the order works.json writes them; `minted` only on a row the tag stage minted (#46).
 WORK_KEYS = ("id", "name", "aliases", "type", "family", "parent", "terms", "reviewed", "minted")
 MINTED_KEYS = ("year", "run")
+# A person's keys, in the order people.json writes them; `known_for` only on a person with a reviewed line (#61).
+PERSON_KEYS = ("id", "name", "aliases", "tier", "known_for", "credits", "reviewed")
+KNOWN_FOR_MAX = 120   # catches garbage, not typography: the review page marks a line over 90
 WORK_TYPES = ("franchise", "game")
 GAME_FAMILIES = ("rpg", "ccg", "board", "miniatures", "video")
 TIERS = ("celebrity", "creator")
@@ -335,6 +341,11 @@ def _people(people, work_ids):
         # Required, as on a work: a person has confirmed who this is and the tier.
         if not isinstance(e.get("reviewed"), bool):
             out.append(f"{here}: reviewed {e.get('reviewed')!r} is not true or false")
+        if "known_for" in e:
+            out += _known_for(here, e["known_for"])
+        for key in e:
+            if key not in PERSON_KEYS:
+                out.append(f"{here}: {key!r} is not a key a person has ({', '.join(PERSON_KEYS)})")
         credits = e.get("credits")
         if credits is None:
             continue
@@ -352,6 +363,19 @@ def _people(people, work_ids):
             if not isinstance(c["reviewed"], bool):
                 out.append(f"{here}: credit {c['work']!r} reviewed {c['reviewed']!r} is not true or false")
     return out
+
+
+def _known_for(here, line):
+    """W42's line (#61): one plain line - a string, not blank, no line break - of at most KNOWN_FOR_MAX characters."""
+    if not isinstance(line, str):
+        return [f"{here}: known_for {line!r} is not a string"]
+    if not line.strip():
+        return [f"{here}: known_for is empty; leave the key out instead"]
+    if "\n" in line or "\r" in line:
+        return [f"{here}: known_for has a line break"]
+    if len(line) > KNOWN_FOR_MAX:
+        return [f"{here}: known_for has {len(line)} characters, at most {KNOWN_FOR_MAX}"]
+    return []
 
 
 def _terms(works, tracks):

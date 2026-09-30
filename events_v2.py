@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""events.v2.json: a year's schedule with its places, people, facets and tags v2, and the works its events link
-(DECISIONS #32-#34, #38, #42-#46; docs/pipeline/contract.md, The v2 file).
+"""events.v2.json: a year's schedule with its places, people, facets and tags v2, the works its events link and the
+people they name (DECISIONS #32-#34, #38, #42-#46, #61; docs/pipeline/contract.md, The v2 file).
 
     python events_v2.py                                          # 2026, frozen: rebuild data/2026/events.v2.json
     python events_v2.py --season data/2026/season.json --check   # exit 1 if the file on disk is not a fresh build
@@ -24,7 +24,7 @@ the previous run's rows with the current code, writing nothing, for the diff's c
 
 build(), in order: the merge (merge_stage.py); the venues step (venues_stage.py); the parse step - people, facets and
 cancelled; the cached answer, by the input key (tag_key.py) under the season's prompt_version (#46); the works and axes
-merge, below; the works block; the digest. An event is the ten raw fields, then id, source_id, hotel, room, level,
+merge, below; the works block; the people block; the digest. An event is the ten raw fields, then id, source_id, hotel, room, level,
 rooms, place, track (the first of its tracks, or null), cancelled, people, facets and tags, and last removed, stale and
 was, each only where set.
 
@@ -54,9 +54,14 @@ reviewed, parent}, in that order, with values as the registry holds them: aliase
 registry holds none; parent only where it has one; no type or family. It is built from the merged events, not the
 registry, so every id in it has resolved.
 
-The file (#42): the top-level fields, then digest, works and events; compact UTF-8, a line break before each works
-row and each event, LF, and one at the end. The digest is the sha256 of the works and the events written exactly so:
-one serialisation, dumps()'s, with no stamp and no failures in it.
+The people block, the file's `people`, between `works` and `events` (#61): one row per registry person that any
+event's people names, reviewed and with a `known_for` line - W42's line, which the client joins to an event's person
+by id - and nobody else; sorted by id. A row is {id, name, known_for}, the registry's name and line. The events' own
+people entries are unchanged. [] when no one qualifies, as the works block is written when empty.
+
+The file (#42): the top-level fields, then digest, works, people and events; compact UTF-8, a line break before each
+works row, each people row and each event, LF, and one at the end. The digest is the sha256 of the works, the people
+and the events written exactly so: one serialisation, dumps()'s, with no stamp and no failures in it.
 """
 
 import argparse
@@ -82,7 +87,7 @@ TAG = "python tag_stage.py --season {season}"   # the hints name the season file
 DROPPED = ("hotel", "room", "track", "cancelled", "tags")   # a frozen event's v1 fields: each is a stage's here
 PLACE = ("hotel", "room", "level", "rooms", "place")        # the venues step's (#45)
 FLAGS = ("removed", "stale", "was")                         # the merge's, each only where set
-LISTED = ("works", "events")                                # the file's two lists: a line break before each item
+LISTED = ("works", "people", "events")                      # the file's three lists: a line break before each item
 
 
 class BuildError(Exception):
@@ -192,6 +197,18 @@ def works_block(events, works_by_id, parents):
     return rows
 
 
+def people_block(events, people_by_id):
+    """The file's `people` (#61): every registry person an event names who is reviewed and has a known_for line, one
+    row each, {id, name, known_for}, sorted by id."""
+    named = {p["id"] for e in events for p in e["people"]}
+    rows = []
+    for pid in sorted(named):
+        entry = people_by_id.get(pid)
+        if entry and entry.get("reviewed") is True and entry.get("known_for"):
+            rows.append({"id": pid, "name": entry["name"], "known_for": entry["known_for"]})
+    return rows
+
+
 def event_fields(event, people, facets):
     """An event as the file writes it, but for its tags and its flags: the ten raw fields, id, source_id, the five
     place fields, track - the first of its tracks, or null - cancelled, people and facets. tools/sample_v2.py writes
@@ -284,15 +301,20 @@ def build(rows, top, reg, cache, venues, ledger=None, *, version):
 
     tagged = [e for e in out if "tags" in e]
     block = works_block(tagged, reg.by_id("works"), parents)
+    people = people_block(out, people_by_id)
+    named = {p["id"] for e in out for p in e["people"]}
     linked = {w["id"] for e in tagged for w in e["tags"]["works"]}
     report.update(unresolved_names=dict(sorted(unresolved.items())), unknown_tracks=dict(sorted(unknown.items())),
                   places=dict(placed.report.places), rooms_unresolved=placed.report.rooms_unresolved,
                   hotels_unknown=placed.report.hotels_unknown,
                   block={"rows": len(block), "ancestors_only": sum(1 for r in block if r["id"] not in linked),
-                         "registry": len(reg.works)})
+                         "registry": len(reg.works)},
+                  people_block={"rows": len(people), "reviewed": sum(1 for i in named if i in people_by_id
+                                                                     and people_by_id[i].get("reviewed") is True),
+                                "registry": len(reg.people)})
     doc = {k: v for k, v in top.items() if k not in ("digest",) + LISTED}   # the block and the digest are the build's
-    doc["digest"] = digest(block, out)
-    doc["works"], doc["events"] = block, out
+    doc["digest"] = digest(block, people, out)
+    doc["works"], doc["people"], doc["events"] = block, people, out
     return doc, report
 
 
@@ -305,19 +327,20 @@ def _compact(obj):
 
 
 def _text(doc):
-    """doc as the file writes it: compact, with a line break before each works row and each event."""
+    """doc as the file writes it: compact, with a line break before each works row, people row and event."""
     return "{" + ",".join(_compact(k) + ":" + ("[" + ",".join("\n" + _compact(x) for x in v) + "]" if k in LISTED
                                                else _compact(v)) for k, v in doc.items()) + "}"
 
 
-def digest(works, events):
-    """The sha256 hex of the works and the events written exactly as the file writes them (#42): the one
-    serialisation, dumps()'s, of {"works": ..., "events": ...} - no stamp, no failures."""
-    return hashlib.sha256(_text({"works": works, "events": events}).encode("utf-8")).hexdigest()
+def digest(works, people, events):
+    """The sha256 hex of the works, the people and the events written exactly as the file writes them (#42, #61):
+    the one serialisation, dumps()'s, of {"works": ..., "people": ..., "events": ...} - no stamp, no failures."""
+    return hashlib.sha256(_text({"works": works, "people": people, "events": events}).encode("utf-8")).hexdigest()
 
 
 def dumps(doc):
-    """The file's bytes: compact UTF-8, a line break before each works row and each event, LF, and one at the end."""
+    """The file's bytes: compact UTF-8, a line break before each works row, people row and event, LF, and one at the
+    end."""
     return (_text(doc) + "\n").encode("utf-8")
 
 
@@ -425,8 +448,8 @@ def attribution(rows, ledger, reg, cache, venues, *, version, thresholds, stamp)
     snapshot; `stamp` is that run's fetched_at, and `version` and `thresholds` the season's. The ids stage leaves the
     ledger as it is, unless the current code regroups the previous rows: then the build uses the ledger it returns, in
     memory and never written, and never refuses as live() does - a regrouping the current code makes is a code-caused
-    change, and reads as one. A cache miss ships untagged, as in any build. -> the document: digest, works and events,
-    its other top-level fields left to the caller. BuildError where the ids stage refuses the rows."""
+    change, and reads as one. A cache miss ships untagged, as in any build. -> the document: digest, works, people and
+    events, its other top-level fields left to the caller. BuildError where the ids stage refuses the rows."""
     try:
         result = ids_stage.assign(rows, ledger, stamp, thresholds)
     except ids_stage.IdsError as exc:
@@ -554,6 +577,9 @@ def main(argv=None):
     block = report["block"]
     print(f"  works block: {block['rows']:,} of the registry's {block['registry']:,} works, "
           f"{block['ancestors_only']:,} of them ancestors only", file=sys.stderr)
+    named = report["people_block"]
+    print(f"  people block: {named['rows']:,} with a known_for line, of the {named['reviewed']:,} reviewed people "
+          f"events name; the registry holds {named['registry']:,}", file=sys.stderr)
     print("  works per event: " + ", ".join(f"{n}: {k:,}" for n, k in sorted(report["works_per_event"].items())),
           file=sys.stderr)
     print("  audience: " + ", ".join(f"{a} {n:,}" for a, n in sorted(report["audience"].items())), file=sys.stderr)

@@ -668,6 +668,7 @@ def people_section(c, f):
             "the sidecar's `rejected`, by the drafter's model or by review; never drafted is everyone else.", ""]
     out += table(["status", "people", "on qa, photo or signing events"],
                  [(s, n(overall[s]), n(qps[s])) for s in order] + [("all", n(len(ids)), n(len(on_qps)))])
+    out += known_for_block(c, ids)
     out += [f"### Drafted people: {n(len(drafted))}", "",
             "Every `people.json` entry with `reviewed: false`: celebrities first, then by events, then by id. "
             "Confidence is the drafter's, from the sidecar. Each credit shows its work's own reviewed state; "
@@ -678,6 +679,25 @@ def people_section(c, f):
     out += [f"### Not in `people.json`, on qa, photo or signing events: {n(len(outside))}", "",
             f"The top {TOP_PEOPLE} by those events; all {n(len(outside))} are in Appendix B.", ""]
     return out + tabled(head, unlisted[:TOP_PEOPLE], left=3)
+
+
+def known_for_block(c, ids):
+    """The file's `people` block (#61), against the reviewed people events name and the drafter's lines that no
+    registry person carries yet."""
+    named = [pid for pid in ids if c.people.get(pid, {}).get("reviewed") is True]
+    lined = sum(1 for p in c.reg.people if p.get("reviewed") is True and p.get("known_for"))
+    unused = Counter(c.status(pid) for pid, note in c.notes.items()
+                     if (note.get("known_for") or "").strip() and not c.people.get(pid, {}).get("known_for"))
+    out = ["### The people block", "",
+           "`events.v2.json`'s `people` (#61): every person an event names who is reviewed and carries a `known_for` "
+           "line, the line W42 prints under a name.", ""]
+    out += table(["count", "people"], [("In the block", n(len(c.doc.get("people") or []))),
+                                  ("Reviewed people events name", n(len(named))),
+                                  ("Reviewed people in `people.json` with a line", n(lined))])
+    out += [f"Drafted lines unused - the sidecar's `known_for` where `people.json` holds no line: "
+            f"{n(sum(unused.values()))}"
+            + (" (" + ", ".join(f"{s} {n(k)}" for s, k in ranked(unused)) + ")." if unused else "."), ""]
+    return out
 
 
 def tracks_section(c, f):

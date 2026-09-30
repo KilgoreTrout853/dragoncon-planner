@@ -494,7 +494,7 @@ attention, not code throughput, is the limit.
 **Cost:** No feature-level plan exists until a tentpole opens. The
 checkpoint and freeze dates are still unset.
 
-### 31. Curated registries live in git, cross-year — Decided, not built (2026-09-20) — built: `registry.py` loads and validates all three on every run; works and people reviewed (`docs/discover/works-review-2.json`, `people-review-1.json`)
+### 31. Curated registries live in git, cross-year — Decided, not built (2026-09-20) — built: `registry.py` loads and validates all three on every run; works and people reviewed (`docs/discover/works-review-2.json`, `people-review-1.json`); a person gains an optional `known_for`, W42's line, by #61, and a key outside `registry.PERSON_KEYS` is a problem, as one outside `WORK_KEYS` is on a work
 **Decided:** #27's pattern, generalised. `data/registry/works.json`,
 `people.json` and `tracks.json` are hand-curated, validated by the pipeline
 on every run, and resolved to ids; the client sees only resolved data. They
@@ -717,7 +717,7 @@ and can only be proven on 2027 data in August. Live and Tell me rest on it.
 the most new technology, opens one slot later. Coordinate still has to land
 by the spring checkpoint for the building view to stay in.
 
-### 38. The v2 file carries a works block — Standing (2026-09-22)
+### 38. The v2 file carries a works block — Standing (2026-09-22) — a `people` block beside it, between `works` and `events`, on this entry's pattern, by #61
 **Decided:** `events_v2.py` writes a top-level `works` into
 `events.v2.json`, before `events`; every top-level field of the frozen file
 but `events` is copied as it is. `docs/discover/schema-v2.md`, under The
@@ -880,7 +880,7 @@ so the design starts from them.
 33m 00s (median 22m 32s: `docs/pipeline/history-2026.md`, section 8) and
 the encoding repair (#44) stay ours.
 
-### 42. The 2027 contract — Decided, not built (2026-09-22) — `events.v2.json` built by PR 6, 2026's rebuilt in its shape: the digest is the sha256 of the works and the events written exactly as the file writes them, one serialisation, not a canonical sorted-key JSON; a line break before each works row too; a frozen year's `failures` stays a count (`contract.md`, The v2 file); the year is its season file, `pipeline.py run --season`, not `--year` (PR 8); the client's half built by #49: `DC_YEAR` at its build, a removed event shown in Mine alone - not in Now, as the Cost had it - and a pick re-pointed through `was`
+### 42. The 2027 contract — Decided, not built (2026-09-22) — `events.v2.json` built by PR 6, 2026's rebuilt in its shape: the digest is the sha256 of the works and the events written exactly as the file writes them, one serialisation, not a canonical sorted-key JSON; a line break before each works row too; a frozen year's `failures` stays a count (`contract.md`, The v2 file); the year is its season file, `pipeline.py run --season`, not `--year` (PR 8); the client's half built by #49: `DC_YEAR` at its build, a removed event shown in Mine alone - not in Now, as the Cost had it - and a pick re-pointed through `was`; the digest takes #61's `people` block too, between the works and the events
 **Decided:** A year's pipeline files live in `data/<year>/`, one writer
 each; `docs/pipeline/contract.md` has the detail.
 - `season.json` (by hand, #44), `venues.json` (by hand, #45),
@@ -1776,7 +1776,7 @@ guard. Each level is its own frame, so the levels do not stack until a
 hotel's elevator cores line up. The renders are a record, redrawn by
 hand, not held fresh by CI.
 
-### 59. Reference content: attached, or about the app — Standing (2026-09-29)
+### 59. Reference content: attached, or about the app — Standing (2026-09-29) — the Cost's gap in the data closed by #61: `known_for` is a reviewed field of `people.json`, and `events.v2.json` carries it in a `people` block; the line's screen is Where things live's
 **Decided:** Reference content is anything a person reads rather than acts
 on: hours, policies, links, bios, documents. It is in the app in two forms,
 and no other.
@@ -1835,3 +1835,44 @@ live's reshaping; something else gives first, decided at the checkpoint,
 not now. Before its screens: the Marriott's and the Hyatt's levels drawn,
 each hotel's levels put in one frame so that they stack (#58's Cost), and
 the map made one persistent SVG (#28's Cost).
+
+### 61. Known for is registry data, a people block in v2 — Standing (2026-09-30)
+**Decided:** W42's line (#59) is a field of the registry, reviewed, and
+reaches the client in a block of `events.v2.json`, on #38's pattern.
+- `people.json` gains an optional `known_for`: one plain line, a string,
+  not blank, with no line break, at most 120 characters
+  (`registry.KNOWN_FOR_MAX`). The cap catches garbage, not typography; the
+  review page counts characters and marks a line over 90, about two lines
+  on a phone.
+- `registry.PERSON_KEYS` is a person's keys in the order `people.json`
+  writes them - `id`, `name`, `aliases`, `tier`, `known_for`, `credits`,
+  `reviewed` - moved from `draft_people.py` as #46 moved `WORK_KEYS`; the
+  review page keeps a copy that a test holds equal, and a key outside it is
+  a problem.
+- The drafter's lines stay in the sidecar. A line reaches `people.json`
+  only through the review page, which shows it in an editable field, a
+  sidecar line of `""` counting as none; its "reviewed, no known_for" view
+  approves the line alone, touching no tier, credit or work, for the people
+  approved before the field existed.
+- `events_v2.py` writes a top-level `people`, between `works` and
+  `events`: one row per registry person that any event's `people` names,
+  `reviewed: true` and with a line, as `{id, name, known_for}`, sorted by
+  id; `[]` when no one qualifies. Review gates the line, not tier: a
+  creator's line ships as a celebrity's does. An event's own `people`
+  entries are unchanged, and the client joins by id.
+- The digest takes the block, between the works and the events (#42).
+- `census_v2.py` reports the block against the reviewed people events name
+  and the drafter's lines no registry person carries.
+
+**Why:** #59 made the line attached content, the registry's and reviewed,
+and its Cost found the data missing: the line only in the sidecar,
+unreviewed, and no place for it in the file the client reads (#31). A block
+keeps the line once per person: on 2026, with the 109 reviewed people's
+draft lines standing in, 13,058 bytes against 65,719 repeated on the 892
+event entries that name them. In the digest, an edited line reaches a
+phone's update notice as any other change to the file does.
+**Cost:** The client has to join by id, as it does for works. An edit to a
+line moves the digest and `changed_at` with no line in the change log, as a
+works-block edit does. 2026's file is rebuilt with an empty block now and
+rebuilt again when the lines are reviewed. The line pass is a second review
+of 113 people, four of them with no draft.

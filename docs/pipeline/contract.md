@@ -335,10 +335,11 @@ scratch runs do.
 
 ## The v2 file: `events.v2.json`
 
-#38's shape plus `digest` (#42), its keys in this order: `generated_at`,
-`changed_at`, `source`, `count`, `failures`, `digest`, `works`, `events`.
-Compact UTF-8, with a line break before each works row and each event, LF
-line ends, and one after the last (PR 6).
+#38's shape plus `digest` (#42) and `people` (#61), its keys in this order:
+`generated_at`, `changed_at`, `source`, `count`, `failures`, `digest`,
+`works`, `people`, `events`. Compact UTF-8, with a line break before each
+works row, each people row and each event, LF line ends, and one after the
+last (PR 6).
 
 | key | what it holds |
 |---|---|
@@ -347,8 +348,9 @@ line ends, and one after the last (PR 6).
 | `source` | `season.json`'s base URL. |
 | `count` | The length of `events`, the removed events among them. |
 | `failures` | `source.json`'s list. |
-| `digest` | The sha256 of the works and the events written exactly as the file writes them: `{"works":[...],"events":[...]}` in the file's one serialisation, compact, a line break before each row - so it can be recomputed from the file's own text - with no timestamps and no failures. Not a canonical sorted-key JSON, which #42's body names (its header note). The worker's input for a new-schedule notice, `generated_at` deciding only where a copy has none (#49). |
+| `digest` | The sha256 of the works, the people and the events written exactly as the file writes them: `{"works":[...],"people":[...],"events":[...]}` in the file's one serialisation, compact, a line break before each row - so it can be recomputed from the file's own text - with no timestamps and no failures. Not a canonical sorted-key JSON, which #42's body names (its header note). The worker's input for a new-schedule notice, `generated_at` deciding only where a copy has none (#49). |
 | `works` | #38's block. |
+| `people` | #61's block: `{id, name, known_for}` for every registry person an event's `people` names who is `reviewed: true` and has a `known_for` line, sorted by id; `[]` when there is none. A line edited in `people.json` moves the digest and `changed_at` with no line in the change log, as a works-block edit does. |
 
 An event's keys run in this order: the ten fields of its merged row
 (`type` to `speakers`); `id`, `source_id`, `hotel`, `room`, `level`,
@@ -383,7 +385,7 @@ The five place fields by `place`, as the venues step (below, under
 
 Inside build, in order: the merge; the venues step (#45); the parse step,
 for `people`, `facets` and `cancelled`; resolution, through the registries
-and the cache; then the works block and the digest. Build is a pure
+and the cache; then the works block, the people block and the digest. Build is a pure
 function of committed inputs, and never reads its own previous output
 (#42).
 
@@ -430,7 +432,7 @@ and returns the file and a report.
   summary's build counters (`last-run.json`, below): events untagged, work
   names unresolved - the links dropped - and tracks unknown, the tracks.
 - **The file**: as above. `dumps()` writes it, and the digest is taken of
-  that writer's text of the works and the events.
+  that writer's text of the works, the people and the events (#61).
 - **Attribution** (PR 7b), `attribution(rows, ledger, reg, cache, venues,
   *, version, thresholds, stamp)`: the previous run's rows through the
   current code, for the diff's causes (The diff, as built). `rows` and
@@ -438,7 +440,7 @@ and returns the file and a report.
   orchestrator's snapshot, `stamp` that run's `fetched_at`, and `version`
   and `thresholds` the season's. It runs the ids stage, the merge and the
   build as a live year's build does, writing nothing, a cache miss
-  untagged, and returns the digest, the works and the events. The ids
+  untagged, and returns the digest, the works, the people and the events. The ids
   stage leaves the ledger as it is under unchanged code - it is idempotent
   on its own output - but where the current code regroups the previous
   rows, the build uses the ledger the ids stage returns, in memory, and
@@ -529,7 +531,7 @@ the stamp and the sha are arguments. It reads no ledger.
 - **`changed_at`** is the run's stamp where `current`'s digest differs from
   `previous`'s, or `previous` is None, and `previous`'s `changed_at`
   otherwise. A digest can move with no line - a retag, a works-block edit,
-  or, in a live year, a source that reorders an event's tracks, since a
+  a `known_for` line edited in `people.json` (#61), or, in a live year, a source that reorders an event's tracks, since a
   group of one keeps the source's order - and `changed_at` moves with it:
   harmless. `changes_logged` is the count of lines.
 - **Fatal**, as `DiffError` naming the ids: an id `previous` holds that

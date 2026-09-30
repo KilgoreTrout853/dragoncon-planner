@@ -252,6 +252,36 @@ def test_at_most_five_credits_each_pointing_at_a_work(tmp_path):
         tmp_path, people=[{**PERSON, "credits": [{"work": "firefly", "reviewed": "yes"}]}])
 
 
+def test_known_for_is_optional_one_plain_line_of_at_most_120(tmp_path):
+    """W42's line (#61): absent, or a non-empty string with no line break, at most KNOWN_FOR_MAX characters. The cap
+    catches garbage, not typography: the review page marks a line over 90."""
+    assert registry.KNOWN_FOR_MAX == 120
+    for line in ("Actor, Firefly and Castle.", "x" * 120, "Plays Melinoë"):
+        assert registry.load(write(tmp_path, people=[{**PERSON, "known_for": line}])).people[0]["known_for"] == line
+    for line, why in [("", "known_for is empty"), ("   ", "known_for is empty"),
+                      ("Actor.\nAnd more.", "known_for has a line break"),
+                      ("Actor.\r", "known_for has a line break"),
+                      ("x" * 121, "known_for has 121 characters, at most 120"),
+                      (["Actor."], "known_for ['Actor.'] is not a string"), (None, "known_for None is not a string")]:
+        assert why in only(tmp_path, people=[{**PERSON, "known_for": line}]), line
+
+
+def test_a_person_has_only_the_keys_people_json_writes(tmp_path):
+    """As a work has only WORK_KEYS: a misspelt key is a problem, not a field the build ignores."""
+    assert "'knwon_for' is not a key a person has" in only(tmp_path, people=[{**PERSON, "knwon_for": "Actor."}])
+    assert registry.PERSON_KEYS == ("id", "name", "aliases", "tier", "known_for", "credits", "reviewed")
+
+
+def test_the_drafter_and_the_review_page_write_the_registry_s_person_keys():
+    """One PERSON_KEYS, registry.py's, as WORK_KEYS is (#46, #61): the drafter writes people.json in it, and the review
+    page keeps a copy, held equal here, so an export never drops `known_for`."""
+    import draft_people as dp
+    assert not hasattr(dp, "PERSON_KEYS")
+    with open(os.path.join(ROOT, "tools", "review-people.js"), encoding="utf-8") as f:
+        page = re.search(r"const PERSON_KEYS = (\[[^\]]*\]);", f.read())
+    assert page and json.loads(page.group(1)) == list(registry.PERSON_KEYS)
+
+
 # --- one error, every problem ----------------------------------------------
 
 def test_load_raises_once_and_lists_every_problem(tmp_path):
