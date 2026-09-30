@@ -120,8 +120,9 @@ which sizes the credit review.
 | `name` | The name shown. |
 | `aliases` | The spellings the schedule uses. Section 7 has 9 variant groups, and 45 names that carry a title, a credential, a parenthetical or a "from X" tail. |
 | `tier` | Optional: `celebrity` \| `creator`. A person outside the registry has no tier, and an entry with no tier exists to carry aliases. |
-| `reviewed` | Required, as on a work: a person has confirmed who this is and the tier. |
+| `known_for` | Optional: one plain line a con-goer would recognise the person by, W42's line under a name (#59, #61). A string, not blank, with no line break, at most 120 characters (`registry.KNOWN_FOR_MAX`), a cap that catches garbage rather than typography. It reaches the client in the file's `people` block, and only for a reviewed person (The file, below). |
 | `credits` | At most about 5, each `{work, reviewed}`: a work's id, and whether a person has checked the credit. Only a credit with `reviewed: true` reaches an event. |
+| `reviewed` | Required, as on a work: a person has confirmed who this is and the tier. |
 
 ```json
 {"id": "nathan-fillion", "name": "Nathan Fillion", "aliases": [], "tier": "celebrity",
@@ -138,21 +139,32 @@ answer of "not a guest" writes no entry at all: it writes a rejection, which is
 also what makes a second run quiet - a candidate already in `people.json`, held
 there under an alias, or already rejected is never asked about twice.
 
-**The sidecar**, `data/registry/people.draft.json`, holds what the registry has
-no field for: each person's `known_for` and the model's confidence, the event
-titles it was shown, the work ids it minted, and the rejections with `by`
-saying whether the model or a reviewer made each one. `registry.load` ignores
-it, and it is the review page's third input.
+The keys are written in `registry.PERSON_KEYS`'s order - `id`, `name`,
+`aliases`, `tier`, `known_for`, `credits`, `reviewed` - and a key outside it
+is a problem (#61), as a key outside `WORK_KEYS` is on a work.
+
+**The sidecar**, `data/registry/people.draft.json`, holds what the drafter
+wrote and the registry does not: each person's draft `known_for` and the
+model's confidence, the event titles it was shown, the work ids it minted, and
+the rejections with `by` saying whether the model or a reviewer made each one.
+`registry.load` ignores it, and it is the review page's third input. A draft
+line reaches `people.json` only through the review (#61).
 
 **The review** is `tools/review-people.html`, opened from disk with no server
 and no network. One card a person, low confidence first, filtered by tier so
 the celebrities can go first; a tier control, each credit a chip to keep or
-drop, a notes box and a web-search link. Approving turns the person, the
-credits kept and the works those credits point at `reviewed: true`; a dropped
+drop, the `known_for` line in a field, a notes box and a web-search link. The
+field starts from the person's own line, else the sidecar's draft - a draft of
+`""` is none - and counts its characters, marking a line over 90, about two
+lines on a phone. Approving turns the person, the
+credits kept and the works those credits point at `reviewed: true`, and writes
+the field's line to the person, or no `known_for` key where it is blank; a dropped
 credit is removed, and a minted work that no credit points at any more is
 dropped on export. "Not a guest" removes the person and records the rejection;
 the model's own rejections sit in a collapsed list with a control that adds
-anyone it got wrong, with no credits, for a later pass. It exports the three
+anyone it got wrong, with no credits, for a later pass. A second view,
+"reviewed, no known_for", lists the people approved before the field existed:
+its approve writes the line and touches no tier, credit or work. It exports the three
 files as downloads, formatted as the drafter writes them, so a review's diff is
 the rows it changed and nothing else.
 
@@ -394,12 +406,13 @@ Two real titles:
 ### The file
 
 `events.v2.json` is one object, its keys in this order: `generated_at`,
-`changed_at`, `source`, `count`, `failures`, `digest`, `works`, `events`
-(#38, #42). The first five are the frozen file's, copied as they are, so
-`count` is still the scraped event count and `failures` a count. `digest`
-is the sha256 of the works and the events written exactly as the file
-writes them, which is compact, with a line break before each works row and
-each event (`docs/pipeline/contract.md`, The v2 file). `events` holds the
+`changed_at`, `source`, `count`, `failures`, `digest`, `works`, `people`,
+`events` (#38, #42, #61). The first five are the frozen file's, copied as
+they are, so `count` is still the scraped event count and `failures` a
+count. `digest` is the sha256 of the works, the people and the events
+written exactly as the file writes them, which is compact, with a line
+break before each works row, each people row and each event
+(`docs/pipeline/contract.md`, The v2 file). `events` holds the
 events above, since Pipeline shape's PR 6 each with its keys in this order:
 the scraped fields - `type`, `title`, `day`, `start`, `end`,
 `duration_min`, `location`, `description`, `tracks`, `speakers` - then
@@ -428,6 +441,25 @@ An event's `tags.works` still lists only the work named; its ancestors are
 rows of the block, and the walk up `parent` is the reader's. `reviewed` is
 what lets the client keep an unreviewed work searchable and never followable
 (#34).
+
+`people` is how the client reads a person's `known_for` line (#61): one row
+per registry person that any event's `people` names, who is `reviewed: true`
+and has a line, and nobody else, sorted by id. A row is `{id, name,
+known_for}`, the registry's name and line. Tier does not gate it - a
+creator's line decides a panel as an actor's does - review does. An event's
+own `people` entries are unchanged, `{id, name, role, src}`, and the client
+joins a line to them by id. The block is written `[]` when no one qualifies,
+as `works` would be. One row, with the drafter's line for him, not yet
+reviewed:
+
+```json
+{"id": "nathan-fillion", "name": "Nathan Fillion", "known_for": "Actor known for Firefly, Castle, and The Rookie."}
+```
+
+The block rather than the line on each event's person: on 2026, with the
+109 draft lines of the reviewed people standing in, the block is 109 rows
+and 13,058 bytes, and the same lines repeated on the 892 event entries that
+name those people would be 65,719.
 
 For 2027 the pipeline writes the same shape into `data/2027/` (#33).
 

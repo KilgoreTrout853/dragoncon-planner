@@ -371,7 +371,9 @@ Waiting for a home (a W-id is `docs/scope-2027.md`'s):
   store, about this app, and the links: one to Dragon Con's official site
   and app (#59) - and W45, delete my account, on it.
 - W42: a guest's "known for" line, on an event and on a person's page
-  (#59).
+  (#59). Its data is built (#61): `known_for` in `people.json`, reviewed,
+  and the `people` block of `events.v2.json`; the screen is this
+  tentpole's.
 - The building view's screens, W38 to W41, with the map (#60).
 
 A requirement on every screen here, not a home: W43, accessibility -

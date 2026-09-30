@@ -274,9 +274,6 @@ def damaged(people, works, notes):
     return sorted(out)
 
 
-PERSON_KEYS = ("id", "name", "aliases", "tier", "credits", "reviewed")   # a work's are registry.WORK_KEYS
-
-
 def in_order(row, keys):
     """One entry with its keys in the registry's own order, so setting a field late - a parent, on
     the second pass - does not leave it after `reviewed` and rewrite the line for every reader. A
@@ -373,7 +370,7 @@ def main():
     # may drop again
     sidecar["minted"] = sorted(set(sidecar["minted"]) | {w["id"] for w in new_works})
     write_json(os.path.join(args.registry, "people.json"),
-               [in_order(p, PERSON_KEYS) for p in people])
+               [in_order(p, registry.PERSON_KEYS) for p in people])
     write_json(os.path.join(args.registry, "works.json"),
                [in_order(w, registry.WORK_KEYS) for w in works])
     write_json(args.sidecar, sidecar)

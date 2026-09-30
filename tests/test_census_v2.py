@@ -269,7 +269,7 @@ def write_fixture(tmp_path, pairs=PAIRS):
     d = tmp_path / "registry"
     d.mkdir(exist_ok=True)
     dp.write_json(str(d / "works.json"), [dp.in_order(w, registry.WORK_KEYS) for w in WORKS])
-    dp.write_json(str(d / "people.json"), [dp.in_order(p, dp.PERSON_KEYS) for p in PEOPLE])
+    dp.write_json(str(d / "people.json"), [dp.in_order(p, registry.PERSON_KEYS) for p in PEOPLE])
     dp.write_json(str(d / "tracks.json"), TRACKS)
     dp.write_json(str(tmp_path / "people.draft.json"), SIDECAR)
     dp.write_json(str(tmp_path / "venues.json"), VENUES)
@@ -351,6 +351,23 @@ def test_the_fixture_renders_every_section_and_what_it_should_list(tmp_path):
     assert "- `FaerÃ»n Nights` - 2026-09-06T09:00 - Role-Playing Games (Campaign)" in text
     assert "- U+2018 in the description of `Eurovision Karaoke`" in text
     assert text.endswith("\n") and not text.endswith("\n\n") and "\r" not in text and "\n\n\n" not in text
+
+
+def test_the_people_block_is_counted_against_the_reviewed_and_the_unused_drafts(tmp_path, monkeypatch):
+    """#61: the block's rows, the reviewed people events name, and the sidecar's lines no registry person carries."""
+    (tmp_path / "bare").mkdir()
+    text = fixture_text(tmp_path / "bare")
+    assert "| In the block | 0 |\n| Reviewed people events name | 1 |\n" in text
+    assert "Drafted lines unused - the sidecar's `known_for` where `people.json` holds no line: 1 (drafted 1)." in text
+    # Pat reviewed with a line; Fillion, unreviewed, given his draft's line: in people.json, so no longer unused
+    lines = {"pat-henry": "President of Dragon Con", "nathan-fillion": "Actor."}
+    lined = [dict(p, known_for=lines[p["id"]]) for p in PEOPLE]
+    monkeypatch.setattr(sys.modules[__name__], "PEOPLE", lined)
+    (tmp_path / "lined").mkdir()
+    text = fixture_text(tmp_path / "lined")
+    assert "| In the block | 1 |\n| Reviewed people events name | 1 |\n" \
+           "| Reviewed people in `people.json` with a line | 1 |\n" in text
+    assert "Drafted lines unused - the sidecar's `known_for` where `people.json` holds no line: 0." in text
 
 
 def test_two_hash_seeds_give_the_same_bytes(tmp_path):

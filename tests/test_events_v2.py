@@ -352,12 +352,13 @@ def test_the_v1_tags_object_is_gone_and_the_keys_are_in_the_file_s_order(tmp_pat
     assert not {"fandoms", "topics", "adult"} & set(events[0]["tags"])
 
 
-def test_every_top_level_field_is_copied_as_it_is_then_the_digest_the_works_and_the_events(tmp_path):
+def test_every_top_level_field_is_copied_as_it_is_then_the_digest_the_works_the_people_and_the_events(tmp_path):
     event = ev("A Panel")
     data = {"generated_at": AT, "changed_at": "2026-09-06T00:00:00+00:00", "source": "fixture", "count": 1,
             "failures": 0, "events": [event]}
     doc, _ = v2.build(*v2.frozen(data), reg_with(tmp_path), cache_for([(event, answer())]), VENUES, version=VERSION)
-    assert list(doc) == ["generated_at", "changed_at", "source", "count", "failures", "digest", "works", "events"]
+    assert list(doc) == ["generated_at", "changed_at", "source", "count", "failures", "digest", "works", "people",
+                         "events"]
     assert all(doc[k] == data[k] for k in data if k != "events")
 
 
@@ -366,21 +367,23 @@ def test_a_works_key_or_a_digest_in_the_input_gives_way_to_the_build_s(tmp_path)
     block = [{"id": "star-trek", "name": "Star Trek", "aliases": [], "terms": [], "reviewed": True}]
     # before events or after them, the input's works and digest are dropped; every other field keeps its place
     for data, order in [({"works": ["not the block"], "generated_at": AT, "events": [event]},
-                         ["generated_at", "digest", "works", "events"]),
+                         ["generated_at", "digest", "works", "people", "events"]),
                         ({"generated_at": AT, "events": [event], "works": ["not the block"], "failures": 0,
-                          "digest": "not ours"}, ["generated_at", "failures", "digest", "works", "events"])]:
-        assert not {"works", "digest", "events"} & set(v2.frozen(data)[1])
+                          "digest": "not ours", "people": ["not the block"]},
+                         ["generated_at", "failures", "digest", "works", "people", "events"])]:
+        assert not {"works", "people", "digest", "events"} & set(v2.frozen(data)[1])
         doc, _ = v2.build(*v2.frozen(data), reg_with(tmp_path), cache_for([(event, answer())]), VENUES,
                           version=VERSION)
-        assert list(doc) == order and doc["works"] == block and doc["digest"] != "not ours"
+        assert list(doc) == order and doc["works"] == block and doc["people"] == [] and doc["digest"] != "not ours"
 
 
 # --- the digest and the lines ------------------------------------------------------
 
-def test_the_digest_is_the_works_and_the_events_as_the_file_writes_them(tmp_path):
-    doc, _ = built_doc(tmp_path, [ENDGAME, TREK_TRACK, FILLION], **BLOCK_REG)
+def test_the_digest_is_the_works_the_people_and_the_events_as_the_file_writes_them(tmp_path):
+    doc, _ = built_doc(tmp_path, [ENDGAME, TREK_TRACK, FILLION], **LINED_REG)
+    assert doc["people"]
     text = v2.dumps(doc).decode("utf-8")
-    written = text[text.index('"works":'):-len("}\n")]     # the file's own text of the two lists
+    written = text[text.index('"works":'):-len("}\n")]     # the file's own text of the three lists
     assert doc["digest"] == hashlib.sha256(("{" + written + "}").encode("utf-8")).hexdigest()
     assert len(doc["digest"]) == 64 and set(doc["digest"]) <= set("0123456789abcdef")
 
@@ -402,19 +405,20 @@ def test_the_digest_changes_if_and_only_if_the_works_or_the_events_do(tmp_path):
     assert edited["events"] == doc["events"] and edited["works"] != doc["works"] and edited["digest"] != doc["digest"]
 
 
-def test_the_file_is_compact_with_one_works_row_and_one_event_a_line(tmp_path):
-    doc, _ = built_doc(tmp_path, [ENDGAME, TREK_TRACK, FILLION], **BLOCK_REG)
+def test_the_file_is_compact_with_one_works_row_one_people_row_and_one_event_a_line(tmp_path):
+    doc, _ = built_doc(tmp_path, [ENDGAME, TREK_TRACK, FILLION], **LINED_REG)
     body = v2.dumps(doc)
     assert body.endswith(b"]}\n") and b"\r" not in body and json.loads(body) == doc
     assert body.replace(b"\n", b"") == json.dumps(doc, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     lines = body.decode("utf-8").split("\n")
-    works, events = len(doc["works"]), len(doc["events"])
-    assert len(lines) == 1 + works + events + 1 and lines[-1] == ""
+    works, people, events = len(doc["works"]), len(doc["people"]), len(doc["events"])
+    assert people == 1 and len(lines) == 1 + works + people + events + 1 and lines[-1] == ""
     assert lines[0].startswith('{"generated_at":') and lines[0].endswith(',"works":[')
-    assert all(line.startswith('{"id":') for line in lines[1:1 + works])
-    assert lines[works].endswith('}],"events":[')
-    assert all(line.startswith('{"type":') for line in lines[1 + works:-1])
-    assert v2.dumps({"works": [], "events": []}) == b'{"works":[],"events":[]}\n'
+    assert all(line.startswith('{"id":') for line in lines[1:1 + works + people])
+    assert lines[works].endswith('}],"people":[')
+    assert lines[works + people].endswith('}],"events":[')
+    assert all(line.startswith('{"type":') for line in lines[1 + works + people:-1])
+    assert v2.dumps({"works": [], "people": [], "events": []}) == b'{"works":[],"people":[],"events":[]}\n'
 
 
 # --- the works block -----------------------------------------------------------
@@ -523,6 +527,41 @@ def test_the_build_counts_the_block_and_its_ancestors_only(tmp_path):
     assert report["block"] == {"rows": 4, "ancestors_only": 2, "registry": len(BLOCK_WORKS)}
 
 
+# --- the people block (#61) ----------------------------------------------------
+
+# Fillion reviewed with a line and named on an event; Seamus Dever named, with a line but unreviewed; Gina Torres
+# reviewed with a line and named on no event; Molly Quinn, a creator, reviewed with a line; Tawny Newsome reviewed,
+# named, with no line.
+LINES = {"nathan-fillion": "Captain Mal on Firefly; Castle", "seamus-dever": "Ryan on Castle",
+         "gina-torres": "Zoe on Firefly", "molly-quinn": "Alexis on Castle; author"}
+LINED_PEOPLE = [dict(p, known_for=LINES[p["id"]]) if p["id"] in LINES else p for p in BLOCK_PEOPLE]
+LINED_REG = {"works": BLOCK_WORKS, "people": LINED_PEOPLE, "tracks": BLOCK_TRACKS}
+DEVER = (ev("Castle Reunion", speakers=[("Seamus Dever", "Speaker")]), answer())
+QUINN = (ev("Write Your Own", speakers=[("Molly Quinn", "Speaker"), ("Nathan Fillion", "Speaker")]), answer())
+
+
+def test_the_people_block_is_every_named_reviewed_person_with_a_line_and_nobody_else(tmp_path):
+    doc, report = built_doc(tmp_path, [FILLION, NEWSOME, DEVER, QUINN, ENDGAME], **LINED_REG)
+    # sorted by id; a creator's line as well as a celebrity's; the registry's name and line, nothing more
+    assert doc["people"] == [
+        {"id": "molly-quinn", "name": "Molly Quinn", "known_for": "Alexis on Castle; author"},
+        {"id": "nathan-fillion", "name": "Nathan Fillion", "known_for": "Captain Mal on Firefly; Castle"}]
+    # the events' own entries are as they were: no line on them
+    assert all(set(p) == {"id", "name", "role", "src"} for e in doc["events"] for p in e["people"])
+    assert report["people_block"] == {"rows": 2, "reviewed": 3, "registry": len(LINED_PEOPLE)}
+
+
+def test_the_people_block_is_empty_not_absent_and_moves_the_digest(tmp_path):
+    bare, _ = built_doc(tmp_path, [FILLION, ENDGAME], **BLOCK_REG)
+    assert bare["people"] == [] and list(bare).index("people") == list(bare).index("works") + 1
+    lined, _ = built_doc(tmp_path, [FILLION, ENDGAME], **LINED_REG)
+    assert lined["events"] == bare["events"] and lined["works"] == bare["works"]
+    assert lined["people"] != [] and lined["digest"] != bare["digest"]
+    edited = [dict(p, known_for="Mal Reynolds") if p["id"] == "nathan-fillion" else p for p in LINED_PEOPLE]
+    again, _ = built_doc(tmp_path, [FILLION, ENDGAME], works=BLOCK_WORKS, people=edited, tracks=BLOCK_TRACKS)
+    assert again["people"][0]["known_for"] == "Mal Reynolds" and again["digest"] != lined["digest"]
+
+
 # --- the live front door -------------------------------------------------------
 
 SEASON_2026 = {"year": 2026, "slug": "dragoncon26", "source": "https://app.core-apps.com/dragoncon26",
@@ -575,7 +614,8 @@ def build_live(tmp_path, season):
 
 def test_a_live_year_builds_from_source_json_the_ledger_and_last_run(tmp_path):
     doc, report = build_live(tmp_path, live_folder(tmp_path))
-    assert list(doc) == ["generated_at", "changed_at", "source", "count", "failures", "digest", "works", "events"]
+    assert list(doc) == ["generated_at", "changed_at", "source", "count", "failures", "digest", "works", "people",
+                         "events"]
     assert (doc["generated_at"], doc["changed_at"], doc["source"]) == (T2, T1, SEASON_2027["source"])
     assert doc["failures"] == [{"source_id": "e5", "error": "404 Client Error"}]
     events = {e["id"]: e for e in doc["events"]}

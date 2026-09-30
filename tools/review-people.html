@@ -36,6 +36,10 @@
   details { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; }
   details .card { background:#22262e; }
   .empty { color:var(--dim); padding:40px 0; text-align:center; }
+  .line { flex:1; min-width:240px; }
+  .chars { color:var(--dim); font-size:12px; min-width:64px; }
+  .chars.over { color:#d4a44a; }
+  .chars.long { color:#e0607a; font-weight:600; }
 </style>
 </head>
 <body>
@@ -44,7 +48,13 @@
   <label>people.json <input type="file" id="fPeople" accept=".json"></label>
   <label>works.json <input type="file" id="fWorks" accept=".json"></label>
   <label>sidecar <input type="file" id="fSide" accept=".json"></label>
-  <label><input type="checkbox" id="onlyUnreviewed" checked> unreviewed only</label>
+  <label>show
+    <select id="view">
+      <option value="unreviewed">unreviewed</option>
+      <option value="noLine">reviewed, no known_for</option>
+      <option value="all">all</option>
+    </select>
+  </label>
   <label>tier
     <select id="tierFilter">
       <option value="all">all</option>
@@ -76,7 +86,10 @@ function R() {
 }
 const KEY = "dc-review-people";
 let state = null;
-let draft = {};              // per person: {tier, drop:Set, notes}, before approving
+let draft = {};              // per person: {tier, drop:Set, notes, line}, before approving
+/* The registry refuses a line over 120 (registry.KNOWN_FOR_MAX); over 90 is two lines on a phone
+   (DECISIONS #59), so the count turns amber there and the line is worth a trim. */
+const LINE_MAX = 120, LINE_SOFT = 90;
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => {
@@ -108,20 +121,56 @@ function save() {
 }
 
 function draftFor(p) {
-  if (!draft[p.id]) draft[p.id] = { tier: p.tier || "creator", drop: new Set(), notes: "" };
+  if (!draft[p.id]) draft[p.id] = { tier: p.tier || "creator", drop: new Set(), notes: "", line: R().lineOf(state, p.id) };
   return draft[p.id];
+}
+
+/* W42's line (#61): the draft, or the person's own, in a field a reviewer edits - what a con-goer
+   would recognise them by, not a resume. -> [row, the approve buttons to disable when too long]. */
+function lineRow(d) {
+  const row = el("div", "row");
+  row.appendChild(el("span", "lbl", "known for"));
+  const input = el("input", "line");
+  input.type = "text";
+  input.placeholder = "(no line drafted)";
+  input.value = d.line;
+  const chars = el("span", "chars");
+  const buttons = [];
+  const count = () => {
+    const n = d.line.trim().length;
+    chars.textContent = n + " / " + LINE_MAX;
+    chars.className = "chars" + (n > LINE_MAX ? " long" : n > LINE_SOFT ? " over" : "");
+    for (const b of buttons) b.disabled = n > LINE_MAX;
+  };
+  input.oninput = () => { d.line = input.value; count(); };
+  row.appendChild(input);
+  row.appendChild(chars);
+  return { row, buttons, count };
 }
 
 function card(p) {
   const meta = state.sidecar.people[p.id] || {};
   const d = draftFor(p);
-  const node = el("div", "card" + (p.reviewed ? " done" : ""));
+  const lineOnly = $("view").value === "noLine";
+  const node = el("div", "card" + (p.reviewed && !lineOnly ? " done" : ""));
   node.appendChild(el("div", "name", p.name + (meta.confidence === "low" ? "  · low confidence" : "")));
-  node.appendChild(el("div", "known", meta.known_for || "(no description drafted)"));
+  const line = lineRow(d);
+  node.appendChild(line.row);
   if ((meta.events || []).length) {
     const ul = el("ul", "events");
     for (const t of meta.events) ul.appendChild(el("li", null, t));
     node.appendChild(ul);
+  }
+  if (lineOnly) {
+    /* Approved before known_for existed: the line alone, and no credit or tier touched. */
+    const actions = el("div", "row");
+    const ok = el("button", "approve", "Approve the line");
+    ok.onclick = () => { state = R().approveLine(state, p.id, d.line); save(); render(); };
+    line.buttons.push(ok);
+    actions.appendChild(ok);
+    node.appendChild(actions);
+    line.count();
+    return node;
   }
 
   const tiers = el("div", "row");
@@ -162,14 +211,16 @@ function card(p) {
   const actions = el("div", "row");
   const ok = el("button", "approve", "Approve all on this card");
   ok.onclick = () => {
-    state = R().approve(state, p.id, { tier: d.tier, drop: [...d.drop], notes: d.notes });
+    state = R().approve(state, p.id, { tier: d.tier, drop: [...d.drop], notes: d.notes, knownFor: d.line });
     save(); render();
   };
+  line.buttons.push(ok);
   const no = el("button", "notguest", "Not a guest");
   no.onclick = () => { state = R().reject(state, p.id, d.notes); save(); render(); };
   actions.appendChild(ok);
   actions.appendChild(no);
   node.appendChild(actions);
+  line.count();
   return node;
 }
 
@@ -194,7 +245,8 @@ function rejectedCard(r) {
 
 function render() {
   if (!state) return;
-  const filters = { unreviewedOnly: $("onlyUnreviewed").checked, tier: $("tierFilter").value };
+  const view = $("view").value;
+  const filters = { unreviewedOnly: view === "unreviewed", noLine: view === "noLine", tier: $("tierFilter").value };
   const list = R().order(state, filters);
   const cards = $("cards");
   cards.replaceChildren();
@@ -209,7 +261,8 @@ function render() {
   for (const r of model) box.appendChild(rejectedCard(r));
 
   const p = R().progress(state);
-  $("count").textContent = p.done + " of " + p.total + " reviewed · " + p.left + " left";
+  $("count").textContent = p.done + " of " + p.total + " reviewed · " + p.left + " left · "
+    + p.noLine + " reviewed with no line";
 }
 
 function download(name, text) {
@@ -226,7 +279,7 @@ $("export").onclick = () => {
   download("works.json", R().toJson(out.works));
   download("people.draft.json", R().toJson(out.sidecar));
 };
-$("onlyUnreviewed").onchange = render;
+$("view").onchange = render;
 $("tierFilter").onchange = render;
 
 /* The picker is thin on purpose: read three files, hand them to loadFiles. */

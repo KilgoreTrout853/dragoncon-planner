@@ -466,6 +466,18 @@ Status, by person: reviewed and drafted are `people.json` entries, `reviewed` tr
 | reviewed | 113 | 100 |
 | all | 1,798 | 314 |
 
+### The people block
+
+`events.v2.json`'s `people` (#61): every person an event names who is reviewed and carries a `known_for` line, the line W42 prints under a name.
+
+| count | people |
+| --- | ---: |
+| In the block | 0 |
+| Reviewed people events name | 113 |
+| Reviewed people in `people.json` with a line | 0 |
+
+Drafted lines unused - the sidecar's `known_for` where `people.json` holds no line: 143 (reviewed 109, drafted 25, rejected by review 9).
+
 ### Drafted people: 25
 
 Every `people.json` entry with `reviewed: false`: celebrities first, then by events, then by id. Confidence is the drafter's, from the sidecar. Each credit shows its work's own reviewed state; 0 of the 46 credits are reviewed themselves.

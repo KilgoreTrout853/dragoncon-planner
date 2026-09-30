@@ -31,12 +31,25 @@
   const byId = (rows) => Object.fromEntries(rows.map((r) => [r.id, r]));
   const note = (state, id) => state.sidecar.people[id] || {};
 
+  /** W42's line as a field starts (#61): the person's own, once approved, else the drafter's, else
+   *  empty. A sidecar line of "" is no draft - it never becomes `known_for: ""`, which the registry
+   *  refuses. */
+  function lineOf(state, id) {
+    const person = byId(state.people)[id] || {};
+    return person.known_for || oneLine(note(state, id).known_for);
+  }
+
+  /** One plain line, as the drafter cleans the model's: whitespace, line breaks too, folded to single spaces. */
+  const oneLine = (text) => String(text || "").split(/\s+/).filter(Boolean).join(" ");
+
   /** Who is left to judge, and in what order: low confidence first, because that is where a
-   *  person's eye is worth most, then by name. */
+   *  person's eye is worth most, then by name. `noLine` is the pass for the people approved
+   *  before `known_for` existed: reviewed, with no line. */
   function order(state, filters) {
     const f = filters || {};
     return state.people
       .filter((p) => (f.unreviewedOnly ? p.reviewed !== true : true))
+      .filter((p) => (f.noLine ? p.reviewed === true && !p.known_for : true))
       .filter((p) => (f.tier && f.tier !== "all" ? p.tier === f.tier : true))
       .map((p) => ({ person: p, meta: note(state, p.id) }))
       .sort((a, b) => {
@@ -48,7 +61,8 @@
 
   function progress(state) {
     const done = state.people.filter((p) => p.reviewed === true).length;
-    return { done, total: state.people.length, left: state.people.length - done };
+    const noLine = state.people.filter((p) => p.reviewed === true && !p.known_for).length;
+    return { done, total: state.people.length, left: state.people.length - done, noLine };
   }
 
   /** Approve one card. The person and every credit kept turn reviewed, and so does each work a
@@ -65,11 +79,28 @@
       .filter((credit) => !drop.has(credit.work))
       .map((credit) => ({ work: credit.work, reviewed: true }));
     person.reviewed = true;
+    if (c.knownFor !== undefined) setLine(person, c.knownFor);
     const works = byId(next.works);
     for (const credit of person.credits) {
       if (works[credit.work]) works[credit.work].reviewed = true;
     }
     next.sidecar.people[id] = Object.assign({}, next.sidecar.people[id], { notes: c.notes || "" });
+    return next;
+  }
+
+  /** A blank line is no line: the key goes, rather than `known_for: ""`. */
+  function setLine(person, text) {
+    const line = oneLine(text);
+    if (line) person.known_for = line;
+    else delete person.known_for;
+  }
+
+  /** Approve the line alone, for a person reviewed before `known_for` existed (#61): the tier, the
+   *  credits, the works and the sidecar are as they were. */
+  function approveLine(state, id, text) {
+    const next = clone(state);
+    const person = byId(next.people)[id];
+    if (person) setLine(person, text);
     return next;
   }
 
@@ -117,11 +148,11 @@
   }
 
   /** The three files as the loader expects them: sorted by id, and the keys in the registry's own
-   *  order so a diff shows the review and nothing else. WORK_KEYS is registry.py's, copied - a
-   *  classic script imports nothing - and tests/test_registry.py holds the two equal; `minted`, the
-   *  tag stage's record on a row it minted, is kept as it is. */
+   *  order so a diff shows the review and nothing else. WORK_KEYS and PERSON_KEYS are registry.py's,
+   *  copied - a classic script imports nothing - and tests/test_registry.py holds each pair equal;
+   *  `minted`, the tag stage's record on a row it minted, is kept as it is. */
   const WORK_KEYS = ["id", "name", "aliases", "type", "family", "parent", "terms", "reviewed", "minted"];
-  const PERSON_KEYS = ["id", "name", "aliases", "tier", "credits", "reviewed"];
+  const PERSON_KEYS = ["id", "name", "aliases", "tier", "known_for", "credits", "reviewed"];
 
   function pick(row, keys) {
     const out = {};
@@ -176,6 +207,6 @@
   }
 
   globalThis.ReviewPeople = {
-    load, order, progress, approve, reject, unreject, pruneWorks, exported, toJson, sortKeys,
+    load, order, progress, lineOf, approve, approveLine, reject, unreject, pruneWorks, exported, toJson, sortKeys,
   };
 }());
