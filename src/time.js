@@ -5,8 +5,8 @@ import { storageKey } from "./build.js";
 
 /* ==================================================================
    Time. Every read of the current moment goes through now() - the header
-   clock, the Now tab, leave-by, the search folds, the nudge snooze, the
-   ICS stamp - so one override moves all of them together. Elapsed-time
+   clock, the Now tab, the countdowns, the search folds, the nudge snooze,
+   the ICS stamp - so one override moves all of them together. Elapsed-time
    measurements (a drag's speed, the scroll-spy hold, boot timings) are
    stopwatch reads and use performance.now() instead. One read is of the
    real clock whatever the override, wallClock(), and it is for the stamps

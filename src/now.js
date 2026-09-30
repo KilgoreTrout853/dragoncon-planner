@@ -1,9 +1,10 @@
 /* The Now tab: the hero for the pick that is on or next, what else is on and
    coming up, the record of the weekend once the con is over, and the minute
    tick that keeps the countdowns honest without rebuilding the list - and the
-   install nudge, which is the tab's first card until the app is on the home
-   screen. render(), in shell.js, and the minute tick, in dispatch.js, call
-   renderNow() and tickNow(); nothing here draws anything else. */
+   install nudge, the tab's first card once the reader has a pick and until
+   the app is on the home screen. render(), in shell.js, and the minute tick,
+   in dispatch.js, call renderNow() and tickNow(); nothing here draws
+   anything else. */
 import { esc, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON } from "./storage.js";
 import { IS_IOS, isStandalone } from "./platform.js";
@@ -100,11 +101,11 @@ function archiveHTML() {
 
 /* What the Now tab would show, without building any of it.
    The plan is today's - the con day, which runs to 5am - because "your next"
-   and "leave by" are about the next few hours, and a Saturday pick seen from
-   Thursday was being announced as starting at 2:30 PM with no day on it.
-   Anything still running past 5am counts as today too. A pick on a later
-   day gets one line naming the day, so the tab never looks empty when the
-   plan is not. */
+   and what comes after it are about the next few hours, and a Saturday pick
+   seen from Thursday was being announced as starting at 2:30 PM with no day
+   on it. Anything still running past 5am counts as today too. A pick on a
+   later day gets one line naming the day, so the tab never looks empty when
+   the plan is not. */
 function nowModel(now) {
   const horizon = new Date(now.getTime() + 60 * 60000);
   const today = conDayKey(now);

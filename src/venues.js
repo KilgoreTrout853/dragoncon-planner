@@ -1,6 +1,6 @@
 /* The venues: which hotels there are, what each is called on a chip, how they
-   group, how long the walk between them is at con pace, and the slack added
-   to every leave-by. All of it is the year's venues file,
+   group, how long the walk between them is at con pace, and the slack the
+   tight band allows. All of it is the year's venues file,
    data/<year>/venues.json (DECISIONS #27, #45, #49), which the build resolves
    as virtual:venues and inlines like any import. The helpers beside it answer
    in the same terms: a room as it should read, a walk in minutes at the
