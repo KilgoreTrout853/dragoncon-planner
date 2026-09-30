@@ -95,7 +95,9 @@ function topWorks() {
    same start order, so a pick on one still finds it; events holds the rest,
    and every list, count and index is taken from events - search, Browse,
    Explore, the feeds, Now and the map never see a removed event. Only Plans
-   draws one, marked, and only if it is picked (DECISIONS #49). */
+   draws one, marked, and only if it is picked (DECISIONS #49) - the
+   reader's pick, or a crewmate's in the crew's day, which carries no star
+   to add it. */
 function replaceSchedule(data) {
   meta = data;
   /* The block is a Map, never read in file order: Python sorted it, and

@@ -1,15 +1,18 @@
 /* The shell: what is on screen whatever the tab. render(), which redraws the
-   page from state and is what the bus calls; the header's clock, the notice
-   above the views and the mini-bar; what the page does about a new simulated
-   moment; togglePick(), which keeps the tapped row under the finger through
-   the redraw; the iOS edge guard; and the handlers boot() registers for the
-   tab bar, the mini-bar, the simulated-time chip and the larger-text switch.
-   It is above the views and loading and imports them; nothing below imports
-   it, and what is below asks for a redraw over the bus. It reads nothing as
-   it is imported. */
+   page from state and is what the bus calls - the open crew panel with it;
+   the header's clock, the notice above the views and the mini-bar; what the
+   page does about a new simulated moment; togglePick(), which keeps the
+   tapped row under the finger through the redraw; the iOS edge guard; and
+   the handlers boot() registers for the tab bar, the mini-bar, the
+   simulated-time chip and the larger-text switch. It is above the views,
+   the sheet and loading and imports them; nothing below imports it, and
+   what is below asks for a redraw over the bus. It reads nothing as it is
+   imported. */
 import { dayOf, esc, fmtMins, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON, saveJSON } from "./storage.js";
 import { storageKey } from "./build.js";
+import { hasBackend } from "./backend.js";
+import { pendingJoin } from "./crews.js";
 import { state } from "./state.js";
 import { CON, conEnded, conPhase, DAY_LABEL, effectiveNow, isSimulated, now, setOverride } from "./time.js";
 import { hotelVar, placeHTML } from "./venues.js";
@@ -20,11 +23,13 @@ import {
   chipRowsRestore, chipRowsSnapshot, cssEsc, fitHeaderLine, pageScrollBy, pageScrollTo,
   syncHeaderHeight,
 } from "./scroll.js";
+import { runSync } from "./sync.js";
 import { renderNow } from "./now.js";
 import { cancelQueuedBrowseRender, renderBrowse } from "./browse.js";
 import { renderExplore } from "./explore.js";
 import { renderMap } from "./map.js";
 import { renderPlans } from "./plans.js";
+import { refreshCrewPanel } from "./sheet.js";
 import { updateFresh } from "./loading.js";
 
 /* ==================================================================
@@ -41,6 +46,7 @@ function render() {
   ["now", "browse", "explore", "map", "plans"].forEach(t => document.getElementById(`view-${t}`).hidden = t !== state.tab);
   const badge = document.getElementById("plansBadge");
   badge.hidden = picks.size === 0; badge.textContent = picks.size;
+  refreshCrewPanel();          // the join step can be open before the schedule is
   if (!events.length) return;
   const rows = chipRowsSnapshot();
   if (state.tab === "now") renderNow();
@@ -113,6 +119,7 @@ function setTimeOverride(value) {
   setOverride(value);
   state.browse.day = null;
   state.map.day = null;
+  state.plans.day = null;
   render();
   updateFresh();                             // "refreshed 2 h ago" is relative to the clock too
 }
@@ -143,15 +150,18 @@ function togglePick(id, anchor) {
 /* The tab the app opens on (DECISIONS #62): Explore before the con, when
    nothing is on yet and the schedule is there to discover, and Now from its
    start and after its end. The phase is the clock's, so ?now= decides it.
-   boot() calls this once the time override is read and before load(), where
-   a #explore= link still wins. */
-function setOpeningTab() { state.tab = conPhase() === "before" ? "explore" : "now"; }
+   A kept invite wins, in any phase: Plans, under its join step (#63).
+   boot() calls this once the time override and the invite are read and
+   before load(), where a #explore= link still wins. */
+function setOpeningTab() { state.tab = hasBackend && pendingJoin() ? "plans" : conPhase() === "before" ? "explore" : "now"; }
 
 /* What boot() registers for the tab bar, the mini-bar, the larger-text switch
-   and coming back to the tab. */
+   and coming back to the tab. A tap on Plans starts a sync run too, for
+   what the crew has done since (docs/sync/contract.md, section 5). */
 function onNavClick(e) {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
   state.tab = b.dataset.tab; render(); pageScrollTo(0);
+  if (state.tab === "plans") runSync();
 }
 function onMiniBarClick() { state.tab = "now"; render(); pageScrollTo(0); }
 /* Its own key, so nothing that resets settings ever shrinks someone's text.

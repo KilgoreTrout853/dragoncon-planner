@@ -1216,7 +1216,7 @@ take pull requests only.
 costs nothing, since it commits nothing (#44). About a minute of CI a run.
 A token to rotate every year.
 
-### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12); renamed by PR #76
+### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12); renamed by PR #76; since PR #77 a removed event can be unstarred, never starred anew - its star hidden and disabled, on a row and in its sheet, for a reader who has not picked it - and a crewmate's removed pick is drawn, marked, in Plans' crew's day (`docs/screens/contract.md`, section 5, as built)
 **Decided:** The client is built for one year, `DC_YEAR`'s (#42), and
 reads that year's contract: its `events.v2.json`, and at build its
 `season.json` and `venues.json`. Plumbing and parity, as #39 was;
@@ -1430,7 +1430,7 @@ and pytest, and `database` one more job on every pull request. A crew
 whose creator is gone can no longer regenerate its invite or remove
 anyone.
 
-### 53. The fetch layer, the captcha, and the sync rules — Decided, not built (2026-09-25) — the fetch layer and the captcha's plain message built by PR #55: `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the sync rules built by PR #56: `src/outbox.js`, `src/sync.js` and a second migration, the watermark stopping at a row a pending op holds (`contract.md`, section 5, as built)
+### 53. The fetch layer, the captcha, and the sync rules — Decided, not built (2026-09-25) — the fetch layer and the captcha's plain message built by PR #55: `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the sync rules built by PR #56: `src/outbox.js`, `src/sync.js` and a second migration, the watermark stopping at a row a pending op holds (`contract.md`, section 5, as built); two triggers more since PR #77 - a tap on the Plans tab and a tap on its Crew segment - and a crew action's run, for which the crew panel waits for a run that began after the action (`syncAfter()`); and a redraw when what a crew screen draws has changed, asked only while Plans or the crew panel is on screen, since a redraw rebuilds Explore's filter box (`contract.md`, section 5, as built)
 **Decided:** How the client talks to the backend, what it says when a
 captcha is demanded, and how it will move picks and follows;
 `docs/sync/contract.md` has the detail, in section 1, as built, and
@@ -1644,7 +1644,7 @@ kept. The function's logic is tested in Node against fakes; the runtime
 was checked on the CLI's local stack, and a real push service and a real
 browser only by the hand test.
 
-### 56. Crews, the client's layer — Standing (2026-09-28) — its screens' home is Plans, who's going the event sheet's (#62)
+### 56. Crews, the client's layer — Standing (2026-09-28) — its screens' home is Plans, who's going the event sheet's (#62); its screens on Plans built by PR #77: the crew header, the crew panel - create, join by a tapped or a pasted link, manage - and the crew's day, with two readers more, one crewmate's picks and the reader's own row in a crew, and `no_crew` in plain words (`docs/screens/contract.md`, section 5, as built)
 **Decided:** The client's half of crews is built before any crew screen:
 one module, `src/crews.js`, with no screen; the screens are Where things
 live's. `docs/sync/contract.md`, section 8, has the detail.
@@ -1877,7 +1877,7 @@ works-block edit does. 2026's file is rebuilt with an empty block now and
 rebuilt again when the lines are reviewed. The line pass is a second review
 of 113 people, four of them with no draft.
 
-### 62. The five tabs; crew is a dimension, not a place — Decided, not built (2026-09-30) — the bar built by PR #74: the tab, its view, its module and its badge renamed `plans`, `--nav-h` measured and the bottom of the page laid out from it, and the opening tab by phase (`docs/screens/contract.md`, section 1, as built)
+### 62. The five tabs; crew is a dimension, not a place — Decided, not built (2026-09-30) — the bar built by PR #74: the tab, its view, its module and its badge renamed `plans`, `--nav-h` measured and the bottom of the page laid out from it, and the opening tab by phase (`docs/screens/contract.md`, section 1, as built); Plans' crew built by PR #77, step 4: the crew header and its management, the My day | Crew segment and the crew's day of per-person lists, and a kept `?join=` opening Plans' join step in any phase (`docs/screens/contract.md`, section 5, as built)
 **Decided:** The bar keeps five tabs, in today's positions: Now, Search,
 Explore, Map and Plans - what is on, what to find, what to discover, where,
 and my day and my crew's. Plans replaces Mine in its slot, fifth, with the
@@ -2000,7 +2000,7 @@ after seven days without a visit (#25).
 settles #40's open question - a standing line on Now, or the moment it
 earns itself - as the second.
 
-### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30)
+### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built)
 **Decided:** Every screen Where things live touches meets these, and none
 of them has a screen of its own (W43):
 - a label on every new control;

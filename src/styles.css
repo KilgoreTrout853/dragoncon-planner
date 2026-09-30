@@ -331,6 +331,8 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   background: none; border: 0; color: var(--dim); font-size: 1.625rem; line-height: 1; display: grid; place-items: center; padding: 0 8px 0 0;
 }
 .star[aria-pressed="true"] { color: var(--gold); }
+/* A removed event can be unstarred, never starred anew (DECISIONS #49). */
+.star[disabled], .ev-star[disabled] { visibility: hidden; }
 .btn {
   height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; font-size: 1rem;
   background: var(--gold); color: var(--gold-ink); border: 0;
@@ -351,6 +353,28 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .plans-actions { padding: 12px 14px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .plans-actions .btn { height: 40px; padding: 0 12px; border-radius: 10px; font-size: .9375rem; font-weight: 700; }
 .btn[disabled] { opacity: .45; }
+/* Plans' crew (DECISIONS #62): the header - the crew's name or its picker,
+   how many, and Manage - or the rung; the My day | Crew segment; the crew's
+   day, a block a person. Every new control is 44px tall (#66). */
+.crew-head { padding: 12px 14px 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.crew-title { font-size: 1.125rem; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.crew-count { color: var(--muted); font-size: .9375rem; white-space: nowrap; }
+.crew-head .btn { height: 44px; margin-left: auto; }
+select.crew-pick {
+  flex: 1 1 160px; min-width: 0; height: 44px; padding: 0 10px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text); font: inherit; font-weight: 700;
+}
+.crew-rung { display: grid; gap: 10px; }
+.crew-rung p { margin: 0; color: var(--muted); font-size: .9375rem; }
+.crew-rung-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.crew-rung .btn { margin-left: 0; }
+.plans-seg { display: flex; margin: 8px 14px 4px; }
+.plans-seg button { flex: 1; height: 44px; }
+.plans-seg button:focus-visible { outline-offset: -3px; }   /* inside: .seg clips its corners */
+.plans-days .chip { height: 44px; border-radius: 22px; }
+.crew-who { margin: 0; padding: 18px 14px 4px; font-size: 1.125rem; font-weight: 700; }
+.crew-who .count { font-size: .875rem; color: var(--dim); font-weight: 400; }
+.crew-none { margin: 0; padding: 4px 14px 8px; color: var(--muted); font-size: .9375rem; }
 
 /* Bottom nav -------------------------------------------------------- */
 .nav {
@@ -411,8 +435,30 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .keep form { display: grid; gap: 10px; }
 .keep input { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); font: inherit; }
 .keep-note:empty { display: none; }
+/* The crew panel (DECISIONS #62): create, join, and manage - the members,
+   the invite link, and the crew's actions. Taller than the screen - a crew
+   of several on a small phone, Larger text - it scrolls on its own inside
+   the sheet, and a drag that starts in it scrolls rather than dismisses.
+   A name is someone's own text and may be one long word. */
+#panel-crew {
+  max-height: calc(100vh - 7rem - var(--safe-bottom)); max-height: calc(100dvh - 7rem - var(--safe-bottom));
+  overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+}
+#panel-crew h2, .crew-member, .crew-who { overflow-wrap: anywhere; }
+.crew-form, .crew-manage, .crew-invite { display: grid; gap: 12px; }
+.crew-form p, .crew-invite p, .crew-note { margin: 0; color: var(--muted); font-size: .9375rem; line-height: 1.4; }
+.crew-form input, .crew-invite input { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); font: inherit; }
+.crew-members { list-style: none; margin: 0; padding: 0; }
+.crew-members li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 44px; border-bottom: 1px solid var(--line); }
+.crew-members .crew-member { min-width: 0; }
+.crew-you, .crew-maker { color: var(--muted); font-size: .875rem; }
+.crew-members .crew-remove { margin-left: auto; height: 44px; }
+.crew-note:empty { display: none; }
+/* Focus lands on a panel's heading as the sheet opens (#66): a ring for a
+   keyboard's arrival, none for a tap's. */
+.sheet-panel h2:focus:not(:focus-visible) { outline: none; }
 
-/* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
+/* Bottom sheet: one wrapper, four panels (settings, event, hotel, crew) */
 .sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: -4px auto 0; flex: none; }
 .sheet-panel { display: grid; gap: 16px; }
 .sheet-panel[hidden] { display: none; }

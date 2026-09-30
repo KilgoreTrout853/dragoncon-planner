@@ -1,34 +1,44 @@
-/* The bottom sheet: one wrapper and three panels - Settings, an event, a
-   hotel - with what fills each, what opens and closes it, the swipe that
-   dismisses it, and the handlers boot() registers on it and on the Settings
-   controls, the email step's among them. The clicks inside the event and
-   hotel panels are dispatch's: they reach further than the sheet.
-   closeSheet() asks for its redraw over the bus, because render() is the
-   shell's, above this module. The seven elements are looked up as the
-   module is imported, so the markup has to be there first. */
+/* The bottom sheet: one wrapper and four panels - Settings, an event, a
+   hotel, a crew - with what fills each, what opens and closes it, the
+   swipe and the Escape that dismiss it, focus into it and back (#66), and
+   the handlers boot() registers on it, on the Settings controls - the email
+   step's among them - and in the crew panel, whose state is this module's.
+   The clicks inside the event and hotel panels are dispatch's: they reach
+   further than the sheet. closeSheet() asks for its redraw over the bus,
+   because render() is the shell's, above this module. The eight elements
+   are looked up as the module is imported, so the markup has to be there
+   first. */
 import { esc, fmtShort } from "./util.js";
+import { YEAR } from "./season.js";
 import { saveJSON } from "./storage.js";
 import { deviceLine, storageKey } from "./build.js";
 import { hasBackend } from "./backend.js";
 import { codeSentTo, confirmCode, plainMessage, sendCode, signedInAs, signOut } from "./identity.js";
+import {
+  createCrew, crewMessage, deleteCrew, inviteLink, isCreator, joinCrew, leaveCrew, myCrews, myMembership, newInvite,
+  pendingJoin, readInvite, removeMember, takePendingJoin,
+} from "./crews.js";
 import { settings, state } from "./state.js";
 import { DAY_LONG, localInputValue, timeOverride } from "./time.js";
 import { hotelPhrase, hotelVar, placeHTML, WALK } from "./venues.js";
 import { byId, directWorks, events, isCeleb, tagsOf, worksById } from "./data.js";
 import { picks, replacePicks, savePicks } from "./picks.js";
 import { CELEB_BADGE, rowHTML } from "./ui.js";
-import { pageScrollTo, pageScrollTop } from "./scroll.js";
+import { cssEsc, pageScrollTo, pageScrollTop } from "./scroll.js";
 import { requestRender } from "./bus.js";
-import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut } from "./sync.js";
+import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter } from "./sync.js";
 import { MAP_HOTELS, mapDay } from "./map.js";
+import { chosenCrew, crewPeople } from "./plans.js";
 
-/* Bottom sheet: one wrapper, three panels (settings, event, hotel) */
+/* Bottom sheet: one wrapper, four panels (settings, event, hotel, crew) */
 const sheetWrap = document.getElementById("sheetWrap");
 const sheetEl = document.getElementById("sheet");
 const panelSettings = document.getElementById("panel-settings");
 const panelEvent = document.getElementById("panel-event");
 const panelHotel = document.getElementById("panel-hotel");
+const panelCrew = document.getElementById("panel-crew");
 let sheetScrollY = 0;
+let opener = null;      // what opened the sheet, as a selector that finds it again
 
 function fillSettings() {
   document.getElementById("crowd").value = settings.crowd;
@@ -105,7 +115,7 @@ function eventSheetHTML(ev) {
      (DECISIONS #49). A cancelled event keeps its button, as it always had. */
   const ics = ev.removed ? "" : `<button class="btn quiet" id="sheetICS">Add this to calendar</button>`;
   return `<div class="ev-head">
-      <h2 id="sheetTitleEvent">${esc(ev.title)}</h2>
+      <h2 id="sheetTitleEvent" tabindex="-1">${esc(ev.title)}</h2>
       <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}${ev._cd !== ev.day ? ` &middot; ${DAY_LONG[ev._cd] || ev._cd} night` : ""}</div>
       <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</div>
       ${ev.cancelled ? `<div><span class="cancelled-tag">Cancelled</span></div>` : ""}
@@ -119,7 +129,7 @@ function eventSheetHTML(ev) {
       ${chips.length || mature ? `<div class="tagline">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${mature ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
     </div>
     <div class="ev-actions">
-      <button class="ev-star" id="sheetStar" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>
+      <button class="ev-star" id="sheetStar" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}"${ev.removed && !mine ? " disabled" : ""}>${mine ? "★" : "☆"}</button>
       ${ics}
       <button class="btn" id="closeSheetEvent">Done</button>
     </div>`;
@@ -134,29 +144,410 @@ function hotelSheetHTML(hotel, day) {
     ? `<div class="ev-body"><ul class="list compact">${rows.map(ev => rowHTML(ev, {list: "map"})).join("")}</ul></div>`
     : `<div class="ev-body"><p style="color:var(--muted)">No picks here on ${esc(dayName)}.</p>
         <div class="rowbtns"><button class="btn quiet" data-act="map-search" data-hotel="${esc(hotel)}" data-day="${day}">Search ${esc(hotelPhrase(hotel))} on ${esc(dayName)}</button></div></div>`;
-  return `<div class="ev-head"><h2 id="sheetTitleHotel">${esc(hotel)}</h2><div class="ev-when">${esc(dayName)} &middot; ${count}</div></div>
+  return `<div class="ev-head"><h2 id="sheetTitleHotel" tabindex="-1">${esc(hotel)}</h2><div class="ev-when">${esc(dayName)} &middot; ${count}</div></div>
     ${body}
     <div class="ev-actions"><button class="btn" id="closeSheetHotel">Done</button></div>`;
 }
 
+/* ---- The crew panel (DECISIONS #56, #62; docs/screens/contract.md,
+   section 5) ---------------------------------------------------------- */
+/* Three steps. Create: the crew's name, the reader's name in it, and what
+   joining shares. Join: the same for a crew the invite cannot name - a kept
+   ?join=, or a pasted link - and an invite whose token is a kept crew's
+   sends nothing and opens that crew instead. Manage: the members, the
+   invite link to copy, share or, for the creator, renew; Remove beside each
+   member and Delete for the creator, Leave for everyone else; and a way to
+   a second crew. The manage view stays on one crew: if a pull takes it
+   away, it says so and offers Done alone.
+   Drawn once, the first time it opens; after that its steps are only shown
+   and hidden and its lines and lists refilled around the form, so a
+   refresh from a pull never rewrites a field or moves focus. Every action
+   is one request at a time, then a sync run that began after it, then the
+   panel and Plans drawn from what the pull kept - nothing optimistic. A
+   failure is said here, in crewMessage()'s words, and keeps and runs
+   nothing. createCrew() and joinCrew() make the user they need. */
+const CREW_HTML = `<h2 id="sheetTitleCrew" tabindex="-1"></h2>
+  <form class="crew-form" id="crewCreateForm" novalidate hidden>
+    <label>Crew name <input type="text" id="crewNewName" autocomplete="off"></label>
+    <label>Your name in the crew <input type="text" id="crewCreateMe" autocomplete="nickname"></label>
+    <p class="crew-consent">Everyone who joins this crew sees your name and your starred events, now and later.</p>
+    <button class="btn" id="crewCreate">Create</button>
+  </form>
+  <form class="crew-form" id="crewJoinForm" novalidate hidden>
+    <p id="crewInvited">You've been invited to join a crew.</p>
+    <label id="crewPasteLabel">Invite link <input type="text" id="crewPaste" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste the link here"></label>
+    <label>Your name in the crew <input type="text" id="crewJoinMe" autocomplete="nickname"></label>
+    <p class="crew-consent">Joining shares your name and your starred events with everyone in this crew, now and later.</p>
+    <button class="btn" id="crewJoinSubmit">Join</button>
+  </form>
+  <div class="crew-manage" id="crewManage" hidden>
+    <ul class="crew-members" id="crewMembers" aria-label="Members"></ul>
+    <div class="crew-invite">
+      <label id="crewLinkLabel">Invite link <input type="text" id="crewLink" readonly></label>
+      <p class="crew-wait" id="crewLinkWait" hidden>The invite link comes with the next sync.</p>
+      <div class="rowbtns">
+        <button class="btn quiet" type="button" id="crewCopy">Copy link</button>
+        <button class="btn quiet" type="button" id="crewShare">Share link</button>
+        <button class="btn quiet" type="button" id="crewRenew">New link</button>
+      </div>
+    </div>
+    <div class="rowbtns">
+      <button class="btn danger" type="button" id="crewLeave">Leave crew</button>
+      <button class="btn danger" type="button" id="crewDelete">Delete crew</button>
+    </div>
+    <div class="rowbtns">
+      <button class="btn quiet" type="button" id="crewMoreCreate">Start another crew</button>
+      <button class="btn quiet" type="button" id="crewMoreJoin">Join with a link</button>
+    </div>
+  </div>
+  <p class="crew-note" id="crewNote" role="status"></p>
+  <div class="rowbtns"><button class="btn" type="button" id="closeSheetCrew">Done</button></div>`;
+const LANDED = "Done - it will show here once this phone reaches the server.";
+const RENEWED = "New link made - the old one no longer works.";
+
+let crewStep = null;      // create, join, manage, or left - a Leave or Delete whose pull has not yet come
+let crewId = null;        // the crew the manage view is on
+let crewTitle = "";       // its name as last drawn, kept once a pull takes it away
+let crewSeen = false;     // whether a pull has shown that crew since the step opened
+let crewInvite = "";      // the kept ?join= the join step uses, when it is this year's invite
+let crewCatchUp = null;   // {done(), note}: the words once a pull shows what an action did
+let crewNote = "";
+let crewBusy = false;
+let crewOpened = 0;       // counts the panel's openings and closings: an action landing after one leaves the panel alone
+const deadTokens = new Map();   // by crew, the token a New link replaced, until a pull brings the new one
+const drawnMembers = new WeakMap();
+
+const field = id => document.getElementById(id);
+const keptCrew = () => (crewId && myCrews().find(c => c.id === crewId)) || null;
+const keptWithToken = token => myCrews().find(c => c.invite_token === token) || null;
+const shareText = crew => `Join "${crew.name}" on the Dragon Con planner: ${inviteLink(crew)}`;
+function canShare(crew) {
+  return typeof navigator.share === "function" && (typeof navigator.canShare !== "function" || navigator.canShare({text: shareText(crew)}));
+}
+
+/* A step, from its start: the forms emptied and the reader's name in the
+   oldest crew that has them offered for the new one. A kept invite is read
+   as the join step opens - another year's, or no invite at all, is said at
+   once, with the field to paste into - and one whose token is a kept
+   crew's opens that crew's manage view. */
+function openCrew(step) {
+  if (!panelCrew.firstElementChild) panelCrew.innerHTML = CREW_HTML;
+  crewOpened++;
+  crewStep = step;
+  crewId = step === "manage" ? (chosenCrew() || {}).id || null : null;
+  crewSeen = false;
+  crewInvite = "";
+  crewCatchUp = null;
+  crewNote = "";
+  if (step === "create" || step === "join") {
+    const me = myCrews().map(myMembership).find(Boolean);
+    for (const id of ["crewNewName", "crewPaste"]) field(id).value = "";
+    for (const id of ["crewCreateMe", "crewJoinMe"]) field(id).value = me ? me.display_name : "";
+  }
+  if (step === "join") {
+    const kept = pendingJoin(), found = kept ? readInvite(kept) : null;
+    if (kept && !found) crewNote = crewMessage({code: "bad_invite"});
+    else if (found && found.year !== YEAR) crewNote = crewMessage({code: "other_year"});
+    else if (found && keptWithToken(found.token)) { alreadyIn(keptWithToken(found.token)); return; }
+    else if (found) crewInvite = kept;
+  }
+  fillCrew();
+}
+/* A link for a crew the reader is in: no request and no form - the kept
+   invite taken, that crew chosen, and its manage view. A list gone stale
+   shows it until the next pull takes the crew away. */
+function alreadyIn(crew) {
+  takePendingJoin();
+  state.plans.crew = crew.id;
+  crewStep = "manage";
+  crewId = crew.id;
+  crewSeen = false;
+  crewNote = `You're already in ${crew.name}.`;
+  fillCrew();
+}
+
+/* The panel from the module's state and the kept crews. A Leave or Delete
+   closes to Plans once a pull shows the crew gone: at once after its own
+   run, or - its pull having failed - on its words until a later one. */
+function fillCrew() {
+  if (!panelCrew.firstElementChild) return;
+  const crew = crewStep === "manage" ? keptCrew() : null;
+  if (crewCatchUp && crewCatchUp.done()) { crewNote = crewCatchUp.note; crewCatchUp = null; }
+  if (crew) {
+    crewTitle = crew.name;
+    crewSeen = true;
+  } else if (crewStep === "manage" && crewSeen) {
+    crewNote = crewMessage({code: "no_crew"});
+  }
+  if (crewStep === "left" && !crewBusy && !keptCrew()) queueMicrotask(closeLeft);
+  field("sheetTitleCrew").textContent = {create: "Start a crew", join: "Join a crew"}[crewStep] || crewTitle;
+  field("crewCreateForm").hidden = crewStep !== "create";
+  field("crewJoinForm").hidden = crewStep !== "join";
+  field("crewInvited").hidden = !crewInvite;
+  field("crewPasteLabel").hidden = !!crewInvite;
+  field("crewManage").hidden = !crew;
+  if (crew) fillManage(crew);
+  for (const b of panelCrew.querySelectorAll("button")) if (b.id !== "closeSheetCrew") b.disabled = crewBusy;
+  field("crewNote").textContent = crewNote;
+}
+function closeLeft() {
+  if (!sheetWrap.hidden && !panelCrew.hidden && crewStep === "left" && !crewBusy && !keptCrew()) closeSheet();
+}
+/* A crew's link is withheld while the token kept is one a New link
+   replaced - across a close and a reopen - and shown once a pull brings the
+   new one. */
+function fillManage(crew) {
+  const creator = isCreator(crew), link = inviteLink(crew);
+  if (deadTokens.has(crew.id) && deadTokens.get(crew.id) !== crew.invite_token) deadTokens.delete(crew.id);
+  const waiting = !link || deadTokens.has(crew.id);
+  fillMembers(crew, creator);
+  /* The link's field is read-only - nothing the reader typed - and must
+     never show a link that no longer works: it takes a new one in place,
+     focus left where it is and a whole selection kept. */
+  const linkField = field("crewLink");
+  if (!waiting && linkField.value !== link) {
+    const whole = document.activeElement === linkField && linkField.selectionStart === 0 && linkField.selectionEnd === linkField.value.length;
+    linkField.value = link;
+    if (whole) linkField.select();
+  }
+  field("crewLinkLabel").hidden = waiting;
+  field("crewLinkWait").hidden = !waiting;
+  field("crewCopy").hidden = waiting;
+  field("crewShare").hidden = waiting || !canShare(crew);
+  field("crewRenew").hidden = !creator;
+  field("crewDelete").hidden = !creator;
+  field("crewLeave").hidden = creator;
+}
+/* The members, the reader first. A departed member's row goes first; then
+   each row is redrawn only when what it says changed and moved only when
+   the order did, so a pull that brings a newcomer, or takes someone listed
+   above, leaves focus on the Remove it was on. */
+function fillMembers(crew, creator) {
+  const list = field("crewMembers"), me = myMembership(crew), people = crewPeople(crew), ids = new Set(people.map(m => m.user_id));
+  for (const li of [...list.children]) if (!ids.has(li.dataset.user)) li.remove();
+  const had = new Map([...list.children].map(li => [li.dataset.user, li]));
+  people.forEach((m, i) => {
+    const you = !!me && m.user_id === me.user_id;
+    const html = `<span class="crew-member">${esc(m.display_name)}</span>${you ? ` <span class="crew-you">(you)</span>` : ""}${crew.creator === m.user_id ? ` <span class="crew-maker">made the crew</span>` : ""}${creator && !you
+      ? ` <button class="btn quiet crew-remove" type="button" data-user="${esc(m.user_id)}" aria-label="Remove ${esc(m.display_name)}">Remove</button>` : ""}`;
+    let li = had.get(m.user_id);
+    if (!li || drawnMembers.get(li) !== html) {
+      const fresh = document.createElement("li");
+      fresh.dataset.user = m.user_id;
+      fresh.innerHTML = html;
+      drawnMembers.set(fresh, html);
+      if (li) li.replaceWith(fresh);
+      li = fresh;
+    }
+    if (list.children[i] !== li) list.insertBefore(li, list.children[i] || null);
+  });
+}
+/* shell.js render()'s: a pull's redraw reaches the open panel too. */
+function refreshCrewPanel() { if (!sheetWrap.hidden && !panelCrew.hidden) fillCrew(); }
+
+/* One action: send() is its request; done(answer, here) applies what it
+   changed - `here` false once the panel has been closed or opened again
+   since the tap, when only Plans' own state may change, never the panel -
+   and may say {landed}, the words for an action the server took whose run
+   then failed. Focus stays in the panel: on the control that sent the
+   action while it can still take it, or on the heading once the step has
+   moved on (#66). A Leave or Delete closes the panel once a pull shows the
+   crew gone (fillCrew()), straight after it or later. */
+async function crewAct(send, done) {
+  if (crewBusy) return;
+  const opened = crewOpened, from = document.activeElement;
+  crewBusy = true;
+  crewNote = "";
+  crewCatchUp = null;
+  fillCrew();
+  let answer;
+  try { answer = await send(); }
+  catch (e) {
+    crewBusy = false;
+    if (opened === crewOpened) crewNote = crewMessage(e);
+    fillCrew();
+    if (opened === crewOpened) focusBack(from);
+    return;
+  }
+  const next = done(answer, opened === crewOpened) || {};
+  const run = await syncAfter();
+  crewBusy = false;
+  const here = opened === crewOpened;
+  if (here && run.error) crewNote = next.landed || LANDED;
+  requestRender();
+  fillCrew();
+  if (here) focusBack(from);
+}
+function focusBack(from) {
+  if (sheetWrap.hidden || panelCrew.hidden) return;
+  if (from && from.isConnected && panelCrew.contains(from) && !from.disabled && !from.closest("[hidden]")) {
+    if (document.activeElement !== from) from.focus({preventScroll: true});
+  } else focusTitle("sheetTitleCrew");
+}
+/* A crew made or joined: chosen, and its manage view once a pull has it. */
+function madeOrJoined(crew, note, landed, here) {
+  state.plans.crew = crew.id;
+  if (!here) return {};
+  crewStep = "manage";
+  crewId = crew.id;
+  crewTitle = crew.name;
+  crewSeen = false;
+  crewInvite = "";
+  crewNote = note;
+  crewCatchUp = {done: () => !!keptCrew(), note};
+  return {landed};
+}
+/* A crew left or deleted: Plans shows the next crew, or the rung. */
+function leftCrew(id, here) {
+  if (state.plans.crew === id) state.plans.crew = null;
+  if (here) crewStep = "left";
+  return {};
+}
+
+/* Copy and Share make no request: each is called in the tap itself, since a
+   browser allows them only then, and falls back to the link selected in
+   its field. A share the reader cancelled says nothing. */
+function linkByHand(words) {
+  field("crewLink").focus();
+  field("crewLink").select();
+  crewNote = words;
+  fillCrew();
+}
+function copyLink(crew) {
+  crewNote = "";
+  fillCrew();
+  const clip = navigator.clipboard, words = "Couldn't copy - select the link above and copy it.";
+  if (!clip || typeof clip.writeText !== "function") { linkByHand(words); return; }
+  clip.writeText(inviteLink(crew)).then(() => { crewNote = "Link copied - send it to the people you want in this crew."; fillCrew(); }, () => linkByHand(words));
+}
+function shareLink(crew) {
+  crewNote = "";
+  fillCrew();
+  let shared;
+  try { shared = navigator.share({text: shareText(crew)}); } catch (e) { shared = Promise.reject(e); }
+  Promise.resolve(shared).catch(e => {
+    if (e && (e.name === "AbortError" || e.name === "InvalidStateError")) return;
+    linkByHand("Couldn't open sharing - the link is above; copy it from there.");
+  });
+}
+
+/* What boot() registers on the crew panel: its two forms, and its clicks. */
+function onCrewSubmit(e) {
+  e.preventDefault();
+  if (e.target.id === "crewCreateForm") {
+    const name = field("crewNewName").value, me = field("crewCreateMe").value;
+    crewAct(() => createCrew(name, me), (crew, here) => madeOrJoined(crew, `${crew.name} is made. Share the link to bring people in.`,
+      `${crew.name} is made - it will show here once this phone reaches the server.`, here));
+  } else if (e.target.id === "crewJoinForm") {
+    const invite = crewInvite || field("crewPaste").value, me = field("crewJoinMe").value;
+    const found = readInvite(invite), mine = !crewBusy && found && found.year === YEAR ? keptWithToken(found.token) : null;
+    if (mine) { alreadyIn(mine); requestRender(); return; }
+    crewAct(() => joinCrew(invite, me), (crew, here) => {
+      takePendingJoin();
+      return madeOrJoined(crew, `You're in ${crew.name}.`, `You're in ${crew.name} - it will show here once this phone reaches the server.`, here);
+    });
+  }
+}
+function onCrewClick(e) {
+  const t = e.target;
+  if (t.closest("#closeSheetCrew")) { closeSheet(); return; }
+  if (crewBusy) return;
+  if (t.closest("#crewMoreCreate, #crewMoreJoin")) {
+    openCrew(t.closest("#crewMoreCreate") ? "create" : "join");
+    focusTitle("sheetTitleCrew");
+    return;
+  }
+  const crew = crewStep === "manage" ? keptCrew() : null;
+  if (!crew) return;
+  if (t.closest("#crewCopy")) copyLink(crew);
+  else if (t.closest("#crewShare")) shareLink(crew);
+  else if (t.closest("#crewRenew")) {
+    const dead = crew.invite_token;
+    crewAct(() => newInvite(crew.id), (token, here) => {
+      deadTokens.set(crew.id, dead);
+      if (!here) return {};
+      crewNote = RENEWED;
+      crewCatchUp = {done: () => { const c = keptCrew(); return !!c && c.invite_token !== dead; }, note: RENEWED};
+      return {landed: "New link made - it will show here once this phone reaches the server."};
+    });
+  } else if (t.closest(".crew-remove")) {
+    const who = (crew.members || []).find(m => m.user_id === t.closest(".crew-remove").dataset.user);
+    if (!who || !confirm(`Remove ${who.display_name} from ${crew.name}?`)) return;
+    crewAct(() => removeMember(crew.id, who.user_id), (answer, here) => {
+      if (!here) return {};
+      crewNote = `${who.display_name} is out. They can still join with the current link until you make a new one.`;
+      crewCatchUp = {done: () => { const c = keptCrew(); return !!c && !(c.members || []).some(m => m.user_id === who.user_id); }, note: crewNote};
+      return {};
+    });
+  } else if (t.closest("#crewLeave")) {
+    crewAct(() => leaveCrew(crew.id), (answer, here) => leftCrew(crew.id, here));
+  } else if (t.closest("#crewDelete")) {
+    if (!confirm(`Delete ${crew.name}? Everyone in it loses the crew, and the link stops working.`)) return;
+    crewAct(() => deleteCrew(crew.id), (answer, here) => leftCrew(crew.id, here));
+  }
+}
+/* boot()'s, once the invite is read: a kept ?join= opens Plans' join step
+   on arrival, in any phase (#62, #63), and sends nothing. The schedule is
+   not needed for it, so it does not wait for the load. */
+function openKeptJoin() { if (hasBackend && pendingJoin()) openSheet("crew", "join"); }
+
+/* What opened the sheet, as a selector that finds it again once the redraw
+   that closing it asks for has replaced it (#66): its id, or the row, the
+   timeline block or the map's hotel it is part of; null for anything else.
+   A browser that does not focus a tapped button leaves the body, and
+   nothing is put back. */
+function openerOf(el) {
+  if (!el || !el.closest || el === document.body) return null;
+  if (el.id) return `#${cssEsc(el.id)}`;
+  const row = el.closest(".row[data-id]");
+  if (row) return `.row[data-id="${cssEsc(row.dataset.id)}"][data-list="${cssEsc(row.dataset.list || "")}"] ${el.closest(".star") ? ".star" : ".row-main"}`;
+  const block = el.closest("[data-hero], .map-hotel[data-hotel]");
+  if (block) return block.dataset.hero ? `[data-hero="${cssEsc(block.dataset.hero)}"]` : `.map-hotel[data-hotel="${cssEsc(block.dataset.hotel)}"]`;
+  return null;
+}
+const TITLES = {event: "sheetTitleEvent", hotel: "sheetTitleHotel", crew: "sheetTitleCrew"};
+
+/* kind: settings, event, hotel or crew; id: the event's, the hotel's, or
+   the crew panel's step - create, join or manage. The crew panel needs a
+   backend: with none there are no crews. Focus goes to the panel's
+   heading, and closing puts it back on what opened the sheet (#66). */
 function openSheet(kind = "settings", id = null) {
   if (kind === "event" && !byId.get(id)) return;
   if (kind === "hotel" && !MAP_HOTELS[id]) return;
+  if (kind === "crew" && !hasBackend) return;
+  if (sheetWrap.hidden) opener = openerOf(document.activeElement);
   sheetScrollY = pageScrollTop();
   state.sheetId = kind === "event" ? id : null;
   state.sheetHotel = kind === "hotel" ? id : null;
   if (kind === "event") panelEvent.innerHTML = eventSheetHTML(byId.get(id));
   else if (kind === "hotel") panelHotel.innerHTML = hotelSheetHTML(id, mapDay());
+  else if (kind === "crew") openCrew(id || "manage");
   else fillSettings();
   panelSettings.hidden = kind !== "settings";
   panelEvent.hidden = kind !== "event";
   panelHotel.hidden = kind !== "hotel";
-  sheetEl.setAttribute("aria-labelledby", {event: "sheetTitleEvent", hotel: "sheetTitleHotel"}[kind] || "sheetTitle");
+  panelCrew.hidden = kind !== "crew";
+  sheetEl.setAttribute("aria-labelledby", TITLES[kind] || "sheetTitle");
   sheetEl.style.transform = "";
   sheetWrap.hidden = false;
+  focusTitle(TITLES[kind] || "sheetTitle");
+}
+function focusTitle(id) {
+  const title = document.getElementById(id);
+  if (title) title.focus({preventScroll: true});
 }
 
+/* Closing the crew panel's join step unjoined takes the kept invite: the
+   reader declined it, and a reload does not ask again (#62, #63). Focus
+   goes back to what opened the sheet where it is on screen; a crew panel
+   whose opener the redraw took away - a first crew made, the last one
+   left - gives it to what Plans' header now holds. */
 function closeSheet() {
+  const crewShown = !sheetWrap.hidden && !panelCrew.hidden;
+  if (crewShown) {
+    if (crewStep === "join") takePendingJoin();
+    crewOpened++;
+  }
   sheetWrap.hidden = true;
   state.sheetId = null;
   state.sheetHotel = null;
@@ -167,6 +558,20 @@ function closeSheet() {
   dragY = null;
   requestRender();
   pageScrollTo(sheetScrollY);
+  const back = (opener && shownMatch(opener)) || (crewShown ? shownMatch("#crewPick, #crewManageBtn, #crewStartBtn") : null);
+  opener = null;
+  if (back) back.focus({preventScroll: true});
+}
+/* The first match on screen: a view the tab bar has left keeps its old
+   markup, hidden, and may hold the same row or block. */
+const shownMatch = selector => [...document.querySelectorAll(selector)].find(el => !el.closest("[hidden]")) || null;
+/* Escape closes the sheet, whatever it shows (#66); a key an input method
+   is still composing with is left to it - WebKit sends the key that ends a
+   composition after it, as keyCode 229. */
+function onSheetKeydown(e) {
+  if (e.key !== "Escape" || e.isComposing || e.keyCode === 229 || sheetWrap.hidden) return;
+  e.preventDefault();
+  closeSheet();
 }
 
 /* Swipe down to dismiss.
@@ -199,6 +604,8 @@ function settle(toClosed) {
 /* What boot() registers on the sheet itself: the drag. */
 function onSheetTouchStart(e) {
   if (e.target.closest(".ev-body")) return;   // let the description scroll
+  const crew = e.target.closest("#panel-crew");
+  if (crew && crew.scrollHeight > crew.clientHeight) return;   // and the crew panel, when it is taller than the screen
   dragY = e.touches[0].clientY;
   dragT = performance.now();
   dragDy = 0;
@@ -291,7 +698,8 @@ async function onKeepClick(e) {
 }
 
 export {
-  sheetWrap, sheetEl, panelEvent, panelHotel, eventSheetHTML, hotelSheetHTML, openSheet,
-  closeSheet, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
+  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, eventSheetHTML, hotelSheetHTML, openSheet,
+  closeSheet, onSheetKeydown, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
   onSettingsClick, onCrowdInput, onNoiseDefaultChange, onResetPicks, onKeepSubmit, onKeepClick,
+  refreshCrewPanel, onCrewSubmit, onCrewClick, openKeptJoin,
 };

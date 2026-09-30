@@ -123,7 +123,8 @@ PR #74, with #62.
   18:00 on the season file's first day - and to `"now"` otherwise.
   `boot()` calls it after `initTimeOverride()`, so `?now=` decides it, and
   before `load()`, where a valid `#explore=` still wins. A kept `?join=`
-  does nothing here yet (PR 4).
+  wins over the phase: since PR #77 `boot()` reads the invite first, and
+  the tab is Plans, under its join step (section 5, as built).
 - **The tests.** `tests/page/shell.test.js`: a boot at 12:00 on the con's
   first day opens on Explore and one at 18:00 on Now; the nav measured
   into `--nav-h` by its observer and at load, resize and a turn, a 0 left
@@ -234,7 +235,7 @@ As built: the recon, section 2, Search, items 1 to 15.
 
 - **The sticky block** keeps the box and the day chips (items 1 and 2) and
   gains one button, "Filters", with a badge counting the active filters.
-- **The filter sheet** (W13), a fourth sheet panel, `#panel-filters`,
+- **The filter sheet** (W13), a sheet panel, `#panel-filters`,
   takes the hotel chips, the kind chips, the Type control, the Fandom and
   Track selects and the noise toggle (items 3, 4, 7 and 8), and gains
   W8's four topic axes and W7's facet flags. Apply and Clear.
@@ -328,6 +329,148 @@ per-person reader, W28's action), `sync.js` `pull()`, `state.js`,
 `index.html`. Tests: `mine.test.js`, renamed; `crews.test.js`;
 `sync-pull.test.js`; `removed.test.js`. PRs 4, 4b and 5 (W25).
 
+### Plans, as built
+
+PR #77, with #56, #62, #63 and #66: the crew header, the crew panel, the
+join step, My day | Crew and the crew's day, and the sync that redraws
+them. W28 (PR 4b) and W25 (PR 5) are still to come. With no backend there
+is none of it: Plans is Mine as built, and the 2026 app knows no crews.
+
+- **The header** (`plans.js` `crewHeadHTML()`). In a crew: its name, "1
+  person" or "N people", and Manage, which opens the crew panel on the
+  crew shown. In more than one: a labelled `<select>` of them in place of
+  the name, the oldest first, the one chosen kept in `state.plans.crew`
+  and not stored; a crew no longer kept falls back to the oldest
+  (`chosenCrew()`). In none: the rung, "Start a crew, or paste an invite
+  link.", with Start a crew and Join with a link. Every name is someone's
+  own text, and escaped.
+- **The crew panel,** `#panel-crew`, a panel of the sheet's (`sheet.js`).
+  It is drawn once, the first time it opens; after that its steps are only
+  shown and hidden, and a pull's redraw refills its lines and lists around
+  the form (`refreshCrewPanel()`, from `render()`), so it never rewrites a
+  field the reader types in or moves focus - a member arriving or leaving
+  leaves focus on the Remove it was on. The invite link's read-only field
+  takes a new link in place. Taller than the screen, the panel scrolls on
+  its own, and a drag that starts in it scrolls rather than dismisses.
+  - *Create:* Crew name, Your name in the crew, and "Everyone who joins
+    this crew sees your name and your starred events, now and later."
+  - *Join:* Your name in the crew and "Joining shares your name and your
+    starred events with everyone in this crew, now and later." It names
+    no crew: the invite carries only `<year>.<token>`, and only members can
+    read a crew (Open). A kept `?join=` gives "You've been invited to join
+    a crew."; otherwise, or when the kept invite is another year's or none
+    at all - said as the step opens - an Invite link field to paste into.
+  - *Manage:* the members, the reader first and the rest by the names this
+    crew gives them, the reader marked "(you)" and the creator "made the
+    crew"; the invite link in a read-only field, Copy link, Share link
+    where the browser has Web Share, and for the creator New link; Remove
+    beside each other member and Delete crew for the creator, Leave crew
+    for everyone else - everyone, for a crew whose creator is gone; and
+    Start another crew and Join with a link. It stays on one crew: a pull
+    that takes that crew away leaves `crews.js`'s `no_crew` words and Done.
+  - A name for a new crew or a join starts as the reader's name in the
+    oldest crew that has them.
+- **A link for a crew already kept** - tapped or pasted - sends nothing and
+  shows no form: the invite is taken, that crew chosen, and its manage view
+  says "You're already in `<name>`." A list gone stale shows it until the
+  pull after boot takes the crew away.
+- **Every action** is one request at a time: the panel's buttons are
+  disabled while one is out. Create and join mint a user in `crews.js`,
+  where #56 put it, and the panel adds no `ensureUser()`. After the request
+  the panel waits for a sync run that began after it - `sync.js`
+  `syncAfter()`, since a run already out may have read before the action
+  landed - then draws the panel and Plans from what the pull kept. Nothing
+  is optimistic, and a failure is said inline in `crewMessage()`'s words
+  with nothing kept and no run:
+
+  | Action | Said once the pull shows it | Said when the action landed but its pull failed |
+  |---|---|---|
+  | Create | `<name>` is made. Share the link to bring people in. | `<name>` is made - it will show here once this phone reaches the server. |
+  | Join | You're in `<name>`. | You're in `<name>` - it will show here once this phone reaches the server. |
+  | New link | New link made - the old one no longer works. | New link made - it will show here once this phone reaches the server; the link is withheld until a pull brings the new one |
+  | Remove, after a confirm naming the person | `<person>` is out. They can still join with the current link until you make a new one. - New link beside it | Done - it will show here once this phone reaches the server. |
+  | Leave, Delete after a confirm | the panel closes to Plans: the next crew, or the rung | Done - it will show here once this phone reaches the server; the panel closes to Plans once a pull shows the crew gone |
+
+  A pull that later shows what the action did replaces the second column's
+  words with the first's, or closes the panel. A New link's old token stays
+  withheld across a close and a reopen until a pull brings the new one. An
+  action that lands after its panel was closed, or opened again, changes
+  Plans' own state alone - the crew chosen - and never the panel the reader
+  has by then. Focus stays in the panel: on the control that sent the
+  action while it can still take it, and on the heading once the step has
+  moved on.
+- **The invite shared.** Copy link puts the bare link on the clipboard.
+  Share link sends one string and no url - `Join "<crew>" on the Dragon Con
+  planner: <link>`, the link last - since the join step cannot name the
+  crew, and a share sheet's Copy then has nothing to drop; `readInvite()`
+  reads the last `join=` in what is pasted, so the whole message is an
+  invite. Both are called in the tap itself, which is when a browser
+  allows them, and make no request. A share cancelled says nothing; a
+  refusal of either selects the link in its field, with words.
+- **The kept `?join=`** (section 11): `boot()` reads it before the opening
+  tab, which is then Plans in any phase, and `sheet.js` `openKeptJoin()`
+  opens the join step at once, before the schedule has loaded, sending
+  nothing. A join takes the invite, and so does closing the step unjoined:
+  declined, not asked again on a reload. A failure keeps it while the step
+  stays open.
+- **My day | Crew,** only for a reader in a crew: `state.plansView`, saved
+  under `"plansView"` when tapped - "mine" or "crew" - and never on a draw.
+  With nothing saved, Crew on a con day and My day otherwise; a saved Crew
+  with no crew is My day. My day is Mine as built. A tap on Crew starts a
+  sync run, as a tap on the Plans tab does (`docs/sync/contract.md`,
+  section 5).
+- **The crew's day:** day chips, `state.plans.day`, today on a con day and
+  the first full day otherwise - `mapDay()`'s rule - and back on the clock
+  at a new simulated moment. Then a block a member, in the manage view's
+  order, headed by the name this crew gives them and how many picks that
+  day, the reader's marked "(you)": their picks that day in start order as
+  compact rows, `list: "crew:<user>"`, or "No picks on `<day>`." The
+  reader's come from `picks`, a crewmate's from `crews.js`
+  `crewmatePicks()`, one person's stars as the pull kept them; the reader's
+  own row is `myMembership()`. A removed pick is marked, as in My day
+  (#49): the reader's can be unstarred, and a crewmate's carries no star to
+  add it, nor does its sheet, so a removed event is never picked anew. A
+  pick this copy of the schedule does not hold is left out. A crewmate's
+  other rows carry the reader's own star.
+- **The redraw** (`docs/sync/contract.md`, section 5, as built). A pull
+  whose crews or crewmates' picks would draw differently - members
+  compared by id, stars alone - asks for a redraw, and so does forgetting
+  the crews at a change of owner or with no session; both only while
+  Plans is the tab or the crew panel is open. `render()` keeps Search's box
+  and an open sheet as they were, but rebuilds Explore's grid and its
+  filter box with it, so a crewmate's star pulled while the reader types
+  there would take the caret (ROADMAP, Flags).
+- **#66.** Every new control has a label, and every new one is 44px tall:
+  the header's button and picker, the segment, the day chips, the panel's
+  fields and buttons. The sheet's four panels take focus to their heading
+  as they open and give it back to what opened them as they close - found
+  again, on screen, by its id, or its row, timeline block or map hotel,
+  since the redraw has replaced it; a crew panel whose opener the redraw
+  took away gives it to the header's picker, Manage or Start a crew - and
+  Escape closes the sheet, but for a key an input method is composing
+  with (section 7). Plans gives focus back, by id, to its own control that
+  had it, through every redraw, a tap's own and a pull's. The segment's
+  focus ring is drawn inside it. The controls under 44px that this PR does
+  not touch - the chips elsewhere, the Type control, My day's action strip
+  and view toggle - stay as they were.
+- **The tests.** `tests/page/crew-screens.test.js`: the header in each
+  state, create, a join by a kept `?join=` and by a pasted link - the
+  whole share message among them - share, copy and renew, remove, leave,
+  delete, the policy as the wall behind a stale list, the inline failures,
+  one request at a time, a run that began after the action, the landed
+  words and their catching up, actions that land after the panel was
+  closed or opened again, a crew taken away under the panel, a kept
+  invite before the con and beside `#explore=`, the segment and its
+  defaults, the crew's day with its members, a removed pick and an unknown
+  one, the redraws and the gate, a change of owner, the refresh that keeps
+  a half-typed name and a focused Remove, focus and Escape for the gear, an
+  event, a timeline block, a map hotel and a crewmate's row, and the new
+  controls' 44px rules. `crews.test.js`: the two readers and the share
+  message read back. A mutation pass over the gates and the redraw is not
+  committed: every mutant of its last run failed a test, once a first run's
+  survivors had new tests, or - one of them - showed a second way to close
+  the panel after a Leave, since removed.
+
 ## 6. Map, and the building view
 
 As built: the recon, section 2, Map; section 5, the map card.
@@ -390,7 +533,8 @@ As built, plus:
   standalone pull request in a free execution slot (#57), outside the
   sequence.
 - **Focus and Escape** (#66): focus into the sheet on open and back to what
-  opened it on close, and Escape closes it, for every panel.
+  opened it on close, and Escape closes it, for every panel. Built early,
+  with the crew panel, by PR #77 (section 5, as built).
 
 **Home of:** W18; W22; W42; W44.
 
@@ -419,7 +563,7 @@ In order:
 2. Keep your plan as built, on a build with a backend.
 3. **The notifications toggle** (W34): its slot here; its wiring - the
    subscription and the worker's handler - Delivery's.
-4. **About this app** (W32, #59): a row that opens a fifth sheet panel,
+4. **About this app** (W32, #59): a row that opens a sheet panel,
    `#panel-about`, whose back returns to Settings. Three parts: what we
    store, about this app, and the links - one to Dragon Con's official
    site and app. **Delete my account** (W45) is on it, and needs a
@@ -493,7 +637,7 @@ the hash and the address.
 | The event sheet's track or work chip | Its Explore page | the same | "← Explore", to the grid, as See all | PR 7 |
 | The event sheet's place line | The Map, focused on the hotel - the room once the building view exists | `state.tab`, a focus in `state.map` | the Map's focused card, which reopens the sheet | PR 7 |
 | Search's Filters | `#panel-filters` | the panel shown | Apply, Clear, or closed: Search | PR 6 |
-| A kept `?join=`, in any phase | Plans' join step | `state.tab`, the step open | the step closed: Plans as it opens | PR 4 |
+| A kept `?join=`, in any phase | Plans' join step | `state.tab`, the step open | the step closed: Plans as it opens | built |
 
 ## 12. Removals (#40)
 
@@ -613,5 +757,9 @@ As built: the recon, section 8, what crews' readers offer today.
   next" and "then Other at 3:00 PM", as it did before PR #76, where the
   walk estimate and the map's On now line name its venue - the row PR's
   (PR 7), which settles how a row and a line name a place.
+- The crew named before joining. The invite carries only `<year>.<token>`,
+  and only members can read a crew, so the join step names none; a preview
+  would be a read by function, against #52's reads by policy, and a
+  decision of its own (section 5, as built).
 
 **Home of:** W24.

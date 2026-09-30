@@ -8,8 +8,12 @@ import { storageKey } from "./build.js";
 const settings = loadJSON(storageKey("settings"), {crowd: 1.3, hideNoise: true});
 const state = {
   tab: "now", sheetId: null, sheetHotel: null, mineView: loadJSON(storageKey("mineView"), "timeline"),
+  /* My day or the crew's: "mine" | "crew", or null while never tapped, when
+     the day and the crews decide it as Plans draws (plans.js). */
+  plansView: loadJSON(storageKey("plansView"), null),
   now: {hotel: "All", limit: 80},
   map: {day: null},                       /* null: follow the clock */
+  plans: {crew: null, day: null},         /* the crew shown, null the oldest; the crew's day, null the clock's */
   explore: {q: "", page: null, scroll: 0, showPast: false, showCast: false, castNoise: false, expanded: {}, active: null},
   following: {layout: loadJSON(storageKey("followingLayout"), "interest"), expanded: {}, showPast: {}, open: loadJSON(storageKey("followingOpen"), true)},
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All", showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
