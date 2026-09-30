@@ -116,11 +116,10 @@ seam a feed would plug into (#41). The sequence:
 Pipeline shape is closed. What it leaves, carried:
 
 - The alias worklist: the room strings the venues step reads at the hotel
-  alone, 547 of 2026's events (`docs/venues/census-2026.md`, section 4),
+  alone, 30 of 2026's events (`docs/venues/census-2026.md`, section 4),
   each an alias or a room to curate (#45).
-- Curation gaps (#45): the Westin's current, post-renovation floor plan
-  (`docs/venues/README.md`); the Marriott's Atrium and Marquis note
-  entries, and the Courtland Grand's room list (room census, section 5).
+- A curation gap (#45): the Westin's current, post-renovation floor plan
+  (`docs/venues/README.md`).
 - Census v2's 45 double-encoded events are 51 with the six lone "Â"
   events PR #33's encoding probe found: Discover housekeeping in
   `census_v2.py`.
