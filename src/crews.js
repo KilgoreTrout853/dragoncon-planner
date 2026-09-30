@@ -8,8 +8,8 @@ import { ensureUser, plainMessage } from "./identity.js";
    Crews, the client's layer (DECISIONS #10, #50, #56; docs/sync/contract.md,
    section 8): the reader's crews and their crewmates' picks as the last pull
    kept them, the six things a reader can do to a crew, the invite link, and
-   what the crew screens will draw from. No screen here: their homes are
-   Where things live's.
+   what the crew screens draw from. No screen here: the crew header and the
+   crew's day are plans.js's, the crew panel sheet.js's (#62).
 
    The two keys are this module's, and sync writes them through it, as the
    pull writes picks and follows through applyPulledPicks(): the crews under
@@ -49,13 +49,23 @@ function crewGained(crews, user) {
   const before = matesOf(myCrews(), user);
   return [...matesOf(crews, user)].some(id => !before.has(id));
 }
+/* The two keys as a screen draws them, so that the same crews read twice
+   compare equal: each crew's members by id - the pull reads them in no
+   order - and each crewmate's stars alone, by id. */
+const byFirst = (a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+const drawnAs = (crews, theirs) => JSON.stringify([
+  crews.map(c => [c.id, c.name, c.creator, c.invite_token, (c.members || []).map(m => [m.user_id, m.display_name]).sort(byFirst)]),
+  Object.entries(theirs).map(([id, going]) => [id, Object.keys(going).filter(e => going[e] === true).sort()]).filter(([, stars]) => stars.length).sort(byFirst),
+]);
+const NOTHING_DRAWN = drawnAs([], {});
 /* And its write, with the rest of what it applies: the crews as it read
    them, and the crewmates' picks - a departed member's all dropped, a
    crewmate's star kept and an unstar taking it out. The reader's own rows
-   are the picks' (applyPulledPicks()). */
+   are the picks' (applyPulledPicks()). Whether a screen would draw anything
+   differently now, as applyPulledPicks() says of the picks. */
 function applyPulledCrews(crews, rows, user) {
+  const theirs = crewPicksKept(), before = drawnAs(myCrews(), theirs);
   const mates = matesOf(crews, user);
-  const theirs = crewPicksKept();
   for (const id of Object.keys(theirs)) if (!mates.has(id)) delete theirs[id];
   for (const r of rows) {
     if (r.user_id === user || !mates.has(r.user_id)) continue;
@@ -64,11 +74,15 @@ function applyPulledCrews(crews, rows, user) {
   }
   saveJSON(CREW_KEY, crews);
   saveJSON(CREW_PICKS_KEY, theirs);
+  return drawnAs(crews, theirs) !== before;
 }
-/* A new owner, or no session: nothing of the crews is kept. */
+/* A new owner, or no session: nothing of the crews is kept. Whether there
+   was anything a screen drew. */
 function forgetCrews() {
+  const drew = drawnAs(myCrews(), crewPicksKept()) !== NOTHING_DRAWN;
   removeJSON(CREW_KEY);
   removeJSON(CREW_PICKS_KEY);
+  return drew;
 }
 
 /* Each crewmate once - never the reader, whose own star already says they
@@ -86,6 +100,19 @@ function crewmates() {
 function goingTo(eventId) {
   const theirs = crewPicksKept();
   return crewmates().filter(p => !!theirs[p.user_id] && theirs[p.user_id][eventId] === true).map(p => ({...p}));
+}
+/* One crewmate's stars, as the pull kept them: event ids. None for the
+   reader, whose own are the picks, or for anyone the reader shares no crew
+   with. */
+function crewmatePicks(userId) {
+  const going = crewPicksKept()[userId] || {};
+  return Object.keys(going).filter(id => going[id] === true);
+}
+/* The reader's own row in a crew: {user_id, display_name}, the name that
+   crew gives them, or null. */
+function myMembership(crew) {
+  const user = reader(), row = user && crew ? (crew.members || []).find(m => m.user_id === user) : null;
+  return row ? {user_id: row.user_id, display_name: row.display_name} : null;
 }
 /* The overlay's map: every event a crewmate starred, to the same list. */
 function crewmatesByEvent() {
@@ -111,11 +138,13 @@ function inviteLink(crew) {
 /* An invite from what the reader holds: the <year>.<token> a link carries in
    join=, as it was kept, or the whole link, pasted: an iPhone opens a link
    in the browser, not in the home-screen app, whose storage is its own, so
-   that app's reader pastes one (contract, Open). {year, token}, or null for
-   anything else. */
+   that app's reader pastes one (contract, Open). The message a share sends
+   is pasted whole too, the crew's name first and its link last, so the last
+   join= is the one read: a name cannot stand in for the link. {year,
+   token}, or null for anything else. */
 function readInvite(text) {
   let value = String(text || "").trim();
-  const inLink = /[?&]join=([^&#\s]*)/.exec(value);
+  const inLink = [...value.matchAll(/[?&]join=([^&#\s]*)/g)].pop();
   if (inLink) {
     try { value = decodeURIComponent(inLink[1]); } catch (e) { return null; }
   }
@@ -226,11 +255,12 @@ const CREW_PLAIN = {
   other_year: "That invite is for another year's con - ask for a new link.",
   bad_invite: "That doesn't look like an invite link.",
   creator_leaves: "You made this crew, so you can't leave it - you can delete it instead.",
+  no_crew: "That crew isn't on this phone any more - it may have been deleted.",
 };
 function crewMessage(error) { return CREW_PLAIN[error && error.code] || plainMessage(error); }
 
 export {
-  myCrews, isCreator, crewGained, applyPulledCrews, forgetCrews, goingTo, crewmatesByEvent,
+  myCrews, isCreator, crewGained, applyPulledCrews, forgetCrews, goingTo, crewmatePicks, myMembership, crewmatesByEvent,
   inviteLink, readInvite, readJoinLink, pendingJoin, takePendingJoin,
   createCrew, joinCrew, newInvite, leaveCrew, removeMember, deleteCrew, crewMessage,
 };

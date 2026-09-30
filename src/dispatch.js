@@ -16,6 +16,7 @@ import { toggleFollow } from "./follows.js";
 import { exportEventICS, exportICS } from "./ics.js";
 import { index, stripPhrase, tokenise } from "./search.js";
 import { cssEsc, pageScrollTo, revealChip } from "./scroll.js";
+import { runSync } from "./sync.js";
 import { NUDGE_SNOOZE_MS, takeInstallPrompt, tickNow } from "./now.js";
 import { queueBrowseRender } from "./browse.js";
 import {
@@ -42,6 +43,7 @@ function onMainClick(e) {
     else if (kind === "type") state.browse.type = value;
     else if (kind === "kind") state.browse.kind = value;
     else if (kind === "map-day") state.map.day = value;
+    else if (kind === "plans-day") state.plans.day = value;
     state.browse.page = 1; render();
     revealChip(document.querySelector(`.chips [data-chip="${kind}"][data-value="${cssEsc(value)}"]`));
     return;
@@ -51,6 +53,17 @@ function onMainClick(e) {
   const act = e.target.closest("[data-act]");
   if (act) {
     const a = act.dataset.act;
+    /* Plans' crew header opens the crew panel on a step; the segment is
+       saved when tapped, and Crew starts a sync run for what the crew has
+       done since (docs/sync/contract.md, section 5). */
+    if (a === "crew-manage" || a === "crew-create" || a === "crew-join") { openSheet("crew", a.slice("crew-".length)); return; }
+    if (a === "plans-mine" || a === "plans-crew") {
+      state.plansView = a === "plans-crew" ? "crew" : "mine";
+      saveJSON(storageKey("plansView"), state.plansView);
+      render();
+      if (state.plansView === "crew") runSync();
+      return;
+    }
     if (a === "more-now") { state.now.limit += 100; render(); }
     if (a === "more-browse") { state.browse.page++; render(); }
     if (a === "ics") exportICS();
@@ -134,7 +147,7 @@ function onMainClick(e) {
     return;
   }
   const star = e.target.closest(".star");
-  if (star) { const li = star.closest(".row"); togglePick(li.dataset.id, li); return; }
+  if (star) { if (!star.disabled) { const li = star.closest(".row"); togglePick(li.dataset.id, li); } return; }
   const tile = e.target.closest("[data-explore]");
   if (tile) {
     const raw = tile.dataset.explore, i = raw.indexOf(":");
@@ -176,6 +189,7 @@ function onMainChange(e) {
   if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }
   if (e.target.id === "fandom") { state.browse.work = e.target.value; state.browse.page = 1; render(); }
   if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
+  if (e.target.id === "crewPick") { state.plans.crew = e.target.value; render(); }
 }
 
 function onEventPanelClick(e) {
@@ -191,6 +205,7 @@ function onEventPanelClick(e) {
   if (!ev) return;
   if (e.target.closest("#sheetICS")) { exportEventICS(ev); return; }
   if (e.target.closest("#sheetStar")) {
+    if (ev.removed && !picks.has(ev.id)) return;     // unstarred, never starred anew (#49)
     if (picks.has(ev.id)) picks.delete(ev.id); else picks.add(ev.id);
     savePicks();
     panelEvent.innerHTML = eventSheetHTML(ev);

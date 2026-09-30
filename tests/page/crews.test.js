@@ -291,7 +291,7 @@ describe("every failure in plain words, and local state untouched", () => {
     ["a crew the reader did not make deleted", () => app.deleteCrew(theirs.id), "not_creator", 0, "Only the crew's creator can do that."],
     ["the creator leaving", () => app.leaveCrew(mine.id), "creator_leaves", 0, "You made this crew, so you can't leave it - you can delete it instead."],
     ["the creator removing themselves", () => app.removeMember(mine.id, ada.id), "creator_leaves", 0, "You made this crew, so you can't leave it - you can delete it instead."],
-    ["a crew the phone does not hold", () => app.leaveCrew("00000000-0000-4000-b000-999999999999"), "no_crew", 0, "Something went wrong. Please try again."],
+    ["a crew the phone does not hold", () => app.leaveCrew("00000000-0000-4000-b000-999999999999"), "no_crew", 0, "That crew isn't on this phone any more - it may have been deleted."],
   ];
   it("each refused as it should be, with its words, nothing kept and nothing more sent", async () => {
     fake.flags.crew_size_cap = 2;
@@ -460,6 +460,11 @@ describe("readInvite(): the kept <year>.<token>, or a pasted link", () => {
     expect(readInvite(`Join us: https://example.test/?join=${YEAR}.tok_A-1 see you`)).toEqual({ year: YEAR, token: "tok_A-1" });
     expect(readInvite(`https://example.test/?join=${YEAR}%2Etok_A-1`)).toEqual({ year: YEAR, token: "tok_A-1" });
   });
+  it("the message a share sends, whole: the crew's name, then its link, last", () => {
+    const { readInvite } = page.app;
+    expect(readInvite(`Join "Night owls" on the Dragon Con planner: https://example.test/?join=${YEAR}.tok_A-1`)).toEqual({ year: YEAR, token: "tok_A-1" });
+    expect(readInvite(`Join "?join=${YEAR}.not-this" on the Dragon Con planner: https://example.test/?join=${YEAR}.tok_A-1`)).toEqual({ year: YEAR, token: "tok_A-1" });
+  });
   it("and nothing else", () => {
     const { readInvite } = page.app;
     for (const junk of ["", null, undefined, "tok", `${YEAR}.`, `${YEAR}tok`, `26.tok`, `1${YEAR}.tok`, `x${YEAR}.tok`, `${YEAR}.to k`, `${YEAR}.tok.more`,
@@ -513,6 +518,17 @@ describe("the readers: who's going and the overlay, from what the pull kept", ()
     const map = app.crewmatesByEvent();
     expect([...map.keys()].sort()).toEqual([X, Y, Z].sort());
     for (const id of [X, Y, Z]) expect(map.get(id)).toEqual(app.goingTo(id));
+  });
+  it("crewmatePicks(): one crewmate's stars as the pull kept them - an unstar none of them - and nothing for the reader or a stranger", () => {
+    expect(app.crewmatePicks(bo.id).sort()).toEqual([X, Y].sort());
+    expect(app.crewmatePicks(dee.id).sort()).toEqual([X, Z].sort());
+    expect([app.crewmatePicks(ada.id), app.crewmatePicks(cy.id), app.crewmatePicks("no-such-user")]).toEqual([[], [], []]);
+  });
+  it("myMembership(): the reader's own row in a crew, by the name that crew gives them", () => {
+    const [mine, theirs] = app.myCrews();
+    expect(app.myMembership(mine)).toEqual(person(ada, "Ada"));
+    expect(app.myMembership(theirs)).toEqual(person(ada, "Ada"));
+    expect([app.myMembership(null), app.myMembership({ members: [person(bo, "Bo")] })]).toEqual([null, null]);
   });
   it("a departed member is gone from both", async () => {
     fake.leave(newer, dee.id);
@@ -577,9 +593,10 @@ describe("the readers with no crews", () => {
     seed("crewPicks", { x: { [X]: true }, y: { [X]: true } });
     expect(app.goingTo(X)).toEqual([{ user_id: "x", display_name: "Sam" }, { user_id: "y", display_name: "Sam" }]);
   });
-  it("a kept entry that is not a star is no one going, in both readers", () => {
+  it("a kept entry that is not a star is no one going, in every reader", () => {
     seed("crewPicks", { x: { [X]: true, [ids[1]]: false } });
     expect(app.goingTo(ids[1])).toEqual([]);
     expect([...app.crewmatesByEvent().keys()]).toEqual([X]);
+    expect(app.crewmatePicks("x")).toEqual([X]);
   });
 });

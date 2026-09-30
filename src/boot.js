@@ -15,9 +15,9 @@ import { onSyncTrigger, onSyncWorkerMessage } from "./sync.js";
 import { onAppInstalled, onBeforeInstallPrompt } from "./now.js";
 import { onScrollSpy } from "./explore.js";
 import {
-  closeSheet, onCrowdInput, onKeepClick, onKeepSubmit, onNoiseDefaultChange, onResetPicks, onSettingsClick,
-  onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart, openSheet,
-  panelEvent, panelHotel, sheetEl,
+  closeSheet, onCrewClick, onCrewSubmit, onCrowdInput, onKeepClick, onKeepSubmit, onNoiseDefaultChange, onResetPicks,
+  onSettingsClick, onSheetKeydown, onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart, openKeptJoin,
+  openSheet, panelCrew, panelEvent, panelHotel, sheetEl,
 } from "./sheet.js";
 import {
   BOOT, load, markScheduleChecked, onLoadRegisterWorker, onPageShow, onPillClick, onPillTouchEnd,
@@ -61,8 +61,9 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.documentElement.classList.toggle("bigtext", !!loadJSON(storageKey("bigtext"), false));
   document.body.insertAdjacentHTML("beforeend", devMarkHTML());
   initTimeOverride();
-  setOpeningTab();
   readJoinLink();
+  setOpeningTab();
+  openKeptJoin();
 
   scroller.addEventListener("scroll", onScrollSpy, {passive: true});
 
@@ -77,9 +78,12 @@ export function boot({events: data, reload: reloadWith} = {}) {
   sheetEl.addEventListener("touchmove", onSheetTouchMove, {passive: true});
   sheetEl.addEventListener("touchend", onSheetTouchEnd);
   sheetEl.addEventListener("touchcancel", onSheetTouchCancel);
+  document.addEventListener("keydown", onSheetKeydown);
 
   panelEvent.addEventListener("click", onEventPanelClick);
   panelHotel.addEventListener("click", onHotelPanelClick);
+  panelCrew.addEventListener("click", onCrewClick);
+  panelCrew.addEventListener("submit", onCrewSubmit);
 
   document.getElementById("minibar").addEventListener("click", onMiniBarClick);
   document.getElementById("settingsBtn").addEventListener("click", onSettingsClick);

@@ -17,7 +17,8 @@ function rowHTML(ev, opts = {}) {
   const mine = picks.has(ev.id), open = state.sheetId === ev.id;
   const status = opts.status ? `<span class="status">${esc(opts.status)}</span>` : "";
   /* A removed event is drawn only as a pick, in Plans (DECISIONS #49), and is
-     marked as a cancelled one is. */
+     marked as a cancelled one is. It can be unstarred and never starred anew:
+     a crewmate's pick of one, in the crew's day, carries no star to add it. */
   const cls = ["row", mine ? "mine" : "", open ? "open" : "", ev.cancelled ? "cancelled" : "", ev.removed ? "removed" : ""].filter(Boolean).join(" ");
   const hl = opts.terms ? highlighter(opts.terms) : (x => esc(x));
   const snippet = opts.terms ? snippetFor(ev, opts.terms) : "";
@@ -34,7 +35,7 @@ function rowHTML(ev, opts = {}) {
           ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
         </div>
       </button>
-      <button class="star" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}">${mine ? "★" : "☆"}</button>
+      <button class="star" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}"${ev.removed && !mine ? " disabled" : ""}>${mine ? "★" : "☆"}</button>
     </div>
   </li>`;
 }

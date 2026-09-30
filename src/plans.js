@@ -1,11 +1,13 @@
 import { esc, fmtShort, minutesBetween } from "./util.js";
+import { hasBackend } from "./backend.js";
+import { crewmatePicks, myCrews, myMembership } from "./crews.js";
 import { state } from "./state.js";
-import { conDayKey, DAY_LONG, now } from "./time.js";
+import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
 import { hotelVar, walkMin } from "./venues.js";
 import { byId } from "./data.js";
 import { pickNewsHTML, picks } from "./picks.js";
 import { gapHTML } from "./walk.js";
-import { rowHTML } from "./ui.js";
+import { chipHTML, rowHTML } from "./ui.js";
 
 /* ---- Plans -------------------------------------------------------- */
 /* Side-by-side columns for anything that overlaps in time. Events are
@@ -103,11 +105,105 @@ function renderPlansTimeline(mine, now) {
   return [...days.keys()].sort().map(k => timelineDayHTML(k, days.get(k), now)).join("");
 }
 
-/* Every pick, the removed among them: byId holds every event in start order.
-   A pick on an event the source dropped stays in the plan until the reader
-   takes it out, marked, and is on no other tab (DECISIONS #49). The calendar
-   export takes the picks still on the schedule. */
+/* ---- The crew (DECISIONS #62) -------------------------------------- */
+/* The crew Plans shows: the one chosen in the picker while it is still
+   kept, else the oldest; null out of a crew. The crew panel's manage view
+   opens on it (sheet.js). */
+function chosenCrew(crews = myCrews()) {
+  return crews.find(c => c.id === state.plans.crew) || crews[0] || null;
+}
+/* My day or the crew's: the one last tapped, and with none, the crew's on a
+   con day for a reader in a crew. Out of a crew, My day, whatever was
+   tapped. */
+function plansView(crews) {
+  if (!crews.length) return "mine";
+  if (state.plansView === "mine" || state.plansView === "crew") return state.plansView;
+  return CON_DAYS.includes(conDayKey(now())) ? "crew" : "mine";
+}
+/* The crew's day: the chip tapped, else today on a con day and the first
+   full day otherwise - map.js mapDay()'s rule, with Plans' own chips. */
+function plansDay() {
+  if (state.plans.day) return state.plans.day;
+  const d = conDayKey(now());
+  return CON_DAYS.includes(d) ? d : FIRST_FULL_DAY;
+}
+const people = n => `${n} ${n === 1 ? "person" : "people"}`;
+/* A crew's members as its screens list them, the pull reading them in no
+   order: the reader first, then the rest by the names this crew gives
+   them, then by id - the crew's day here, the member list in the crew
+   panel. */
+function crewPeople(crew) {
+  const me = myMembership(crew);
+  const others = (crew.members || []).filter(m => !me || m.user_id !== me.user_id)
+    .sort((a, b) => String(a.display_name).localeCompare(String(b.display_name)) || (a.user_id < b.user_id ? -1 : a.user_id > b.user_id ? 1 : 0));
+  return me ? [me, ...others] : others;
+}
+
+/* The top of Plans on a build with a backend: in a crew, its name - a
+   picker of them, the oldest first, in more than one - how many, and
+   Manage, which opens the crew panel; in none, the ladder's rung, shown and
+   not nagged (VISION). Every name is someone's own text, so escaped. */
+function crewHeadHTML(crews) {
+  if (!crews.length) return `<div class="crew-head crew-rung">
+    <p>Start a crew, or paste an invite link.</p>
+    <div class="crew-rung-btns"><button class="btn quiet" id="crewStartBtn" data-act="crew-create">Start a crew</button><button class="btn quiet" id="crewJoinBtn" data-act="crew-join">Join with a link</button></div>
+  </div>`;
+  const crew = chosenCrew(crews);
+  const name = crews.length > 1
+    ? `<select class="crew-pick" id="crewPick" aria-label="Crew">${crews.map(c => `<option value="${esc(c.id)}"${c === crew ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select>`
+    : `<span class="crew-title">${esc(crew.name)}</span>`;
+  return `<div class="crew-head">${name}<span class="crew-count">${people((crew.members || []).length)}</span>
+    <button class="btn quiet" id="crewManageBtn" data-act="crew-manage" aria-label="Manage ${esc(crew.name)}">Manage</button></div>`;
+}
+function plansSegHTML(view) {
+  return `<div class="seg plans-seg" role="group" aria-label="Plans view"><button id="plansViewMine" data-act="plans-mine" aria-pressed="${view === "mine"}">My day</button><button id="plansViewCrew" data-act="plans-crew" aria-pressed="${view === "crew"}">Crew</button></div>`;
+}
+/* The crew's day: one day's chips, then per person, not lanes (#62) - the
+   reader first, the rest by the names this crew gives them - each one's
+   picks that day in start order, as compact rows whose star is the
+   reader's own. A removed pick is marked, as in My day (#49); a pick this
+   copy of the schedule does not hold is left out. */
+function crewDayHTML(crew) {
+  const day = plansDay(), me = myMembership(crew);
+  const chips = CON_DAYS.map(d => chipHTML(DAY_LABEL[d], d === day, "plans-day", d)).join("");
+  const blocks = crewPeople(crew).map(m => {
+    const own = !!me && m.user_id === me.user_id, starred = own ? picks : new Set(crewmatePicks(m.user_id));
+    const rows = [...byId.values()].filter(e => starred.has(e.id) && e._cd === day);
+    return `<section class="crew-person" data-user="${esc(m.user_id)}">
+      <h3 class="crew-who">${esc(m.display_name)}${own ? " (you)" : ""}${rows.length ? ` <span class="count">${rows.length}</span>` : ""}</h3>
+      ${rows.length ? `<ul class="list compact">${rows.map(ev => rowHTML(ev, {list: `crew:${m.user_id}`})).join("")}</ul>`
+        : `<p class="crew-none">No picks on ${DAY_LONG[day] || day}.</p>`}
+    </section>`;
+  }).join("");
+  return `<div class="controls"><div class="chips plans-days" data-row="plans-day">${chips}</div></div>${blocks}`;
+}
+
+/* Plans: on a build with a backend the crew header, and in a crew the
+   My day | Crew segment under it (#62); then My day or the crew's day. With
+   no backend it is Mine as built: the 2026 app knows no crews. */
 function renderPlans() {
+  const crews = hasBackend ? myCrews() : [];
+  const view = plansView(crews);
+  let html = hasBackend ? crewHeadHTML(crews) : "";
+  if (crews.length) html += plansSegHTML(view);
+  html += view === "crew" ? crewDayHTML(chosenCrew(crews)) : myDayHTML();
+  /* A control of Plans' own that had focus - the picker, the segment,
+     Manage - gets it back by its id: every redraw replaces them, a tap's
+     own and a pull's alike (#66). */
+  const el = document.getElementById("view-plans"), active = document.activeElement;
+  const had = active && el.contains(active) && active.id;
+  el.innerHTML = html;
+  const again = had && document.getElementById(had);
+  if (again) again.focus({preventScroll: true});
+  fitTimelineBlocks();
+}
+
+/* My day, Mine as built: every pick, the removed among them - byId holds
+   every event in start order. A pick on an event the source dropped stays
+   in the plan until the reader takes it out, marked, and is on no other tab
+   (DECISIONS #49). The calendar export takes the picks still on the
+   schedule. */
+function myDayHTML() {
   const mine = [...byId.values()].filter(e => picks.has(e.id));
   const onSchedule = mine.filter(e => !e.removed).length;
   let html = pickNewsHTML() + `<div class="plans-actions">
@@ -135,8 +231,7 @@ function renderPlans() {
     });
     html += `</ul>`;
   }
-  document.getElementById("view-plans").innerHTML = html;
-  fitTimelineBlocks();
+  return html;
 }
 
 /* Measured, so it only acts where it has to; jsdom reports no heights and
@@ -149,4 +244,4 @@ function fitTimelineBlocks() {
   });
 }
 
-export { HOUR_PX, layoutColumns, renderPlans };
+export { HOUR_PX, layoutColumns, chosenCrew, crewPeople, renderPlans };

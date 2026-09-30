@@ -1,9 +1,10 @@
 import { YEAR } from "./season.js";
 import { loadJSON, removeJSON, saveJSON } from "./storage.js";
 import { storageKey } from "./build.js";
-import { callBackendAsUser, hasBackend, storedSession } from "./backend.js";
+import { BackendError, callBackendAsUser, hasBackend, storedSession } from "./backend.js";
 import { plainMessage } from "./identity.js";
 import { applyPulledCrews, crewGained, forgetCrews } from "./crews.js";
+import { state } from "./state.js";
 import {
   clearOutbox, drainNow, drainsSettled, holdDrains, outboxState, pendingKeys, releaseDrains, seedOutbox,
 } from "./outbox.js";
@@ -19,8 +20,10 @@ import { requestRender } from "./bus.js";
    or news. Nothing here without a backend and a session.
 
    A run starts after the load, on every return to the page -
-   visibilitychange and pageshow, ungated - on online, and on the worker's
-   word that the network answers; there is no timer. One run at a time, and
+   visibilitychange and pageshow, ungated - on online, on the worker's word
+   that the network answers, on a tap on the Plans tab or on its Crew
+   segment, and after a crew action, whose screen waits for a run that
+   began after it (syncAfter()); there is no timer. One run at a time, and
    a trigger during one asks for one more after it. The outbox drains on its
    own after a tap (outbox.js), and the pull that follows is the next
    trigger's: the pull is above the outbox, and nothing but render() calls
@@ -38,14 +41,17 @@ import { requestRender } from "./bus.js";
    newcomer's picks are older than the watermark. The crews and the
    crewmates' picks are kept by crews.js, which the pull writes them
    through, as it writes the reader's own rows through the owners of picks
-   and follows; a departed member's picks are dropped there.
+   and follows; a departed member's picks are dropped there. A pull asks
+   for a redraw when the reader's own picks or follows changed, and when
+   what a crew screen draws changed while one is on screen.
 
    The owner: when the session's user is not the one the watermark was
    kept for - a mint, a recover, a sign-in in another tab - the outbox is
    started afresh for them with the whole local state as adds, which is
    also recover's union, and the watermark and the crew's two keys start
    again. With no session they are all forgotten, so the next sign-in, even
-   as the same user, sends the whole plan again.
+   as the same user, sends the whole plan again. Crews forgotten either way
+   are a redraw, as a pull's change is.
    ================================================================== */
 const STAMP_KEY = storageKey("syncStamp");
 const OVERLAP_MS = 60000, PAGE = 1000;
@@ -91,17 +97,28 @@ function adopt(user) {
   seedOutbox(user, {picks: [...picks], follows: follows.map(followId)});
   const stamp = {user, picks: null, follows: null};
   saveJSON(STAMP_KEY, stamp);
-  forgetCrews();
+  if (forgetCrews()) redrawCrew();
   return stamp;
 }
 /* No session: nothing of sync's is kept. */
 function forgetSync() {
   clearOutbox();
   removeJSON(STAMP_KEY);
-  forgetCrews();
+  const forgot = forgetCrews();
   lastRun = null;
   refusedAt = null;
   fillSyncStatus();
+  if (forgot) redrawCrew();
+}
+
+/* Where a crew is drawn: Plans, and the crew panel. A crew's change asks
+   for a redraw only while one of them is on screen, since a redraw
+   rebuilds Explore's grid, its filter box with it, and a crewmate's star
+   should not take the caret from a reader typing there (ROADMAP, Flags).
+   The tab's own draw, and the panel's when it opens, show the rest. */
+function redrawCrew() {
+  const panel = document.getElementById("panel-crew"), sheet = document.getElementById("sheetWrap");
+  if (state.tab === "plans" || (panel && !panel.hidden && sheet && !sheet.hidden)) requestRender();
 }
 
 /* Every row of a table newer than since, less the overlap - every row with
@@ -146,9 +163,10 @@ async function pull(user, stamp) {
     const heldPicks = own.filter(r => pending.picks.has(r.event_id)), heldFollows = followRows.filter(r => pending.follows.has(`${r.kind}:${r.key}`));
     const picksChanged = applyPulledPicks(own.filter(r => !pending.picks.has(r.event_id)));
     const followsChanged = applyPulledFollows(followRows.filter(r => !pending.follows.has(`${r.kind}:${r.key}`)));
-    applyPulledCrews(crew, pickRows, user);
+    const crewChanged = applyPulledCrews(crew, pickRows, user);
     saveJSON(STAMP_KEY, {user, picks: watermark(pickRows, heldPicks, stamp.picks), follows: watermark(followRows, heldFollows, stamp.follows)});
     if (picksChanged || followsChanged) requestRender();
+    else if (crewChanged) redrawCrew();
   } finally {
     releaseDrains();
   }
@@ -209,6 +227,17 @@ async function sendBeforeSignOut() {
   return count;
 }
 
+/* A screen's run after an action - a crew's, in the crew panel: one that
+   begins after the call, since a run already out may have read before the
+   action landed, and how it ended, {ok: true} or {error}; a run that found
+   no session says so. */
+async function syncAfter() {
+  if (!hasBackend) return {ok: true};
+  if (running) { again = true; await running; }
+  await (running || runSync());
+  return lastRun || {error: new BackendError("session_lost")};
+}
+
 /* For a test: when no run and no drain is under way. */
 async function syncSettled() {
   do {
@@ -217,4 +246,4 @@ async function syncSettled() {
   } while (running);
 }
 
-export { runSync, forgetSync, sendBeforeSignOut, fillSyncStatus, onSyncTrigger, onSyncWorkerMessage, syncSettled };
+export { runSync, syncAfter, forgetSync, sendBeforeSignOut, fillSyncStatus, onSyncTrigger, onSyncWorkerMessage, syncSettled };
