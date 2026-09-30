@@ -121,7 +121,7 @@ function reconcilePicks() {
 }
 const NEWS = {
   gone: n => `<b>${esc(n.title)}</b> was removed from the schedule${n.was ? `. It was ${esc(n.was)}` : ""}.`,
-  removed: n => `<b>${esc(n.title)}</b> was removed from the schedule. It was ${esc(n.was)}. It stays in Mine, marked.`,
+  removed: n => `<b>${esc(n.title)}</b> was removed from the schedule. It was ${esc(n.was)}. It stays in Plans, marked.`,
   merged: n => `<b>${esc(n.title)}</b> is now listed as <b>${esc(n.now)}</b>.`,
   moved: n => `<b>${esc(n.title)}</b> moved to ${esc(n.now)}. It was ${esc(n.was)}.`,
 };

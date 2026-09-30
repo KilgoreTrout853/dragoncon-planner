@@ -4,7 +4,9 @@
    and nothing here imports from src/. The scroller is looked up once, as the
    module is imported, so the markup has to be there first. The header is
    measured here too: what scrolls parks under it (--hdr-h), and loading, the
-   shell and boot() all need the measurement from a module below them. */
+   shell and boot() all need the measurement from a module below them. So is
+   the nav: what sits on it or clears it is laid out from its height
+   (--nav-h). */
 
 /* Everything that scrolls the page goes through here, because the page is
    not the scroller - main is (see the CSS). jsdom has no scrollTo on
@@ -66,7 +68,17 @@ function syncHeaderHeight() {
   fitHeaderLine();
 }
 
+/* The nav's height, the safe-area inset under it included: the mini-bar sits
+   on it, and the end spacer, the update pill, the dev-build mark and the Map
+   clear it, from this one number rather than a guess at it. A 0 - jsdom, or a
+   page not laid out yet - is not a height, and the root's default stands. */
+function syncNavHeight() {
+  const nav = document.querySelector(".nav");
+  const h = nav ? Math.round(nav.getBoundingClientRect().height) : 0;
+  if (h) document.documentElement.style.setProperty("--nav-h", `${h}px`);
+}
+
 export {
   scroller, pageScrollTop, pageScrollTo, pageScrollBy, chipRowsSnapshot, chipRowsRestore,
-  revealChip, cssEsc, fitHeaderLine, syncHeaderHeight,
+  revealChip, cssEsc, fitHeaderLine, syncHeaderHeight, syncNavHeight,
 };

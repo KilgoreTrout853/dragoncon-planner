@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { pickActiveSection } from "../../src/explore.js";
 import { FOLLOW_KINDS } from "../../src/follows.js";
-import { HOUR_PX } from "../../src/mine.js";
+import { HOUR_PX } from "../../src/plans.js";
 import { nudgeCopy } from "../../src/now.js";
 import { IS_IOS } from "../../src/platform.js";
 import { LEAVE_BUFFER_MIN } from "../../src/venues.js";

@@ -1,4 +1,4 @@
-/* Calendar export: one event from the sheet, all of them from Mine. The number
+/* Calendar export: one event from the sheet, all of them from Plans. The number
    in brackets is the harness line the assertion came from (tests/PORT-LEDGER.md). */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
@@ -48,9 +48,9 @@ describe("calendar export", () => {
   });
 
   it("ICS export has events with TZ [506]", async () => {
-    handle.state.tab = "mine";
+    handle.state.tab = "plans";
     handle.render();
-    document.querySelector('#view-mine [data-act="ics"]').click();
+    document.querySelector('#view-plans [data-act="ics"]').click();
     const text = await exported;
     expect(text).toContain("BEGIN:VEVENT");
     expect(text).toContain("TZID=America/New_York");

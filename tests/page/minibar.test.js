@@ -96,14 +96,14 @@ describe("the mini-bar", () => {
       const later = handle.events.find(e => e._s > at && app.conDayKey(e._s) === today && app.MAP_HOTELS[e.hotel]);
       handle.picks.set([later.id]);
       const read = name => { state.tab = name; handle.render(); return { hidden: bar.hidden, reserved: document.body.classList.contains("has-minibar") }; };
-      seen = { browse: read("browse"), map: read("map"), explore: read("explore"), mine: read("mine"), now: read("now"), back: read("map") };
+      seen = { browse: read("browse"), map: read("map"), explore: read("explore"), plans: read("plans"), now: read("now"), back: read("map") };
     });
     afterAll(() => setPicks([]));
 
-    it("with a pick later today the mini-bar shows on Search, Explore and Mine [1658]", () => {
+    it("with a pick later today the mini-bar shows on Search, Explore and Plans [1658]", () => {
       expect(seen.browse).toEqual({ hidden: false, reserved: true });
       expect(seen.explore.hidden).toBe(false);
-      expect(seen.mine.hidden).toBe(false);
+      expect(seen.plans.hidden).toBe(false);
     });
     it("but not on the Map, whose caption already says what is next, and the body reserves no room for it there [1659]", () => {
       expect(seen.map).toEqual({ hidden: true, reserved: false });

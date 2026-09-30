@@ -9,7 +9,7 @@ import { bootPage } from "../helpers/page.js";
 
 /* Every key the app keeps in localStorage, each written the reader's own way:
    a star, the nudge's Not now, the news dismissed, a follow, the Following
-   feed's layout and its fold, Mine's list view, the crowd factor, larger text,
+   feed's layout and its fold, Plans' list view, the crowd factor, larger text,
    and the archive notice once the con is over. sessionStorage holds one, the
    simulated clock's, which the page writes as it boots. */
 const LOCAL = ["archiveNoticeDismissed", "bigtext", "followingLayout", "followingOpen", "follows", "mineView",
@@ -22,8 +22,8 @@ function keepEverything({ handle }) {
   document.querySelector('.nav button[data-tab="explore"]').click();
   document.querySelector('#following [data-act="fol-time"]').click();
   document.querySelector('#following [data-act="fol-toggle"]').click();
-  document.querySelector('.nav button[data-tab="mine"]').click();
-  document.querySelector('#view-mine [data-act="view-list"]').click();
+  document.querySelector('.nav button[data-tab="plans"]').click();
+  document.querySelector('#view-plans [data-act="view-list"]').click();
   const crowd = document.getElementById("crowd");
   crowd.value = "1.5";
   crowd.dispatchEvent(new Event("input"));

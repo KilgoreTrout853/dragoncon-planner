@@ -44,7 +44,7 @@ const snapshot = e => ({ title: e.title, start: e.start, location: e.location ||
 
 describe("a schedule that dropped one pick and merged two", () => {
   let page, app, handle, state, exported;
-  const news = () => [...document.querySelectorAll("#view-mine .pick-news li")].map(li => li.textContent.replace(/\s+/g, " ").trim());
+  const news = () => [...document.querySelectorAll("#view-plans .pick-news li")].map(li => li.textContent.replace(/\s+/g, " ").trim());
   const show = (tab, patch = {}) => { state.tab = tab; Object.assign(state, patch); handle.render(); };
 
   beforeAll(async () => {
@@ -69,7 +69,7 @@ describe("a schedule that dropped one pick and merged two", () => {
   describe("the removed pick", () => {
     it("stays a pick", () => {
       expect(handle.picks.get().has(removed.id)).toBe(true);
-      expect(document.getElementById("mineBadge").textContent).toBe("4");
+      expect(document.getElementById("plansBadge").textContent).toBe("4");
     });
     it("is in byId, and not in the events every list is drawn from", () => {
       expect(app.byId.get(removed.id).removed).toBe(true);
@@ -97,11 +97,11 @@ describe("a schedule that dropped one pick and merged two", () => {
       expect(app.eventsFor({ kind: "track", key: removed.tracks[0] }).some(e => e.id === removed.id)).toBe(false);
     });
 
-    describe("in Mine's list", () => {
+    describe("in Plans' list", () => {
       let rows;
       beforeAll(() => {
-        show("mine", { mineView: "list" });
-        rows = [...document.querySelectorAll("#view-mine .list > *")].filter(el => el.matches(".row, .gap, .day-head"));
+        show("plans", { mineView: "list" });
+        rows = [...document.querySelectorAll("#view-plans .list > *")].filter(el => el.matches(".row, .gap, .day-head"));
       });
 
       it("where its time puts it, between the other two", () => {
@@ -109,30 +109,30 @@ describe("a schedule that dropped one pick and merged two", () => {
         expect(ids.slice(0, 3)).toEqual([first.id, removed.id, last.id]);
       });
       it("struck through and saying why", () => {
-        const row = document.querySelector(`#view-mine .row[data-id="${removed.id}"]`);
+        const row = document.querySelector(`#view-plans .row[data-id="${removed.id}"]`);
         expect(row.classList.contains("removed")).toBe(true);
         expect(row.querySelector(".removed-tag").textContent).toBe("Removed from the schedule");
       });
       it("with no gap line on either side: first to last is an hour in one building, which needs none", () => {
-        expect(document.querySelectorAll("#view-mine .gap")).toHaveLength(0);
+        expect(document.querySelectorAll("#view-plans .gap")).toHaveLength(0);
       });
       it("Export to calendar takes the picks still on the schedule", async () => {
         const had = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
         URL.createObjectURL = blob => { exported = blob.text(); return "blob:x"; };
         URL.revokeObjectURL = () => {};
         HTMLAnchorElement.prototype.click = function () {};
-        try { document.querySelector('#view-mine [data-act="ics"]').click(); } finally { Object.assign(URL, { createObjectURL: had.create, revokeObjectURL: had.revoke }); HTMLAnchorElement.prototype.click = had.click; }
+        try { document.querySelector('#view-plans [data-act="ics"]').click(); } finally { Object.assign(URL, { createObjectURL: had.create, revokeObjectURL: had.revoke }); HTMLAnchorElement.prototype.click = had.click; }
         const text = await exported;
         for (const e of [first, last, survivor]) expect(text).toContain(`UID:dc${YY}-${e.id}@dragoncon-planner`);
         expect(text).not.toContain(`UID:dc${YY}-${removed.id}@`);
       });
       it("its sheet is marked as a cancelled event's is", () => {
-        document.querySelector(`#view-mine .row[data-id="${removed.id}"] .row-main`).click();
+        document.querySelector(`#view-plans .row[data-id="${removed.id}"] .row-main`).click();
         expect(document.querySelector("#panel-event .ev-head .removed-tag").textContent).toBe("Removed from the schedule");
         handle.closeSheet();
       });
       it("its sheet offers no way to the calendar, which a cancelled event's, like a live one's, still does", () => {
-        document.querySelector(`#view-mine .row[data-id="${removed.id}"] .row-main`).click();
+        document.querySelector(`#view-plans .row[data-id="${removed.id}"] .row-main`).click();
         expect(document.querySelector("#panel-event .removed-tag")).not.toBe(null);
         expect(document.getElementById("sheetICS")).toBe(null);
         handle.closeSheet();
@@ -146,11 +146,11 @@ describe("a schedule that dropped one pick and merged two", () => {
       });
     });
 
-    describe("in Mine's timeline", () => {
+    describe("in Plans' timeline", () => {
       let block;
       beforeAll(() => {
-        show("mine", { mineView: "timeline" });
-        block = document.querySelector(`#view-mine .tl-block[data-hero="${removed.id}"]`);
+        show("plans", { mineView: "timeline" });
+        block = document.querySelector(`#view-plans .tl-block[data-hero="${removed.id}"]`);
       });
 
       it("faded, and saying why where its room would be", () => {
@@ -166,7 +166,7 @@ describe("a schedule that dropped one pick and merged two", () => {
       it("says it was removed, and when and where it was, once", () => {
         const lines = news().filter(line => line.startsWith(removed.title));
         expect(lines).toHaveLength(1);
-        expect(lines[0]).toMatch(/was removed from the schedule\. It was Sat \d{1,2}:\d\d [AP]M, .+\. It stays in Mine, marked\./);
+        expect(lines[0]).toMatch(/was removed from the schedule\. It was Sat \d{1,2}:\d\d [AP]M, .+\. It stays in Plans, marked\./);
         expect(lines[0]).toContain(removed.location);
         expect(stored(`dc${YY}.pickInfo`)[removed.id].removed).toBe(true);
       });
@@ -180,10 +180,10 @@ describe("a schedule that dropped one pick and merged two", () => {
         const before = stored(`dc${YY}.pickNews`).length;
         handle.reconcilePicks();
         expect(stored(`dc${YY}.pickNews`)).toHaveLength(before);
-        document.querySelector('#view-mine [data-act="dismiss-news"]').click();
+        document.querySelector('#view-plans [data-act="dismiss-news"]').click();
         handle.reconcilePicks();
         handle.render();
-        expect(document.querySelector("#view-mine .pick-news")).toBe(null);
+        expect(document.querySelector("#view-plans .pick-news")).toBe(null);
         expect(stored(`dc${YY}.pickNews`)).toHaveLength(0);
       });
     });
@@ -207,9 +207,9 @@ describe("a schedule that dropped one pick and merged two", () => {
   describe("with only the removed pick left", () => {
     it("Export to calendar is off, and Remove all is on", () => {
       handle.picks.set([removed.id]);
-      show("mine", { mineView: "list" });
-      expect(document.querySelector('#view-mine [data-act="ics"]').disabled).toBe(true);
-      expect(document.querySelector('#view-mine [data-act="clear"]').disabled).toBe(false);
+      show("plans", { mineView: "list" });
+      expect(document.querySelector('#view-plans [data-act="ics"]').disabled).toBe(true);
+      expect(document.querySelector('#view-plans [data-act="clear"]').disabled).toBe(false);
     });
   });
 });

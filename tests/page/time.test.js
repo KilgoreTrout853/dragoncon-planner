@@ -65,12 +65,12 @@ describe("a page booted from ?now=", () => {
       expect(row && row.querySelector(".t .day").textContent).toBe("Sat");
       state.browse.q = "";
     });
-    it("Mine's list and timeline file it under the same day [672]", () => {
+    it("Plans' list and timeline file it under the same day [672]", () => {
       handle.picks.set([late.id]);
-      state.mineView = "list"; state.tab = "mine"; handle.render();
-      expect(document.querySelector("#view-mine .day-head").textContent.trim()).toMatch(/^Saturday/);
+      state.mineView = "list"; state.tab = "plans"; handle.render();
+      expect(document.querySelector("#view-plans .day-head").textContent.trim()).toMatch(/^Saturday/);
       state.mineView = "timeline"; handle.render();
-      expect(document.querySelector("#view-mine .tl-day .day-head").textContent.trim()).toMatch(/^Saturday/);
+      expect(document.querySelector("#view-plans .tl-day .day-head").textContent.trim()).toMatch(/^Saturday/);
     });
     it("the sheet keeps the date and names the night [674]", () => {
       handle.openSheet("event", late.id);

@@ -51,9 +51,9 @@ describe("a boot after a refresh that removed one pick and moved another", () =>
     expect(notice("now")).toMatch(/moved to/);
     expect(notice("now")).toMatch(/Westin Peachtree Ballroom/);
   });
-  it("Mine shows the same notice [741]", () => {
-    handle.state.tab = "mine"; handle.render();
-    expect(notice("mine")).toMatch(/Hazbin Hotel Cast/);
+  it("Plans shows the same notice [741]", () => {
+    handle.state.tab = "plans"; handle.render();
+    expect(notice("plans")).toMatch(/Hazbin Hotel Cast/);
   });
   it("the news is stored, so it survives a reload [742]", () => {
     expect(stored("dc26.pickNews")).toHaveLength(2);
@@ -65,14 +65,14 @@ describe("a boot after a refresh that removed one pick and moved another", () =>
     expect(stored("dc26.pickInfo")["ghost-1"]).toBeUndefined();
   });
   it("OK dismisses it for good [745]", () => {
-    document.querySelector('#view-mine [data-act="dismiss-news"]').click();
-    expect(document.querySelector("#view-mine .pick-news")).toBe(null);
+    document.querySelector('#view-plans [data-act="dismiss-news"]').click();
+    expect(document.querySelector("#view-plans .pick-news")).toBe(null);
     expect(stored("dc26.pickNews")).toHaveLength(0);
   });
   it("and a second look finds nothing new to report [746]", () => {
     handle.reconcilePicks();
     handle.render();
-    expect(document.querySelector("#view-mine .pick-news")).toBe(null);
+    expect(document.querySelector("#view-plans .pick-news")).toBe(null);
     expect(stored("dc26.pickNews")).toHaveLength(0);
   });
 });

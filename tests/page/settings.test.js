@@ -94,15 +94,15 @@ describe("the Settings sheet", () => {
     it("toggling re-measures the header and re-renders, so the timeline refits [1733]", () => {
       handle.closeSheet();
       handle.picks.set([handle.events.find(e => e._e > handle.now()).id]);
-      handle.state.tab = "mine"; handle.state.mineView = "timeline"; handle.render();
-      const block = document.querySelector("#view-mine .tl-block");
+      handle.state.tab = "plans"; handle.state.mineView = "timeline"; handle.render();
+      const block = document.querySelector("#view-plans .tl-block");
       const hdr = document.querySelector(".hdr");
       hdr.getBoundingClientRect = () => ({ height: 77, top: 0, left: 0, right: 0, bottom: 77, width: 0 });
       handle.openSheet("settings");
       el("bigText").click();
       expect(document.documentElement.style.getPropertyValue("--hdr-h")).toBe("77px");
-      expect(document.querySelector("#view-mine .tl-block")).toBeTruthy();
-      expect(document.querySelector("#view-mine .tl-block")).not.toBe(block);
+      expect(document.querySelector("#view-plans .tl-block")).toBeTruthy();
+      expect(document.querySelector("#view-plans .tl-block")).not.toBe(block);
       el("bigText").click();
       delete hdr.getBoundingClientRect;
       handle.picks.set([]);
