@@ -345,52 +345,75 @@ pass is closed.
 `docs/scope-2027.md`'s W44, a calendar alarm on each exported event, is
 2027: a small standalone pull request, for a free execution slot (#57).
 
-### 5. Where things live — in design (opened 2026-09-29)
+### 5. Where things live — in design → closing docs (PR #73)
 
-The recon: `docs/screens/recon.md`, the client's screens at `next` 7968d96.
+Opened in design on 2026-09-29, after the scope pass. The recon:
+`docs/screens/recon.md`, the client's screens at `next` 7968d96. The
+design is DECISIONS #62-#66 and `docs/screens/contract.md`, which names
+every wanted feature's home, section by section, and every entry point's
+way back.
 
-The UI's information architecture. There are five tabs today; For you,
-crews, a filter sheet and the building view need homes. No decisions yet.
+Five tabs in today's positions, Plans in Mine's slot (#62): Now, Search,
+Explore, Map, Plans. Crew is a dimension of every tab, not a place, and
+its management is Plans'. The bar is provisional, with a tripwire (#62).
 
-Waiting for a home (a W-id is `docs/scope-2027.md`'s):
+The sequence, each pull request small and shippable to the next site.
+W44, the calendar alarm, is not in it: a standalone pull request in a free
+execution slot (#57), which can run before any of this.
 
-- The crew screens: create, join - with a field to paste a link into
-  (Delivery) - your crews, who's going, and the overlay's look. Their data
-  and actions are built (`src/crews.js`; #56; `docs/sync/contract.md`,
-  section 8).
-- The notifications toggle.
-- The install nudge (below).
-- W1: the overlap warning at the moment of starring, and a mark on rows
-  that clash with the plan.
-- W3: For you, ranked first from the profile (#32).
-- W7: the parsed facets on the row and the sheet.
-- W13: the filter sheet, one button with a count badge, W8's topic axes
-  and W7's facet flags in it.
-- W16: the zero state, which shows a stranger the app in one screen.
-- W23: the crew Now board, invented here rather than rearranged; its
-  shape is open.
-- W32: the "what we store" page behind the gear, in three parts - what we
-  store, about this app, and the links: one to Dragon Con's official site
-  and app (#59) - and W45, delete my account, on it.
-- W42: a guest's "known for" line, on an event and on a person's page
-  (#59). Its data is built (#61): `known_for` in `people.json`, reviewed,
-  and the `people` block of `events.v2.json`; the screen is this
-  tentpole's.
-- The building view's screens, W38 to W41, with the map (#60).
+1. The docs: DECISIONS #62-#66 and `docs/screens/contract.md` - this pull
+   request.
+2. The bar: `mine` → `plans` - the tab, its view, its module and its
+   badge, and the tests' selectors (`docs/screens/recon.md`, section 10,
+   counts the files) - `--nav-h` measured and the five numbers derived
+   from it, and the opening tab by phase. Behaviour otherwise unchanged.
+   A phone check on the next site (contract, section 1).
+3. The quieter Now: leave-by out (#40) - the hero, the mini-bar, the map
+   card; streams; `SLACK_MIN`, `leave.js` → `walk.js`,
+   `currentLocation()` deleted - and the install nudge's gate (#65). A
+   hand check on the next site with a simulated clock (contract, sections
+   2 and 12).
+4. Plans, the crew: the header and its actions, join by a tapped and a
+   pasted link, the My day | Crew segment and the crew's day, and the sync
+   redraw on a crew change. A hand test with two browsers on dev (contract,
+   section 5).
+   - 4b. W28's `crews.js` action, one's own display name, and its place in
+     the header: a small follow-up.
+5. Crew everywhere: who's going on the sheet, crewmates' picks counted per
+   hotel on the Map, the crew section on Now; and W25, Share a day, in
+   Plans' action strip (contract, sections 2, 5, 6 and 7).
+6. The filter sheet, W13 (contract, section 3).
+7. The row and the sheet (#64): the three lines, the facets, W1's flag and
+   line, the chips and the place line as entry points at the hotel's
+   grain, W18's level where the data is, W42's line once its review has
+   merged (contract, sections 7 and 10).
+8. Explore's top: For you and the zero state, its source decided at its
+   design; W5's Mute beside Follow on a page; W6's cast group in Search and
+   in Following (contract, section 4).
+   - 8b. W2, the alternatives in the time a cancelled or moved pick
+     vacated, under the picks-changed notice on Now and Plans: its own
+     small pull request (contract, section 2).
+9. The gear: the about page, Delete my account with its migration, the
+   notifications toggle's slot (contract, section 9).
+10. The building view (#60): a short sequence of its own, the drawings a
+    side lane; the place line reaches the room's grain here (contract,
+    section 6).
+11. An accessibility sweep (#66) of what the pull requests above left;
+    then Playwright, from the execution slot.
 
-A requirement on every screen here, not a home: W43, accessibility -
-labels for screen readers, focus order, contrast, reduced motion and tap
-targets - checked by Playwright when it comes.
+The rename and the leave-by removal are the first two changes a reader
+sees: the group can tap the five tabs after PR 2 and the quieter Now after
+PR 3.
 
-The Now tab, mini-bar and map's next-pick card drop the leave-by countdown
-and keep the walk estimate and tight bands (#40).
-
-Open here, unscheduled (#40):
+Open here (contract, Open):
 
 - Crew status pings (W24, a checkpoint candidate). The build order stays
   picks → presence → pings (#10).
-- When the install nudge is shown (W36, W37 folded in): a standing line
-  on Now, or at the moment it earns itself.
+- ~~When the install nudge is shown (W36, W37 folded in): a standing line
+  on Now, or at the moment it earns itself.~~ Once the reader has a pick
+  (#65).
+- The crew's day beyond per-person lists, and the Now board beyond one
+  line per crewmate.
 
 ### 6. Delivery — not opened; last (#57)
 
@@ -401,7 +424,8 @@ of a push subscription, and Pages from Actions (#26).
 
 The install flow is W36 (`docs/scope-2027.md`), 2027, W37 folded in: its
 mechanics are Delivery's; what it says and when it shows are the install
-nudge's, waiting for a home in Where things live (#40, #57).
+nudge's, whose home is the top of Now, shown once the reader has a pick
+(#65; `docs/screens/contract.md`, section 2).
 
 Playwright (#24) may come forward as a standalone pull request in a free
 execution slot (#57): a real-browser test earns its place under a UI

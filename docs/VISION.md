@@ -52,7 +52,7 @@ with the people they came with. Otherwise it is out, however good it is.
 ## Pillars
 
 ### 1. Plan
-What 2026 did, sharpened. Search, star, follow, Now, Mine and Map stay.
+What 2026 did, sharpened. Search, star, follow, Now, Plans and Map stay.
 New: overlap detection ("you can't make both"), alternatives in the same
 time slot when a pick is cancelled or moved (#40), and a real "For you"
 built from follows plus similarity computed in the pipeline.
