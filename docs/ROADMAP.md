@@ -372,7 +372,7 @@ execution slot (#57), which can run before any of this.
    card; streams; `SLACK_MIN`, `leave.js` → `walk.js`,
    `currentLocation()` deleted - and the install nudge's gate (#65). A
    hand check on the next site with a simulated clock (contract, sections
-   2 and 12).
+   2 and 12) - built (PR #76).
 4. Plans, the crew: the header and its actions, join by a tapped and a
    pasted link, the My day | Crew segment and the crew's day, and the sync
    redraw on a crew change. A hand test with two browsers on dev (contract,

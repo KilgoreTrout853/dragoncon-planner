@@ -42,6 +42,21 @@ describe("src/styles.css", () => {
     });
   });
 
+  /* New rules, not ledger rows (DECISIONS #40): the leave-by's colours are
+     gone, and the hero's line is its time in gold and what follows it
+     quieter, in warn for a gap under the walk or an overlap. */
+  describe("the quieter Now: no leave-by, and the hero's band", () => {
+    it("no rule marks anything late any more", () => {
+      expect(css).not.toMatch(/\.late\b/);
+    });
+    it("the hero's line: its time in gold, what follows in the muted weight, the two warn bands in warn", () => {
+      expect(css).toMatch(/\.hero \.hwhen \{[^}]*color: var\(--gold\)/);
+      expect(css).toMatch(/\.hero \.hthen \{[^}]*font-weight: 400/);
+      expect(css).toMatch(/\.hero \.hthen\.warn, \.hero \.hthen\.warn b \{ color: var\(--warn\)/);
+      expect(css).not.toMatch(/\.hleave/);
+    });
+  });
+
   describe("the control strip: two rows of two, one footprint", () => {
     it("the actions row is two equal columns [436]", () => {
       expect(css).toMatch(/\.plans-actions \{[^}]*grid-template-columns: 1fr 1fr/);
@@ -156,12 +171,6 @@ describe("src/styles.css", () => {
     });
   });
 
-  describe("Map fixes", () => {
-    it("a late leave-by on the map card is in the warn colour [1581, the CSS half]", () => {
-      expect(css).toMatch(/\.next-card \.nc-when\.late \{ color: var\(--warn\)/);
-    });
-  });
-
   describe("polish 1: a compact header", () => {
     it("in the clock style at a smaller size that follows the phone's width, and it never wraps [1620]", () => {
       expect(css).toMatch(/\.hdr \.hdr-line \{[^}]*white-space: nowrap/);
@@ -241,9 +250,11 @@ describe("src/styles.css", () => {
       expect(css).toMatch(/\.next-on \{[^}]*white-space: nowrap/);
       expect(css).toMatch(/\.next-on \{[^}]*text-overflow: ellipsis/);
     });
-    it("leave-by in gold, warn colour when late [1774]", () => {
-      expect(css).toMatch(/\.next-card \.nc-when\.leave \{ color: var\(--gold\)/);
-      expect(css).toMatch(/\.next-card \.nc-when\.late \{ color: var\(--warn\)/);
+    /* 1581's CSS half, the late leave-by in warn, is merged into this one:
+       the card no longer says when to leave (DECISIONS #40). */
+    it("the timing line has one look: no leave-by in gold, and nothing late in warn [1774, and 1581, the CSS half]", () => {
+      expect(css).toMatch(/\.next-card \.nc-when \{[^}]*font-weight: 700/);
+      expect(css).not.toMatch(/\.nc-when\.(leave|late)/);
     });
     it("the title is row style, up to two lines [1779]", () => {
       expect(css).toMatch(/\.next-card \.nc-title \{[^}]*-webkit-line-clamp: 2/);

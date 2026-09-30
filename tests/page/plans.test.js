@@ -83,6 +83,21 @@ describe("Plans", () => {
       });
     });
 
+    /* The quieter Now's stream rule at its third site (DECISIONS #40): no
+       walk, no band, no link. A new test, not a ledger row. */
+    it("a stream has no walk, so no walk link runs to or from it; two picks in two hotels keep theirs", () => {
+      const sat = handle.events.filter(e => e._cd === "2026-09-05" && !e.cancelled), placed = e => !!app.MAP_HOTELS[e.hotel];
+      const stream = sat.find(s => s.hotel === "Streaming" && sat.some(e => placed(e) && e._e <= s._s));
+      const before = sat.filter(e => placed(e) && e._e <= stream._s).pop();
+      const after = sat.find(e => placed(e) && e._s >= stream._e && e.hotel !== before.hotel);
+      const links = () => [...plans().querySelectorAll(".tl-link span")].map(s => s.textContent.trim());
+      handle.picks.set([before.id, after.id]); handle.render();
+      expect(links()).toEqual([`${app.walkMin(before.hotel, after.hotel)} min`]);
+      handle.picks.set([before.id, stream.id, after.id]); handle.render();
+      expect(links()).toEqual([]);
+      handle.picks.set([first.id]); handle.render();
+    });
+
     /* The harness matched fitTimelineBlocks' source. What it does is
        measurable once a block reports a height: jsdom never does, so give it
        one. */

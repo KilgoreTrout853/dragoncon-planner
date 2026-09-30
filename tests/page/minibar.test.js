@@ -43,9 +43,11 @@ describe("the mini-bar", () => {
     it("mini-bar room uses the hotel hue [236]", () => {
       expect(bar.querySelector(".mb-room").getAttribute("style") || "").toMatch(/var\(--h-/);
     });
-    it("mini-bar says leave-by only while a pick is on [238]", () => {
+    it("with a pick on, the mini-bar still says how long until the next starts, never when to leave [238]", () => {
       const on = handle.events.some(e => handle.picks.get().has(e.id) && e._s <= at && at < e._e && e.hotel !== "Streaming");
-      expect(bar.querySelector(".mb-when").textContent.trim()).toMatch(on ? /^leave (by|now)/ : /^in \d+ (min|h)/);
+      expect(on, "a pick is on").toBe(true);
+      expect(bar.querySelector(".mb-when").textContent.trim()).toBe(`in ${app.fmtMins(Math.round((later._s - at) / 60000))}`);
+      expect(bar.classList.contains("late")).toBe(false);
     });
     /* read from the stylesheet the helper injects, as the harness read it from the built page's */
     it("mini-bar is 48px tall [239]", () => {

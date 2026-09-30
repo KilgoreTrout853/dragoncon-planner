@@ -185,6 +185,49 @@ and [841], which boot with no picks and expect the nudge; `now.test.js`'s
 hero suite. PRs 3 (the hero and the nudge's gate), 5 (the crew section)
 and 8b (W2).
 
+### Now, as built
+
+PR #76, with #40 and #65: the hero and the nudge's gate. The crew section
+(PR 5) and W2 (PR 8b) are still to come.
+
+- **The hero** (`now.js` `heroHTML()`, `thenHTML()`). The ring counts to
+  the end of the pick that is on, else to the start of the next, as
+  before; `.late` is gone, and `ringHTML()`'s parameter with it. The line
+  is one: its time in gold, `.hwhen`, and what follows it quieter,
+  `.hthen`. At the default crowd factor, 1.3, the walk from the Hyatt to
+  the Hilton is 16 minutes and one building's own 7:
+
+  | The pair | The line |
+  |---|---|
+  | A pick on, the next today in another building, no band | ends 2:00 PM · then Hilton at 3:00 PM, ~16 min walk |
+  | … the gap under the walk and the slack | ends 2:00 PM · then Hilton at 2:20 PM: 20 min gap, ~16 min walk. Tight but doable |
+  | … the gap under the walk | ends 2:00 PM · then Hilton at 2:10 PM: 10 min to get there, ~16 min walk, in warn |
+  | … the next starting before this one ends | ends 3:00 PM · then Hilton at 2:30 PM: overlaps by 30 min, in warn |
+  | A pick on, the next in the same building | the same bands at the building's own minutes; with none, ends 2:00 PM · then Hyatt next |
+  | A pick on, a stream either side | no walk, so no connection: ends 2:00 PM · then Hilton next, or then `<title>` next for a stream, which has no building; or the overlap, which is time, not walking |
+  | A pick on, nothing after it today | ends 2:00 PM |
+  | Nothing on | starts 3:00 PM, and under it, muted, the walk from the pick before: ~12 min from the Westin |
+
+  The band is `walk.js` `connection()`'s for the pair, which `gapHTML()`
+  reads too, so the hero and the gap line under it - Rest of your day's
+  first, measured from the hero - never hold two opinions about one pair:
+  the hero is a card, the gap line a list, and both stay. An overlap is the
+  two picks' intersection, the earlier end less the later start, so a
+  10-minute session inside a 4-hour game overlaps by 10. The gap under the
+  walk and an overlap are in warn, `.hero .hthen.warn`, as the gap line
+  marks them; tight but doable stays quiet in both. Nothing says when to
+  leave.
+- **The nudge** (`nudgeVisible()`) shows while `picks.size > 0`, never
+  before: a star brings it, and unstarring the last pick takes it away.
+  Its wordings and the seven-day snooze are unchanged. `nowSignature()`
+  reads it, so the minute tick redraws when it comes or goes.
+- **The tests.** `tests/page/walk.test.js`, section 12's; `nudge.test.js`:
+  the boots behind [838] to [846] find a pick in storage, as a returning
+  reader's phone would, so that none passes for want of one, and new tests
+  boot with nothing starred - no nudge; a star brings it; unstarring takes
+  it away. `now.test.js` [637]: with only a Sunday pick after it, the hero
+  says when it ends and names nothing next.
+
 ## 3. Search, and the filter sheet
 
 As built: the recon, section 2, Search, items 1 to 15.
@@ -412,7 +455,10 @@ caller; section 5, the gap line.
   appears at the moment of starring, on a row or in the sheet, and
   persists; an unstarred row carries none. The check runs over every pick,
   not the consecutive pair `gapHTML()` sees; the helper's home is PR 7's
-  stop 1 to propose.
+  stop 1 to propose. What an overlap is, is settled (PR #76): `walk.js`
+  `connection()`'s, the two picks' intersection, the one computation the
+  hero and the gap line read - the row PR words the flag from it and does
+  not compute it again.
 - **Facets** (W7) are flags on line 3 and words on the sheet (section 7).
 - **The gap line** stays: `leave.js` `gapHTML()` - `walk.js` from PR 3 -
   says the walk and the two tight bands between rows, never on a row, and
@@ -474,6 +520,71 @@ Moves: `leave.js`, `venues.js`, `now.js`, `shell.js`, `map.js`,
 pair" and "streaming next"; `style.test.js` [1581] and [1774];
 `imports.test.js`'s `ORDER`. PR 3.
 
+### Removals, as built
+
+PR #76, with #40.
+
+- **The leave-by is gone** from its three sites, and from `map.js`
+  `mapNowState()`: the hero (section 2, as built); the mini-bar
+  (`shell.js` `renderMiniBar()`), "in 47 min" by `fmtMins()` alone; and
+  the map card (`map.js` `mapCardHTML()`), "3:00 PM · in 47 min", or the
+  start alone for a later day, and the walk from the pick before,
+  `walkEstimate()`, which now shows with a pick on elsewhere too, where
+  the leave-by stood. A stream as the next pick has its start alone on the
+  mini-bar and the card, and its title on the hero. With it went the CSS
+  that coloured it: `.hleave` - the hero's line is `.hwhen` - the five
+  `.late` rules and `.nc-when.leave`.
+- **`walk.js`** is `leave.js`, moved by `git mv`:
+  - `walkEstimate(next)`, what was left of `leaveInfo()`: the walk from
+    the pick before today, when that was another building, as
+    `{walk, from, label}`, else null;
+  - `connection(prev, next)`, the tight-connection flag, as
+    `{walk, gap, band}`: the band `"overlap"` for any pair, a stream
+    included, with `overlap` its minutes, the two picks' intersection -
+    the earlier end less the later start, #64's one computation of an
+    overlap; and otherwise, where there is a walk, `"cant"` under it or
+    `"tight"` under it and `SLACK_MIN`; a pair with no walk, a stream
+    either side, has no connection, null;
+  - `gapHTML()`, which reads its band from `connection()`: byte for byte
+    what it said before, but for two named exceptions - a stream's pair
+    within the slack, which said "about 0 min. Tight but doable" and says
+    nothing now; and a pick inside the one above, which overlapped by the
+    time to the other's end and now overlaps by its own length;
+  - `nextPickInConDay()`, unchanged, and `previousPick()`, private.
+
+  `leave.js` and `walk.js` are 24% alike, and their tests 25%, so after
+  the squash `git log --follow` crosses the renames with `-M20%`.
+- **Plans' timeline** draws no walk link to or from a stream (`plans.js`
+  `timelineDayHTML()`): no walk, no band, no link, the stream rule at its
+  third site. It drew one reading "0 min".
+- **`currentLocation()` is deleted** with its last reader: nothing in the
+  app says where the reader is.
+- **`SLACK_MIN`** is `venues.js`'s name for the venues file's `slack_min`.
+  `ORDER` has `walk` in `leave`'s place.
+- **The tests.** `tests/page/walk.test.js` is `leave.test.js`, moved: the
+  leave-by formula's and `currentLocation()`'s cases deleted, ledger rows
+  125, 126 and 145 to 148; the rest kept, a pick on now's rewritten for
+  the new words; the hero in each band, in two buildings and in one,
+  against pairs the fixture has at 1:05 PM, and the gap line under it
+  giving the pair the same band; a stream after the pick on and one
+  overlapping it; a pick inside the one that is on, overlapping by its own
+  length on the hero and on the gap line; nothing on the three surfaces
+  saying leave or marked late; and `gapHTML()` pinned against the code it
+  replaced, with its two exceptions, over every pair of the fixture's
+  events a few hours apart and over made pairs at every gap from a
+  40-minute overlap to 40 minutes apart, and a half hour inside four.
+  `plans.test.js`: two picks in two hotels keep their walk link, and a
+  stream between them leaves no link to or from it. `minibar.test.js`
+  has no late case: its one leave-by case, [238], and `map.test.js`'s
+  [1548], [1580], [1581] and [1771] now read the countdown and the walk
+  line; "a streaming next" asserted nothing the removal changed, since the
+  card never gave a stream a leave-by, and stands. `style.test.js`: [1774]
+  rewritten - the card's timing line has one look - with [1581]'s CSS half
+  merged into it, and two new rules, no `.late` rule anywhere and the
+  hero's line. [191] stands. A mutation pass restored the leave-by in
+  `heroHTML()`, and [197], the three bands' tests and the no-leave test
+  failed; every other mutant of the pass was caught too.
+
 ## 13. Waiting on data
 
 As built: the recon, section 3, what the event panel does not carry.
@@ -498,5 +609,9 @@ As built: the recon, section 8, what crews' readers offer today.
 - W16's source: a hand-curated file the pipeline validates, or a computed
   list - the Explore PR's call.
 - Which day Share a day shares, and its link's shape (W25).
+- How an offsite pick is named in a line: the hero says "then Other
+  next" and "then Other at 3:00 PM", as it did before PR #76, where the
+  walk estimate and the map's On now line name its venue - the row PR's
+  (PR 7), which settles how a row and a line name a place.
 
 **Home of:** W24.

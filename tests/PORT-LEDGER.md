@@ -19,7 +19,15 @@ that names it; the titles that named the tab name Plans - 449, 498, 672,
 741, 917, 1658 and 1970 - and 934's says what it pins, the five ids;
 1631's loop takes `plans`, 1733's rewrite names Plans' timeline, and the
 four control-strip rules, 436 to 445, read `.plans-actions`, their titles
-unchanged. The tables' counts are as of 4b-ii, and
+unchanged. Amended in the quieter Now (2026-09-30, DECISIONS #40, #65),
+which retires the leave-by: `page/leave.test.js` is `page/walk.test.js`
+in every row that names it; 125 and 126, the leave-by's formula, and 145
+to 148, `currentLocation()`, are deleted in place - the first (a) rows
+whose behaviour was retired rather than moved - each marked so; 186,
+197, 199, 200, 238, 637, 1548, 1580, 1581, 1771 and 1774 are rewritten
+for the new words and 116 for `SLACK_MIN`, their titles following;
+1557, 1578 and 1768 are retitled; and the nudge's rows, 838 to 846, boot
+with a pick (#65). The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
@@ -83,7 +91,7 @@ The brief's counts are executed assertions, not call sites: (c) is 35 sites but 
 
 ## Deletes
 
-17, every one class (d). Nothing in (a) or (e) is deleted.
+17, every one class (d). Nothing in (a) or (e) is deleted. That is the port's count: since, the quieter Now (2026-09-30) deleted six (a) rows in place, 125, 126 and 145 to 148, whose behaviour DECISIONS #40 retired; their rows say so, and this table does not list them.
 
 | line | message | why |
 |---:|---|---|
@@ -200,7 +208,7 @@ Sites are call sites that survive (port + rewrite) plus what splitting adds; mer
 | `tests/page/explore.test.js` | 4b-ii | 53 | 53 |  | sample | jsdom |  |
 | `tests/page/follows.test.js` | 4b-ii | 70 | 70 |  | sample | jsdom |  |
 | `tests/page/ics.test.js` | 4b-ii | 4 | 4 |  | sample | jsdom |  |
-| `tests/page/leave.test.js` | 4b-ii | 20 | 20 |  | sample | jsdom |  |
+| `tests/page/walk.test.js` | 4b-ii | 20 | 20 |  | sample | jsdom |  |
 | `tests/page/map.test.js` | 4b-ii | 96 | 96 |  | sample | jsdom |  |
 | `tests/page/plans.test.js` | 4b-ii | 19 | 19 | 2 | sample | jsdom |  |
 | `tests/page/minibar.test.js` | 4b-ii | 17 | 17 |  | sample | jsdom |  |
@@ -294,30 +302,30 @@ One row per call site, in harness order, under the harness's own section comment
 | 113 | a | ring dashoffset within its circumference (…/…) | `page/now.test.js` | 4b-ii | dom | port |
 | 114 | a | hero kicker reads On now or Your next | `page/now.test.js` | 4b-ii | dom | port |
 | 115 | a | hero room uses the hotel hue | `page/now.test.js` | 4b-ii | dom | port |
-| 116 | a | LEAVE_BUFFER_MIN is 10 | `unit/misc.test.js` | 4b-i | import | port |
-| 125 | a | leave-by = start - walk - buffer (… = … + 10) | `page/leave.test.js` | 4b-ii | handle | port |
-| 126 | a | no leave-by for a next pick in the hotel you are already in | `page/leave.test.js` | 4b-ii | handle | port |
-| 145 | a | currentLocation is the hotel of the pick that is on now | `page/leave.test.js` | 4b-ii | handle | port |
-| 146 | a | a pick that ended … minutes ago says nothing about where you are | `page/leave.test.js` | 4b-ii | handle | port |
-| 147 | a | and nothing picked is nowhere | `page/leave.test.js` | 4b-ii | handle | port |
-| 148 | a | chain.streamFound ? "a stream that is on says nothing either: you could be an… | `page/leave.test.js` | 4b-ii | handle | port. the sample fixture has no stream on at 1:05 PM, so the harness ran this with nothing picked and said so in its message. currentLocation takes the moment as an argument: the test asks about a minute when a stream is on, so the rule is tested for the first time |
-| 150 | d | nothing infers a location from a pick that ended, and no 90-minute window rem… | `page/leave.test.js` | 4b-ii |  | **delete** greps currentLocation's body for a 90-minute window that was removed; the behaviour is 146-148 (an ended pick, no picks and a stream all give null) |
+| 116 | a | SLACK_MIN is 10, the slack in the tight band | `unit/misc.test.js` | 4b-i | import | port; renamed in the quieter Now (#40): the slack is all it is |
+| 125 | a | leave-by = start - walk - buffer (… = … + 10) | `page/walk.test.js` | 4b-ii | handle | port; **deleted** in the quieter Now: the leave-by it tested is retired (#40) |
+| 126 | a | no leave-by for a next pick in the hotel you are already in | `page/walk.test.js` | 4b-ii | handle | port; **deleted** in the quieter Now: the leave-by it tested is retired (#40) |
+| 145 | a | currentLocation is the hotel of the pick that is on now | `page/walk.test.js` | 4b-ii | handle | port; **deleted** in the quieter Now: `currentLocation()` is deleted, and nothing says where the reader is (#40) |
+| 146 | a | a pick that ended … minutes ago says nothing about where you are | `page/walk.test.js` | 4b-ii | handle | port; **deleted** in the quieter Now: `currentLocation()` is deleted, and nothing says where the reader is (#40) |
+| 147 | a | and nothing picked is nowhere | `page/walk.test.js` | 4b-ii | handle | port; **deleted** in the quieter Now: `currentLocation()` is deleted, and nothing says where the reader is (#40) |
+| 148 | a | chain.streamFound ? "a stream that is on says nothing either: you could be an… | `page/walk.test.js` | 4b-ii | handle | port. the sample fixture has no stream on at 1:05 PM, so the harness ran this with nothing picked and said so in its message. currentLocation takes the moment as an argument: the test asks about a minute when a stream is on, so the rule is tested for the first time; **deleted** in the quieter Now: `currentLocation()` is deleted, and nothing says where the reader is (#40) |
+| 150 | d | nothing infers a location from a pick that ended, and no 90-minute window rem… | `page/walk.test.js` | 4b-ii |  | **delete** greps currentLocation's body for a 90-minute window that was removed; the behaviour is 146-148 (an ended pick, no picks and a stream all give null) |
 
 ### no guessing: the hero, the mini-bar and the map, with and without a pick on now
 
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
-| 186 | a | with nothing on, leaveInfo gives no leave-by, only a walk estimate from the p… | `page/leave.test.js` | 4b-ii | handle | port |
-| 188 | a | the hero has no leave-by line (…) | `page/leave.test.js` | 4b-ii | handle | port |
-| 190 | a | its ring counts down to the start (… for … min) | `page/leave.test.js` | 4b-ii | handle | port |
-| 191 | a | the walk estimate is a muted line (…) | `page/leave.test.js` | 4b-ii | handle | port. split: handle half (the walk line's text) stays; the `.hero .hthen` colour → style rule. The split half in `rules/style.test.js` lands in 4b-i |
-| 192 | a | the mini-bar counts down (…) | `page/leave.test.js` | 4b-ii | handle | port |
-| 193 | a | the map's card counts down to the start and the map keeps the next ring (…) | `page/leave.test.js` | 4b-ii | handle | port |
-| 195 | a | no walk estimate when the previous pick was in the same hotel | `page/leave.test.js` | 4b-ii | handle | port |
-| 196 | a | and none without a previous pick today | `page/leave.test.js` | 4b-ii | handle | port |
-| 197 | a | with a pick on, the hero says leave the hotel you are in, and its ring runs t… | `page/leave.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page |
-| 199 | a | the mini-bar says leave by (…) | `page/leave.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page |
-| 200 | a | and the map's card says so too, with both rings (…) | `page/leave.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page |
+| 186 | a | with nothing on, walkEstimate gives the walk from the previous pick, as an estimate | `page/walk.test.js` | 4b-ii | handle | port; rewritten in the quieter Now (#40): `walkEstimate()`, what was left of `leaveInfo()` |
+| 188 | a | the hero has no leave-by line (…) | `page/walk.test.js` | 4b-ii | handle | port |
+| 190 | a | its ring counts down to the start (… for … min) | `page/walk.test.js` | 4b-ii | handle | port |
+| 191 | a | the walk estimate is a muted line (…) | `page/walk.test.js` | 4b-ii | handle | port. split: handle half (the walk line's text) stays; the `.hero .hthen` colour → style rule. The split half in `rules/style.test.js` lands in 4b-i |
+| 192 | a | the mini-bar counts down (…) | `page/walk.test.js` | 4b-ii | handle | port |
+| 193 | a | the map's card counts down to the start and the map keeps the next ring (…) | `page/walk.test.js` | 4b-ii | handle | port |
+| 195 | a | no walk estimate when the previous pick was in the same hotel | `page/walk.test.js` | 4b-ii | handle | port |
+| 196 | a | and none without a previous pick today | `page/walk.test.js` | 4b-ii | handle | port |
+| 197 | a | with a pick on, the hero says when it ends, then where the next is, when, and the walk, and its ring runs to the end | `page/walk.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page; rewritten in the quieter Now (#40): the hero's line, worked out in the test from the pair - its end, the next's building, start and walk - on a pair with room to spare |
+| 199 | a | with a pick on, the mini-bar still counts down to the next start | `page/walk.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page; rewritten in the quieter Now (#40): `in N min`, as with nothing on |
+| 200 | a | and the map's card counts down too, with the walk from the pick on and both rings | `page/walk.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page; rewritten in the quieter Now (#40): the countdown, the walk from the pick on, and both rings |
 | 210 | a | more than six picks in play (…) | `page/now.test.js` | 4b-ii | handle | port |
 | 211 | a | all picks render, no 6-cap (hero + … rows for … picks) | `page/now.test.js` | 4b-ii | handle | port |
 | 212 | a | remaining picks render as a compact list | `page/now.test.js` | 4b-ii | dom | port |
@@ -334,7 +342,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 234 | a | mini-bar shows on Browse when a pick remains today | `page/minibar.test.js` | 4b-ii | dom | port |
 | 235 | a | mini-bar names the next pick | `page/minibar.test.js` | 4b-ii | handle | port |
 | 236 | a | mini-bar room uses the hotel hue | `page/minibar.test.js` | 4b-ii | dom | port |
-| 238 | a | mini-bar says leave-by only while a pick is on (…: …) | `page/minibar.test.js` | 4b-ii | handle | port |
+| 238 | a | with a pick on, the mini-bar still says how long until the next starts, never when to leave | `page/minibar.test.js` | 4b-ii | handle | port; rewritten in the quieter Now (#40): `in N min`, worked out in the test, and no late class |
 | 239 | a | mini-bar is 48px tall | `page/minibar.test.js` | 4b-ii | dom | port |
 | 240 | a | body reserves room for the bar | `page/minibar.test.js` | 4b-ii | dom | port |
 | 243 | a | tapping the mini-bar switches to Now | `page/minibar.test.js` | 4b-ii | handle | port |
@@ -519,7 +527,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 634 | a | with Saturday picks too, the hero is today's next | `page/now.test.js` | 4b-ii | handle | port |
 | 635 | a | the rest of the day is today's only (… rows) | `page/now.test.js` | 4b-ii | handle | port |
 | 636 | a | and the count is today's, not every pick (…) | `page/now.test.js` | 4b-ii | handle | port |
-| 637 | a | an on-now hero does not tell you to leave for a Sunday event (…) | `page/now.test.js` | 4b-ii | handle | port |
+| 637 | a | an on-now hero with only a Sunday pick after it says when it ends, and names nothing next | `page/now.test.js` | 4b-ii | handle | port; rewritten in the quieter Now (#40): the line is exactly the end |
 
 ### one definition of "day": the con day, which runs to 5am, everywhere
 
@@ -602,15 +610,15 @@ One row per call site, in harness order, under the harness's own section comment
 
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
-| 838 | a | outside a home-screen install, Now opens with the nudge | `page/nudge.test.js` | 4b-ii | handle | port. shares the nudge boot; isStandalone is untouched in this row |
-| 839 | a | and an installed app never shows it | `page/nudge.test.js` | 4b-ii | provoke | **rewrite** bootPage({matchMedia: q => /standalone/.test(q)}): isStandalone() is true from import, and Now has no #nudge (replaces reassigning isStandalone) |
-| 840 | a | Not now hides it for a week | `page/nudge.test.js` | 4b-ii | handle | port. isStandalone untouched |
-| 841 | a | after which it comes back | `page/nudge.test.js` | 4b-ii | handle | port. isStandalone untouched |
+| 838 | a | outside a home-screen install, Now opens with the nudge | `page/nudge.test.js` | 4b-ii | handle | port. shares the nudge boot; isStandalone is untouched in this row; the boot finds a pick in storage since the quieter Now (#65) |
+| 839 | a | and an installed app never shows it, though there is a pick | `page/nudge.test.js` | 4b-ii | provoke | **rewrite** bootPage({matchMedia: q => /standalone/.test(q)}): isStandalone() is true from import, and Now has no #nudge (replaces reassigning isStandalone); with a pick in storage since the quieter Now, so that it cannot pass for want of one (#65) |
+| 840 | a | Not now hides it for a week | `page/nudge.test.js` | 4b-ii | handle | port. isStandalone untouched; the boot finds a pick in storage since the quieter Now (#65) |
+| 841 | a | after which it comes back | `page/nudge.test.js` | 4b-ii | handle | port. isStandalone untouched; the boot finds a pick in storage since the quieter Now (#65) |
 | 842 | a | the iOS copy covers the chat-app browser and never offers a button it cannot … | `unit/misc.test.js` | 4b-i | import | port. nudgeCopy is pure |
 | 843 | a | with a browser install prompt in hand, Android gets a real Install button | `unit/misc.test.js` | 4b-i | import | port. nudgeCopy is pure |
 | 844 | a | anything else gets the generic wording | `unit/misc.test.js` | 4b-i | import | port. nudgeCopy is pure |
-| 845 | a | here, with no prompt captured, there is no Install button | `page/nudge.test.js` | 4b-ii | handle | port. isStandalone untouched |
-| 846 | d | the browser install prompt is captured for the button to fire | `page/nudge.test.js` | 4b-ii | provoke | **rewrite** dispatch a cancelable beforeinstallprompt on window: it comes back defaultPrevented, Now gains [data-act=nudge-install], and tapping it calls the event's prompt() |
+| 845 | a | here, with no prompt captured, there is no Install button | `page/nudge.test.js` | 4b-ii | handle | port. isStandalone untouched; the boot finds a pick in storage since the quieter Now (#65) |
+| 846 | d | the browser install prompt is captured for the button to fire | `page/nudge.test.js` | 4b-ii | provoke | **rewrite** dispatch a cancelable beforeinstallprompt on window: it comes back defaultPrevented, Now gains [data-act=nudge-install], and tapping it calls the event's prompt(); the boot finds a pick in storage since the quieter Now (#65) |
 
 ### last sweep: durations read as plans, the placeholder fits, offsite venues lose their marker
 
@@ -970,10 +978,10 @@ One row per call site, in harness order, under the harness's own section comment
 | 1540 | b css | and holds still under reduced motion | `rules/style.test.js` | 4b-i | rule | port |
 | 1541 | a | no dashed line and no route, in the SVG or the source: the rings, the pills a… | `page/map.test.js` | 4b-ii | dom | port. split: dom half (no .map-leave, no .map-route) stays; the source/page grep for removed names is history → deleted |
 | 1544 | a | rings over the blocks, pills over everything | `page/map.test.js` | 4b-ii | dom | port |
-| 1548 | a | the card under the map says when to leave the building you are in (…) | `page/map.test.js` | 4b-ii | handle | port |
+| 1548 | a | with a pick on in another building, the card under the map still counts down to the next start | `page/map.test.js` | 4b-ii | handle | port; rewritten in the quieter Now (#40): the countdown, where the leave-by was |
 | 1550 | a | directly under the SVG sits the card | `page/map.test.js` | 4b-ii | dom | port |
 | 1553 | a | no rings on another day; the card stays, it is about now | `page/map.test.js` | 4b-ii | dom | port |
-| 1557 | a | with nowhere to leave from, the next ring stays and the card counts down (…) | `page/map.test.js` | 4b-ii | handle | port |
+| 1557 | a | with only the next pick, the next ring stays and the card counts down | `page/map.test.js` | 4b-ii | handle | port; retitled in the quieter Now |
 | 1561 | a | with no next pick, only the now ring; the On now line stays and the card says… | `page/map.test.js` | 4b-ii | handle | port |
 | 1562 | d | the minute tick goes through tickMap | `page/map.test.js` | 4b-ii | provoke | **rewrite** fake timers: advance the app's own 60-second interval on the Map tab with a new pick in another hotel: the pills change; with nothing new the <svg> node is the same node |
 
@@ -981,13 +989,13 @@ One row per call site, in harness order, under the harness's own section comment
 
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
-| 1578 | a | found a pair to be late for | `page/map.test.js` | 4b-ii | handle | port |
-| 1580 | a | late: the card says leave now (…) | `page/map.test.js` | 4b-ii | handle | port |
-| 1581 | a | in the warn colour | `page/map.test.js` | 4b-ii | dom | port. split: dom half (.nc-when.late exists) stays; its colour → style rule. The split half in `rules/style.test.js` lands in 4b-i |
+| 1578 | a | found a pick on and a next one five minutes out, in another building | `page/map.test.js` | 4b-ii | handle | port; retitled in the quieter Now |
+| 1580 | a | five minutes out, the card counts down, and says nothing about leaving | `page/map.test.js` | 4b-ii | handle | port; rewritten in the quieter Now (#40): `… · in 5 min`, where it said leave now |
+| 1581 | a | and nothing on it is marked late | `page/map.test.js` | 4b-ii | dom | port. split: dom half (.nc-when.late exists) stays; its colour → style rule. The split half in `rules/style.test.js` lands in 4b-i; in the quieter Now (#40) the dom half reads that nothing is marked late, and the CSS half is merged into 1774's rewrite |
 | 1591 | a | found a stream to pick next | `page/map.test.js` | 4b-ii | handle | port |
 | 1592 | a | a streaming next shows Streaming as its room, counts down, and gets no next r… | `page/map.test.js` | 4b-ii | handle | port |
 | 1595 | a | and the pick off the map is counted right under the card (…) | `page/map.test.js` | 4b-ii | dom | port |
-| 1599 | a | an offsite next shows its venue as the room (…; …) | `page/map.test.js` | 4b-ii | handle | port |
+| 1599 | a | an offsite next shows its venue as the room (…; …) | `page/map.test.js` | 4b-ii | handle | port; its argument follows `mapCardState()`'s shape since the quieter Now |
 | 1606 | a | ten picks at the Courtland make a two-digit pill | `page/map.test.js` | 4b-ii | handle | port |
 | 1607 | a | and it stays inside the canvas (right edge …) | `page/map.test.js` | 4b-ii | dom | port |
 | 1608 | a | no off-map line when every pick is on the map | `page/map.test.js` | 4b-ii | dom | port |
@@ -1078,12 +1086,12 @@ One row per call site, in harness order, under the harness's own section comment
 | 1765 | a | the card shows the next pick (…) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
 | 1766 | a | room and hotel in the hotel's own hue, the same var as its block (…; …) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
 | 1767 | a | the timing line is the start and how long until it (…) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
-| 1768 | a | the walk estimate is a muted line when leaveInfo has one (…) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
+| 1768 | a | the walk estimate is a muted line when there is one | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find; retitled in the quieter Now |
 | 1769 | a | nothing is on, so no On now line and no day label | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
-| 1771 | a | with a pick on in another hotel, the timing line says when to leave it (…) | `page/map.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page |
+| 1771 | a | with a pick on in another hotel, the timing line still counts down, and the walk line is from the pick on | `page/map.test.js` | 4b-ii | handle | port. the expected time is worked out in the test - the next pick's start, less the walk, less ten minutes - not read back from leaveInfo, so a wrong buffer shows as a wrong time on the page; rewritten in the quieter Now (#40): the countdown, and the walk line from the pick on |
 | 1772 | a | and a slim line above names what is on now (…) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
 | 1773 | b css | truncated to one line | `rules/style.test.js` | 4b-i | rule | port |
-| 1774 | b css | leave-by in gold, warn colour when late | `rules/style.test.js` | 4b-i | rule | port |
+| 1774 | b css | the timing line has one look: no leave-by in gold, and nothing late in warn | `rules/style.test.js` | 4b-i | rule | port; rewritten in the quieter Now (#40): neither rule exists, and 1581's CSS half is merged into it |
 | 1776 | a | nothing left today: the first pick of tomorrow, labelled, time only (…: …) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
 | 1777 | a | a pick two days out is labelled with its day (…) | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
 | 1778 | a | no picks at all: how to get one, and nothing to tap | `page/map.test.js` | 4b-ii | handle | port. byId → handle.events.find |
@@ -1121,10 +1129,10 @@ One row per call site, in harness order, under the harness's own section comment
 
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
-| 1876 | a | the hero's room line reads hotel, dot, room (…) | `page/leave.test.js` | 4b-ii | handle | port |
-| 1877 | a | and so does the mini-bar (…) | `page/leave.test.js` | 4b-ii | handle | port |
-| 1878 | a | and the map's card, which used to put the room first (…) | `page/leave.test.js` | 4b-ii | handle | port |
-| 1879 | d | one helper serves rows, sheet, hero, mini-bar and card | `page/leave.test.js` | 4b-ii |  | **delete** a removed helper's name plus a count of placeHTML( call sites; the behaviour is 1819-1826 and 1876-1878 |
+| 1876 | a | the hero's room line reads hotel, dot, room (…) | `page/walk.test.js` | 4b-ii | handle | port |
+| 1877 | a | and so does the mini-bar (…) | `page/walk.test.js` | 4b-ii | handle | port |
+| 1878 | a | and the map's card, which used to put the room first (…) | `page/walk.test.js` | 4b-ii | handle | port |
+| 1879 | d | one helper serves rows, sheet, hero, mini-bar and card | `page/walk.test.js` | 4b-ii |  | **delete** a removed helper's name plus a count of placeHTML( call sites; the behaviour is 1819-1826 and 1876-1878 |
 
 ### one clock: now(), the ?now= override, and the phase of the con
 

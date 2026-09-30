@@ -1,10 +1,10 @@
 import { esc, fmtMins, fmtShort, minutesBetween } from "./util.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, conEnded, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
-import { hotelPhrase, hotelShort, hotelVar, placeHTML } from "./venues.js";
+import { hotelShort, hotelVar, placeHTML } from "./venues.js";
 import { events } from "./data.js";
 import { picks } from "./picks.js";
-import { currentLocation, leaveInfo } from "./leave.js";
+import { walkEstimate } from "./walk.js";
 import { chipHTML } from "./ui.js";
 import { chipRowsRestore, chipRowsSnapshot } from "./scroll.js";
 import { nowModel } from "./now.js";
@@ -50,13 +50,12 @@ function mapPillSVG(hotel, b, n) {
 }
 
 /* What today's overlay is made of, computed once per render: the on-now and
-   next picks, where the reader is, and the hero's leave-by. Null on any day
-   but the one the clock is in. */
+   next picks. Null on any day but the one the clock is in. */
 function mapNowState(day) {
   const at = now();
   if (day !== conDayKey(at)) return null;
-  const model = nowModel(at), next = model.upcoming[0] || null, from = currentLocation(at);
-  return {now: at, onNow: model.onNowEv, next, from, info: leaveInfo(from, next, at)};
+  const model = nowModel(at);
+  return {now: at, onNow: model.onNowEv, next: model.upcoming[0] || null};
 }
 /* A solid gold ring on the hotel of the pick that is on now, a pulsing one on
    the hotel of the next pick. A next pick off the map gets no ring. */
@@ -71,38 +70,33 @@ function mapRingsSVG(st) {
   return (st.onNow ? ring(st.onNow.hotel, "now") : "") + (st.next ? ring(st.next.hotel, "next") : "");
 }
 /* The card under the map: the next pick, as the hero sees it - the same
-   nowModel, the same leaveInfo. It shows whichever day the map has selected,
-   because it is about now, not about the day being looked at. With nothing
-   left today it shows the first pick of the next con day; with no picks at
-   all, how to get one. */
+   nowModel, the same walk estimate: its start, how long until it, and the
+   walk from the pick before, never when to leave (DECISIONS #40). It shows
+   whichever day the map has selected, because it is about now, not about
+   the day being looked at. With nothing left today it shows the first pick
+   of the next con day; with no picks at all, how to get one. */
 function mapCardState() {
   const at = now(), model = nowModel(at), today = conDayKey(at);
   const next = model.upcoming[0] || null;
   const later = next ? null : (events.find(e => picks.has(e.id) && e._s > at && conDayKey(e._s) > today) || null);
-  const from = currentLocation(at);
-  return {now: at, onNow: model.onNowEv, next, later, from, info: next ? leaveInfo(from, next, at) : null};
+  return {now: at, onNow: model.onNowEv, next, later, estimate: next ? walkEstimate(next) : null};
 }
 function mapCardHTML(cs) {
   if (conEnded()) return "";                 // nothing is next any more
-  const {now, onNow, next, later, info} = cs;
+  const {now, onNow, next, later, estimate} = cs;
   const onLine = onNow ? `<button class="next-on" data-hero="${esc(onNow.id)}">On now: <b>${esc(onNow.title)}</b> &middot; ends ${fmtShort(onNow._e)} &middot; ${esc(onNow.hotel === "Other" ? (onNow.room || "offsite") : hotelShort(onNow.hotel))}</button>` : "";
   const ev = next || later;
   if (!ev) return onLine + `<div class="next-card empty">Star things in Search and your next pick shows here.</div>`;
-  let label = "", when, cls = "";
+  let label = "", when;
   if (!next) {
     const dayKey = conDayKey(ev._s), tomorrow = conDayKey(new Date(now.getTime() + 24 * 3600000));
     label = `<div class="nc-label">${dayKey === tomorrow ? "Tomorrow" : esc(DAY_LONG[dayKey] || dayKey)}</div>`;
     when = fmtShort(ev._s);
-  } else if (info && info.leaveBy && info.walk > 0) {
-    /* A leave-by only for a walk that exists: a stream has nowhere to go. */
-    const here = onNow && onNow.hotel === "Other" ? esc(onNow.room || "here") : esc(hotelPhrase(info.from));
-    cls = info.late ? " leave late" : " leave";
-    when = info.late ? `leave ${here} now` : `leave ${here} by ${fmtShort(info.leaveBy)}`;
   } else {
     when = `${fmtShort(ev._s)} &middot; in ${fmtMins(minutesBetween(now, ev._s))}`;
   }
-  const walk = next && info && info.estimate ? `<div class="nc-walk">${esc(info.estimate.label)}</div>` : "";
-  return onLine + `<button class="next-card" data-hero="${esc(ev.id)}" style="--h:var(${hotelVar(ev.hotel)})">${label}<div class="nc-title">${esc(ev.title)}</div><div class="nc-where">${placeHTML(ev)}</div><div class="nc-when${cls}">${when}</div>${walk}</button>`;
+  const walk = estimate ? `<div class="nc-walk">${esc(estimate.label)}</div>` : "";
+  return onLine + `<button class="next-card" data-hero="${esc(ev.id)}" style="--h:var(${hotelVar(ev.hotel)})">${label}<div class="nc-title">${esc(ev.title)}</div><div class="nc-where">${placeHTML(ev)}</div><div class="nc-when">${when}</div>${walk}</button>`;
 }
 const offLineHTML = off => off ? `<div class="map-offmap">${off} pick${off === 1 ? "" : "s"} streaming or offsite</div>` : "";
 /* Picks that day at venues the map does not draw: streams and offsite. */
@@ -155,9 +149,8 @@ function mapSignature(day, st, counts) {
 }
 function mapCardSignature(cs, off) {
   const ev = cs.next || cs.later;
-  return JSON.stringify([cs.onNow && cs.onNow.id, cs.next && cs.next.id, cs.later && cs.later.id, cs.from,
-    cs.info && cs.info.leaveBy ? [String(cs.info.leaveBy), cs.info.late] : ev ? minutesBetween(cs.now, ev._s) : null,
-    cs.info && cs.info.estimate ? cs.info.estimate.label : null, off]);
+  return JSON.stringify([cs.onNow && cs.onNow.id, cs.next && cs.next.id, cs.later && cs.later.id,
+    ev ? minutesBetween(cs.now, ev._s) : null, cs.estimate ? cs.estimate.label : null, off]);
 }
 function tickMap() {
   const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day), cs = mapCardState();

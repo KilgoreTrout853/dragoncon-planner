@@ -157,8 +157,6 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .next-card .nc-title { font-size: 1.125rem; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .next-card .nc-where { margin-top: 4px; font-size: .875rem; font-weight: 700; color: var(--h); }
 .next-card .nc-when { margin-top: 4px; font-size: .9375rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.next-card .nc-when.leave { color: var(--gold); }
-.next-card .nc-when.late { color: var(--warn); }
 .next-card .nc-walk { margin-top: 2px; font-size: .8125rem; color: var(--muted); }
 .next-card.empty { color: var(--muted); font-size: .9375rem; cursor: default; }
 .map-offmap { padding-top: 6px; font-size: .875rem; color: var(--muted); }
@@ -444,21 +442,23 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .hero .ring svg { transform: rotate(-90deg); display: block; }
 .hero .ring .track-c { stroke: var(--line); }
 .hero .ring .prog { stroke: var(--gold); transition: stroke-dashoffset .6s linear; }
-.hero.late .ring .prog { stroke: var(--warn); }
 .hero .ring .num {
   position: absolute; inset: 0; display: grid; place-items: center; line-height: 1;
   font-size: 1.0625rem; font-weight: 700; color: var(--gold);
 }
-.hero.late .ring .num { color: var(--warn); }
 .hero .ring .num small { display: block; font-size: .625rem; font-weight: 600; color: var(--muted); }
 .hero .hbody { display: grid; gap: 5px; min-width: 0; flex: 1; }
 .hero .hkicker { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .hero .htitle { font-size: 1.1875rem; font-weight: 700; line-height: 1.2; }
 .hero .hroom { font-size: .9375rem; font-weight: 700; color: var(--h); }
-.hero .hleave { font-size: .9375rem; font-weight: 700; color: var(--gold); }
-.hero.late .hleave { color: var(--warn); }
-.hero .hthen { font-size: .8125rem; color: var(--muted); }
+/* One line: when it ends or starts, then, quieter, what comes after it. */
+.hero .hwhen { font-size: .9375rem; font-weight: 700; color: var(--gold); }
+.hero .hthen { font-size: .8125rem; font-weight: 400; color: var(--muted); }
 .hero .hthen b { color: var(--text); font-weight: 700; }
+/* The gap under the walk, or an overlap: the warn colour the gap line marks
+   those two bands with (DECISIONS #40). Tight but doable stays quiet there,
+   and here. */
+.hero .hthen.warn, .hero .hthen.warn b { color: var(--warn); }
 .list.compact .row-main { padding-top: 8px; padding-bottom: 8px; }
 .list.compact .snippet { display: none; }
 @media (prefers-reduced-motion: reduce) { .hero .ring .prog { transition: none; } }
@@ -489,7 +489,6 @@ body.has-minibar .update-pill { bottom: calc(var(--nav-h) + 13px + var(--minibar
    Above the nav, clear of the mini-bar, and it takes no taps. */
 .devmark { position: fixed; right: 10px; bottom: calc(var(--nav-h) + 5px); z-index: 7; pointer-events: none; padding: 3px 9px; border-radius: 999px; background: var(--warn); color: var(--ink); font-size: .6875rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; opacity: .85; }
 body.has-minibar .devmark { bottom: calc(var(--nav-h) + 5px + var(--minibar-h)); }
-.minibar.late .mb-when { color: var(--warn); }
 
 
 /* Timeline: the day as a column, so gaps and clashes have a shape */

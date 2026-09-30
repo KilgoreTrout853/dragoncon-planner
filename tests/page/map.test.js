@@ -349,13 +349,11 @@ describe("the Map tab", () => {
   });
 
   describe("step 4: now and next", () => {
-    let on, next, label;
+    let on, next;
     beforeAll(() => {
       on = handle.events.find(e => e._s <= at && at < e._e && onMap(e));
       next = handle.events.find(e => e._s > at && app.conDayKey(e._s) === today && onMap(e) && e.hotel !== on.hotel);
       state.tab = "map"; setPicks([on.id, next.id]);
-      const info = app.leaveInfo(app.currentLocation(at), next, at);
-      label = info.late ? `leave ${app.hotelPhrase(on.hotel)} now` : `leave ${app.hotelPhrase(on.hotel)} by ${app.fmtShort(info.leaveBy)}`;
     });
     afterAll(() => setPicks([]));
 
@@ -371,9 +369,9 @@ describe("the Map tab", () => {
       expect(order.indexOf("map-hotel")).toBeLessThan(order.indexOf("map-ring"));
       expect(order.indexOf("map-ring")).toBeLessThan(order.lastIndexOf("map-pill"));
     });
-    it("the card under the map says when to leave the building you are in [1548]", () => {
-      expect(cardWhen()).toBe(label);
-      expect(map().querySelector(".nc-when.leave")).toBeTruthy();
+    it("with a pick on in another building, the card under the map still counts down to the next start [1548]", () => {
+      expect(cardWhen()).toBe(`${app.fmtShort(next._s)} · in ${app.fmtMins(Math.round((next._s - at) / 60000))}`);
+      expect(map().querySelector(".nc-when").className).toBe("nc-when");
     });
     it("directly under the SVG sits the card [1550]", () => {
       expect(svg().nextElementSibling).toBe(map().querySelector(".map-under"));
@@ -385,7 +383,7 @@ describe("the Map tab", () => {
       expect(map().querySelector(".next-card")).toBeTruthy();
       state.map.day = null; handle.render();
     });
-    it("with nowhere to leave from, the next ring stays and the card counts down [1557]", () => {
+    it("with only the next pick, the next ring stays and the card counts down [1557]", () => {
       setPicks([next.id]);
       expect(rings()).toBe(`next:${next.hotel}`);
       expect(cardWhen()).toBe(`${app.fmtShort(next._s)} · in ${app.fmtMins(Math.round((next._s - at) / 60000))}`);
@@ -401,29 +399,29 @@ describe("the Map tab", () => {
   describe("fixes", () => {
     afterAll(() => { handle.setTimeOverride("2026-09-05T13:05"); state.tab = "map"; setPicks([]); });
 
-    describe("a late pair: stand five minutes before the next pick starts", () => {
-      let late;
+    describe("five minutes out: stand five minutes before the next pick starts, with a pick on in another building", () => {
+      let pair;
       beforeAll(() => {
         const pad = n => String(n).padStart(2, "0");
         const sat = handle.events.filter(e => e._cd === "2026-09-05" && onMap(e));
         for (const nx of sat) {
           if (nx._s < new Date("2026-09-05T14:00")) continue;
           const t = new Date(nx._s.getTime() - 5 * 60000), on = sat.find(e => e.hotel !== nx.hotel && e._s <= t && t < e._e);
-          if (on) { late = { on, nx, at: `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}T${pad(t.getHours())}:${pad(t.getMinutes())}` }; break; }
+          if (on) { pair = { on, nx, at: `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}T${pad(t.getHours())}:${pad(t.getMinutes())}` }; break; }
         }
-        if (late) { handle.picks.set([late.on.id, late.nx.id]); handle.setTimeOverride(late.at); }
+        if (pair) { handle.picks.set([pair.on.id, pair.nx.id]); handle.setTimeOverride(pair.at); }
       });
       afterAll(() => handle.setTimeOverride("2026-09-05T13:05"));
 
-      it("found a pair to be late for [1578]", () => {
-        expect(late).toBeTruthy();
+      it("found a pick on and a next one five minutes out, in another building [1578]", () => {
+        expect(pair).toBeTruthy();
       });
-      it("late: the card says leave now [1580]", () => {
+      it("five minutes out, the card counts down, and says nothing about leaving [1580]", () => {
         expect(state.tab).toBe("map");
-        expect(cardWhen()).toBe(`leave ${app.hotelPhrase(late.on.hotel)} now`);
+        expect(cardWhen()).toBe(`${app.fmtShort(pair.nx._s)} · in 5 min`);
       });
-      it("and is marked late [1581, the page half]", () => {
-        expect(map().querySelector(".nc-when.late")).toBeTruthy();
+      it("and nothing on it is marked late [1581, the page half]", () => {
+        expect(map().querySelector(".nc-when").className).toBe("nc-when");
       });
     });
 
@@ -452,7 +450,7 @@ describe("the Map tab", () => {
 
     it("an offsite next shows its venue as the room [1599]", () => {
       const holder = document.createElement("div");
-      holder.innerHTML = app.mapCardHTML({ now: handle.now(), onNow: null, later: null, from: null, info: { leaveBy: null, late: false, estimate: null },
+      holder.innerHTML = app.mapCardHTML({ now: handle.now(), onNow: null, later: null, estimate: null,
         next: { id: "x", title: "Arcade night", hotel: "Other", room: "Joystick Gamebar", _s: new Date(handle.now().getTime() + 30 * 60000) } });
       expect(holder.querySelector(".nc-where").textContent).toBe("Joystick Gamebar");
       expect(holder.querySelector(".nc-when").textContent).toMatch(/ · in 30 min$/);
@@ -557,18 +555,17 @@ describe("the Map tab", () => {
       expect(plain.when).toBe(`${app.fmtShort(next._s)} · in ${app.fmtMins(Math.round((next._s - at) / 60000))}`);
       expect(plain.whenCls).not.toMatch(/leave/);
     });
-    it("the walk estimate is a muted line when leaveInfo has one [1768]", () => {
+    it("the walk estimate is a muted line when there is one [1768]", () => {
       expect(plain.walk).toBe(`~${app.walkMin(prev.hotel, next.hotel)} min from ${app.hotelPhrase(prev.hotel)}`);
     });
     it("nothing is on, so no On now line and no day label [1769]", () => {
       expect(plain.on).toBe(null);
       expect(plain.label).toBe(null);
     });
-    it("with a pick on in another hotel, the timing line says when to leave it [1771]", () => {
-      const leaveBy = new Date(next._s.getTime() - (app.walkMin(on.hotel, next.hotel) + 10) * 60000), late = at >= leaveBy;
-      expect(onNow.when).toBe(late ? `leave ${app.hotelPhrase(on.hotel)} now` : `leave ${app.hotelPhrase(on.hotel)} by ${app.fmtShort(leaveBy)}`);
-      expect(onNow.whenCls).toMatch(/leave/);
-      expect(/late/.test(onNow.whenCls)).toBe(late);
+    it("with a pick on in another hotel, the timing line still counts down, and the walk line is from the pick on [1771]", () => {
+      expect(onNow.when).toBe(`${app.fmtShort(next._s)} · in ${app.fmtMins(Math.round((next._s - at) / 60000))}`);
+      expect(onNow.whenCls).toBe("nc-when");
+      expect(onNow.walk).toBe(`~${app.walkMin(on.hotel, next.hotel)} min from ${app.hotelPhrase(on.hotel)}`);
     });
     it("and a slim line above names what is on now [1772]", () => {
       expect(onNow.on).toBe(`On now: ${on.title} · ends ${app.fmtShort(on._e)} · ${app.hotelShort(on.hotel)}`);
