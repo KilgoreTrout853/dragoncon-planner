@@ -639,7 +639,9 @@ PR #56, with #53.
   of owner or with no session. Those two are asked only while Plans is the
   tab or the crew panel is open - since PR #81, while Now, the Map or
   Plans is the tab, or the crew panel or an event's sheet is open, whose
-  who's-going line `render()` refills in place: a redraw rebuilds
+  who's-going line `render()` refills in place - and since PR #82 a
+  hotel's sheet, whose crew it refills in place too
+  (`docs/screens/contract.md`, section 8, as built): a redraw rebuilds
   Explore's grid, its filter box with it, and a crewmate's star should not
   take the caret from a reader typing there (ROADMAP, Flags), and Search
   draws no crew. The tab's own draw shows the rest when it is tapped.
@@ -1474,7 +1476,9 @@ Since PR #77 they exist on Plans: the crew header, the crew panel -
 create, join by a tapped or a pasted link, and manage - and the crew's
 day (`docs/screens/contract.md`, section 5, as built); since PR #81 who's
 going is a line on the event's sheet, and the crew is on Now and the Map
-too (`docs/screens/contract.md`, sections 2, 6 and 7, as built).
+too (`docs/screens/contract.md`, sections 2, 6 and 7, as built); since
+PR #82 the hotel sheet lists the crew's picks at the hotel
+(`docs/screens/contract.md`, section 8, as built).
 
 - **The creator cannot leave;** the creator's Leave is Delete crew. The
   policies let a creator delete their own membership (section 3, as
@@ -1630,7 +1634,9 @@ PR #62, with #56.
     since `crews.js` comes before the schedule and the clock (DECISIONS
     #29): a pick it does not hold - removed, or never there - is no one's.
     `goingTo()` draws who's going on the event's sheet since PR #81, and
-    `crewmatesByEvent()` the Map's crew count.
+    `crewmatesByEvent()` the Map's crew count - and, since PR #82, the
+    hotel sheet's Your crew here, from the same walk (`map.js`
+    `mapCrewPicks()`).
 
   Since PR #77 `applyPulledCrews()` says whether anything a crew screen
   draws changed - the members compared by id, the stars alone - and

@@ -393,8 +393,10 @@ execution slot (#57), which can run before any of this.
      crew, and to an open event's sheet (Flags) - built (PR #81).
    - 5b. W25, Share a day, in Plans' action strip: still to come, designed
      on its own.
-   - 5c. The hotel sheet's crew: still to come, designed in chat
-     (contract, sections 8 and 14).
+   - 5c. The hotel sheet's crew: Your crew here under the reader's own
+     picks, a line a crewmate's pick, the head's count the pill's, refilled
+     in place by a pull, and an open hotel sheet counted in the crew
+     redraw's gate - built (PR #82; contract, section 8, as built).
 6. The filter sheet, W13 (contract, section 3).
 7. The row and the sheet (#64): the three lines, the facets, W1's flag and
    line, the chips and the place line as entry points at the hotel's
@@ -478,17 +480,22 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   stays. Search's box is kept across a redraw. PR #77 asks for a crew's
   redraw only while Plans or the crew panel is on screen for this reason;
   since PR #81, while Now, the Map or Plans is the tab, or the crew panel
-  or an event's sheet is open - never on Search or Explore alone. An
-  event's sheet open over Explore draws Explore again behind it, where
-  focus is in the sheet and the filter box keeps its text. The picks path
-  is as it was. Keeping Explore's filter box across a redraw, which lifts
+  or an event's sheet is open - and since PR #82 a hotel's - never on
+  Search or Explore alone. An event's or a hotel's sheet open over Explore
+  draws Explore again behind it, where focus is in the sheet and the filter
+  box keeps its text. The picks path is as it was. Keeping Explore's filter box across a redraw, which lifts
   the gate, is step 8's (Explore's top).
 - A pull that changes the reader's own pick of an open event leaves the
   sheet's star stale until the sheet is reopened - a tap on it meanwhile
   does what the pick as kept calls for, not what the star shows:
   `render()` never drew the event's panel again, and since PR #81 refills
   only its who's-going line. It predates PR #81, and `sheet.js`
-  `refreshEventSheet()` is where the fix goes.
+  `refreshEventSheet()` is where the fix goes. An open hotel sheet is the
+  same: a pull that changes the reader's own picks leaves its rows, their
+  stars and its own count as drawn, since PR #82 refills only what it draws
+  of the crew - "with you" on a crew line follows the picks, the rows above
+  it do not. It predates PR #82 too, and `refreshHotelSheet()` is where
+  that fix goes.
 
 ## Checklist
 

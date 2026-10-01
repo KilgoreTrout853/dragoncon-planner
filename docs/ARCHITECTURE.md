@@ -58,7 +58,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/now.js`, `browse.js`, `explore.js`, `map.js`, `plans.js` | The five views, one per tab (`browse` is the Search tab). |
 | `src/scroll.js`, `bus.js` | The scroller, the header's measurement and focus found again after a redraw; how a module below the shell asks for a redraw. |
 | `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data, read and written through `crews.js`; `syncAfter()`, the run the crew panel waits for after an action; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
-| `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the seven crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks, the reader's own row in a crew, and each crewmate's pick on now or next. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel and who's going `sheet.js`'s, the crew on Now `now.js`'s and on the Map `map.js`'s. A leaf. |
+| `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the seven crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks, the reader's own row in a crew, and each crewmate's pick on now or next. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel, who's going and the hotel sheet's crew `sheet.js`'s, the crew on Now `now.js`'s and on the Map `map.js`'s. A leaf. |
 | `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `ui.js` | The nineteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
@@ -146,7 +146,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `docs/pipeline/` | Pipeline shape (ROADMAP tentpole 1): `contract.md`, the design note for DECISIONS #41-#48 - the 2027 pipeline's files, with their writers and readers, the raw row, the ledger, the change log and the stages - decided, and built so far for `season.json` and `venues.json` (ROADMAP, PR 2), `source.json`, the fetch (PR 3), `ids.jsonl`, the ids stage (PR 4), `events.v2.json`, the build (PR 6), `tags.cache.jsonl`, the tag stage (PR 7a), and `changes.jsonl`'s lines, the diff (PR 7b); its evidence, `history-2026.md`, how the 2026 schedule changed from commit to commit on `main` and how scrape.yml ran, written by `tools/schedule_history.py`; and `replay-2026.md`, the ids stage run over that history by `tools/replay_2026.py`, #43's verification. Both are records, not held fresh by CI: a shallow checkout has no history, and the history will not change. |
 | `docs/prototypes/` | Throwaway sketches kept as a record: `building-view-motion-r6.html`, round 6 of the building view's motion sketch (DECISIONS #28; PR #67), one standalone page that nothing in the app, the build or the tests reads, its level data a hand copy superseded by `data/2027/drawings/`; and `README.md`, which says so. Not held fresh by CI. |
 | `docs/scope-2027.md` | The scope pass (DECISIONS #57), by hand: section 1, what the app does on `next` today, one row a feature; section 2, every feature wanted for 2027 - VISION's, those the docs defer, hold or leave open, and the design chat's catalogue's, and Part B's - each with its sources, its state, and the design chat's description, test and verdict; section 3, the verdicts: 2027, the spring checkpoint's candidates in rank order, and out; and two appendices, the catalogue as brought in, and what the sweep found and left out. A record, not held fresh by CI. |
-| `docs/screens/` | Where things live (ROADMAP tentpole 5): `recon.md`, the client's screens as they stood when the design opened, `next` at 7968d96 - the shell, the five tabs top to bottom, the sheet's three panels, the row and its callers, leave-by and the walk on screen, routes and stored keys, the stranger's view, crews' seam, the layout and what pins the screens - a record, written by hand, not held fresh by CI; and `contract.md`, the design note for DECISIONS #62-#66 - the tabs, each screen's as built, as designed and what it moves, the row, the entry points and their backs, the removals, what waits on data, and each wanted feature's one home - decided, and built so far for the shell (section 1, PR #74), the quieter Now (sections 2 and 12, PR #76), Plans' crew (section 5, PR #77) and the crew everywhere - Now, the Map and the event's sheet (sections 2, 6 and 7, PR #81) - each with its "as built"; ROADMAP, tentpole 5, has its pull requests. |
+| `docs/screens/` | Where things live (ROADMAP tentpole 5): `recon.md`, the client's screens as they stood when the design opened, `next` at 7968d96 - the shell, the five tabs top to bottom, the sheet's three panels, the row and its callers, leave-by and the walk on screen, routes and stored keys, the stranger's view, crews' seam, the layout and what pins the screens - a record, written by hand, not held fresh by CI; and `contract.md`, the design note for DECISIONS #62-#66 - the tabs, each screen's as built, as designed and what it moves, the row, the entry points and their backs, the removals, what waits on data, and each wanted feature's one home - decided, and built so far for the shell (section 1, PR #74), the quieter Now (sections 2 and 12, PR #76), Plans' crew (section 5, PR #77), the crew everywhere - Now, the Map and the event's sheet (sections 2, 6 and 7, PR #81) - and the hotel sheet's crew (section 8, PR #82), each with its "as built"; ROADMAP, tentpole 5, has its pull requests. |
 | `docs/sync/` | Identity and sync (ROADMAP tentpole 4), built, its operations track trailing: `recon.md`, the client as it stood when the design opened, `next` at c860f38 - every key it stores and whether each is expected to sync, every site that changes picks or follows, the clock, the refresh hooks, install and notifications, the channel stamp, a change log for 2026 sized, and the backend's absence - a record, written by hand, not held fresh by CI; and `contract.md`, the design note for DECISIONS #50-#56 - identity, the data model, security and migrations, the sync rules, the mirror job, the push job and crews' client layer, each with its "as built" (PRs #54, #55, #56, #57, #59, #60, #61 and #62). |
 | `docs/venues/` | The venues curation (DECISIONS #21, #27, #28, #45, #58): `README.md`, the floor-plan checklist, kept by hand - every hotel × level where programming happens, which published floor plan covers the level, our local copy of it, what Dragon Con's own map shows of it and the state of our own drawing, with the notes on plans and drawings; `drawings/`, the level drawings of `data/2027/drawings/` as `tools/render_drawings.py` draws them, for checking by eye - sizes from the hotels' tables, placement from the hotel's own floor plan, held locally under `reference/plans/` - the Hilton's five levels so far, in one frame; and `census-2026.md`, the room census - every location of the frozen schedule read by the venues step against `data/2026/venues.json`, with the curation worklist, written by `tools/room_census.py`. The rooms, aliases and level notes are the venues file's, and the drawings' geometry is `data/2027/drawings/`'s; `registry.json` is retired (#45). The census and the drawings are records, not held fresh by CI: an edit to the venues file or a drawing leaves them stale until their script runs again. |
 | `reference/` | Local copies of other people's drawings, gitignored but for its README, which says how a new clone rebuilds them: the hotels' floor plans in `plans/`, at the paths `docs/venues/README.md` records; screenshots of single levels in `shots/`, for a drawing's underlay; and the official Dragon Con app's maps in `dragoncon/` - one PNG per venue with every floor on it, and `maps.json`, where the app outlines each room: Dragon Con's room name, the polygon in image pixels, the door points and the 2026 event count. `maps.json` says which rooms the con uses and their names, and places a hotel with no plan of its own; the PNGs are for the eye only (#28, #67). Never committed - none of it is ours. |
@@ -483,7 +483,9 @@ reader is, or when to leave. `search`: the two MiniSearch
 indexes (MiniSearch is an npm dependency, pinned to 7.2.0), the reading of a
 query, the ranking, and `AXIS_LABELS`, the only place an axis slug becomes a
 label. `ui`:
-markup every view shares, `rowHTML()` and `chipHTML()`. Five read storage,
+markup every view shares, `rowHTML()`, `chipHTML()` and, since PR #82,
+`crewLineHTML()`, a crewmate's pick as a line, which Now's crew section and
+the hotel sheet's both draw. Five read storage,
 the document or `navigator` as they are imported: `platform`, `build`,
 `state`, `picks`, `follows`.
 
@@ -518,9 +520,9 @@ waits for after an action, one that began after it; and two lines in Keep
 your plan, the status and, after a refused Sign out, what still waits. It
 stands above the bus, because a pull that changed the plan asks for a
 redraw - one that changed what a crew screen draws, only while Now, the
-Map or Plans is the tab, or the crew panel or an event's sheet is open,
-which it reads from `state` and the sheet's markup: never on Search or
-Explore alone. The outbox stands
+Map or Plans is the tab, or the crew panel, an event's sheet or a hotel's
+is open, which it reads from `state` and the sheet's markup: never on
+Search or Explore alone. The outbox stands
 below `picks` and `follows`, whose doors call it, so a drain it starts
 after a tap is followed by no pull: the next trigger's run pulls.
 
@@ -534,7 +536,9 @@ Plans shows (`chosenCrew()`) and in what order a crew's members are
 listed (`crewPeople()`), for the crew panel too; each time it draws, it
 gives focus back, by id, to its own control that had it (DECISIONS #66).
 On a build with a backend `now` draws the crew's section, Your crew right
-now, and `map` the crew counted per hotel; both give focus back to the
+now, and `map` the crew counted per hotel, from `mapCrewPicks()`, each
+crewmate's pick at each hotel on a day, which the hotel sheet lists too;
+both give focus back to the
 control that had it, as `scroll`'s `focusKey()` finds it, each time they
 draw and at the minute's tick.
 
@@ -555,8 +559,11 @@ from what the pull kept; `openKeptJoin()` opens its join step for a kept
 invite at boot, and `refreshCrewPanel()` refills it when `render()` runs.
 An event's panel says who in the reader's crews is going, and
 `refreshEventSheet()` refills that line alone, in place, when `render()`
-runs. `closeSheet()` asks for its redraw over the bus. It looks up the eight
-sheet elements as it is imported.
+runs. A hotel's panel lists the crew's picks there under the reader's own,
+on the day it was drawn for, which it keeps; `refreshHotelSheet()` writes
+what it draws of the crew in place when `render()` runs. `closeSheet()`
+asks for its redraw over the bus. It looks up the eight sheet elements as
+it is imported.
 
 **`loading`** is loading, freshness and offline: `load()` and the idle index
 build, `BOOT`, the header's freshness line (`updateFresh()`), the update
@@ -566,7 +573,7 @@ the first draw over the bus. It looks up `#updatePill` as it is imported.
 
 **`shell`** is what is on screen whatever the tab: `render()`, which redraws
 the page from `state` and is what the bus calls, the open crew panel with
-it and an open event's who's-going line; the header's clock, the notice and the mini-bar; `setTimeOverride()`;
+it, an open event's who's-going line and an open hotel's crew; the header's clock, the notice and the mini-bar; `setTimeOverride()`;
 `setOpeningTab()`, the tab the app opens on - Plans for a kept invite;
 `togglePick()`; the iOS edge
 guard; and the handlers for the tab bar - a tap on Plans starts a sync
@@ -730,7 +737,9 @@ drawn from the reader's picks. The jump chips follow the scroll through a spy th
 runs once per animation frame.
 
 **The sheet.** One bottom sheet, four panels: Settings, an event's detail, a
-hotel's picks for the day, and on a build with a backend a crew - create,
+hotel's picks for the day - on a build with a backend the crew's there
+under them (`docs/screens/contract.md`, section 8, as built) - and on a
+build with a backend a crew - create,
 join and manage (`docs/screens/contract.md`, section 5, as built). On a
 build with a backend an event's detail says who in the reader's crews is
 going, a line a pull refills in place (section 7, as built). Swipe
