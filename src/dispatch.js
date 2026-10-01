@@ -1,8 +1,9 @@
 /* Dispatch: the handlers whose bodies reach across modules, so that no one
    module below could hold them. The four delegated listeners on main - click,
    input, keydown, change - which are about whatever view is on screen; the
-   clicks inside the sheet's event and hotel panels; Apply and Clear for the
-   preview clock; the hash; and the minute tick. boot() registers all ten. It
+   clicks inside the sheet's event, hotel and shared-day panels; Apply and
+   Clear for the preview clock; the hash; and the minute tick. boot()
+   registers all eleven. It
    is last in the order: it imports the views, the sheet, loading and the
    shell, and nothing imports it but the root. It declares nothing but the
    handlers and reads nothing as it is imported. */
@@ -25,7 +26,7 @@ import {
 } from "./explore.js";
 import { tickMap } from "./map.js";
 import {
-  closeSheet, drawHotelSheet, eventSheetHTML, openSheet, panelEvent, sheetWrap, showHotelCrew,
+  closeSheet, closeWholeSheet, drawHotelSheet, eventSheetHTML, openSheet, panelEvent, sheetWrap, showHotelCrew,
 } from "./sheet.js";
 import { holdQuery, updateFresh } from "./loading.js";
 import {
@@ -63,6 +64,8 @@ function onMainClick(e) {
        saved when tapped, and Crew starts a sync run for what the crew has
        done since (docs/sync/contract.md, section 5). */
     if (a === "crew-manage" || a === "crew-create" || a === "crew-join") { openSheet("crew", a.slice("crew-".length)); return; }
+    /* My day's Share a day: its panel (W25). */
+    if (a === "share-day") { openSheet("share"); return; }
     if (a === "plans-mine" || a === "plans-crew") {
       state.plansView = a === "plans-crew" ? "crew" : "mine";
       saveJSON(storageKey("plansView"), state.plansView);
@@ -217,7 +220,7 @@ function onEventPanelClick(e) {
   const seeAll = e.target.closest("[data-explore]");
   if (seeAll) {
     const raw = seeAll.dataset.explore, i = raw.indexOf(":");
-    closeSheet();
+    closeWholeSheet();
     if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
     return;
   }
@@ -260,6 +263,16 @@ function onHotelPanelClick(e) {
   if (main) openSheet("event", main.closest(".row").dataset.id);
 }
 
+/* The shared day (W25): its rows work like rows anywhere - a star the
+   reader's own, a row its event's sheet, whose close comes back here. */
+function onSharedPanelClick(e) {
+  if (e.target.closest("#closeSheetShared")) { closeSheet(); return; }
+  const star = e.target.closest(".star");
+  if (star) { if (!star.disabled) togglePick(star.closest(".row").dataset.id); return; }
+  const main = e.target.closest(".row-main");
+  if (main) openSheet("event", main.closest(".row").dataset.id);
+}
+
 function onApplyPreview() { const v = document.getElementById("previewTime").value; closeSheet(); if (v) setTimeOverride(v); }
 function onClearPreview() { closeSheet(); setTimeOverride(null); }
 
@@ -275,6 +288,6 @@ function onMinute() {
 }
 
 export {
-  onMainClick, onMainInput, onMainKeydown, onMainChange, onEventPanelClick, onHotelPanelClick,
+  onMainClick, onMainInput, onMainKeydown, onMainChange, onEventPanelClick, onHotelPanelClick, onSharedPanelClick,
   onApplyPreview, onClearPreview, onHashChange, onMinute,
 };

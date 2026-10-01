@@ -30,7 +30,10 @@ for the new words and 116 for `SLACK_MIN`, their titles following;
 with a pick (#65). Amended for the worker's page key (2026-10-01), which
 keeps the page once, under its address less the query: 1290's cache is
 v7, its row corrected below, and 1309's put is under `pageKey(request)`,
-its title unchanged. The tables' counts are as of 4b-ii, and
+its title unchanged. Amended in Share a day (2026-10-01, DECISIONS #69),
+which puts Share a day beside Export: 433's strip is five controls, and
+510's actions with nothing picked are three, all disabled; both rows are
+corrected below. The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
@@ -448,7 +451,7 @@ One row per call site, in harness order, under the harness's own section comment
 
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
-| 433 | a | four controls in order (…) | `page/plans.test.js` | 4b-ii | handle | port |
+| 433 | a | five controls in order (…) | `page/plans.test.js` | 4b-ii | handle | port |
 | 434 | a | actions above the view toggle | `page/plans.test.js` | 4b-ii | dom | port |
 | 436 | b css | the actions row is two equal columns | `rules/style.test.js` | 4b-i | rule | port |
 | 439 | b css | actions and toggle share a height (… vs …) | `rules/style.test.js` | 4b-i | rule | port |
@@ -478,7 +481,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 499 | a | walk warning shown for tight transfer: | `page/plans.test.js` | 4b-ii | dom | **skip** it.skip: the sample fixture has no event starting within five minutes of the first pick's end in another hotel, so no tight pair is starred |
 | 506 | a | ICS export has events with TZ | `page/ics.test.js` | 4b-ii | dom | port |
 | 509 | a | clear all works | `page/plans.test.js` | 4b-ii | dom | port |
-| 510 | a | with nothing picked, both actions are disabled | `page/plans.test.js` | 4b-ii | dom | port |
+| 510 | a | with nothing picked, the three actions are disabled | `page/plans.test.js` | 4b-ii | dom | port |
 | 511 | a | and there is no view toggle to switch | `page/plans.test.js` | 4b-ii | dom | port |
 | 512 | b css | disabled buttons look disabled | `rules/style.test.js` | 4b-i | rule | port |
 | 516 | a | ranking: 'Video game costume contest' -> | `page/search.test.js` | 4b-ii | handle | port |

@@ -106,7 +106,7 @@ backend at all. A backend that is down should degrade to 2026 behaviour, not
 to a blank screen.
 **Cost:** A sync/conflict rule (outbox proposed) still has to be designed.
 
-### 10. Crews are coordination, not conversation — Decided, not built (2026-09-05) — its build narrowed for 2027 by #50: create, join, leave, remove, the invite, the overlay and who's going; the Now board deferred to Where things live, share-a-day a link with no backend, pings the spring's; the client's layer built by #56, PR #62: `src/crews.js`, the six actions, the invite link and the readers for the overlay and who's going - the screens Where things live's; its screens placed by #62: the crew Now board a section of Now, one line a crewmate, and in 2027 the overlay Plans' Crew segment of per-person lists, lanes on the reader's timeline open (`docs/screens/contract.md`, sections 2, 5 and 14); the Now board built by PR #81, step 5a, as Now's Your crew right now - a line a crewmate, their pick on now or next today, four and then how many more - and who's going as a line on the event's sheet (`docs/screens/contract.md`, sections 2 and 7, as built); "who's going" said on screen as what a crewmate starred by #68, PR #83: "Starred by", Your crew's picks right now, "yours too"
+### 10. Crews are coordination, not conversation — Decided, not built (2026-09-05) — its build narrowed for 2027 by #50: create, join, leave, remove, the invite, the overlay and who's going; the Now board deferred to Where things live, share-a-day a link with no backend, pings the spring's; the client's layer built by #56, PR #62: `src/crews.js`, the six actions, the invite link and the readers for the overlay and who's going - the screens Where things live's; its screens placed by #62: the crew Now board a section of Now, one line a crewmate, and in 2027 the overlay Plans' Crew segment of per-person lists, lanes on the reader's timeline open (`docs/screens/contract.md`, sections 2, 5 and 14); the Now board built by PR #81, step 5a, as Now's Your crew right now - a line a crewmate, their pick on now or next today, four and then how many more - and who's going as a line on the event's sheet (`docs/screens/contract.md`, sections 2 and 7, as built); "who's going" said on screen as what a crewmate starred by #68, PR #83: "Starred by", Your crew's picks right now, "yours too"; share-a-day built by PR #85, step 5b, as Share a day in Plans' My day: a day of the reader's picks as a message and a link that needs no backend, the link's shape #69's (`docs/screens/contract.md`, section 5, Share a day, as built)
 **Decided:** No in-app chat, ever. WhatsApp stays the chat. In scope: crew
 picks overlaid on the timeline, "who's going" per panel, a crew Now board,
 status pings tied to a pick, one-tap share-a-day. Build order: picks →
@@ -2002,7 +2002,7 @@ after seven days without a visit (#25).
 settles #40's open question - a standing line on Now, or the moment it
 earns itself - as the second.
 
-### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built)
+### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built)
 **Decided:** Every screen Where things live touches meets these, and none
 of them has a screen of its own (W43):
 - a label on every new control;
@@ -2093,3 +2093,53 @@ on screen as a whereabouts, and the app says nothing of where anyone is
 **Cost:** The code's names and the screen's words differ, so a reader of
 the code meets "going" where the screen says "starred". Now's and the
 hotel sheet's titles are longer.
+
+### 69. A shared day's link is a contract — Standing (2026-10-01)
+**Decided:** Share a day (W25; #10, #50) sends a day of the reader's picks
+as a message and a link to the page's own address, with one query and
+nothing else - no name, no user, no crew. Links live on in people's
+messages, so the shape is a contract from the day it ships
+(`docs/screens/contract.md`, section 5, Share a day, as built):
+- **The shape:** `?day=<year>.<day>.<token>-<token>-...` - the year; the
+  con day's three letters in lower case, `sat`; and a token a pick, the
+  last eight characters of its id, or the whole id where those eight are
+  another event's too in the year's schedule. An id may hold a "." (#43's
+  `<source_id>.<n>`), so the tokens are joined by "-", which no id holds,
+  no query encodes and no chat app formats. The link ends on a token, never
+  on the punctuation a link detector trims.
+- **Read back:** the last `day=` in what the reader holds - a link, a
+  message pasted whole, or the bare value - so a paste field needs no
+  parser of its own. A token resolves across the year, not the day, to the
+  one event whose id ends with it: one that finds none or more than one,
+  or is shorter than eight characters - a tail cut short - is skipped and
+  counted, and an event moved to another day is still found. A link that
+  ends in "-", its last token empty, still parses; it and one whose last
+  token is short are said to be likely cut short. No token is resolved
+  through `was` (#43). Another year's link is refused; one that
+  names no con day of the year, carries no token or runs past 16 KB does
+  not parse. Nothing that reads a link throws.
+- **What travels:** that day's picks that are neither removed nor
+  cancelled, in start order. The message carries them as text, at most
+  1,800 characters, lines dropped from its end and counted; the link
+  always carries every pick.
+- **Every id travels as it is:** letters, digits and ".", nothing a query
+  encodes, eight characters or more. A test holds each year's
+  `events.v2.json` to it, so a source that mints ids of another shape fails
+  CI before a link breaks.
+- **Nothing kept:** the received day lives in memory alone, no request is
+  made for it, and a reload loses it.
+
+**Why:** A link in a chat lives as long as the chat, so its shape cannot
+change under it. 2026's 3,459 ids are 32 hex characters and
+near-sequential: the last six are unique across the year and the first 31
+are not, so a tail is short and a head is no use. Eight leave a margin for
+a year whose ids collide more, and the whole id covers one that does. A
+15-pick link is about 200 characters on the live site, and a 30-pick one
+about 335. Four of 2026's fourteen start changes crossed a con day, which
+is why a token is read across the year. "-" is unreserved in RFC 3986, and
+`_`, `*` and `~` are formatting in WhatsApp or Discord.
+**Cost:** The link is longer than a packed encoding would be, in exchange
+for being readable and simple to read back. A change of shape needs a new
+query name, or a version in the year's place, with the old shape read for
+as long as its links live. An id shorter than eight characters cannot
+travel, and the test refuses a year that has one.

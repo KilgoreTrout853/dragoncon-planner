@@ -398,8 +398,9 @@ per-person reader, W28's action), `sync.js` `pull()`, `state.js`,
 PR #77, with #56, #62, #63 and #66: the crew header, the crew panel, the
 join step, My day | Crew and the crew's day, and the sync that redraws
 them. PR #80, PR 4b, with #56 and #66: W28, the reader's own name in a
-crew. W25 (PR 5b) is still to come. With no backend there is none of it:
-Plans is Mine as built, and the 2026 app knows no crews.
+crew. PR #85, PR 5b, with #10, #50, #63, #66 and #69: W25, Share a day
+(below). With no backend there is none of the crew's: Plans is Mine as
+built, Share a day among it, and the 2026 app knows no crews.
 
 - **The header** (`plans.js` `crewHeadHTML()`). In a crew: its name, "1
   person" or "N people", and Manage, which opens the crew panel on the
@@ -502,7 +503,8 @@ Plans is Mine as built, and the 2026 app knows no crews.
 - **My day | Crew,** only for a reader in a crew: `state.plansView`, saved
   under `"plansView"` when tapped - "mine" or "crew" - and never on a draw.
   With nothing saved, Crew on a con day and My day otherwise; a saved Crew
-  with no crew is My day. My day is Mine as built. A tap on Crew starts a
+  with no crew is My day. My day is Mine as built, and since PR #85 Share a
+  day beside Export (below). A tap on Crew starts a
   sync run, as a tap on the Plans tab does (`docs/sync/contract.md`,
   section 5).
 - **The crew's day:** day chips, `state.plans.day`, today on a con day and
@@ -577,6 +579,122 @@ Plans is Mine as built, and the 2026 app knows no crews.
   action, the field and Save is not committed: every mutant of its last
   run failed a test, once a first run's survivors had new tests or - one
   of them - its line was removed.
+
+### Share a day, as built
+
+PR #85, PR 5b (W25), with #10, #50, #63, #66 and #69: a day of the
+reader's picks as a message and a link that needs no backend, so on every
+build. It is the app's front door for people outside a crew: the message
+makes sense to someone who has never seen the app, and the link shows them
+that day at once.
+
+- **The button** (`plans.js` `myDayHTML()`): Share a day beside Export in
+  My day's action strip, and Remove all under Export, on two columns.
+  Disabled while no pick is on the schedule - neither removed nor
+  cancelled. The strip and the view toggle are 44px since it joined them
+  (#66).
+- **The share panel,** `#panel-share` (`sheet.js` `openShare()`): "Share a
+  day"; a chip for each con day that holds such a pick (`shareday.js`
+  `shareableDays()`), today's chosen where it holds one, else the next day
+  that does, else the first (`defaultShareDay()`); the message exactly as
+  it will be sent, in a read-only field labelled Message, as tall as it
+  wraps to up to 40% of the screen and scrolling past that, so Share, Copy
+  and Done stay on a 375x667 screen; Share where the browser's Web Share
+  takes the text, Copy always; and Done. A chip rewrites the message and
+  which chip is pressed, nothing else, so focus stays on it. Share sends
+  the message as one text and no url, as the invite's Share link does, and
+  Copy puts it on the clipboard; both run in the tap and make no request. A
+  share cancelled says nothing; a refusal of either selects the message in
+  its field, with words.
+- **The message** (`dayMessage()`), with no name in it:
+
+  ```
+  My Saturday at Dragon Con:
+  1:00 PM  Artemis: Bridge Crew Open Play (Westin)
+  2:30 PM  Writing Villains Readers Love to Hate (Hyatt)
+  https://.../?day=2026.sat.<token>-<token>
+  ```
+
+  A line a pick, in start order by the con day's 5 AM boundary: its start
+  (`util.js` `fmtShort()`), its title on one line, and its place as the
+  Map's On now line names it (`venues.js` `placeShort()`). Removed and
+  cancelled picks are in neither the message nor the link. At most 1,800
+  characters, since Discord refuses a message over 2,000: lines go from
+  the end and one, "+N more in the link", says how many; the link always
+  carries every pick.
+- **The link** (#69; `dayLink()`): `?day=<year>.<day>.<token>-...` on the
+  page's own address, without the sharer's `?now=` or hash, as
+  `inviteLink()` builds an invite.
+- **A link opened** (`sheet.js` `takeDayLink()`, `openSharedDay()`).
+  `boot()` reads the `?day=` after the invite and takes it out of the
+  address, `?now=` and the hash left as they were. A join wins - an invite
+  in the address, or one the session kept - and the day is dropped. The
+  link is kept in memory alone and, once the schedule has loaded, opens
+  `#panel-shared` over whatever tab the phase opens on, with a backend or
+  without. No request is made for it and nothing is stored. With no
+  schedule loaded nothing opens.
+- **The shared day,** `#panel-shared` (`sheet.js` `sharedHTML()`):
+  "Saturday, shared with you"; "This list isn't saved: it
+  goes when you close it. Star what you want to keep."; where tokens found
+  nothing, one line - "2 events in the link aren't on this copy of the
+  schedule." - which adds " - the link may have been cut short when it was
+  copied" where the last token is shorter than a tail or empty; a link
+  ending in "-", with nothing skipped, has "The link may have been cut
+  short when it was copied." alone, under what resolved; then the events as
+  rows in start order (`list: "shared"`), in a body that takes up to 55% of
+  the screen, so three rows fit at 375x667 before it scrolls. Each row
+  carries the reader's own star and works as a row anywhere; one not on
+  the link's day carries its day's label; a removed one is marked and
+  carries no star (#49), a cancelled one is marked. No "star all". A
+  change to the reader's picks - a star here, in an event's sheet or from
+  a pull - writes each row's class and star in place (`refreshSharedDay()`,
+  from `render()`), so the list's scroll and the focus on a star stay.
+- **Refused,** in the same panel, headed "A shared day", with Done: another
+  year's link - "That link is a day from Dragon Con 2025, and this planner
+  is 2026's, so there's nothing of it to show." - and one that does not
+  parse - "That link doesn't hold a day of the schedule. It was probably
+  cut short when it was copied - ask for it again, or copy all of it."
+- **Back** (#63). An event opened from the shared day closes to it -
+  Done, the backdrop, a swipe, Escape - the panel shown again rather than
+  drawn again, its list's scroll put back, since a browser drops a hidden
+  scroller's place, and focus on the row that opened the event. The shared
+  day itself closes to the page, and the list goes with it. The way back
+  is taken whenever the shared panel closes or another panel opens, and
+  See all, from that event, closes both. The hotel sheet's rows close to
+  the Map, as before.
+- **#66.** Focus goes to each panel's heading. The share panel gives it
+  back to Share a day; a shared day that a link opened, with no control
+  behind it, leaves it to the page. Escape closes each, and from an event
+  opened there goes back one step. The chips, the strip and the toggle are
+  44px, and the panels' buttons 46. The chips' group is labelled "Day to
+  share", and the field "Message", which a screen reader reads whole.
+- **The tests.** `tests/unit/shareday.test.js`: a round trip; the link's
+  parts, with no `?now=` or hash; a tail shared with another event sent
+  whole and read back; a tail matching two, none, or cut short; duplicates;
+  an id holding a ".", and #43's leaver, `<source_id>.1`, sent whole
+  through `dayLink()`, `parseDayLink()` and `readSharedDay()`; a link
+  ending in "-"; an event moved to another day; another year;
+  links that do not parse, and junk of any type, with nothing thrown; the
+  last `day=` in a pasted message; a thousand picks, and a link past the
+  cap; an id a link cannot carry; the days, the default day and the
+  message, with its cap; and every id of each year's `events.v2.json`
+  link-safe, a rule that allows the leaver's ".". `tests/page/share-day.test.js`: the button and its disabled
+  states; the chips and the default day; the message equal to what Share
+  and Copy send; removed and cancelled left out; the refusals of Share and
+  Copy; focus and Escape; a link opened in each phase, with a backend and
+  without, nothing stored and no request; the address cleaned; the stars;
+  the skipped line and its cut-short words; a removed, a cancelled and
+  another day's row; the refusals; a join winning, from the address and
+  from the session; no schedule; the event and back, with its scroll and
+  focus, Escape, a star in the event's sheet, See all; the way back taken
+  by a close and by another panel; and the 44px rules. `plans.test.js`
+  [433] and [510] count the strip's third action, the port ledger amended
+  for them. None of the new tests carries a ledger bracket. A mutation
+  pass over the new code is not committed: every mutant of its last run
+  failed a test, once a first run's survivors had new tests - the share
+  panel asked for with nothing to share, an id shorter than a tail - or,
+  three of them, showed two ways of taking the way back where one does,
+  since made one.
 
 ## 6. Map, and the building view
 
@@ -927,6 +1045,9 @@ the hash and the address.
 | A line of Now's Your crew's picks right now | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: Now, focus on that crewmate's line | built, PR #81 |
 | Now's Your crew's picks right now, "+N more" | Plans' crew's day, on today | `state.tab`, `state.plansView` saved as Crew, `state.plans.day` back to the clock's | the tab bar to Now | built, PR #81 |
 | A line of the hotel sheet's Your crew's picks here | The event sheet, in the hotel's place | `state.sheetId` | Done, the backdrop, a swipe, Escape: the Map, focus on what opened the hotel sheet - no way back to the hotel sheet, as for its rows | built, PR #82 |
+| My day's Share a day | The share panel, `#panel-share` | the panel shown, the day chosen | Done, the backdrop, a swipe, Escape: Plans, focus on Share a day | built, PR #85 |
+| A `?day=` link, in any phase | The shared day, `#panel-shared`, over the phase's tab, once the schedule has loaded | the day, in memory alone; the address cleaned | Done, the backdrop, a swipe, Escape: the tab as it opened; a reload loses the day | built, PR #85 |
+| A row of the shared day | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the shared day, its scroll kept and focus on the row; See all closes both | built, PR #85 |
 
 ## 12. Removals (#40)
 
@@ -1041,7 +1162,21 @@ As built: the recon, section 8, what crews' readers offer today.
 - The Now board's shape beyond one line per crewmate (W23).
 - W16's source: a hand-curated file the pipeline validates, or a computed
   list - the Explore PR's call.
-- Which day Share a day shares, and its link's shape (W25).
+- ~~Which day Share a day shares, and its link's shape (W25).~~ Settled
+  by PR #85, step 5b: the con day the reader chooses, today's first where
+  it holds a pick, and #69's link (section 5, Share a day, as built).
+- The home-screen iPhone and a shared day. A tapped `?day=` link opens
+  Safari, not the app on the home screen: Safari's storage - and, on a
+  build with a backend, its anonymous user - is not the app's, so stars
+  made there stay in Safari, and the app has no field to paste a day's
+  link into, as it has for an invite (W20). `shareday.js` `parseDayLink()`
+  reads the last `day=` in pasted text, so such a field needs no new
+  parser.
+- A token is not resolved through `was` (#43): a pick merged into another
+  event after the link was sent is skipped and counted, though the
+  reader's own picks would be re-pointed.
+- A reload loses a shared day: it is kept in memory alone and the address
+  is cleaned as it is read, so the link in the chat is the way back.
 - How an offsite pick is named in a line: the hero says "then Other
   next" and "then Other at 3:00 PM", as it did before PR #76, where the
   walk estimate and the map's On now line name its venue - the row PR's

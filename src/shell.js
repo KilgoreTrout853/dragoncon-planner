@@ -30,7 +30,7 @@ import { cancelQueuedBrowseRender, renderBrowse } from "./browse.js";
 import { renderExplore } from "./explore.js";
 import { renderMap } from "./map.js";
 import { renderPlans } from "./plans.js";
-import { refreshCrewPanel, refreshEventSheet, refreshHotelSheet } from "./sheet.js";
+import { refreshCrewPanel, refreshEventSheet, refreshHotelSheet, refreshSharedDay } from "./sheet.js";
 import { updateFresh } from "./loading.js";
 
 /* ==================================================================
@@ -50,6 +50,7 @@ function render() {
   refreshCrewPanel();          // the join step can be open before the schedule is
   refreshEventSheet();         // an open event's who's-going line, in place
   refreshHotelSheet();         // an open hotel's crew, in place
+  refreshSharedDay();          // the shared day's stars, in place
   if (!events.length) return;
   const rows = chipRowsSnapshot();
   if (state.tab === "now") renderNow();

@@ -4,6 +4,7 @@ import { crewmatePicks, myCrews, myMembership } from "./crews.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
 import { hotelVar, walkMin } from "./venues.js";
+import { shareableDays } from "./shareday.js";
 import { byId } from "./data.js";
 import { pickNewsHTML, picks } from "./picks.js";
 import { gapHTML } from "./walk.js";
@@ -206,8 +207,13 @@ function renderPlans() {
 function myDayHTML() {
   const mine = [...byId.values()].filter(e => picks.has(e.id));
   const onSchedule = mine.filter(e => !e.removed).length;
+  /* Share a day (W25), beside Export: a day of picks as a link that needs no
+     backend, so on every build, and only while a pick is neither removed nor
+     cancelled - the panel's chips are the days that hold one. */
+  const shareable = shareableDays(mine, picks).length;
   let html = pickNewsHTML() + `<div class="plans-actions">
     <button class="btn" data-act="ics" ${onSchedule ? "" : "disabled"}>Export to calendar</button>
+    <button class="btn quiet" data-act="share-day" ${shareable ? "" : "disabled"}>Share a day</button>
     <button class="btn quiet" data-act="clear" ${mine.length ? "" : "disabled"}>Remove all</button>
   </div>`;
   if (mine.length) html += `<div class="view-toggle" role="group" aria-label="View">

@@ -20,10 +20,10 @@ describe("Plans", () => {
   }, 30000);
   afterAll(() => page.cleanup());
 
-  describe("the control strip: two rows of two, one footprint", () => {
-    it("four controls in order [433]", () => {
+  describe("the control strip: the actions on two columns, the toggle under them", () => {
+    it("five controls in order [433]", () => {
       const strip = [...plans().querySelectorAll(".plans-actions .btn, .view-toggle button")].map(b => b.textContent.trim());
-      expect(strip.join(" | ")).toBe("Export to calendar | Remove all | Timeline | List");
+      expect(strip.join(" | ")).toBe("Export to calendar | Share a day | Remove all | Timeline | List");
     });
     it("actions above the view toggle [434]", () => {
       const order = plans().querySelector(".plans-actions").compareDocumentPosition(plans().querySelector(".view-toggle"));
@@ -151,8 +151,8 @@ describe("Plans", () => {
     it("clear all works [509]", () => {
       expect(plans().textContent).toContain("Nothing picked yet");
     });
-    it("with nothing picked, both actions are disabled [510]", () => {
-      expect(plans().querySelectorAll(".plans-actions .btn[disabled]")).toHaveLength(2);
+    it("with nothing picked, the three actions are disabled [510]", () => {
+      expect(plans().querySelectorAll(".plans-actions .btn[disabled]")).toHaveLength(3);
     });
     it("and there is no view toggle to switch [511]", () => {
       expect(plans().querySelector(".view-toggle")).toBe(null);
