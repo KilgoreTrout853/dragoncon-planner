@@ -44,8 +44,8 @@ import { requestRender } from "./bus.js";
    and follows; a departed member's picks are dropped there. A pull asks
    for a redraw when the reader's own picks or follows changed, and when
    what a crew screen draws changed while one is on screen: Now, the Map or
-   Plans as the tab, or the crew panel or an event's sheet open over any -
-   never Search or Explore alone.
+   Plans as the tab, or the crew panel, an event's sheet or a hotel's open
+   over any - never Search or Explore alone.
 
    The owner: when the session's user is not the one the watermark was
    kept for - a mint, a recover, a sign-in in another tab - the outbox is
@@ -113,19 +113,19 @@ function forgetSync() {
   if (forgot) redrawCrew();
 }
 
-/* Where a crew is drawn: Now, the Map and Plans, the crew panel, and an
-   event's sheet, whose who's-going line render() refills in place. A
-   crew's change asks for a redraw only while one of them is on screen:
-   Search draws no crew, and a redraw rebuilds Explore's grid, its filter
-   box with it, and a crewmate's star should not take the caret from a
-   reader typing there (ROADMAP, Flags). With the sheet open, focus is in
-   it, whatever tab is behind. The tab's own draw, and the sheet's when it
-   opens, show the rest. */
+/* Where a crew is drawn: Now, the Map and Plans, the crew panel, an event's
+   sheet, whose who's-going line render() refills in place, and a hotel's,
+   whose crew it refills in place too. A crew's change asks for a redraw
+   only while one of them is on screen: Search draws no crew, and a redraw
+   rebuilds Explore's grid, its filter box with it, and a crewmate's star
+   should not take the caret from a reader typing there (ROADMAP, Flags).
+   With the sheet open, focus is in it, whatever tab is behind. The tab's
+   own draw, and the sheet's when it opens, show the rest. */
 const CREW_TABS = ["now", "map", "plans"];
 function redrawCrew() {
   const sheet = document.getElementById("sheetWrap"), panel = document.getElementById("panel-crew");
   const open = !!sheet && !sheet.hidden;
-  if (CREW_TABS.includes(state.tab) || (open && ((panel && !panel.hidden) || state.sheetId !== null))) requestRender();
+  if (CREW_TABS.includes(state.tab) || (open && ((panel && !panel.hidden) || state.sheetId !== null || state.sheetHotel !== null))) requestRender();
 }
 
 /* Every row of a table newer than since, less the overlap - every row with

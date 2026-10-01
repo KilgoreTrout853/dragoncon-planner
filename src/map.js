@@ -51,19 +51,28 @@ function mapPillSVG(hotel, b, n) {
   return `<g class="map-pill" data-hotel="${esc(hotel)}" data-count="${n}"><rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="${h / 2}"/><text x="${cx}" y="${cy}">${n}</text></g>`;
 }
 
-/* The crew on the Map (DECISIONS #62): how many crewmates - people, not
-   picks - have a pick at each hotel that day, from every crew the reader is
-   in, as the pull kept their picks. Nothing on a build with no backend or
-   out of a crew; a removed event, or one this schedule does not hold, is
-   no one's, since only events are counted. */
-function mapCrewCounts(day) {
+/* The crew on the Map (DECISIONS #62): by hotel, a line for each crewmate's
+   pick there that day - {user_id, display_name, ev} - from every crew the
+   reader is in, a person once, by the oldest crew's name (crews.js
+   crewmatesByEvent()), as the pull kept their picks. In the schedule's
+   order, start then title, and by name within one event, so one event's
+   lines stay together; a crewmate with two picks there has two. Nothing on
+   a build with no backend or out of a crew; a removed event, or one this
+   schedule does not hold, is no one's, since only events are walked. The
+   hotel sheet lists them (sheet.js). */
+function mapCrewPicks(day) {
   if (!hasBackend) return {};
-  const going = crewmatesByEvent(), people = {};
+  const going = crewmatesByEvent(), at = {};
   events.forEach(e => {
     const who = e._cd === day && MAP_HOTELS[e.hotel] ? going.get(e.id) : null;
-    if (who) who.forEach(p => (people[e.hotel] || (people[e.hotel] = new Set())).add(p.user_id));
+    if (who) who.forEach(p => (at[e.hotel] || (at[e.hotel] = [])).push({...p, ev: e}));
   });
-  return Object.fromEntries(Object.entries(people).map(([h, s]) => [h, s.size]));
+  return at;
+}
+/* How many of the crew have a pick at each hotel that day: people, not
+   picks, of the lines above - the pill's number, and the hotel sheet's. */
+function mapCrewCounts(day) {
+  return Object.fromEntries(Object.entries(mapCrewPicks(day)).map(([h, lines]) => [h, new Set(lines.map(l => l.user_id)).size]));
 }
 /* Its pill, on the block's bottom-right corner, under the gold one: an
    outline with a person before the number, not gold - gold is the reader's
@@ -209,4 +218,4 @@ function tickMap() {
   return true;
 }
 
-export { MAP_HOTELS, mapCardHTML, mapDay, renderMap, tickMap };
+export { MAP_HOTELS, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, renderMap, tickMap };

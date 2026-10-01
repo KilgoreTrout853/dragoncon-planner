@@ -18,7 +18,7 @@ import { hotelMatches, hotelShort, hotelVar, placeHTML, placeShort } from "./ven
 import { events, hotelChips, isNoise } from "./data.js";
 import { pickNews, pickNewsHTML, picks } from "./picks.js";
 import { connection, gapHTML, walkEstimate } from "./walk.js";
-import { chipHTML, rowHTML } from "./ui.js";
+import { chipHTML, crewLineHTML, rowHTML } from "./ui.js";
 import { cssEsc, focusIn, giveFocusBack, refill } from "./scroll.js";
 import { requestRender } from "./bus.js";
 
@@ -135,23 +135,16 @@ const statusShown = (ev, now) => ev._s <= now || minutesBetween(now, ev._s) <= 9
    the record. Nothing when no crewmate has anything left today. */
 const CREW_SHOWN = 4;
 const nowCrew = now => (hasBackend && conPhase() === "live" ? crewRightNow(events, now, conDayKey(now)) : []);
-/* A line a crewmate, a button to the event's sheet: who and when - "on now"
-   or the start - and "with you" when the reader picked it too; then what and
-   where, the place as the Map's On now line names it. Its id is the
-   crewmate's, so focus comes back to their line whatever they are on. Every
-   name is someone's own text, so escaped. */
-function crewLineHTML(c) {
-  const ev = c.ev, withYou = picks.has(ev.id) ? ` &middot; <span class="cn-with">with you</span>` : "";
-  return `<li><button class="crew-now" id="crewNow-${esc(c.user_id)}" data-hero="${esc(ev.id)}" aria-haspopup="dialog">
-    <span class="cn-top"><b class="cn-who">${esc(c.display_name)}</b> &middot; ${c.on ? "on now" : fmtShort(ev._s)}${withYou}</span>
-    <span class="cn-what"><span class="cn-title">${esc(ev.title)}</span><span class="cn-where" style="--h:var(${hotelVar(ev.hotel)})">&nbsp;&middot; ${esc(placeShort(ev))}</span></span>
-  </button></li>`;
-}
+/* A line a crewmate (ui.js crewLineHTML()): who and when - "on now" or the
+   start - and "with you"; then what and where, the place as the Map's On now
+   line names it. Its id is the crewmate's, so focus comes back to their line
+   whatever they are on. */
+const nowLineHTML = c => crewLineHTML(`crewNow-${c.user_id}`, c.display_name, c.on ? "on now" : fmtShort(c.ev._s), c.ev, placeShort(c.ev));
 /* Four lines, then how many more, which opens Plans' crew's day on today. */
 function crewHTML(crew) {
   if (!crew.length) return "";
   const more = crew.length - CREW_SHOWN;
-  return `<div class="section-title">Your crew right now</div><ul class="list crew-now-list">${crew.slice(0, CREW_SHOWN).map(crewLineHTML).join("")}</ul>${more > 0
+  return `<div class="section-title">Your crew right now</div><ul class="list crew-now-list">${crew.slice(0, CREW_SHOWN).map(nowLineHTML).join("")}</ul>${more > 0
     ? `<button class="btn quiet more" id="crewMore" data-act="crew-more" aria-label="+${more} more of your crew, in Plans">+${more} more</button>` : ""}`;
 }
 
