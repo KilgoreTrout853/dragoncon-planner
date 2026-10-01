@@ -2081,7 +2081,10 @@ The code keeps its names - `goingTo()`, `goingText()`, `#sheetGoing`,
 the screen's word now differs. A star stays one state, with no maybe and
 no second state on a pick. Amends #52's "a star means going; there is no
 maybe": a star is a pick, and says nothing of whether its crewmate will be
-there.
+there. VISION's ladder says so too: with a crew, "you can see who starred
+what, and where it is", where it said "who is going where". Its Coordinate
+pillar still names #10's "who's going per event": "who's going" stays the
+feature's name, as `goingTo()` stays the code's.
 
 **Why:** A star is not a commitment: people star two things at 1 PM, which
 is why the app warns of overlaps (#64). "Going" and "with you" put a plan

@@ -21,7 +21,7 @@ people you came with.
 - *Ten seconds:* someone opens a forwarded link, sees the schedule, stars
   something. No account, no prompt, no signal needed after the first load.
 - *With a crew:* a link puts a few people together. Their picks show on
-  yours; you can see who is going where.
+  yours; you can see who starred what, and where it is.
 - *Installed:* on the home screen, the app can tell you when a pick is
   about to start and when one moved, instead of waiting to be opened.
 
