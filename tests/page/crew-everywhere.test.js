@@ -5,7 +5,9 @@
    crew's change pulled draws Now, the Map and Plans, the crew panel and an
    open event's who's-going line, in place, and never Search or Explore
    alone. Now and the Map give focus back to what had it through every
-   redraw and every minute's tick.
+   redraw and every minute's tick. And step 5c (contract, section 8): the
+   hotel sheet's crew, Your crew here, its lines Now's, refilled in place
+   by a pull, on the day the sheet was drawn for.
    Against the fake backend, tests/helpers/backend.js, at the harness's
    Saturday, 1:05 PM. New tests, not rows of tests/PORT-LEDGER.md, so their
    titles carry no harness line.
@@ -61,6 +63,70 @@ const crewPill = hotel => document.querySelector(`#view-map .map-crew[data-hotel
 const crewPills = () => Object.fromEntries([...document.querySelectorAll("#view-map .map-crew")].map(g => [g.dataset.hotel, words(g)]));
 const blockOf = hotel => document.querySelector(`#view-map .map-hotel[data-hotel="${hotel}"]`);
 const num = (node, attr) => Number(node.getAttribute(attr));
+const cssRule = selector => { const at = css.indexOf(`\n${selector} {`); return at < 0 ? "" : css.slice(at, css.indexOf("}", at)); };
+/* Markup as the page holds it once parsed, to set beside what the page drew. */
+const parsed = html => { const holder = document.createElement("div"); holder.innerHTML = html; return holder.innerHTML; };
+
+/* next's crew line on Now before step 5c moved it to ui.js, word for word:
+   what Now must still draw. */
+function crewLineBefore(app, mine, c) {
+  const ev = c.ev, withYou = mine.has(ev.id) ? ` &middot; <span class="cn-with">with you</span>` : "";
+  return `<li><button class="crew-now" id="crewNow-${app.esc(c.user_id)}" data-hero="${app.esc(ev.id)}" aria-haspopup="dialog">
+    <span class="cn-top"><b class="cn-who">${app.esc(c.display_name)}</b> &middot; ${c.on ? "on now" : app.fmtShort(ev._s)}${withYou}</span>
+    <span class="cn-what"><span class="cn-title">${app.esc(ev.title)}</span><span class="cn-where" style="--h:var(${app.hotelVar(ev.hotel)})">&nbsp;&middot; ${app.esc(app.placeShort(ev))}</span></span>
+  </button></li>`;
+}
+/* Now's lines, as Now draws them and as the shared builder makes them, beside next's. */
+function nowLinesAsBefore(s) {
+  const at = s.app.now(), mine = s.handle.picks.get(), crew = s.app.crewRightNow(s.app.events, at, s.app.conDayKey(at)).slice(0, 4);
+  for (const c of crew) {
+    expect(s.app.crewLineHTML(`crewNow-${c.user_id}`, c.display_name, c.on ? "on now" : s.app.fmtShort(c.ev._s), c.ev, s.app.placeShort(c.ev)))
+      .toBe(crewLineBefore(s.app, mine, c));
+  }
+  expect(now().querySelector(".crew-now-list").innerHTML).toBe(parsed(crew.map(c => crewLineBefore(s.app, mine, c)).join("")));
+  return crew.length;
+}
+
+/* The hotel sheet (step 5c). */
+const hotelPanel = () => el("panel-hotel");
+const hereButtons = () => [...hotelPanel().querySelectorAll(".crew-now")];
+const hereLines = () => hereButtons().map(b => words(b));
+const hotelHead = () => words(hotelPanel().querySelector(".ev-when"));
+const hereOf = (user, id) => el(`crewHere-${user.id}-${id}`);
+const openHotel = hotel => blockOf(hotel).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+const tapDay = day => document.querySelector(`#view-map [data-chip="map-day"][data-value="${day}"]`).click();
+/* What changes under a container while an awaited `during` runs. */
+async function mutationsAcross(container, during) {
+  const seen = [], observer = new MutationObserver(records => seen.push(...records));
+  observer.observe(container, { childList: true, subtree: true, attributes: true, characterData: true });
+  await during();
+  seen.push(...observer.takeRecords());
+  observer.disconnect();
+  return seen;
+}
+/* next's hotel sheet before step 5c, word for word: what a sheet with none
+   of the crew must still draw. */
+function hotelSheetBefore(app, mine, hotel, day) {
+  const { esc, DAY_LONG, rowHTML, hotelPhrase } = app;
+  const rows = app.events.filter(e => mine.has(e.id) && e.hotel === hotel && e._cd === day), dayName = DAY_LONG[day] || day;
+  const count = rows.length ? `${rows.length} pick${rows.length === 1 ? "" : "s"}` : "no picks";
+  const body = rows.length
+    ? `<div class="ev-body"><ul class="list compact">${rows.map(ev => rowHTML(ev, {list: "map"})).join("")}</ul></div>`
+    : `<div class="ev-body"><p style="color:var(--muted)">No picks here on ${esc(dayName)}.</p>
+        <div class="rowbtns"><button class="btn quiet" data-act="map-search" data-hotel="${esc(hotel)}" data-day="${day}">Search ${esc(hotelPhrase(hotel))} on ${esc(dayName)}</button></div></div>`;
+  return `<div class="ev-head"><h2 id="sheetTitleHotel" tabindex="-1">${esc(hotel)}</h2><div class="ev-when">${esc(dayName)} &middot; ${count}</div></div>
+    ${body}
+    <div class="ev-actions"><button class="btn" id="closeSheetHotel">Done</button></div>`;
+}
+/* Every hotel on every day, as next drew it - the string the sheet is built
+   from, and the panel once opened on the Map's day. */
+function hotelSheetsAsBefore(app, handle, skip = () => false) {
+  for (const day of app.CON_DAYS) {
+    for (const hotel of Object.keys(app.MAP_HOTELS)) {
+      if (!skip(hotel, day)) expect(app.hotelSheetHTML(hotel, day), `${hotel}, ${day}`).toBe(hotelSheetBefore(app, handle.picks.get(), hotel, day));
+    }
+  }
+}
 
 /* A crew of the reader and the given crewmates, the reader signed in and
    their own stars on the server, booted on Saturday afternoon. */
@@ -291,6 +357,9 @@ describe("your crew right now (W23): a section of Now, between the hero and Rest
     expect(el("crewMore").getAttribute("aria-label")).toBe("+1 more of your crew, in Plans");
     expect(lineOf(s.fay)).toBe(null);
   });
+  it("each line's markup is next's, byte for byte - on now, next, with you, a stream - now that ui.js builds it for the hotel sheet too", () => {
+    expect(nowLinesAsBefore(s)).toBe(4);
+  });
   it("a crewmate whose picks today are over, or on another day, has no line", () => {
     expect([lineOf(s.gus), lineOf(s.hal)]).toEqual([null, null]);
   });
@@ -485,6 +554,9 @@ describe("your crew right now: removed and unknown picks skipped, offsite places
     expect(lineOf(s.zo).querySelector("i")).toBe(null);
     expect(lineOf(s.zo).querySelector(".cn-who").textContent).toBe("Zo <i>&\"'");
   });
+  it("and each line's markup is next's, byte for byte - offsite, escaped, cancelled", () => {
+    expect(nowLinesAsBefore(s)).toBe(4);
+  });
   it("the Map's On now line names it the same way", () => {
     s.handle.picks.set(["s0305"]);
     tapTab("map");
@@ -654,6 +726,293 @@ describe("a build with no backend: none of it, whatever a build with one kept", 
     app.openSheet("event", "s0376");
     expect([words(el("sheetGoing")), el("sheetGoing").hidden]).toEqual(["", true]);
     app.closeSheet();
+  });
+  it("the hotel sheet: next's markup for every hotel on every day, though a crewmate's picks are kept at the Hyatt and the Hilton", () => {
+    hotelSheetsAsBefore(app, page.handle);
+    tapTab("map");
+    openHotel("Hilton");
+    expect(hotelPanel().innerHTML).toBe(parsed(hotelSheetBefore(app, page.handle.picks.get(), "Hilton", "2026-09-05")));
+    app.closeSheet();
+  });
+});
+
+describe("the hotel sheet with a backend and no crew: next's markup", () => {
+  let page;
+  beforeAll(async () => {
+    const fake = fakeBackend();
+    const ada = fake.held("ada@example.test");
+    for (const id of ["s0294", "s0376", "s0439"]) pick(fake, ada, id);
+    signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    await page.app.syncSettled();
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("every hotel on every day, as next drew it, and the Hyatt's panel once opened", () => {
+    expect(page.handle.picks.get().size).toBe(3);
+    hotelSheetsAsBefore(page.app, page.handle);
+    tapTab("map");
+    openHotel("Hyatt");
+    expect(hotelPanel().innerHTML).toBe(parsed(hotelSheetBefore(page.app, page.handle.picks.get(), "Hyatt", "2026-09-05")));
+    page.app.closeSheet();
+  });
+});
+
+describe("the hotel sheet's crew (step 5c): Your crew here, under the reader's own picks", () => {
+  let s;
+  const SATURDAY_DAY = "2026-09-05";
+  const data = structuredClone(fixture);
+  for (const e of data.events) {
+    if (e.id === "s0228") e.room = "";
+    if (e.id === "s0281") e.removed = true;
+    if (e.id === "s0332") e.cancelled = true;
+    if (e.id === "s0347") e.title = "Q&A: <i>Pathfinder</i> & \"friends\"";
+  }
+  /* The Hyatt on Saturday: by start, then title - the schedule's order - and
+     by name within one event, so at 4:00 PM Bo and Dee's Dune before Cy and
+     Eve's Warhammer, the names interleaved and each event's lines together. */
+  const HYATT = [
+    "Fay · 10:00 AM Severance Retrospective",
+    "Bo · 2:30 PM · with you Writing Villains Readers Love to Hate · Centennial II-IV",
+    "Bo · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C",
+    "Dee · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C",
+    "Cy · 4:00 PM Deep Dive: Warhammer 40K · Grand Hall C",
+    "Eve · 4:00 PM Deep Dive: Warhammer 40K · Grand Hall C",
+    "Zo <i>&\"' · 4:00 PM Q&A: <i>Pathfinder</i> & \"friends\" · Centennial I",
+  ];
+  beforeAll(async () => {
+    s = await crewScene({
+      data,
+      mates: [["bo", "Bo"], ["cy", "Cy"], ["dee", "Dee"], ["eve", "Eve"], ["fay", "Fay"], ["gus", "Gus"], ["hal", "Hal"], ["zo", "Zo <i>&\"'"]],
+      mine: ["s0294", "s0376"],
+      theirs: {
+        bo: ["s0376", "s0263", "s0281", "s0439"], cy: ["s0332", "s0230"], dee: ["s0263", "no-such-event"], eve: ["s0332"],
+        fay: ["s0228"], hal: ["s0281", "no-such-event"], zo: ["s0347"],
+      },
+    });
+    tapTab("map");
+  }, 30000);
+  afterAll(() => s.page.cleanup());
+
+  it("under the reader's own rows, Your crew here: a line a pick in the schedule's order, by name within one event - a crewmate with two picks in two lines", () => {
+    openHotel("Hyatt");
+    const body = hotelPanel().querySelector(".ev-body"), section = el("hotelCrew");
+    expect(section.parentElement).toBe(body);
+    expect(before(body.querySelector('.list .row[data-id="s0376"]'), section)).toBe(true);
+    expect(section.firstElementChild.className).toBe("section-title");
+    expect(words(section.firstElementChild)).toBe("Your crew here");
+    expect(hereLines()).toEqual(HYATT);
+    expect([hereOf(s.bo, "s0376"), hereOf(s.bo, "s0263")].every(Boolean)).toBe(true);
+  });
+  it("the head: the day, the reader's own count, then how many of the crew - people, not picks", () => {
+    expect(hotelHead()).toBe("Saturday · 1 pick · 6 of your crew");
+    expect(words(crewPill("Hyatt"))).toBe("6");
+  });
+  it("with you as on Now; the room, not the hotel, and the title alone with no room; a cancelled pick unmarked; names and titles escaped", () => {
+    expect(hereOf(s.bo, "s0376").querySelector(".cn-with").textContent).toBe("with you");
+    expect(hereOf(s.bo, "s0263").querySelector(".cn-with")).toBe(null);
+    const fay = hereOf(s.fay, "s0228");
+    expect(fay.querySelector(".cn-where")).toBe(null);
+    expect(words(fay.querySelector(".cn-what"))).toBe("Severance Retrospective");
+    expect(hereOf(s.cy, "s0332").querySelector(".cancelled-tag")).toBe(null);
+    expect(words(hereOf(s.cy, "s0332"))).not.toMatch(/Cancelled/);
+    const zo = hereOf(s.zo, "s0347");
+    expect(zo.querySelector("i")).toBe(null);
+    expect([zo.querySelector(".cn-who").textContent, zo.querySelector(".cn-title").textContent]).toEqual(["Zo <i>&\"'", "Q&A: <i>Pathfinder</i> & \"friends\""]);
+  });
+  it("a removed pick and one this schedule does not hold are no one's: no line, and not counted", () => {
+    expect(hereOf(s.bo, "s0281")).toBe(null);
+    expect(hereOf(s.hal, "s0281")).toBe(null);
+    expect(hereButtons().some(b => b.id.startsWith(`crewHere-${s.hal.id}`))).toBe(false);
+    expect(hotelHead()).toMatch(/ 6 of your crew$/);
+  });
+  it("no pick of the reader's here: None of your own picks here, above the Search button, which stays; then the crew - and never on now: the sheet does not tick", () => {
+    escape();
+    openHotel("Hilton");
+    expect(hotelHead()).toBe("Saturday · no picks · 1 of your crew");
+    const body = hotelPanel().querySelector(".ev-body"), said = body.querySelector("p"), search = body.querySelector('[data-act="map-search"]');
+    expect(words(said)).toBe("None of your own picks here on Saturday.");
+    expect(words(search)).toBe("Search the Hilton on Saturday");
+    expect(before(said, search)).toBe(true);
+    expect(before(search, el("hotelCrew"))).toBe(true);
+    expect(hereLines()).toEqual(["Cy · 1:00 PM Q&A: Pathfinder 2026 · Steps B"]);
+    expect(lineOf(s.cy)).not.toBe(null);
+    expect(words(lineOf(s.cy))).toMatch(/^Cy · on now /);
+    escape();
+  });
+  it("the head's crew is the Map's pill, for every hotel on every day; where the pill has none, the sheet is next's", () => {
+    const counted = [];
+    for (const day of s.app.CON_DAYS) {
+      tapDay(day);
+      for (const hotel of Object.keys(s.app.MAP_HOTELS)) {
+        const pill = crewPill(hotel), at = `${hotel}, ${day}`;
+        if (pill) counted.push(at);
+        openHotel(hotel);
+        const crew = / · (\d+) of your crew$/.exec(hotelHead());
+        expect(crew ? crew[1] : null, at).toBe(pill ? words(pill) : null);
+        expect(el("hotelCrew") === null, at).toBe(pill === null);
+        if (!pill) {
+          expect(s.app.hotelSheetHTML(hotel, day), at).toBe(hotelSheetBefore(s.app, s.handle.picks.get(), hotel, day));
+          expect(hotelPanel().innerHTML, at).toBe(parsed(hotelSheetBefore(s.app, s.handle.picks.get(), hotel, day)));
+        }
+        escape();
+      }
+    }
+    expect(counted).toEqual(["Hyatt, 2026-09-05", "Hilton, 2026-09-05", "AmericasMart, 2026-09-06"]);
+    tapDay(SATURDAY_DAY);
+  });
+  it("a line opens its event's sheet in the hotel's place, and closing it lands on the Map, focus on the hotel that opened the sheet", () => {
+    blockOf("Hyatt").focus();
+    openHotel("Hyatt");
+    press(hereOf(s.bo, "s0376"));
+    expect(s.handle.state.sheetId).toBe("s0376");
+    expect([el("panel-event").hidden, el("panel-hotel").hidden]).toEqual([false, true]);
+    expect(document.activeElement).toBe(el("sheetTitleEvent"));
+    escape();
+    expect(el("sheetWrap").hidden).toBe(true);
+    expect(s.handle.state.tab).toBe("map");
+    expect(document.activeElement).toBe(blockOf("Hyatt"));
+  });
+  it("each line's id is its crewmate's and its event's: unique, none of Now's, and what focus finds it by - never its event, which the Map's card behind shows too", () => {
+    openHotel("Hyatt");
+    const ids = [...document.querySelectorAll("[id]")].map(n => n.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(el("view-now").hidden).toBe(true);
+    expect(el("view-now").querySelectorAll('.crew-now[id^="crewNow-"]').length).toBeGreaterThan(0);
+    for (const b of hereButtons()) expect(b.id.startsWith("crewHere-") && b.id.endsWith(`-${b.dataset.hero}`), b.id).toBe(true);
+    expect(hereOf(s.bo, "s0376")).not.toBe(hereOf(s.bo, "s0263"));
+    const bo = hereOf(s.bo, "s0376");
+    expect(s.app.shownMatch('[data-hero="s0376"]')).toBe(el("mapNext"));
+    expect(s.app.focusKey(bo)).toBe(`#${s.app.cssEsc(bo.id)}`);
+    expect(s.app.shownMatch(s.app.focusKey(bo))).toBe(bo);
+  });
+  it("a pull refills it in place: a line added above the one with focus - its node and focus kept, the body and its scroll kept, the count moved", async () => {
+    const dee = hereOf(s.dee, "s0263"), body = hotelPanel().querySelector(".ev-body"), title = el("sheetTitleHotel");
+    dee.focus();
+    body.scrollTop = 40;
+    pick(s.fake, s.gus, "s0376");
+    await s.run();
+    expect(hereLines()).toEqual([HYATT[0], HYATT[1], "Gus · 2:30 PM · with you Writing Villains Readers Love to Hate · Centennial II-IV", ...HYATT.slice(2)]);
+    expect(hereOf(s.dee, "s0263")).toBe(dee);
+    expect(document.activeElement).toBe(dee);
+    expect(hotelPanel().querySelector(".ev-body")).toBe(body);
+    expect(body.scrollTop).toBe(40);
+    expect(el("sheetTitleHotel")).toBe(title);
+    expect(hotelHead()).toBe("Saturday · 1 pick · 7 of your crew");
+  });
+  it("a line taken away while it has focus gives focus to the sheet's heading", async () => {
+    hereOf(s.gus, "s0376").focus();
+    pick(s.fake, s.gus, "s0376", false);
+    await s.run();
+    expect(hereOf(s.gus, "s0376")).toBe(null);
+    expect(document.activeElement).toBe(el("sheetTitleHotel"));
+    expect(hotelHead()).toBe("Saturday · 1 pick · 6 of your crew");
+  });
+  it("a crewmate renamed: their lines say the new name in place, and a line the new order moves keeps its node and has focus again", async () => {
+    const dee = hereOf(s.dee, "s0263"), bo = hereOf(s.bo, "s0376");
+    dee.focus();
+    s.fake.rename(s.crew, s.bo.id, "Zed");
+    await s.run();
+    expect(hereLines().slice(1, 4)).toEqual([
+      "Zed · 2:30 PM · with you Writing Villains Readers Love to Hate · Centennial II-IV",
+      "Dee · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C",
+      "Zed · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C",
+    ]);
+    expect(hereOf(s.bo, "s0376")).toBe(bo);
+    expect(hereOf(s.dee, "s0263")).toBe(dee);
+    expect(document.activeElement).toBe(dee);
+    s.fake.rename(s.crew, s.bo.id, "Bo");
+    await s.run();
+    expect(hereLines()).toEqual(HYATT);
+  });
+  it("a pull that changes nothing here draws nothing in the sheet - though it draws the Map behind it", async () => {
+    hereOf(s.cy, "s0332").focus();
+    const changes = await mutationsAcross(hotelPanel(), async () => { pick(s.fake, s.bo, "s0253"); await s.run(); });
+    expect(words(crewPill("Marriott"))).toBe("1");
+    expect(changes).toEqual([]);
+    expect(document.activeElement).toBe(hereOf(s.cy, "s0332"));
+    pick(s.fake, s.bo, "s0253", false);
+    await s.run();
+  });
+  it("the reader's own unstar pulled: with you follows it, while the reader's own row and count stay as drawn (ROADMAP, Flags)", async () => {
+    s.fake.write(s.ada.id, "picks", { event_id: "s0376", picked: false, changed_at: iso(Date.now() + 5000) });
+    await s.run();
+    expect(s.handle.picks.get().has("s0376")).toBe(false);
+    expect(words(hereOf(s.bo, "s0376"))).toBe("Bo · 2:30 PM Writing Villains Readers Love to Hate · Centennial II-IV");
+    expect(hotelPanel().querySelector('.ev-body .list .row[data-id="s0376"]')).not.toBe(null);
+    expect(hotelHead()).toBe("Saturday · 1 pick · 6 of your crew");
+    s.fake.write(s.ada.id, "picks", { event_id: "s0376", picked: true, changed_at: iso(Date.now() + 10000) });
+    await s.run();
+    expect(s.handle.picks.get().has("s0376")).toBe(true);
+    expect(hereOf(s.bo, "s0376").querySelector(".cn-with")).not.toBe(null);
+    escape();
+  });
+  it("the gate: a hotel's sheet open over Explore counts - its crew drawn, Explore drawn again behind it, its filter box keeping its text - and with the crew gone, the sheet is next's again", async () => {
+    tapTab("explore");
+    const box = el("exploreQ");
+    typeIn(box, "sta", 3, 3);
+    s.app.openSheet("hotel", "Marriott");
+    const drawn = hotelPanel().innerHTML;
+    expect(drawn).toBe(parsed(hotelSheetBefore(s.app, s.handle.picks.get(), "Marriott", SATURDAY_DAY)));
+    pick(s.fake, s.eve, "s0253");
+    await s.run();
+    expect(hotelHead()).toBe("Saturday · no picks · 1 of your crew");
+    expect(words(hotelPanel().querySelector(".ev-body p"))).toBe("None of your own picks here on Saturday.");
+    expect(hereLines()).toEqual(["Eve · 4:00 PM Fan Panel: Discworld · A601-A602"]);
+    expect(before(hotelPanel().querySelector('[data-act="map-search"]'), el("hotelCrew"))).toBe(true);
+    expect(el("exploreQ")).not.toBe(box);
+    expect(el("exploreQ").value).toBe("sta");
+    pick(s.fake, s.eve, "s0253", false);
+    await s.run();
+    expect(hotelPanel().innerHTML).toBe(drawn);
+    escape();
+    tapTab("map");
+  });
+  it("#66: each line a button, 44px or taller, labelled by what it says, its focus ring inside it", () => {
+    openHotel("Hyatt");
+    expect(hereButtons().length).toBe(HYATT.length);
+    for (const b of hereButtons()) {
+      expect([b.tagName, b.className, b.getAttribute("aria-haspopup"), b.hasAttribute("aria-label")]).toEqual(["BUTTON", "crew-now", "dialog", false]);
+      expect(words(b)).not.toBe("");
+    }
+    expect(cssRule(".crew-now")).toContain("min-height: 44px");
+    expect(cssRule(".crew-now:focus-visible")).toContain("outline-offset: -3px");
+    expect(css).not.toMatch(/\.hotel-crew[^{,]*\.crew-now/);
+    /* jsdom lays nothing out: the section, a grid item of the body, must not
+       widen the body's column to its lines' unwrapped titles. */
+    expect(getComputedStyle(el("hotelCrew").parentElement).display).toBe("grid");
+    expect(cssRule(".hotel-crew")).toContain("min-width: 0");
+    escape();
+  });
+});
+
+describe("the hotel sheet keeps the day it was drawn for: past 5 AM, a pull and a star stay on it", () => {
+  let s;
+  beforeAll(async () => {
+    /* Sunday 4:50 AM is still Saturday's con day; at 5:10 the Map's day,
+       with no chip tapped, is Sunday. Bo's pick is Sunday's at the Hyatt. */
+    s = await crewScene({ now: "2026-09-06T04:50", mates: [["bo", "Bo"], ["cy", "Cy"]], mine: ["s0376"], theirs: { bo: ["s0399"] } });
+    tapTab("map");
+  }, 30000);
+  afterAll(() => s.page.cleanup());
+
+  it("a sheet opened with no day tapped stays on its day through a pull and a star after the clock passes 5 AM", async () => {
+    expect(s.handle.state.map.day).toBe(null);
+    openHotel("Hyatt");
+    expect(hotelHead()).toBe("Saturday · 1 pick");
+    s.app.setOverride("2026-09-06T05:10");
+    expect(s.app.mapDay()).toBe("2026-09-06");
+    pick(s.fake, s.cy, "s0263");
+    await s.run();
+    expect(hotelHead()).toBe("Saturday · 1 pick · 1 of your crew");
+    expect(hereLines()).toEqual(["Cy · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C"]);
+    hotelPanel().querySelector('.row[data-id="s0376"] .star').click();
+    expect(s.handle.picks.get().has("s0376")).toBe(false);
+    expect(hotelHead()).toBe("Saturday · no picks · 1 of your crew");
+    expect(words(hotelPanel().querySelector(".ev-body p"))).toBe("None of your own picks here on Saturday.");
+    expect(hereLines()).toEqual(["Cy · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C"]);
+    escape();
   });
 });
 

@@ -23,9 +23,9 @@ import {
   applyExploreHash, closeExplorePage, holdSpyUntil, markActiveSection, openExplorePage,
   renderExploreSections, scrollToExploreSection, scrollToGrid,
 } from "./explore.js";
-import { mapDay, tickMap } from "./map.js";
+import { tickMap } from "./map.js";
 import {
-  closeSheet, eventSheetHTML, hotelSheetHTML, openSheet, panelEvent, panelHotel, sheetWrap,
+  closeSheet, drawHotelSheet, eventSheetHTML, openSheet, panelEvent, sheetWrap,
 } from "./sheet.js";
 import { holdQuery, updateFresh } from "./loading.js";
 import {
@@ -227,8 +227,9 @@ function onEventPanelClick(e) {
   }
 }
 
-/* The hotel sheet: its rows work like rows anywhere, and an empty hotel
-   offers the search that would fill it. */
+/* The hotel sheet: its rows work like rows anywhere, an empty hotel offers
+   the search that would fill it, and a line of the crew's opens its event's
+   sheet, as a row does. A star draws the sheet again on the day it shows. */
 function onHotelPanelClick(e) {
   const search = e.target.closest('[data-act="map-search"]');
   if (search) {
@@ -244,9 +245,11 @@ function onHotelPanelClick(e) {
   const star = e.target.closest(".star");
   if (star) {
     togglePick(star.closest(".row").dataset.id);
-    panelHotel.innerHTML = hotelSheetHTML(state.sheetHotel, mapDay());
+    drawHotelSheet();
     return;
   }
+  const line = e.target.closest("[data-hero]");
+  if (line) { openSheet("event", line.dataset.hero); return; }
   const main = e.target.closest(".row-main");
   if (main) openSheet("event", main.closest(".row").dataset.id);
 }

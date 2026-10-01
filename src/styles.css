@@ -519,7 +519,9 @@ select.crew-pick {
 .hero .hthen.warn, .hero .hthen.warn b { color: var(--warn); }
 /* Your crew right now: a line a crewmate, each a button to the event's
    sheet - who and when, then what and where, the title giving way before
-   the place does. "with you" is gold: the pick is the reader's too. */
+   the place does. "with you" is gold: the pick is the reader's too. The
+   hotel sheet's Your crew here draws the same lines, its focus ring inside
+   them too: the sheet's scrolling body clips at its sides. */
 .crew-now {
   display: block; width: 100%; min-height: 44px; padding: 8px 14px; text-align: left;
   background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer;
@@ -531,6 +533,12 @@ select.crew-pick {
 .crew-now .cn-what { display: flex; min-width: 0; overflow: hidden; font-size: 1rem; white-space: nowrap; }
 .crew-now .cn-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .crew-now .cn-where { flex: none; color: var(--h); font-weight: 600; }
+/* The section is a grid item of the sheet's body: with no floor under its
+   width, its lines' unwrapped titles would widen the body's one column past
+   the sheet, and clip every row in it. Its title under the reader's own
+   rows: the body's gap already stands above it. */
+.hotel-crew { min-width: 0; }
+.hotel-crew .section-title { padding-top: 6px; }
 .list.compact .row-main { padding-top: 8px; padding-bottom: 8px; }
 .list.compact .snippet { display: none; }
 @media (prefers-reduced-motion: reduce) { .hero .ring .prog { transition: none; } }

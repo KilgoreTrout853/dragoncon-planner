@@ -3,8 +3,8 @@
    swipe and the Escape that dismiss it, focus into it and back (#66), and
    the handlers boot() registers on it, on the Settings controls - the email
    step's among them - and in the crew panel, whose state is this module's.
-   A pull's redraw refills the open crew panel, and the open event's
-   who's-going line, in place.
+   A pull's redraw refills the open crew panel, the open event's who's-going
+   line and the open hotel's crew, in place.
    The clicks inside the event and hotel panels are dispatch's: they reach
    further than the sheet. closeSheet() asks for its redraw over the bus,
    because render() is the shell's, above this module. The eight elements
@@ -25,11 +25,11 @@ import { DAY_LONG, localInputValue, timeOverride } from "./time.js";
 import { hotelPhrase, hotelVar, placeHTML, WALK } from "./venues.js";
 import { byId, directWorks, events, isCeleb, tagsOf, worksById } from "./data.js";
 import { picks, replacePicks, savePicks } from "./picks.js";
-import { CELEB_BADGE, rowHTML } from "./ui.js";
-import { focusKey, pageScrollTo, pageScrollTop, shownMatch } from "./scroll.js";
+import { CELEB_BADGE, crewLineHTML, rowHTML } from "./ui.js";
+import { focusIn, focusKey, pageScrollTo, pageScrollTop, refill, shownMatch } from "./scroll.js";
 import { requestRender } from "./bus.js";
 import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter } from "./sync.js";
-import { MAP_HOTELS, mapDay } from "./map.js";
+import { MAP_HOTELS, mapCrewCounts, mapCrewPicks, mapDay } from "./map.js";
 import { chosenCrew, crewPeople } from "./plans.js";
 
 /* Bottom sheet: one wrapper, four panels (settings, event, hotel, crew) */
@@ -151,18 +151,47 @@ function eventSheetHTML(ev) {
     </div>`;
 }
 
+/* ---- The hotel sheet (docs/screens/contract.md, section 8) -------- */
 /* The user's picks in one hotel on one con day, in time order (events is). */
 const mapPicksAt = (hotel, day) => events.filter(e => picks.has(e.id) && e.hotel === hotel && e._cd === day);
+/* And under them the crew's there, Your crew here (DECISIONS #62): a line a
+   pick, from the Map's own reader (map.js mapCrewPicks()), so on a build
+   with a backend and for a reader in a crew alone. Now's line (ui.js
+   crewLineHTML()), but for two things: after the name, the start, never
+   "on now" - the sheet does not tick, and the Map's day is often not
+   today - and after the title, the room, the hotel being the sheet's, or
+   the title alone where there is none. Its id is the crewmate's and the
+   event's, unique on the page - Now's lines, hidden behind the Map, are
+   crewNow- - so focus finds a line by its id, never by its event, which
+   the Map's card may show too. With none of the crew here the sheet is as
+   it was before them. */
+const hereLineHTML = c => crewLineHTML(`crewHere-${c.user_id}-${c.ev.id}`, c.display_name, fmtShort(c.ev._s), c.ev, String(c.ev.room || "").trim());
+const crewHereHTML = lines => (lines.length
+  ? `<div class="hotel-crew" id="hotelCrew"><div class="section-title">Your crew here</div><ul class="list">${lines.map(hereLineHTML).join("")}</ul></div>` : "");
+/* The head says how many of the crew are here - the pill's number, by the
+   pill's own count (map.js mapCrewCounts()), so the two never disagree -
+   and nothing of the crew at none. */
+const crewCountHTML = people => (people ? `<span id="hotelCrewCount"> &middot; ${people} of your crew</span>` : "");
+const noPicksText = (crew, dayName) => `${crew ? "None of your own picks here" : "No picks here"} on ${dayName}.`;
 function hotelSheetHTML(hotel, day) {
   const rows = mapPicksAt(hotel, day), dayName = DAY_LONG[day] || day;
+  const crew = mapCrewPicks(day)[hotel] || [], people = mapCrewCounts(day)[hotel] || 0;
   const count = rows.length ? `${rows.length} pick${rows.length === 1 ? "" : "s"}` : "no picks";
   const body = rows.length
-    ? `<div class="ev-body"><ul class="list compact">${rows.map(ev => rowHTML(ev, {list: "map"})).join("")}</ul></div>`
-    : `<div class="ev-body"><p style="color:var(--muted)">No picks here on ${esc(dayName)}.</p>
-        <div class="rowbtns"><button class="btn quiet" data-act="map-search" data-hotel="${esc(hotel)}" data-day="${day}">Search ${esc(hotelPhrase(hotel))} on ${esc(dayName)}</button></div></div>`;
-  return `<div class="ev-head"><h2 id="sheetTitleHotel" tabindex="-1">${esc(hotel)}</h2><div class="ev-when">${esc(dayName)} &middot; ${count}</div></div>
+    ? `<div class="ev-body"><ul class="list compact">${rows.map(ev => rowHTML(ev, {list: "map"})).join("")}</ul>${crewHereHTML(crew)}</div>`
+    : `<div class="ev-body"><p style="color:var(--muted)">${esc(noPicksText(crew.length, dayName))}</p>
+        <div class="rowbtns"><button class="btn quiet" data-act="map-search" data-hotel="${esc(hotel)}" data-day="${day}">Search ${esc(hotelPhrase(hotel))} on ${esc(dayName)}</button></div>${crewHereHTML(crew)}</div>`;
+  return `<div class="ev-head"><h2 id="sheetTitleHotel" tabindex="-1">${esc(hotel)}</h2><div class="ev-when">${esc(dayName)} &middot; ${count}${crewCountHTML(people)}</div></div>
     ${body}
     <div class="ev-actions"><button class="btn" id="closeSheetHotel">Done</button></div>`;
+}
+/* The hotel panel drawn, and the day it was drawn for kept: with no day
+   tapped the Map's day moves on at 5 AM, and the sheet - its star's redraw
+   and a pull's refill alike - stays on the day it shows. */
+let hotelDay = null;
+function drawHotelSheet(day = hotelDay) {
+  hotelDay = day;
+  panelHotel.innerHTML = hotelSheetHTML(state.sheetHotel, day);
 }
 
 /* ---- The crew panel (DECISIONS #56, #62; docs/screens/contract.md,
@@ -412,6 +441,50 @@ function refreshEventSheet() {
   if (line.textContent !== going) line.textContent = going;
   line.hidden = !going;
 }
+/* And the open hotel sheet: what it draws of the crew, on the day it was
+   drawn for, written in place - the count in its head, the words above its
+   Search button, and Your crew here, put in or taken out whole, or its
+   lines kept by id. The reader's own rows and count stay as drawn (ROADMAP,
+   Flags). The body is never replaced, so its scroll stays; nothing is
+   written when nothing changed; a line moved while it had focus has it
+   again, and one taken away gives it to the sheet's heading (#66).
+   `state.sheetHotel` is one only while the hotel's panel is shown. */
+function refreshHotelSheet() {
+  if (!state.sheetHotel) return;
+  const fresh = document.createElement("div"), back = focusIn(panelHotel), part = (root, selector) => root.querySelector(selector);
+  fresh.innerHTML = hotelSheetHTML(state.sheetHotel, hotelDay);
+  const crew = part(panelHotel, "#hotelCrew"), crewFresh = part(fresh, "#hotelCrew"), said = part(panelHotel, ".ev-body > p");
+  putPart(part(panelHotel, "#hotelCrewCount"), part(fresh, "#hotelCrewCount"), part(panelHotel, ".ev-when"));
+  const words = said ? noPicksText(!!crewFresh, DAY_LONG[hotelDay] || hotelDay) : "";
+  if (said && said.textContent !== words) said.textContent = words;
+  if (crew && crewFresh) fillLines(crew.querySelector("ul"), crewFresh.querySelector("ul"));
+  else putPart(crew, crewFresh, part(panelHotel, ".ev-body"));
+  if (back && !panelHotel.contains(document.activeElement)) (shownMatch(back) || document.getElementById("sheetTitleHotel")).focus({preventScroll: true});
+}
+/* A part of it from its fresh copy: written into, put at the end of its
+   place where it was not, taken out where it is no longer. */
+function putPart(old, fresh, place) {
+  if (old && fresh) refill(old, fresh);
+  else if (fresh) place.append(fresh);
+  else if (old) old.remove();
+}
+/* The crew's lines from their fresh copies, by id: a line still there keeps
+   its node - its button written into only when what it says changed, so
+   focus on it stays and is not read out again - and moves only when the
+   order did; a new line goes in at its place, and a line gone goes. As
+   fillMembers() keeps the crew panel's members, but kept by the button's
+   id and written into rather than replaced. */
+function fillLines(list, fresh) {
+  const lines = [...fresh.children], key = li => li.firstElementChild.id, ids = new Set(lines.map(key));
+  for (const li of [...list.children]) if (!ids.has(key(li))) li.remove();
+  const had = new Map([...list.children].map(li => [key(li), li]));
+  lines.forEach((li, i) => {
+    const kept = had.get(key(li));
+    if (kept) refill(kept.firstElementChild, li.firstElementChild);
+    const node = kept || li;
+    if (list.children[i] !== node) list.insertBefore(node, list.children[i] || null);
+  });
+}
 
 /* One action: send() is its request; done(answer, here) applies what it
    changed - `here` false once the panel has been closed or opened again
@@ -593,7 +666,7 @@ function openSheet(kind = "settings", id = null) {
   state.sheetId = kind === "event" ? id : null;
   state.sheetHotel = kind === "hotel" ? id : null;
   if (kind === "event") panelEvent.innerHTML = eventSheetHTML(byId.get(id));
-  else if (kind === "hotel") panelHotel.innerHTML = hotelSheetHTML(id, mapDay());
+  else if (kind === "hotel") drawHotelSheet(mapDay());
   else if (kind === "crew") openCrew(id || "manage");
   else fillSettings();
   panelSettings.hidden = kind !== "settings";
@@ -768,8 +841,8 @@ async function onKeepClick(e) {
 }
 
 export {
-  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, eventSheetHTML, hotelSheetHTML, openSheet,
+  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, eventSheetHTML, hotelSheetHTML, drawHotelSheet, openSheet,
   closeSheet, onSheetKeydown, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
   onSettingsClick, onCrowdInput, onNoiseDefaultChange, onResetPicks, onKeepSubmit, onKeepClick,
-  refreshCrewPanel, refreshEventSheet, onCrewSubmit, onCrewClick, onCrewInput, openKeptJoin,
+  refreshCrewPanel, refreshEventSheet, refreshHotelSheet, onCrewSubmit, onCrewClick, onCrewInput, openKeptJoin,
 };

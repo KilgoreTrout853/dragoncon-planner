@@ -1,8 +1,9 @@
-/* Markup the views share: an event's row, a chip, the celebrity badge. Builders
-   and their constants only - this module holds no DOM handle, scrolls nothing
-   and draws nothing; it returns strings, and whoever asked puts them on the
-   page. rowHTML reads state.sheetId and picks to mark the open and the starred
-   row. */
+/* Markup the views share: an event's row, a crewmate's pick as a line, a
+   chip, the celebrity badge. Builders and their constants only - this module
+   holds no DOM handle, scrolls nothing and draws nothing; it returns strings,
+   and whoever asked puts them on the page. rowHTML reads state.sheetId and
+   picks to mark the open and the starred row, and crewLineHTML picks to say
+   "with you". */
 import { esc, fmt } from "./util.js";
 import { state } from "./state.js";
 import { DAY_LABEL } from "./time.js";
@@ -60,6 +61,21 @@ function snippetFor(ev, terms) {
   return (start > 0 ? "…" : "") + highlighter(terms)(d.slice(start, end)) + (end < d.length ? "…" : "");
 }
 
+/* A crewmate's pick as a line (DECISIONS #62), a button to the event's
+   sheet: who and when, and "with you" when the reader picked it too; then
+   what and where, the title giving way before the place does. Now's Your
+   crew right now and the hotel sheet's Your crew here draw it, each giving
+   the line its id, the words after the name - "on now", or the start - and
+   the place, "" for none, which leaves the title alone. Every name is
+   someone's own text, so escaped. */
+function crewLineHTML(id, name, when, ev, where) {
+  const withYou = picks.has(ev.id) ? ` &middot; <span class="cn-with">with you</span>` : "";
+  return `<li><button class="crew-now" id="${esc(id)}" data-hero="${esc(ev.id)}" aria-haspopup="dialog">
+    <span class="cn-top"><b class="cn-who">${esc(name)}</b> &middot; ${esc(when)}${withYou}</span>
+    <span class="cn-what"><span class="cn-title">${esc(ev.title)}</span>${where ? `<span class="cn-where" style="--h:var(${hotelVar(ev.hotel)})">&nbsp;&middot; ${esc(where)}</span>` : ""}</span>
+  </button></li>`;
+}
+
 function chipHTML(label, on, kind, value, style) {
   const v = value ?? label;
   const cls = kind.endsWith("hotel") && v !== "All" ? `chip hotel` : `chip`;
@@ -67,4 +83,4 @@ function chipHTML(label, on, kind, value, style) {
   return `<button class="${cls}" data-chip="${kind}" data-value="${esc(v)}" aria-pressed="${on}"${st}>${esc(label)}</button>`;
 }
 
-export { CELEB_BADGE, rowHTML, chipHTML };
+export { CELEB_BADGE, rowHTML, crewLineHTML, chipHTML };
