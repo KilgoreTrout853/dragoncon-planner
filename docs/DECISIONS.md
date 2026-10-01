@@ -1644,7 +1644,7 @@ kept. The function's logic is tested in Node against fakes; the runtime
 was checked on the CLI's local stack, and a real push service and a real
 browser only by the hand test.
 
-### 56. Crews, the client's layer — Standing (2026-09-28) — its screens' home is Plans, who's going the event sheet's (#62); its screens on Plans built by PR #77: the crew header, the crew panel - create, join by a tapped or a pasted link, manage - and the crew's day, with two readers more, one crewmate's picks and the reader's own row in a crew, and `no_crew` in plain words (`docs/screens/contract.md`, section 5, as built)
+### 56. Crews, the client's layer — Standing (2026-09-28) — its screens' home is Plans, who's going the event sheet's (#62); its screens on Plans built by PR #77: the crew header, the crew panel - create, join by a tapped or a pasted link, manage - and the crew's day, with two readers more, one crewmate's picks and the reader's own row in a crew, and `no_crew` in plain words (`docs/screens/contract.md`, section 5, as built); the display-name edit built by PR #80: a seventh action, `setMyName()`, an update of the reader's own row in one crew, refused before any request for a reader the crew does not hold (`not_member`), and Your name in this crew in the crew panel's manage step, whose words wait for the pull, since row-level security answers a row it turned away with the same 204 (`docs/screens/contract.md`, section 5, and `docs/sync/contract.md`, section 8, as built)
 **Decided:** The client's half of crews is built before any crew screen:
 one module, `src/crews.js`, with no screen; the screens are Where things
 live's. `docs/sync/contract.md`, section 8, has the detail.

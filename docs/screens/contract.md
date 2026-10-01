@@ -131,7 +131,8 @@ PR #74, with #62.
   alone. `tests/rules/style.test.js`: the root's two defaults and each
   derived rule, and no rule left that assumes the nav's height or adds
   the inset to it. None carries a ledger bracket.
-- **Measured** on the next site, build 22fd291, after the merge, from the
+- **Measured** on the next site, build 22fd291, after the merge - the
+  home-screen app's row at build 5fb5453, on 2026-10-01 - from the
   device readout under Settings, Advanced, which says what `--nav-h` and
   `--hdr-h` were measured at, or `default` for a nav not yet measured
   (`build.js` `deviceLine()`):
@@ -140,15 +141,17 @@ PR #74, with #62.
   |---|---|---|---|---|---|
   | Safari on an iPhone, a browser tab | 402×714, screen 402×874 | 0 / 0 | 0px, the inset under the cap | 71px | 63px |
   | Desktop Chromium - the Claude app's built-in browser, Chrome 152 - at 1280×800 | 1280×800 | 0 / 0 | 0px | 71px | 63px |
-  | The home-screen app on an iPhone | - | not yet measured; the readout gives the raw inset, before the cap | expected 34px, `boot()`'s cap | expected 105px | - |
+  | The home-screen app on an iPhone, iOS, build 5fb5453 | 377×761, screen 402×874 | 0px / 34px | 34px, `boot()`'s cap | 105px | 63px |
 
-  Both measured copies agree with the root's default, 71 px and no inset,
-  and on the desktop copy the end spacer computes to 76 px, as it did when
-  it was written in by hand. The Safari tab's bottom inset is 0 because
-  the browser's toolbar owns that edge of the screen. The home-screen copy
-  draws to the edge, so its `--safe-bottom` is expected at `boot()`'s cap
-  of 34 px and its nav at 105 px; those are to be added here once
-  measured. The phone check passed: the five labels in order, the badge on
+  The two browser copies agree with the root's default, 71 px and no
+  inset, and on the desktop copy the end spacer computes to 76 px, as it
+  did when it was written in by hand. The Safari tab's bottom inset is 0
+  because the browser's toolbar owns that edge of the screen. The
+  home-screen copy draws to the edge: its bottom inset is 34 px, at
+  `boot()`'s cap, and its nav 105 px, the default's 71 and the inset, as
+  expected. Its viewport measured 377 wide against a 402-wide screen,
+  where the Safari tab's measured 402: not explained (section 14, Open).
+  The phone check passed: the five labels in order, the badge on
   Plans, the mini-bar flush on the nav with the dev-build mark lifted above
   it, and the map filling to the nav with its card below.
 
@@ -296,7 +299,8 @@ As built: the recon, section 2, Mine; section 8, crews' seam.
   client's courtesy (#56) - and a picker when the reader is in more than
   one crew. A removal meant to hold is followed by a new invite, which the
   header offers (`docs/sync/contract.md`, section 8). Editing one's own
-  display name (W28) is in the header, its `crews.js` action PR 4b.
+  display name (W28) is in the crew panel's manage step, which the
+  header's Manage opens; its `crews.js` action PR 4b.
 - **Not in a crew,** the header is the empty state: "Start a crew, or
   paste an invite link" - shown, not nagged.
 - **Create and join** each say, in one sentence, "Joining shares your name
@@ -333,8 +337,9 @@ per-person reader, W28's action), `sync.js` `pull()`, `state.js`,
 
 PR #77, with #56, #62, #63 and #66: the crew header, the crew panel, the
 join step, My day | Crew and the crew's day, and the sync that redraws
-them. W28 (PR 4b) and W25 (PR 5) are still to come. With no backend there
-is none of it: Plans is Mine as built, and the 2026 app knows no crews.
+them. PR #80, PR 4b, with #56 and #66: W28, the reader's own name in a
+crew. W25 (PR 5) is still to come. With no backend there is none of it:
+Plans is Mine as built, and the 2026 app knows no crews.
 
 - **The header** (`plans.js` `crewHeadHTML()`). In a crew: its name, "1
   person" or "N people", and Manage, which opens the crew panel on the
@@ -362,7 +367,9 @@ is none of it: Plans is Mine as built, and the 2026 app knows no crews.
     at all - said as the step opens - an Invite link field to paste into.
   - *Manage:* the members, the reader first and the rest by the names this
     crew gives them, the reader marked "(you)" and the creator "made the
-    crew"; the invite link in a read-only field, Copy link, Share link
+    crew"; under them, since PR #80, Your name in this crew - a labelled
+    field and Save beside it (below); the invite link in a read-only
+    field, Copy link, Share link
     where the browser has Web Share, and for the creator New link; Remove
     beside each other member and Delete crew for the creator, Leave crew
     for everyone else - everyone, for a crew whose creator is gone; and
@@ -390,6 +397,7 @@ is none of it: Plans is Mine as built, and the 2026 app knows no crews.
   | New link | New link made - the old one no longer works. | New link made - it will show here once this phone reaches the server; the link is withheld until a pull brings the new one |
   | Remove, after a confirm naming the person | `<person>` is out. They can still join with the current link until you make a new one. - New link beside it | Done - it will show here once this phone reaches the server. |
   | Leave, Delete after a confirm | the panel closes to Plans: the next crew, or the rung | Done - it will show here once this phone reaches the server; the panel closes to Plans once a pull shows the crew gone |
+  | Save, your name, since PR #80 | Your name in this crew is now `<name>`. - or, when the pull shows the name as it was: Your name didn't change - try again. - with Save there again | Done - it will show here once this phone reaches the server. |
 
   A pull that later shows what the action did replaces the second column's
   words with the first's, or closes the panel. A New link's old token stays
@@ -398,7 +406,25 @@ is none of it: Plans is Mine as built, and the 2026 app knows no crews.
   Plans' own state alone - the crew chosen - and never the panel the reader
   has by then. Focus stays in the panel: on the control that sent the
   action while it can still take it, and on the heading once the step has
-  moved on.
+  moved on - but for Save, after which focus is on the name's field.
+- **Your name in this crew** (W28; since PR #80), in the manage step, for
+  a reader the crew holds: the field, labelled, filled with the name this
+  crew gives them (`myMembership()`) as the step opens on a crew, and
+  Save beside it, disabled while the field is empty, or says the name
+  kept once trimmed, or a request is out; Enter then sends nothing too. A
+  name over 24 characters is refused in the panel in `crewMessage()`'s
+  words, before any request. Save is `crews.js` `setMyName()`, the
+  reader's own row in this crew alone, so a name changed in one crew
+  changes no other. Its words wait for the pull: row-level security
+  answers a row it turned away with the same 204 as one it changed
+  (`docs/sync/contract.md`, section 8, as built), so success is said only
+  once the pull shows the name sent, and the pull showing the name as it
+  was says it didn't change. A pull's refresh puts a newly pulled name in
+  the field only while the field still says the name it was filled with:
+  a name the reader has changed stays as typed, its caret and its focus
+  with it. Closed and opened again, the field starts from the name kept.
+  For a crew whose kept members do not hold the reader - kept for the user
+  before, until a run starts the crews again - there is no field.
 - **The invite shared.** Copy link puts the bare link on the clipboard.
   Share link sends one string and no url - `Join "<crew>" on the Dragon Con
   planner: <link>`, the link last - since the join step cannot name the
@@ -452,7 +478,8 @@ is none of it: Plans is Mine as built, and the 2026 app knows no crews.
   had it, through every redraw, a tap's own and a pull's. The segment's
   focus ring is drawn inside it. The controls under 44px that this PR does
   not touch - the chips elsewhere, the Type control, My day's action strip
-  and view toggle - stay as they were.
+  and view toggle - stay as they were. Since PR #80 the name's field is
+  labelled Your name in this crew, and it and its Save are 44px.
 - **The tests.** `tests/page/crew-screens.test.js`: the header in each
   state, create, a join by a kept `?join=` and by a pasted link - the
   whole share message among them - share, copy and renew, remove, leave,
@@ -469,7 +496,22 @@ is none of it: Plans is Mine as built, and the 2026 app knows no crews.
   message read back. A mutation pass over the gates and the redraw is not
   committed: every mutant of its last run failed a test, once a first run's
   survivors had new tests, or - one of them - showed a second way to close
-  the panel after a Leave, since removed.
+  the panel after a Leave, since removed. Since PR #80, Your name in this
+  crew: the field labelled, filled and placed under the members; Save's
+  disabled states and Enter on a name unchanged or empty; a name too long
+  and a server's failure said inline, with focus on the field; one request
+  at a time; the save the pull shows, with its words, the reader's row and
+  Plans' crew's day; the other crew's name left as it was; a refusal's 204
+  with the name as it was, said so and never as success; a pull that
+  failed, then caught up; a half-typed name kept through a pull that
+  brings the reader a new name, and an untouched field that takes one; no
+  field for a crew whose kept members do not hold the reader; a close and
+  a reopen; saves that land after the panel was opened on another crew;
+  and the 44px rules. `crews.test.js` pins `setMyName()`
+  (`docs/sync/contract.md`, section 8, as built). A mutation pass over the
+  action, the field and Save is not committed: every mutant of its last
+  run failed a test, once a first run's survivors had new tests or - one
+  of them - its line was removed.
 
 ## 6. Map, and the building view
 
@@ -761,5 +803,8 @@ As built: the recon, section 8, what crews' readers offer today.
   and only members can read a crew, so the join step names none; a preview
   would be a read by function, against #52's reads by policy, and a
   decision of its own (section 5, as built).
+- The home-screen app's viewport, measured 377 wide against a 402-wide
+  screen, while the Safari tab on the same phone measured 402: not
+  explained, to check on a phone (section 1, as built).
 
 **Home of:** W24.
