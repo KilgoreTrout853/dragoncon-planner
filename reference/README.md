@@ -10,8 +10,9 @@ Layout:
       shots/      screenshots of single levels, named <hotel>-<level>.png, for use as a drawing underlay
       dragoncon/  the official app's maps: one PNG per venue with every floor on it, and maps.json, which records
                   where the app outlines each room (Dragon Con's room name, polygon in image pixels, door points,
-                  2026 event count). Its own README.md says what was captured and how. maps.json is the placement
-                  data our drawings are read against; the PNGs are for the eye only.
+                  2026 event count). Its own README.md says what was captured and how. maps.json says which rooms
+                  the con uses and their names, and places a hotel with no plan of its own; the PNGs are for the
+                  eye only.
 
 .gitignore carries these two lines:
 

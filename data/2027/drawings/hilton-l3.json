@@ -4,129 +4,141 @@
   "units": "ft",
   "north": "up",
   "extent": {
-    "w": 400,
-    "h": 230
+    "w": 460,
+    "h": 520
   },
+  "anchors": [
+    {
+      "name": "tower elevators",
+      "x": 150.0,
+      "y": 305.0
+    },
+    {
+      "name": "atrium",
+      "x": 114.0,
+      "y": 268.0
+    }
+  ],
   "rooms": [
     {
       "id": "301",
-      "cx": 169.0,
-      "cy": 133.0,
-      "w": 37,
-      "h": 26,
+      "cx": 187.4,
+      "cy": 233.1,
+      "w": 23,
+      "h": 37,
       "rot": 0
     },
     {
       "id": "302",
-      "cx": 211.5,
-      "cy": 133.0,
-      "w": 48,
-      "h": 26,
+      "cx": 213.9,
+      "cy": 238.6,
+      "w": 30,
+      "h": 48,
       "rot": 0
     },
     {
       "id": "303",
-      "cx": 259.5,
-      "cy": 133.0,
-      "w": 48,
-      "h": 26,
+      "cx": 240.9,
+      "cy": 238.6,
+      "w": 24,
+      "h": 48,
       "rot": 0
     },
     {
       "id": "304",
-      "cx": 307.5,
-      "cy": 133.0,
-      "w": 48,
-      "h": 26,
+      "cx": 267.9,
+      "cy": 238.6,
+      "w": 30,
+      "h": 48,
       "rot": 0
     },
     {
       "id": "305",
-      "cx": 355.5,
-      "cy": 133.0,
-      "w": 48,
-      "h": 26,
+      "cx": 294.9,
+      "cy": 238.6,
+      "w": 24,
+      "h": 48,
       "rot": 0
     },
     {
-      "id": "306",
-      "cx": 218.0,
-      "cy": 186.0,
+      "id": "308",
+      "cx": 226.6,
+      "cy": 296.8,
       "w": 26,
       "h": 23,
       "rot": 0
     },
     {
       "id": "307",
-      "cx": 244.0,
-      "cy": 186.0,
+      "cx": 252.6,
+      "cy": 296.8,
       "w": 26,
       "h": 23,
       "rot": 0
     },
     {
-      "id": "308",
-      "cx": 270.0,
-      "cy": 186.0,
+      "id": "306",
+      "cx": 278.6,
+      "cy": 296.8,
       "w": 26,
       "h": 23,
       "rot": 0
     },
     {
       "id": "309",
-      "cx": 54.4,
-      "cy": 60.7,
+      "cx": 75.2,
+      "cy": 231.0,
       "w": 26,
       "h": 24,
-      "rot": 59
+      "rot": 61
     },
     {
       "id": "310",
-      "cx": 68.0,
-      "cy": 83.4,
+      "cx": 62.3,
+      "cy": 207.9,
       "w": 27,
       "h": 24,
-      "rot": 59
+      "rot": 61
     },
     {
       "id": "311",
-      "cx": 82.0,
-      "cy": 106.6,
+      "cx": 49.2,
+      "cy": 184.3,
       "w": 27,
       "h": 24,
-      "rot": 59
+      "rot": 61
     },
     {
       "id": "312",
-      "cx": 95.6,
-      "cy": 129.3,
+      "cx": 36.4,
+      "cy": 161.1,
       "w": 26,
       "h": 24,
-      "rot": 59
-    },
-    {
-      "id": "313",
-      "cx": 118.5,
-      "cy": 48.7,
-      "w": 26,
-      "h": 25,
-      "rot": 60
+      "rot": 61
     },
     {
       "id": "314",
-      "cx": 131.5,
-      "cy": 71.3,
+      "cx": 97.9,
+      "cy": 152.5,
       "w": 26,
       "h": 25,
-      "rot": 60
+      "rot": 61
+    },
+    {
+      "id": "313",
+      "cx": 85.3,
+      "cy": 129.7,
+      "w": 26,
+      "h": 25,
+      "rot": 61
     },
     {
       "id": "315",
-      "cx": 137,
-      "cy": 107,
+      "cx": 126.9,
+      "cy": 203.5,
       "w": 35,
       "h": 25,
-      "rot": -28
+      "rot": -29
     }
   ],
   "composites": [],
@@ -142,10 +154,10 @@
         "305"
       ],
       "outline": {
-        "cx": 265,
-        "cy": 133,
-        "w": 229,
-        "h": 26,
+        "cx": 241.4,
+        "cy": 238.6,
+        "w": 131.0,
+        "h": 48,
         "rot": 0
       }
     },
@@ -153,13 +165,13 @@
       "name": "306–308",
       "kind": "run",
       "rooms": [
-        "306",
+        "308",
         "307",
-        "308"
+        "306"
       ],
       "outline": {
-        "cx": 244,
-        "cy": 186,
+        "cx": 252.6,
+        "cy": 296.8,
         "w": 78,
         "h": 23,
         "rot": 0
@@ -175,36 +187,44 @@
         "312"
       ],
       "outline": {
-        "cx": 75,
-        "cy": 95,
-        "w": 106,
+        "cx": 55.8,
+        "cy": 196.1,
+        "w": 106.0,
         "h": 24,
-        "rot": 59
+        "rot": 61
       }
     },
     {
       "name": "313–314",
       "kind": "run",
       "rooms": [
-        "313",
-        "314"
+        "314",
+        "313"
       ],
       "outline": {
-        "cx": 125,
-        "cy": 60,
-        "w": 52,
+        "cx": 91.6,
+        "cy": 141.1,
+        "w": 52.0,
         "h": 25,
-        "rot": 60
+        "rot": 61
       }
     }
   ],
   "open": [
     {
-      "name": "Elevator lobby",
-      "cx": 112,
-      "cy": 178,
-      "w": 44,
-      "h": 44,
+      "name": "Atrium, open to the lobby",
+      "cx": 116.0,
+      "cy": 270.0,
+      "w": 46,
+      "h": 50,
+      "rot": 0
+    },
+    {
+      "name": "The Terrace",
+      "cx": 165.0,
+      "cy": 400.0,
+      "w": 90,
+      "h": 70,
       "rot": 0
     }
   ],
@@ -212,22 +232,20 @@
     {
       "kind": "elevator",
       "name": "Elevators",
-      "x": 140,
-      "y": 195
-    },
-    {
-      "kind": "escalator",
-      "name": "Escalators",
-      "x": 165,
-      "y": 180
+      "x": 150.0,
+      "y": 305.0
     }
   ],
   "streets": [],
   "sources": [
     "sizes: the hotel's 2024 group sales playbook capacity tables (reference/plans/hilton-playbook-2024.pdf)",
-    "placement and orientation: Dragon Con's own map, room polygons in reference/dragoncon/maps.json (DECISIONS #28: read for position only, nothing copied)"
+    "placement, order and orientation: the hotel's own floor plan in the same playbook, p. 10, measured from the tower elevators (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
   ],
   "notes": [
-    "301–305 in one long row, 306–308 under it, the wing rooms 309–315 angled to the north-west"
+    "301–305 are five rooms side by side, each 48 ft deep (301: 37) and 23 to 30 ft wide: the plan and the con's map both draw them so, and the table's first figure is the depth here",
+    "309–312 run down the north-west wing with 309 by the atrium and 312 at the far end; 313–314 face them across the conference centre",
+    "306–308 run 308, 307, 306 from west to east on the hotel's plan; Dragon Con's map labels them the other way round - to be checked in person",
+    "The Terrace is the outdoor deck south of the core"
   ]
 }

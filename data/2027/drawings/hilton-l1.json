@@ -4,56 +4,88 @@
   "units": "ft",
   "north": "up",
   "extent": {
-    "w": 330,
-    "h": 320
+    "w": 460,
+    "h": 520
   },
+  "anchors": [
+    {
+      "name": "tower elevators",
+      "x": 150.0,
+      "y": 305.0
+    },
+    {
+      "name": "atrium",
+      "x": 114.0,
+      "y": 268.0
+    },
+    {
+      "name": "lobby escalators",
+      "x": 264.0,
+      "y": 268.0
+    },
+    {
+      "name": "garage elevator",
+      "x": 342.4,
+      "y": 266.0
+    },
+    {
+      "name": "galleria escalator north",
+      "x": 325.7,
+      "y": 214.1
+    },
+    {
+      "name": "galleria escalator south",
+      "x": 325.7,
+      "y": 317.9
+    }
+  ],
   "rooms": [
     {
-      "id": "Crystal A",
-      "cx": 183.5,
-      "cy": 73.5,
-      "w": 26,
-      "h": 28,
-      "rot": 0
-    },
-    {
-      "id": "Crystal F",
-      "cx": 211.0,
-      "cy": 73.5,
-      "w": 29,
-      "h": 28,
-      "rot": 0
-    },
-    {
-      "id": "Crystal B",
-      "cx": 183.5,
-      "cy": 97.0,
-      "w": 26,
-      "h": 19,
+      "id": "Crystal D",
+      "cx": 233.6,
+      "cy": 63.4,
+      "w": 28,
+      "h": 29,
       "rot": 0
     },
     {
       "id": "Crystal E",
-      "cx": 211.0,
-      "cy": 97.0,
-      "w": 29,
-      "h": 19,
+      "cx": 257.1,
+      "cy": 63.4,
+      "w": 19,
+      "h": 29,
+      "rot": 0
+    },
+    {
+      "id": "Crystal F",
+      "cx": 280.6,
+      "cy": 63.4,
+      "w": 28,
+      "h": 29,
       "rot": 0
     },
     {
       "id": "Crystal C",
-      "cx": 183.5,
-      "cy": 120.5,
-      "w": 26,
-      "h": 28,
+      "cx": 233.6,
+      "cy": 90.9,
+      "w": 28,
+      "h": 26,
       "rot": 0
     },
     {
-      "id": "Crystal D",
-      "cx": 211.0,
-      "cy": 120.5,
-      "w": 29,
-      "h": 28,
+      "id": "Crystal B",
+      "cx": 257.1,
+      "cy": 90.9,
+      "w": 19,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "Crystal A",
+      "cx": 280.6,
+      "cy": 90.9,
+      "w": 28,
+      "h": 26,
       "rot": 0
     }
   ],
@@ -63,18 +95,18 @@
       "name": "Crystal Ballroom",
       "kind": "ballroom",
       "rooms": [
-        "Crystal A",
-        "Crystal F",
-        "Crystal B",
+        "Crystal D",
         "Crystal E",
+        "Crystal F",
         "Crystal C",
-        "Crystal D"
+        "Crystal B",
+        "Crystal A"
       ],
       "outline": {
-        "cx": 198,
-        "cy": 97,
-        "w": 55,
-        "h": 75,
+        "cx": 257.1,
+        "cy": 76.4,
+        "w": 75,
+        "h": 55,
         "rot": 0
       }
     }
@@ -82,59 +114,95 @@
   "open": [
     {
       "name": "Foyer",
-      "cx": 240,
-      "cy": 97,
-      "w": 24,
-      "h": 80,
+      "cx": 257.1,
+      "cy": 113.9,
+      "w": 75,
+      "h": 20,
       "rot": 0
     },
     {
-      "name": "Main Lobby",
-      "cx": 120,
-      "cy": 258,
-      "w": 150,
-      "h": 70,
+      "name": "Foyer",
+      "cx": 309.6,
+      "cy": 76.4,
+      "w": 30,
+      "h": 55,
       "rot": 0
     },
     {
-      "name": "Patio",
-      "cx": 300,
-      "cy": 97,
-      "w": 44,
-      "h": 60,
+      "name": "Marketplace",
+      "cx": 255.0,
+      "cy": 200.0,
+      "w": 100,
+      "h": 50,
+      "rot": 0
+    },
+    {
+      "name": "Lobby Atrium",
+      "cx": 116.0,
+      "cy": 270.0,
+      "w": 46,
+      "h": 50,
+      "rot": 0
+    },
+    {
+      "name": "Pavilion Courtyard North",
+      "cx": 388.4,
+      "cy": 134.1,
+      "w": 108,
+      "h": 230,
+      "rot": 0
+    },
+    {
+      "name": "Pavilion Courtyard South",
+      "cx": 388.4,
+      "cy": 392.5,
+      "w": 112,
+      "h": 214,
       "rot": 0
     }
   ],
   "landmarks": [
     {
-      "kind": "escalator",
-      "name": "Escalators down to the Galleria",
-      "x": 212,
-      "y": 262
-    },
-    {
-      "kind": "escalator",
-      "name": "Escalators up to 2nd",
-      "x": 140,
-      "y": 202
+      "kind": "elevator",
+      "name": "Elevators",
+      "x": 150.0,
+      "y": 305.0
     },
     {
       "kind": "elevator",
-      "name": "Elevators",
-      "x": 130,
-      "y": 165
+      "name": "Parking garage elevator",
+      "x": 342.4,
+      "y": 266.0
     },
     {
       "kind": "elevator",
       "name": "Accessible lift",
-      "x": 252,
-      "y": 156
+      "x": 324.5,
+      "y": 144.5
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalators to the 2nd Floor",
+      "x": 264.0,
+      "y": 268.0
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the Galleria",
+      "x": 325.7,
+      "y": 214.1
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the Galleria",
+      "x": 325.7,
+      "y": 317.9
     },
     {
       "kind": "entrance",
-      "name": "John Portman entrance",
-      "x": 165,
-      "y": 312
+      "name": "Main entrance",
+      "x": 55.0,
+      "y": 268.0
     }
   ],
   "streets": [
@@ -153,10 +221,12 @@
   ],
   "sources": [
     "sizes: the hotel's 2024 group sales playbook capacity tables (reference/plans/hilton-playbook-2024.pdf)",
-    "placement and orientation: Dragon Con's own map, room polygons in reference/dragoncon/maps.json (DECISIONS #28: read for position only, nothing copied)"
+    "placement, order and orientation: the hotel's own floor plan in the same playbook, p. 6, measured from the tower elevators (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
   ],
   "notes": [
-    "the street level: Main Lobby, Crystal Ballroom, escalators down to the Galleria",
-    "escalators-up position inferred from the 2nd floor's escalators"
+    "the street level: the main entrance on Courtland Street, the lobby under the atrium, the Crystal Ballroom at the north end (D, E, F its north row, C, B, A its south)",
+    "the two Pavilion Courtyards are the patios outside the east wall, where Dragon Con's map marks its group photo shoots; their outlines are the plan's, not the table's",
+    "the plan draws this floor's elevator bank turned about 12 degrees from the floors above; only its centre is used"
   ]
 }
