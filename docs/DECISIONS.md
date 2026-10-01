@@ -1755,7 +1755,7 @@ request - gates nothing (#50).
 from Actions (#26) land last, nearest the freeze, and the freeze date is
 still unset (#30): that is the risk.
 
-### 58. Level drawings are data, one file per level — Standing (2026-09-28)
+### 58. Level drawings are data, one file per level — Standing (2026-09-28) — its placement source and "each level is its own frame" superseded by #67, which also refines its sizes
 **Decided:** Level drawings are data:
 `data/<year>/drawings/<hotel>-<level>.json`, one file per level, geometry
 only (feet, north up), every drawn room a room id of that level in
@@ -2027,3 +2027,35 @@ at 38, the Type control, Mine's action strip and the view toggle at 40 -
 grow in the pull request that touches them, and the style rules that pin
 their heights move with them. Until Playwright, "met" is a pull request's
 word.
+
+### 67. A hotel's levels share one frame, placed from the hotel's own plan — Standing (2026-09-30)
+**Decided:** Builds on #58: the drawing format
+(`data/2027/drawings/README.md`) gains four rules, and the Hilton's five
+levels are redrawn to them.
+- **One frame per hotel.** Every level file of a hotel has the same origin
+  and the same `extent`; a point directly above another has the same x, y.
+- **Anchors.** Named fixed points, `{name, x, y}`, unique within a file; a
+  name that appears in two files of one hotel has one position.
+- **An open area may carry an `id`.** With one, it is a place events
+  happen: the id is a room of that level in `venues.json`, unique among
+  the file's rooms, composites and open ids, and the app may light it.
+  Without one it is scenery, as before. No Hilton file uses this yet.
+- **Sources.** Placement, order and orientation come from the hotel's own
+  floor plan where there is one, read for position only (#28). Dragon
+  Con's map says which rooms the con uses and their names, and places a
+  hotel that has no plan. Sizes stay the hotel's tables', turned as the
+  plan draws each room; where a table contradicts its own square footage,
+  the plan's shape.
+
+**Why:** The app stacks a hotel's levels (#60). The con's map outlines
+blocks of rooms, not the order inside them, and its panels are not to one
+scale. Reading the hotel's plan and its tables again found the Hilton's
+drawings wrong on every level: 301-305 drawn lengthwise as a 229 ft row,
+where each stands 48 ft deep in a 131 ft row; 309-312 in reverse order;
+the 2nd floor's wing rooms 204-214 turned the wrong way; Grand Ballroom
+C/D and B/A swapped north to south; the Crystal Ballroom turned and
+mirrored; the order inside 404-407; and thirteen rooms at sizes that are
+not the table's.
+**Cost:** The hotels' plans are illustrations, not surveys, so positions
+are good to roughly 10-15 ft until walked. 306-308 follow the hotel's
+order, and Dragon Con's map says the reverse.
