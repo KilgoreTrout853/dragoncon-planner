@@ -323,4 +323,30 @@ describe("src/styles.css", () => {
       expect(css).not.toMatch(/var\(--nav-h\)[^;]*var\(--safe-bottom\)/);
     });
   });
+
+  /* An iPhone zooms the page when a field whose text is under 16px takes
+     focus (DECISIONS #66). A field inherits its label's size, and the sheet's
+     labels are .9375rem, so the sheet's fields get 1rem by a rule of their
+     own; a rule over the text cannot follow inheritance, so that rule is
+     pinned here, and the page's computed sizes are a phone's to check. New
+     tests, not rows of tests/PORT-LEDGER.md. */
+  describe("a field's text is never under 16px: an iPhone zooms the page on focus", () => {
+    const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2] }));
+    /* The sizes a rule's font-size and font shorthand set, each in px at a 16px rem. */
+    const sizes = body => [...body.matchAll(/(?:^|;)\s*font(?:-size)?:\s*([^;]*)/g)]
+      .flatMap(m => [...m[1].matchAll(/(\d*\.?\d+)(rem|em|px)\b/g)].slice(0, 1))
+      .map(([, n, unit]) => Number(n) * (unit === "px" ? 1 : 16));
+    const under = rule => sizes(rule.body).some(px => px < 16);
+
+    it("the share panel's message field is 1rem", () => {
+      const share = rules.find(r => r.selector === "#shareText");
+      expect(sizes(share.body)).toEqual([16]);
+    });
+    it("every field in the sheet is 1rem, by the sheet's id, which no field rule's font: inherit can undo", () => {
+      expect(css).toMatch(/#sheet input, #sheet textarea, #sheet select \{ font-size: 1rem; \}/);
+    });
+    it("no rule whose selector names input, textarea or select sets a size under 1rem", () => {
+      expect(rules.filter(r => /(^|[\s,>+~(])(input|textarea|select)\b/.test(r.selector) && under(r)).map(r => r.selector)).toEqual([]);
+    });
+  });
 });

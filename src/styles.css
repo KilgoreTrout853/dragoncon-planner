@@ -423,6 +423,10 @@ select.crew-pick {
 }
 .sheet h2 { margin: 0; font-size: 1.25rem; }
 .sheet label { display: grid; gap: 6px; color: var(--muted); font-size: .9375rem; }
+/* A field takes its label's size, and an iPhone zooms the page when a field
+   under 16px takes focus (#66): every field in the sheet is 1rem, by the
+   sheet's id, so no later field rule's font: inherit takes it back. */
+#sheet input, #sheet textarea, #sheet select { font-size: 1rem; }
 .sheet input[type="range"] { width: 100%; accent-color: var(--gold); }
 .sheet input[type="datetime-local"] { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); }
 .sheet .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -477,7 +481,7 @@ select.crew-pick {
 .share-days .chip { height: 44px; border-radius: 22px; }
 #shareText {
   width: 100%; max-height: 40vh; max-height: 40dvh; resize: none; padding: 10px; border-radius: 10px;
-  background: var(--ink); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: .9375rem; line-height: 1.4;
+  background: var(--ink); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 1rem; line-height: 1.4;
   overscroll-behavior: contain; touch-action: pan-y;
 }
 .share-note, .shared-note { margin: 0; color: var(--muted); font-size: .9375rem; line-height: 1.4; }

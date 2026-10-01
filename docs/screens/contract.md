@@ -30,8 +30,10 @@ sheet) and 7 (what each reader sees).
   new control; focus into the sheet on open and back on close, Escape
   closing it; 44 px tap targets; contrast on the map's lit rooms;
   `prefers-reduced-motion` honoured, with no switch of our own; Larger
-  text leaves the map alone. Each pull request's description says how it
-  met them until Playwright checks them (#24, #57).
+  text leaves the map alone; a field's text is never under 16px: an
+  iPhone zooms the page on focus - and zoom itself is never limited or
+  blocked. Each pull request's description says how it met them until
+  Playwright checks them (#24, #57).
 - **The ladder** (VISION): useful in ten seconds, better with a crew, best
   installed. Every screen makes sense at the rung the reader is on and
   makes the next rung obvious without nagging: a stranger opens on
@@ -597,7 +599,11 @@ that day at once.
   day"; a chip for each con day that holds such a pick (`shareday.js`
   `shareableDays()`), today's chosen where it holds one, else the next day
   that does, else the first (`defaultShareDay()`); the message exactly as
-  it will be sent, in a read-only field labelled Message, as tall as it
+  it will be sent, in a read-only field labelled Message, its text 1rem -
+  16px, since an iPhone zooms the page when a field under that takes
+  focus; .9375rem until the fix after PR #85, as every field in the sheet
+  was, by its label's size, which `#sheet input, #sheet textarea, #sheet
+  select` now overrides - as tall as it
   wraps to up to 40% of the screen and scrolling past that, so Share, Copy
   and Done stay on a 375x667 screen; Share where the browser's Web Share
   takes the text, Copy always; and Done. A chip rewrites the message and
