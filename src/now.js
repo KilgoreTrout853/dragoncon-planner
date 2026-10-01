@@ -1,22 +1,25 @@
-/* The Now tab: the hero for the pick that is on or next, what else is on and
-   coming up, the record of the weekend once the con is over, and the minute
-   tick that keeps the countdowns honest without rebuilding the list - and the
-   install nudge, the tab's first card once the reader has a pick and until
-   the app is on the home screen. render(), in shell.js, and the minute tick,
-   in dispatch.js, call renderNow() and tickNow(); nothing here draws
-   anything else. */
+/* The Now tab: the hero for the pick that is on or next, the crew's right
+   now for a reader in one, what else is on and coming up, the record of the
+   weekend once the con is over, and the minute tick that keeps the
+   countdowns honest without rebuilding the list - and the install nudge,
+   the tab's first card once the reader has a pick and until the app is on
+   the home screen. render(), in shell.js, and the minute tick, in
+   dispatch.js, call renderNow() and tickNow(); nothing here draws anything
+   else. Whatever had focus on the tab has it again after either draws. */
 import { esc, fmtShort, minutesBetween } from "./util.js";
 import { loadJSON } from "./storage.js";
 import { IS_IOS, isStandalone } from "./platform.js";
 import { storageKey } from "./build.js";
+import { hasBackend } from "./backend.js";
+import { crewRightNow } from "./crews.js";
 import { state } from "./state.js";
-import { CON, conDayKey, conEnded, DAY_LONG, effectiveNow, now } from "./time.js";
-import { hotelMatches, hotelShort, hotelVar, placeHTML } from "./venues.js";
+import { CON, conDayKey, conEnded, conPhase, DAY_LONG, effectiveNow, now } from "./time.js";
+import { hotelMatches, hotelShort, hotelVar, placeHTML, placeShort } from "./venues.js";
 import { events, hotelChips, isNoise } from "./data.js";
 import { pickNews, pickNewsHTML, picks } from "./picks.js";
 import { connection, gapHTML, walkEstimate } from "./walk.js";
 import { chipHTML, rowHTML } from "./ui.js";
-import { cssEsc } from "./scroll.js";
+import { cssEsc, focusIn, giveFocusBack, refill } from "./scroll.js";
 import { requestRender } from "./bus.js";
 
 /* ---- Now ---------------------------------------------------------- */
@@ -71,7 +74,7 @@ function heroHTML(ev, now, onNow, thenNext) {
   const total = Math.max(1, minutesBetween(windowStart, target));
   const leftMin = minutesBetween(now, target);
 
-  return `<button class="hero" data-hero="${esc(ev.id)}">
+  return `<button class="hero" id="nowHero" data-hero="${esc(ev.id)}">
     ${ringHTML(leftMin / total, leftMin)}
     <div class="hbody">
       <div class="hkicker">${kicker}</div>
@@ -124,9 +127,39 @@ function nowModel(now) {
 
 const statusShown = (ev, now) => ev._s <= now || minutesBetween(now, ev._s) <= 90;
 
+/* ---- Your crew right now (W23; DECISIONS #10, #62) ----------------- */
+/* Each crewmate's pick on now, else their next today (crews.js
+   crewRightNow()), from every crew the reader is in. Only on a build with a
+   backend, and only while the clock - real or simulated - is inside the
+   con: before it the tab previews a made-up moment, and after it the tab is
+   the record. Nothing when no crewmate has anything left today. */
+const CREW_SHOWN = 4;
+const nowCrew = now => (hasBackend && conPhase() === "live" ? crewRightNow(events, now, conDayKey(now)) : []);
+/* A line a crewmate, a button to the event's sheet: who and when - "on now"
+   or the start - and "with you" when the reader picked it too; then what and
+   where, the place as the Map's On now line names it. Its id is the
+   crewmate's, so focus comes back to their line whatever they are on. Every
+   name is someone's own text, so escaped. */
+function crewLineHTML(c) {
+  const ev = c.ev, withYou = picks.has(ev.id) ? ` &middot; <span class="cn-with">with you</span>` : "";
+  return `<li><button class="crew-now" id="crewNow-${esc(c.user_id)}" data-hero="${esc(ev.id)}" aria-haspopup="dialog">
+    <span class="cn-top"><b class="cn-who">${esc(c.display_name)}</b> &middot; ${c.on ? "on now" : fmtShort(ev._s)}${withYou}</span>
+    <span class="cn-what"><span class="cn-title">${esc(ev.title)}</span><span class="cn-where" style="--h:var(${hotelVar(ev.hotel)})">&nbsp;&middot; ${esc(placeShort(ev))}</span></span>
+  </button></li>`;
+}
+/* Four lines, then how many more, which opens Plans' crew's day on today. */
+function crewHTML(crew) {
+  if (!crew.length) return "";
+  const more = crew.length - CREW_SHOWN;
+  return `<div class="section-title">Your crew right now</div><ul class="list crew-now-list">${crew.slice(0, CREW_SHOWN).map(crewLineHTML).join("")}</ul>${more > 0
+    ? `<button class="btn quiet more" id="crewMore" data-act="crew-more" aria-label="+${more} more of your crew, in Plans">+${more} more</button>` : ""}`;
+}
+
 /* Everything that decides which elements exist. The clock is deliberately
-   absent: a new minute changes the words, not the structure. */
-function nowSignature(m, now, banner) {
+   absent: a new minute changes the words, not the structure. The crew's
+   lines are in it - who, on what, on now or next - so the tick draws again
+   when one moves on or ends. */
+function nowSignature(m, now, banner, crew) {
   return [
     banner,
     m.heroEv ? m.heroEv.id : "-",
@@ -137,21 +170,31 @@ function nowSignature(m, now, banner) {
     m.rest.map(e => e.id + (statusShown(e, now) ? "!" : "")).join(","),
     m.around.length,
     m.shown.map(e => (e._s <= now ? "o" : "u") + e.id).join(","),
+    crew.map(c => `${c.user_id}:${c.ev.id}${c.on ? "o" : "u"}${picks.has(c.ev.id) ? "w" : ""}`).join(","),
   ].join("|");
 }
 let lastNowSig = null;
 
+/* The tab drawn whole; what had focus on it has it again (#66). */
+function drawNow(html) {
+  const view = document.getElementById("view-now"), back = focusIn(view);
+  view.innerHTML = html;
+  giveFocusBack(back);
+}
+
 function renderNow() {
-  if (conEnded()) { lastNowSig = ARCHIVE_SIG; document.getElementById("view-now").innerHTML = archiveHTML(); return; }
+  if (conEnded()) { lastNowSig = ARCHIVE_SIG; drawNow(archiveHTML()); return; }
   const {now, banner} = effectiveNow();
-  const model = nowModel(now);
-  lastNowSig = nowSignature(model, now, banner);
+  const model = nowModel(now), crew = nowCrew(now);
+  lastNowSig = nowSignature(model, now, banner, crew);
   const minePlan = model.minePlan;
   let mineHTML = nudgeHTML() + pickNewsHTML();
+  /* The crew's section sits between the hero and Rest of your day; with no
+     hero, after the line that says so. */
   if (minePlan.length) {
     const onNowEv = model.onNowEv, upcoming = model.upcoming, heroEv = model.heroEv;
     const thenNext = onNowEv ? upcoming[0] : null;
-    mineHTML += heroHTML(heroEv, now, !!onNowEv, thenNext);
+    mineHTML += heroHTML(heroEv, now, !!onNowEv, thenNext) + crewHTML(crew);
     const rest = model.rest;
     if (rest.length) {
       mineHTML += `<div class="section-title">Rest of your day <span class="count">${minePlan.length} today</span></div><ul class="list compact">`;
@@ -164,9 +207,9 @@ function renderNow() {
   } else if (model.later) {
     const day = DAY_LONG[conDayKey(model.later._s)] || model.later.day;
     mineHTML += `<div class="empty"><b>Nothing picked for later today.</b> Your next pick is on ${day}.</div>
-      <ul class="list compact">${rowHTML(model.later, {list: "next", showDay: true})}</ul>`;
+      <ul class="list compact">${rowHTML(model.later, {list: "next", showDay: true})}</ul>` + crewHTML(crew);
   } else {
-    mineHTML += `<div class="empty"><b>Nothing picked for later today.</b> Star things in Search and they show up here with walk times.</div>`;
+    mineHTML += `<div class="empty"><b>Nothing picked for later today.</b> Star things in Search and they show up here with walk times.</div>` + crewHTML(crew);
   }
 
   const around = model.around, shown = model.shown;
@@ -181,7 +224,7 @@ function renderNow() {
   aroundHTML += `</ul>`;
   if (around.length > shown.length) aroundHTML += `<button class="btn quiet more" data-act="more-now">Show ${around.length - shown.length} more</button>`;
   if (!around.length) aroundHTML += `<div class="empty">Nothing on in this window${state.now.hotel !== "All" ? " at the " + hotelShort(state.now.hotel) : ""}.</div>`;
-  document.getElementById("view-now").innerHTML = mineHTML + aroundHTML;
+  drawNow(mineHTML + aroundHTML);
 }
 
 /* A minute changes the countdowns, not usually the list. Rebuilding the whole
@@ -192,7 +235,7 @@ function tickNow() {
   if (conEnded()) { if (lastNowSig !== ARCHIVE_SIG) renderNow(); return; }
   const {now, banner} = effectiveNow();
   const model = nowModel(now);
-  const sig = nowSignature(model, now, banner);
+  const sig = nowSignature(model, now, banner, nowCrew(now));
   if (sig !== lastNowSig || !document.querySelector("#view-now .hero, #view-now .empty")) { renderNow(); return; }
 
   const view = document.getElementById("view-now");
@@ -202,8 +245,10 @@ function tickNow() {
     holder.innerHTML = heroHTML(model.heroEv, now, !!model.onNowEv, model.onNowEv ? model.upcoming[0] : null);
     const fresh = holder.firstElementChild;
     /* A countdown reading "2h" says the same thing a minute later; swapping the
-       card anyway would drop a tap that happened to land on the tick. */
-    if (fresh && fresh.outerHTML !== heroEl.outerHTML) heroEl.replaceWith(fresh);
+       card anyway would drop a tap that happened to land on the tick. And a
+       changed one is written into the card in place, so a card with focus
+       keeps it and is not read out again. */
+    if (fresh) refill(heroEl, fresh);
   }
   model.rest.forEach(ev => {
     const el = view.querySelector(`.row[data-list="next"][data-id="${cssEsc(ev.id)}"] .status`);

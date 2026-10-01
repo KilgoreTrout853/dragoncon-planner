@@ -56,6 +56,12 @@ function walkMin(a, b) {
 }
 
 const hotelShort = h => HOTEL_SHORT[h] || h;
+/* A place in a line of words, as the Map's On now line has always named it:
+   the hotel's short name, and an offsite pick by its room, else "offsite".
+   Text, not markup: the caller escapes it. Your crew right now names a
+   crewmate's place the same way, until the row's pull request settles how
+   every line names one (docs/screens/contract.md, Open). */
+const placeShort = ev => (ev.hotel === "Other" ? ev.room || "offsite" : hotelShort(ev.hotel));
 const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
 const hotelGroup = h => HOTEL_GROUP[h] || h;
 /* A chip value is a venue or a group of them; "All" is everything. */
@@ -65,6 +71,6 @@ const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hote
 const hotelPhrase = h => h === "Hardy Ivy Park" ? h : `the ${hotelShort(h)}`;
 
 export {
-  HOTEL_ORDER, WALK, SLACK_MIN, cleanRoom, placeHTML, walkMin, hotelShort, hotelVar,
+  HOTEL_ORDER, WALK, SLACK_MIN, cleanRoom, placeHTML, placeShort, walkMin, hotelShort, hotelVar,
   hotelGroup, hotelMatches, hotelPhrase,
 };

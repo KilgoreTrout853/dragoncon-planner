@@ -3,6 +3,8 @@
    swipe and the Escape that dismiss it, focus into it and back (#66), and
    the handlers boot() registers on it, on the Settings controls - the email
    step's among them - and in the crew panel, whose state is this module's.
+   A pull's redraw refills the open crew panel, and the open event's
+   who's-going line, in place.
    The clicks inside the event and hotel panels are dispatch's: they reach
    further than the sheet. closeSheet() asks for its redraw over the bus,
    because render() is the shell's, above this module. The eight elements
@@ -15,7 +17,7 @@ import { deviceLine, storageKey } from "./build.js";
 import { hasBackend } from "./backend.js";
 import { codeSentTo, confirmCode, plainMessage, sendCode, signedInAs, signOut } from "./identity.js";
 import {
-  createCrew, crewMessage, deleteCrew, inviteLink, isCreator, joinCrew, leaveCrew, myCrews, myMembership, newInvite,
+  createCrew, crewMessage, deleteCrew, goingTo, inviteLink, isCreator, joinCrew, leaveCrew, myCrews, myMembership, newInvite,
   pendingJoin, readInvite, removeMember, setMyName, takePendingJoin,
 } from "./crews.js";
 import { settings, state } from "./state.js";
@@ -24,7 +26,7 @@ import { hotelPhrase, hotelVar, placeHTML, WALK } from "./venues.js";
 import { byId, directWorks, events, isCeleb, tagsOf, worksById } from "./data.js";
 import { picks, replacePicks, savePicks } from "./picks.js";
 import { CELEB_BADGE, rowHTML } from "./ui.js";
-import { cssEsc, pageScrollTo, pageScrollTop } from "./scroll.js";
+import { focusKey, pageScrollTo, pageScrollTop, shownMatch } from "./scroll.js";
 import { requestRender } from "./bus.js";
 import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter } from "./sync.js";
 import { MAP_HOTELS, mapDay } from "./map.js";
@@ -99,8 +101,21 @@ function fillKeep() {
   fillSyncStatus();
 }
 
+/* Who's going (W22; DECISIONS #62, #64): the crewmates whose picks hold the
+   event, by name, three of them and then how many more - from what the pull
+   kept (crews.js goingTo()), so on a build with a backend alone, and never
+   for a removed event, which is not happening. "" for no one. Every name is
+   someone's own text, escaped where it is drawn. In 2027 it taps nowhere. */
+const GOING_NAMED = 3;
+function goingText(ev) {
+  const going = hasBackend && !ev.removed ? goingTo(ev.id) : [];
+  if (!going.length) return "";
+  const more = going.length - GOING_NAMED;
+  return `Going: ${going.slice(0, GOING_NAMED).map(p => p.display_name).join(", ")}${more > 0 ? ` and ${more} more` : ""}`;
+}
+
 function eventSheetHTML(ev) {
-  const mine = picks.has(ev.id);
+  const mine = picks.has(ev.id), going = goingText(ev);
   /* Each person as this listing spells them, with the role it gives them;
      See all opens their page by id. */
   const peopleRows = (ev.people || []).filter(p => p && p.name).map(p => ({
@@ -121,6 +136,7 @@ function eventSheetHTML(ev) {
       ${ev.cancelled ? `<div><span class="cancelled-tag">Cancelled</span></div>` : ""}
       ${ev.removed ? `<div><span class="removed-tag">Removed from the schedule</span></div>` : ""}
       ${isCeleb(ev) ? `<div>${CELEB_BADGE}</div>` : ""}
+      <p class="ev-going" id="sheetGoing"${going ? "" : " hidden"}>${esc(going)}</p>
     </div>
     <div class="ev-body">
       ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
@@ -385,6 +401,17 @@ function onCrewInput(e) {
 
 /* shell.js render()'s: a pull's redraw reaches the open panel too. */
 function refreshCrewPanel() { if (!sheetWrap.hidden && !panelCrew.hidden) fillCrew(); }
+/* And the open event - `state.sheetId` is one only while its panel is
+   shown: its who's-going line alone, its words and whether it shows, in
+   place - the panel is never drawn again for it, so focus and everything
+   else in the sheet stay as they are (#66). */
+function refreshEventSheet() {
+  const ev = state.sheetId ? byId.get(state.sheetId) : null, line = document.getElementById("sheetGoing");
+  if (!ev || !line) return;
+  const going = goingText(ev);
+  if (line.textContent !== going) line.textContent = going;
+  line.hidden = !going;
+}
 
 /* One action: send() is its request; done(answer, here) applies what it
    changed - `here` false once the panel has been closed or opened again
@@ -549,31 +576,19 @@ function onCrewClick(e) {
    not needed for it, so it does not wait for the load. */
 function openKeptJoin() { if (hasBackend && pendingJoin()) openSheet("crew", "join"); }
 
-/* What opened the sheet, as a selector that finds it again once the redraw
-   that closing it asks for has replaced it (#66): its id, or the row, the
-   timeline block or the map's hotel it is part of; null for anything else.
-   A browser that does not focus a tapped button leaves the body, and
-   nothing is put back. */
-function openerOf(el) {
-  if (!el || !el.closest || el === document.body) return null;
-  if (el.id) return `#${cssEsc(el.id)}`;
-  const row = el.closest(".row[data-id]");
-  if (row) return `.row[data-id="${cssEsc(row.dataset.id)}"][data-list="${cssEsc(row.dataset.list || "")}"] ${el.closest(".star") ? ".star" : ".row-main"}`;
-  const block = el.closest("[data-hero], .map-hotel[data-hotel]");
-  if (block) return block.dataset.hero ? `[data-hero="${cssEsc(block.dataset.hero)}"]` : `.map-hotel[data-hotel="${cssEsc(block.dataset.hotel)}"]`;
-  return null;
-}
 const TITLES = {event: "sheetTitleEvent", hotel: "sheetTitleHotel", crew: "sheetTitleCrew"};
 
 /* kind: settings, event, hotel or crew; id: the event's, the hotel's, or
    the crew panel's step - create, join or manage. The crew panel needs a
    backend: with none there are no crews. Focus goes to the panel's
-   heading, and closing puts it back on what opened the sheet (#66). */
+   heading, and closing puts it back on what opened the sheet (#66), kept
+   as scroll.js focusKey() puts it, since the redraw that closing asks for
+   replaces it. */
 function openSheet(kind = "settings", id = null) {
   if (kind === "event" && !byId.get(id)) return;
   if (kind === "hotel" && !MAP_HOTELS[id]) return;
   if (kind === "crew" && !hasBackend) return;
-  if (sheetWrap.hidden) opener = openerOf(document.activeElement);
+  if (sheetWrap.hidden) opener = focusKey(document.activeElement);
   sheetScrollY = pageScrollTop();
   state.sheetId = kind === "event" ? id : null;
   state.sheetHotel = kind === "hotel" ? id : null;
@@ -620,9 +635,6 @@ function closeSheet() {
   opener = null;
   if (back) back.focus({preventScroll: true});
 }
-/* The first match on screen: a view the tab bar has left keeps its old
-   markup, hidden, and may hold the same row or block. */
-const shownMatch = selector => [...document.querySelectorAll(selector)].find(el => !el.closest("[hidden]")) || null;
 /* Escape closes the sheet, whatever it shows (#66); a key an input method
    is still composing with is left to it - WebKit sends the key that ends a
    composition after it, as keyCode 229. */
@@ -759,5 +771,5 @@ export {
   sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, eventSheetHTML, hotelSheetHTML, openSheet,
   closeSheet, onSheetKeydown, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
   onSettingsClick, onCrowdInput, onNoiseDefaultChange, onResetPicks, onKeepSubmit, onKeepClick,
-  refreshCrewPanel, onCrewSubmit, onCrewClick, onCrewInput, openKeptJoin,
+  refreshCrewPanel, refreshEventSheet, onCrewSubmit, onCrewClick, onCrewInput, openKeptJoin,
 };

@@ -9,7 +9,8 @@ import { ensureUser, plainMessage } from "./identity.js";
    section 8): the reader's crews and their crewmates' picks as the last pull
    kept them, the seven things a reader can do to a crew, the invite link, and
    what the crew screens draw from. No screen here: the crew header and the
-   crew's day are plans.js's, the crew panel sheet.js's (#62).
+   crew's day are plans.js's, the crew panel and who's going sheet.js's, the
+   Now tab's crew section now.js's and the Map's crew count map.js's (#62).
 
    The two keys are this module's, and sync writes them through it, as the
    pull writes picks and follows through applyPulledPicks(): the crews under
@@ -113,6 +114,27 @@ function crewmatePicks(userId) {
 function myMembership(crew) {
   const user = reader(), row = user && crew ? (crew.members || []).find(m => m.user_id === user) : null;
   return row ? {user_id: row.user_id, display_name: row.display_name} : null;
+}
+/* Your crew right now (W23): each crewmate's pick on at `at`, else their
+   next one today - today the con day `today`, anything still running
+   counted in it, the rule Now's own hero keeps. The schedule is the
+   caller's, data.js `events`, in start order and with no removed event,
+   since this module comes before the schedule and the clock: a pick it
+   does not hold is no one's. What is left of a crewmate's day is in start
+   order, so its first is the one on now where one is - of two, the earlier
+   start - and else the next. [{user_id, display_name, ev, on}], by start -
+   which puts every pick on now before every next one - and then as
+   crewmates() orders them, by name; a crewmate with nothing left today is
+   not there. */
+function crewRightNow(schedule, at, today) {
+  const theirs = crewPicksKept(), lines = [];
+  for (const p of crewmates()) {
+    const going = theirs[p.user_id];
+    if (!going) continue;
+    const ev = schedule.find(e => going[e.id] === true && e._e > at && (e._cd === today || e._s <= at));
+    if (ev) lines.push({...p, ev, on: ev._s <= at});
+  }
+  return lines.sort((a, b) => a.ev._s - b.ev._s);
 }
 /* The overlay's map: every event a crewmate starred, to the same list. */
 function crewmatesByEvent() {
@@ -272,7 +294,7 @@ const CREW_PLAIN = {
 function crewMessage(error) { return CREW_PLAIN[error && error.code] || plainMessage(error); }
 
 export {
-  myCrews, isCreator, crewGained, applyPulledCrews, forgetCrews, goingTo, crewmatePicks, myMembership, crewmatesByEvent,
+  myCrews, isCreator, crewGained, applyPulledCrews, forgetCrews, goingTo, crewmatePicks, myMembership, crewRightNow, crewmatesByEvent,
   inviteLink, readInvite, readJoinLink, pendingJoin, takePendingJoin,
   createCrew, joinCrew, newInvite, leaveCrew, removeMember, deleteCrew, setMyName, crewMessage,
 };

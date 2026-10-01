@@ -140,10 +140,16 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .map-park rect { fill: color-mix(in srgb, var(--h) 12%, var(--surface)); }
 .map-park text { font-size: 9px; }
 .map-hotel text.long { font-size: 9.5px; letter-spacing: .04em; }   /* COURTLAND measures 60 px at 11px; the block is 60 */
-.map-hotel, .map-pill { cursor: pointer; }
+.map-hotel, .map-pill, .map-crew { cursor: pointer; }
 .map-hotel:focus-visible rect { stroke-width: 3; }
 .map-pill rect { fill: var(--gold); }
 .map-pill text { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--gold-ink); text-anchor: middle; dominant-baseline: central; }
+/* The crew's count: an outline, not gold - gold is "mine" - with a person
+   before the number. Light on the darkest fill, 14.8:1, its outline 8.1:1
+   or more against every block and the ground. */
+.map-crew rect { fill: var(--ink); stroke: var(--text); stroke-width: 1.5; }
+.map-crew circle, .map-crew path { fill: var(--text); }
+.map-crew text { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--text); text-anchor: middle; dominant-baseline: central; }
 .map-ring { fill: none; stroke: var(--gold); stroke-width: 2.5; pointer-events: none; }
 .map-ring.next { stroke-width: 2; animation: map-pulse 1.6s ease-in-out infinite; }
 @keyframes map-pulse { 0%, 100% { stroke-opacity: 1; stroke-width: 2; } 50% { stroke-opacity: .35; stroke-width: 4; } }
@@ -471,6 +477,7 @@ select.crew-pick {
 .ev-head h2 { margin: 0; font-size: 1.3125rem; line-height: 1.25; }
 .ev-when { color: var(--muted); font-size: .9375rem; }
 .ev-room { font-size: 1.1875rem; font-weight: 700; color: var(--h); line-height: 1.2; }
+.ev-going { margin: 0; color: var(--muted); font-size: .9375rem; overflow-wrap: anywhere; }
 .ev-body { display: grid; gap: 12px; max-height: 48vh; overflow-y: auto; overscroll-behavior: contain; }
 .ev-body p { margin: 0; white-space: pre-line; font-size: 1rem; }
 .ev-people { color: var(--muted); font-size: .9375rem; }
@@ -510,6 +517,20 @@ select.crew-pick {
    those two bands with (DECISIONS #40). Tight but doable stays quiet there,
    and here. */
 .hero .hthen.warn, .hero .hthen.warn b { color: var(--warn); }
+/* Your crew right now: a line a crewmate, each a button to the event's
+   sheet - who and when, then what and where, the title giving way before
+   the place does. "with you" is gold: the pick is the reader's too. */
+.crew-now {
+  display: block; width: 100%; min-height: 44px; padding: 8px 14px; text-align: left;
+  background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer;
+}
+.crew-now:focus-visible { outline-offset: -3px; }   /* inside the line: main, the scroller, clips at its sides */
+.crew-now .cn-top { display: block; font-size: .9375rem; color: var(--muted); }
+.crew-now .cn-who { color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
+.crew-now .cn-with { color: var(--gold); font-weight: 600; }
+.crew-now .cn-what { display: flex; min-width: 0; overflow: hidden; font-size: 1rem; white-space: nowrap; }
+.crew-now .cn-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.crew-now .cn-where { flex: none; color: var(--h); font-weight: 600; }
 .list.compact .row-main { padding-top: 8px; padding-bottom: 8px; }
 .list.compact .snippet { display: none; }
 @media (prefers-reduced-motion: reduce) { .hero .ring .prog { transition: none; } }

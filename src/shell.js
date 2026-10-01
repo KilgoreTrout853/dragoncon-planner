@@ -1,5 +1,6 @@
 /* The shell: what is on screen whatever the tab. render(), which redraws the
-   page from state and is what the bus calls - the open crew panel with it;
+   page from state and is what the bus calls - the open crew panel with it,
+   and an open event's who's-going line;
    the header's clock, the notice above the views and the mini-bar; what the
    page does about a new simulated moment; togglePick(), which keeps the
    tapped row under the finger through the redraw; the iOS edge guard; and
@@ -29,7 +30,7 @@ import { cancelQueuedBrowseRender, renderBrowse } from "./browse.js";
 import { renderExplore } from "./explore.js";
 import { renderMap } from "./map.js";
 import { renderPlans } from "./plans.js";
-import { refreshCrewPanel } from "./sheet.js";
+import { refreshCrewPanel, refreshEventSheet } from "./sheet.js";
 import { updateFresh } from "./loading.js";
 
 /* ==================================================================
@@ -47,6 +48,7 @@ function render() {
   const badge = document.getElementById("plansBadge");
   badge.hidden = picks.size === 0; badge.textContent = picks.size;
   refreshCrewPanel();          // the join step can be open before the schedule is
+  refreshEventSheet();         // an open event's who's-going line, in place
   if (!events.length) return;
   const rows = chipRowsSnapshot();
   if (state.tab === "now") renderNow();
