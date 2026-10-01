@@ -3,7 +3,7 @@
    holds no DOM handle, scrolls nothing and draws nothing; it returns strings,
    and whoever asked puts them on the page. rowHTML reads state.sheetId and
    picks to mark the open and the starred row, and crewLineHTML picks to say
-   "with you". */
+   "yours too". */
 import { esc, fmt } from "./util.js";
 import { state } from "./state.js";
 import { DAY_LABEL } from "./time.js";
@@ -62,14 +62,16 @@ function snippetFor(ev, terms) {
 }
 
 /* A crewmate's pick as a line (DECISIONS #62), a button to the event's
-   sheet: who and when, and "with you" when the reader picked it too; then
+   sheet: who and when, and "yours too" when the reader picked it too; then
    what and where, the title giving way before the place does. Now's Your
-   crew right now and the hotel sheet's Your crew here draw it, each giving
-   the line its id, the words after the name - "on now", or the start - and
-   the place, "" for none, which leaves the title alone. Every name is
-   someone's own text, so escaped. */
+   crew's picks right now and the hotel sheet's Your crew's picks here draw
+   it, each giving the line its id, the words after the name - "on now", or
+   the start - and the place, "" for none, which leaves the title alone.
+   Every name is someone's own text, so escaped. A star is a pick, not a
+   whereabouts: the line says what was starred, never that anyone is going
+   (#68), and .cn-with keeps its old name. */
 function crewLineHTML(id, name, when, ev, where) {
-  const withYou = picks.has(ev.id) ? ` &middot; <span class="cn-with">with you</span>` : "";
+  const withYou = picks.has(ev.id) ? ` &middot; <span class="cn-with">yours too</span>` : "";
   return `<li><button class="crew-now" id="${esc(id)}" data-hero="${esc(ev.id)}" aria-haspopup="dialog">
     <span class="cn-top"><b class="cn-who">${esc(name)}</b> &middot; ${esc(when)}${withYou}</span>
     <span class="cn-what"><span class="cn-title">${esc(ev.title)}</span>${where ? `<span class="cn-where" style="--h:var(${hotelVar(ev.hotel)})">&nbsp;&middot; ${esc(where)}</span>` : ""}</span>

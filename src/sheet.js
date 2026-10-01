@@ -105,13 +105,16 @@ function fillKeep() {
    event, by name, three of them and then how many more - from what the pull
    kept (crews.js goingTo()), so on a build with a backend alone, and never
    for a removed event, which is not happening. "" for no one. Every name is
-   someone's own text, escaped where it is drawn. In 2027 it taps nowhere. */
+   someone's own text, escaped where it is drawn. In 2027 it taps nowhere.
+   The screen says what they starred, "Starred by", never that they are
+   going: a star is a pick (#68). The code's names - goingText(),
+   #sheetGoing, .ev-going - keep "going". */
 const GOING_NAMED = 3;
 function goingText(ev) {
   const going = hasBackend && !ev.removed ? goingTo(ev.id) : [];
   if (!going.length) return "";
   const more = going.length - GOING_NAMED;
-  return `Going: ${going.slice(0, GOING_NAMED).map(p => p.display_name).join(", ")}${more > 0 ? ` and ${more} more` : ""}`;
+  return `Starred by ${going.slice(0, GOING_NAMED).map(p => p.display_name).join(", ")}${more > 0 ? ` and ${more} more` : ""}`;
 }
 
 function eventSheetHTML(ev) {
@@ -154,20 +157,19 @@ function eventSheetHTML(ev) {
 /* ---- The hotel sheet (docs/screens/contract.md, section 8) -------- */
 /* The user's picks in one hotel on one con day, in time order (events is). */
 const mapPicksAt = (hotel, day) => events.filter(e => picks.has(e.id) && e.hotel === hotel && e._cd === day);
-/* And under them the crew's there, Your crew here (DECISIONS #62): a line a
-   pick, from the Map's own reader (map.js mapCrewPicks()), so on a build
-   with a backend and for a reader in a crew alone. Now's line (ui.js
-   crewLineHTML()), but for two things: after the name, the start, never
-   "on now" - the sheet does not tick, and the Map's day is often not
-   today - and after the title, the room, the hotel being the sheet's, or
-   the title alone where there is none. Its id is the crewmate's and the
-   event's, unique on the page - Now's lines, hidden behind the Map, are
-   crewNow- - so focus finds a line by its id, never by its event, which
-   the Map's card may show too. With none of the crew here the sheet is as
-   it was before them. */
+/* And under them the crew's there, Your crew's picks here (DECISIONS #62,
+   #68): a line a pick, from the Map's own reader (map.js mapCrewPicks()), so
+   on a build with a backend and for a reader in a crew alone. Now's line
+   (ui.js crewLineHTML()), but for two things: after the name, the start,
+   never "on now" - the sheet does not tick, and the Map's day is often not
+   today - and after the title, the room, the hotel being the sheet's, or the
+   title alone where there is none. Its id is the crewmate's and the event's,
+   unique on the page - Now's lines, hidden behind the Map, are crewNow- - so
+   focus finds a line by its id, never by its event, which the Map's card may
+   show too. With none of the crew here the sheet is as it was before them. */
 const hereLineHTML = c => crewLineHTML(`crewHere-${c.user_id}-${c.ev.id}`, c.display_name, fmtShort(c.ev._s), c.ev, String(c.ev.room || "").trim());
 const crewHereHTML = lines => (lines.length
-  ? `<div class="hotel-crew" id="hotelCrew"><div class="section-title">Your crew here</div><ul class="list">${lines.map(hereLineHTML).join("")}</ul></div>` : "");
+  ? `<div class="hotel-crew" id="hotelCrew"><div class="section-title">Your crew's picks here</div><ul class="list">${lines.map(hereLineHTML).join("")}</ul></div>` : "");
 /* The head says how many of the crew are here - the pill's number, by the
    pill's own count (map.js mapCrewCounts()), so the two never disagree -
    and nothing of the crew at none. */
@@ -453,10 +455,10 @@ function refreshEventSheet() {
 }
 /* And the open hotel sheet: what it draws of the crew, on the day it was
    drawn for, written in place - the count in its head, the words above its
-   Search button, and Your crew here, put in or taken out whole, or its
-   lines kept by id. The reader's own rows and count stay as drawn (ROADMAP,
-   Flags). The body is never replaced, so its scroll stays; nothing is
-   written when nothing changed; a line moved while it had focus has it
+   Search button, and Your crew's picks here, put in or taken out whole, or
+   its lines kept by id. The reader's own rows and count stay as drawn
+   (ROADMAP, Flags). The body is never replaced, so its scroll stays; nothing
+   is written when nothing changed; a line moved while it had focus has it
    again, and one taken away gives it to the sheet's heading (#66).
    `state.sheetHotel` is one only while the hotel's panel is shown. */
 function refreshHotelSheet() {
