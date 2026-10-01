@@ -784,11 +784,20 @@ its origin (#39). `storageKey()` in `build.js` names them all.
 
 | Request | Strategy | Why |
 |---|---|---|
-| `index.html` | Network-first, 3 s timeout, fall back to cache; late responses still cached | A fix should land when there's signal; a slow tower must not block launch |
+| `index.html` | Network-first, 3 s timeout, fall back to cache; late responses still cached; kept once, under its address less the query | A fix should land when there's signal; a slow tower must not block launch |
 | `events.v2.json` | Cache-first; revalidate in the background; notify the page only if its `digest` changed - `generated_at`, for a copy without one | Megabytes on con wifi are the thing that makes the app feel broken |
 | Fonts | Cache-first forever (opaque responses allowed) | Never change; a missing font is a visibly broken page |
 
-Cache name is `dc<yy>-v6` (or `dc<yy>-<channel>-v6` on a stamped build),
+The page is stored under its address without the query (`pageKey()`), and
+the offline fallback looks that key up exactly, then the shell's
+`index.html`: a `?join=`, a `?now=` or any other query opens the one page,
+the latest that arrived. Kept under each address it was asked for, a copy
+stored once was never replaced, and since a cache matches its oldest entry
+first, an offline launch could serve the page as it was the day a link
+was opened; v7 dropped those copies. The schedule's lookups still ignore a
+query.
+
+Cache name is `dc<yy>-v7` (or `dc<yy>-<channel>-v7` on a stamped build),
 `<yy>` the stamped year's last two digits. Bump the version when the built
 page or `sw.js` changes; this site's other caches, of any year, are deleted
 on activate, matched by the whole name, so the live site's worker and the

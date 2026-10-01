@@ -80,7 +80,7 @@ describe("vite build", () => {
     expect(html).toContain('<meta name="dc-channel" content="next">');
     expect(html).toContain('<meta name="dc-build" content="abc1234">');
     expect(sw).toContain('const CHANNEL = "next";');
-    expect(workerConstants(sw).CACHE).toBe("dc26-next-v6");              // the name is built from the stamps
+    expect(workerConstants(sw).CACHE).toBe("dc26-next-v7");              // the name is built from the stamps
     expect(exists(r.out, "data", "2026", "events.v2.json")).toBe(true);
     expect(exists(r.out, ".nojekyll")).toBe(true);
     for (const absent of ["tests", "src", "scraper.py", "README.md", "node_modules", "package.json"]) {
@@ -188,7 +188,7 @@ describe("vite build", () => {
         const sw = read(r.out, "sw.js");
         expect(sw).toBe(read(ROOT, "public", "sw.js").replace('const YEAR = "2026";', 'const YEAR = "2027";'));
         const { CACHE, DATA, SHELL } = workerConstants(sw);
-        expect([CACHE, DATA]).toEqual(["dc27-v6", "data/2027/events.v2.json"]);
+        expect([CACHE, DATA]).toEqual(["dc27-v7", "data/2027/events.v2.json"]);
         expect(SHELL).toContain("./data/2027/events.v2.json");
       });
       it("stamps the page's name - its title, its head's tags, the brand and the home-screen title", () => {
@@ -345,10 +345,10 @@ describe("vite build", () => {
       expect(() => new Function(sw())).not.toThrow();
     });
     it.skip("sw.js parses: the catch arm of 1282; it runs only when sw.js fails to parse, and then 1282 has already failed [1283]", () => {});
-    it("the cache name is versioned (v6) under a prefix the build can stamp, and only this site's caches are cleared [1290]", () => {
+    it("the cache name is versioned (v7) under a prefix the build can stamp, and only this site's caches are cleared [1290]", () => {
       expect(sw()).toMatch(/const CHANNEL = "";/);
       expect(sw()).toMatch(/const YEAR = "2026";/);
-      expect(sw()).toMatch(/const CACHE = `\$\{CACHE_PREFIX\}v6`;/);
+      expect(sw()).toMatch(/const CACHE = `\$\{CACHE_PREFIX\}v7`;/);
       expect(sw()).toMatch(/OURS\.test\(n\) && n !== CACHE/);
     });
     it("the worker precaches the icons [1307]", () => {
@@ -356,7 +356,7 @@ describe("vite build", () => {
     });
     it("the html fetch stores its response whenever it lands [1309]", () => {
       expect(sw()).toMatch(/function fetchAndCache\(request\)/);
-      expect(sw().slice(sw().indexOf("function fetchAndCache"))).toMatch(/cache\.put\(request, res\.clone\(\)\)/);
+      expect(sw().slice(sw().indexOf("function fetchAndCache"))).toMatch(/cache\.put\(pageKey\(request\), res\.clone\(\)\)/);
     });
     it("and is kept alive past the response with waitUntil [1311]", () => {
       expect(sw()).toMatch(/const net = fetchAndCache\(request\);[\s\S]{0,120}event\.waitUntil\(net/);

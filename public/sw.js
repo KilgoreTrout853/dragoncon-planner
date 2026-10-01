@@ -24,7 +24,7 @@
 const CHANNEL = "";                        /* stamped by the build: "next" on the next site */
 const YEAR = "2026";                       /* stamped by the build: DC_YEAR, where it is not 2026 */
 const CACHE_PREFIX = `dc${YEAR.slice(2)}${CHANNEL ? "-" + CHANNEL : ""}-`;
-const CACHE = `${CACHE_PREFIX}v6`;
+const CACHE = `${CACHE_PREFIX}v7`;
 /* This site's caches, of any year, by the whole name: dc<yy>-v<n> for the
    live site and dc<yy>-<channel>-v<n> for a stamped one. A prefix alone let
    the live site's worker take the next site's caches too. */
@@ -111,12 +111,19 @@ async function cachedDataOr(request, update) {
   return fresh || new Response('{"events":[]}', {headers: {"Content-Type": "application/json"}});
 }
 
+/* The page is kept once, under its address less the query: an invite's
+   ?join=, a shared day's ?day=, a ?now= all open the one page. Kept under
+   each address it was asked for, a copy stored once was never replaced, and
+   since a cache matches its oldest entry first, an offline launch found the
+   page as it was the day a link was opened (v7 drops those copies). */
+const pageKey = request => { const url = new URL(request.url); return url.origin + url.pathname; };
+
 /* The page, fetched and stored whenever it arrives - including after the
    race below has already given up on it. Otherwise a tower that is slow but
    working would serve the stale copy on every launch, for ever. */
 function fetchAndCache(request) {
   return fetch(request).then(async res => {
-    if (res && res.ok) { const cache = await caches.open(CACHE); await cache.put(request, res.clone()); }
+    if (res && res.ok) { const cache = await caches.open(CACHE); await cache.put(pageKey(request), res.clone()); }
     return res;
   });
 }
@@ -133,7 +140,7 @@ async function networkFirst(request, net) {
     if (res && res.ok) return res;
     throw new Error("bad response");
   } catch (e) {
-    const cached = (await cache.match(request, {ignoreSearch: true})) ||
+    const cached = (await cache.match(pageKey(request))) ||
                    (await cache.match("./index.html")) ||
                    (await cache.match("./"));
     if (cached) return cached;
