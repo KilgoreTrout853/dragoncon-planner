@@ -4,63 +4,75 @@
   "units": "ft",
   "north": "up",
   "extent": {
-    "w": 300,
-    "h": 170
+    "w": 460,
+    "h": 520
   },
+  "anchors": [
+    {
+      "name": "tower elevators",
+      "x": 150.0,
+      "y": 305.0
+    },
+    {
+      "name": "atrium",
+      "x": 114.0,
+      "y": 268.0
+    }
+  ],
   "rooms": [
     {
       "id": "401",
-      "cx": 165.0,
-      "cy": 62.0,
+      "cx": 223.5,
+      "cy": 234.6,
       "w": 25,
-      "h": 27,
+      "h": 23,
       "rot": 0
     },
     {
       "id": "402",
-      "cx": 190.0,
-      "cy": 62.0,
+      "cx": 248.5,
+      "cy": 236.6,
       "w": 25,
       "h": 27,
       "rot": 0
     },
     {
       "id": "403",
-      "cx": 215.0,
-      "cy": 62.0,
+      "cx": 273.5,
+      "cy": 236.6,
       "w": 25,
       "h": 27,
       "rot": 0
     },
     {
-      "id": "406",
-      "cx": 163.0,
-      "cy": 110.0,
-      "w": 28,
-      "h": 26,
-      "rot": 0
-    },
-    {
       "id": "407",
-      "cx": 190.0,
-      "cy": 110.0,
+      "cx": 222.5,
+      "cy": 292.4,
       "w": 26,
-      "h": 26,
+      "h": 24,
       "rot": 0
     },
     {
-      "id": "404",
-      "cx": 226.0,
-      "cy": 110.0,
+      "id": "406",
+      "cx": 249.5,
+      "cy": 291.4,
       "w": 28,
       "h": 26,
       "rot": 0
     },
     {
       "id": "405",
-      "cx": 253.0,
-      "cy": 110.0,
+      "cx": 276.5,
+      "cy": 292.4,
       "w": 26,
+      "h": 24,
+      "rot": 0
+    },
+    {
+      "id": "404",
+      "cx": 303.5,
+      "cy": 291.4,
+      "w": 28,
       "h": 26,
       "rot": 0
     }
@@ -76,8 +88,8 @@
         "403"
       ],
       "outline": {
-        "cx": 190,
-        "cy": 62,
+        "cx": 248.5,
+        "cy": 236.6,
         "w": 75,
         "h": 27,
         "rot": 0
@@ -87,12 +99,12 @@
       "name": "406–407",
       "kind": "run",
       "rooms": [
-        "406",
-        "407"
+        "407",
+        "406"
       ],
       "outline": {
-        "cx": 176,
-        "cy": 110,
+        "cx": 236.5,
+        "cy": 291.4,
         "w": 54,
         "h": 26,
         "rot": 0
@@ -102,12 +114,12 @@
       "name": "404–405",
       "kind": "run",
       "rooms": [
-        "404",
-        "405"
+        "405",
+        "404"
       ],
       "outline": {
-        "cx": 239,
-        "cy": 110,
+        "cx": 290.5,
+        "cy": 291.4,
         "w": 54,
         "h": 26,
         "rot": 0
@@ -116,11 +128,11 @@
   ],
   "open": [
     {
-      "name": "Elevator lobby",
-      "cx": 58,
-      "cy": 85,
-      "w": 44,
-      "h": 44,
+      "name": "Atrium, open to the lobby",
+      "cx": 116.0,
+      "cy": 270.0,
+      "w": 46,
+      "h": 50,
       "rot": 0
     }
   ],
@@ -128,22 +140,18 @@
     {
       "kind": "elevator",
       "name": "Elevators",
-      "x": 100,
-      "y": 125
-    },
-    {
-      "kind": "escalator",
-      "name": "Escalators",
-      "x": 125,
-      "y": 108
+      "x": 150.0,
+      "y": 305.0
     }
   ],
   "streets": [],
   "sources": [
     "sizes: the hotel's 2024 group sales playbook capacity tables (reference/plans/hilton-playbook-2024.pdf)",
-    "placement and orientation: Dragon Con's own map, room polygons in reference/dragoncon/maps.json (DECISIONS #28: read for position only, nothing copied)"
+    "placement, order and orientation: the hotel's own floor plan in the same playbook, p. 12, measured from the tower elevators (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
   ],
   "notes": [
-    "seven small rooms around the same core; pickleball courts are the hotel's"
+    "seven small rooms east of the tower core, in two rows either side of a corridor; the west to east order of each row is the hotel's plan's: 401, 402, 403 and 407, 406, 405, 404",
+    "the plan draws these rooms about a fifth larger than the table says; the table's sizes are used, each row held to its window wall and its west end"
   ]
 }

@@ -4,176 +4,193 @@
   "units": "ft",
   "north": "up",
   "extent": {
-    "w": 400,
-    "h": 400
+    "w": 460,
+    "h": 520
   },
-  "rooms": [
+  "anchors": [
     {
-      "id": "Grand Ballroom D",
-      "cx": 207.0,
-      "cy": 63.5,
-      "w": 53,
-      "h": 86,
-      "rot": 0
+      "name": "tower elevators",
+      "x": 150.0,
+      "y": 305.0
     },
     {
+      "name": "atrium",
+      "x": 114.0,
+      "y": 268.0
+    },
+    {
+      "name": "lobby escalators",
+      "x": 264.0,
+      "y": 268.0
+    }
+  ],
+  "rooms": [
+    {
       "id": "Grand Ballroom C",
-      "cx": 207.0,
-      "cy": 136.0,
+      "cx": 196.7,
+      "cy": 108.3,
       "w": 53,
       "h": 59,
       "rot": 0
     },
     {
-      "id": "Grand Ballroom A",
-      "cx": 288.0,
-      "cy": 63.5,
-      "w": 55,
+      "id": "Grand Ballroom D",
+      "cx": 196.7,
+      "cy": 180.8,
+      "w": 53,
       "h": 86,
       "rot": 0
     },
     {
       "id": "Grand Ballroom B",
-      "cx": 288.0,
-      "cy": 136.0,
+      "cx": 277.7,
+      "cy": 108.3,
       "w": 55,
       "h": 59,
       "rot": 0
     },
     {
+      "id": "Grand Ballroom A",
+      "cx": 277.7,
+      "cy": 180.8,
+      "w": 55,
+      "h": 86,
+      "rot": 0
+    },
+    {
       "id": "Salon West",
-      "cx": 238.2,
-      "cy": 342.0,
+      "cx": 226.1,
+      "cy": 389.7,
       "w": 75.5,
       "h": 98,
       "rot": 0
     },
     {
       "id": "Salon East",
-      "cx": 313.8,
-      "cy": 342.0,
+      "cx": 301.6,
+      "cy": 389.7,
       "w": 75.5,
       "h": 98,
       "rot": 0
     },
     {
-      "id": "211",
-      "cx": 36.5,
-      "cy": 102.3,
-      "w": 40,
-      "h": 27,
-      "rot": 61
-    },
-    {
-      "id": "210",
-      "cx": 54.5,
-      "cy": 134.6,
-      "w": 34,
-      "h": 27,
+      "id": "208",
+      "cx": 78.5,
+      "cy": 235.3,
+      "w": 25,
+      "h": 34,
       "rot": 61
     },
     {
       "id": "209",
-      "cx": 70.9,
-      "cy": 164.4,
-      "w": 34,
-      "h": 27,
+      "cx": 65.9,
+      "cy": 212.5,
+      "w": 27,
+      "h": 34,
       "rot": 61
     },
     {
-      "id": "212",
-      "cx": 86.5,
-      "cy": 80.0,
-      "w": 38,
-      "h": 25,
+      "id": "210",
+      "cx": 52.8,
+      "cy": 188.9,
+      "w": 27,
+      "h": 34,
       "rot": 61
     },
     {
-      "id": "213",
-      "cx": 103.0,
-      "cy": 109.7,
-      "w": 30,
-      "h": 25,
+      "id": "211",
+      "cx": 40.5,
+      "cy": 166.6,
+      "w": 24,
+      "h": 40,
       "rot": 61
     },
     {
       "id": "214",
-      "cx": 118.5,
-      "cy": 137.7,
-      "w": 34,
-      "h": 25,
+      "cx": 112.1,
+      "cy": 188.3,
+      "w": 25,
+      "h": 34,
       "rot": 61
     },
     {
-      "id": "208",
-      "cx": 87,
-      "cy": 194,
-      "w": 34,
-      "h": 25,
+      "id": "213",
+      "cx": 99.5,
+      "cy": 165.5,
+      "w": 27,
+      "h": 30,
       "rot": 61
     },
     {
-      "id": "204",
-      "cx": 36.0,
-      "cy": 339.0,
-      "w": 40,
-      "h": 25,
-      "rot": -59
-    },
-    {
-      "id": "205",
-      "cx": 54.2,
-      "cy": 308.6,
-      "w": 31,
-      "h": 25,
-      "rot": -59
-    },
-    {
-      "id": "206",
-      "cx": 71.2,
-      "cy": 280.3,
-      "w": 35,
-      "h": 25,
-      "rot": -59
+      "id": "212",
+      "cx": 86.9,
+      "cy": 142.8,
+      "w": 25,
+      "h": 38,
+      "rot": 61
     },
     {
       "id": "207",
-      "cx": 90.3,
-      "cy": 248.6,
-      "w": 39,
-      "h": 25,
-      "rot": -59
+      "cx": 78.5,
+      "cy": 305.2,
+      "w": 25,
+      "h": 39,
+      "rot": -61
+    },
+    {
+      "id": "206",
+      "cx": 65.9,
+      "cy": 328.0,
+      "w": 27,
+      "h": 35,
+      "rot": -61
+    },
+    {
+      "id": "205",
+      "cx": 52.9,
+      "cy": 351.6,
+      "w": 27,
+      "h": 31,
+      "rot": -61
+    },
+    {
+      "id": "204",
+      "cx": 40.0,
+      "cy": 374.8,
+      "w": 26,
+      "h": 40,
+      "rot": -61
     },
     {
       "id": "202",
-      "cx": 121,
-      "cy": 341,
-      "w": 45,
-      "h": 25,
-      "rot": 32
+      "cx": 115.6,
+      "cy": 385.4,
+      "w": 25,
+      "h": 45,
+      "rot": -61
     },
     {
       "id": "203",
-      "cx": 90,
-      "cy": 355,
-      "w": 40,
-      "h": 26,
-      "rot": 34
+      "cx": 85.1,
+      "cy": 398.2,
+      "w": 26,
+      "h": 40,
+      "rot": -61
     }
   ],
   "composites": [
     {
       "id": "Grand West",
       "of": [
-        "Grand Ballroom D",
-        "Grand Ballroom C"
+        "Grand Ballroom C",
+        "Grand Ballroom D"
       ]
     },
     {
       "id": "Grand East",
       "of": [
-        "Grand Ballroom A",
-        "Grand Ballroom B"
+        "Grand Ballroom B",
+        "Grand Ballroom A"
       ]
     }
   ],
@@ -182,14 +199,14 @@
       "name": "Grand Ballroom",
       "kind": "ballroom",
       "rooms": [
-        "Grand Ballroom D",
         "Grand Ballroom C",
-        "Grand Ballroom A",
-        "Grand Ballroom B"
+        "Grand Ballroom D",
+        "Grand Ballroom B",
+        "Grand Ballroom A"
       ],
       "outline": {
-        "cx": 248,
-        "cy": 93,
+        "cx": 237.7,
+        "cy": 151.3,
         "w": 135,
         "h": 145,
         "rot": 0
@@ -203,8 +220,8 @@
         "Salon East"
       ],
       "outline": {
-        "cx": 276,
-        "cy": 342,
+        "cx": 263.8,
+        "cy": 389.7,
         "w": 151,
         "h": 98,
         "rot": 0
@@ -214,15 +231,15 @@
       "name": "209–211",
       "kind": "run",
       "rooms": [
-        "211",
+        "209",
         "210",
-        "209"
+        "211"
       ],
       "outline": {
-        "cx": 53,
-        "cy": 132,
-        "w": 108,
-        "h": 27,
+        "cx": 53.5,
+        "cy": 190.2,
+        "w": 78,
+        "h": 40,
         "rot": 61
       }
     },
@@ -230,15 +247,15 @@
       "name": "212–214",
       "kind": "run",
       "rooms": [
-        "212",
+        "214",
         "213",
-        "214"
+        "212"
       ],
       "outline": {
-        "cx": 102,
-        "cy": 108,
-        "w": 102,
-        "h": 25,
+        "cx": 99.5,
+        "cy": 165.5,
+        "w": 77.0,
+        "h": 38,
         "rot": 61
       }
     },
@@ -246,70 +263,84 @@
       "name": "204–207",
       "kind": "run",
       "rooms": [
-        "204",
-        "205",
+        "207",
         "206",
-        "207"
+        "205",
+        "204"
       ],
       "outline": {
-        "cx": 63,
-        "cy": 294,
-        "w": 145,
-        "h": 25,
-        "rot": -59
+        "cx": 59.2,
+        "cy": 340.2,
+        "w": 105.0,
+        "h": 40,
+        "rot": -61
       }
     }
   ],
   "open": [
     {
       "name": "Corridor",
-      "cx": 247.0,
-      "cy": 93.0,
+      "cx": 236.7,
+      "cy": 151.3,
       "w": 27,
       "h": 145,
       "rot": 0
     },
     {
-      "name": "Pre-function",
-      "cx": 248,
-      "cy": 212,
-      "w": 190,
-      "h": 60,
+      "name": "Pre-function North",
+      "cx": 245.0,
+      "cy": 242.0,
+      "w": 120,
+      "h": 30,
       "rot": 0
     },
     {
-      "name": "Elevator lobby",
-      "cx": 130,
-      "cy": 222,
-      "w": 44,
-      "h": 44,
+      "name": "Pre-function South",
+      "cx": 250.0,
+      "cy": 310.0,
+      "w": 110,
+      "h": 50,
+      "rot": 0
+    },
+    {
+      "name": "Atrium, open to the lobby",
+      "cx": 116.0,
+      "cy": 270.0,
+      "w": 46,
+      "h": 50,
       "rot": 0
     }
   ],
   "landmarks": [
     {
-      "kind": "escalator",
-      "name": "Escalators",
-      "x": 300,
-      "y": 205
-    },
-    {
       "kind": "elevator",
       "name": "Elevators",
-      "x": 160,
-      "y": 252
+      "x": 150.0,
+      "y": 305.0
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalators to the 1st Floor",
+      "x": 264.0,
+      "y": 268.0
     },
     {
       "kind": "info",
       "name": "Convention information",
-      "x": 215,
-      "y": 236
+      "x": 200.0,
+      "y": 297.0
     },
     {
       "kind": "bridge",
       "name": "Skybridge to the Marriott",
-      "x": 30,
-      "y": 220
+      "x": 62.0,
+      "y": 270.0
+    },
+    {
+      "kind": "bridge",
+      "name": "Skybridge to rooms 215–224",
+      "x": 350.0,
+      "y": 270.0
     }
   ],
   "streets": [
@@ -320,9 +351,13 @@
   ],
   "sources": [
     "sizes: the hotel's 2024 group sales playbook capacity tables (reference/plans/hilton-playbook-2024.pdf)",
-    "placement and orientation: Dragon Con's own map, room polygons in reference/dragoncon/maps.json (DECISIONS #28: read for position only, nothing copied)"
+    "placement, order and orientation: the hotel's own floor plan in the same playbook, p. 8, measured from the tower elevators (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
   ],
   "notes": [
-    "the ballroom floor: Grand Ballroom and Salon at the core, breakouts in two angled wings to the west"
+    "the ballroom floor: the Grand Ballroom to the north (West = C + D, East = B + A, a corridor between; C and B are its north sections), the Salon to the south, pre-function space and the lobby escalators between them",
+    "the wing rooms are about 25 ft along their wing and 30 to 45 ft deep: the table's second figure runs along the wing here, as the plan draws them",
+    "201 and 215–224, the rooms across the east skybridge, are not drawn: the con does not use them",
+    "the Convention information spot is Dragon Con's map's, placed by eye"
   ]
 }

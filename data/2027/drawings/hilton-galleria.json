@@ -4,73 +4,90 @@
   "units": "ft",
   "north": "up",
   "extent": {
-    "w": 300,
-    "h": 370
+    "w": 460,
+    "h": 520
   },
+  "anchors": [
+    {
+      "name": "garage elevator",
+      "x": 342.4,
+      "y": 266.0
+    },
+    {
+      "name": "galleria escalator north",
+      "x": 325.7,
+      "y": 214.1
+    },
+    {
+      "name": "galleria escalator south",
+      "x": 325.7,
+      "y": 317.9
+    }
+  ],
   "rooms": [
     {
       "id": "Galleria 4",
-      "cx": 77,
-      "cy": 73,
+      "cx": 273.6,
+      "cy": 234.6,
       "w": 73,
       "h": 43,
       "rot": 0
     },
     {
-      "id": "Galleria 1",
-      "cx": 225,
-      "cy": 50,
-      "w": 50,
-      "h": 58,
-      "rot": 0
-    },
-    {
       "id": "Galleria 5",
-      "cx": 84,
-      "cy": 167,
-      "w": 94,
-      "h": 63,
+      "cx": 274.1,
+      "cy": 303.2,
+      "w": 75,
+      "h": 50,
       "rot": 0
     },
     {
       "id": "Galleria 7",
-      "cx": 60.5,
-      "cy": 235.0,
-      "w": 47,
-      "h": 64,
+      "cx": 260.1,
+      "cy": 351.7,
+      "w": 31,
+      "h": 47,
       "rot": 0
     },
     {
       "id": "Galleria 6",
-      "cx": 107.5,
-      "cy": 235.0,
-      "w": 47,
-      "h": 64,
+      "cx": 293.6,
+      "cy": 351.7,
+      "w": 36,
+      "h": 47,
       "rot": 0
     },
     {
       "id": "Galleria 8",
-      "cx": 58,
-      "cy": 326,
+      "cx": 259.0,
+      "cy": 421.1,
       "w": 34,
       "h": 51,
       "rot": 0
     },
     {
+      "id": "Galleria 1",
+      "cx": 384.1,
+      "cy": 214.8,
+      "w": 50,
+      "h": 58,
+      "rot": 0
+    },
+    {
       "id": "Galleria 2",
-      "cx": 225.0,
-      "cy": 182.5,
-      "w": 56,
-      "h": 51,
-      "rot": 90
+      "cx": 383.8,
+      "cy": 311.5,
+      "w": 51,
+      "h": 56,
+      "rot": 0
     },
     {
       "id": "Galleria 3",
-      "cx": 225.0,
-      "cy": 226.0,
-      "w": 31,
-      "h": 51,
-      "rot": 90
+      "cx": 383.8,
+      "cy": 356.0,
+      "w": 51,
+      "h": 33,
+      "rot": 0
     }
   ],
   "composites": [],
@@ -83,10 +100,10 @@
         "Galleria 6"
       ],
       "outline": {
-        "cx": 84,
-        "cy": 235,
-        "w": 94,
-        "h": 64,
+        "cx": 278.1,
+        "cy": 351.7,
+        "w": 67,
+        "h": 47,
         "rot": 0
       }
     },
@@ -98,36 +115,42 @@
         "Galleria 3"
       ],
       "outline": {
-        "cx": 225,
-        "cy": 198,
-        "w": 87,
-        "h": 51,
-        "rot": 90
+        "cx": 383.8,
+        "cy": 328.0,
+        "w": 51,
+        "h": 89,
+        "rot": 0
       }
     }
   ],
   "open": [
     {
       "name": "Hallway",
-      "cx": 160,
-      "cy": 182,
-      "w": 18,
-      "h": 150,
+      "cx": 335.1,
+      "cy": 291.0,
+      "w": 45,
+      "h": 160,
       "rot": 0
     }
   ],
   "landmarks": [
     {
-      "kind": "escalator",
-      "name": "Escalators up to the lobby",
-      "x": 240,
-      "y": 300
+      "kind": "elevator",
+      "name": "Parking garage elevator",
+      "x": 342.4,
+      "y": 266.0
     },
     {
-      "kind": "elevator",
-      "name": "Elevators",
-      "x": 240,
-      "y": 345
+      "kind": "escalator",
+      "name": "Escalator to the 1st Floor",
+      "x": 325.7,
+      "y": 214.1
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the 1st Floor",
+      "x": 325.7,
+      "y": 317.9
     }
   ],
   "streets": [
@@ -138,18 +161,17 @@
     {
       "name": "John Portman Blvd NE",
       "side": "S"
-    },
-    {
-      "name": "Courtland Street",
-      "side": "W"
     }
   ],
   "sources": [
     "sizes: the hotel's 2024 group sales playbook capacity tables (reference/plans/hilton-playbook-2024.pdf)",
-    "placement and orientation: Dragon Con's own map, room polygons in reference/dragoncon/maps.json (DECISIONS #28: read for position only, nothing copied)"
+    "placement, order and orientation: the hotel's own floor plan in the same playbook, p. 4, measured from the parking-garage elevator and the two Galleria escalators, which the 1st Floor's plan (p. 6) places from the tower elevators (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
   ],
   "notes": [
-    "one level below the lobby · Galleria 1–8 are the hotel's own partitions of the exhibit hall",
-    "escalator and elevator positions inferred from the lobby floor above"
+    "one level below the 1st Floor, under its east side and the Pavilion Courtyards; reached by the two escalators and the parking-garage elevator, which tie this drawing to the floor above",
+    "Galleria 1, 2, 4 and 8 are the table's sizes; Galleria 3 is 51 x 33, the table's 51 x 91 being a misprint against its own square footage",
+    "Galleria 5, 6 and 7 are the plan's shapes: the table's 63 x 94, 63 x 49 and 64 x 49 contradict its own square footage. 6 and 7 as drawn agree with that square footage; 5 is drawn about as wide as Galleria 4, as the plan shows it, some 30% over its 2,878 sq ft - to be checked in person",
+    "the tower elevators do not reach this level on the hotel's plan"
   ]
 }
