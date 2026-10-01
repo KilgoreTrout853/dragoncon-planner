@@ -391,8 +391,12 @@ execution slot (#57), which can run before any of this.
      people, not picks - and the crew section on Now, Your crew right now;
      the crew redraw's gate (PR #77) widened to every tab that draws a
      crew, and to an open event's sheet (Flags) - built (PR #81).
-   - 5b. W25, Share a day, in Plans' action strip: still to come, designed
-     on its own.
+   - 5b. W25, Share a day, in Plans' action strip: a day of the reader's
+     picks as a message and a link that needs no backend, and the link
+     opened, a list kept in memory alone with the reader's own stars
+     (#69) - built (PR #85; contract, section 5, Share a day, as built).
+     Before it, PR #84: the worker keeps the page once, under its address
+     less the query, which a `?day=` link would otherwise have added to.
    - 5c. The hotel sheet's crew: Your crew here under the reader's own
      picks, a line a crewmate's pick, the head's count the pill's, refilled
      in place by a pull, and an open hotel sheet counted in the crew
@@ -414,7 +418,10 @@ execution slot (#57), which can run before any of this.
      vacated, under the picks-changed notice on Now and Plans: its own
      small pull request (contract, section 2).
 9. The gear: the about page, Delete my account with its migration, the
-   notifications toggle's slot (contract, section 9).
+   notifications toggle's slot (contract, section 9). Remove all is in the
+   gear, as Remove all picks, and in My day's action strip, where since
+   PR #85 it sits under Export: the gear PR decides whether the strip's
+   copy stays.
 10. The building view (#60): a short sequence of its own, the drawings a
     side lane; the place line reaches the room's grain here (contract,
     section 6).
@@ -500,6 +507,10 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   of the crew - "yours too" on a crew line follows the picks, the rows above
   it do not. It predates PR #82 too, and `refreshHotelSheet()` is where
   that fix goes.
+- Three places rewrite the address, each its own way: `time.js`
+  `setOverride()`, the `?now=`; `crews.js` `readJoinLink()`, the `?join=`;
+  and since PR #85 `sheet.js` `takeDayLink()`, the `?day=`. One helper for
+  the three is a tidy pull request of its own.
 
 ## Checklist
 
