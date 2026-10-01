@@ -223,8 +223,9 @@ describe("src/styles.css", () => {
       expect(css).toMatch(/html\.bigtext \{ font-size: 115%; \}/);
     });
     it("every text size outside the map's SVG is in rem, so it follows the root [1726]", () => {
-      /* the map's SVG text is sized in the drawing's own units (row 1727) */
-      const scaled = css.split("\n").filter(l => !/^\.map-(street-label|hotel text|park text|pill text)/.test(l)).join("\n");
+      /* the map's SVG text is sized in the drawing's own units (row 1727); the
+         crew's count on the map, since step 5a, is SVG text too */
+      const scaled = css.split("\n").filter(l => !/^\.map-(street-label|hotel text|park text|pill text|crew text)/.test(l)).join("\n");
       expect(scaled).not.toMatch(/font-size: [\d.]+px/);
       expect(scaled).toMatch(/font-size: [\d.]+rem/);
       expect(css).toMatch(/body \{[^}]*font-size: 1\.0625rem/);

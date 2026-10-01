@@ -48,7 +48,7 @@ function onMainClick(e) {
     revealChip(document.querySelector(`.chips [data-chip="${kind}"][data-value="${cssEsc(value)}"]`));
     return;
   }
-  const mapHotel = e.target.closest(".map-hotel, .map-pill");
+  const mapHotel = e.target.closest(".map-hotel, .map-pill, .map-crew");
   if (mapHotel) { openSheet("hotel", mapHotel.dataset.hotel); return; }
   const act = e.target.closest("[data-act]");
   if (act) {
@@ -62,6 +62,21 @@ function onMainClick(e) {
       saveJSON(storageKey("plansView"), state.plansView);
       render();
       if (state.plansView === "crew") runSync();
+      return;
+    }
+    /* Now's "+N more" of the crew: Plans' crew's day, today, as a tap on
+       its Crew segment would have it - saved, and a sync run - with focus
+       on that segment, since the tab it was tapped on is hidden now. */
+    if (a === "crew-more") {
+      state.tab = "plans";
+      state.plansView = "crew";
+      saveJSON(storageKey("plansView"), state.plansView);
+      state.plans.day = null;
+      render();
+      pageScrollTo(0);
+      const crew = document.getElementById("plansViewCrew");
+      if (crew) crew.focus({preventScroll: true});
+      runSync();
       return;
     }
     if (a === "more-now") { state.now.limit += 100; render(); }

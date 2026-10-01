@@ -610,6 +610,38 @@ describe("the readers: who's going and the overlay, from what the pull kept", ()
     expect(app.crewmatePicks(dee.id).sort()).toEqual([X, Z].sort());
     expect([app.crewmatePicks(ada.id), app.crewmatePicks(cy.id), app.crewmatePicks("no-such-user")]).toEqual([[], [], []]);
   });
+  describe("crewRightNow(): each crewmate's pick on now, else their next today, from a schedule of the caller's", () => {
+    /* As data.js `events` hands it over: start order, the con day under _cd.
+       Saturday at 1:05 PM: bo has X and Y, dee X and Z, zed X; V is bo's
+       unstar, W the reader's own. */
+    const SAT = "2026-09-05", at = new Date(`${SAT}T13:05`);
+    const ev = (id, start, end, cd = SAT) => ({ id, _s: new Date(start), _e: new Date(end), _cd: cd });
+    const line = (user, name, id, on) => ({ user_id: user.id, display_name: name, ev: expect.objectContaining({ id }), on });
+    const now = schedule => app.crewRightNow(schedule, at, SAT);
+
+    it("a pick on now: every crew, a person once, by the oldest crew's name, never the reader - and two on now, by name", () => {
+      expect(now([ev(Z, `${SAT}T12:00`, `${SAT}T13:00`), ev(X, `${SAT}T13:00`, `${SAT}T14:00`), ev(Y, `${SAT}T15:00`, `${SAT}T16:00`)]))
+        .toEqual([line(bo, "Bo", X, true), line(dee, "Dee", X, true), line(zed, "Zed", X, true)]);
+    });
+    it("nothing on: the next today; on now comes first, then the earlier start, then the name", () => {
+      expect(now([ev(Z, `${SAT}T12:00`, `${SAT}T14:00`), ev(X, `${SAT}T15:00`, `${SAT}T16:00`), ev(Y, `${SAT}T16:00`, `${SAT}T17:00`)]))
+        .toEqual([line(dee, "Dee", Z, true), line(bo, "Bo", X, false), line(zed, "Zed", X, false)]);
+      expect(now([ev(Z, `${SAT}T14:00`, `${SAT}T15:00`), ev(X, `${SAT}T15:00`, `${SAT}T16:00`), ev(Y, `${SAT}T16:00`, `${SAT}T17:00`)]))
+        .toEqual([line(dee, "Dee", Z, false), line(bo, "Bo", X, false), line(zed, "Zed", X, false)]);
+    });
+    it("two picks on at once: the one that started first", () => {
+      expect(now([ev(Y, `${SAT}T12:30`, `${SAT}T15:00`), ev(X, `${SAT}T13:00`, `${SAT}T14:00`)])[0]).toEqual(line(bo, "Bo", Y, true));
+    });
+    it("one still running from the night before counts as today; one ended, one tomorrow, and nothing left - no line", () => {
+      expect(now([ev(Y, `${SAT}T03:00`, `${SAT}T14:00`, "2026-09-04"), ev(Z, `${SAT}T11:00`, `${SAT}T13:05`), ev(X, "2026-09-06T10:00", "2026-09-06T11:00", "2026-09-06")]))
+        .toEqual([line(bo, "Bo", Y, true)]);
+    });
+    it("a pick the schedule does not hold is no one's - removed, or never there - and neither is an unstar or the reader's own", () => {
+      expect(now([ev(V, `${SAT}T13:00`, `${SAT}T14:00`), ev(W, `${SAT}T13:00`, `${SAT}T14:00`), ev(Y, `${SAT}T15:00`, `${SAT}T16:00`)]))
+        .toEqual([line(bo, "Bo", Y, false)]);
+      expect(now([])).toEqual([]);
+    });
+  });
   it("myMembership(): the reader's own row in a crew, by the name that crew gives them", () => {
     const [mine, theirs] = app.myCrews();
     expect(app.myMembership(mine)).toEqual(person(ada, "Ada"));

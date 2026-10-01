@@ -1,6 +1,7 @@
 /* What the page scrolls with, and what a redraw has to put back. main is the
    scroller, not the page; chip rows scroll sideways and every render rebuilds
-   them; a selector needs its ids escaped. Every view and the shell use these,
+   them; a selector needs its ids escaped; and focus, found again on the
+   control that had it. Every view, the sheet and the shell use these,
    and nothing here imports from src/. The scroller is looked up once, as the
    module is imported, so the markup has to be there first. The header is
    measured here too: what scrolls parks under it (--hdr-h), and loading, the
@@ -50,6 +51,65 @@ function revealChip(chip) {
 
 const cssEsc = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v);
 
+/* A control, as a selector that finds it again once a redraw has replaced
+   it (#66): its id - the hero's and the Map's card are their places, kept
+   whatever event they show, and a crew line is its crewmate's - or the row,
+   the timeline block, the map's hotel, the chip or the action it is part
+   of; null for anything else, and for the body, where a browser that does
+   not focus a tapped button leaves focus. The sheet keeps what opened it
+   this way, and Now and the Map what had focus as they draw again. */
+function focusKey(el) {
+  if (!el || !el.closest || el === document.body) return null;
+  if (el.id) return `#${cssEsc(el.id)}`;
+  const row = el.closest(".row[data-id]");
+  if (row) return `.row[data-id="${cssEsc(row.dataset.id)}"][data-list="${cssEsc(row.dataset.list || "")}"] ${el.closest(".star") ? ".star" : ".row-main"}`;
+  const block = el.closest("[data-hero], .map-hotel[data-hotel]");
+  if (block) return block.dataset.hero ? `[data-hero="${cssEsc(block.dataset.hero)}"]` : `.map-hotel[data-hotel="${cssEsc(block.dataset.hotel)}"]`;
+  const chip = el.closest("[data-chip]");
+  if (chip) return `[data-chip="${cssEsc(chip.dataset.chip)}"][data-value="${cssEsc(chip.dataset.value || "")}"]`;
+  const act = el.closest("[data-act]");
+  return act ? `[data-act="${cssEsc(act.dataset.act)}"]` : null;
+}
+/* The first match on screen: a view the tab bar has left keeps its old
+   markup, hidden, and may hold the same row or block. */
+const shownMatch = selector => [...document.querySelectorAll(selector)].find(el => !el.closest("[hidden]")) || null;
+/* A view about to draw again: what has focus inside it, as focusKey() puts
+   it. And once it has drawn: focus back on that control while it is on
+   screen, put there, not scrolled to. */
+function focusIn(view) {
+  const active = document.activeElement;
+  return view && active && view.contains(active) ? focusKey(active) : null;
+}
+function giveFocusBack(key) {
+  const again = key ? shownMatch(key) : null;
+  if (again && document.activeElement !== again) again.focus({preventScroll: true});
+}
+/* What the minute tick redraws, redrawn in place: an element written into
+   from its fresh copy - its attributes and what it holds - keeps its node,
+   and with it any focus on it, so focus never moves and a screen reader is
+   not made to read it again. And a part of a view, the same way, each of its
+   elements into the one of the same kind; where the kinds differ, or their
+   number, the part is drawn anew and focus put back. Nothing at all when
+   the words have not changed. */
+function refill(el, fresh) {
+  if (el.outerHTML === fresh.outerHTML) return;
+  for (const a of [...el.attributes]) if (!fresh.hasAttribute(a.name)) el.removeAttribute(a.name);
+  for (const a of [...fresh.attributes]) if (el.getAttribute(a.name) !== a.value) el.setAttribute(a.name, a.value);
+  if (el.innerHTML !== fresh.innerHTML) el.innerHTML = fresh.innerHTML;
+}
+function drawInPlace(part, html) {
+  const holder = document.createElement("div");
+  holder.innerHTML = html;
+  if (holder.innerHTML === part.innerHTML) return;
+  const was = [...part.children], fresh = [...holder.children];
+  const alike = part.childNodes.length === was.length && holder.childNodes.length === fresh.length && was.length === fresh.length
+    && was.every((el, i) => el.tagName === fresh[i].tagName && el.className === fresh[i].className);
+  if (alike) { was.forEach((el, i) => refill(el, fresh[i])); return; }
+  const back = focusIn(part);
+  part.innerHTML = html;
+  giveFocusBack(back);
+}
+
 /* The header line must not clip: if it would, hide the word "refreshed"
    and measure again. jsdom reports no widths, so this is a no-op there. */
 function fitHeaderLine() {
@@ -80,5 +140,6 @@ function syncNavHeight() {
 
 export {
   scroller, pageScrollTop, pageScrollTo, pageScrollBy, chipRowsSnapshot, chipRowsRestore,
-  revealChip, cssEsc, fitHeaderLine, syncHeaderHeight, syncNavHeight,
+  revealChip, cssEsc, focusKey, shownMatch, focusIn, giveFocusBack, refill, drawInPlace, fitHeaderLine, syncHeaderHeight,
+  syncNavHeight,
 };
