@@ -1606,10 +1606,12 @@ PR #62, with #56.
   since PR #77 the last `join=` in what is pasted, since the message a
   share sends names the crew before its link, and a name cannot stand in
   for the link.
-  Offline, the worker serves a page load with a query from its cache; it
-  keeps each page it fetched under the address it was asked for, so an
-  invite's address stays in the phone's cache, as a `?now=` address does,
-  until the worker's cache is replaced. The address is rebuilt whole, its
+  Offline, the worker serves a page load with a query from its cache; since
+  its cache v7 it keeps the page once, under its address less the query, so
+  no invite's address is kept in the phone's cache, nor a `?now=` address,
+  and an offline launch opens the latest page that arrived (ARCHITECTURE,
+  Offline). Until then each address was kept, never replaced, and could be
+  served offline in place of a newer page. The address is rebuilt whole, its
   query replaced, rather than from its path, since a path that begins
   `//` would read as another host and the rewrite would throw at boot.
 - **The readers,** pure reads of the two keys, for the two surfaces:

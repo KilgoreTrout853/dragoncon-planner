@@ -16,17 +16,28 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SOURCE = fs.readFileSync(path.join(ROOT, "public", "sw.js"), "utf8");
 const ORIGIN = "https://example.test";
 
-/* A CacheStorage: named caches, each a Map from a URL, less its query, to
-   what it was given. */
+/* A CacheStorage: named caches, each a list of what it was given, in the
+   order it was put, under the whole URL, query and all - as a browser's
+   keeps it. A put replaces the entry its URL already has and appends; a
+   match finds the first entry whose URL is the one asked for, or, with
+   ignoreSearch, the first whose URL is that one less both queries. */
 function fakeCaches(names = []) {
-  const store = new Map(names.map(name => [name, new Map()]));
-  const keyOf = r => new URL(typeof r === "string" ? r : r.url, `${ORIGIN}/`).href.split("?")[0];
+  const store = new Map(names.map(name => [name, []]));
+  const urlOf = r => new URL(typeof r === "string" ? r : r.url, `${ORIGIN}/`).href;
+  const bare = url => url.split("?")[0];
   const open = name => {
-    if (!store.has(name)) store.set(name, new Map());
+    if (!store.has(name)) store.set(name, []);
     const cache = store.get(name);
     return {
-      async match(r) { const hit = cache.get(keyOf(r)); return hit === undefined ? undefined : new Response(hit); },
-      async put(r, res) { cache.set(keyOf(r), await res.text()); },
+      async match(r, { ignoreSearch = false } = {}) {
+        const url = urlOf(r), hit = cache.find(e => (ignoreSearch ? bare(e.url) === bare(url) : e.url === url));
+        return hit === undefined ? undefined : new Response(hit.body);
+      },
+      async put(r, res) {
+        const url = urlOf(r), body = await res.text(), at = cache.findIndex(e => e.url === url);
+        if (at >= 0) cache.splice(at, 1);
+        cache.push({ url, body });
+      },
     };
   };
   return { store, api: { open: async name => open(name), keys: async () => [...store.keys()], delete: async name => store.delete(name) } };
@@ -107,15 +118,75 @@ describe("when the worker tells the page of a new schedule", () => {
   });
 });
 
+/* A launch of the page at an address: the worker answers it - from the
+   network or, failing that, its cache - and the test waits for the late
+   arrival it keeps alive too. The network answers net.page, or fails while
+   it is null: offline. */
+async function launch(w, address) {
+  const waits = [];
+  let answer;
+  w.listeners.fetch({ request: new Request(`${ORIGIN}${address}`), respondWith: p => { answer = p; }, waitUntil: p => waits.push(p) });
+  const text = await (await answer).text();
+  await Promise.allSettled(waits);
+  return text;
+}
+function pageWorker() {
+  const net = { page: null };
+  const w = worker({ network: async () => { if (net.page === null) throw new TypeError("offline"); return new Response(net.page); } });
+  return { w, net };
+}
+const kept = w => (w.caches.store.get(w.CACHE) || []).map(e => e.url);
+
+describe("the page it keeps", () => {
+  it("an invite's address opened, then a plain launch online: offline, the latest page", async () => {
+    const { w, net } = pageWorker();
+    net.page = "the page as it was";
+    expect(await launch(w, "/?join=2026.x")).toBe("the page as it was");
+    net.page = "the latest page";
+    expect(await launch(w, "/")).toBe("the latest page");
+    net.page = null;
+    expect(await launch(w, "/")).toBe("the latest page");
+  });
+  it("one page kept, under its address less the query, whatever the address it was asked for", async () => {
+    const { w, net } = pageWorker();
+    for (const [address, page] of [["/?join=2026.x", "one"], ["/?day=2026.sat.0123abcd", "two"], ["/?now=2026-09-05T14:15", "three"]]) {
+      net.page = page;
+      await launch(w, address);
+    }
+    expect(kept(w)).toEqual([`${ORIGIN}/`]);
+  });
+  it("offline, an address with a query opens the latest page", async () => {
+    const { w, net } = pageWorker();
+    net.page = "the latest page";
+    await launch(w, "/");
+    net.page = null;
+    expect(await launch(w, "/?day=2026.sat.0123abcd")).toBe("the latest page");
+  });
+  it("offline with no page kept under the address, the shell's index.html", async () => {
+    const { w } = pageWorker();
+    await (await w.caches.api.open(w.CACHE)).put(`${ORIGIN}/index.html`, new Response("the shell's page"));
+    expect(await launch(w, "/?join=2026.x")).toBe("the shell's page");
+  });
+  it("the schedule is still found with a query, by ignoreSearch", async () => {
+    const { w } = pageWorker();
+    await (await w.caches.api.open(w.CACHE)).put(`${ORIGIN}/${w.DATA}?v=1`, new Response(JSON.stringify(copy("x", "d1"))));
+    const waits = [];
+    let answer;
+    w.listeners.fetch({ request: new Request(`${ORIGIN}/${w.DATA}`), respondWith: p => { answer = p; }, waitUntil: p => waits.push(p) });
+    await Promise.allSettled(waits);
+    expect((await (await answer).json()).digest).toBe("d1");
+  });
+});
+
 describe("what the stamps name", () => {
-  it("unstamped: 2026's schedule, in the shell, and the cache dc26-v6", () => {
+  it("unstamped: 2026's schedule, in the shell, and the cache dc26-v7", () => {
     const w = worker();
-    expect([w.DATA, w.CACHE]).toEqual(["data/2026/events.v2.json", "dc26-v6"]);
+    expect([w.DATA, w.CACHE]).toEqual(["data/2026/events.v2.json", "dc26-v7"]);
     expect(w.SHELL).toContain("./data/2026/events.v2.json");
   });
-  it("the year and the channel stamped: 2027's schedule, in the shell, and dc27-next-v6", () => {
+  it("the year and the channel stamped: 2027's schedule, in the shell, and dc27-next-v7", () => {
     const w = worker({ year: "2027", channel: "next" });
-    expect([w.DATA, w.CACHE]).toEqual(["data/2027/events.v2.json", "dc27-next-v6"]);
+    expect([w.DATA, w.CACHE]).toEqual(["data/2027/events.v2.json", "dc27-next-v7"]);
     expect(w.SHELL).toContain("./data/2027/events.v2.json");
     expect(w.SHELL).not.toContain("./data/2026/events.v2.json");
   });
@@ -124,7 +195,7 @@ describe("what the stamps name", () => {
 /* Every cache a device might hold on this origin: the live site's and the
    next site's of three years, a channel whose name begins with next, a name
    that only begins like one of ours, and someone else's. */
-const HELD = ["dc25-v4", "dc26-v5", "dc26-v6", "dc27-v6", "dc26-next-v5", "dc26-next-v6", "dc27-next-v6", "dc26-next2-v1", "dc26-v5-old", "other-v1"];
+const HELD = ["dc25-v4", "dc26-v6", "dc26-v7", "dc27-v7", "dc26-next-v6", "dc26-next-v7", "dc27-next-v7", "dc26-next2-v1", "dc26-v6-old", "other-v1"];
 async function activate(stamps) {
   const w = worker({ ...stamps, caches: fakeCaches(HELD) });
   const waits = [];
@@ -135,13 +206,13 @@ async function activate(stamps) {
 
 describe("which caches a new worker clears", () => {
   it("the live site's clears its own of every other year and version, and never the next site's", async () => {
-    expect(await activate({})).toEqual(["dc25-v4", "dc26-v5", "dc27-v6"]);
+    expect(await activate({})).toEqual(["dc25-v4", "dc26-v6", "dc27-v7"]);
   });
   it("the next site's clears the next site's of every other year and version, and never the live site's", async () => {
-    expect(await activate({ channel: "next" })).toEqual(["dc26-next-v5", "dc27-next-v6"]);
+    expect(await activate({ channel: "next" })).toEqual(["dc26-next-v6", "dc27-next-v7"]);
   });
   it("2027's live worker clears 2026's", async () => {
-    expect(await activate({ year: "2027" })).toEqual(["dc25-v4", "dc26-v5", "dc26-v6"]);
+    expect(await activate({ year: "2027" })).toEqual(["dc25-v4", "dc26-v6", "dc26-v7"]);
   });
 });
 

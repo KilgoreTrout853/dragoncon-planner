@@ -27,7 +27,10 @@ whose behaviour was retired rather than moved - each marked so; 186,
 197, 199, 200, 238, 637, 1548, 1580, 1581, 1771 and 1774 are rewritten
 for the new words and 116 for `SLACK_MIN`, their titles following;
 1557, 1578 and 1768 are retitled; and the nudge's rows, 838 to 846, boot
-with a pick (#65). The tables' counts are as of 4b-ii, and
+with a pick (#65). Amended for the worker's page key (2026-10-01), which
+keeps the page once, under its address less the query: 1290's cache is
+v7, its row corrected below, and 1309's put is under `pageKey(request)`,
+its title unchanged. The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
@@ -849,7 +852,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 1284 | c | index.html registers ./sw.js by relative path (scope stays under /dragoncon-p… | `build.test.js` | 4b-i | build | port |
 | 1286 | c | registration is guarded by a serviceWorker capability check | `build.test.js` | 4b-i | build | port |
 | 1288 | d | a failed registration is reported, not swallowed | `page/offline.test.js` | 4b-ii | provoke | **rewrite** make the stub's register() reject and dispatch load: console.warn is called with 'Offline support unavailable' |
-| 1290 | c | the cache name is versioned (v6) under a prefix the build can stamp, and only… | `build.test.js` | 4b-i | build | port |
+| 1290 | c | the cache name is versioned (v7) under a prefix the build can stamp, and only… | `build.test.js` | 4b-i | build | port |
 | 1292 | c | the Apple touch icon is a PNG, not the SVG iOS ignores | `build.test.js` | 4b-i |  | **merge** with build.test.js case 6, which already asserts this exact <link> |
 | 1293 | c | the home-screen title is DC26 | `build.test.js` | 4b-i | build | port |
 | 1295 | c | the head carries … | `build.test.js` | 4b-i | build | port. ×5 (one per og: tag) |
