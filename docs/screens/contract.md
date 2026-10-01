@@ -631,9 +631,10 @@ the building view (PRs 7 and 10) are still to come.
   24 tall, too short for two pills and its name between them, has it
   hanging under its corner instead. Every hotel's stays inside the frame -
   the Hilton's ends at 376, the frame at 382 - so it needs no pulling in.
-  A tap on it opens the hotel's sheet, as a tap on the gold one does. It is
-  hidden from screen readers: the hotel's label says it (below), and a
-  bare number beside that would say nothing.
+  A tap on it opens the hotel's sheet, as a tap on the gold one does; the
+  sheet lists the reader's own picks alone (section 8; section 14, Open).
+  The pill is hidden from screen readers: the hotel's label says it
+  (below), and a bare number beside that would say nothing.
 - **The hotel's label** adds the count: "Hyatt: 2 picks on Saturday, 3 of
   your crew", "Westin: no picks on Saturday, 1 of your crew". A hotel with
   none of the crew says nothing of it.
@@ -731,6 +732,11 @@ As built: the recon, section 3, the hotel panel.
 
 As built. Once the building view exists it opens only for a hotel without
 level data (#28; section 6).
+
+Since PR #81 the Map's crew count opens it too, and it still lists the
+reader's own picks alone: the sheet of a hotel where only the crew has
+picks says "No picks here on `<day>`." under a count that says otherwise.
+Its crew block is step 5c's (section 14, Open).
 
 ## 9. The gear
 
@@ -947,6 +953,11 @@ As built: the recon, section 8, what crews' readers offer today.
   chosen, by its own names. So Now's "+N more" lands on that crew's day,
   which may not hold everyone it counted, or may name one of them
   otherwise (section 2, as built).
+- The hotel sheet's crew. A hotel where only the crew has picks opens the
+  hotel sheet's "No picks here on `<day>`.", its head saying "no picks"
+  under the Map's crew count that says otherwise: the sheet lists the
+  reader's own picks alone (sections 6, as built, and 8). Its crew block is
+  a follow-up, step 5c, designed in chat (ROADMAP, tentpole 5).
 - The crew named before joining. The invite carries only `<year>.<token>`,
   and only members can read a crew, so the join step names none; a preview
   would be a read by function, against #52's reads by policy, and a

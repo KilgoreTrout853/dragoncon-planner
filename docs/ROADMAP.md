@@ -385,14 +385,16 @@ execution slot (#57), which can run before any of this.
    - 4b. W28's `crews.js` action, one's own display name, and its place in
      the header: a small follow-up - built (PR #80), in the crew panel's
      manage step, which the header's Manage opens.
-5. Crew everywhere, in two pull requests (contract, sections 2, 5, 6 and
-   7):
+5. Crew everywhere, in three pull requests (contract, sections 2, 5, 6, 7
+   and 8):
    - 5a. Who's going on the sheet, the crew counted per hotel on the Map -
      people, not picks - and the crew section on Now, Your crew right now;
      the crew redraw's gate (PR #77) widened to every tab that draws a
      crew, and to an open event's sheet (Flags) - built (PR #81).
    - 5b. W25, Share a day, in Plans' action strip: still to come, designed
      on its own.
+   - 5c. The hotel sheet's crew: still to come, designed in chat
+     (contract, sections 8 and 14).
 6. The filter sheet, W13 (contract, section 3).
 7. The row and the sheet (#64): the three lines, the facets, W1's flag and
    line, the chips and the place line as entry points at the hotel's
@@ -481,6 +483,12 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   focus is in the sheet and the filter box keeps its text. The picks path
   is as it was. Keeping Explore's filter box across a redraw, which lifts
   the gate, is step 8's (Explore's top).
+- A pull that changes the reader's own pick of an open event leaves the
+  sheet's star stale until the sheet is reopened - a tap on it meanwhile
+  does what the pick as kept calls for, not what the star shows:
+  `render()` never drew the event's panel again, and since PR #81 refills
+  only its who's-going line. It predates PR #81, and `sheet.js`
+  `refreshEventSheet()` is where the fix goes.
 
 ## Checklist
 
