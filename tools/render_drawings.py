@@ -5,10 +5,13 @@
     python tools/render_drawings.py --season data/2027/season.json   # a year's, named by its season file
     python tools/render_drawings.py --png                            # a PNG beside each SVG, where cairosvg is installed
 
-A documentation renderer, not the app's (DECISIONS #58): it draws what the data says at 2 px per foot, with sizes
-printed, so that a drawing can be checked against the hotel's tables by eye. The drawing files carry geometry only;
-the hotel's and the level's names come from the year's venues.json, beside its season file. The app's stage builder
-is its own code and reads the same files.
+A documentation renderer, not the app's (DECISIONS #58, #67): it draws what the data says at 2 px per foot, with sizes
+printed, so that a drawing can be checked against the hotel's tables by eye. Each anchor is a small cross with its
+name, and every level is drawn at one scale with its frame at one offset, so that a hotel's renders laid over one
+another show whether its levels line up; the notes run below the drawing, which is why a canvas may be taller than
+another. The drawing files carry geometry only; the hotel's and the level's names come from the year's venues.json,
+beside its season file. The app's stage builder will be its own code and will read the same files, from W38
+(DECISIONS #60).
 
 cairosvg is optional and not in requirements.txt: without it, --png says so and the SVGs are written alone. The
 standard library otherwise, and deterministic - two runs write the same bytes.
@@ -19,6 +22,7 @@ import glob
 import json
 import os
 import sys
+import textwrap
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 SEASON = os.path.join("data", "2027", "season.json")
@@ -42,8 +46,11 @@ GLYPH = {   # the landmark kinds a drawing may use, each drawn as its glyph
     "bridge": '<path d="M-16 5 Q0 -9 16 5 M-16 5 V-1 M16 5 V-1" fill="none" stroke="{c}" stroke-width="2" stroke-linecap="round"/>',
     "info": '<circle r="9" fill="none" stroke="{c}" stroke-width="2"/><path d="M0 -1 V5 M0 -5 V-4" stroke="{c}" stroke-width="2.2" stroke-linecap="round"/>',
 }
+ANCHOR = f'<path d="M-7 0 H7 M0 -7 V7" stroke="{TEXT}" stroke-width="1.5" stroke-linecap="round"/>'   # not a landmark kind
+NOTE_WIDTH, NOTE_LEAD = 140, 17   # a note wraps at 140 characters, a line every 17 px
 X = lambda v: v * PX
 esc = lambda s: s.replace("&", "&amp;").replace("<", "&lt;")
+attr = lambda s: esc(s).replace('"', "&quot;")
 
 
 def stem(hotel, level):
@@ -84,7 +91,8 @@ def draw_label(o, label, big=False, dims=True):
 def render(d, level_name, hotel_name):
     """One drawing as an SVG document, a single line with no newline at its end."""
     ew, eh = d["extent"]["w"], d["extent"]["h"]
-    W, H = max(X(ew) + 80, 980), X(eh) + 190; ox, oy = 40, 120
+    notes = [(j == 0, line) for n in d.get("notes", []) for j, line in enumerate(textwrap.wrap(n, NOTE_WIDTH))]
+    W, H = max(X(ew) + 80, 980), X(eh) + 190 + (NOTE_LEAD * len(notes) + 17 if notes else 0); ox, oy = 40, 120
     in_group = {rid: g for g in d["groups"] for rid in g["rooms"]}
     o = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W:.0f} {H:.0f}" width="{W:.0f}" height="{H:.0f}">',
          f'<rect width="{W:.0f}" height="{H:.0f}" fill="{INK}"/>', f'<g transform="translate({ox} {oy})">',
@@ -98,12 +106,16 @@ def render(d, level_name, hotel_name):
         if ball:
             cx, cy, w, h = box(g["outline"])
             o.append(text(cx - w / 2 + 10, cy - h / 2 - 8, g["name"].upper(), 13, HUE, 700, "start", 'letter-spacing=".12em"'))
-    for a in d["open"]:                                   # open areas: dashed outlines, quiet labels
-        o.append(draw_rect(a, "none", LINE, 1.5, "6 6", rx=6))
+    for a in d["open"]:                                   # open areas: scenery dashed with quiet labels; one with an id, a place
+        if "id" in a:                                     # a room of the level: dashed in the rooms' colour, labelled by its id as a room is
+            o.append(f'<g data-place="{attr(a["id"])}">{draw_rect(a, "none", ROOM_STROKE, 1.5, "6 6", rx=6)}{draw_label(a, a["id"])}</g>')
+            continue
+        o.append(f'<g data-open="{attr(a["name"])}">'); o.append(draw_rect(a, "none", LINE, 1.5, "6 6", rx=6))
         cx, cy, w, h = box(a); fs = min(15, w / max(6, len(a["name"])) * 1.8, h * .5); big = w > 300 and h > 100
         vert = h > w * 1.8
         o.append(text(cx - w / 2 + 8 if big else cx, cy - h / 2 + 16 if big else cy + fs * .35, a["name"], 13 if big else (12 if vert else fs), DIM, 500,
                       "start" if big else "middle", extra=f'transform="rotate(-90 {cx:.1f} {cy:.1f})"' if vert else ""))
+        o.append("</g>")
     rooms = {r["id"]: r for r in d["rooms"]}
     for r in d["rooms"]:
         g = in_group.get(r["id"])
@@ -119,6 +131,8 @@ def render(d, level_name, hotel_name):
         o.append(text(X((min(xs) + max(xs)) / 2), X(min(ys)) + 16, c["id"].upper(), 11, MUTED, 600, extra='letter-spacing=".1em"'))
     for l in d["landmarks"]:
         o.append(f'<g transform="translate({X(l["x"]):.1f} {X(l["y"]):.1f})">{GLYPH[l["kind"]].format(c=GOLD)}{text(0, 24, l["name"], 11, GOLD, 600)}</g>')
+    for a in d.get("anchors", []):                        # anchors last, over a landmark at the same point: a cross, its name up and right
+        o.append(f'<g data-anchor="{attr(a["name"])}" transform="translate({X(a["x"]):.1f} {X(a["y"]):.1f})">{ANCHOR}{text(9, -9, a["name"], 10, MUTED, 500, "start")}</g>')
     for st in d["streets"]:
         if st["side"] == "N": o.append(text(X(ew) / 2, -8, st["name"], 11, DIM, 600, extra='letter-spacing=".08em"'))
         if st["side"] == "S": o.append(text(X(ew) / 2, X(eh) + 18, st["name"], 11, DIM, 600, extra='letter-spacing=".08em"'))
@@ -126,12 +140,16 @@ def render(d, level_name, hotel_name):
         if st["side"] == "E": o.append(text(X(ew) + 14, X(eh) / 2, st["name"], 11, DIM, 600, extra=f'letter-spacing=".08em" transform="rotate(90 {X(ew) + 14:.1f} {X(eh) / 2:.1f})"'))
     o.append("</g>")
     o.append(text(ox, 42, f"{hotel_name} · {level_name}", 28, TEXT, 700, "start"))
-    o.append(text(ox, 64, "Sizes from the hotel's tables at 2 px per foot; placement and orientation from Dragon Con's own map. North is up.", 13, MUTED, 500, "start"))
-    o.append(text(ox, 82, "  ·  ".join(d.get("notes", [])), 13, MUTED, 500, "start"))
+    o.append(text(ox, 64, "Sizes from the hotel's tables at 2 px per foot; placement from the hotel's own floor plan, or Dragon Con's map where it has none. North is up.", 13, MUTED, 500, "start"))
     sy = oy + X(eh) + 40
     o.append(f'<g transform="translate({ox} {sy:.0f})"><rect x="0" y="0" width="{X(50):.0f}" height="6" fill="{TEXT}"/><rect x="{X(50):.0f}" y="0" width="{X(50):.0f}" height="6" fill="{MUTED}"/>')
     for ft in (0, 50, 100): o.append(text(X(ft), 20, f"{ft} ft", 11, MUTED, 600))
-    o.append("</g></svg>")
+    o.append("</g>")
+    for i, (first, line) in enumerate(notes):             # the notes below the scale, so the frame keeps its offset
+        y = sy + 50 + NOTE_LEAD * i
+        if first: o.append(text(ox, y, "·", 13, MUTED, 700, "start"))
+        o.append(text(ox + 12, y, line, 13, MUTED, 500, "start"))
+    o.append("</svg>")
     return "".join(o)
 
 
