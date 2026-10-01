@@ -1686,8 +1686,10 @@ live's. `docs/sync/contract.md`, section 8, has the detail.
   out of the address and keeps it for the tab's session until a screen
   takes it; with no backend it goes and nothing is kept. A pasted link
   joins as a tapped one does: an iPhone opens a tapped link in the
-  browser, not the home-screen app, whose storage is its own - to be
-  confirmed on a phone (`contract.md`, Open).
+  browser, not the home-screen app, whose storage is its own - confirmed
+  on a phone on 2026-10-01, PR #77's hand test: a link pasted in the
+  home-screen app joins that app's own user, as a separate member
+  (`contract.md`, Open).
 
 **Why:** #50 narrowed crews for 2027 to create, join, leave, remove, the
 invite, the overlay and who's going, and Where things live opens last
