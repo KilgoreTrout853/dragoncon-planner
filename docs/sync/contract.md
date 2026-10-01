@@ -637,10 +637,12 @@ PR #56, with #53.
   members, compared by id since the read gives members in no order, or a
   crewmate's stars, compared alone - and forgetting the crews at a change
   of owner or with no session. Those two are asked only while Plans is the
-  tab or the crew panel is open: a redraw rebuilds Explore's grid, its
-  filter box with it, and a crewmate's star should not take the caret from
-  a reader typing there (ROADMAP, Flags). The tab's own draw shows the rest
-  when it is tapped.
+  tab or the crew panel is open - since PR #81, while Now, the Map or
+  Plans is the tab, or the crew panel or an event's sheet is open, whose
+  who's-going line `render()` refills in place: a redraw rebuilds
+  Explore's grid, its filter box with it, and a crewmate's star should not
+  take the caret from a reader typing there (ROADMAP, Flags), and Search
+  draws no crew. The tab's own draw shows the rest when it is tapped.
 - **The watermark stops at a held row.** A row of the reader's own that a
   pending op holds is passed over, and the watermark goes no later than
   it, so the next pull reads it again, and applies the server's value if
@@ -1470,8 +1472,9 @@ PR #62, which has no screen. The screens - create, join, your crews,
 who's going and the overlay's look - are Where things live's (ROADMAP).
 Since PR #77 they exist on Plans: the crew header, the crew panel -
 create, join by a tapped or a pasted link, and manage - and the crew's
-day (`docs/screens/contract.md`, section 5, as built); who's going is the
-event sheet's, still to come.
+day (`docs/screens/contract.md`, section 5, as built); since PR #81 who's
+going is a line on the event's sheet, and the crew is on Now and the Map
+too (`docs/screens/contract.md`, sections 2, 6 and 7, as built).
 
 - **The creator cannot leave;** the creator's Leave is Delete crew. The
   policies let a creator delete their own membership (section 3, as
@@ -1618,6 +1621,16 @@ PR #62, with #56.
     `crewmatePicks(userId)`, one crewmate's stars as the pull kept them,
     none for the reader; and `myMembership(crew)`, the reader's own row in
     a crew, `{user_id, display_name}`, or null.
+  - Since PR #81, for Now's crew section: `crewRightNow(schedule, at,
+    today)`, each crewmate's pick on now at `at`, else their next on the
+    con day `today` - anything still running counted in it - as
+    `{user_id, display_name, ev, on}`, the people as `goingTo()` has them,
+    on now first, then by start, then by name; a crewmate with nothing
+    left is not there. The schedule is the caller's, `data.js` `events`,
+    since `crews.js` comes before the schedule and the clock (DECISIONS
+    #29): a pick it does not hold - removed, or never there - is no one's.
+    `goingTo()` draws who's going on the event's sheet since PR #81, and
+    `crewmatesByEvent()` the Map's crew count.
 
   Since PR #77 `applyPulledCrews()` says whether anything a crew screen
   draws changed - the members compared by id, the stars alone - and
