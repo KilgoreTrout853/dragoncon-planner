@@ -1,15 +1,17 @@
-/* The bottom sheet: one wrapper and four panels - Settings, an event, a
-   hotel, a crew - with what fills each, what opens and closes it, the
-   swipe and the Escape that dismiss it, focus into it and back (#66), and
-   the handlers boot() registers on it, on the Settings controls - the email
-   step's among them - and in the crew panel, whose state is this module's.
-   A pull's redraw refills the open crew panel, the open event's who's-going
-   line and the open hotel's crew, in place.
-   The clicks inside the event and hotel panels are dispatch's: they reach
-   further than the sheet. closeSheet() asks for its redraw over the bus,
-   because render() is the shell's, above this module. The eight elements
-   are looked up as the module is imported, so the markup has to be there
-   first. */
+/* The bottom sheet: one wrapper and six panels - Settings, an event, a
+   hotel, a crew, Share a day and a day shared with the reader - with what
+   fills each, what opens and closes it, the swipe and the Escape that
+   dismiss it, focus into it and back (#66), and the handlers boot()
+   registers on it, on the Settings controls - the email step's among them -
+   in the crew panel and in the share panel, whose state is this module's,
+   as the shared day is. A pull's redraw refills the open crew panel, the
+   open event's who's-going line, the open hotel's crew and the shared day's
+   stars, in place.
+   The clicks inside the event, hotel and shared-day panels are dispatch's:
+   they reach further than the sheet. closeSheet() asks for its redraw over
+   the bus, because render() is the shell's, above this module. The ten
+   elements are looked up as the module is imported, so the markup has to
+   be there first. */
 import { esc, fmtShort } from "./util.js";
 import { YEAR } from "./season.js";
 import { saveJSON } from "./storage.js";
@@ -21,24 +23,28 @@ import {
   pendingJoin, readInvite, removeMember, setMyName, takePendingJoin,
 } from "./crews.js";
 import { settings, state } from "./state.js";
-import { DAY_LONG, localInputValue, timeOverride } from "./time.js";
+import { conDayKey, DAY_LABEL, DAY_LONG, localInputValue, now, timeOverride } from "./time.js";
 import { hotelPhrase, hotelVar, placeHTML, WALK } from "./venues.js";
+import { dayLink, dayMessage, defaultShareDay, readSharedDay, shareableDays, sharedPicks } from "./shareday.js";
 import { byId, directWorks, events, isCeleb, tagsOf, worksById } from "./data.js";
 import { picks, replacePicks, savePicks } from "./picks.js";
-import { CELEB_BADGE, crewLineHTML, rowHTML } from "./ui.js";
+import { CELEB_BADGE, chipHTML, crewLineHTML, rowHTML } from "./ui.js";
 import { focusIn, focusKey, pageScrollTo, pageScrollTop, refill, shownMatch } from "./scroll.js";
 import { requestRender } from "./bus.js";
 import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter } from "./sync.js";
 import { MAP_HOTELS, mapCrewCounts, mapCrewPicks, mapDay } from "./map.js";
 import { chosenCrew, crewPeople } from "./plans.js";
 
-/* Bottom sheet: one wrapper, four panels (settings, event, hotel, crew) */
+/* Bottom sheet: one wrapper, six panels (settings, event, hotel, crew, share,
+   shared) */
 const sheetWrap = document.getElementById("sheetWrap");
 const sheetEl = document.getElementById("sheet");
 const panelSettings = document.getElementById("panel-settings");
 const panelEvent = document.getElementById("panel-event");
 const panelHotel = document.getElementById("panel-hotel");
 const panelCrew = document.getElementById("panel-crew");
+const panelShare = document.getElementById("panel-share");
+const panelShared = document.getElementById("panel-shared");
 let sheetScrollY = 0;
 let opener = null;      // what opened the sheet, as a selector that finds it again
 
@@ -661,18 +667,201 @@ function onCrewClick(e) {
    not needed for it, so it does not wait for the load. */
 function openKeptJoin() { if (hasBackend && pendingJoin()) openSheet("crew", "join"); }
 
-const TITLES = {event: "sheetTitleEvent", hotel: "sheetTitleHotel", crew: "sheetTitleCrew"};
+/* ---- Share a day (W25; DECISIONS #10, #50, #69; docs/screens/contract.md,
+   section 5) ----------------------------------------------------------- */
+/* The share panel, from My day's action strip: a chip for each con day that
+   holds a pick of the reader's - today's, else the next one's, chosen as it
+   opens - the message exactly as it will be sent, in a read-only field, and
+   Share where the browser can take it, Copy always. Drawn as it opens; a
+   chip after that rewrites the message and which chip is pressed, and
+   nothing else, so focus stays on the chip. Share and Copy send what the
+   field holds, make no request, and are called in the tap itself, as the
+   invite's are. The link needs no backend. */
+const yearSchedule = () => [...byId.values()];
+const SHARE_ROWS = 12;
+let shareDay = null;
+function dayShareText() {
+  const schedule = yearSchedule(), list = sharedPicks(schedule, picks, shareDay);
+  return dayMessage(shareDay, list, dayLink(location.href, shareDay, list, schedule));
+}
+const canShareText = text => typeof navigator.share === "function" && (typeof navigator.canShare !== "function" || navigator.canShare({text}));
+function openShare() {
+  const days = shareableDays(yearSchedule(), picks);
+  shareDay = defaultShareDay(days, conDayKey(now()));
+  panelShare.innerHTML = `<h2 id="sheetTitleShare" tabindex="-1">Share a day</h2>
+    <div class="share-days" role="group" aria-label="Day to share">${days.map(d => chipHTML(DAY_LABEL[d], d === shareDay, "share-day", d)).join("")}</div>
+    <label class="share-label">Message <textarea id="shareText" readonly></textarea></label>
+    <p class="share-note" id="shareNote" role="status"></p>
+    <div class="rowbtns"><button class="btn" type="button" id="shareSend">Share</button><button class="btn quiet" type="button" id="shareCopy">Copy</button></div>
+    <div class="rowbtns"><button class="btn quiet" type="button" id="closeSheetShare">Done</button></div>`;
+  fillShare();
+}
+function fillShare(note = "") {
+  for (const chip of panelShare.querySelectorAll("[data-chip]")) chip.setAttribute("aria-pressed", String(chip.dataset.value === shareDay));
+  const text = dayShareText(), box = field("shareText");
+  box.value = text;
+  box.rows = Math.min(text.split("\n").length, SHARE_ROWS);
+  fitShareText();
+  field("shareSend").hidden = !canShareText(text);
+  field("shareNote").textContent = note;
+}
+/* The field as tall as the message wraps to, up to the stylesheet's cap -
+   measured once it is shown, so openSheet() asks again after showing it. A
+   page not laid out, jsdom's, measures nothing, and the rows stand. */
+function fitShareText() {
+  const box = document.getElementById("shareText");
+  if (!box) return;
+  box.style.height = "";
+  if (box.scrollHeight) box.style.height = `${box.scrollHeight + box.offsetHeight - box.clientHeight}px`;
+}
+const shareShown = () => !sheetWrap.hidden && !panelShare.hidden;
+/* A refusal of either selects the message in its field, with words. */
+function shareByHand(words) {
+  if (!shareShown()) return;
+  const box = field("shareText");
+  box.focus();
+  box.select();
+  field("shareNote").textContent = words;
+}
+/* What boot() registers on the share panel: its chips, Share, Copy, Done. A
+   share the reader cancelled says nothing. */
+function onShareClick(e) {
+  const t = e.target;
+  if (t.closest("#closeSheetShare")) { closeSheet(); return; }
+  const chip = t.closest("[data-chip]");
+  if (chip) { shareDay = chip.dataset.value; fillShare(); return; }
+  const text = field("shareText").value;
+  if (t.closest("#shareCopy")) {
+    fillShare();
+    const clip = navigator.clipboard, words = "Couldn't copy - select the message above and copy it.";
+    if (!clip || typeof clip.writeText !== "function") { shareByHand(words); return; }
+    clip.writeText(text).then(() => { if (shareShown()) field("shareNote").textContent = "Copied - paste it into any chat."; }, () => shareByHand(words));
+  } else if (t.closest("#shareSend")) {
+    fillShare();
+    let shared;
+    try { shared = navigator.share({text}); } catch (err) { shared = Promise.reject(err); }
+    Promise.resolve(shared).catch(err => {
+      if (err && (err.name === "AbortError" || err.name === "InvalidStateError")) return;
+      shareByHand("Couldn't open sharing - the message is above; copy it from there.");
+    });
+  }
+}
 
-/* kind: settings, event, hotel or crew; id: the event's, the hotel's, or
-   the crew panel's step - create, join or manage. The crew panel needs a
-   backend: with none there are no crews. Focus goes to the panel's
+/* The day shared with the reader: a ?day= link, read as boot() reads the
+   invite and taken out of the address, ?now= and the hash left as they were.
+   A join wins - an invite in the address or one the session kept - and the
+   day is dropped. What it says is kept in memory alone, never in storage,
+   and no request is made for it: it waits for the schedule, and opens over
+   whatever tab the phase opens on, with a backend or without. A reload
+   loses it; the link in the chat is the way back. */
+let dayLinkKept = null;   // the address's query, until the schedule is here
+let sharedDay = null;     // what readSharedDay() made of it, while its panel is up
+let sharedBack = null;    // {scroll, focus}: an event opened from the shared day, which its close goes back to
+function takeDayLink() {
+  if (!/[?&]day=/.test(location.search)) return;
+  dayLinkKept = hasBackend && pendingJoin() ? null : location.search;
+  const rest = location.search.replace(/^\?/, "").split("&").filter(p => p && p !== "day" && !p.startsWith("day="));
+  /* The whole address with its query replaced, as readJoinLink() does it. */
+  const address = new URL(location.href);
+  address.search = rest.length ? "?" + rest.join("&") : "";
+  history.replaceState(null, "", address.href);
+}
+/* boot()'s, once the schedule has loaded: the shared day, or the words for a
+   link that is not one. With no schedule there is nothing to show it from. */
+function openSharedDay() {
+  const text = dayLinkKept;
+  dayLinkKept = null;
+  if (text === null || !byId.size) return;
+  sharedDay = readSharedDay(text, yearSchedule());
+  openSheet("shared");
+}
+/* The panel: "<Day>, shared with you", its events as rows in start order -
+   one not on that day carrying its day's label - each with the reader's own
+   star; a line that says the list is not kept, and one that counts what
+   this schedule could not find and says when the link looks cut short. A
+   removed event is marked and carries no
+   star (#49), a cancelled one marked, as a row is anywhere. A link that is
+   not one, or another year's, says so instead. */
+const SHARED_KEPT = "This list isn't saved: it goes when you close it. Star what you want to keep.";
+const sharedRowHTML = ev => rowHTML(ev, {list: "shared", showDay: ev._cd !== sharedDay.day});
+function sharedHTML(shared) {
+  const done = `<div class="ev-actions"><button class="btn" id="closeSheetShared">Done</button></div>`;
+  if (shared.error) {
+    const words = shared.error === "other_year"
+      ? `That link is a day from Dragon Con ${shared.year}, and this planner is ${YEAR}'s, so there's nothing of it to show.`
+      : "That link doesn't hold a day of the schedule. It was probably cut short when it was copied - ask for it again, or copy all of it.";
+    return `<div class="ev-head"><h2 id="sheetTitleShared" tabindex="-1">A shared day</h2><p class="shared-note">${esc(words)}</p></div>${done}`;
+  }
+  /* What the link lacked, in one line: what this schedule could not find,
+     and - its last token short, or empty - that it was likely cut short; a
+     link ending in "-" has the second alone. */
+  const n = shared.skipped;
+  const said = n ? `${n === 1 ? "1 event in the link isn't" : `${n} events in the link aren't`} on this copy of the schedule${shared.cut ? " - the link may have been cut short when it was copied" : ""}.`
+    : shared.cut ? "The link may have been cut short when it was copied." : "";
+  const skipped = said ? `<p class="shared-note" id="sharedSkipped">${said}</p>` : "";
+  const body = shared.events.length ? `<ul class="list compact">${shared.events.map(sharedRowHTML).join("")}</ul>`
+    : `<p class="shared-note">Nothing in the link is on this copy of the schedule.</p>`;
+  return `<div class="ev-head"><h2 id="sheetTitleShared" tabindex="-1">${esc(DAY_LONG[shared.day] || shared.day)}, shared with you</h2>
+      <p class="shared-note">${SHARED_KEPT}</p>${skipped}</div>
+    <div class="ev-body" id="sharedBody">${body}</div>${done}`;
+}
+/* shell.js render()'s: the stars of the open shared day follow the picks -
+   its own taps, the event's sheet, a pull - each row's class and star written
+   in place, so its scroll and the focus on a star stay. */
+function refreshSharedDay() {
+  if (sheetWrap.hidden || panelShared.hidden || !sharedDay || sharedDay.error) return;
+  const holder = document.createElement("ul");
+  for (const li of panelShared.querySelectorAll(".row[data-id]")) {
+    const ev = byId.get(li.dataset.id);
+    if (!ev) continue;
+    holder.innerHTML = sharedRowHTML(ev);
+    const fresh = holder.firstElementChild;
+    if (li.className !== fresh.className) li.className = fresh.className;
+    refill(li.querySelector(".star"), fresh.querySelector(".star"));
+  }
+}
+/* Back (#63): an event opened from the shared day closes to it - the panel
+   shown again, not drawn again, its scroll put back and focus on the row
+   that opened the event. The record is taken whenever the shared panel
+   closes or another panel opens. */
+function backToShared() {
+  const back = sharedBack;
+  sharedBack = null;
+  state.sheetId = null;
+  sheetEl.classList.remove("settling");
+  sheetEl.style.transform = "";
+  sheetBackEl.style.opacity = "";
+  sheetBackEl.classList.remove("dragging");
+  dragY = null;
+  panelEvent.hidden = true;
+  panelShared.hidden = false;
+  sheetEl.setAttribute("aria-labelledby", TITLES.shared);
+  requestRender();
+  const body = document.getElementById("sharedBody");
+  if (body) body.scrollTop = back.scroll;
+  const again = (back.focus && shownMatch(back.focus)) || document.getElementById(TITLES.shared);
+  if (again) again.focus({preventScroll: true});
+}
+
+const TITLES = {event: "sheetTitleEvent", hotel: "sheetTitleHotel", crew: "sheetTitleCrew", share: "sheetTitleShare", shared: "sheetTitleShared"};
+
+/* kind: settings, event, hotel, crew, share or shared; id: the event's, the
+   hotel's, or the crew panel's step - create, join or manage. The crew panel
+   needs a backend: with none there are no crews. Share needs a day to
+   share, and shared a day read from a link. Focus goes to the panel's
    heading, and closing puts it back on what opened the sheet (#66), kept
    as scroll.js focusKey() puts it, since the redraw that closing asks for
-   replaces it. */
+   replaces it. An event opened from the shared day keeps the way back to
+   it; any other panel opening takes it. */
 function openSheet(kind = "settings", id = null) {
   if (kind === "event" && !byId.get(id)) return;
   if (kind === "hotel" && !MAP_HOTELS[id]) return;
   if (kind === "crew" && !hasBackend) return;
+  if (kind === "share" && !shareableDays(yearSchedule(), picks).length) return;
+  if (kind === "shared" && !sharedDay) return;
+  const fromShared = kind === "event" && !sheetWrap.hidden && !panelShared.hidden && !!sharedDay && !sharedDay.error;
+  if (fromShared) sharedBack = {scroll: (document.getElementById("sharedBody") || {}).scrollTop || 0, focus: focusKey(document.activeElement)};
+  else if (kind !== "shared") dropShared();     // any other panel: the shared day and its way back go
   if (sheetWrap.hidden) opener = focusKey(document.activeElement);
   sheetScrollY = pageScrollTop();
   state.sheetId = kind === "event" ? id : null;
@@ -680,19 +869,37 @@ function openSheet(kind = "settings", id = null) {
   if (kind === "event") panelEvent.innerHTML = eventSheetHTML(byId.get(id));
   else if (kind === "hotel") drawHotelSheet(mapDay());
   else if (kind === "crew") openCrew(id || "manage");
+  else if (kind === "share") openShare();
+  else if (kind === "shared") panelShared.innerHTML = sharedHTML(sharedDay);
   else fillSettings();
   panelSettings.hidden = kind !== "settings";
   panelEvent.hidden = kind !== "event";
   panelHotel.hidden = kind !== "hotel";
   panelCrew.hidden = kind !== "crew";
+  panelShare.hidden = kind !== "share";
+  panelShared.hidden = kind !== "shared";
   sheetEl.setAttribute("aria-labelledby", TITLES[kind] || "sheetTitle");
   sheetEl.style.transform = "";
   sheetWrap.hidden = false;
+  if (kind === "share") fitShareText();
   focusTitle(TITLES[kind] || "sheetTitle");
 }
 function focusTitle(id) {
   const title = document.getElementById(id);
   if (title) title.focus({preventScroll: true});
+}
+
+/* The shared day goes with its panel: the list, its way back, its rows. */
+function dropShared() {
+  sharedBack = null;
+  sharedDay = null;
+  if (panelShared.firstChild) panelShared.innerHTML = "";
+}
+/* See all, from an event: the Explore page, whatever the event was opened
+   from - an event opened from the shared day closes both, and the list goes. */
+function closeWholeSheet() {
+  sharedBack = null;
+  closeSheet();
 }
 
 /* Closing the crew panel's join step unjoined takes the kept invite: the
@@ -701,6 +908,8 @@ function focusTitle(id) {
    whose opener the redraw took away - a first crew made, the last one
    left - gives it to what Plans' header now holds. */
 function closeSheet() {
+  if (sharedBack && !sheetWrap.hidden && !panelEvent.hidden) { backToShared(); return; }
+  dropShared();
   const crewShown = !sheetWrap.hidden && !panelCrew.hidden;
   if (crewShown) {
     if (crewStep === "join") takePendingJoin();
@@ -758,7 +967,7 @@ function settle(toClosed) {
 
 /* What boot() registers on the sheet itself: the drag. */
 function onSheetTouchStart(e) {
-  if (e.target.closest(".ev-body")) return;   // let the description scroll
+  if (e.target.closest(".ev-body, textarea")) return;   // let the description scroll, and the message to share
   const crew = e.target.closest("#panel-crew");
   if (crew && crew.scrollHeight > crew.clientHeight) return;   // and the crew panel, when it is taller than the screen
   dragY = e.touches[0].clientY;
@@ -853,8 +1062,8 @@ async function onKeepClick(e) {
 }
 
 export {
-  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, eventSheetHTML, hotelSheetHTML, drawHotelSheet, showHotelCrew,
-  openSheet, closeSheet, onSheetKeydown, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
+  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, panelShare, panelShared, eventSheetHTML, hotelSheetHTML, drawHotelSheet, showHotelCrew,
+  openSheet, closeSheet, closeWholeSheet, onSheetKeydown, onShareClick, takeDayLink, openSharedDay, refreshSharedDay, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
   onSettingsClick, onCrowdInput, onNoiseDefaultChange, onResetPicks, onKeepSubmit, onKeepClick,
   refreshCrewPanel, refreshEventSheet, refreshHotelSheet, onCrewSubmit, onCrewClick, onCrewInput, openKeptJoin,
 };

@@ -355,9 +355,11 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .more { margin: 14px; }
 /* Two rows of two on one grid: the actions take the view toggle's footprint,
    so the top of Plans reads as one control strip rather than a stack of odd
-   shapes. Export keeps its gold fill; it is the one you came here for. */
+   shapes. Export keeps its gold fill; it is the one you came here for. Share
+   a day sits beside it and Remove all under it; the strip and the toggle are
+   44px since Share a day joined them (#66). */
 .plans-actions { padding: 12px 14px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.plans-actions .btn { height: 40px; padding: 0 12px; border-radius: 10px; font-size: .9375rem; font-weight: 700; }
+.plans-actions .btn { height: 44px; padding: 0 12px; border-radius: 10px; font-size: .9375rem; font-weight: 700; }
 .btn[disabled] { opacity: .45; }
 /* Plans' crew (DECISIONS #62): the header - the crew's name or its picker,
    how many, and Manage - or the rung; the My day | Crew segment; the crew's
@@ -465,6 +467,26 @@ select.crew-pick {
 .crew-name label, .crew-name input { min-width: 0; }
 .crew-name .btn { height: 44px; }
 .crew-note:empty { display: none; }
+/* Share a day (W25; DECISIONS #69): the share panel - the day chips, the
+   message in a read-only field, Share and Copy - and the day shared with the
+   reader, its rows in the scrolling body an event's sheet has. Every control
+   is 44px (#66). The message's field grows to what it holds and stops at
+   40% of the screen - at 375x667 the whole sheet, Share and Copy among it,
+   then stays under the header - and scrolls on its own past that. */
+.share-days { display: flex; flex-wrap: wrap; gap: 6px; }
+.share-days .chip { height: 44px; border-radius: 22px; }
+#shareText {
+  width: 100%; max-height: 40vh; max-height: 40dvh; resize: none; padding: 10px; border-radius: 10px;
+  background: var(--ink); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: .9375rem; line-height: 1.4;
+  overscroll-behavior: contain; touch-action: pan-y;
+}
+.share-note, .shared-note { margin: 0; color: var(--muted); font-size: .9375rem; line-height: 1.4; }
+.share-note:empty { display: none; }
+#panel-share .rowbtns .btn { flex: 1 1 auto; }
+/* The shared day's list takes more of the screen than an event's
+   description: three rows fit at 375x667 before it scrolls, and the sheet
+   still stays under the header. */
+#sharedBody { max-height: 55vh; max-height: 55dvh; }
 /* Focus lands on a panel's heading as the sheet opens (#66): a ring for a
    keyboard's arrival, none for a tap's. */
 .sheet-panel h2:focus:not(:focus-visible) { outline: none; }
@@ -575,7 +597,7 @@ body.has-minibar .devmark { bottom: calc(var(--nav-h) + 5px + var(--minibar-h));
 /* Timeline: the day as a column, so gaps and clashes have a shape */
 .view-toggle { display: flex; gap: 8px; padding: 0 14px 10px; }
 .view-toggle button {
-  flex: 1; height: 40px; border-radius: 10px; border: 1px solid var(--line);
+  flex: 1; height: 44px; border-radius: 10px; border: 1px solid var(--line);
   background: transparent; color: var(--muted); font: inherit; font-size: .9375rem; font-weight: 700; cursor: pointer;
 }
 .view-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--text); border-color: var(--gold); }

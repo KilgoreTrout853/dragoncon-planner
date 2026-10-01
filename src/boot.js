@@ -16,8 +16,8 @@ import { onAppInstalled, onBeforeInstallPrompt } from "./now.js";
 import { onScrollSpy } from "./explore.js";
 import {
   closeSheet, onCrewClick, onCrewInput, onCrewSubmit, onCrowdInput, onKeepClick, onKeepSubmit, onNoiseDefaultChange, onResetPicks,
-  onSettingsClick, onSheetKeydown, onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart, openKeptJoin,
-  openSheet, panelCrew, panelEvent, panelHotel, sheetEl,
+  onSettingsClick, onShareClick, onSheetKeydown, onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart, openKeptJoin,
+  openSharedDay, openSheet, panelCrew, panelEvent, panelHotel, panelShare, panelShared, sheetEl, takeDayLink,
 } from "./sheet.js";
 import {
   BOOT, load, markScheduleChecked, onLoadRegisterWorker, onPageShow, onPillClick, onPillTouchEnd,
@@ -30,7 +30,7 @@ import {
 } from "./shell.js";
 import {
   onApplyPreview, onClearPreview, onEventPanelClick, onHashChange, onHotelPanelClick,
-  onMainChange, onMainClick, onMainInput, onMainKeydown, onMinute,
+  onSharedPanelClick, onMainChange, onMainClick, onMainInput, onMainKeydown, onMinute,
 } from "./dispatch.js";
 
 /* ==================================================================
@@ -62,6 +62,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.body.insertAdjacentHTML("beforeend", devMarkHTML());
   initTimeOverride();
   readJoinLink();
+  takeDayLink();               // after the invite: a join wins over a shared day
   setOpeningTab();
   openKeptJoin();
 
@@ -85,6 +86,8 @@ export function boot({events: data, reload: reloadWith} = {}) {
   panelCrew.addEventListener("click", onCrewClick);
   panelCrew.addEventListener("submit", onCrewSubmit);
   panelCrew.addEventListener("input", onCrewInput);
+  panelShare.addEventListener("click", onShareClick);
+  panelShared.addEventListener("click", onSharedPanelClick);
 
   document.getElementById("minibar").addEventListener("click", onMiniBarClick);
   document.getElementById("settingsBtn").addEventListener("click", onSettingsClick);
@@ -164,6 +167,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   window.addEventListener("online", onSyncTrigger);
 
   const ready = load(data);
+  ready.then(openSharedDay);   // a ?day= link waits for the schedule
   ready.then(onSyncTrigger);
   return {
     state, render, now, setTimeOverride,
