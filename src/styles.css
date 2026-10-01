@@ -447,12 +447,17 @@ select.crew-pick {
 #panel-crew h2, .crew-member, .crew-who { overflow-wrap: anywhere; }
 .crew-form, .crew-manage, .crew-invite { display: grid; gap: 12px; }
 .crew-form p, .crew-invite p, .crew-note { margin: 0; color: var(--muted); font-size: .9375rem; line-height: 1.4; }
-.crew-form input, .crew-invite input { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); font: inherit; }
+.crew-form input, .crew-invite input, .crew-name input { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); font: inherit; }
 .crew-members { list-style: none; margin: 0; padding: 0; }
 .crew-members li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 44px; border-bottom: 1px solid var(--line); }
 .crew-members .crew-member { min-width: 0; }
 .crew-you, .crew-maker { color: var(--muted); font-size: .875rem; }
 .crew-members .crew-remove { margin-left: auto; height: 44px; }
+/* The reader's name in this crew: the field, and Save beside it, level
+   with it under the label. */
+.crew-name { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+.crew-name label, .crew-name input { min-width: 0; }
+.crew-name .btn { height: 44px; }
 .crew-note:empty { display: none; }
 /* Focus lands on a panel's heading as the sheet opens (#66): a ring for a
    keyboard's arrival, none for a tap's. */

@@ -7,7 +7,7 @@ import { ensureUser, plainMessage } from "./identity.js";
 /* ==================================================================
    Crews, the client's layer (DECISIONS #10, #50, #56; docs/sync/contract.md,
    section 8): the reader's crews and their crewmates' picks as the last pull
-   kept them, the six things a reader can do to a crew, the invite link, and
+   kept them, the seven things a reader can do to a crew, the invite link, and
    what the crew screens draw from. No screen here: the crew header and the
    crew's day are plans.js's, the crew panel sheet.js's (#62).
 
@@ -242,6 +242,17 @@ async function deleteCrew(crewId) {
   if (crew.creator !== user) throw new BackendError("not_creator");
   return callBackendAsUser(`/rest/v1/crews?id=${eq(crewId)}`, {method: "DELETE"});
 }
+/* The reader's own name in one crew, a member's alone: an update of their
+   own row, found by the crew and the reader both - by the reader alone it
+   would rename them in every crew they are in. Row-level security turns
+   any other row away and answers 204 as it does for one it changed, so
+   the pull, not the answer, says whether the name took. */
+async function setMyName(crewId, displayName) {
+  const {user, crew} = kept(crewId);
+  if (!myMembership(crew)) throw new BackendError("not_member");
+  const display_name = bounded(displayName, 24, "bad_display_name");
+  return callBackendAsUser(`/rest/v1/crew_members?crew_id=${eq(crewId)}&user_id=${eq(user)}`, {method: "PATCH", body: {display_name}});
+}
 
 /* Every failure of a crew action in plain words: the RPCs' codes (contract,
    section 3, as built), this module's own, and identity's words for the
@@ -256,11 +267,12 @@ const CREW_PLAIN = {
   bad_invite: "That doesn't look like an invite link.",
   creator_leaves: "You made this crew, so you can't leave it - you can delete it instead.",
   no_crew: "That crew isn't on this phone any more - it may have been deleted.",
+  not_member: "You're not in this crew any more.",
 };
 function crewMessage(error) { return CREW_PLAIN[error && error.code] || plainMessage(error); }
 
 export {
   myCrews, isCreator, crewGained, applyPulledCrews, forgetCrews, goingTo, crewmatePicks, myMembership, crewmatesByEvent,
   inviteLink, readInvite, readJoinLink, pendingJoin, takePendingJoin,
-  createCrew, joinCrew, newInvite, leaveCrew, removeMember, deleteCrew, crewMessage,
+  createCrew, joinCrew, newInvite, leaveCrew, removeMember, deleteCrew, setMyName, crewMessage,
 };

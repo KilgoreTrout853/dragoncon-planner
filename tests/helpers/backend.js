@@ -24,13 +24,18 @@
    judged as the policies judge them: a member leaves, and the creator, while
    a member, removes anyone and deletes the crew, its memberships with it;
    anything else deletes nothing, and every delete answers 204 with no body,
-   as row-level security does. Checked against a real PostgREST, 14.5, on
-   the CLI's local stack.
+   as row-level security does. And the one update, a member's own display
+   name, by crew and user: any other column refused, 403 42501, as the grant
+   refuses it; a name the table's check refuses, 400 23514; any row but the
+   caller's own not changed, and the answer the same 204. Checked against a
+   real PostgREST, 14.5, on the CLI's local stack.
 
    Knobs a test sets: captcha (the project demands a captcha token),
    anonymousOff (anonymous sign-ins switched off), offline (the network is
    gone: true, or a test of each request), fail (a test of each request that
-   returns {status, code} for the server to answer with, or nothing),
+   returns {status, code} for the server to answer with, or nothing - a
+   status of 204 alone answers with no body and acts on nothing, as
+   row-level security answers a write it turned away),
    defer (a test of each request: one it holds is not answered, nor acted
    on, until release()), onRequest (called with each request as it arrives
    - another tab, acting meanwhile), maxRows, clockOffset (ms the
@@ -40,7 +45,8 @@
    refuse(token) makes the server refuse an access token as expired;
    revoke(token) kills a refresh token. write(user, table, row) is a write
    by another device or a crewmate, judged as the page's are; crew(...),
-   join(...) and leave(...) make and change crews behind the page's back;
+   join(...), leave(...) and rename(...) make and change crews behind the
+   page's back;
    rows(table) is what the server holds, "crews" among them. */
 export const CODE = "123456";
 
@@ -226,6 +232,22 @@ export function fakeBackend({ url = "https://backend.test", key = "sb_publishabl
     nothingAnswers("DELETE", address);
   }
 
+  /* The update, a row of crew_members by its key: the grant reaches
+     display_name alone, row-level security the caller's own row alone, and
+     the table's check judges the name only on a row it changes. */
+  function update(table, user, params, body, address) {
+    const eq = key => { const m = /^eq\.(.+)$/.exec(params.get(key) || ""); return m ? m[1] : null; };
+    if (table !== "crew_members" || [...params.keys()].sort().join() !== "crew_id,user_id" || !eq("crew_id") || !eq("user_id")
+        || !body || Array.isArray(body) || !Object.keys(body).length) nothingAnswers("PATCH", address);
+    if (Object.keys(body).some(k => k !== "display_name")) return restFail(403, "42501", "permission denied for table crew_members");
+    if (typeof body.display_name !== "string") nothingAnswers("PATCH", address);
+    const c = crews.find(x => x.id === eq("crew_id")), own = c && eq("user_id") === user.id ? c.members.find(m => m.user_id === user.id) : null;
+    if (!own) return answer(204);
+    if (!fits(body.display_name, 24)) return nameCheck("crew_members");
+    own.display_name = body.display_name;
+    return answer(204);
+  }
+
   const fake = {
     url, key, requests, users,
     captcha: false, anonymousOff: false, offline: false, fail: null, defer: null, onRequest: null, maxRows: 1000, clockOffset: 0,
@@ -247,6 +269,7 @@ export function fakeBackend({ url = "https://backend.test", key = "sb_publishabl
     crew: ({ year = 2026, name = "Crew", creator, members }) => makeCrew({ year, name, creator, members }),
     join: (crew, userId, name) => { crew.members.push({ user_id: userId, display_name: name }); },
     leave: (crew, userId) => { crew.members = crew.members.filter(m => m.user_id !== userId); },
+    rename: (crew, userId, name) => { crew.members.find(m => m.user_id === userId).display_name = name; },
   };
 
   fake.fetch = async (input, init = {}) => {
@@ -262,6 +285,7 @@ export function fakeBackend({ url = "https://backend.test", key = "sb_publishabl
     if (headers.apikey !== key) return answer(401, { message: "Invalid API key" });
     if (address.pathname.startsWith("/rest/v1/")) {
       const failure = fake.fail && fake.fail(request);
+      if (failure && failure.status === 204) return answer(204);
       if (failure) return restFail(failure.status, failure.code || `http_${failure.status}`, failure.message || "refused");
       const user = signedIn(headers), table = address.pathname.slice("/rest/v1/".length), params = address.searchParams;
       if (!user) return restFail(401, "PGRST303", "JWT expired");
@@ -270,6 +294,7 @@ export function fakeBackend({ url = "https://backend.test", key = "sb_publishabl
       if (init.method === "GET" && table === "crews") return readCrews(user, params, address);
       if (init.method === "POST" && table.startsWith("rpc/")) return rpc(table.slice("rpc/".length), user, params, body, address);
       if (init.method === "DELETE") return remove(table, user, params, address);
+      if (init.method === "PATCH") return update(table, user, params, body, address);
       nothingAnswers(init.method, address);
     }
     const captchaMissing = fake.captcha && !(body && body.gotrue_meta_security && body.gotrue_meta_security.captcha_token);

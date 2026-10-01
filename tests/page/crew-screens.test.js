@@ -1,12 +1,13 @@
 /* Plans, the crew (DECISIONS #56, #62, #63, #66; docs/screens/contract.md,
    sections 5 and 11): the crew header at the top of Plans, the crew panel -
    create, join by a kept ?join= or a pasted link, and the manage view with
-   the invite, Remove, Leave and Delete - the My day | Crew segment, the
-   crew's day, and the sync that redraws Plans when the crews or the
-   crewmates' picks change. Every action is one request, then a sync run
-   that began after it, then the panel and Plans drawn from what the pull
-   kept: nothing optimistic, and a failure is said in the panel with nothing
-   kept. Escape and focus for every panel of the sheet are here too.
+   the reader's name in the crew, the invite, Remove, Leave and Delete - the
+   My day | Crew segment, the crew's day, and the sync that redraws Plans
+   when the crews or the crewmates' picks change. Every action is one
+   request, then a sync run that began after it, then the panel and Plans
+   drawn from what the pull kept: nothing optimistic, and a failure is said
+   in the panel with nothing kept. Escape and focus for every panel of the
+   sheet are here too.
    Against the fake backend, tests/helpers/backend.js. New tests, not rows of
    tests/PORT-LEDGER.md, so their titles carry no harness line. */
 import fs from "node:fs";
@@ -174,10 +175,10 @@ describe("a build with no backend ignores crews and an invite kept by a build wi
 describe("the new controls are 44px tall (#66)", () => {
   const css = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "styles.css"), "utf8");
   const rule = selector => { const at = css.indexOf(`${selector} {`); return at < 0 ? "" : css.slice(at, css.indexOf("}", at)); };
-  it("the header's button and picker, the segment, the day chips, the panel's fields, its rows and Remove", () => {
+  it("the header's button and picker, the segment, the day chips, the panel's fields, its rows and Remove, and the name's Save", () => {
     for (const [selector, height] of [[".crew-head .btn", "height: 44px"], ["select.crew-pick", "height: 44px"], [".plans-seg button", "height: 44px"],
-      [".plans-days .chip", "height: 44px"], [".crew-form input, .crew-invite input", "height: 44px"], [".crew-members li", "min-height: 44px"],
-      [".crew-members .crew-remove", "height: 44px"]]) {
+      [".plans-days .chip", "height: 44px"], [".crew-form input, .crew-invite input, .crew-name input", "height: 44px"], [".crew-members li", "min-height: 44px"],
+      [".crew-members .crew-remove", "height: 44px"], [".crew-name .btn", "height: 44px"]]) {
       expect(rule(selector), selector).toContain(height);
     }
   });
@@ -1148,6 +1149,220 @@ describe("the open panel refreshed by a pull, and a run that began after the act
     expect(words(el("sheetTitleCrew"))).toBe("Night owls");
     el("closeSheetCrew").click();
     expect(words(plans().querySelector(".crew-title"))).toBe("The crew");
+  });
+});
+
+describe("your name in this crew (W28): the field, Save, and the pull that says whether it took", () => {
+  let page, app, handle, fake, ada, bo, cy, ours, owls;
+  const run = async () => { await app.runSync(); await app.syncSettled(); };
+  const box = () => el("crewMyName"), save = () => el("crewNameSave");
+  /* typing, as a reader types: the value, then the input event */
+  function type(value) { box().value = value; box().dispatchEvent(new Event("input", { bubbles: true })); }
+  const nameIn = (crew, user) => fake.rows("crews").find(c => c.id === crew.id).members.find(m => m.user_id === user.id).display_name;
+  const patches = from => fake.requests.slice(from).filter(r => r.method === "PATCH");
+  async function saved() {
+    await page.until(() => !el("crewCreate").disabled, 5000, "the name's request");
+    await app.syncSettled();
+  }
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    [ada, bo, cy] = ["ada", "bo", "cy"].map(n => fake.held(`${n}@example.test`));
+    ours = fake.crew({ name: "Ours", creator: ada.id, members: [[ada.id, "Ada"], [bo.id, "Bo"]] });
+    owls = fake.crew({ name: "Night owls", creator: bo.id, members: [[bo.id, "Bobby"], [ada.id, "Ada"]] });
+    signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+    tapTab("plans");
+    await app.syncSettled();
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("Manage: a field labelled Your name in this crew, under the members, filled with the name this crew gives the reader, and Save disabled", () => {
+    press(el("crewManageBtn"));
+    expect(words(el("sheetTitleCrew"))).toBe("Ours");
+    expect(shown(el("crewNameForm"))).toBe(true);
+    expect(box().closest("label").textContent.trim()).toBe("Your name in this crew");
+    expect(box().value).toBe("Ada");
+    expect(save().textContent).toBe("Save");
+    expect(save().disabled).toBe(true);
+    expect(el("crewMembers").nextElementSibling).toBe(el("crewNameForm"));
+  });
+  it("Save follows the field: empty, spaces alone or the same name with spaces about it - disabled; another name, or one too long - enabled", () => {
+    for (const [value, disabled] of [["", true], ["   ", true], [" Ada ", true], ["Ada Lee", false], ["y".repeat(25), false], ["Ada", true]]) {
+      type(value);
+      expect(save().disabled, JSON.stringify(value)).toBe(disabled);
+    }
+  });
+  it("Enter on a name unchanged or empty sends nothing", () => {
+    const from = fake.requests.length;
+    for (const value of ["Ada", "  "]) { type(value); submit("crewNameForm"); }
+    expect(fake.requests.length).toBe(from);
+    expect(words(el("crewNote"))).toBe("");
+  });
+  it("a name too long: refused in the panel in its words, before any request, the field as typed and focus on it", async () => {
+    const from = fake.requests.length;
+    box().focus();
+    type("y".repeat(25));
+    press(save());
+    await saved();
+    expect(fake.requests.length).toBe(from);
+    expect(words(el("crewNote"))).toBe("Your name in the crew is 1 to 24 characters.");
+    expect(box().value).toBe("y".repeat(25));
+    expect(document.activeElement).toBe(box());
+  });
+  it("a server that fails: its words, nothing kept, no run, the field as typed, Save again and focus on the field", async () => {
+    fake.fail = r => (r.method === "PATCH" ? { status: 503, code: "PGRST000" } : null);
+    type("Ada Lee");
+    const before = everything(), from = fake.requests.length;
+    press(save());
+    await saved();
+    fake.fail = null;
+    expect(sent(fake, from)).toEqual(["PATCH /rest/v1/crew_members"]);
+    expect(words(el("crewNote"))).toBe("Something went wrong. Please try again.");
+    expect(everything()).toEqual(before);
+    expect([box().value, save().disabled, document.activeElement]).toEqual(["Ada Lee", false, box()]);
+  });
+  it("Save: one request at a time - Save disabled while it is out, a second Enter sends nothing - and no words until the pull", async () => {
+    fake.defer = r => r.method === "PATCH";
+    const from = fake.requests.length;
+    press(save());
+    await page.until(() => patches(from).length === 1, 5000, "the update");
+    expect(save().disabled).toBe(true);
+    submit("crewNameForm");
+    expect(patches(from).length).toBe(1);
+    expect(words(el("crewNote"))).toBe("");
+    fake.defer = null;
+    fake.release();
+    await saved();
+    expect(patches(from)).toEqual([{ method: "PATCH", path: `/rest/v1/crew_members?crew_id=eq.${ours.id}&user_id=eq.${ada.id}`,
+      headers: expect.objectContaining({ "Content-Type": "application/json" }), body: { display_name: "Ada Lee" } }]);
+  });
+  it("then a run, and once its pull shows the name: the words, the reader's row, Save disabled, focus on the field - and Plans' crew's day", () => {
+    expect(words(el("crewNote"))).toBe("Your name in this crew is now Ada Lee.");
+    expect(members()[0]).toBe("Ada Lee (you) made the crew");
+    expect([box().value, save().disabled, document.activeElement]).toEqual(["Ada Lee", true, box()]);
+    expect(nameIn(ours, ada)).toBe("Ada Lee");
+    expect(blocks()[0].who).toBe("Ada Lee (you)");
+  });
+  it("the name is this crew's alone: the other crew still gives the reader its own - on the server, as kept, and in its manage view", () => {
+    expect(nameIn(owls, ada)).toBe("Ada");
+    expect(read("crew").find(c => c.id === owls.id).members.find(m => m.user_id === ada.id).display_name).toBe("Ada");
+    el("closeSheetCrew").click();
+    const pickEl = el("crewPick");
+    pickEl.value = owls.id;
+    pickEl.dispatchEvent(new Event("change", { bubbles: true }));
+    press(el("crewManageBtn"));
+    expect(words(el("sheetTitleCrew"))).toBe("Night owls");
+    expect([box().value, save().disabled]).toEqual(["Ada", true]);
+    expect(members()[0]).toBe("Ada (you)");
+  });
+  it("a refusal answers 204 too: a pull that still shows the old name says so, not the success words, and Save is there again", async () => {
+    fake.fail = r => (r.method === "PATCH" ? { status: 204 } : null);
+    box().focus();
+    type("Night Ada");
+    const notes = [], watch = new MutationObserver(() => notes.push(words(el("crewNote"))));
+    watch.observe(el("crewNote"), { childList: true, characterData: true, subtree: true });
+    const from = fake.requests.length;
+    press(save());
+    await saved();
+    watch.disconnect();
+    fake.fail = null;
+    expect(sent(fake, from)).toContain("GET /rest/v1/crews");
+    expect(nameIn(owls, ada)).toBe("Ada");
+    expect(words(el("crewNote"))).toBe("Your name didn't change - try again.");
+    expect(notes.some(n => n.startsWith("Your name in this crew is now"))).toBe(false);
+    expect([box().value, save().disabled, document.activeElement]).toEqual(["Night Ada", false, box()]);
+  });
+  it("a save whose pull fails: the words for an action that landed, then the success words once a pull shows the name", async () => {
+    fake.fail = r => (r.method === "GET" && r.path.startsWith("/rest/v1/crews?") ? { status: 503, code: "PGRST000" } : null);
+    press(save());
+    await saved();
+    expect(nameIn(owls, ada)).toBe("Night Ada");
+    expect(words(el("crewNote"))).toBe("Done - it will show here once this phone reaches the server.");
+    expect(members()[0]).toBe("Ada (you)");
+    fake.fail = null;
+    await run();
+    expect(words(el("crewNote"))).toBe("Your name in this crew is now Night Ada.");
+    expect(members()[0]).toBe("Night Ada (you)");
+    expect(save().disabled).toBe(true);
+  });
+  it("a pull while a name is half typed - one that brings the reader a new name from another phone, too: the field as it was, its caret, its focus", async () => {
+    const field = box();
+    field.focus();
+    type("Owl");
+    field.setSelectionRange(1, 2);
+    fake.rename(owls, ada.id, "Ada (phone)");
+    fake.join(owls, cy.id, "Cy");
+    await run();
+    expect(members()).toEqual(["Ada (phone) (you)", "Bobby made the crew", "Cy"]);
+    expect(box()).toBe(field);
+    expect(document.activeElement).toBe(field);
+    expect([field.value, field.selectionStart, field.selectionEnd]).toEqual(["Owl", 1, 2]);
+    expect(save().disabled).toBe(false);
+  });
+  it("a field the reader has not changed takes the name a pull brings, and focus stays on it", async () => {
+    type("Ada (phone)");
+    expect(save().disabled).toBe(true);
+    fake.rename(owls, ada.id, "Ada");
+    await run();
+    expect([box().value, save().disabled, document.activeElement]).toEqual(["Ada", true, box()]);
+  });
+  it("a crew whose kept members do not hold the reader - another tab signed in as someone else - shows no name to change", () => {
+    const session = window.localStorage.getItem(KEY("session"));
+    signIn(fake, fake.held("dee@example.test"));
+    handle.render();
+    expect(shown(el("crewManage"))).toBe(true);
+    expect(shown(el("crewNameForm"))).toBe(false);
+    window.localStorage.setItem(KEY("session"), session);
+    handle.render();
+    expect(shown(el("crewNameForm"))).toBe(true);
+  });
+  it("closed and opened again, the field starts from the name kept: a half-typed one is not kept across a close", () => {
+    type("Half");
+    el("closeSheetCrew").click();
+    press(el("crewManageBtn"));
+    expect(words(el("sheetTitleCrew"))).toBe("Night owls");
+    expect([box().value, save().disabled]).toEqual(["Ada", true]);
+  });
+  /* the panel on the other crew, by the picker and Manage */
+  function manage(crew) {
+    el("closeSheetCrew").click();
+    el("crewPick").value = crew.id;
+    el("crewPick").dispatchEvent(new Event("change", { bubbles: true }));
+    press(el("crewManageBtn"));
+    expect(words(el("sheetTitleCrew"))).toBe(crew.name);
+  }
+  it("a save that lands after the panel was opened again on another crew leaves that panel alone - even when it shows the very name sent", async () => {
+    type("Ada Lee");
+    fake.defer = r => r.method === "PATCH";
+    const from = fake.requests.length;
+    press(save());
+    await page.until(() => patches(from).length === 1, 5000, "the update");
+    manage(ours);
+    expect(box().value).toBe("Ada Lee");
+    fake.defer = null;
+    fake.release();
+    await saved();
+    expect(nameIn(owls, ada)).toBe("Ada Lee");
+    expect(words(el("crewNote"))).toBe("");
+  });
+  it("and a refusal whose pull ends after the panel was opened again on another crew says nothing there either", async () => {
+    type("Ours Ada");
+    fake.fail = r => (r.method === "PATCH" ? { status: 204 } : null);
+    fake.defer = r => r.method === "GET" && r.path.startsWith("/rest/v1/crews?");
+    const reads = gets(fake, "crews").length;
+    press(save());
+    await page.until(() => gets(fake, "crews").length > reads, 5000, "the run's crews read, held");
+    manage(owls);
+    fake.fail = null;
+    fake.defer = null;
+    fake.release();
+    await saved();
+    expect(nameIn(ours, ada)).toBe("Ada Lee");
+    expect(words(el("crewNote"))).toBe("");
   });
 });
 
