@@ -16,7 +16,7 @@ import { hasBackend } from "./backend.js";
 import { codeSentTo, confirmCode, plainMessage, sendCode, signedInAs, signOut } from "./identity.js";
 import {
   createCrew, crewMessage, deleteCrew, inviteLink, isCreator, joinCrew, leaveCrew, myCrews, myMembership, newInvite,
-  pendingJoin, readInvite, removeMember, takePendingJoin,
+  pendingJoin, readInvite, removeMember, setMyName, takePendingJoin,
 } from "./crews.js";
 import { settings, state } from "./state.js";
 import { DAY_LONG, localInputValue, timeOverride } from "./time.js";
@@ -155,10 +155,11 @@ function hotelSheetHTML(hotel, day) {
    joining shares. Join: the same for a crew the invite cannot name - a kept
    ?join=, or a pasted link - and an invite whose token is a kept crew's
    sends nothing and opens that crew instead. Manage: the members, the
-   invite link to copy, share or, for the creator, renew; Remove beside each
-   member and Delete for the creator, Leave for everyone else; and a way to
-   a second crew. The manage view stays on one crew: if a pull takes it
-   away, it says so and offers Done alone.
+   reader's own name in this crew to change, the invite link to copy, share
+   or, for the creator, renew; Remove beside each member and Delete for the
+   creator, Leave for everyone else; and a way to a second crew. The manage
+   view stays on one crew: if a pull takes it away, it says so and offers
+   Done alone.
    Drawn once, the first time it opens; after that its steps are only shown
    and hidden and its lines and lists refilled around the form, so a
    refresh from a pull never rewrites a field or moves focus. Every action
@@ -182,6 +183,10 @@ const CREW_HTML = `<h2 id="sheetTitleCrew" tabindex="-1"></h2>
   </form>
   <div class="crew-manage" id="crewManage" hidden>
     <ul class="crew-members" id="crewMembers" aria-label="Members"></ul>
+    <form class="crew-name" id="crewNameForm" novalidate>
+      <label>Your name in this crew <input type="text" id="crewMyName" autocomplete="nickname"></label>
+      <button class="btn quiet" id="crewNameSave">Save</button>
+    </form>
     <div class="crew-invite">
       <label id="crewLinkLabel">Invite link <input type="text" id="crewLink" readonly></label>
       <p class="crew-wait" id="crewLinkWait" hidden>The invite link comes with the next sync.</p>
@@ -204,6 +209,7 @@ const CREW_HTML = `<h2 id="sheetTitleCrew" tabindex="-1"></h2>
   <div class="rowbtns"><button class="btn" type="button" id="closeSheetCrew">Done</button></div>`;
 const LANDED = "Done - it will show here once this phone reaches the server.";
 const RENEWED = "New link made - the old one no longer works.";
+const NAME_KEPT = "Your name didn't change - try again.";
 
 let crewStep = null;      // create, join, manage, or left - a Leave or Delete whose pull has not yet come
 let crewId = null;        // the crew the manage view is on
@@ -214,6 +220,8 @@ let crewCatchUp = null;   // {done(), note}: the words once a pull shows what an
 let crewNote = "";
 let crewBusy = false;
 let crewOpened = 0;       // counts the panel's openings and closings: an action landing after one leaves the panel alone
+let nameCrew = null;      // the crew whose name the name field was filled from
+let nameKept = "";        // that name, as the pull last kept it
 const deadTokens = new Map();   // by crew, the token a New link replaced, until a pull brings the new one
 const drawnMembers = new WeakMap();
 
@@ -239,6 +247,7 @@ function openCrew(step) {
   crewInvite = "";
   crewCatchUp = null;
   crewNote = "";
+  nameCrew = null;
   if (step === "create" || step === "join") {
     const me = myCrews().map(myMembership).find(Boolean);
     for (const id of ["crewNewName", "crewPaste"]) field(id).value = "";
@@ -288,6 +297,7 @@ function fillCrew() {
   field("crewManage").hidden = !crew;
   if (crew) fillManage(crew);
   for (const b of panelCrew.querySelectorAll("button")) if (b.id !== "closeSheetCrew") b.disabled = crewBusy;
+  if (crew) fillNameSave(crew);
   field("crewNote").textContent = crewNote;
 }
 function closeLeft() {
@@ -301,6 +311,7 @@ function fillManage(crew) {
   if (deadTokens.has(crew.id) && deadTokens.get(crew.id) !== crew.invite_token) deadTokens.delete(crew.id);
   const waiting = !link || deadTokens.has(crew.id);
   fillMembers(crew, creator);
+  fillName(crew);
   /* The link's field is read-only - nothing the reader typed - and must
      never show a link that no longer works: it takes a new one in place,
      focus left where it is and a whole selection kept. */
@@ -342,6 +353,36 @@ function fillMembers(crew, creator) {
     if (list.children[i] !== li) list.insertBefore(li, list.children[i] || null);
   });
 }
+/* The reader's name in this crew, for a reader the crew holds: filled from
+   the kept row as the view opens on a crew. A pull that brings another
+   name puts it in the field only while the field still says the name it
+   was filled with - one the reader has changed is theirs, and stays as
+   typed, caret and focus with it. */
+function fillName(crew) {
+  const me = myMembership(crew), box = field("crewMyName");
+  field("crewNameForm").hidden = !me;
+  if (!me) return;
+  if (nameCrew !== crew.id) {
+    nameCrew = crew.id;
+    box.value = nameKept = me.display_name;
+  } else if (me.display_name !== nameKept) {
+    if (box.value === nameKept) box.value = me.display_name;
+    nameKept = me.display_name;
+  }
+}
+/* What Save would send: the field trimmed, when it is a name and not the
+   one kept - "" while it is empty or unchanged. A name too long is sent
+   to setMyName(), which says why before any request. */
+function nameToSave(crew) {
+  const me = crew ? myMembership(crew) : null, name = field("crewMyName").value.trim();
+  return me && name && name !== me.display_name ? name : "";
+}
+function fillNameSave(crew) { field("crewNameSave").disabled = crewBusy || !nameToSave(crew); }
+/* What boot() registers on the crew panel's typing: Save follows the field. */
+function onCrewInput(e) {
+  if (e.target.id === "crewMyName" && crewStep === "manage") fillNameSave(keptCrew());
+}
+
 /* shell.js render()'s: a pull's redraw reaches the open panel too. */
 function refreshCrewPanel() { if (!sheetWrap.hidden && !panelCrew.hidden) fillCrew(); }
 
@@ -349,13 +390,15 @@ function refreshCrewPanel() { if (!sheetWrap.hidden && !panelCrew.hidden) fillCr
    changed - `here` false once the panel has been closed or opened again
    since the tap, when only Plans' own state may change, never the panel -
    and may say {landed}, the words for an action the server took whose run
-   then failed. Focus stays in the panel: on the control that sent the
-   action while it can still take it, or on the heading once the step has
-   moved on (#66). A Leave or Delete closes the panel once a pull shows the
-   crew gone (fillCrew()), straight after it or later. */
-async function crewAct(send, done) {
+   then failed, and {refused()}, the words for one whose run's pull shows
+   it did not take, "" when it did. Focus stays in the panel: on the
+   control that sent the action - or `back`, the field it came from - while
+   it can still take it, or on the heading once the step has moved on
+   (#66). A Leave or Delete closes the panel once a pull shows the crew
+   gone (fillCrew()), straight after it or later. */
+async function crewAct(send, done, back = null) {
   if (crewBusy) return;
-  const opened = crewOpened, from = document.activeElement;
+  const opened = crewOpened, from = back || document.activeElement;
   crewBusy = true;
   crewNote = "";
   crewCatchUp = null;
@@ -373,7 +416,9 @@ async function crewAct(send, done) {
   const run = await syncAfter();
   crewBusy = false;
   const here = opened === crewOpened;
+  const refused = here && !run.error && next.refused ? next.refused() : "";
   if (here && run.error) crewNote = next.landed || LANDED;
+  else if (refused) crewNote = refused;
   requestRender();
   fillCrew();
   if (here) focusBack(from);
@@ -431,7 +476,7 @@ function shareLink(crew) {
   });
 }
 
-/* What boot() registers on the crew panel: its two forms, and its clicks. */
+/* What boot() registers on the crew panel: its three forms, and its clicks. */
 function onCrewSubmit(e) {
   e.preventDefault();
   if (e.target.id === "crewCreateForm") {
@@ -446,6 +491,19 @@ function onCrewSubmit(e) {
       takePendingJoin();
       return madeOrJoined(crew, `You're in ${crew.name}.`, `You're in ${crew.name} - it will show here once this phone reaches the server.`, here);
     });
+  } else if (e.target.id === "crewNameForm") {
+    /* Enter on a name empty or unchanged sends nothing, as Save, disabled,
+       would. A 204 is no proof - row-level security answers it for a row
+       it turned away - so the words wait for the pull: the name sent, or
+       the name as it was and Save again. */
+    const crew = crewStep === "manage" ? keptCrew() : null, typed = field("crewMyName").value;
+    if (!crew || !nameToSave(crew)) return;
+    const name = typed.trim(), shows = () => { const c = keptCrew(), me = c ? myMembership(c) : null; return me ? me.display_name === name : null; };
+    crewAct(() => setMyName(crew.id, typed), (answer, here) => {
+      if (!here) return {};
+      crewCatchUp = {done: () => shows() === true, note: `Your name in this crew is now ${name}.`};
+      return {refused: () => (shows() === false ? NAME_KEPT : "")};
+    }, field("crewMyName"));
   }
 }
 function onCrewClick(e) {
@@ -701,5 +759,5 @@ export {
   sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, eventSheetHTML, hotelSheetHTML, openSheet,
   closeSheet, onSheetKeydown, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
   onSettingsClick, onCrowdInput, onNoiseDefaultChange, onResetPicks, onKeepSubmit, onKeepClick,
-  refreshCrewPanel, onCrewSubmit, onCrewClick, openKeptJoin,
+  refreshCrewPanel, onCrewSubmit, onCrewClick, onCrewInput, openKeptJoin,
 };

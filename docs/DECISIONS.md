@@ -1644,7 +1644,7 @@ kept. The function's logic is tested in Node against fakes; the runtime
 was checked on the CLI's local stack, and a real push service and a real
 browser only by the hand test.
 
-### 56. Crews, the client's layer — Standing (2026-09-28) — its screens' home is Plans, who's going the event sheet's (#62); its screens on Plans built by PR #77: the crew header, the crew panel - create, join by a tapped or a pasted link, manage - and the crew's day, with two readers more, one crewmate's picks and the reader's own row in a crew, and `no_crew` in plain words (`docs/screens/contract.md`, section 5, as built)
+### 56. Crews, the client's layer — Standing (2026-09-28) — its screens' home is Plans, who's going the event sheet's (#62); its screens on Plans built by PR #77: the crew header, the crew panel - create, join by a tapped or a pasted link, manage - and the crew's day, with two readers more, one crewmate's picks and the reader's own row in a crew, and `no_crew` in plain words (`docs/screens/contract.md`, section 5, as built); the display-name edit built by PR #80: a seventh action, `setMyName()`, an update of the reader's own row in one crew, refused before any request for a reader the crew does not hold (`not_member`), and Your name in this crew in the crew panel's manage step, whose words wait for the pull, since row-level security answers a row it turned away with the same 204 (`docs/screens/contract.md`, section 5, and `docs/sync/contract.md`, section 8, as built)
 **Decided:** The client's half of crews is built before any crew screen:
 one module, `src/crews.js`, with no screen; the screens are Where things
 live's. `docs/sync/contract.md`, section 8, has the detail.
@@ -1686,8 +1686,10 @@ live's. `docs/sync/contract.md`, section 8, has the detail.
   out of the address and keeps it for the tab's session until a screen
   takes it; with no backend it goes and nothing is kept. A pasted link
   joins as a tapped one does: an iPhone opens a tapped link in the
-  browser, not the home-screen app, whose storage is its own - to be
-  confirmed on a phone (`contract.md`, Open).
+  browser, not the home-screen app, whose storage is its own - confirmed
+  on a phone on 2026-10-01, PR #77's hand test: a link pasted in the
+  home-screen app joins that app's own user, as a separate member
+  (`contract.md`, Open).
 
 **Why:** #50 narrowed crews for 2027 to create, join, leave, remove, the
 invite, the overlay and who's going, and Where things live opens last

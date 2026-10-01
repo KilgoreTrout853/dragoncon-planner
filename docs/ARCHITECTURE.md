@@ -58,7 +58,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/now.js`, `browse.js`, `explore.js`, `map.js`, `plans.js` | The five views, one per tab (`browse` is the Search tab). |
 | `src/scroll.js`, `bus.js` | The scroller and the header's measurement; how a module below the shell asks for a redraw. |
 | `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data, read and written through `crews.js`; `syncAfter()`, the run the crew panel waits for after an action; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
-| `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the six crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks and the reader's own row in a crew. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel `sheet.js`'s. A leaf. |
+| `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the seven crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks and the reader's own row in a crew. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel `sheet.js`'s. A leaf. |
 | `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `ui.js` | The nineteen leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
@@ -442,8 +442,8 @@ at the first tap that needs one, the email step - add and recover by one
 code - and sign out (#51). `crews`: the reader's crews and their
 crewmates' picks as the last pull kept them, under `storageKey("crew")`
 and `storageKey("crewPicks")`, which `sync` writes and forgets through it;
-the six crew actions, each one request as the user and nothing written on
-the phone, with their failures in plain words; the invite link, which
+the seven crew actions, each one request as the user and nothing written
+on the phone, with their failures in plain words; the invite link, which
 `boot()` reads and keeps for the tab's session under `storageKey("join")`;
 and the readers for who's going and the overlay, crewmates alone (#56),
 and for the crew screens, one crewmate's picks and the reader's own row
@@ -534,8 +534,9 @@ heading; the step starts a sync run once it has sent a code and once it
 has confirmed one, and Sign out sends what waits first - refused while
 anything still waits, and sync's line under the status says how much -
 and then forgets sync's keys. The crew panel, on a build with a backend
-alone, is create, join and manage, its state the module's: each action is
-one request at a time, then `syncAfter()`, then the panel and Plans drawn
+alone, is create, join and manage - the reader's own name in the crew
+among what manage changes - its state the module's: each action is one
+request at a time, then `syncAfter()`, then the panel and Plans drawn
 from what the pull kept; `openKeptJoin()` opens its join step for a kept
 invite at boot, and `refreshCrewPanel()` refills it when `render()` runs.
 `closeSheet()` asks for its redraw over the bus. It looks up the eight

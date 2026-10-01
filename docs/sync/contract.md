@@ -91,8 +91,8 @@ PR #55, with #53.
   PostgREST's `Prefer`. Nothing else: the page asks for no API version,
   and reads an error's code from `code` where that is a string - the Auth
   server's newer shape, and PostgREST's - and from `error_code` otherwise.
-  There are seventeen: the email step's six, sync's five (section 5, as
-  built) and crews' six (section 8, as built):
+  There are eighteen: the email step's six, sync's five (section 5, as
+  built) and crews' seven (section 8, as built):
 
 | Request | Method and path | As the user | Body | Expects |
 |---|---|---|---|---|
@@ -113,6 +113,7 @@ PR #55, with #53.
 | Leave | `DELETE /rest/v1/crew_members?crew_id=eq.<crew>&user_id=eq.<the reader>` | yes | none | 204, whether or not row-level security let a row go |
 | Remove a member | `DELETE /rest/v1/crew_members?crew_id=eq.<crew>&user_id=eq.<member>` | yes | none | 204, as leave's |
 | Delete a crew | `DELETE /rest/v1/crews?id=eq.<crew>` | yes | none | 204, as leave's; the memberships go with the crew |
+| Your name in a crew | `PATCH /rest/v1/crew_members?crew_id=eq.<crew>&user_id=eq.<the reader>` | yes | `{"display_name"}`, trimmed | 204 and no body, whether or not row-level security let the row change; or 400 `23514` |
 
 `<since>` is the watermark less a minute, URL-encoded; a first pull has
 none, and neither has the picks' when a crew has gained anyone.
@@ -1487,7 +1488,9 @@ event sheet's, still to come.
 - **Several crews** a user, with no cap on how many. The readers take the
   union of all of them, a person once.
 - **Renaming a crew and editing one's display name:** the policies allow
-  both (section 3); neither is built now.
+  both (section 3); neither is built now. Since PR #80 one's display name
+  is built (as built, below); renaming a crew is out
+  (`docs/scope-2027.md`, W27).
 - **A crew action never writes local state on success.** The server's
   answer is the truth, and the next pull brings it, so section 1's rule -
   a crew action fails visibly and leaves local state untouched - holds by
@@ -1519,6 +1522,7 @@ PR #62, with #56.
   | `leaveCrew(crewId)` | `DELETE /rest/v1/crew_members?crew_id=eq.<crew>&user_id=eq.<the reader>` | nothing, 204 |
   | `removeMember(crewId, userId)` | `DELETE /rest/v1/crew_members?crew_id=eq.<crew>&user_id=eq.<member>` | nothing, 204 |
   | `deleteCrew(crewId)` | `DELETE /rest/v1/crews?id=eq.<crew>` | nothing, 204; the memberships go with the crew |
+  | `setMyName(crewId, displayName)`, since PR #80 | `PATCH /rest/v1/crew_members?crew_id=eq.<crew>&user_id=eq.<the reader>`, `{"display_name"}` | nothing, 204 |
 
   Create and join are section 1's first taps that need a user: with no
   session each mints one first, and one that then fails keeps the user it
@@ -1527,18 +1531,36 @@ PR #62, with #56.
   crew's 1 to 40 characters and a display name 1 to 24, counted by code
   point as Postgres's `char_length` counts them - forty emoji are a name.
   Postgres's `btrim` trims spaces alone, and the client trims all white
-  space, so what it sends the checks hold.
+  space, so what it sends the checks hold. A display name changed after
+  create or join is held to the same rules, by the same check; no RPC
+  trims it, so the client's trim is the only one.
+- **One's display name,** since PR #80, is a plain update the policies
+  judge (section 3, as built): `crew_members`' grant reaches
+  `display_name` alone, and its policy the caller's own row alone. The
+  update names the crew and the reader both: by the reader alone it would
+  rename them in every crew they are in, which PostgREST does, answering
+  204. On the CLI's local stack, PostgREST 14.5, a member's own row
+  answers 204 with no body; a crewmate's row, the creator's update of
+  another's, and a stranger's answer the same 204 and change nothing; a
+  body naming `crew_id`, `user_id` or `joined_at` is refused, 403
+  `42501`; and a name out of bounds is 400 `23514`, judged only on a row
+  the caller may change. So the answer cannot say whether the name took,
+  and the screen waits for the pull, which can (`docs/screens/contract.md`,
+  section 5, as built).
 - **Refused in the client:** the creator's leave, and the creator removing
   themselves, which is a leave; the creator's actions asked by anyone
-  else; and an action on a crew the phone does not hold, whose creator it
-  cannot know. The client's refusal is a courtesy - it says why before a
-  request is spent - and the policy is the wall: a stale list sends the
-  request, and the server refuses it or deletes nothing. The creator's
-  leave is the one exception, since the policies allow it: there the
-  client's refusal is #56's rule, and the only check. A delete
-  row-level security turns away answers 204 as one that deletes a row
-  does, so the answer cannot tell the two apart; the refusals keep a
-  reader from meeting that silence.
+  else; an action on a crew the phone does not hold, whose creator it
+  cannot know; and, since PR #80, a name for a crew whose kept members do
+  not hold the reader - kept for the user before, until a run starts the
+  crews again for the new one (section 5, as built). The client's refusal
+  is a courtesy - it says why before a request is spent - and the policy
+  is the wall: a stale list sends the request, and the server refuses it
+  or deletes or changes nothing. The creator's leave is the one
+  exception, since the policies allow it: there the client's refusal is
+  #56's rule, and the only check. A delete or an update row-level
+  security turns away answers 204 as one that takes does, so the answer
+  cannot tell the two apart; the refusals keep a reader from meeting that
+  silence, and for a name the pull after it says which it was.
 - **The words,** `crewMessage()`, which falls back to identity's
   `plainMessage()` for the rest - offline, signing in, the session:
 
@@ -1553,6 +1575,7 @@ PR #62, with #56.
   | not an invite | none | That doesn't look like an invite link. |
   | the creator leaving | none | You made this crew, so you can't leave it - you can delete it instead. |
   | a crew the phone no longer holds, since PR #77 | none | That crew isn't on this phone any more - it may have been deleted. |
+  | a name for a crew whose kept members do not hold the reader, `not_member`, since PR #80 | none | You're not in this crew any more. |
 
   `22023` and `23514`, both 400, reach no reader: the year is the
   build's, and the names are checked first.
@@ -1622,6 +1645,21 @@ PR #62, with #56.
   against the fake, got the same status and body from each, but for an
   error's `details`, which the client never reads. A mutation pass over
   `crews.js` is not committed. No pgTAP: the schema did not change.
+  Since PR #80, `setMyName()`: the update pinned as sent, by the crew and
+  the reader, the name trimmed, with nothing kept until a pull, and the
+  other crew's name left as it was; the name rules, each refused before
+  any request; `not_member`, `no_crew` and no session; a server's error;
+  and a stale list - the reader since removed - whose update changes
+  nothing and answers 204, the pull then taking the crew away. The fake
+  answers the update as the grant and the policy judge it, and a status
+  of 204 alone, for a test, as row-level security answers a write it
+  turned away; a scenario of the update's requests - a member's own name,
+  a crewmate's, the creator's and a stranger's, the columns the grant
+  refuses, the names the check refuses, two crews and a member who left -
+  replayed against the CLI's local stack and the fake got the same
+  status, error code, message and rows after each. Again no pgTAP; the lines owed
+  for `crew_id` and `joined_at` are the operations track's (ROADMAP,
+  tentpole 4).
 
 ## Open
 
@@ -1644,11 +1682,13 @@ PR #62, with #56.
   address: for the operations track (#50).~~ The operations track's:
   production's sender domain and its limit on anonymous sign-ins
   (ROADMAP, tentpole 4).
-- An invite link tapped on an iPhone opens the browser, not the
+- ~~An invite link tapped on an iPhone opens the browser, not the
   home-screen app, whose storage is its own, so an installed reader who
   taps one joins as the browser's user. The join step has had a field to
   paste the link into since PR #77 - `readInvite()` reads it (section 8,
   as built) - and a link pasted there joins the home-screen app's own
   user, another member, since an invite serves anyone until it is
   renewed. The behaviour is to be confirmed on a phone - PR #77's hand
-  test - with Delivery's install flow (ROADMAP).
+  test - with Delivery's install flow (ROADMAP).~~ Confirmed on a phone
+  on 2026-10-01, PR #77's hand test: a link pasted in the home-screen app
+  joins that app's own user, as a separate member.

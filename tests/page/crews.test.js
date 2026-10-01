@@ -343,6 +343,92 @@ describe("every failure in plain words, and local state untouched", () => {
   });
 });
 
+describe("setMyName(): the reader's own name in one crew, the name rules, and the policy as the wall", () => {
+  let page, app, fake, ada, bo, cy, ours, theirs, token;
+  const run = async () => { await app.runSync(); await app.syncSettled(); };
+  const nameIn = (crew, user) => (fake.rows("crews").find(c => c.id === crew.id).members.find(m => m.user_id === user.id) || {}).display_name;
+  const keptName = (crew, user) => ((app.myCrews().find(c => c.id === crew.id) || { members: [] }).members.find(m => m.user_id === user.id) || {}).display_name;
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    [ada, bo, cy] = ["ada", "bo", "cy"].map(n => fake.held(`${n}@example.test`));
+    ours = fake.crew({ name: "Ours", creator: ada.id, members: [[ada.id, "Ada"], [bo.id, "Bo"]] });
+    theirs = fake.crew({ name: "Theirs", creator: bo.id, members: [[bo.id, "Bo"], [ada.id, "Ada"]] });
+    token = signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    ({ app } = page);
+    await app.syncSettled();
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("a PATCH of the reader's own row, by the crew and the reader, the name trimmed; answered by nothing, and nothing kept until a pull", async () => {
+    const before = everything(), from = fake.requests.length;
+    expect(await app.setMyName(ours.id, "  Ada L.  ")).toBe(null);
+    expect(fake.requests.slice(from)).toEqual([{ method: "PATCH", path: `/rest/v1/crew_members?crew_id=eq.${ours.id}&user_id=eq.${ada.id}`,
+      headers: AS_WITH_BODY(fake, token), body: { display_name: "Ada L." } }]);
+    expect(everything()).toEqual(before);
+    expect(nameIn(ours, ada)).toBe("Ada L.");
+    await run();
+    expect(keptName(ours, ada)).toBe("Ada L.");
+  });
+  it("the name is the one crew's: the other crew still gives the reader its own, on the server and as kept, and nobody else's changes", () => {
+    expect([nameIn(theirs, ada), keptName(theirs, ada)]).toEqual(["Ada", "Ada"]);
+    expect([nameIn(ours, bo), nameIn(theirs, bo)]).toEqual(["Bo", "Bo"]);
+  });
+  it("the name rules create and join use: trimmed of all white space, 1 to 24 counted by code point - each refusal before any request", async () => {
+    let from = fake.requests.length;
+    await app.setMyName(ours.id, "\u{1F409}".repeat(24));
+    await app.setMyName(ours.id, "\tTabbed ");
+    expect(fake.requests.slice(from).map(r => r.body.display_name)).toEqual(["\u{1F409}".repeat(24), "Tabbed"]);
+    from = fake.requests.length;
+    for (const name of ["", "   ", "y".repeat(25), "\u{1F409}".repeat(25), null]) {
+      const err = await failure(app.setMyName(ours.id, name));
+      expect([err.code, app.crewMessage(err)], String(name)).toEqual(["bad_display_name", "Your name in the crew is 1 to 24 characters."]);
+    }
+    expect(fake.requests.length).toBe(from);
+  });
+  it("not a member: a kept crew whose members do not hold the reader - another tab signed in as someone else - is refused before any request", async () => {
+    const session = window.localStorage.getItem(KEY("session"));
+    signIn(fake, cy);
+    const before = everything(), from = fake.requests.length;
+    const err = await failure(app.setMyName(ours.id, "Cy"));
+    expect([err.code, app.crewMessage(err)]).toEqual(["not_member", "You're not in this crew any more."]);
+    expect(fake.requests.length).toBe(from);
+    expect(everything()).toEqual(before);
+    window.localStorage.setItem(KEY("session"), session);
+  });
+  it("a crew the phone does not hold, and no session: refused before any request, in their words", async () => {
+    const from = fake.requests.length;
+    const gone = await failure(app.setMyName("00000000-0000-4000-b000-999999999999", "Ada"));
+    expect([gone.code, app.crewMessage(gone)]).toEqual(["no_crew", "That crew isn't on this phone any more - it may have been deleted."]);
+    const session = window.localStorage.getItem(KEY("session"));
+    window.localStorage.removeItem(KEY("session"));
+    const out = await failure(app.setMyName(ours.id, "Ada"));
+    window.localStorage.setItem(KEY("session"), session);
+    expect(out.code).toBe("session_lost");
+    expect(fake.requests.length).toBe(from);
+  });
+  it("a server's error, in identity's words, and nothing kept", async () => {
+    const before = everything();
+    fake.fail = r => (r.method === "PATCH" ? { status: 503, code: "PGRST000" } : null);
+    const err = await failure(app.setMyName(ours.id, "Ada"));
+    fake.fail = null;
+    expect([err.code, app.crewMessage(err)]).toEqual(["PGRST000", "Something went wrong. Please try again."]);
+    expect(everything()).toEqual(before);
+  });
+  it("the policy as the wall: a list gone stale - the reader since removed - sends the update, which changes nothing and answers 204 as a change does; the pull takes the crew away", async () => {
+    fake.leave(theirs, ada.id);
+    const before = everything(), from = fake.requests.length;
+    expect(await app.setMyName(theirs.id, "Ada T.")).toBe(null);
+    expect(fake.requests.slice(from).map(r => `${r.method} ${r.path}`)).toEqual([`PATCH /rest/v1/crew_members?crew_id=eq.${theirs.id}&user_id=eq.${ada.id}`]);
+    expect(everything()).toEqual(before);
+    expect(fake.rows("crews").find(c => c.id === theirs.id).members).toEqual([{ user_id: bo.id, display_name: "Bo" }]);
+    await run();
+    expect(app.myCrews().map(c => c.name)).toEqual(["Ours"]);
+  });
+});
+
 describe("the invite link: read, taken out of the address, kept for the session and taken", () => {
   let page, app, handle, fake;
 

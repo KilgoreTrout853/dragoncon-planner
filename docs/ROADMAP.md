@@ -257,6 +257,12 @@ Checklist, below, keeps the history:
   scheduled job, by a migration, deleting only those in no crew and
   holding no subscription, and how stale that is (`docs/sync/contract.md`,
   section 2 and Open; #25, #50, #52).
+- pgTAP lines owed for the display name's update: `03_member.test.sql`
+  pins that a member cannot hand a membership to someone else, `user_id`,
+  but nothing pins `crew_id` or `joined_at`, which only `crew_members`'
+  grant - `display_name` alone - refuses; a member's update naming either
+  answers 403 `42501` on the CLI's local stack (PR #80;
+  `docs/sync/contract.md`, section 3, as built; #52).
 - The production project, and the workflow that migrates it: dev takes
   each migration by hand, production by a workflow (#50, #52;
   `docs/sync/contract.md`, section 4).
@@ -377,7 +383,8 @@ execution slot (#57), which can run before any of this.
    redraw on a crew change. A hand test with two browsers on dev (contract,
    section 5) - built (PR #77).
    - 4b. W28's `crews.js` action, one's own display name, and its place in
-     the header: a small follow-up.
+     the header: a small follow-up - built (PR #80), in the crew panel's
+     manage step, which the header's Manage opens.
 5. Crew everywhere: who's going on the sheet, crewmates' picks counted per
    hotel on the Map, the crew section on Now; and W25, Share a day, in
    Plans' action strip (contract, sections 2, 5, 6 and 7). The crew

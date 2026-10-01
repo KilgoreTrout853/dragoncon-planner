@@ -15,7 +15,7 @@ import { onSyncTrigger, onSyncWorkerMessage } from "./sync.js";
 import { onAppInstalled, onBeforeInstallPrompt } from "./now.js";
 import { onScrollSpy } from "./explore.js";
 import {
-  closeSheet, onCrewClick, onCrewSubmit, onCrowdInput, onKeepClick, onKeepSubmit, onNoiseDefaultChange, onResetPicks,
+  closeSheet, onCrewClick, onCrewInput, onCrewSubmit, onCrowdInput, onKeepClick, onKeepSubmit, onNoiseDefaultChange, onResetPicks,
   onSettingsClick, onSheetKeydown, onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart, openKeptJoin,
   openSheet, panelCrew, panelEvent, panelHotel, sheetEl,
 } from "./sheet.js";
@@ -84,6 +84,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   panelHotel.addEventListener("click", onHotelPanelClick);
   panelCrew.addEventListener("click", onCrewClick);
   panelCrew.addEventListener("submit", onCrewSubmit);
+  panelCrew.addEventListener("input", onCrewInput);
 
   document.getElementById("minibar").addEventListener("click", onMiniBarClick);
   document.getElementById("settingsBtn").addEventListener("click", onSettingsClick);
