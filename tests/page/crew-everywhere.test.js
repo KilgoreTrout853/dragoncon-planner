@@ -985,6 +985,59 @@ describe("the hotel sheet's crew (step 5c): Your crew here, under the reader's o
     expect(cssRule(".hotel-crew")).toContain("min-width: 0");
     escape();
   });
+
+  /* jsdom lays nothing out, so the sheet's body and its crew section are
+     given the places a phone would give them while `during` runs: the
+     section 420 below the body's top, wherever the body has scrolled to. */
+  function laidOut(during) {
+    const real = Element.prototype.getBoundingClientRect;
+    const rect = (top, height) => ({ top, bottom: top + height, left: 16, right: 359, width: 343, height, x: 16, y: top });
+    Element.prototype.getBoundingClientRect = function () {
+      if (this.matches("#panel-hotel .ev-body")) return rect(300, 390);
+      if (this.id === "hotelCrew") return rect(300 + 420 - this.parentElement.scrollTop, 400);
+      return real.call(this);
+    };
+    try { during(); } finally { Element.prototype.getBoundingClientRect = real; }
+  }
+  const bodyScroll = () => hotelPanel().querySelector(".ev-body").scrollTop;
+  const tapSVG = node => node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+  it("the crew's pill opens the hotel's sheet with Your crew here brought to the top of its body (#63), focus on the heading", () => {
+    laidOut(() => tapSVG(crewPill("Hyatt").querySelector("rect")));
+    expect(s.handle.state.sheetHotel).toBe("Hyatt");
+    expect(bodyScroll()).toBe(420);
+    expect(document.activeElement).toBe(el("sheetTitleHotel"));
+    escape();
+  });
+  it("the gold pill opens it at its top, as before", () => {
+    laidOut(() => tapSVG(document.querySelector('#view-map .map-pill[data-hotel="Hyatt"] rect')));
+    expect(s.handle.state.sheetHotel).toBe("Hyatt");
+    expect(bodyScroll()).toBe(0);
+    escape();
+  });
+  it("and the block at its top, tapped or by the keyboard's path", () => {
+    laidOut(() => openHotel("Hyatt"));
+    expect(s.handle.state.sheetHotel).toBe("Hyatt");
+    expect(bodyScroll()).toBe(0);
+    escape();
+    blockOf("Hyatt").focus();
+    laidOut(() => blockOf("Hyatt").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })));
+    expect(s.handle.state.sheetHotel).toBe("Hyatt");
+    expect(bodyScroll()).toBe(0);
+    escape();
+  });
+  it("a crew pill left on the Map after another tab changed the crew's picks finds no section: the sheet opens at its top, and nothing throws", () => {
+    const kept = read("crewPicks");
+    seed("crewPicks", {});
+    laidOut(() => tapSVG(crewPill("Hyatt").querySelector("rect")));
+    expect(s.handle.state.sheetHotel).toBe("Hyatt");
+    expect(el("hotelCrew")).toBe(null);
+    expect(bodyScroll()).toBe(0);
+    escape();
+    seed("crewPicks", kept);
+    s.handle.render();
+    expect(words(crewPill("Hyatt"))).toBe("6");
+  });
 });
 
 describe("the hotel sheet keeps the day it was drawn for: past 5 AM, a pull and a star stay on it", () => {

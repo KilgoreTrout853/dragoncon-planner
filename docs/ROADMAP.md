@@ -475,16 +475,16 @@ confirmed on a phone, by PR #77's hand test and with the install flow
 - The listing-only pre-check, held as a fallback against 403 pushback
   (#48).
 - A redraw rebuilds Explore's grid, and its filter box with it, so a pull
-  that changes the reader's own picks or follows - another device's -
-  takes the focus and the caret from a reader typing there; the text
-  stays. Search's box is kept across a redraw. PR #77 asks for a crew's
-  redraw only while Plans or the crew panel is on screen for this reason;
-  since PR #81, while Now, the Map or Plans is the tab, or the crew panel
-  or an event's sheet is open - and since PR #82 a hotel's - never on
-  Search or Explore alone. An event's or a hotel's sheet open over Explore
-  draws Explore again behind it, where focus is in the sheet and the filter
-  box keeps its text. The picks path is as it was. Keeping Explore's filter box across a redraw, which lifts
-  the gate, is step 8's (Explore's top).
+  that changes the reader's own picks or follows - another device's - takes
+  the focus and the caret from a reader typing there; the text stays.
+  Search's box is kept across a redraw. PR #77 asks for a crew's redraw
+  only while Plans or the crew panel is on screen for this reason; since
+  PR #81, while Now, the Map or Plans is the tab, or the crew panel or an
+  event's sheet is open - and since PR #82 a hotel's - never on Search or
+  Explore alone. An event's or a hotel's sheet open over Explore draws
+  Explore again behind it, where focus is in the sheet and the filter box
+  keeps its text. The picks path is as it was. Keeping Explore's filter box
+  across a redraw, which lifts the gate, is step 8's (Explore's top).
 - A pull that changes the reader's own pick of an open event leaves the
   sheet's star stale until the sheet is reopened - a tap on it meanwhile
   does what the pick as kept calls for, not what the star shows:

@@ -631,9 +631,10 @@ the building view (PRs 7 and 10) are still to come.
   24 tall, too short for two pills and its name between them, has it
   hanging under its corner instead. Every hotel's stays inside the frame -
   the Hilton's ends at 376, the frame at 382 - so it needs no pulling in.
-  A tap on it opens the hotel's sheet, as a tap on the gold one does; the
-  sheet lists the reader's own picks and, since PR #82, the crew's under
-  them, headed by the pill's number (section 8, as built).
+  A tap on it opens the hotel's sheet, as a tap on the gold one does -
+  since PR #82 with Your crew here brought to the top of the sheet's body,
+  the crew's picks listed under the reader's own and headed by the pill's
+  number (section 8, as built).
   The pill is hidden from screen readers: the hotel's label says it
   (below), and a bare number beside that would say nothing.
 - **The hotel's label** adds the count: "Hyatt: 2 picks on Saturday, 3 of
@@ -776,6 +777,15 @@ PR #82, step 5c, with #62, #63 and #66: Your crew here.
   row does (`dispatch.js` `onHotelPanelClick()`), and closing it returns
   to the Map, focus on what opened the hotel sheet: no way back to the
   hotel sheet, as for its rows (section 11).
+- **The crew pill's way in** (#63; `sheet.js` `showHotelCrew()`, from
+  `dispatch.js` `onMainClick()`). A tap on the Map's crew pill opens the
+  sheet with Your crew here brought to the top of its body: with a few
+  picks of the reader's own the section starts below the fold - at 375 px,
+  four put it 409 px down a body 390 px tall. A tap on the block or the
+  gold pill opens the sheet at its top, as before, and so does the block's
+  keyboard path, Enter or Space; focus goes to the heading whichever
+  opened it (#66). A pill left on the Map from crew picks another tab has
+  since changed may find no section, and the sheet opens at its top.
 - **Its day.** The sheet keeps the day it was drawn for: with no day chip
   tapped the Map's day moves on at 5 AM, and the star's redraw
   (`drawHotelSheet()`) and a pull's refill stay on the day the sheet shows.
@@ -801,18 +811,20 @@ PR #82, step 5c, with #62, #63 and #66: Your crew here.
   crew's change pulled while one is open asks for a redraw whatever the
   tab (`docs/sync/contract.md`, section 5, as built), so PR 7's entry
   points from other tabs find it ready.
-- **The tests.** `tests/page/crew-everywhere.test.js`: the section under
-  the reader's rows and under the sentence; a line a pick, two for one
-  crewmate; the order, two events at one start with the names
-  interleaved; "with you"; the room, and none; never on now; a cancelled
-  pick unmarked; the head at none, one and several, and the pill's number
-  for every hotel on every day; a removed and an unknown pick; a name and
+- **The tests.** `tests/page/crew-everywhere.test.js`: the section under the
+  reader's rows and under the sentence; a line a pick, two for one crewmate;
+  the order, two events at one start with the names interleaved; "with you";
+  the room, and none; never on now; a cancelled pick unmarked; the head at
+  none, one and several, and the pill's number for every hotel on every day;
+  the crew pill's way in, the gold pill's and the block's, tapped and by its
+  keys, with the layout jsdom lacks given to the body and the section, and a
+  pill left stale by another tab; a removed and an unknown pick; a name and
   a title escaped; the tap and the close; the ids; a pull adding a line
-  above the one with focus, a rename reordering them, a line taken away
-  with focus, a pull that changes nothing and the reader's own unstar; the
-  gate over Explore; the day kept past 5 AM; next's markup, byte for byte,
-  with no backend, with no crew, and where the crew has none; and Now's
-  lines, byte for byte as they were. None carries a ledger bracket.
+  above the one with focus, a rename reordering them, a line taken away with
+  focus, a pull that changes nothing and the reader's own unstar; the gate
+  over Explore; the day kept past 5 AM; next's markup, byte for byte, with
+  no backend, with no crew, and where the crew has none; and Now's lines,
+  byte for byte as they were. None carries a ledger bracket.
 
 ## 9. The gear
 
@@ -890,7 +902,8 @@ the hash and the address.
 | The gear | The Settings panel | the panel shown | Done, the backdrop, a swipe, Escape | built |
 | Settings' About row | `#panel-about` | the panel shown | its back: Settings | PR 9 |
 | The mini-bar | Now | `state.tab` | the tab bar | built |
-| A Map hotel block or pill, a hotel without level data | The hotel sheet | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built |
+| A Map hotel block or its gold pill, a hotel without level data | The hotel sheet | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built |
+| The Map's crew pill | The hotel sheet, Your crew here brought to the top of its body (#63) | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built, PR #82 |
 | A Map hotel block, a hotel with level data | The building view | the Map's drill-down | the view's own back, to the Map | PR 10 |
 | The hotel sheet's "Search the Hyatt on Saturday" | Search | `state.browse`: the hotel, the day, no query | the tab bar to the Map, whose day `state.map.day` kept | built |
 | The event sheet's "See all" beside a person | That person's Explore page | `state.explore.page`, the hash | "← Explore", to the grid: one tap from the event, accepted | built |
@@ -1024,6 +1037,13 @@ As built: the recon, section 8, what crews' readers offer today.
   (PR 7), which settles how a row and a line name a place. Until then,
   since PR #81, Now's crew lines name it as the Map's On now line does,
   its room or else offsite, by one helper, `venues.js` `placeShort()`.
+- A crew line's time can break in two: after a long name, "4:00" ends one
+  line and "PM" starts the next, on Now's lines and the hotel sheet's
+  alike - one builder, `ui.js` `crewLineHTML()`, whose start is `util.js`
+  `fmtShort()`'s, an ordinary space between the two. Within the
+  24-character cap on a name, measured in the hotel sheet at 375 px: 23
+  W's, or 24 M's under Larger text. PR 7's, the row and the line, which
+  settles how a row and a line say a time.
 - Whose crew. Now's crew section, the Map's count and who's going take
   every crew the reader is in, by `goingTo()`'s rule - a person once, by
   the oldest crew's name - while Plans' Crew segment shows the one crew

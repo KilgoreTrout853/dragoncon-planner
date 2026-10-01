@@ -193,6 +193,16 @@ function drawHotelSheet(day = hotelDay) {
   hotelDay = day;
   panelHotel.innerHTML = hotelSheetHTML(state.sheetHotel, day);
 }
+/* The crew pill's way in (#63): with a few picks of the reader's own, Your
+   crew here starts below the fold, so the pill opens the sheet with it
+   brought to the top of the body. The block and the gold pill open the
+   sheet at its top, and focus is on the heading whichever opened it (#66).
+   A pill left on the Map from crew picks another tab has since changed may
+   find no section. */
+function showHotelCrew() {
+  const body = panelHotel.querySelector(".ev-body"), crew = document.getElementById("hotelCrew");
+  if (body && crew) body.scrollTop += crew.getBoundingClientRect().top - body.getBoundingClientRect().top;
+}
 
 /* ---- The crew panel (DECISIONS #56, #62; docs/screens/contract.md,
    section 5) ---------------------------------------------------------- */
@@ -841,8 +851,8 @@ async function onKeepClick(e) {
 }
 
 export {
-  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, eventSheetHTML, hotelSheetHTML, drawHotelSheet, openSheet,
-  closeSheet, onSheetKeydown, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
+  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, eventSheetHTML, hotelSheetHTML, drawHotelSheet, showHotelCrew,
+  openSheet, closeSheet, onSheetKeydown, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
   onSettingsClick, onCrowdInput, onNoiseDefaultChange, onResetPicks, onKeepSubmit, onKeepClick,
   refreshCrewPanel, refreshEventSheet, refreshHotelSheet, onCrewSubmit, onCrewClick, onCrewInput, openKeptJoin,
 };

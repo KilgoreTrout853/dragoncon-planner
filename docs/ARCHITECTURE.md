@@ -560,10 +560,11 @@ invite at boot, and `refreshCrewPanel()` refills it when `render()` runs.
 An event's panel says who in the reader's crews is going, and
 `refreshEventSheet()` refills that line alone, in place, when `render()`
 runs. A hotel's panel lists the crew's picks there under the reader's own,
-on the day it was drawn for, which it keeps; `refreshHotelSheet()` writes
-what it draws of the crew in place when `render()` runs. `closeSheet()`
-asks for its redraw over the bus. It looks up the eight sheet elements as
-it is imported.
+on the day it was drawn for, which it keeps - opened from the Map's crew
+pill, with them brought to the top of its body (`showHotelCrew()`);
+`refreshHotelSheet()` writes what it draws of the crew in place when
+`render()` runs. `closeSheet()` asks for its redraw over the bus. It looks
+up the eight sheet elements as it is imported.
 
 **`loading`** is loading, freshness and offline: `load()` and the idle index
 build, `BOOT`, the header's freshness line (`updateFresh()`), the update
@@ -573,13 +574,13 @@ the first draw over the bus. It looks up `#updatePill` as it is imported.
 
 **`shell`** is what is on screen whatever the tab: `render()`, which redraws
 the page from `state` and is what the bus calls, the open crew panel with
-it, an open event's who's-going line and an open hotel's crew; the header's clock, the notice and the mini-bar; `setTimeOverride()`;
-`setOpeningTab()`, the tab the app opens on - Plans for a kept invite;
-`togglePick()`; the iOS edge
-guard; and the handlers for the tab bar - a tap on Plans starts a sync
-run - the mini-bar, the simulated-time chip, larger text, and the redraw
-on coming back to the tab. It imports the five views, the sheet and
-`loading`; nothing below it imports it.
+it, an open event's who's-going line and an open hotel's crew; the header's
+clock, the notice and the mini-bar; `setTimeOverride()`; `setOpeningTab()`,
+the tab the app opens on - Plans for a kept invite; `togglePick()`; the iOS
+edge guard; and the handlers for the tab bar - a tap on Plans starts a sync
+run - the mini-bar, the simulated-time chip, larger text, and the redraw on
+coming back to the tab. It imports the five views, the sheet and `loading`;
+nothing below it imports it.
 
 **`dispatch`** is the ten handlers whose bodies reach across modules: the
 four delegated listeners on `main` (click, input, keydown, change), the

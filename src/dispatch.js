@@ -25,7 +25,7 @@ import {
 } from "./explore.js";
 import { tickMap } from "./map.js";
 import {
-  closeSheet, drawHotelSheet, eventSheetHTML, openSheet, panelEvent, sheetWrap,
+  closeSheet, drawHotelSheet, eventSheetHTML, openSheet, panelEvent, sheetWrap, showHotelCrew,
 } from "./sheet.js";
 import { holdQuery, updateFresh } from "./loading.js";
 import {
@@ -48,8 +48,14 @@ function onMainClick(e) {
     revealChip(document.querySelector(`.chips [data-chip="${kind}"][data-value="${cssEsc(value)}"]`));
     return;
   }
+  /* A hotel on the Map, or either of its pills: its sheet - and from the
+     crew's pill, its crew brought to the top (#63). */
   const mapHotel = e.target.closest(".map-hotel, .map-pill, .map-crew");
-  if (mapHotel) { openSheet("hotel", mapHotel.dataset.hotel); return; }
+  if (mapHotel) {
+    openSheet("hotel", mapHotel.dataset.hotel);
+    if (mapHotel.matches(".map-crew")) showHotelCrew();
+    return;
+  }
   const act = e.target.closest("[data-act]");
   if (act) {
     const a = act.dataset.act;
