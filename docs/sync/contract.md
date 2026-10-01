@@ -1635,7 +1635,7 @@ PR #62, with #56.
     #29): a pick it does not hold - removed, or never there - is no one's.
     `goingTo()` draws who's going on the event's sheet since PR #81, and
     `crewmatesByEvent()` the Map's crew count - and, since PR #82, the
-    hotel sheet's Your crew here, from the same walk (`map.js`
+    hotel sheet's Your crew's picks here, from the same walk (`map.js`
     `mapCrewPicks()`).
 
   Since PR #77 `applyPulledCrews()` says whether anything a crew screen

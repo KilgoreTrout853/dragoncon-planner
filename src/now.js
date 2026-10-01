@@ -127,7 +127,7 @@ function nowModel(now) {
 
 const statusShown = (ev, now) => ev._s <= now || minutesBetween(now, ev._s) <= 90;
 
-/* ---- Your crew right now (W23; DECISIONS #10, #62) ----------------- */
+/* ---- Your crew's picks right now (W23; DECISIONS #10, #62, #68) ----- */
 /* Each crewmate's pick on now, else their next today (crews.js
    crewRightNow()), from every crew the reader is in. Only on a build with a
    backend, and only while the clock - real or simulated - is inside the
@@ -136,15 +136,16 @@ const statusShown = (ev, now) => ev._s <= now || minutesBetween(now, ev._s) <= 9
 const CREW_SHOWN = 4;
 const nowCrew = now => (hasBackend && conPhase() === "live" ? crewRightNow(events, now, conDayKey(now)) : []);
 /* A line a crewmate (ui.js crewLineHTML()): who and when - "on now" or the
-   start - and "with you"; then what and where, the place as the Map's On now
-   line names it. Its id is the crewmate's, so focus comes back to their line
-   whatever they are on. */
+   start - and "yours too"; then what and where, the place as the Map's On
+   now line names it. Its id is the crewmate's, so focus comes back to their
+   line whatever they are on; the screen says what they picked, never where
+   they are (#68), and the id keeps its old name, crewNow-. */
 const nowLineHTML = c => crewLineHTML(`crewNow-${c.user_id}`, c.display_name, c.on ? "on now" : fmtShort(c.ev._s), c.ev, placeShort(c.ev));
 /* Four lines, then how many more, which opens Plans' crew's day on today. */
 function crewHTML(crew) {
   if (!crew.length) return "";
   const more = crew.length - CREW_SHOWN;
-  return `<div class="section-title">Your crew right now</div><ul class="list crew-now-list">${crew.slice(0, CREW_SHOWN).map(nowLineHTML).join("")}</ul>${more > 0
+  return `<div class="section-title">Your crew's picks right now</div><ul class="list crew-now-list">${crew.slice(0, CREW_SHOWN).map(nowLineHTML).join("")}</ul>${more > 0
     ? `<button class="btn quiet more" id="crewMore" data-act="crew-more" aria-label="+${more} more of your crew, in Plans">+${more} more</button>` : ""}`;
 }
 

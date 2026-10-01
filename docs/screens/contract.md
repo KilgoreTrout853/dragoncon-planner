@@ -169,14 +169,15 @@ As built: the recon, section 2, Now; section 5; section 7, the nudge.
   walk and the slack. With a pick on and none after it: "ends 2:00 PM".
   With nothing on: "starts 3:00 PM" and the walk estimate from the
   previous pick, as today.
-- **Your crew right now** (W23): on con days, and only for a reader in a
-  crew, a section between the hero and Rest of your day - one line per
-  crewmate, what they are on now or next and where, from their kept picks,
-  "with you" when it is the reader's pick too. On now first, then by
-  start, then by name; four lines, then "+N more", which opens Plans' crew's
-  day on today. Nothing when none has anything. It needs a per-person reader
-  `crews.js` does not export today (`crewmates()` is private; recon
-  section 8), and `tickNow()`'s signature takes the section.
+- **Your crew's picks right now** (W23; "Your crew right now" until PR #83,
+  #68): on con days, and only for a reader in a crew, a section between the
+  hero and Rest of your day - one line per crewmate, their pick on now or
+  next and where it is, from their kept picks, "yours too" when it is the
+  reader's pick too: what they starred, never where they are. On now first,
+  then by start, then by name; four lines, then "+N more", which opens
+  Plans' crew's day on today. Nothing when none has anything. It needs a
+  per-person reader `crews.js` does not export today (`crewmates()` is
+  private; recon section 8), and `tickNow()`'s signature takes the section.
 - **The install nudge** (#65): where it is, as it is, only while
   `picks.size > 0`. The install flow's mechanics are Delivery's.
 - **Alternatives** (W2, #40): under the picks-changed notice, for a pick
@@ -194,7 +195,8 @@ and 8b (W2).
 ### Now, as built
 
 PR #76, with #40 and #65: the hero and the nudge's gate. PR #81, step 5a,
-with #10, #62 and #66: Your crew right now. W2 (PR 8b) is still to come.
+with #10, #62 and #66: Your crew right now, worded as picks by PR #83, step
+5d, with #68. W2 (PR 8b) is still to come.
 
 - **The hero** (`now.js` `heroHTML()`, `thenHTML()`). The ring counts to
   the end of the pick that is on, else to the start of the next, as
@@ -227,23 +229,24 @@ with #10, #62 and #66: Your crew right now. W2 (PR 8b) is still to come.
   before: a star brings it, and unstarring the last pick takes it away.
   Its wordings and the seven-day snooze are unchanged. `nowSignature()`
   reads it, so the minute tick redraws when it comes or goes.
-- **Your crew right now** (W23; since PR #81; `now.js` `crewHTML()`,
-  `crews.js` `crewRightNow()`). On a build with a backend, for a reader in
-  a crew, and only while the clock - real or simulated - is inside the
-  con: before it the tab previews a made-up moment, Thursday at 10 AM, and
-  after it the tab is the record. Between the hero and Rest of your day;
-  with no hero, after the line that says so, and after the reader's next
-  pick on another day where there is one. Headed "Your crew right now",
-  with no count. A line a crewmate, from every crew the reader is in, named
-  as `goingTo()` names them, by the oldest crew's name: their pick on now,
-  else their next today, the rule the hero keeps - anything still running
-  counted in today, and of two on at once the earlier start. Each line is a
-  button to that event's sheet:
+- **Your crew's picks right now** (W23; since PR #81, its words since
+  PR #83; `now.js` `crewHTML()`, `crews.js` `crewRightNow()`). On a build
+  with a backend, for a reader in a crew, and only while the clock - real or
+  simulated - is inside the con: before it the tab previews a made-up
+  moment, Thursday at 10 AM, and after it the tab is the record. Between the
+  hero and Rest of your day; with no hero, after the line that says so, and
+  after the reader's next pick on another day where there is one. Headed
+  "Your crew's picks right now" - "Your crew right now" until PR #83: a star
+  is a pick, not a whereabouts (#68) - with no count. A line a crewmate,
+  from every crew the reader is in, named as `goingTo()` names them, by the
+  oldest crew's name: their pick on now, else their next today, the rule the
+  hero keeps - anything still running counted in today, and of two on at
+  once the earlier start. Each line is a button to that event's sheet:
 
   | The case | Its first line | Its second |
   |---|---|---|
   | On now | **Bo** · on now | the title · Westin |
-  | The reader's pick too | **Bo** · on now · with you, the last in gold | the title · Westin |
+  | The reader's pick too | **Bo** · on now · yours too, the last in gold - "with you" until PR #83 | the title · Westin |
   | Next today | **Dee** · 2:30 PM | the title · Hyatt |
   | Offsite | as above | the title · its room, else offsite - as the Map's On now line names it (`venues.js` `placeShort()`) |
   | A stream | as above | the title · Streaming |
@@ -281,7 +284,7 @@ with #10, #62 and #66: Your crew right now. W2 (PR 8b) is still to come.
   it away. `now.test.js` [637]: with only a Sunday pick after it, the hero
   says when it ends and names nothing next. Since PR #81,
   `tests/page/crew-everywhere.test.js`: the section's place, with a hero
-  and without; its lines' words and order, "with you", the cap and "+N
+  and without; its lines' words and order, "yours too", the cap and "+N
   more" landing on Plans' crew's day on today; a line's sheet and focus
   back on it; focus kept through a crew's pull and the minute's tick; the
   tick moving a line from next to on now, and a pick that ends; the con's
@@ -623,20 +626,19 @@ the building view (PRs 7 and 10) are still to come.
   a hotel count one. Streams and offsite picks are on no hotel; a removed
   event, or one this copy of the schedule does not hold, is no one's; a
   cancelled one counts, as in the gold pill. None at zero.
-- **Its pill** (`mapCrewSVG()`). An outline, not gold: the light text on
-  the darkest fill, `--text` on `--ink`, with a person before the number,
-  32 wide, or 40 from ten up. On the block's bottom-right corner, under
-  the gold pill's top-right, ending 9 past the corner as a one-digit gold
-  pill does, which keeps it off the Marriott beside the Hyatt. The park,
-  24 tall, too short for two pills and its name between them, has it
-  hanging under its corner instead. Every hotel's stays inside the frame -
-  the Hilton's ends at 376, the frame at 382 - so it needs no pulling in.
-  A tap on it opens the hotel's sheet, as a tap on the gold one does -
-  since PR #82 with Your crew here brought to the top of the sheet's body,
-  the crew's picks listed under the reader's own and headed by the pill's
-  number (section 8, as built).
-  The pill is hidden from screen readers: the hotel's label says it
-  (below), and a bare number beside that would say nothing.
+- **Its pill** (`mapCrewSVG()`). An outline, not gold: the light text on the
+  darkest fill, `--text` on `--ink`, with a person before the number, 32
+  wide, or 40 from ten up. On the block's bottom-right corner, under the
+  gold pill's top-right, ending 9 past the corner as a one-digit gold pill
+  does, which keeps it off the Marriott beside the Hyatt. The park, 24 tall,
+  too short for two pills and its name between them, has it hanging under
+  its corner instead. Every hotel's stays inside the frame - the Hilton's
+  ends at 376, the frame at 382 - so it needs no pulling in. A tap on it
+  opens the hotel's sheet, as a tap on the gold one does - since PR #82 with
+  Your crew's picks here brought to the top of the sheet's body, the crew's
+  picks listed under the reader's own and headed by the pill's number
+  (section 8, as built). The pill is hidden from screen readers: the hotel's
+  label says it (below), and a bare number beside that would say nothing.
 - **The hotel's label** adds the count: "Hyatt: 2 picks on Saturday, 3 of
   your crew", "Westin: no picks on Saturday, 1 of your crew". A hotel with
   none of the crew says nothing of it.
@@ -680,7 +682,8 @@ As built, plus:
   page.
 - **Facets** (W7) in words.
 - **Who's going** (W22): a line, from `crews.js` `goingTo()`, for a reader
-  in a crew; in 2027 it taps nowhere.
+  in a crew, saying who starred the event - "Starred by" since PR #83, never
+  that anyone is going (#68); in 2027 it taps nowhere.
 - **The overlap** (W1): at the moment of starring, a line that lists
   every pick it overlaps, each with its times; a line, not a toast. The
   row's flag is section 10's.
@@ -703,19 +706,22 @@ standalone.
 
 ### The event sheet, as built
 
-PR #81, step 5a, with #62, #64 and #66: who's going. Focus and Escape were
-built by PR #77 (section 5, as built); the rest is PR 7's, and W44's.
+PR #81, step 5a, with #62, #64 and #66: who's going, worded as who starred
+it by PR #83, step 5d, with #68. Focus and Escape were built by PR #77
+(section 5, as built); the rest is PR 7's, and W44's.
 
 - **Who's going** (W22; `sheet.js` `goingText()`). On a build with a
   backend, a line in the sheet's head, under the place and its tags:
-  "Going: " and the crewmates whose picks hold the event, from every crew
-  the reader is in, by `crews.js` `goingTo()` - a person once, by the
-  oldest crew's name, never the reader, whose star says so - in its order,
-  by name. Three names, then how many more: "Going: Bo", "Going: Bo, Cy",
-  "Going: Bo, Cy, Dee", "Going: Bo, Cy, Dee and 2 more", with no comma
-  before "and". With no one, the line is there, empty and hidden. Never on
-  a removed event, which is not happening; a cancelled one has its line.
-  Every name is someone's own text, and escaped. In 2027 it taps nowhere.
+  "Starred by " - "Going: " until PR #83: a star is a pick, not a
+  whereabouts (#68) - and the crewmates whose picks hold the event, from
+  every crew the reader is in, by `crews.js` `goingTo()` - a person once, by
+  the oldest crew's name, never the reader, whose star says so - in its
+  order, by name. Three names, then how many more: "Starred by Bo", "Starred
+  by Bo, Cy", "Starred by Bo, Cy, Dee", "Starred by Bo, Cy, Dee and 2 more",
+  with no comma before "and". With no one, the line is there, empty and
+  hidden. Never on a removed event, which is not happening; a cancelled one
+  has its line. Every name is someone's own text, and escaped. In 2027 it
+  taps nowhere.
 - **In place** (`refreshEventSheet()`, from `render()` beside
   `refreshCrewPanel()`). A pull's change refills the open event's line -
   its words, and whether it shows - and nothing else: the sheet is never
@@ -726,7 +732,10 @@ built by PR #77 (section 5, as built); the rest is PR 7's, and W44's.
   cancelled one; the star's redraw; the line refilled in place with focus
   kept, and hidden by the last unstar; an open sheet over Search and over
   Explore, Explore's filter box keeping its text; none on a build with no
-  backend. None carries a ledger bracket.
+  backend; and, since PR #83, that no string the crew screens draw - Now,
+  the Map, the hotel and event sheets, Plans' crew and the crew panel, their
+  labels among them - says "going" or "with you". None carries a ledger
+  bracket.
 
 ## 8. The hotel sheet
 
@@ -740,21 +749,22 @@ lists the crew's picks at the hotel under the reader's own (below).
 
 ### The hotel sheet, as built
 
-PR #82, step 5c, with #62, #63 and #66: Your crew here.
+PR #82, step 5c, with #62, #63 and #66: Your crew here, worded as picks
+by PR #83, step 5d, with #68.
 
-- **Your crew here** (`sheet.js` `hotelSheetHTML()`; `map.js`
-  `mapCrewPicks()`). On a build with a backend, for a reader in a crew:
-  under the reader's own rows, in the sheet's scrolling body, a section
-  headed "Your crew here", a line for each crewmate's pick at the hotel on
-  the Map's day - from every crew the reader is in, a person once, by the
-  oldest crew's name, as `goingTo()` names them. A crewmate with two picks
-  there has two lines. The lines are in the schedule's order, by start and
-  then title, and by name within one event, so one event's lines stay
-  together: at 4:00 PM, Bo and Dee at one panel come before Cy at the next,
-  though Cy's name comes before Dee's. No cap and no "+N more": the body
-  scrolls. A removed event, or one this copy of the schedule does not hold,
-  is no one's; a cancelled one keeps its line, unmarked, as on Now - W2
-  (PR 8b) revisits cancellations.
+- **Your crew's picks here** (`sheet.js` `hotelSheetHTML()`; `map.js`
+  `mapCrewPicks()`; "Your crew here" until PR #83, #68). On a build with a
+  backend, for a reader in a crew: under the reader's own rows, in the
+  sheet's scrolling body, a section headed "Your crew's picks here", a line
+  for each crewmate's pick at the hotel on the Map's day - from every crew
+  the reader is in, a person once, by the oldest crew's name, as `goingTo()`
+  names them. A crewmate with two picks there has two lines. The lines are
+  in the schedule's order, by start and then title, and by name within one
+  event, so one event's lines stay together: at 4:00 PM, Bo and Dee at one
+  panel come before Cy at the next, though Cy's name comes before Dee's. No
+  cap and no "+N more": the body scrolls. A removed event, or one this copy
+  of the schedule does not hold, is no one's; a cancelled one keeps its
+  line, unmarked, as on Now - W2 (PR 8b) revisits cancellations.
 - **The line** is Now's (`ui.js` `crewLineHTML()`, which both draw), but
   for two things:
 
@@ -763,8 +773,9 @@ PR #82, step 5c, with #62, #63 and #66: Your crew here.
   | Now | **Bo** · on now, or the start | the title · the place, as the Map's On now line names it |
   | The hotel sheet | **Bo** · 2:30 PM: the start, never "on now" - the sheet does not tick, and the Map's day is often not today | the title · the room - the hotel is the sheet's - or the title alone where there is no room |
 
-  "with you", in gold, where the pick is the reader's too. Every name and
-  title is someone's own text, and escaped.
+  "yours too", in gold, where the pick is the reader's too - "with you"
+  until PR #83: the line says what a crewmate starred, never where they are
+  (#68). Every name and title is someone's own text, and escaped.
 - **The head:** "Saturday · 2 picks · 3 of your crew", "Saturday · no
   picks · 3 of your crew" - people, not picks, by the pill's own count
   (`map.js` `mapCrewCounts()`, the crewmates of `mapCrewPicks()`), so the
@@ -779,26 +790,26 @@ PR #82, step 5c, with #62, #63 and #66: Your crew here.
   hotel sheet, as for its rows (section 11).
 - **The crew pill's way in** (#63; `sheet.js` `showHotelCrew()`, from
   `dispatch.js` `onMainClick()`). A tap on the Map's crew pill opens the
-  sheet with Your crew here brought to the top of its body: with a few
-  picks of the reader's own the section starts below the fold - at 375 px,
-  four put it 409 px down a body 390 px tall. A tap on the block or the
+  sheet with Your crew's picks here brought to the top of its body: with a
+  few picks of the reader's own the section starts below the fold - at 375
+  px, four put it 409 px down a body 390 px tall. A tap on the block or the
   gold pill opens the sheet at its top, as before, and so does the block's
-  keyboard path, Enter or Space; focus goes to the heading whichever
-  opened it (#66). A pill left on the Map from crew picks another tab has
-  since changed may find no section, and the sheet opens at its top.
+  keyboard path, Enter or Space; focus goes to the heading whichever opened
+  it (#66). A pill left on the Map from crew picks another tab has since
+  changed may find no section, and the sheet opens at its top.
 - **Its day.** The sheet keeps the day it was drawn for: with no day chip
   tapped the Map's day moves on at 5 AM, and the star's redraw
   (`drawHotelSheet()`) and a pull's refill stay on the day the sheet shows.
 - **In place** (`refreshHotelSheet()`, from `render()` beside
   `refreshEventSheet()`). A pull that changes what the open sheet draws of
-  the crew writes it in place: the count in the head, the sentence's
-  words, and Your crew here - put in or taken out whole, or its lines kept
-  by id, as the crew panel keeps its members, a line still there keeping
-  its node, written into only when what it says changed and moved only
-  when the order did. The body is never replaced, so its scroll stays, and
-  nothing is written when nothing changed. The reader's own rows and count
-  stay as drawn, so a pull that changes the reader's picks leaves them
-  stale (ROADMAP, Flags), while "with you" follows the reader's picks.
+  the crew writes it in place: the count in the head, the sentence's words,
+  and Your crew's picks here - put in or taken out whole, or its lines kept
+  by id, as the crew panel keeps its members, a line still there keeping its
+  node, written into only when what it says changed and moved only when the
+  order did. The body is never replaced, so its scroll stays, and nothing is
+  written when nothing changed. The reader's own rows and count stay as
+  drawn, so a pull that changes the reader's picks leaves them stale
+  (ROADMAP, Flags), while "yours too" follows the reader's picks.
 - **#66.** Each line is a button, 44 px or taller, labelled by what it
   says, its focus ring drawn inside it, where the body clips at its sides.
   Its id is the crewmate's and the event's, `crewHere-<user>-<event>`,
@@ -813,7 +824,7 @@ PR #82, step 5c, with #62, #63 and #66: Your crew here.
   points from other tabs find it ready.
 - **The tests.** `tests/page/crew-everywhere.test.js`: the section under the
   reader's rows and under the sentence; a line a pick, two for one crewmate;
-  the order, two events at one start with the names interleaved; "with you";
+  the order, two events at one start with the names interleaved; "yours too";
   the room, and none; never on now; a cancelled pick unmarked; the head at
   none, one and several, and the pill's number for every hotel on every day;
   the crew pill's way in, the gold pill's and the block's, tapped and by its
@@ -903,7 +914,7 @@ the hash and the address.
 | Settings' About row | `#panel-about` | the panel shown | its back: Settings | PR 9 |
 | The mini-bar | Now | `state.tab` | the tab bar | built |
 | A Map hotel block or its gold pill, a hotel without level data | The hotel sheet | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built |
-| The Map's crew pill | The hotel sheet, Your crew here brought to the top of its body (#63) | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built, PR #82 |
+| The Map's crew pill | The hotel sheet, Your crew's picks here brought to the top of its body (#63) | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built, PR #82 |
 | A Map hotel block, a hotel with level data | The building view | the Map's drill-down | the view's own back, to the Map | PR 10 |
 | The hotel sheet's "Search the Hyatt on Saturday" | Search | `state.browse`: the hotel, the day, no query | the tab bar to the Map, whose day `state.map.day` kept | built |
 | The event sheet's "See all" beside a person | That person's Explore page | `state.explore.page`, the hash | "← Explore", to the grid: one tap from the event, accepted | built |
@@ -913,9 +924,9 @@ the hash and the address.
 | The event sheet's place line | The Map, focused on the hotel - the room once the building view exists | `state.tab`, a focus in `state.map` | the Map's focused card, which reopens the sheet | PR 7 |
 | Search's Filters | `#panel-filters` | the panel shown | Apply, Clear, or closed: Search | PR 6 |
 | A kept `?join=`, in any phase | Plans' join step | `state.tab`, the step open | the step closed: Plans as it opens | built |
-| A line of Now's Your crew right now | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: Now, focus on that crewmate's line | built, PR #81 |
-| Now's Your crew right now, "+N more" | Plans' crew's day, on today | `state.tab`, `state.plansView` saved as Crew, `state.plans.day` back to the clock's | the tab bar to Now | built, PR #81 |
-| A line of the hotel sheet's Your crew here | The event sheet, in the hotel's place | `state.sheetId` | Done, the backdrop, a swipe, Escape: the Map, focus on what opened the hotel sheet - no way back to the hotel sheet, as for its rows | built, PR #82 |
+| A line of Now's Your crew's picks right now | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: Now, focus on that crewmate's line | built, PR #81 |
+| Now's Your crew's picks right now, "+N more" | Plans' crew's day, on today | `state.tab`, `state.plansView` saved as Crew, `state.plans.day` back to the clock's | the tab bar to Now | built, PR #81 |
+| A line of the hotel sheet's Your crew's picks here | The event sheet, in the hotel's place | `state.sheetId` | Done, the backdrop, a swipe, Escape: the Map, focus on what opened the hotel sheet - no way back to the hotel sheet, as for its rows | built, PR #82 |
 
 ## 12. Removals (#40)
 

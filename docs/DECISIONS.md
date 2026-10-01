@@ -106,7 +106,7 @@ backend at all. A backend that is down should degrade to 2026 behaviour, not
 to a blank screen.
 **Cost:** A sync/conflict rule (outbox proposed) still has to be designed.
 
-### 10. Crews are coordination, not conversation — Decided, not built (2026-09-05) — its build narrowed for 2027 by #50: create, join, leave, remove, the invite, the overlay and who's going; the Now board deferred to Where things live, share-a-day a link with no backend, pings the spring's; the client's layer built by #56, PR #62: `src/crews.js`, the six actions, the invite link and the readers for the overlay and who's going - the screens Where things live's; its screens placed by #62: the crew Now board a section of Now, one line a crewmate, and in 2027 the overlay Plans' Crew segment of per-person lists, lanes on the reader's timeline open (`docs/screens/contract.md`, sections 2, 5 and 14); the Now board built by PR #81, step 5a, as Now's Your crew right now - a line a crewmate, their pick on now or next today, four and then how many more - and who's going as a line on the event's sheet (`docs/screens/contract.md`, sections 2 and 7, as built)
+### 10. Crews are coordination, not conversation — Decided, not built (2026-09-05) — its build narrowed for 2027 by #50: create, join, leave, remove, the invite, the overlay and who's going; the Now board deferred to Where things live, share-a-day a link with no backend, pings the spring's; the client's layer built by #56, PR #62: `src/crews.js`, the six actions, the invite link and the readers for the overlay and who's going - the screens Where things live's; its screens placed by #62: the crew Now board a section of Now, one line a crewmate, and in 2027 the overlay Plans' Crew segment of per-person lists, lanes on the reader's timeline open (`docs/screens/contract.md`, sections 2, 5 and 14); the Now board built by PR #81, step 5a, as Now's Your crew right now - a line a crewmate, their pick on now or next today, four and then how many more - and who's going as a line on the event's sheet (`docs/screens/contract.md`, sections 2 and 7, as built); "who's going" said on screen as what a crewmate starred by #68, PR #83: "Starred by", Your crew's picks right now, "yours too"
 **Decided:** No in-app chat, ever. WhatsApp stays the chat. In scope: crew
 picks overlaid on the timeline, "who's going" per panel, a crew Now board,
 status pings tied to a pick, one-tap share-a-day. Build order: picks →
@@ -1370,7 +1370,7 @@ plan (#8). A recovering phone's crew membership stays behind until the
 person rejoins. A stamp ignores the simulated clock, so a test under
 `?now=` stamps the real time.
 
-### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built); the mirror job's migration (#54) makes `schedule_events.start` and `end` nullable, as the file's may be, and grants `service_role` the mirror's three tables by name; and a line's `fetch_code_changed` is its run's from `last-run.json`, or `true` for an earlier run the mirror had not yet written (`contract.md`, section 6); the push job's migration (#55) makes `push_sent` a queue - `sent_at` nullable with no default, a row without it a claim, and `claimed_at` - and grants `service_role` select, insert, update and delete on `push_sent`, select and delete on `push_subscriptions`, select on `flags`, and `push_due()`'s execution, by name (`contract.md`, section 7); pick-changed's migration (#55) replaces `push_due()`, its grants made again as they were, and changes no table (`contract.md`, section 7, Pick-changed, as built); the batch's migration (#55) replaces it in place, by `create or replace`, which keeps its grants, and changes no table (`contract.md`, section 7, The batch, as built); the RPCs' errors reach the client as PostgREST answers them - `P0002` and `53400` 500, `42501` 403, `22023` and `23514` 400 - and a delete that row-level security turns away answers 204, as one that deletes does; the policies let a creator delete their own membership, and `creator` stays set, so a creator who left could still regenerate the invite from outside, though not remove anyone or delete the crew, and the client refuses the creator's leave (#56; `contract.md`, section 8, as built)
+### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built); the mirror job's migration (#54) makes `schedule_events.start` and `end` nullable, as the file's may be, and grants `service_role` the mirror's three tables by name; and a line's `fetch_code_changed` is its run's from `last-run.json`, or `true` for an earlier run the mirror had not yet written (`contract.md`, section 6); the push job's migration (#55) makes `push_sent` a queue - `sent_at` nullable with no default, a row without it a claim, and `claimed_at` - and grants `service_role` select, insert, update and delete on `push_sent`, select and delete on `push_subscriptions`, select on `flags`, and `push_due()`'s execution, by name (`contract.md`, section 7); pick-changed's migration (#55) replaces `push_due()`, its grants made again as they were, and changes no table (`contract.md`, section 7, Pick-changed, as built); the batch's migration (#55) replaces it in place, by `create or replace`, which keeps its grants, and changes no table (`contract.md`, section 7, The batch, as built); the RPCs' errors reach the client as PostgREST answers them - `P0002` and `53400` 500, `42501` 403, `22023` and `23514` 400 - and a delete that row-level security turns away answers 204, as one that deletes does; the policies let a creator delete their own membership, and `creator` stays set, so a creator who left could still regenerate the invite from outside, though not remove anyone or delete the crew, and the client refuses the creator's leave (#56; `contract.md`, section 8, as built); "a star means going" amended by #68: a star is a pick, and the crew screens say what a crewmate starred, never that they are going or where they are
 **Decided:** Ten tables in Supabase's Postgres, row-level security on
 every one, and three RPCs; `docs/sync/contract.md`, sections 2-4, has the
 columns, the policies and the tests.
@@ -1879,7 +1879,7 @@ works-block edit does. 2026's file is rebuilt with an empty block now and
 rebuilt again when the lines are reviewed. The line pass is a second review
 of 113 people, four of them with no draft.
 
-### 62. The five tabs; crew is a dimension, not a place — Decided, not built (2026-09-30) — the bar built by PR #74: the tab, its view, its module and its badge renamed `plans`, `--nav-h` measured and the bottom of the page laid out from it, and the opening tab by phase (`docs/screens/contract.md`, section 1, as built); Plans' crew built by PR #77, step 4: the crew header and its management, the My day | Crew segment and the crew's day of per-person lists, and a kept `?join=` opening Plans' join step in any phase (`docs/screens/contract.md`, section 5, as built); crew at every scope built by PR #81, step 5a: the hour on Now, Your crew right now; the building on the Map, the crew counted per hotel - as people, not picks: the crewmates with a pick there that day; and the event on the sheet, who's going (`docs/screens/contract.md`, sections 2, 6 and 7, as built); the hotel sheet's crew by PR #82, step 5c: Your crew here, the crewmates' picks at the hotel under the reader's own, a line a pick, and the head's count the Map's pill's (`docs/screens/contract.md`, section 8, as built)
+### 62. The five tabs; crew is a dimension, not a place — Decided, not built (2026-09-30) — the bar built by PR #74: the tab, its view, its module and its badge renamed `plans`, `--nav-h` measured and the bottom of the page laid out from it, and the opening tab by phase (`docs/screens/contract.md`, section 1, as built); Plans' crew built by PR #77, step 4: the crew header and its management, the My day | Crew segment and the crew's day of per-person lists, and a kept `?join=` opening Plans' join step in any phase (`docs/screens/contract.md`, section 5, as built); crew at every scope built by PR #81, step 5a: the hour on Now, Your crew right now; the building on the Map, the crew counted per hotel - as people, not picks: the crewmates with a pick there that day; and the event on the sheet, who's going (`docs/screens/contract.md`, sections 2, 6 and 7, as built); the hotel sheet's crew by PR #82, step 5c: Your crew here, the crewmates' picks at the hotel under the reader's own, a line a pick, and the head's count the Map's pill's (`docs/screens/contract.md`, section 8, as built); who's going and the crew's sections worded as picks by #68, PR #83, step 5d: "Starred by", Your crew's picks right now and here, "yours too"
 **Decided:** The bar keeps five tabs, in today's positions: Now, Search,
 Explore, Map and Plans - what is on, what to find, what to discover, where,
 and my day and my crew's. Plans replaces Mine in its slot, fifth, with the
@@ -2061,3 +2061,35 @@ not the table's.
 **Cost:** The hotels' plans are illustrations, not surveys, so positions
 are good to roughly 10-15 ft until walked. 306-308 follow the hotel's
 order, and Dragon Con's map says the reverse.
+
+### 68. A star is a pick, not a whereabouts — Standing (2026-10-01)
+**Decided:** A crewmate's star says what they picked, never that they are
+going or where they are. The crew screens say so in their words (ROADMAP,
+tentpole 5, step 5d; PR #83):
+- the event's sheet: "Starred by Bo, Cy and 2 more", where it said
+  "Going: Bo, Cy and 2 more";
+- Now's section: "Your crew's picks right now", and the hotel sheet's:
+  "Your crew's picks here";
+- a crew line: "yours too" where the reader starred the event as well,
+  where it said "with you".
+
+What does not change: "on now" and the start on a line, which are the
+pick's time; the counts - "3 picks · 4 of your crew", the Map's label -
+which count picks and people; Plans' crew day; the join step; "+N more".
+The code keeps its names - `goingTo()`, `goingText()`, `#sheetGoing`,
+`.ev-going`, `.cn-with`, `crewNow-`, `crewHere-` - with a comment where
+the screen's word now differs. A star stays one state, with no maybe and
+no second state on a pick. Amends #52's "a star means going; there is no
+maybe": a star is a pick, and says nothing of whether its crewmate will be
+there. VISION's ladder says so too: with a crew, "you can see who starred
+what, and where it is", where it said "who is going where". Its Coordinate
+pillar still names #10's "who's going per event": "who's going" stays the
+feature's name, as `goingTo()` stays the code's.
+
+**Why:** A star is not a commitment: people star two things at 1 PM, which
+is why the app warns of overlaps (#64). "Going" and "with you" put a plan
+on screen as a whereabouts, and the app says nothing of where anyone is
+(#5).
+**Cost:** The code's names and the screen's words differ, so a reader of
+the code meets "going" where the screen says "starred". Now's and the
+hotel sheet's titles are longer.

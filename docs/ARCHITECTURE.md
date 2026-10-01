@@ -557,7 +557,7 @@ among what manage changes - its state the module's: each action is one
 request at a time, then `syncAfter()`, then the panel and Plans drawn
 from what the pull kept; `openKeptJoin()` opens its join step for a kept
 invite at boot, and `refreshCrewPanel()` refills it when `render()` runs.
-An event's panel says who in the reader's crews is going, and
+An event's panel says who in the reader's crews starred it (#68), and
 `refreshEventSheet()` refills that line alone, in place, when `render()`
 runs. A hotel's panel lists the crew's picks there under the reader's own,
 on the day it was drawn for, which it keeps - opened from the Map's crew
@@ -686,7 +686,7 @@ today and the walk to it, or the band `walk.js` `connection()` gives the
 pair, the one the gap line between their rows gives; or, with nothing on,
 when it starts and the walk from the pick before (DECISIONS #40). Never when
 to leave. On a build with a backend, for a reader in a crew and only while
-the clock is inside the con, Your crew right now under it: a line a
+the clock is inside the con, Your crew's picks right now under it: a line a
 crewmate, their pick on now or next today, four and then how many more,
 which opens Plans' crew's day (DECISIONS #62; `docs/screens/contract.md`,
 section 2, as built). Then the rest of the day's picks, then "On now" and

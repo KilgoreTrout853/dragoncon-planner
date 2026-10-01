@@ -1,12 +1,13 @@
 /* Crew everywhere (ROADMAP tentpole 5, step 5a; DECISIONS #10, #62, #64, #66;
-   docs/screens/contract.md, sections 2, 6, 7 and 11): who's going on an
-   event's sheet, Your crew right now on Now, the crew counted per hotel on
+   docs/screens/contract.md, sections 2, 6, 7 and 11): who starred an
+   event on its sheet, Your crew's picks right now on Now, the crew counted
+   per hotel on
    the Map - people, not picks - and the sync redraw that reaches them: a
    crew's change pulled draws Now, the Map and Plans, the crew panel and an
    open event's who's-going line, in place, and never Search or Explore
    alone. Now and the Map give focus back to what had it through every
    redraw and every minute's tick. And step 5c (contract, section 8): the
-   hotel sheet's crew, Your crew here, its lines Now's, refilled in place
+   hotel sheet's crew, Your crew's picks here, its lines Now's, refilled in place
    by a pull, on the day the sheet was drawn for.
    Against the fake backend, tests/helpers/backend.js, at the harness's
    Saturday, 1:05 PM. New tests, not rows of tests/PORT-LEDGER.md, so their
@@ -56,7 +57,7 @@ const typeIn = (box, value, from, to) => { box.focus(); box.value = value; box.d
 const before = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
 const now = () => el("view-now");
-const crewTitle = () => [...now().querySelectorAll(".section-title")].find(t => words(t) === "Your crew right now") || null;
+const crewTitle = () => [...now().querySelectorAll(".section-title")].find(t => words(t) === "Your crew's picks right now") || null;
 const lines = () => [...now().querySelectorAll(".crew-now")].map(b => words(b));
 const lineOf = user => el(`crewNow-${user.id}`);
 const crewPill = hotel => document.querySelector(`#view-map .map-crew[data-hotel="${hotel}"]`);
@@ -67,10 +68,10 @@ const cssRule = selector => { const at = css.indexOf(`\n${selector} {`); return 
 /* Markup as the page holds it once parsed, to set beside what the page drew. */
 const parsed = html => { const holder = document.createElement("div"); holder.innerHTML = html; return holder.innerHTML; };
 
-/* next's crew line on Now before step 5c moved it to ui.js, word for word:
-   what Now must still draw. */
+/* The crew line on Now as it was before step 5c moved it to ui.js, word
+   for word but for step 5d's "yours too" (#68): what Now must still draw. */
 function crewLineBefore(app, mine, c) {
-  const ev = c.ev, withYou = mine.has(ev.id) ? ` &middot; <span class="cn-with">with you</span>` : "";
+  const ev = c.ev, withYou = mine.has(ev.id) ? ` &middot; <span class="cn-with">yours too</span>` : "";
   return `<li><button class="crew-now" id="crewNow-${app.esc(c.user_id)}" data-hero="${app.esc(ev.id)}" aria-haspopup="dialog">
     <span class="cn-top"><b class="cn-who">${app.esc(c.display_name)}</b> &middot; ${c.on ? "on now" : app.fmtShort(ev._s)}${withYou}</span>
     <span class="cn-what"><span class="cn-title">${app.esc(ev.title)}</span><span class="cn-where" style="--h:var(${app.hotelVar(ev.hotel)})">&nbsp;&middot; ${app.esc(app.placeShort(ev))}</span></span>
@@ -197,12 +198,12 @@ describe("the gate: a crew's change pulled draws Now, the Map, Plans, the crew p
     const q = el("q");
     typeIn(q, "dar", 1, 2);
     s.app.openSheet("event", "s0590");
-    expect(words(el("sheetGoing"))).toBe("Going: Bo");
+    expect(words(el("sheetGoing"))).toBe("Starred by Bo");
     const head = el("panel-event").firstElementChild, star = el("sheetStar");
     star.focus();
     pick(s.fake, s.cy, "s0590");
     await s.run();
-    expect(words(el("sheetGoing"))).toBe("Going: Bo, Cyrus");
+    expect(words(el("sheetGoing"))).toBe("Starred by Bo, Cyrus");
     expect(el("panel-event").firstElementChild).toBe(head);
     expect(document.activeElement).toBe(star);
     escape();
@@ -216,7 +217,7 @@ describe("the gate: a crew's change pulled draws Now, the Map, Plans, the crew p
     s.app.openSheet("event", "s0590");
     pick(s.fake, s.dee, "s0590");
     await s.run();
-    expect(words(el("sheetGoing"))).toBe("Going: Bo, Cyrus, Dee");
+    expect(words(el("sheetGoing"))).toBe("Starred by Bo, Cyrus, Dee");
     expect(el("exploreQ")).not.toBe(box);
     expect(el("exploreQ").value).toBe("sta");
     expect(s.handle.state.explore.q).toBe("sta");
@@ -260,7 +261,7 @@ describe("the gate: a crew's change pulled draws Now, the Map, Plans, the crew p
   });
 });
 
-describe("who's going (W22): a line on the event's sheet", () => {
+describe("who starred it (W22, who's going): a line on the event's sheet", () => {
   let s;
   const data = structuredClone(fixture);
   for (const e of data.events) {
@@ -286,27 +287,27 @@ describe("who's going (W22): a line on the event's sheet", () => {
     expect(el("sheetGoing").closest(".ev-head")).not.toBe(null);
   });
   it("one, two and three by name; then three and how many more, with no comma", () => {
-    expect(going("s0590")).toEqual(["Going: Bo", false]);
-    expect(going("s0376")).toEqual(["Going: Bo, Cy, Dee", false]);
-    expect(going("s0263")).toEqual(["Going: Bo, Cy, Dee and 1 more", false]);
-    expect(going("s0349")).toEqual(["Going: Bo, Cy, Dee and 3 more", false]);
+    expect(going("s0590")).toEqual(["Starred by Bo", false]);
+    expect(going("s0376")).toEqual(["Starred by Bo, Cy, Dee", false]);
+    expect(going("s0263")).toEqual(["Starred by Bo, Cy, Dee and 1 more", false]);
+    expect(going("s0349")).toEqual(["Starred by Bo, Cy, Dee and 3 more", false]);
   });
   it("never the reader, whose own star says so", () => {
     expect(s.handle.picks.get().has("s0590")).toBe(true);
-    expect(going("s0590")[0]).toBe("Going: Bo");
+    expect(going("s0590")[0]).toBe("Starred by Bo");
   });
   it("a name is someone's own text: escaped", () => {
-    expect(going("s0260")).toEqual(["Going: Zo <i>&\"'", false]);
+    expect(going("s0260")).toEqual(["Starred by Zo <i>&\"'", false]);
     expect(el("sheetGoing").querySelector("i")).toBe(null);
   });
   it("a removed event has none, though a crewmate's picks hold it; a cancelled one has its line", () => {
     expect(going("s0257")).toEqual(["", true]);
-    expect(going("s0254")).toEqual(["Going: Bo", false]);
+    expect(going("s0254")).toEqual(["Starred by Bo", false]);
   });
   it("a star in the sheet draws it again, the line with it", () => {
     going("s0376");
     el("sheetStar").click();
-    expect(words(el("sheetGoing"))).toBe("Going: Bo, Cy, Dee");
+    expect(words(el("sheetGoing"))).toBe("Starred by Bo, Cy, Dee");
     el("sheetStar").click();
   });
   it("pulled while it is open: the line changes in place, focus stays where it was, and the last unstar hides it", async () => {
@@ -315,7 +316,7 @@ describe("who's going (W22): a line on the event's sheet", () => {
     star.focus();
     pick(s.fake, s.eve, "s0228");
     await s.run();
-    expect([words(el("sheetGoing")), el("sheetGoing").hidden]).toEqual(["Going: Eve", false]);
+    expect([words(el("sheetGoing")), el("sheetGoing").hidden]).toEqual(["Starred by Eve", false]);
     expect(el("panel-event").firstElementChild).toBe(head);
     expect(document.activeElement).toBe(star);
     pick(s.fake, s.eve, "s0228", false);
@@ -326,7 +327,7 @@ describe("who's going (W22): a line on the event's sheet", () => {
   });
 });
 
-describe("your crew right now (W23): a section of Now, between the hero and Rest of your day", () => {
+describe("your crew's picks right now (W23): a section of Now, between the hero and Rest of your day", () => {
   let s;
   beforeAll(async () => {
     s = await crewScene({
@@ -346,28 +347,28 @@ describe("your crew right now (W23): a section of Now, between the hero and Rest
     expect(before(el("crewMore"), rest)).toBe(true);
     expect(before(rest, around)).toBe(true);
   });
-  it("a line a crewmate: on now first, then by start, then by name; on now or the start, with you, the title and the place - four, then how many more", () => {
+  it("a line a crewmate: on now first, then by start, then by name; on now or the start, yours too, the title and the place - four, then how many more", () => {
     expect(lines()).toEqual([
-      "Bo · on now · with you Artemis: Bridge Crew Open Play · Westin",
+      "Bo · on now · yours too Artemis: Bridge Crew Open Play · Westin",
       "Cy · on now Q&A: Pathfinder 2026 · Hilton",
-      "Dee · 2:30 PM · with you Writing Villains Readers Love to Hate · Hyatt",
+      "Dee · 2:30 PM · yours too Writing Villains Readers Love to Hate · Hyatt",
       "Eve · 2:30 PM Making a Living Off of Being Creative! · Streaming",
     ]);
     expect(words(el("crewMore"))).toBe("+1 more");
     expect(el("crewMore").getAttribute("aria-label")).toBe("+1 more of your crew, in Plans");
     expect(lineOf(s.fay)).toBe(null);
   });
-  it("each line's markup is next's, byte for byte - on now, next, with you, a stream - now that ui.js builds it for the hotel sheet too", () => {
+  it("each line's markup is as before ui.js built it for the hotel sheet, byte for byte but for its word - on now, next, yours too, a stream", () => {
     expect(nowLinesAsBefore(s)).toBe(4);
   });
   it("a crewmate whose picks today are over, or on another day, has no line", () => {
     expect([lineOf(s.gus), lineOf(s.hal)]).toEqual([null, null]);
   });
-  it("each line is a button to its event's sheet, labelled by what it says, and \"with you\" is the reader's gold", () => {
+  it("each line is a button to its event's sheet, labelled by what it says, and \"yours too\" is the reader's gold", () => {
     const bo = lineOf(s.bo);
     expect(bo.tagName).toBe("BUTTON");
     expect([bo.dataset.hero, bo.getAttribute("aria-haspopup")]).toEqual(["s0294", "dialog"]);
-    expect(bo.querySelector(".cn-with").textContent).toBe("with you");
+    expect(bo.querySelector(".cn-with").textContent).toBe("yours too");
     expect(lineOf(s.cy).querySelector(".cn-with")).toBe(null);
     expect(css).toMatch(/\.crew-now \.cn-with \{[^}]*color: var\(--gold\)/);
   });
@@ -452,7 +453,7 @@ describe("your crew right now (W23): a section of Now, between the hero and Rest
     dee.focus();
     s.app.setOverride("2026-09-05T14:31");
     s.app.tickNow();
-    expect(words(lineOf(s.dee))).toBe("Dee · on now · with you Writing Villains Readers Love to Hate · Hyatt");
+    expect(words(lineOf(s.dee))).toBe("Dee · on now · yours too Writing Villains Readers Love to Hate · Hyatt");
     expect(lineOf(s.dee)).not.toBe(dee);
     expect(document.activeElement).toBe(lineOf(s.dee));
     expect(words(lineOf(s.cy))).toBe("Cy · on now Ask a NASA Scientist: The Road to Mars · Hilton");
@@ -526,7 +527,7 @@ describe("your crew right now (W23): a section of Now, between the hero and Rest
   });
 });
 
-describe("your crew right now: removed and unknown picks skipped, offsite places named as the Map names them", () => {
+describe("your crew's picks right now: removed and unknown picks skipped, offsite places named as the Map names them", () => {
   let s;
   const data = structuredClone(fixture);
   for (const e of data.events) {
@@ -554,7 +555,7 @@ describe("your crew right now: removed and unknown picks skipped, offsite places
     expect(lineOf(s.zo).querySelector("i")).toBe(null);
     expect(lineOf(s.zo).querySelector(".cn-who").textContent).toBe("Zo <i>&\"'");
   });
-  it("and each line's markup is next's, byte for byte - offsite, escaped, cancelled", () => {
+  it("and each line's markup as before, byte for byte - offsite, escaped, cancelled", () => {
     expect(nowLinesAsBefore(s)).toBe(4);
   });
   it("the Map's On now line names it the same way", () => {
@@ -566,7 +567,7 @@ describe("your crew right now: removed and unknown picks skipped, offsite places
   });
 });
 
-describe("your crew right now and the clock: the minute tick on the crew alone, and the con day past midnight", () => {
+describe("your crew's picks right now and the clock: the minute tick on the crew alone, and the con day past midnight", () => {
   let s;
   beforeAll(async () => {
     /* No picks of the reader's: no hero, no nudge - only the crew can move. */
@@ -759,7 +760,7 @@ describe("the hotel sheet with a backend and no crew: next's markup", () => {
   });
 });
 
-describe("the hotel sheet's crew (step 5c): Your crew here, under the reader's own picks", () => {
+describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the reader's own picks", () => {
   let s;
   const SATURDAY_DAY = "2026-09-05";
   const data = structuredClone(fixture);
@@ -774,7 +775,7 @@ describe("the hotel sheet's crew (step 5c): Your crew here, under the reader's o
      Eve's Warhammer, the names interleaved and each event's lines together. */
   const HYATT = [
     "Fay · 10:00 AM Severance Retrospective",
-    "Bo · 2:30 PM · with you Writing Villains Readers Love to Hate · Centennial II-IV",
+    "Bo · 2:30 PM · yours too Writing Villains Readers Love to Hate · Centennial II-IV",
     "Bo · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C",
     "Dee · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C",
     "Cy · 4:00 PM Deep Dive: Warhammer 40K · Grand Hall C",
@@ -795,13 +796,13 @@ describe("the hotel sheet's crew (step 5c): Your crew here, under the reader's o
   }, 30000);
   afterAll(() => s.page.cleanup());
 
-  it("under the reader's own rows, Your crew here: a line a pick in the schedule's order, by name within one event - a crewmate with two picks in two lines", () => {
+  it("under the reader's own rows, Your crew's picks here: a line a pick in the schedule's order, by name within one event - a crewmate with two picks in two lines", () => {
     openHotel("Hyatt");
     const body = hotelPanel().querySelector(".ev-body"), section = el("hotelCrew");
     expect(section.parentElement).toBe(body);
     expect(before(body.querySelector('.list .row[data-id="s0376"]'), section)).toBe(true);
     expect(section.firstElementChild.className).toBe("section-title");
-    expect(words(section.firstElementChild)).toBe("Your crew here");
+    expect(words(section.firstElementChild)).toBe("Your crew's picks here");
     expect(hereLines()).toEqual(HYATT);
     expect([hereOf(s.bo, "s0376"), hereOf(s.bo, "s0263")].every(Boolean)).toBe(true);
   });
@@ -809,8 +810,8 @@ describe("the hotel sheet's crew (step 5c): Your crew here, under the reader's o
     expect(hotelHead()).toBe("Saturday · 1 pick · 6 of your crew");
     expect(words(crewPill("Hyatt"))).toBe("6");
   });
-  it("with you as on Now; the room, not the hotel, and the title alone with no room; a cancelled pick unmarked; names and titles escaped", () => {
-    expect(hereOf(s.bo, "s0376").querySelector(".cn-with").textContent).toBe("with you");
+  it("yours too as on Now; the room, not the hotel, and the title alone with no room; a cancelled pick unmarked; names and titles escaped", () => {
+    expect(hereOf(s.bo, "s0376").querySelector(".cn-with").textContent).toBe("yours too");
     expect(hereOf(s.bo, "s0263").querySelector(".cn-with")).toBe(null);
     const fay = hereOf(s.fay, "s0228");
     expect(fay.querySelector(".cn-where")).toBe(null);
@@ -893,7 +894,7 @@ describe("the hotel sheet's crew (step 5c): Your crew here, under the reader's o
     body.scrollTop = 40;
     pick(s.fake, s.gus, "s0376");
     await s.run();
-    expect(hereLines()).toEqual([HYATT[0], HYATT[1], "Gus · 2:30 PM · with you Writing Villains Readers Love to Hate · Centennial II-IV", ...HYATT.slice(2)]);
+    expect(hereLines()).toEqual([HYATT[0], HYATT[1], "Gus · 2:30 PM · yours too Writing Villains Readers Love to Hate · Centennial II-IV", ...HYATT.slice(2)]);
     expect(hereOf(s.dee, "s0263")).toBe(dee);
     expect(document.activeElement).toBe(dee);
     expect(hotelPanel().querySelector(".ev-body")).toBe(body);
@@ -915,7 +916,7 @@ describe("the hotel sheet's crew (step 5c): Your crew here, under the reader's o
     s.fake.rename(s.crew, s.bo.id, "Zed");
     await s.run();
     expect(hereLines().slice(1, 4)).toEqual([
-      "Zed · 2:30 PM · with you Writing Villains Readers Love to Hate · Centennial II-IV",
+      "Zed · 2:30 PM · yours too Writing Villains Readers Love to Hate · Centennial II-IV",
       "Dee · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C",
       "Zed · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C",
     ]);
@@ -935,7 +936,7 @@ describe("the hotel sheet's crew (step 5c): Your crew here, under the reader's o
     pick(s.fake, s.bo, "s0253", false);
     await s.run();
   });
-  it("the reader's own unstar pulled: with you follows it, while the reader's own row and count stay as drawn (ROADMAP, Flags)", async () => {
+  it("the reader's own unstar pulled: yours too follows it, while the reader's own row and count stay as drawn (ROADMAP, Flags)", async () => {
     s.fake.write(s.ada.id, "picks", { event_id: "s0376", picked: false, changed_at: iso(Date.now() + 5000) });
     await s.run();
     expect(s.handle.picks.get().has("s0376")).toBe(false);
@@ -1002,7 +1003,7 @@ describe("the hotel sheet's crew (step 5c): Your crew here, under the reader's o
   const bodyScroll = () => hotelPanel().querySelector(".ev-body").scrollTop;
   const tapSVG = node => node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
-  it("the crew's pill opens the hotel's sheet with Your crew here brought to the top of its body (#63), focus on the heading", () => {
+  it("the crew's pill opens the hotel's sheet with Your crew's picks here brought to the top of its body (#63), focus on the heading", () => {
     laidOut(() => tapSVG(crewPill("Hyatt").querySelector("rect")));
     expect(s.handle.state.sheetHotel).toBe("Hyatt");
     expect(bodyScroll()).toBe(420);
@@ -1095,5 +1096,44 @@ describe("#66: 44px, labels, and contrast for the crew's count on the Map", () =
     expect(contrast(text, rgb(token("ink")))).toBeGreaterThanOrEqual(4.5);
     const grounds = [rgb(token("surface")), ...["Marriott", "Hyatt", "Hilton", "Courtland", "Westin", "Mart"].map(h => mix(`h-${h}`, 0.18)), mix("park", 0.12)];
     for (const fill of grounds) expect(contrast(text, fill)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("the crew's words (step 5d, #68): a star is a pick, not a whereabouts", () => {
+  let s;
+  beforeAll(async () => {
+    s = await crewScene({ mates: [["bo", "Bo"], ["cy", "Cy"]], mine: ["s0376"], theirs: { bo: ["s0376", "s0263"], cy: ["s0230"] } });
+  }, 30000);
+  afterAll(() => s.page.cleanup());
+  /* Everything a screen says: its words, and the labels, titles and hints
+     its elements carry for a screen reader. */
+  const said = root => [root.textContent, ...[...root.querySelectorAll("[aria-label], [title], [placeholder], [alt]")]
+    .flatMap(n => ["aria-label", "title", "placeholder", "alt"].map(a => n.getAttribute(a) || ""))].join(" ");
+  const NEVER = /going|with you/i;
+
+  it("no string the crew screens draw says a crewmate is going, or with you: Now, the Map, the hotel sheet, the event sheet, Plans' crew and the crew panel", () => {
+    const screens = {};
+    screens.now = said(now());
+    expect(screens.now).toContain("Your crew's picks right now");
+    expect(screens.now).toContain("yours too");
+    tapTab("map");
+    screens.map = said(el("view-map"));
+    expect(screens.map).toContain("of your crew");
+    openHotel("Hyatt");
+    screens.hotel = said(hotelPanel());
+    expect(screens.hotel).toContain("Your crew's picks here");
+    escape();
+    s.app.openSheet("event", "s0376");
+    screens.event = said(el("panel-event"));
+    expect(words(el("sheetGoing"))).toBe("Starred by Bo");
+    s.app.closeSheet();
+    tapTab("plans");
+    press(el("plansViewCrew"));
+    screens.plans = said(el("view-plans"));
+    expect(screens.plans).toContain("Bo");
+    s.app.openSheet("crew", "manage");
+    screens.crewPanel = said(el("panel-crew"));
+    s.app.closeSheet();
+    for (const [screen, text] of Object.entries(screens)) expect(text, screen).not.toMatch(NEVER);
   });
 });

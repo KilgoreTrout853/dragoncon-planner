@@ -115,8 +115,8 @@ function myMembership(crew) {
   const user = reader(), row = user && crew ? (crew.members || []).find(m => m.user_id === user) : null;
   return row ? {user_id: row.user_id, display_name: row.display_name} : null;
 }
-/* Your crew right now (W23): each crewmate's pick on at `at`, else their
-   next one today - today the con day `today`, anything still running
+/* Your crew's picks right now (W23): each crewmate's pick on at `at`, else
+   their next one today - today the con day `today`, anything still running
    counted in it, the rule Now's own hero keeps. The schedule is the
    caller's, data.js `events`, in start order and with no removed event,
    since this module comes before the schedule and the clock: a pick it

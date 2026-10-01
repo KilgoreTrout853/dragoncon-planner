@@ -517,11 +517,12 @@ select.crew-pick {
    those two bands with (DECISIONS #40). Tight but doable stays quiet there,
    and here. */
 .hero .hthen.warn, .hero .hthen.warn b { color: var(--warn); }
-/* Your crew right now: a line a crewmate, each a button to the event's
-   sheet - who and when, then what and where, the title giving way before
-   the place does. "with you" is gold: the pick is the reader's too. The
-   hotel sheet's Your crew here draws the same lines, its focus ring inside
-   them too: the sheet's scrolling body clips at its sides. */
+/* Your crew's picks right now: a line a crewmate, each a button to the
+   event's sheet - who and when, then what and where, the title giving way
+   before the place does. "yours too" is gold, .cn-with: the pick is the
+   reader's too. The hotel sheet's Your crew's picks here draws the same
+   lines, its focus ring inside them too: the sheet's scrolling body clips
+   at its sides. */
 .crew-now {
   display: block; width: 100%; min-height: 44px; padding: 8px 14px; text-align: left;
   background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer;

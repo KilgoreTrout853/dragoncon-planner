@@ -397,6 +397,10 @@ execution slot (#57), which can run before any of this.
      picks, a line a crewmate's pick, the head's count the pill's, refilled
      in place by a pull, and an open hotel sheet counted in the crew
      redraw's gate - built (PR #82; contract, section 8, as built).
+   - 5d. The crew's words: a star is a pick, not a whereabouts (#68) -
+     "Starred by" on the event's sheet, Your crew's picks right now and
+     here, "yours too" on a line; words only - built (PR #83; contract,
+     sections 2, 7 and 8, as built).
 6. The filter sheet, W13 (contract, section 3).
 7. The row and the sheet (#64): the three lines, the facets, W1's flag and
    line, the chips and the place line as entry points at the hotel's
@@ -493,7 +497,7 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   `refreshEventSheet()` is where the fix goes. An open hotel sheet is the
   same: a pull that changes the reader's own picks leaves its rows, their
   stars and its own count as drawn, since PR #82 refills only what it draws
-  of the crew - "with you" on a crew line follows the picks, the rows above
+  of the crew - "yours too" on a crew line follows the picks, the rows above
   it do not. It predates PR #82 too, and `refreshHotelSheet()` is where
   that fix goes.
 
