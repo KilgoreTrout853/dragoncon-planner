@@ -673,11 +673,11 @@ rows and on a frozen year's rows alike; it is pure.
     the Courtland Grand), nothing else stripping;
   - partitions: the common prefix of two or more rooms on one level, each
     the prefix and a letter, a number or a roman numeral (`Atrium Ballroom`
-    is its A to D; `Salon`, whose halves are East and West, waits for an
+    is its A to C; `Salon`, whose halves are East and West, is read by an
     alias);
   - the hotel alone;
   - a floor alone, `Nth Floor` or `Floor N`, read as the level named
-    `<Ordinal> Floor` or `Level N`;
+    `<Ordinal> Floor`, `Level N` or `Nth Floor`;
   - a trailing note: the longest leading run of whole words that is a room.
 
   Each rule is a function of the string alone, but partitions, which reads

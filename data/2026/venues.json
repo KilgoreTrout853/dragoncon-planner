@@ -63,7 +63,10 @@
             "International Hall South"
           ],
           "aliases": {},
-          "notes": []
+          "notes": [
+            "International Hall South is International 4-10, Dragon Con's name for the seven together",
+            "International Hall North: no source says which rooms it is - neither the hotel's plan nor Dragon Con's map"
+          ]
         },
         {
           "id": "marquis",
@@ -107,7 +110,8 @@
           ],
           "aliases": {},
           "notes": [
-            "L = Lobby"
+            "L = Lobby",
+            "also on the level, no 2026 programming: L501-L508, labelled on Dragon Con's map (VIP badge pick-up at L508)"
           ]
         },
         {
@@ -120,7 +124,6 @@
             "Atrium Ballroom A",
             "Atrium Ballroom B",
             "Atrium Ballroom C",
-            "Atrium Ballroom D",
             "A601",
             "A602",
             "A703",
@@ -311,7 +314,7 @@
           ],
           "aliases": {},
           "notes": [
-            "directly under the lobby; Galleria 1-8 are the hotel's own partitions"
+            "one level below the 1st Floor, under its east side and the Pavilion Courtyards; Galleria 1-8 are the hotel's own partitions"
           ]
         },
         {
@@ -460,7 +463,7 @@
       "levels": [
         {
           "id": "f1",
-          "name": "First Floor",
+          "name": "1st Floor",
           "short": "1st Floor",
           "order": 0,
           "storey": 0,
@@ -486,7 +489,7 @@
         },
         {
           "id": "f2",
-          "name": "Second Floor",
+          "name": "2nd Floor",
           "short": "2nd Floor",
           "order": 1,
           "storey": 1,
@@ -502,7 +505,7 @@
         },
         {
           "id": "f3",
-          "name": "Third Floor",
+          "name": "3rd Floor",
           "short": "3rd Floor",
           "order": 2,
           "storey": 2,
@@ -516,7 +519,7 @@
           ],
           "aliases": {},
           "notes": [
-            "the con's names, from its 2026 map"
+            "the con's map labels one Grand Ballroom; its sections A-F are the schedule's own strings, not the map's"
           ]
         }
       ],
@@ -537,7 +540,7 @@
       "levels": [
         {
           "id": "f6",
-          "name": "Sixth Floor",
+          "name": "6th Floor",
           "short": "6th Floor",
           "order": 0,
           "storey": 0,
@@ -560,7 +563,7 @@
         },
         {
           "id": "f7",
-          "name": "Seventh Floor",
+          "name": "7th Floor",
           "short": "7th Floor",
           "order": 1,
           "storey": 1,
@@ -584,7 +587,7 @@
         },
         {
           "id": "f8",
-          "name": "Eighth Floor",
+          "name": "8th Floor",
           "short": "8th Floor",
           "order": 2,
           "storey": 2,
@@ -600,7 +603,7 @@
         },
         {
           "id": "f12",
-          "name": "Twelfth Floor",
+          "name": "12th Floor",
           "short": "12th Floor",
           "order": 3,
           "storey": 3,
@@ -621,7 +624,7 @@
         },
         {
           "id": "f14",
-          "name": "Fourteenth Floor",
+          "name": "14th Floor",
           "short": "14th Floor",
           "order": 4,
           "storey": 4,

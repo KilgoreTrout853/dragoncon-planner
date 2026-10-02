@@ -1,7 +1,10 @@
 """Tests for venues.py: one failing fixture per rule, the warning and the two helpers, and the committed files.
 
-The fixtures are inline. The last test loads both committed years, data/2026/venues.json and data/2027/venues.json,
-so that CI checks every later edit to them.
+The fixtures are inline. The last two tests load both committed years, data/2026/venues.json and
+data/2027/venues.json, so that CI checks every later edit to them. The last also reads real 2026 strings through the
+resolver, venues_stage.py - the one test of it that reads data/: the resolver reads a floor alone, and the Mart's
+building floors and vendor halls, by a level's name, so a level renamed in the file would otherwise move those events
+to the hotel alone, and nothing else in CI would say so.
 
 Run:  python -m pytest tests/
 """
@@ -16,6 +19,7 @@ sys.path.insert(0, ROOT)
 import pytest  # noqa: E402
 
 import venues  # noqa: E402
+import venues_stage  # noqa: E402
 
 
 def level(lid, order, rooms, aliases=None, notes=None):
@@ -299,3 +303,34 @@ def test_the_committed_venues_files_are_valid():
         if year == "2026":
             assert {e["hotel"] for e in schedule} <= held
         assert {"Streaming", "Other", "Unknown"} <= {h["hotel"] for h in v.hotels() if h["placeless"]}
+
+
+# 2026's own strings that the resolver reads by a level's name, as data/2026/events.json writes them: the location ->
+# (the hotel, the level, the rule that reads it).
+BY_NAME = {
+    "Westin, 14th Floor": ("Westin", "f14", "floor only"),
+    "Westin 12th Floor": ("Westin", "f12", "floor only"),
+    "Westin, 12th Floor": ("Westin", "f12", "floor only"),
+    "Mart Building 3, Floor 1": ("AmericasMart", "b3f1", "mart building"),
+    "Mart Building 3, Floor 2": ("AmericasMart", "b3f2", "mart building"),
+    "Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300": ("AmericasMart", "b2-vendor-f1", "mart vendor hall"),
+    "Mart2 Vendor Hall Floor 2 The Marigolden Bookshelf - booth 2506":
+        ("AmericasMart", "b2-vendor-f2", "mart vendor hall"),
+    "Mart2 Vendor Hall Floor 3 Sidestreet Book Market - booth 3201":
+        ("AmericasMart", "b2-vendor-f3", "mart vendor hall"),
+}
+
+
+def test_the_committed_venues_files_name_their_levels_as_the_resolver_reads_them():
+    """A floor alone and the Mart's building floors and vendor halls are read by a level's name (DECISIONS #45), so
+    each of these real strings reaches its level in both years' files: a level renamed past what the resolver reads
+    would drop its events to the hotel alone. The strings are the source's, checked against the frozen schedule."""
+    with open(os.path.join(ROOT, "data", "2026", "events.json"), "rb") as f:
+        written = {e["location"] for e in json.loads(f.read().decode("utf-8"))["events"]}
+    assert set(BY_NAME) <= written
+    for year in ("2026", "2027"):
+        v = venues.load(os.path.join(ROOT, "data", year, "venues.json"))
+        for location, (hotel, level, rule) in BY_NAME.items():
+            p = venues_stage.place(location, v)
+            assert (p.hotel, p.level, p.rooms, p.place, p.rules) == (hotel, level, (), "level", (rule,)), \
+                (year, location)

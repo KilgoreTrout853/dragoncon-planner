@@ -3,7 +3,8 @@ tests/test_parse.py held for scraper.split_hotel, the Courtland and hyphenated s
 the Mart's whole location - each rule of the grammar reading its rooms and failing when one is missing or they span
 two levels, the order of alias, exact and rule, the Mart, floors, partitions, the rewrites, the trailing note, the
 placeless hotels and the re-split, the report and its counters, and purity. All on an inline venues file; nothing here
-reads data/.
+reads data/. The one test of the stage that does is tests/test_venues.py's last: 2026's own floor and Mart strings, read
+at their levels in both committed venues files.
 
 Run:  python -m pytest tests/
 """
@@ -36,7 +37,7 @@ VENUES = {"walk": {}, "same_venue_min": 5, "unknown_pair_min": 12, "slack_min": 
         level("marquis", "Marquis Level", 0, ["Imperial Ballroom A", "Imperial Ballroom B", "Marquis Ballroom A",
                                               "Marquis Ballroom B", "M301", "M302", "M303"]),
         level("lobby", "Lobby Level", 1, ["L401", "L402", "L403"]),
-        level("atrium", "Atrium Level", 2, [f"Atrium Ballroom {x}" for x in "ABCD"])]),
+        level("atrium", "Atrium Level", 2, [f"Atrium Ballroom {x}" for x in "ABC"])]),
     hotel("Hyatt", 1, ["Hyatt"], [
         level("acc", "Conference Center", 0, ["Piedmont", "Inman"],
               aliases={"conference piedmont": ["Piedmont"], "inman": ["Piedmont"]}),
@@ -58,7 +59,7 @@ VENUES = {"walk": {}, "same_venue_min": 5, "unknown_pair_min": 12, "slack_min": 
         level("f8", "Eighth Floor", 1, ["Peachtree Ballroom A", "Peachtree Ballroom B", "Peachtree Ballroom C"]),
         level("f9", "Ninth Floor", 2, ["Peachtree G", "Peachtree H"]),
         level("f10", "Tenth Floor", 3, ["Peachtree 1", "Peachtree 2"]),
-        level("f12", "Twelfth Floor", 4, ["1201"]),
+        level("f12", "12th Floor", 4, ["1201"]),
         level("f14", "Fourteenth Floor", 5, ["1401"])]),
     hotel("AmericasMart", 5, ["AmericasMart", "Mart2", "Mart"], [
         level("b3f1", "Building 3, Floor 1", 0, []),
@@ -222,13 +223,17 @@ def test_the_mart_rules():
 
 def test_a_floor_alone_reads_the_level_named_for_it():
     assert at("Westin 14th Floor")[2:] == ("f14", [], "level") and rules("Westin 14th Floor") == ("floor only",)
-    assert at("Westin Floor 12")[2:] == ("f12", [], "level")
+    assert at("Westin Floor 12")[2:] == ("f12", [], "level")                     # "12th Floor", in numerals
     assert at("Hilton 3rd")[2:] == ("l3", [], "level")                           # "Level 3" is named for it too
     assert at("Hilton 5th")[2:] == (None, [], "hotel")                           # no level of the file is
+    assert vs.floor_only("14th Floor") == ["fourteenth floor", "level 14", "14th floor"]   # the three names, in turn
+    assert vs.floor_only("Floor 2") == ["second floor", "level 2", "2nd floor"]
+    assert [vs.numeral(k) for k in (1, 2, 3, 4, 11, 12, 13, 20, 21, 22, 23, 111)] == [
+        "1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "20th", "21st", "22nd", "23rd", "111th"]
 
 
 def test_partitions_name_a_level_s_lettered_or_numbered_rooms_and_nothing_else():
-    assert at("Marriott Atrium Ballroom")[2:] == ("atrium", [f"Atrium Ballroom {x}" for x in "ABCD"], "rule")
+    assert at("Marriott Atrium Ballroom")[2:] == ("atrium", [f"Atrium Ballroom {x}" for x in "ABC"], "rule")
     assert rules("Marriott Atrium Ballroom") == ("partitions",)
     assert at("Marriott Imperial Ballroom")[3] == ["Imperial Ballroom A", "Imperial Ballroom B"]
     assert at("Hilton Galleria")[3] == [f"Galleria {n}" for n in range(1, 9)]

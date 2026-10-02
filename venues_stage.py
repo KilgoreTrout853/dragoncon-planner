@@ -171,7 +171,7 @@ def initials(hotel):
 
 
 def partitions(s, levels):
-    """"Atrium Ballroom" is Atrium Ballroom A, B, C and D: the common prefix of two or more rooms on one level, each
+    """"Atrium Ballroom" is Atrium Ballroom A, B and C: the common prefix of two or more rooms on one level, each
     the prefix and a letter, a number or a roman numeral. The one rule that reads the file. -> the rooms, or None
     where no level, or more than one, has two such rooms."""
     found = []
@@ -190,12 +190,18 @@ def hotel_only(s, hotel):
 
 def floor_only(s):
     """"14th Floor", "5th", "Floor 3": a floor and no room. -> the names of the level it would be: "Fourteenth
-    Floor", "Level 14"."""
+    Floor", "Level 14", "14th Floor"."""
     m = re.fullmatch(r"(\d{1,2})(?:st|nd|rd|th)(?:\s+floor)?", s, re.I) or re.fullmatch(r"floor\s+(\d{1,2})", s, re.I)
     if not m or not 1 <= int(m.group(1)) <= len(ORDINALS):
         return None
     k = int(m.group(1))
-    return [f"{ORDINALS[k - 1]} floor", f"level {k}"]
+    return [f"{ORDINALS[k - 1]} floor", f"level {k}", f"{numeral(k)} floor"]
+
+
+def numeral(k):
+    """14 -> "14th": a whole number as an ordinal in numerals, as the levels' names write it ("2nd Floor")."""
+    suffix = "th" if 11 <= k % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(k % 10, "th")
+    return f"{k}{suffix}"
 
 
 def trailing_note(s):
