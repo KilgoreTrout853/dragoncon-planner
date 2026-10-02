@@ -19,10 +19,10 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 
 | Hotel | Level | Plan | Dims | Local copy | Con map | Our drawing |
 |---|---|---|---|---|---|---|
-| Marriott | Atrium Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | 11 of 11 rooms (Atrium Ballroom as one outline) | none |
-| Marriott | Lobby Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | 3 of 6 rooms | none |
-| Marriott | Marquis Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | 6 of 12 rooms | none |
-| Marriott | International Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | 0 of 15 rooms | none |
+| Marriott | Atrium Level | have · [Hotel's floor plan, an image (AOM 2017)](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf), p. 1 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/) on its events page, read 2026-10-02 | `reference/plans/marriott-marquis-aom-2017.pdf` | 11 of 11 rooms (Atrium Ballroom as one outline) | `data/2027/drawings/marriott-atrium.json` · sizes from the chart, placement from the plan; Atrium Ballroom D not drawn, section C drawn at the chart's 23 ft |
+| Marriott | Lobby Level | have · [Hotel's floor plan, an image (AOM 2017)](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf), p. 2 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/) on its events page, read 2026-10-02 | `reference/plans/marriott-marquis-aom-2017.pdf` | 3 of 6 rooms | `data/2027/drawings/marriott-lobby.json` · sizes from the chart, placement from the plan |
+| Marriott | Marquis Level | have · [Hotel's floor plan, an image (AOM 2017)](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf), p. 3 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/) on its events page, read 2026-10-02 | `reference/plans/marriott-marquis-aom-2017.pdf` | 6 of 12 rooms | `data/2027/drawings/marriott-marquis.json` · sizes from the chart, placement from the plan |
+| Marriott | International Level | have · [Hotel's floor plan, an image (AOM 2017)](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf), p. 4 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/) on its events page, read 2026-10-02 | `reference/plans/marriott-marquis-aom-2017.pdf` | 0 of 15 rooms | `data/2027/drawings/marriott-international.json` · sizes from the chart, placement from the plan; International Hall North not drawn |
 | Hyatt | International Tower · LL1 | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 2 of 2 rooms | `data/2027/drawings/hyatt-tower-ll1.json` · sizes from the table, placement from the plan |
 | Hyatt | International Tower · LL2 | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 7 of 8 rooms | `data/2027/drawings/hyatt-tower-ll2.json` · sizes from the table, placement from the plan; Embassy A and B drawn from the corridor |
 | Hyatt | Lobby Level | partial · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) (p. 5's sketch alone) | no | `reference/plans/hyatt-floorplan-2012.pdf` | none | none · no rooms, and the file has only a sketch of it, with no table |
@@ -52,8 +52,12 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 
 ## The plans
 
-- **Marriott** — AOM 2017 level map (image only) + NAQT all-in-one map + NFB prose walk-through; dimensions per room on
-  thevendry.co. All levels on one sheet.
+- **Marriott** — the hotel's own floor plan, one page per level, each an image with a conference's markings over it
+  (the Academy of Management's 2017 meeting): p. 1 the Atrium Level, p. 2 the Lobby Level, p. 3 the Marquis Level,
+  p. 4 the International Level. No text layer, no vector linework, no compass; p. 4 prints three streets (Harris
+  Street for John Portman Blvd), p. 2 one, pp. 1 and 3 none. Pp. 1 and 2 are squashed north to south, about 10% and
+  6%, and are read with one scale across and another down. Sizes from the hotel's capacity chart on its events page,
+  read 2026-10-02; no local copy.
 - **Hyatt** — Hotel's official floor-plan PDF (2012 rev.), conference-hosted copy: p. 1 the Ballroom Level (LL1), p. 2
   the Exhibit Level (LL2), p. 3 the Atlanta Conference Center (LL3), drawn half a turn round from the others, p. 4 the
   International Tower's two levels, and p. 5 an exploded sketch of every level, the only picture of the Lobby Level.
@@ -81,9 +85,16 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
   International Ballroom's North and South halves and the main entrance on Peachtree Street, and the streets from the
   con's footprint map. The plans are illustrations, so positions are good to about 10–15 ft until walked. The Lobby
   Level is not drawn: it has no rooms, and the file has only a sketch of it.
-- **Marriott** — every room the con's map outlines reads as ours: M103–M105, M301, Imperial Ballroom, L401–L403, Atrium
-  Ballroom, A601–A602, A703, A704 and A706–A708. The rooms the map names on the Marquis and Atrium levels with no 2026
-  programming are in those levels' notes.
+- **Marriott** — four levels drawn from the hotel's plan and its capacity chart, in one frame (DECISIONS #67), tied by
+  named anchors: the elevator core on all four, the east elevators and the central escalators where the level has
+  them. International Hall South is International 4 to 10, a composite; the chart's "International Ballroom 4-10",
+  191.6 × 56.0 ft, is its outline. Where a combined row of the chart disagrees with its single rooms (L405 & L406,
+  the M301–M304 pairs, A703 & A704), the single rooms are drawn. The Lobby and Atrium pages are drawn at a smaller
+  scale and squashed north to south, so each is read with one scale across and another down; the A700 rooms are 265
+  to 345 ft from the elevator core, so those are placed less finely. The plan is an image, so positions are good to
+  about 10–15 ft until walked. Every room the con's map outlines reads as ours: M103–M105, M301, Imperial Ballroom,
+  L401–L403, Atrium Ballroom, A601–A602, A703, A704 and A706–A708. The rooms the map names on the Marquis and Atrium
+  levels with no 2026 programming are in those levels' notes.
 - **Westin** — its levels and rooms are the con's post-renovation names, from its 2026 map; the old PDF predates them.
   A current plan is still not found.
 - **Courtland Grand** — no hotel plan found; the three floors and their rooms are the con's, from its 2026 map.
