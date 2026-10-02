@@ -24,8 +24,9 @@ sheet) and 7 (what each reader sees).
   screen that owns its state; an entry point is a tap from context that
   opens the home's own state with parameters, never a second copy of it.
   Back is designed per entry point: section 11 names each.
-- **The row and the gap line** (#64). A row is at most three lines;
-  the walk between two events is said between their rows. Section 10.
+- **The row and the gap line** (#64, #73). A row is its title and up to
+  two lines under it; the walk between two events is said between their
+  rows. Section 10.
 - **Accessibility is a requirement, not a home** (#66): a label on every
   new control; focus into the sheet on open and back on close, Escape
   closing it; 44 px tap targets; contrast on the map's lit rooms;
@@ -215,17 +216,20 @@ with #10, #62 and #66: Your crew right now, worded as picks by PR #83, step
   | … the next starting before this one ends | ends 3:00 PM · then Hilton at 2:30 PM: overlaps by 30 min, in warn |
   | A pick on, the next in the same building | the same bands at the building's own minutes; with none, ends 2:00 PM · then Hyatt next |
   | A pick on, a stream either side | no walk, so no connection: ends 2:00 PM · then Hilton next, or then `<title>` next for a stream, which has no building; or the overlap, which is time, not walking |
+  | A pick on, the next offsite | ends 2:00 PM · then Joystick Gamebar at 3:00 PM, ~16 min walk: its room, else offsite, as `venues.js` `placeShort()` names a place in a line of words (#73); after an offsite pick, one building: then Joystick Gamebar next |
   | A pick on, nothing after it today | ends 2:00 PM |
   | Nothing on | starts 3:00 PM, and under it, muted, the walk from the pick before: ~12 min from the Westin |
 
   The band is `walk.js` `connection()`'s for the pair, which `gapHTML()`
   reads too, so the hero and the gap line under it - Rest of your day's
   first, measured from the hero - never hold two opinions about one pair:
-  the hero is a card, the gap line a list, and both stay. An overlap is the
-  two picks' intersection, the earlier end less the later start, so a
-  10-minute session inside a 4-hour game overlaps by 10. The gap under the
-  walk and an overlap are in warn, `.hero .hthen.warn`, as the gap line
-  marks them; tight but doable stays quiet in both. Nothing says when to
+  the hero is a card, the gap line a list, and both stay. An overlap the
+  gap line no longer says: the two picks' rows flag it (#73; section 10,
+  as built). An overlap is the two picks' intersection, the earlier end
+  less the later start, so a 10-minute session inside a 4-hour game
+  overlaps by 10. The gap under the walk and an overlap are in warn,
+  `.hero .hthen.warn`, as the gap line marks the first and a row's flag
+  the second; tight but doable stays quiet in both. Nothing says when to
   leave.
 - **The nudge** (`nudgeVisible()`) shows while `picks.size > 0`, never
   before: a star brings it, and unstarring the last pick takes it away.
@@ -304,8 +308,8 @@ As built: the recon, section 2, Search, items 1 to 15.
   takes the hotel chips, the kind chips, the Type control, the Fandom and
   Track selects and the noise toggle (items 3, 4, 7 and 8), and gains
   W8's four topic axes. No Apply: a tap applies at once, and the list is
-  drawn again when the sheet closes; Clear (#70). W7's facet flags follow
-  step 7, once a row shows them.
+  drawn again when the sheet closes; Clear (#70). W7's facets as filters
+  follow, as step 7b, now that a row shows them (section 10, as built).
 - **Under the box,** as built: the suggestions and the parsed chips
   (items 5 and 6), and in the parsed chips' row each filter the sheet set.
 - Everything else as built: the results' title, the no-exact line, the
@@ -822,13 +826,16 @@ that day at once.
   ending in "-", with nothing skipped, has "The link may have been cut
   short when it was copied." alone, under what resolved; then the events as
   rows in start order (`list: "shared"`), in a body that takes up to 55% of
-  the screen, so three rows fit at 375x667 before it scrolls. Each row
+  the screen, so three rows fit at 375x667 before it scrolls - measured
+  again in Chromium on the row of PR #92: a body 367 px tall, a row 106
+  px, 118 with Larger text; the phone check to come. Each row
   carries the reader's own star and works as a row anywhere; one not on
   the link's day carries its day's label; a removed one is marked and
   carries no star (#49), a cancelled one is marked. No "star all". A
   change to the reader's picks - a star here, in an event's sheet or from
-  a pull - writes each row's class and star in place (`refreshSharedDay()`,
-  from `render()`), so the list's scroll and the focus on a star stay.
+  a pull - writes each row's class, its words and its star in place
+  (`refreshSharedDay()`, from `render()`), so an overlap flag comes and
+  goes at once (#73) and the list's scroll and the focus on a star stay.
 - **Refused,** in the same panel, headed "A shared day", with Done: another
   year's link - "That link is a day from Dragon Con 2025, and this planner
   is 2026's, so there's nothing of it to show." - and one that does not
@@ -1090,7 +1097,9 @@ by PR #83, step 5d, with #68.
   `dispatch.js` `onMainClick()`). A tap on the Map's crew pill opens the
   sheet with Your crew's picks here brought to the top of its body: with a
   few picks of the reader's own the section starts below the fold - at 375
-  px, four put it 409 px down a body 390 px tall. A tap on the block or the
+  px, four put it 409 px down a body 390 px tall; on the row of PR #92, 394
+  px down, and 432 with Larger text, measured in Chromium at 375x812, the
+  phone check to come. A tap on the block or the
   gold pill opens the sheet at its top, as before, and so does the block's
   keyboard path, Enter or Space; focus goes to the heading whichever opened
   it (#66). A pill left on the Map from crew picks another tab has since
@@ -1167,13 +1176,14 @@ Moves: `index.html` (the panel, the toggle's slot), `sheet.js`
 As built: the recon, section 4, the row's thirteen elements and every
 caller; section 5, the gap line.
 
-**The row** (#64), three lines at most:
+**The row** (#64, as #73 amends it), its title and up to two lines under
+it:
 
 | Line | What | From the recon's table |
 |---|---|---|
-| 1 | The star, the title, the state tags: Cancelled, Removed from the schedule, Celebrity | the star; the title, its ★ and strike and marks; Cancelled; Removed; Celebrity |
-| 2 | The day's label where the caller asks (`showDay`), "2:30–3:30 PM", then hotel · room · level | the day label; the start and "to" end; the place chip |
-| 3, only when anything is present | The track's label or "Gaming", muted; W7's facet flags; the pick's overlap flag; the caller's context - Now's status, the Following feed's labels by time | the track; the status; the follow labels |
+| 1 | The star, the title; Cancelled or Removed from the schedule leading the title's words | the star; the title, its ★ and strike and marks; Cancelled; Removed |
+| 2 | The day's label where the caller asks (`showDay`), "2:30–3:30 PM", then hotel · room · level, the level by its `short` (#72) | the day label; the start and "to" end; the place chip |
+| 3, only when anything is present | Celebrity; the pick's overlap flag; the caller's context - Now's status, the Following feed's labels by time; W7's facet flags; the track's label or "Gaming", muted, left off on a row with an overlap flag | Celebrity; the status; the follow labels; the track |
 | under 3, Search's ranked results only | The two-line snippet: the result's anatomy, why it matched | the snippet |
 
 - **The overlap flag** (W1): a picked row that overlaps another pick
@@ -1181,16 +1191,17 @@ caller; section 5, the gap line.
   `<title>`" for one clash, "Overlaps `<n>` picks" for more than one; it
   appears at the moment of starring, on a row or in the sheet, and
   persists; an unstarred row carries none. The check runs over every pick,
-  not the consecutive pair `gapHTML()` sees; the helper's home is PR 7's
-  stop 1 to propose. What an overlap is, is settled (PR #76): `walk.js`
-  `connection()`'s, the two picks' intersection, the one computation the
-  hero and the gap line read - the row PR words the flag from it and does
-  not compute it again.
+  not the consecutive pair `gapHTML()` sees, by one helper beside
+  `connection()` (as built, below). What an overlap is, is settled (PR
+  #76): `walk.js` `connection()`'s, the two picks' intersection, the one
+  computation the hero reads - the row words the flag from it and does not
+  compute it again.
 - **Facets** (W7) are flags on line 3 and words on the sheet (section 7).
 - **The gap line** stays: `leave.js` `gapHTML()` - `walk.js` from PR 3 -
-  says the walk and the two tight bands between rows, never on a row, and
-  the overlap between rows on Now and Plans. Plans' timeline keeps its walk
-  links, one band, as built.
+  says the walk and the two tight bands between rows, never on a row; the
+  overlap it said between rows on Now and Plans the two rows' flags say
+  since PR #92 (#73). Plans' timeline keeps its walk links, one band, as
+  built.
 - **Callers** as the recon lists them, plus Plans' Crew segment,
   `list: "crew:<user>"`.
 
@@ -1199,6 +1210,145 @@ caller; section 5, the gap line.
 Moves: `ui.js` `rowHTML()`, `styles.css`'s row rules, every caller's
 options. Tests: the page tests that read a row's parts, and
 `style.test.js` [1827]. PR 7.
+
+### The row and the gap line, as built
+
+PR #92, step 7's first (W1, W7, W18), with #64, #66, #72 and #73: the
+row's lines, the facet flags, the level and the overlap flag; the gap line
+saying no overlap; and two lines of words, the hero's and a crew line's.
+The event sheet is next (ROADMAP, step 7).
+
+- **The row** (`ui.js` `rowHTML()`), for all fifteen of its calls, their
+  options unchanged:
+
+  | Line | What |
+  |---|---|
+  | 1 | The title, two lines at most, its ★ before it when picked, struck when cancelled or removed. "Cancelled" or "Removed from the schedule" leads its words, inside the two lines, the tag not struck. |
+  | 2 | The day's label where `showDay` asks and the time, `util.js` `fmtRange()` - "Sat 2:30–3:30 PM", "11:30 AM–12:30 PM"; then the place, `venues.js` `placeHTML()`, as text in the hotel's hue, no box, and the level, `levelShort()`, each after a middle dot. |
+  | 3, only when anything is there | Celebrity; the overlap flag; the caller's context - Now's `.status`, the Following feed's labels; the flags, `data.js` `flagsOf()`; the track, or "Gaming". A middle dot between each two; an empty part is left out, and with none there is no line. |
+  | under 3 | Search's ranked results: the snippet, as before; a compact list hides it. |
+
+  The row keeps `li.row`, `data-id`, `data-list`, its classes,
+  `button.row-main` and `button.star`, and the class names the tests and
+  `now.js` `tickNow()` read: `.room`, `.rh`, `.rr`, `.day`, `.status`,
+  `.track`. Under a time head the row says its time all the same. The time
+  column is gone, and the gap line's left margin, which cleared it, is the
+  row's, 14px.
+- **One line each** (`styles.css`). Lines 2 and 3 are each a flex line one
+  line tall that wraps, its overflow clipped (`overflow: clip`): a part
+  that does not fit wraps onto a line the box does not show, so it drops
+  whole, never clipped. Clip, not hidden: a hidden box can be scrolled - by
+  `scrollIntoView()`, Find on page or a screen reader - and a scrolled line
+  would show the dropped part and hide the rest. On line 2 the time, the
+  hotel and the room are one part, which shrinks only when it is alone on
+  the line - the room takes the ellipsis, the time and the hotel never
+  shorten - and the level with its dot is a second, so it drops before the
+  room is cut. On line 3 each part carries its own dot and they drop from
+  the end: the track, the flags from last to first, then the context. The
+  overlap flag counts as 8em when the line is filled and then takes the
+  room left, up to its whole text, so its title shortens first; it and
+  Celebrity never drop. A Celebrity row with an overlap can lose Now's
+  status: in Chromium only with Larger text, and then at 375, 390 and 402
+  alike (#73's Cost).
+- **The place** (`venues.js` `placeHTML()`). A hotel whose `display` is
+  "location", the Mart, is its room alone - "Mart Building 3, Floor 1",
+  where every screen said "Mart · Mart Building 3, Floor 1" - on all five
+  screens it feeds: the row, the hero, the Map's next card, the event sheet
+  and the mini-bar.
+- **The level** (`venues.js` `levelShort()`): the level's `short` by the
+  event's `level` id (#72); none where the event has no level, and none
+  where the room, case-folded, holds the `short` less a trailing " Level"
+  or " Floor" - "Atrium Ballroom" is said to be on the Atrium Level,
+  "Imperial Ballroom" is not said to be on the Marquis Level. On 2026's
+  schedule 1,634 events show a level, 1,542 leave it off and 283 have
+  none. The sheet PR shows the level in full.
+- **The flags** (`data.js` `flagsOf()`), `{key, label}` in the order a row
+  says them: Sold out, alone in the warning colour; Extra fee; Sign-up; an
+  age, the listing's minimum, else 18+ for a mature audience; Kids. On
+  2026's schedule 460 events carry one or more: 387 one, 66 two, 7 three.
+  The event sheet's 18+ tag keeps its warning colour until the sheet PR
+  reconciles the two.
+- **The overlap flag** (`walk.js` `overlapsOf()`): every other pick a pick
+  overlaps, over the whole plan, each pair asked of `connection()` in start
+  order, so the flag and the hero hold one answer; a cancelled or removed
+  pick overlaps nothing and counts in no other pick's. "Overlaps
+  `<title>`" for one, "Overlaps `<n>` picks" for more, in the warning
+  colour, on the row of every pick that clashes, wherever it is drawn -
+  Search, Explore, Now, Plans' list, a crewmate's block of the crew's day,
+  where the reader stars a crewmate's pick, the hotel sheet and a shared
+  day. A star draws every row again, so the flag comes and goes on both
+  rows at once; the shared day writes each row's `.row-main` in place as it
+  writes its star (`sheet.js` `refreshSharedDay()`), its scroll and the
+  focus on a star kept. A flagged row leaves its track off. Over all 3,459
+  rows of 2026 the helper takes under a millisecond with 60 picks, and 11
+  ms with 250.
+- **The gap line** (`walk.js` `gapHTML()`): the walk and the two tight
+  bands, and nothing for an overlap. `connection()` and the hero do not
+  change.
+- **Two lines of words.** The hero names its next pick as `venues.js`
+  `placeShort()` names a place - an offsite pick by its room, else
+  offsite, never Other (section 2) - and a stream by its title, as before.
+  A crew line's start is a span that does not wrap, so "4:00" and "PM" stay
+  on one line, on Now's lines and the hotel sheet's alike (`ui.js`
+  `crewLineHTML()`); `fmtShort()` does not change.
+- **#66.** No new control: a row's two buttons are as they were,
+  `.row-main` named by its words, the flag and the level among them. Focus
+  is unchanged - `scroll.js` `focusKey()` finds the same selectors - and
+  the shared day keeps the focus on a star as it writes the row's words in
+  place. The shortest compact row is about 61 px tall from its
+  declarations, and the star 56 px wide at the row's full height. The two
+  lines' text is in rem and their heights and gaps in em - line 3's height
+  with a 19 px floor, the pills' - so Larger text scales them; only the 5
+  and 4 px above them stay put. The overlap and Sold out are the warning
+  colour the page already uses, and the place the hotel's hue, as the hero
+  writes it. A dropped level stays in the row's text, so a screen reader
+  reads it.
+- **Measured** in desktop Chromium, the app's pane, on the built page with
+  2026's schedule; the phone check to come.
+  - The level, over the 1,634 rows that show one, with Search's every row
+    drawn and the list set to each text width - the list's at 375 is 305
+    px, the hotel sheet's and a shared day's 271 - and the day's label
+    written "Sat":
+
+    | Text width | Normal | Normal, with the day | Larger | Larger, with the day |
+    |---|---|---|---|---|
+    | 305, a list at 375 | 1,372 shown | 1,099 | 683 | 290 |
+    | 271, the hotel sheet or a shared day at 375 | 824 | 419 | 222 | 89 |
+    | 320, a list at 390 | 1,503 | 1,306 | 986 | 530 |
+    | 332, a list at 402 | 1,547 | 1,435 | 1,179 | 746 |
+
+    In none of the sixteen did a level show in part, a room take the
+    ellipsis while its level showed, or a line scroll.
+  - At 375, 390 and 402 wide, Larger text off and on, on Search (Saturday,
+    and a query), Plans' list, Now, the Hilton's sheet and a shared day of
+    ten: no part of line 2 or line 3 shown in part, no room cut while its
+    level showed, no line scrolled. Under Larger text, line 3 dropped Now's
+    status on one row at each width, a celebrity pick with an overlap.
+  - A shared day still fits three rows at 375x667 (section 5), and four of
+    the reader's picks put the hotel sheet's crew 394 px down at 375x812,
+    432 with Larger text (section 8).
+- **The tests.** `tests/unit/row.test.js`: the four helpers, and 2026's
+  counts above. `tests/page/row.test.js`: the lines on the sample and on a
+  copy of it with the flags, a bare event, a gaming one and a cancelled
+  one; the flag at starring on both rows, over every pick, after
+  Celebrity, in Plans' list and a crewmate's block, gone on an unstar, and
+  never on a row that is not a pick or for a cancelled pick.
+  `tests/page/walk.test.js`: the gap line's
+  overlap tests read the row's flag and an empty gap line, its pin names
+  any overlap as its exception, and the hero's offsite next pick.
+  `removed.test.js` holds a removed pick to no flag, `share-day.test.js`
+  the shared day's flags in place, `crew-everywhere.test.js`'s pin the
+  crew line's span, and `style.test.js` the two lines' rules, line 3's
+  parts and the overlap's among them, and the tag's, which the title's
+  strike does not reach. [271], [523], [630] and [671] read the day's
+  label on line 2 (`tests/PORT-LEDGER.md`); the new tests carry no ledger
+  bracket. A mutation pass of 37 mutants over the new rules - the range,
+  the level, the flags, the overlap and its order, the gap line, the Mart,
+  the shared day, the hero's name, the crew line and the CSS - killed all
+  37 on its last run. The first run, of 30, left one, Celebrity after the
+  overlap, which got a test; the seven more are the rules a review found
+  no test held - the level's " Floor", the tag's inline-block, line 3's
+  parts and the overlap's flex - which got pins.
 
 ## 11. Entry points
 
@@ -1283,7 +1433,9 @@ PR #76, with #40.
     what it said before, but for two named exceptions - a stream's pair
     within the slack, which said "about 0 min. Tight but doable" and says
     nothing now; and a pick inside the one above, which overlapped by the
-    time to the other's end and now overlaps by its own length;
+    time to the other's end and now overlaps by its own length - and since
+    PR #92 nothing for any overlap, which the two rows' flags say (section
+    10, as built);
   - `nextPickInConDay()`, unchanged, and `previousPick()`, private.
 
   `leave.js` and `walk.js` are 24% alike, and their tests 25%, so after
@@ -1300,11 +1452,13 @@ PR #76, with #40.
   125, 126 and 145 to 148; the rest kept, a pick on now's rewritten for
   the new words; the hero in each band, in two buildings and in one,
   against pairs the fixture has at 1:05 PM, and the gap line under it
-  giving the pair the same band; a stream after the pick on and one
+  giving the pair the same band - since PR #92 but for an overlap, which
+  the pair's rows flag; a stream after the pick on and one
   overlapping it; a pick inside the one that is on, overlapping by its own
-  length on the hero and on the gap line; nothing on the three surfaces
-  saying leave or marked late; and `gapHTML()` pinned against the code it
-  replaced, with its two exceptions, over every pair of the fixture's
+  length on the hero and, until PR #92, on the gap line; nothing on the
+  three surfaces saying leave or marked late; and `gapHTML()` pinned
+  against the code it replaced, with its two exceptions - since PR #92,
+  any overlap the second, now nothing - over every pair of the fixture's
   events a few hours apart and over made pairs at every gap from a
   40-minute overlap to 40 minutes apart, and a half hour inside four.
   `plans.test.js`: two picks in two hotels keep their walk link, and a
@@ -1325,8 +1479,14 @@ As built: the recon, section 3, what the event panel does not carry.
 
 - **W42:** the `people` block is `[]` in 2026's file until the line
   review lands (#61); the sheet's line shows only once it has rows.
-- **W18:** the levels are in `venues.json` for the Marriott, the Hyatt and
-  the Hilton (#45); the one-line "how to get there" exists nowhere yet.
+- **W18:** the levels are in `venues.json` for six hotels - the Marriott,
+  the Hyatt, the Hilton, the Westin, the Courtland Grand and the Mart
+  (#45; the Westin's as the con names them, and the Courtland Grand's,
+  since PR #78) - each with a
+  short name and a storey (#72); a row names an event's level by its short
+  name since PR #92 (section 10, as built). The sheet's level and the
+  one-line "how to get there" wait for the sheet PR, and the line exists
+  nowhere yet.
 - **W16:** the zero state's curated source (section 4; Open).
 - **W45:** the server-side delete, a `supabase/` migration and RPC, with
   the gear PR.
@@ -1357,19 +1517,32 @@ As built: the recon, section 8, what crews' readers offer today.
   reader's own picks would be re-pointed.
 - A reload loses a shared day: it is kept in memory alone and the address
   is cleaned as it is read, so the link in the chat is the way back.
-- How an offsite pick is named in a line: the hero says "then Other
+- ~~How an offsite pick is named in a line: the hero says "then Other
   next" and "then Other at 3:00 PM", as it did before PR #76, where the
   walk estimate and the map's On now line name its venue - the row PR's
   (PR 7), which settles how a row and a line name a place. Until then,
   since PR #81, Now's crew lines name it as the Map's On now line does,
-  its room or else offsite, by one helper, `venues.js` `placeShort()`.
-- A crew line's time can break in two: after a long name, "4:00" ends one
+  its room or else offsite, by one helper, `venues.js` `placeShort()`.~~
+  Settled by PR #92, step 7: the hero names its next pick as
+  `placeShort()` does - an offsite pick by its room, else offsite - and a
+  stream by its title (sections 2 and 10, as built).
+- ~~A crew line's time can break in two: after a long name, "4:00" ends one
   line and "PM" starts the next, on Now's lines and the hotel sheet's
   alike - one builder, `ui.js` `crewLineHTML()`, whose start is `util.js`
   `fmtShort()`'s, an ordinary space between the two. Within the
   24-character cap on a name, measured in the hotel sheet at 375 px: 23
   W's, or 24 M's under Larger text. PR 7's, the row and the line, which
-  settles how a row and a line say a time.
+  settles how a row and a line say a time.~~ Settled by PR #92, step 7:
+  the start is a span that does not wrap, `fmtShort()` unchanged (section
+  10, as built).
+- A cancelled pick. The hero and the gap line still band it - "then
+  `<place>` at 3:00 PM: overlaps by 30 min", a walk band between rows -
+  while a row's overlap flag counts a cancelled pick in no other pick's,
+  and gives it none (#73; section 10, as built). Step 8b's to settle, with
+  the alternatives it offers for a cancelled pick (ROADMAP, tentpole 5).
+- The hotel sheet's rows name the hotel its title already names - "Hilton
+  · 306 · 3rd Floor" under the heading "Hilton" - on the narrowest lines a
+  row is drawn on, 271 px of text at 375 (section 10, as built).
 - Whose crew. Now's crew section, the Map's count and who's going take
   every crew the reader is in, by `goingTo()`'s rule - a person once, by
   the oldest crew's name - while Plans' Crew segment shows the one crew

@@ -595,8 +595,9 @@ their `order`; a hotel's fields and a level's, in the order below.
   client reads, imported at its build (#49); `placeless` (Streaming,
   Other and Unknown); `display`, whether the room shown is the rest of
   the location or the whole of it (`location` for AmericasMart, else
-  `rest`); its `levels`; and `unplaced`, each room with no known level
-  and its note.
+  `rest`), which the client reads too since PR #92, to name the Mart by
+  its room alone (#73); its `levels`, whose `short` a row reads (#73); and
+  `unplaced`, each room with no known level and its note.
 - **Keys:** the prefixes the source writes, matched longest first.
   Hardy Ivy Park's one key is `Hardy`: the source writes
   `Hardy - Terraces`, so its venue token is `Hardy`, and the rest is the
