@@ -1,0 +1,230 @@
+{
+  "hotel": "Marriott",
+  "level": "atrium",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 540,
+    "h": 430
+  },
+  "anchors": [
+    {
+      "name": "elevator core",
+      "x": 392.0,
+      "y": 210.0
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Atrium Ballroom A",
+      "cx": 308.0,
+      "cy": 70.1,
+      "w": 105,
+      "h": 110,
+      "rot": 0
+    },
+    {
+      "id": "Atrium Ballroom B",
+      "cx": 415.5,
+      "cy": 70.1,
+      "w": 110,
+      "h": 110,
+      "rot": 0
+    },
+    {
+      "id": "Atrium Ballroom C",
+      "cx": 482.0,
+      "cy": 70.1,
+      "w": 23,
+      "h": 110,
+      "rot": 0
+    },
+    {
+      "id": "A601",
+      "cx": 497.9,
+      "cy": 182.0,
+      "w": 45,
+      "h": 54,
+      "rot": 0
+    },
+    {
+      "id": "A602",
+      "cx": 497.9,
+      "cy": 236.0,
+      "w": 45,
+      "h": 54,
+      "rot": 0
+    },
+    {
+      "id": "A706",
+      "cx": 51.4,
+      "cy": 166.7,
+      "w": 52,
+      "h": 51,
+      "rot": 0
+    },
+    {
+      "id": "A707",
+      "cx": 92.9,
+      "cy": 166.7,
+      "w": 31,
+      "h": 51,
+      "rot": 0
+    },
+    {
+      "id": "A708",
+      "cx": 130.0,
+      "cy": 163.2,
+      "w": 24,
+      "h": 45,
+      "rot": 0
+    },
+    {
+      "id": "A704",
+      "cx": 51.4,
+      "cy": 256.2,
+      "w": 52,
+      "h": 51,
+      "rot": 0
+    },
+    {
+      "id": "A703",
+      "cx": 92.9,
+      "cy": 256.2,
+      "w": 31,
+      "h": 51,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "Atrium Ballroom",
+      "kind": "ballroom",
+      "rooms": [
+        "Atrium Ballroom A",
+        "Atrium Ballroom B",
+        "Atrium Ballroom C"
+      ],
+      "outline": {
+        "cx": 374.5,
+        "cy": 70.1,
+        "w": 238.0,
+        "h": 110.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "A601–A602",
+      "kind": "run",
+      "rooms": [
+        "A601",
+        "A602"
+      ],
+      "outline": {
+        "cx": 497.9,
+        "cy": 209.0,
+        "w": 45.0,
+        "h": 108.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "A706–A707",
+      "kind": "run",
+      "rooms": [
+        "A706",
+        "A707"
+      ],
+      "outline": {
+        "cx": 66.9,
+        "cy": 166.7,
+        "w": 83.0,
+        "h": 51.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "A703–A704",
+      "kind": "run",
+      "rooms": [
+        "A704",
+        "A703"
+      ],
+      "outline": {
+        "cx": 66.9,
+        "cy": 256.2,
+        "w": 83.0,
+        "h": 51.0,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Atrium Foyer",
+      "cx": 347.9,
+      "cy": 154.7,
+      "w": 150,
+      "h": 55,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "Elevators",
+      "x": 392.0,
+      "y": 210.0
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the Lobby Level",
+      "x": 288.1,
+      "y": 210.2
+    },
+    {
+      "kind": "bridge",
+      "name": "Skybridge to the Hyatt",
+      "x": 31.3,
+      "y": 132.9
+    },
+    {
+      "kind": "bridge",
+      "name": "Skybridge to Peachtree Center and MARTA",
+      "x": 64.1,
+      "y": 381.7
+    }
+  ],
+  "streets": [
+    {
+      "name": "Baker Street NE",
+      "side": "N"
+    },
+    {
+      "name": "John Portman Blvd NE",
+      "side": "S"
+    },
+    {
+      "name": "Peachtree Center Ave NE",
+      "side": "W"
+    },
+    {
+      "name": "Courtland Street NE",
+      "side": "E"
+    }
+  ],
+  "sources": [
+    "sizes: the hotel's own capacity chart, on its events page (https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/, read 2026-10-02)",
+    "placement, order and orientation: the hotel's own floor plan, as an image in reference/plans/marriott-marquis-aom-2017.pdf, p. 1, measured from the centre of the round elevator core (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "one level above the lobby: the Atrium Ballroom across the north side, A601 and A602 on the east wall, and A701 to A708 far to the west, between the two office towers over the porte cochere, where the bridge to the Hyatt leaves",
+    "the Atrium Ballroom has three sections in the hotel's plan and chart, A, B and C: the venues file's Atrium Ballroom D is not on either, and is not drawn",
+    "the chart makes the sections 105, 110 and 23 ft wide; the plan draws them about 99, 93 and 45, so C is about twice the chart's. The chart is used: its 238 ft agrees with the plan, and its 110 ft depth is about 9 ft more than the plan draws. The ballroom is centred on the plan's outline",
+    "A601 and A602 are the chart's 45 ft wide from their west wall, which takes them to the plan's window line, and their 108 ft is centred on the 112 ft the plan draws",
+    "only the rooms the venues file holds are drawn: A701, A702 and A705 are on the plan, and had no 2026 programming",
+    "this page of the plan is drawn at the smallest scale of the four, and squashed north to south: its round elevator core is 118 px across and 107 down. It is read at 2.29 px to the foot across and 2.07 down. The A700 rooms are 265 to 345 ft from the elevator core it is measured from: they are placed less finely than the rest"
+  ]
+}

@@ -1,0 +1,168 @@
+{
+  "hotel": "Marriott",
+  "level": "lobby",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 540,
+    "h": 430
+  },
+  "anchors": [
+    {
+      "name": "elevator core",
+      "x": 392.0,
+      "y": 210.0
+    },
+    {
+      "name": "east elevators",
+      "x": 456.4,
+      "y": 207.8
+    },
+    {
+      "name": "central escalators",
+      "x": 308.0,
+      "y": 210.1
+    }
+  ],
+  "rooms": [
+    {
+      "id": "L401",
+      "cx": 498.6,
+      "cy": 297.3,
+      "w": 25,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "L402",
+      "cx": 498.6,
+      "cy": 325.3,
+      "w": 25,
+      "h": 30,
+      "rot": 0
+    },
+    {
+      "id": "L403",
+      "cx": 498.6,
+      "cy": 352.3,
+      "w": 25,
+      "h": 24,
+      "rot": 0
+    },
+    {
+      "id": "L406",
+      "cx": 458.0,
+      "cy": 307.2,
+      "w": 25,
+      "h": 21,
+      "rot": 0
+    },
+    {
+      "id": "L405",
+      "cx": 458.0,
+      "cy": 328.2,
+      "w": 25,
+      "h": 21,
+      "rot": 0
+    },
+    {
+      "id": "L404",
+      "cx": 486.3,
+      "cy": 384.1,
+      "w": 22,
+      "h": 28,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "L401–L403",
+      "kind": "run",
+      "rooms": [
+        "L401",
+        "L402",
+        "L403"
+      ],
+      "outline": {
+        "cx": 498.6,
+        "cy": 324.3,
+        "w": 25.0,
+        "h": 80.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "L405–L406",
+      "kind": "run",
+      "rooms": [
+        "L406",
+        "L405"
+      ],
+      "outline": {
+        "cx": 458.0,
+        "cy": 317.7,
+        "w": 25.0,
+        "h": 42.0,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "Elevators",
+      "x": 392.0,
+      "y": 210.0
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalators",
+      "x": 308.0,
+      "y": 210.1
+    },
+    {
+      "kind": "elevator",
+      "name": "East elevators",
+      "x": 456.4,
+      "y": 207.8
+    },
+    {
+      "kind": "entrance",
+      "name": "Main entrance",
+      "x": 252.2,
+      "y": 210.0
+    }
+  ],
+  "streets": [
+    {
+      "name": "Baker Street NE",
+      "side": "N"
+    },
+    {
+      "name": "John Portman Blvd NE",
+      "side": "S"
+    },
+    {
+      "name": "Peachtree Center Ave NE",
+      "side": "W"
+    },
+    {
+      "name": "Courtland Street NE",
+      "side": "E"
+    }
+  ],
+  "sources": [
+    "sizes: the hotel's own capacity chart, on its events page (https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/, read 2026-10-02)",
+    "placement, order and orientation: the hotel's own floor plan, as an image in reference/plans/marriott-marquis-aom-2017.pdf, p. 2, measured from the centre of the round elevator core (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "the street level on Peachtree Center Avenue: the main entrance and porte cochere to the west, the front desk north of the elevator core, L401 to L406 in the south-east corner",
+    "L501 to L508, by the office towers south-west of the entrance, are on the plan and are not rooms of the venues file: Dragon Con's map marks VIP badge pick-up at L508",
+    "L405 and L406 are the chart's 25 x 21 each, 42 ft together, which is what the plan draws; the chart's row for the two combined prints 25 x 54",
+    "the chart makes L402 the largest of L401 to L403, at 30 ft; the plan draws it the smallest, about 24 ft between the air walls, with L401 about 28 and L403 about 27. The chart is used, and the run's 80 ft agrees with the plan",
+    "this page of the plan is drawn at a smaller scale than the Marquis and International levels' pages, and squashed north to south: its round elevator core is 122 px across and 114 down. It is read at 2.35 px to the foot across and 2.2 down, against 3.24 and 3.55 for those pages, so its rooms are placed less finely"
+  ]
+}

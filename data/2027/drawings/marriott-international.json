@@ -1,0 +1,230 @@
+{
+  "hotel": "Marriott",
+  "level": "international",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 540,
+    "h": 430
+  },
+  "anchors": [
+    {
+      "name": "elevator core",
+      "x": 392.0,
+      "y": 210.0
+    },
+    {
+      "name": "east elevators",
+      "x": 456.4,
+      "y": 207.8
+    }
+  ],
+  "rooms": [
+    {
+      "id": "International 10",
+      "cx": 270.6,
+      "cy": 351.6,
+      "w": 27.6,
+      "h": 56.1,
+      "rot": 0
+    },
+    {
+      "id": "International 9",
+      "cx": 298.2,
+      "cy": 351.6,
+      "w": 27.6,
+      "h": 56.1,
+      "rot": 0
+    },
+    {
+      "id": "International 8",
+      "cx": 325.8,
+      "cy": 351.6,
+      "w": 27.6,
+      "h": 56.1,
+      "rot": 0
+    },
+    {
+      "id": "International 7",
+      "cx": 353.4,
+      "cy": 351.6,
+      "w": 27.6,
+      "h": 56.1,
+      "rot": 0
+    },
+    {
+      "id": "International 6",
+      "cx": 381.0,
+      "cy": 351.6,
+      "w": 27.6,
+      "h": 56.1,
+      "rot": 0
+    },
+    {
+      "id": "International 5",
+      "cx": 408.6,
+      "cy": 351.6,
+      "w": 27.6,
+      "h": 56.1,
+      "rot": 0
+    },
+    {
+      "id": "International 4",
+      "cx": 435.4,
+      "cy": 351.6,
+      "w": 26,
+      "h": 56.1,
+      "rot": 0
+    },
+    {
+      "id": "International 3",
+      "cx": 325.0,
+      "cy": 259.0,
+      "w": 27.6,
+      "h": 50.1,
+      "rot": 0
+    },
+    {
+      "id": "International 2",
+      "cx": 352.6,
+      "cy": 262.0,
+      "w": 27.6,
+      "h": 44.1,
+      "rot": 0
+    },
+    {
+      "id": "International 1",
+      "cx": 380.2,
+      "cy": 266.0,
+      "w": 27.6,
+      "h": 36.1,
+      "rot": 0
+    },
+    {
+      "id": "International C",
+      "cx": 378.6,
+      "cy": 129.0,
+      "w": 29.6,
+      "h": 46.6,
+      "rot": 0
+    },
+    {
+      "id": "International B",
+      "cx": 407.2,
+      "cy": 130.2,
+      "w": 27.6,
+      "h": 44.1,
+      "rot": 0
+    },
+    {
+      "id": "International A",
+      "cx": 433.1,
+      "cy": 135.2,
+      "w": 24.1,
+      "h": 34.1,
+      "rot": 0
+    }
+  ],
+  "composites": [
+    {
+      "id": "International Hall South",
+      "of": [
+        "International 10",
+        "International 9",
+        "International 8",
+        "International 7",
+        "International 6",
+        "International 5",
+        "International 4"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "name": "International 4–10",
+      "kind": "ballroom",
+      "rooms": [
+        "International 10",
+        "International 9",
+        "International 8",
+        "International 7",
+        "International 6",
+        "International 5",
+        "International 4"
+      ],
+      "outline": {
+        "cx": 352.6,
+        "cy": 351.6,
+        "w": 191.6,
+        "h": 56.1,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Pre-function",
+      "cx": 363.8,
+      "cy": 303.8,
+      "w": 135,
+      "h": 36,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "Elevators",
+      "x": 392.0,
+      "y": 210.0
+    },
+    {
+      "kind": "elevator",
+      "name": "East elevators",
+      "x": 456.4,
+      "y": 207.8
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the Marquis Level",
+      "x": 444.1,
+      "y": 208.0
+    },
+    {
+      "kind": "entrance",
+      "name": "Courtland Street entrance",
+      "x": 490.6,
+      "y": 208.0
+    }
+  ],
+  "streets": [
+    {
+      "name": "Baker Street NE",
+      "side": "N"
+    },
+    {
+      "name": "John Portman Blvd NE",
+      "side": "S"
+    },
+    {
+      "name": "Peachtree Center Ave NE",
+      "side": "W"
+    },
+    {
+      "name": "Courtland Street NE",
+      "side": "E"
+    }
+  ],
+  "sources": [
+    "sizes: the hotel's own capacity chart, on its events page (https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/, read 2026-10-02)",
+    "placement, order and orientation: the hotel's own floor plan, as an image in reference/plans/marriott-marquis-aom-2017.pdf, p. 4, measured from the centre of the round elevator core (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "the lowest level, at the street on Courtland: International 4 to 10 along the south side, 1 to 3 north of them across the pre-function floor, A to C north of the elevator core",
+    "International Hall South is Dragon Con's name for International 4 to 10 together: its map marks Epic Photo Ops at 'International Hall South 4-10'. It is a composite here, lit by lighting the seven rooms",
+    "International Hall North is a room of the venues file with no 2026 event; neither the hotel's plan nor Dragon Con's map says which rooms it is, so it is not drawn",
+    "International 1, 2 and 3 are the table's 27.6 ft wide and stand on the south wall they share, at the table's depths, 36.1, 44.1 and 50.1 ft; the plan draws 3 wider than the table, with a service stair in its west end",
+    "the plan draws no full elevator core on this level, only the curved walls round it; the centre is fitted to those, and the two east elevators then fall within 2 ft of where the Marquis Level puts them"
+  ]
+}
