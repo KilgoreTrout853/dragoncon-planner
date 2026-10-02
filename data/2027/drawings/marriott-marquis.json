@@ -1,0 +1,262 @@
+{
+  "hotel": "Marriott",
+  "level": "marquis",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 540,
+    "h": 430
+  },
+  "anchors": [
+    {
+      "name": "elevator core",
+      "x": 392.0,
+      "y": 210.0
+    },
+    {
+      "name": "east elevators",
+      "x": 456.4,
+      "y": 207.8
+    },
+    {
+      "name": "central escalators",
+      "x": 308.0,
+      "y": 210.1
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Marquis Ballroom A",
+      "cx": 279.5,
+      "cy": 66.4,
+      "w": 59,
+      "h": 89,
+      "rot": 0
+    },
+    {
+      "id": "Marquis Ballroom B",
+      "cx": 350.0,
+      "cy": 66.4,
+      "w": 82,
+      "h": 89,
+      "rot": 0
+    },
+    {
+      "id": "Marquis Ballroom C",
+      "cx": 418.5,
+      "cy": 66.4,
+      "w": 55,
+      "h": 89,
+      "rot": 0
+    },
+    {
+      "id": "Marquis Ballroom D",
+      "cx": 471.5,
+      "cy": 66.4,
+      "w": 51,
+      "h": 89,
+      "rot": 0
+    },
+    {
+      "id": "Imperial Ballroom A",
+      "cx": 302.7,
+      "cy": 360.8,
+      "w": 72,
+      "h": 92,
+      "rot": 0
+    },
+    {
+      "id": "Imperial Ballroom B",
+      "cx": 387.7,
+      "cy": 360.8,
+      "w": 98,
+      "h": 92,
+      "rot": 0
+    },
+    {
+      "id": "M103",
+      "cx": 494.0,
+      "cy": 296.8,
+      "w": 34,
+      "h": 22,
+      "rot": 0
+    },
+    {
+      "id": "M104",
+      "cx": 494.0,
+      "cy": 324.8,
+      "w": 34,
+      "h": 34,
+      "rot": 0
+    },
+    {
+      "id": "M105",
+      "cx": 494.0,
+      "cy": 352.8,
+      "w": 34,
+      "h": 22,
+      "rot": 0
+    },
+    {
+      "id": "M303",
+      "cx": 192.4,
+      "cy": 208.5,
+      "w": 28,
+      "h": 27,
+      "rot": 0
+    },
+    {
+      "id": "M302",
+      "cx": 196.4,
+      "cy": 237.5,
+      "w": 36,
+      "h": 31,
+      "rot": 0
+    },
+    {
+      "id": "M301",
+      "cx": 202.4,
+      "cy": 270.5,
+      "w": 48,
+      "h": 35,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "Marquis Ballroom",
+      "kind": "ballroom",
+      "rooms": [
+        "Marquis Ballroom A",
+        "Marquis Ballroom B",
+        "Marquis Ballroom C",
+        "Marquis Ballroom D"
+      ],
+      "outline": {
+        "cx": 373.5,
+        "cy": 66.4,
+        "w": 247.0,
+        "h": 89.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "Imperial Ballroom",
+      "kind": "ballroom",
+      "rooms": [
+        "Imperial Ballroom A",
+        "Imperial Ballroom B"
+      ],
+      "outline": {
+        "cx": 351.7,
+        "cy": 360.8,
+        "w": 170.0,
+        "h": 92.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "M103–M105",
+      "kind": "run",
+      "rooms": [
+        "M103",
+        "M104",
+        "M105"
+      ],
+      "outline": {
+        "cx": 494.0,
+        "cy": 324.8,
+        "w": 34.0,
+        "h": 78.0,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Marquis Foyer",
+      "cx": 352.5,
+      "cy": 146.0,
+      "w": 150,
+      "h": 55,
+      "rot": 0
+    },
+    {
+      "name": "Imperial Foyer",
+      "cx": 351.0,
+      "cy": 272.5,
+      "w": 80,
+      "h": 75,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "Elevators",
+      "x": 392.0,
+      "y": 210.0
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalators",
+      "x": 308.0,
+      "y": 210.1
+    },
+    {
+      "kind": "elevator",
+      "name": "East elevators",
+      "x": 456.4,
+      "y": 207.8
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the International Level",
+      "x": 445.7,
+      "y": 210.8
+    },
+    {
+      "kind": "bridge",
+      "name": "Skybridge to the Hilton",
+      "x": 506.8,
+      "y": 210.2
+    },
+    {
+      "kind": "info",
+      "name": "Convention information",
+      "x": 343.2,
+      "y": 210.2
+    }
+  ],
+  "streets": [
+    {
+      "name": "Baker Street NE",
+      "side": "N"
+    },
+    {
+      "name": "John Portman Blvd NE",
+      "side": "S"
+    },
+    {
+      "name": "Peachtree Center Ave NE",
+      "side": "W"
+    },
+    {
+      "name": "Courtland Street NE",
+      "side": "E"
+    }
+  ],
+  "sources": [
+    "sizes: the hotel's own capacity chart, on its events page (https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/, read 2026-10-02)",
+    "placement, order and orientation: the hotel's own floor plan, as an image in reference/plans/marriott-marquis-aom-2017.pdf, p. 3, measured from the centre of the round elevator core (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "one level below the lobby: the Marquis Ballroom across the north side, the Imperial Ballroom across the south, M301 to M304 down the west side and M101 to M109 in the south-east corner",
+    "only the rooms the venues file holds are drawn: M101, M102, M106 to M109, M201, M202 and M304 are on the plan, and had no 2026 programming",
+    "M303, M302 and M301 are drawn from the west wall they share at the table's widths, 28, 36 and 48 ft; the plan draws M303 as wide as M302",
+    "the Imperial Ballroom is the table's 92 ft deep from its north wall, on the Imperial Foyer; the plan draws it about 80 ft deep, with a service strip behind it",
+    "Dragon Con's map puts the Walk of Fame in the Marquis Ballroom and Main Programming in the Imperial Ballroom; Convention information is its map's, placed by eye"
+  ]
+}
