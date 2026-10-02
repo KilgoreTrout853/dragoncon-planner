@@ -1,14 +1,15 @@
 /* The walk between picks, and what it means for the plan: the walk estimate
-   from the pick before, and the tight-connection flag between two picks in a
+   from the pick before, the tight-connection flag between two picks in a
    row - an overlap, a gap shorter than the walk, or one shorter than the walk
-   and the slack (DECISIONS #40). Facts about the plan, never about the
+   and the slack (DECISIONS #40) - and every pick a pick overlaps across the
+   plan (#73). Facts about the plan, never about the
    reader: nothing here says where anyone is, or when to leave. The function
    that needs the moment takes it as a parameter called now, so this module
    does not import now() - and must not: the parameter shadows it. */
 import { minutesBetween } from "./util.js";
 import { conDayKey } from "./time.js";
 import { hotelPhrase, hotelShort, SLACK_MIN, walkMin } from "./venues.js";
-import { events } from "./data.js";
+import { byId, events } from "./data.js";
 import { picks } from "./picks.js";
 
 /* The pick before this one in the same con day, if any. */
@@ -43,8 +44,9 @@ function walkEstimate(next) {
    walk - a stream either side - has no other band, and no connection:
    null. Otherwise the band is "cant", the gap under the walk; "tight",
    under the walk and the slack; or null. One building is walked at its own
-   minutes, so a short gap inside it is flagged too. The hero and the gap
-   line both read this, so the app holds one opinion about a pair. */
+   minutes, so a short gap inside it is flagged too. The hero, the gap line
+   and overlapsOf() all read this, so the app holds one opinion about a
+   pair. */
 function connection(prev, next) {
   const walk = walkMin(prev.hotel, next.hotel), gap = minutesBetween(prev._e, next._s);
   if (next._s < prev._e) {
@@ -52,6 +54,25 @@ function connection(prev, next) {
   }
   if (!walk) return null;
   return {walk, gap, band: gap < walk ? "cant" : gap < walk + SLACK_MIN ? "tight" : null};
+}
+
+/* Every other pick a pick overlaps (W1; DECISIONS #73), in start order: over
+   the whole plan, not the pick before, each pair asked of connection() with
+   the earlier first - the longer first where two start together - so a row's
+   flag and the hero hold one opinion. A cancelled or removed pick is not
+   happening: it overlaps nothing and is in no other pick's list. [] for an
+   event that is not a pick. */
+function overlapsOf(ev) {
+  if (!picks.has(ev.id) || ev.cancelled || ev.removed) return [];
+  const out = [];
+  for (const id of picks) {
+    const p = byId.get(id);
+    if (!p || id === ev.id || p.cancelled || p.removed) continue;
+    const pFirst = p._s < ev._s || (+p._s === +ev._s && p._e > ev._e);
+    const c = pFirst ? connection(p, ev) : connection(ev, p);
+    if (c && c.band === "overlap") out.push(p);
+  }
+  return out.sort((a, b) => a._s - b._s || a.title.localeCompare(b.title));
 }
 
 /* The line between two rows: the pair's band in words, or nothing - nothing
@@ -71,4 +92,4 @@ function nextPickInConDay(now) {
   return events.find(e => picks.has(e.id) && e._s > now && conDayKey(e._s) === key) || null;
 }
 
-export { walkEstimate, connection, gapHTML, nextPickInConDay };
+export { walkEstimate, connection, overlapsOf, gapHTML, nextPickInConDay };
