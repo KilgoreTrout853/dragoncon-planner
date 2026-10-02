@@ -303,20 +303,148 @@ As built: the recon, section 2, Search, items 1 to 15.
 - **The filter sheet** (W13), a sheet panel, `#panel-filters`,
   takes the hotel chips, the kind chips, the Type control, the Fandom and
   Track selects and the noise toggle (items 3, 4, 7 and 8), and gains
-  W8's four topic axes and W7's facet flags. Apply and Clear.
+  W8's four topic axes. No Apply: a tap applies at once, and the list is
+  drawn again when the sheet closes; Clear (#70). W7's facet flags follow
+  step 7, once a row shows them.
 - **Under the box,** as built: the suggestions and the parsed chips
-  (items 5 and 6).
+  (items 5 and 6), and in the parsed chips' row each filter the sheet set.
 - Everything else as built: the results' title, the no-exact line, the
   list and its folds, the hidden-photo line, the empty state, More.
 - W6's cast group in Search's results is section 4's.
 
 **Home of:** W13; W8.
 
-Moves: `index.html` (the panel), `sheet.js` `openSheet()` (a fourth
-kind), `browse.js` `renderBrowse()`, `state.browse` (the axes and facets),
+Moves: `index.html` (the panel), `sheet.js` `openSheet()` (a seventh
+kind), `browse.js` `renderBrowse()`, `state.browse` (the axes),
 `search.js` `passesFilters()`, `dispatch.js`'s chip and select handlers.
 Tests: `search.test.js`'s chip suites, `untagged.test.js`, and the hotel
 panel's search (section 11). PR 6.
+
+### Search and the filter sheet, as built
+
+PR #88, step 6 (W13, with W8), with #63, #66 and #70.
+
+- **The page** (`browse.js` `renderBrowse()`). The sticky block is the
+  box and, right of it at the box's height, 48px, the Filters button, then
+  the day chips. The button's badge counts what the sheet set that is in
+  effect, hidden at none, and its name says so: "Filters", "Filters, 2
+  set". The block is built once, so a redraw writes only the badge and
+  the name: the box is never rebuilt under the keyboard. The box has a
+  name of its own, "Search the schedule", and its placeholder is
+  "Titles, guests, fandoms" (`search.js` `SEARCH_PLACEHOLDER`), the longer
+  "Search titles, guests, fandoms" measured too wide beside the button
+  with Larger text on and the badge showing: 228px of text in a box with
+  207. Under the block, only when there is something there: the
+  suggestions, then one row, "Filters in effect" - the Today chip, the
+  query's words, then each filter the sheet set, in the sheet's order. With
+  nothing set and nothing typed, the results' title follows the day chips.
+- **The panel,** `#panel-filters` (`filters.js` `filtersHTML()`, which
+  `sheet.js` `openSheet("filters")` draws as it opens): the heading
+  "Filters"; a body that scrolls on its own - Hotel, its small label and
+  its chips, All and each hotel; Kind, its label and its chips, Any kind
+  and each kind the schedule has; the Type control, All, Panels, Gaming;
+  Fandom and Track side by side; Medium, Genre, Craft and Subject two by
+  two, each "Any `<axis>`" and then its values by how many events carry
+  them, then by label, with the count, as the Fandom select's works are
+  ordered; and the toggle that hides photo sessions and video-room
+  screenings - and under the body, on screen, "Show `<n>` events" and
+  Clear. The chips wrap. A schedule with no tags has no Kind group, no
+  Fandom select and no topic selects.
+- **Live** (`dispatch.js` `onFiltersPanelClick()`,
+  `onFiltersPanelChange()`; `filters.js` `setFilter()`, `fillFilters()`).
+  A tap or a choice changes `state.browse` at once, one value a filter - a
+  second tap on the hotel that is on is All again - and the panel writes
+  what changed into the nodes already there, the pressed chips, the
+  selects, the toggle, Clear and the count, so focus stays where it was.
+  The count is `search.js` `browseResults()`'s, the list's own: "Show 1
+  event", "Show 1,234 events", and "No events match" at none, the button
+  still closing the sheet. Nothing behind is drawn while the sheet is open
+  for a tap. A redraw for any other reason - a pull, coming back to the
+  app, the index ready - draws the list as `state.browse` stands, and
+  leaves the panel, its focus and its scroll alone.
+- **Closing,** by Show `<n>` events, the backdrop, a swipe down on the
+  heading or Escape, draws the list once and gives focus back to the
+  Filters button. With anything changed since the sheet opened the list
+  starts from its top; with nothing changed, or a change taken back, where
+  it was. A drag that starts in the body scrolls it.
+- **Clear** (`filters.js` `clearFilters()`) takes the nine filters - the
+  hotel, the kind, the type, the fandom, the track and the four axes, a
+  held one's kept value among them - back to All, and the toggle to
+  Settings' default; never the day, nor the query. It is disabled with
+  nothing to clear, and enabled when only the toggle differs from Settings'
+  default.
+- **The chips under the box** (`browse.js` `parsedChipsHTML()`;
+  `filters.js` `inEffect()`) are gold, 44px, one row that scrolls
+  sideways and keeps its place across a redraw. A long label is cut with
+  an ellipsis; the chip's name carries it whole, "Remove `<label>`
+  filter". A tap takes that one filter off (`dispatch.js` `takeOff()`) -
+  a query's word out of the box, as before, or the sheet's filter back to
+  All - and focus goes to the chip that takes its place in the row, else
+  to the Filters button: never to the box, which would raise the keyboard.
+- **A word in the box holds its dimension** (#70). The query's hotel,
+  kind and track words - "hilton", "contest", "kids" - win over the
+  sheet's on their dimension, as `search.js` `activeFilters()` had them.
+  While one is in the box, the group shows the word's value, disabled,
+  with "Set by your search" tied to it for a screen reader; the sheet's
+  own value is kept, unshown under the box and uncounted, and comes back
+  when the word goes. Type, the fandom and the axes have no words.
+- **The empty state,** while a filter of the sheet's is in effect: "No
+  matches. Remove a filter above, or try another day or fewer words."
+  Unchanged otherwise.
+- **The topic axes** join `search.js` `passesFilters()` as the others do:
+  each set holds, an event with two values on one axis passing on either,
+  and an untagged event passing none that is set.
+- **The hotel sheet's "Search the Hyatt on Saturday"** lands on Search as
+  before, the hotel now a chip under the box and counted on Filters
+  (section 11).
+- **The module.** `src/filters.js`, a leaf after `ui` in `ORDER`: the
+  panel's markup, its in-place fill, what is in effect, Clear and one
+  filter set. The panel's element is `sheet.js`'s, its handlers
+  `dispatch.js`'s, which close the sheet as well.
+- **#66.** Every control in the panel is labelled and 44px - the chips,
+  the Type control and the selects grown from 40, the toggle - and Show
+  and Clear are 46px. Every field in the sheet is 16px, so an iPhone does
+  not zoom on a select. Focus goes to the heading as the panel opens and
+  back to the Filters button as it closes; Escape closes it. The row
+  under the box is 44px. The day chips and the suggestions stay at 38px.
+- **Measured** at 375x667 in desktop Chromium, on the built page with
+  2026's schedule and the real clock's has-ended notice, 111px, above
+  Search. The first result is 382px down, where it was 684px: 271px and
+  573px without the notice. The panel with nothing set: the sheet from
+  107px to the screen's foot, its heading at 140px, the body 411px tall
+  over 731px of groups, Show and Clear at 601 to 647px. With all nine set:
+  "No events match", the badge 9 and the button "Filters, 9 set", and nine
+  chips under the box, 44px tall, one row 1,088px wide that scrolls
+  sideways, none cut. With Larger text on and the nine set: the box 235px
+  beside a 104px button, its placeholder 175px of text in 205; the sheet
+  from 142px, the body 373px tall, Show and Clear still at 601 to 647px.
+- **The tests.** `tests/page/filters.test.js`, on a copy of the sample
+  whose untagged events carry the four axes at counts that differ: the
+  page's sticky block, the box's name and placeholder, nothing between the
+  day chips and the results; the panel alone shown, and hidden by another
+  panel; its groups, their order and labels, every control's name, the
+  topic options by count; each control changing the state and the count
+  with nothing behind drawn; one, none and the words for each; each way of
+  closing drawing the list once, and focus back; a drag in the body; the
+  scroll after closing, the toggle alone a change; Clear, the toggle alone
+  enabling it, and the list back to its first page; the badge and the
+  button's name; the chips under the box, their order, a hotel's short
+  name, a removal and where focus goes, Today's, a long label, the row's
+  place kept; a word holding its group, for the hotel, the track and the
+  kind, and Clear with one held; a render while open; a query inside a
+  filter; the CSS jsdom cannot show; and a schedule with no tags, where
+  "kids" holds a track it lacks.
+  `tests/unit/axes.test.js`: the four axes in `passesFilters()`. The
+  rows of `search.test.js` and `map.test.js` that read the controls on the
+  page read them in the panel, and `real-data.test.js` counts the whole con
+  on the button, "Show 3,053 events" (`tests/PORT-LEDGER.md`). None of the
+  new tests carries a ledger bracket. A mutation pass of 62 mutants over
+  the new code - `filters.js`, the axes in `search.js`, `browse.js`,
+  `sheet.js`, `dispatch.js` and the CSS - killed all 62 on its last run.
+  The first left ten: six got tests; three were the panel's draw and the
+  fill that followed it on open saying the same thing, and the draw now
+  says it alone; one, a guard on a disabled chip, which no click reaches,
+  was dropped.
 
 ## 4. Explore
 
@@ -1040,13 +1168,13 @@ the hash and the address.
 | A Map hotel block or its gold pill, a hotel without level data | The hotel sheet | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built |
 | The Map's crew pill | The hotel sheet, Your crew's picks here brought to the top of its body (#63) | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built, PR #82 |
 | A Map hotel block, a hotel with level data | The building view | the Map's drill-down | the view's own back, to the Map | PR 10 |
-| The hotel sheet's "Search the Hyatt on Saturday" | Search | `state.browse`: the hotel, the day, no query | the tab bar to the Map, whose day `state.map.day` kept | built |
+| The hotel sheet's "Search the Hyatt on Saturday" | Search | `state.browse`: the hotel, the day, no query - since PR #88 the hotel a chip under the box, counted on Filters | the tab bar to the Map, whose day `state.map.day` kept | built |
 | The event sheet's "See all" beside a person | That person's Explore page | `state.explore.page`, the hash | "← Explore", to the grid: one tap from the event, accepted | built |
 | An Explore tile, a Following chip, a Because-you-starred tile | Its page | `state.explore.page`, the hash | "← Explore", the grid's scroll put back | built |
 | A `#explore=` link | Its page | the same, at load | "← Explore", to the grid | built |
 | The event sheet's track or work chip | Its Explore page | the same | "← Explore", to the grid, as See all | PR 7 |
 | The event sheet's place line | The Map, focused on the hotel - the room once the building view exists | `state.tab`, a focus in `state.map` | the Map's focused card, which reopens the sheet | PR 7 |
-| Search's Filters | `#panel-filters` | the panel shown | Apply, Clear, or closed: Search | PR 6 |
+| Search's Filters | `#panel-filters` | the panel shown | no Apply (#70): Show `<n>` events, the backdrop, a swipe, Escape: Search, focus on Filters, the list from its top if anything changed | built, PR #88 |
 | A kept `?join=`, in any phase | Plans' join step | `state.tab`, the step open | the step closed: Plans as it opens | built |
 | A line of Now's Your crew's picks right now | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: Now, focus on that crewmate's line | built, PR #81 |
 | Now's Your crew's picks right now, "+N more" | Plans' crew's day, on today | `state.tab`, `state.plansView` saved as Crew, `state.plans.day` back to the clock's | the tab bar to Now | built, PR #81 |
@@ -1216,5 +1344,20 @@ As built: the recon, section 8, what crews' readers offer today.
 - The home-screen app's viewport, measured 377 wide against a 402-wide
   screen, while the Safari tab on the same phone measured 402: not
   explained, to check on a phone (section 1, as built).
+- More than one value a filter. The filter sheet takes one (#70), as the
+  page did: two hotels, or two kinds, are two searches (section 3, as
+  built).
+- An audience control. Kids and 18+ are words in the box alone - "kids",
+  "18+" - with no control in the filter sheet (section 3).
+- The one-tap hotel filter the filter sheet traded away. The hotel chips
+  were on the page, one tap each; now a hotel is Filters, its chip, then
+  Show `<n>` events (#70; section 3, as built).
+- Whether Type stays. Once tags exist it says nearly what Kind does: in
+  2026, 870 events are Gaming by type and 868 by kind, and 807 of them
+  both (section 3).
+- The toggle that hides photo sessions and video-room screenings can show
+  checked while a Photo op or Screening kind, from the sheet or a word,
+  overrides it (`search.js` `activeFilters()`): the list then holds them
+  (section 3).
 
 **Home of:** W24.

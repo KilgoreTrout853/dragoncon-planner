@@ -439,11 +439,13 @@ describe("against the real schedule", () => {
       expect(handle.meta.works.some(w => !w.reviewed && (app.workCounts.get(w.id) || 0) >= 3)).toBe(true);
     });
 
+    /* The filter sheet's (#70), so opened from the Filters button. */
     describe("the Fandom select", () => {
-      beforeAll(() => { state.tab = "browse"; Object.assign(state.browse, { q: "", day: "All", work: "All" }); handle.render(); });
+      beforeAll(() => { state.tab = "browse"; Object.assign(state.browse, { q: "", day: "All", work: "All" }); handle.render(); document.getElementById("filtersBtn").click(); });
+      afterAll(() => handle.closeSheet());
 
       it("lists the reviewed works with 3+ events, by id, each named with its count", () => {
-        const options = [...document.querySelectorAll("#fandom option")].slice(1);
+        const options = [...document.querySelectorAll("#panel-filters #fandom option")].slice(1);
         expect(options.map(o => o.value)).toEqual(app.getCatalogue().fandom.map(t => t.key));
         expect(options.every(o => {
           const w = app.worksById.get(o.value), n = app.workCounts.get(o.value);
@@ -458,6 +460,14 @@ describe("against the real schedule", () => {
         const found = search("", { work: "star-trek", hideNoise: false });
         expect(found.total).toBe(app.workCounts.get("star-trek"));
         expect(found.results.every(e => app.linksTo(e, "star-trek"))).toBe(true);
+      });
+      it("the sheet's main button counts the whole con in thousands, as the list holds it", () => {
+        Object.assign(state.browse, { q: "", day: "All" });
+        document.getElementById("filtersClear").click();
+        const shown = handle.events.filter(e => !app.isNoise(e)).length;
+        expect(shown).toBeGreaterThan(999);
+        expect(document.getElementById("filtersShow").textContent).toBe(`Show ${shown.toLocaleString("en-US")} events`);
+        expect(document.getElementById("filtersShow").textContent).toMatch(/^Show \d,\d{3} events$/);
       });
     });
 

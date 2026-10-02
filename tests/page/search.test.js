@@ -2,7 +2,9 @@
    ranking on the sample fixture, the debounce, and the box that is never
    rebuilt. The number in brackets is the harness line the assertion came from
    (tests/PORT-LEDGER.md). Ranking against the real schedule is
-   tests/real-data.test.js. */
+   tests/real-data.test.js. Since the filter sheet (#70) the hotel and kind
+   chips, the Type control, the selects and the toggle are its panel's, and
+   the rows that read them open it; the sheet itself is filters.test.js. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +14,8 @@ import { mutationsDuring, typeInto } from "../helpers/act.js";
 
 const fixture = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "sample-events.json"), "utf8"));
 const VENUES = [...new Set(fixture.events.map(e => e.hotel))];
-const FILTERS = { q: "", day: "All", prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All", showHidden: false, showPast: false, noToday: false, hideNoise: false, page: 1 };
+const FILTERS = { q: "", day: "All", prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All",
+  medium: "All", genre: "All", craft: "All", subject: "All", showHidden: false, showPast: false, noToday: false, hideNoise: false, page: 1 };
 
 describe("Search", () => {
   let page, app, handle, state;
@@ -21,7 +24,11 @@ describe("Search", () => {
   const box = () => el("q");
   const tab = name => document.querySelector(`.nav button[data-tab="${name}"]`).click();
   const chip = (kind, value) => document.querySelector(`#view-browse [data-chip="${kind}"][data-value="${value}"]`);
-  const reset = (over = {}) => { state.tab = "browse"; Object.assign(state.browse, FILTERS, over); handle.render(); };
+  /* The filter sheet: opened by the Filters button, its chips in its panel. */
+  const panel = () => el("panel-filters");
+  const openFilters = () => { if (el("sheetWrap").hidden || panel().hidden) el("filtersBtn").click(); };
+  const fchip = (kind, value) => panel().querySelector(`[data-chip="${kind}"][data-value="${value}"]`);
+  const reset = (over = {}) => { if (!el("sheetWrap").hidden) handle.closeSheet(); state.tab = "browse"; Object.assign(state.browse, FILTERS, over); handle.render(); };
   const search = (q, over = {}) => { reset({ q, ...over }); return app.browseResults(); };
   const drawn = () => page.until(() => !view().querySelector(".indexing-note") && view().querySelector(".row"), 5000, "the debounced draw");
 
@@ -53,11 +60,15 @@ describe("Search", () => {
     });
     it("hotel chip sets the filter [276]", async () => {
       await drawn();
-      chip("hotel", "Westin").click();
+      openFilters();
+      fchip("hotel", "Westin").click();
       expect(state.browse.hotel).toBe("Westin");
     });
     it("hotel filter applies [277]", () => {
-      [...view().querySelectorAll(".room")].forEach(r => expect(r.textContent).not.toMatch(/Marriott|Hilton|Hyatt/));
+      el("filtersShow").click();
+      const rooms = [...view().querySelectorAll(".room")];
+      expect(rooms.length).toBeGreaterThan(0);
+      rooms.forEach(r => expect(r.textContent).not.toMatch(/Marriott|Hilton|Hyatt/));
     });
   });
 
@@ -213,10 +224,14 @@ describe("Search", () => {
       expect(handle.events.filter(app.isCeleb).length).toBeGreaterThan(0);
     });
     it("there is no Celebrity chip in the kind row [374]", () => {
+      openFilters();
+      expect(panel().querySelectorAll('[data-group="kind"] [data-chip="kind"]').length).toBeGreaterThan(1);
+      expect(panel().querySelector('[data-chip="celebrity"]')).toBe(null);
       expect(view().querySelector('[data-chip="celebrity"]')).toBe(null);
     });
     it("the kind row lights exactly one chip [376]", () => {
-      expect(view().querySelectorAll('.chips[data-row="kind"] [aria-pressed="true"]')).toHaveLength(1);
+      expect(panel().querySelectorAll('[data-group="kind"] [aria-pressed="true"]')).toHaveLength(1);
+      handle.closeSheet();
     });
     it("rows carry a celebrity marker [380]", () => {
       reset({ q: "NASA" });
@@ -242,13 +257,13 @@ describe("Search", () => {
 
   describe("the venue chips", () => {
     let values, other;
-    beforeAll(() => { reset({ hotel: "Westin" }); });
+    beforeAll(() => { reset({ hotel: "Westin" }); openFilters(); });
     afterAll(() => reset());
 
     it("tapping the same chip again clears the filter [400]", () => {
-      chip("hotel", "Westin").click();
+      fchip("hotel", "Westin").click();
       expect(state.browse.hotel).toBe("All");
-      values = [...view().querySelectorAll("[data-chip='hotel']")].map(c => c.dataset.value);
+      values = [...panel().querySelectorAll("[data-chip='hotel']")].map(c => c.dataset.value);
     });
     /* `hotels` is the app's own list; the venues here come from the fixture itself */
     it.each(VENUES)("every venue has a chip: %s [404]", venue => {
@@ -259,7 +274,7 @@ describe("Search", () => {
       expect(values.filter(v => v === "Other")).toHaveLength(1);
     });
     it("tapping Other shows streams and offsite venues together [410]", () => {
-      chip("hotel", "Other").click();
+      fchip("hotel", "Other").click();
       other = app.browseResults();
       expect(state.browse.hotel).toBe("Other");
       expect(other.length).toBeGreaterThan(0);
@@ -272,7 +287,7 @@ describe("Search", () => {
       expect(!handle.events.some(e => e.hotel === "Other" && !app.isNoise(e)) || other.some(e => e.hotel === "Other")).toBe(true);
     });
     it("the Other chip reads as pressed [414]", () => {
-      expect(chip("hotel", "Other").getAttribute("aria-pressed")).toBe("true");
+      expect(fchip("hotel", "Other").getAttribute("aria-pressed")).toBe("true");
     });
     it("the Now tab's venue row is the same set [416]", () => {
       state.tab = "now"; handle.render();
@@ -283,11 +298,13 @@ describe("Search", () => {
       expect(now).toHaveLength(values.length);
     });
     it("tapping Other again clears it [418]", () => {
-      chip("hotel", "Other").click();
+      fchip("hotel", "Other").click();
       expect(state.browse.hotel).toBe("All");
     });
     it("photo sessions hidden by default [419]", () => {
       reset({ hideNoise: true, day: "2026-09-05" });
+      openFilters();
+      expect(el("hideNoise").checked).toBe(true);
       expect([...view().querySelectorAll(".track")].some(t => t.textContent === "Epic Photos")).toBe(false);
     });
     it("photo sessions appear when toggle off [423]", () => {
@@ -328,8 +345,10 @@ describe("Search", () => {
       expect(view().querySelector(".t .day")).toBeTruthy();
     });
     it("fandom select and kind chips render when tags exist [525]", () => {
-      expect(el("fandom")).toBeTruthy();
-      expect(document.querySelector('[data-chip="kind"]')).toBeTruthy();
+      openFilters();
+      expect(panel().querySelector("#fandom")).toBeTruthy();
+      expect(panel().querySelector('[data-chip="kind"]')).toBeTruthy();
+      handle.closeSheet();
     });
     it("clearing the query restores the day [526]", () => {
       top("");
@@ -353,8 +372,12 @@ describe("Search", () => {
         expect(app.browseResults()).toHaveLength(everything);
       });
       it("kind chip filters [535]", () => {
-        chip("kind", "contest").click();
-        expect(app.browseResults().every(e => e.tags.kind === "contest")).toBe(true);
+        openFilters();
+        fchip("kind", "contest").click();
+        const results = app.browseResults();
+        expect(results.length).toBeGreaterThan(0);
+        expect(results.every(e => e.tags.kind === "contest")).toBe(true);
+        handle.closeSheet();
       });
     });
   });
@@ -399,12 +422,18 @@ describe("Search", () => {
     beforeAll(() => reset());
     afterAll(() => reset());
 
+    /* The hotel and kind rows are the filter sheet's, and wrap; the row a
+       render rebuilds on Search is the one that names what narrows the list. */
     describe("a render rebuilds the row and puts it back", () => {
       let row, after;
-      beforeAll(() => { row = view().querySelector('.chips[data-row="hotel"]'); row.scrollLeft = 120; handle.render(); after = view().querySelector('.chips[data-row="hotel"]'); });
+      beforeAll(() => {
+        reset({ q: "concert saturday", hotel: "Westin", kind: "contest" });
+        row = view().querySelector('.chips[data-row="parsed"]'); row.scrollLeft = 120; handle.render(); after = view().querySelector('.chips[data-row="parsed"]');
+      });
+      afterAll(() => reset());
 
       it("the Search chip rows are named [805]", () => {
-        expect([...view().querySelectorAll(".chips[data-row]")].map(r => r.dataset.row).join(",")).toBe("day,hotel,kind");
+        expect([...view().querySelectorAll(".chips[data-row]")].map(r => r.dataset.row).join(",")).toBe("day,parsed");
       });
       it("a render rebuilds the row [806]", () => {
         expect(after).not.toBe(row);
@@ -435,17 +464,17 @@ describe("Search", () => {
         Element.prototype.getBoundingClientRect = function () { return this.matches("[data-chip]") ? { left: 400, right: 480, top: 0, bottom: 40 } : { left: 0, right: 300, top: 0, bottom: 40 }; };
         Element.prototype.scrollTo = function (options) { calls.push({ on: this, options }); };
         mainTop = document.querySelector("main").scrollTop;
-        chip("hotel", "Hilton").click();
+        chip("day", "2026-09-07").click();
       });
       afterAll(() => { Element.prototype.getBoundingClientRect = had; delete Element.prototype.scrollTo; });
 
-      it("tapping a hotel chip brings that chip into view [813]", () => {
+      it("tapping a day chip brings that chip into view [813]", () => {
         expect(calls).toHaveLength(1);
-        expect(calls[0].on).toBe(view().querySelector('.chips[data-row="hotel"]'));
+        expect(calls[0].on).toBe(view().querySelector('.chips[data-row="day"]'));
         expect(calls[0].options.left).toBeGreaterThan(0);
       });
       it("and it shows pressed [814]", () => {
-        expect(chip("hotel", "Hilton").getAttribute("aria-pressed")).toBe("true");
+        expect(chip("day", "2026-09-07").getAttribute("aria-pressed")).toBe("true");
       });
       it("revealChip only moves the row sideways, never the page [820]", () => {
         expect(calls.some(c => c.on === document.querySelector("main"))).toBe(false);
@@ -502,9 +531,6 @@ describe("Search", () => {
     it('"All days" leads the day row [1251]', () => {
       expect(days[0]).toBe("All");
     });
-    it("the hotel row still leads with All, so the two rows match [1253]", () => {
-      expect(view().querySelector('[data-chip="hotel"]').dataset.value).toBe("All");
-    });
     it("the six con days follow it, in order [1254]", () => {
       expect(days.slice(1)).toEqual(app.CON_DAYS);
     });
@@ -517,11 +543,15 @@ describe("Search", () => {
     it("the day chips are inside it [1260]", () => {
       expect(sticky.querySelector('[data-chip="day"]')).toBeTruthy();
     });
-    it("the hotel row is not - it scrolls away [1261]", () => {
-      expect(sticky.querySelector('[data-chip="hotel"]')).toBe(null);
+    it("the hotel row is not, nor anywhere on the page - it is the filter sheet's [1261]", () => {
+      expect(view().querySelector('[data-chip="hotel"]')).toBe(null);
+      openFilters();
+      expect(panel().querySelector('[data-group="hotel"] [data-chip="hotel"]')).toBeTruthy();
     });
     it("nor the kind row [1262]", () => {
-      expect(sticky.querySelector('[data-chip="kind"]')).toBe(null);
+      expect(view().querySelector('[data-chip="kind"]')).toBe(null);
+      expect(panel().querySelector('[data-group="kind"] [data-chip="kind"]')).toBeTruthy();
+      handle.closeSheet();
     });
   });
 

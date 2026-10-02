@@ -16,7 +16,11 @@ const state = {
   plans: {crew: null, day: null},         /* the crew shown, null the oldest; the crew's day, null the clock's */
   explore: {q: "", page: null, scroll: 0, showPast: false, showCast: false, castNoise: false, expanded: {}, active: null},
   following: {layout: loadJSON(storageKey("followingLayout"), "interest"), expanded: {}, showPast: {}, open: loadJSON(storageKey("followingOpen"), true)},
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All", showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
+  /* Search's: the query, the day, and the filter sheet's nine, the four
+     topic axes among them (W8, #70). */
+  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All",
+    medium: "All", genre: "All", craft: "All", subject: "All",
+    showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
 };
 
 export { settings, state };

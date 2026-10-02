@@ -100,7 +100,9 @@ const axisLabelsOf = e => AXES.flatMap(a => (tagsOf(e)[a] || []).map(v => axisLa
 const workNamesOf = e => [...linkedWorks(e)].map(id => (worksById.get(id) || {}).name).filter(Boolean);
 let index = null;
 
-const SEARCH_PLACEHOLDER = "Search titles, guests, fandoms, words";
+/* Short enough to fit beside the Filters button at 375px with Larger text on
+   and the badge showing (#70); the box is named "Search the schedule". */
+const SEARCH_PLACEHOLDER = "Titles, guests, fandoms";
 
 const processTerm = (term) => {
   const t = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -202,6 +204,9 @@ function passesFilters(e) {
     (f.track === "All" || (e.tracks || []).includes(f.track)) &&
     (f.work === "All" || linksTo(e, f.work)) &&
     (f.kind === "All" || tg.kind === f.kind) &&
+    /* The four topic axes (W8), the filter sheet's: one value each, and
+       every one set must hold. */
+    AXES.every(a => f[a] === "All" || (tg[a] || []).includes(f[a])) &&
     (!f.adultOnly || tg.audience === "mature") &&
     (!f.hideAdult || tg.audience !== "mature") &&
     (!f.time || inTimeBand(e, f.time)) &&
@@ -347,6 +352,7 @@ function activeFilters() {
     type: b.type,
     track: f.track !== undefined ? f.track : b.track,
     work: b.work,
+    medium: b.medium, genre: b.genre, craft: b.craft, subject: b.subject,
     adultOnly: f.adult === true,
     /* Only a query word hides 18+ now ("kids"); the checkbox is gone. */
     hideAdult: f.adult === false,
@@ -460,5 +466,5 @@ function browseResults() {
 export {
   STOPWORDS, KIND_LABELS, AXIS_LABELS, axisLabel, index, SEARCH_PLACEHOLDER, processTerm, buildIndex, suggestDocs,
   buildSuggestIndex, suggestionsFor, expandQuery, tokenise, stripPhrase, parseQuery,
-  activeFilters, termQuality, browseResults,
+  passesFilters, activeFilters, termQuality, browseResults,
 };

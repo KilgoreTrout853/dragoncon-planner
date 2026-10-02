@@ -17,7 +17,7 @@ import { onScrollSpy } from "./explore.js";
 import {
   closeSheet, onCrewClick, onCrewInput, onCrewSubmit, onCrowdInput, onKeepClick, onKeepSubmit, onNoiseDefaultChange, onResetPicks,
   onSettingsClick, onShareClick, onSheetKeydown, onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart, openKeptJoin,
-  openSharedDay, openSheet, panelCrew, panelEvent, panelHotel, panelShare, panelShared, sheetEl, takeDayLink,
+  openSharedDay, openSheet, panelCrew, panelEvent, panelFilters, panelHotel, panelShare, panelShared, sheetEl, takeDayLink,
 } from "./sheet.js";
 import {
   BOOT, load, markScheduleChecked, onLoadRegisterWorker, onPageShow, onPillClick, onPillTouchEnd,
@@ -29,7 +29,7 @@ import {
   onVisibleRender, render, setOpeningTab, setTimeOverride,
 } from "./shell.js";
 import {
-  onApplyPreview, onClearPreview, onEventPanelClick, onHashChange, onHotelPanelClick,
+  onApplyPreview, onClearPreview, onEventPanelClick, onFiltersPanelChange, onFiltersPanelClick, onHashChange, onHotelPanelClick,
   onSharedPanelClick, onMainChange, onMainClick, onMainInput, onMainKeydown, onMinute,
 } from "./dispatch.js";
 
@@ -88,6 +88,8 @@ export function boot({events: data, reload: reloadWith} = {}) {
   panelCrew.addEventListener("input", onCrewInput);
   panelShare.addEventListener("click", onShareClick);
   panelShared.addEventListener("click", onSharedPanelClick);
+  panelFilters.addEventListener("click", onFiltersPanelClick);
+  panelFilters.addEventListener("change", onFiltersPanelChange);
 
   document.getElementById("minibar").addEventListener("click", onMiniBarClick);
   document.getElementById("settingsBtn").addEventListener("click", onSettingsClick);

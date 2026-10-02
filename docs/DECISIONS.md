@@ -2002,7 +2002,7 @@ after seven days without a visit (#25).
 settles #40's open question - a standing line on Now, or the moment it
 earns itself - as the second.
 
-### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built)
+### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built)
 **Decided:** Every screen Where things live touches meets these, and none
 of them has a screen of its own (W43):
 - a label on every new control;
@@ -2143,3 +2143,43 @@ for being readable and simple to read back. A change of shape needs a new
 query name, or a version in the year's place, with the old shape read for
 as long as its links live. An id shorter than eight characters cannot
 travel, and the test refuses a year that has one.
+
+### 70. The filter sheet applies as it is tapped — Standing (2026-10-02)
+**Decided:** Search's filters leave the page for a sheet panel,
+`#panel-filters` (W13, with W8's topic axes; `docs/screens/contract.md`,
+section 3, as built; PR #88), opened by one Filters button beside the
+box, whose badge counts the filters the sheet set that are in effect.
+- **No Apply.** A tap in the sheet changes the filter at once. Its main
+  button says what the list will hold - "Show `<n>` events", "Show 1
+  event", "No events match" - counted as the tap lands, and the list
+  behind is drawn once, when the sheet closes: by that button, the
+  backdrop, a swipe or Escape. Clear takes the sheet's nine filters back
+  to All and the toggle to Settings' default, never the day or the query.
+- **One value per filter,** as before: a hotel, a kind, a type, a fandom,
+  a track, and one each of Medium, Genre, Craft and Subject; every one set
+  must hold.
+- **A word in the box holds its dimension.** While "hilton" is in the
+  box, the sheet's Hotel group shows the Hilton, disabled, "Set by your
+  search"; the sheet's own hotel is kept, unshown and uncounted, and comes
+  back when the word goes. Neither the sheet nor the chips under the box
+  show a value that is not in effect.
+- **Each filter in effect is a chip under the box,** in the row the
+  query's words use, and a tap takes that one off.
+- **Facet filters (W7) come after step 7,** once a row shows the facets
+  (ROADMAP, tentpole 5).
+
+**Why:** The hotel and kind rows, the selects and the toggle filled the
+top of Search: at 375x667 the first result sat more than 570px down. An
+Apply makes every change two taps and leaves the reader to guess what it
+will show; a count on the button says it before the sheet closes, at
+about 2 ms a tap on 2026's schedule in desktop Chromium. One value per
+filter is what the state and the query's words already had. A word that
+quietly beat a sheet filter, as `activeFilters()` already let it, would
+leave a chip naming one hotel over a list of another. A facet has nowhere
+to be seen on a row until step 7 puts it there.
+**Cost:** Every filter is a tap further away: the hotel chips were on the
+page, one tap each. A held group cannot be changed in the sheet: the word
+comes off first. The box's placeholder is shorter, "Titles, guests,
+fandoms", to fit beside the button with Larger text on and the badge
+showing, and the box is named by a label of its own, "Search the
+schedule".

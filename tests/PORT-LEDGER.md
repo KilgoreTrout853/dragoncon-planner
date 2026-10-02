@@ -33,7 +33,18 @@ v7, its row corrected below, and 1309's put is under `pageKey(request)`,
 its title unchanged. Amended in Share a day (2026-10-01, DECISIONS #69),
 which puts Share a day beside Export: 433's strip is five controls, and
 510's actions with nothing picked are three, all disabled; both rows are
-corrected below. The tables' counts are as of 4b-ii, and
+corrected below. Amended in the filter sheet (2026-10-02, DECISIONS #70),
+which moves Search's hotel and kind chips, its Type control, its selects
+and its toggle into a sheet panel: 276, 277, 374, 376, 400, 410, 414,
+418, 419, 423, 525 and 535 open the panel and read its controls, and 404,
+405, 412, 413 and 416 read its hotel chips through 400's list, their code
+unchanged; 805 to 807 read the row of chips under the box, and 813, 814
+and 820 a day chip, since the hotel row wraps in the panel and is no
+sideways row; 1261 and 1262 find no hotel or kind chip on the page and
+both in the panel, 1261 retitled; 1517 finds the hotel a chip under the
+box, counted on Filters, retitled; and 1253, the hotel row leading with
+All so that the day row and it match, is retired in place - the two rows
+are no longer side by side - and marked so. The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
@@ -371,8 +382,8 @@ One row per call site, in harness order, under the harness's own section comment
 | 268 | a | search filters to matches (…) | `page/search.test.js` | 4b-ii | handle | port |
 | 271 | a | All days + query shows per-row day labels | `page/search.test.js` | 4b-ii | dom | port |
 | 274 | a | search cleared | `page/search.test.js` | 4b-ii | handle | port |
-| 276 | a | hotel chip sets the filter | `page/search.test.js` | 4b-ii | handle | port |
-| 277 | a | hotel filter applies | `page/search.test.js` | 4b-ii | dom | port |
+| 276 | a | hotel chip sets the filter | `page/search.test.js` | 4b-ii | handle | port; rewritten in the filter sheet (#70): the chip is the panel's, opened by Filters |
+| 277 | a | hotel filter applies | `page/search.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): the list as Show `<n>` events closes the panel, with at least one row |
 
 ### search step 1: query intent parsing
 
@@ -426,26 +437,26 @@ One row per call site, in harness order, under the harness's own section comment
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
 | 373 | a | the fixture has celebrity events (…) | `page/search.test.js` | 4b-ii | handle | port |
-| 374 | a | there is no Celebrity chip in the kind row | `page/search.test.js` | 4b-ii | dom | port |
+| 374 | a | there is no Celebrity chip in the kind row | `page/search.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): the panel's kind chips, and none on the page |
 | 375 | d | and nothing in the source still filters on it | `page/search.test.js` | 4b-ii |  | **delete** a grep of source and page for the removed Celebrity chip's identifiers (celeb-chip, browse.celebrity, f.celebrity); 374 is the observable half (no chip in the kind row) |
-| 376 | a | the kind row lights exactly one chip | `page/search.test.js` | 4b-ii | dom | port |
+| 376 | a | the kind row lights exactly one chip | `page/search.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): the panel's Kind group |
 | 380 | a | rows carry a celebrity marker | `page/search.test.js` | 4b-ii | handle | port |
 | 381 | a | the marker says what it means | `page/search.test.js` | 4b-ii | dom | port |
 | 383 | a | only celebrity rows are marked | `page/search.test.js` | 4b-ii | handle | port. byId → handle.events.find |
 | 388 | a | the detail sheet marks a celebrity event | `page/search.test.js` | 4b-ii | handle | port |
 | 392 | a | and does not mark a non-celebrity one | `page/search.test.js` | 4b-ii | handle | port |
-| 400 | a | tapping the same chip again clears the filter | `page/search.test.js` | 4b-ii | handle | port |
+| 400 | a | tapping the same chip again clears the filter | `page/search.test.js` | 4b-ii | handle | port; rewritten in the filter sheet (#70): the panel's chip, and the venue list 404, 405 and 416 read taken from the panel |
 | 404 | a | every venue has a chip: … | `page/search.test.js` | 4b-ii | handle | port. ×8 (one per venue in the fixture); `hotels` is an internal — derive the venue list from handle.events |
 | 405 | a | one Other chip and no Streaming chip (…) | `page/search.test.js` | 4b-ii | dom | port |
 | 406 | a | Other matches streams and offsite venues and nothing else; a venue still matc… | `unit/venues.test.js` | 4b-i | import | port |
-| 410 | a | tapping Other shows streams and offsite venues together (…) | `page/search.test.js` | 4b-ii | handle | port |
+| 410 | a | tapping Other shows streams and offsite venues together (…) | `page/search.test.js` | 4b-ii | handle | port; rewritten in the filter sheet (#70): the panel's Other chip |
 | 412 | a | streams are in it | `page/search.test.js` | 4b-ii | handle | port |
 | 413 | a | and so are the offsite venues, when the data has any | `page/search.test.js` | 4b-ii | handle | port |
-| 414 | a | the Other chip reads as pressed | `page/search.test.js` | 4b-ii | dom | port |
+| 414 | a | the Other chip reads as pressed | `page/search.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): the panel's, pressed in place |
 | 416 | a | the Now tab's venue row is the same set (…) | `page/search.test.js` | 4b-ii | handle | port |
-| 418 | a | tapping Other again clears it | `page/search.test.js` | 4b-ii | handle | port |
-| 419 | a | photo sessions hidden by default | `page/search.test.js` | 4b-ii | dom | port |
-| 423 | a | photo sessions appear when toggle off (… -> …) | `page/search.test.js` | 4b-ii | handle | port |
+| 418 | a | tapping Other again clears it | `page/search.test.js` | 4b-ii | handle | port; rewritten in the filter sheet (#70): the panel's chip |
+| 419 | a | photo sessions hidden by default | `page/search.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): the panel's toggle checked too |
+| 423 | a | photo sessions appear when toggle off (… -> …) | `page/search.test.js` | 4b-ii | handle | port; rewritten in the filter sheet (#70): the panel's toggle |
 
 ### the control strip: two rows of two, one footprint
 
@@ -492,12 +503,12 @@ One row per call site, in harness order, under the harness's own section comment
 | 521 | a | typo tolerance: 'philharmonc' -> | `page/search.test.js` | 4b-ii | handle | port |
 | 522 | a | matches are highlighted | `page/search.test.js` | 4b-ii | dom | port |
 | 523 | a | day label shown in relevance mode | `page/search.test.js` | 4b-ii | dom | port |
-| 525 | a | fandom select and kind chips render when tags exist | `page/search.test.js` | 4b-ii | dom | port |
+| 525 | a | fandom select and kind chips render when tags exist | `page/search.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): in the panel |
 | 526 | a | clearing the query restores the day | `page/search.test.js` | 4b-ii | handle | port |
 | 529 | a | there is no Hide 18+ toggle any more | `page/search.test.js` | 4b-ii | handle | port |
 | 531 | a | but the word kids still keeps 18+ out | `page/search.test.js` | 4b-ii | handle | port |
 | 533 | a | and with it cleared everything is back | `page/search.test.js` | 4b-ii | handle | port |
-| 535 | a | kind chip filters | `page/search.test.js` | 4b-ii | handle | port |
+| 535 | a | kind chip filters | `page/search.test.js` | 4b-ii | handle | port; rewritten in the filter sheet (#70): the panel's chip, on a list that is not empty |
 | 538 | a | settings opens | `page/sheet.test.js` | 4b-ii | dom | port |
 | 539 | a | settings panel shown, event panel hidden | `page/sheet.test.js` | 4b-ii | dom | port |
 | 541 | a | settings closes | `page/sheet.test.js` | 4b-ii | dom | port |
@@ -603,14 +614,14 @@ One row per call site, in harness order, under the harness's own section comment
 
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
-| 805 | a | the Search chip rows are named (…) | `page/search.test.js` | 4b-ii | handle | port |
-| 806 | a | a render rebuilds the row | `page/search.test.js` | 4b-ii | handle | port |
-| 807 | a | and puts it back where it was (… -> …) | `page/search.test.js` | 4b-ii | handle | port |
+| 805 | a | the Search chip rows are named (…) | `page/search.test.js` | 4b-ii | handle | port; rewritten in the filter sheet (#70): day, and the row under the box, `parsed` |
+| 806 | a | a render rebuilds the row | `page/search.test.js` | 4b-ii | handle | port; rewritten in the filter sheet (#70): the row under the box |
+| 807 | a | and puts it back where it was (… -> …) | `page/search.test.js` | 4b-ii | handle | port; rewritten in the filter sheet (#70): the row under the box |
 | 808 | d | the Now, Explore and Following rows are named too | `page/search.test.js` | 4b-ii | dom | **rewrite** render Now, Explore and Following: .chips[data-row] exists with now-hotel, explore-jump and follows |
-| 813 | a | tapping a hotel chip brings that chip into view (…) | `page/search.test.js` | 4b-ii | provoke | **rewrite** give the tapped chip and its row rects that put the chip off the edge (stub getBoundingClientRect): the row's scrollTo is called once, with a left offset (replaces patching revealChip) |
-| 814 | a | and it shows pressed | `page/search.test.js` | 4b-ii | dom | port |
+| 813 | a | tapping a day chip brings that chip into view (…) | `page/search.test.js` | 4b-ii | provoke | **rewrite** give the tapped chip and its row rects that put the chip off the edge (stub getBoundingClientRect): the row's scrollTo is called once, with a left offset (replaces patching revealChip); rewritten in the filter sheet (#70) on a day chip, the hotel row now the panel's and wrapped, and retitled |
+| 814 | a | and it shows pressed | `page/search.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): the day chip |
 | 817 | a | on Explore a chip is revealed when it becomes current, and only then (…) | `page/explore.test.js` | 4b-ii | provoke | **rewrite** same stubbed rects; markActiveSection('topic') twice then 'track': the jump row's scrollTo is called once per change of section, not per call |
-| 820 | d | revealChip only moves the row sideways, never the page | `page/search.test.js` | 4b-ii | provoke | **rewrite** in 813's setup main.scrollTo is never called and main.scrollTop is unchanged: only the row moves (replaces matching a comment's wording) |
+| 820 | d | revealChip only moves the row sideways, never the page | `page/search.test.js` | 4b-ii | provoke | **rewrite** in 813's setup main.scrollTo is never called and main.scrollTop is unchanged: only the row moves (replaces matching a comment's wording); 813's setup is a day chip's since the filter sheet (#70) |
 
 ### an install nudge on Now until the app is on the home screen
 
@@ -831,13 +842,13 @@ One row per call site, in harness order, under the harness's own section comment
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
 | 1251 | a | "All days" leads the day row (…) | `page/search.test.js` | 4b-ii | dom | port |
-| 1253 | a | the hotel row still leads with All, so the two rows match | `page/search.test.js` | 4b-ii | dom | port |
+| 1253 | a | the hotel row still leads with All, so the two rows match | `page/search.test.js` | 4b-ii | dom | port; **retired** in the filter sheet (#70): the hotel row is the panel's, no longer beside the day row, so there are no two rows to match - the panel's hotel chips still lead with All (`page/filters.test.js`) |
 | 1254 | a | the six con days follow it, in order | `page/search.test.js` | 4b-ii | handle | port |
 | 1258 | a | the search box and day row share a sticky container | `page/search.test.js` | 4b-ii | dom | port |
 | 1259 | a | the search box is inside it | `page/search.test.js` | 4b-ii | dom | port |
 | 1260 | a | the day chips are inside it | `page/search.test.js` | 4b-ii | dom | port |
-| 1261 | a | the hotel row is not - it scrolls away | `page/search.test.js` | 4b-ii | dom | port |
-| 1262 | a | nor the kind row | `page/search.test.js` | 4b-ii | dom | port |
+| 1261 | a | the hotel row is not, nor anywhere on the page - it is the filter sheet's | `page/search.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): no hotel chip on the page, and the panel's, and retitled |
+| 1262 | a | nor the kind row | `page/search.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): no kind chip on the page, and the panel's |
 | 1263 | b css | it is declared sticky | `rules/style.test.js` | 4b-i | rule | port |
 | 1264 | b css | it parks under the header, by measured height | `rules/style.test.js` | 4b-i | rule | port |
 | 1265 | d | the header height is measured, not assumed | `page/shell.test.js` | 4b-ii | dom | **rewrite** after boot the root carries --hdr-h (0px in jsdom: measured, not a constant) |
@@ -970,7 +981,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 1513 | a | an empty hotel says so and offers a search (…) | `page/map.test.js` | 4b-ii | handle | port |
 | 1515 | a | the button switches to Search | `page/map.test.js` | 4b-ii | handle | port |
 | 1516 | a | with the hotel and the day as filters | `page/map.test.js` | 4b-ii | handle | port |
-| 1517 | a | and the chips show them pressed | `page/map.test.js` | 4b-ii | dom | port |
+| 1517 | a | and the chips show them: the hotel under the box, counted on Filters, the day pressed | `page/map.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): the hotel a chip under the box and the badge 1, and retitled |
 | 1518 | a | listing that hotel's Saturday | `page/map.test.js` | 4b-ii | handle | port |
 | 1519 | a | the park takes no article; the Mart is the Mart | `unit/venues.test.js` | 4b-i | import | port |
 | 1523 | a | blocks are buttons: Enter opens the sheet | `page/map.test.js` | 4b-ii | handle | port |
