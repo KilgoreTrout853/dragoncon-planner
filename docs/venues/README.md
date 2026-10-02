@@ -23,12 +23,12 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 | Marriott | Lobby Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | 3 of 6 rooms | none |
 | Marriott | Marquis Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | 6 of 12 rooms | none |
 | Marriott | International Level | partial · [AOM 2017 level map](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf) | per room, from a third-party site | `reference/plans/marriott-marquis-aom-2017.pdf` | 0 of 15 rooms | none |
-| Hyatt | International Tower · LL1 | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 2 of 2 rooms | none |
-| Hyatt | International Tower · LL2 | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 7 of 8 rooms | none |
-| Hyatt | Lobby Level | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | none | none |
-| Hyatt | Ballroom Level (LL1) | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 7 of 8 rooms | none |
-| Hyatt | Exhibit Level (LL2) | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 10 of 17 rooms | none |
-| Hyatt | Atlanta Conference Center (LL3) | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 8 of 20 rooms | none |
+| Hyatt | International Tower · LL1 | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 2 of 2 rooms | `data/2027/drawings/hyatt-tower-ll1.json` · sizes from the table, placement from the plan |
+| Hyatt | International Tower · LL2 | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 7 of 8 rooms | `data/2027/drawings/hyatt-tower-ll2.json` · sizes from the table, placement from the plan; Embassy A and B drawn from the corridor |
+| Hyatt | Lobby Level | partial · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) (p. 5's sketch alone) | no | `reference/plans/hyatt-floorplan-2012.pdf` | none | none · no rooms, and the file has only a sketch of it, with no table |
+| Hyatt | Ballroom Level (LL1) | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 7 of 8 rooms | `data/2027/drawings/hyatt-ballroom.json` · sizes from the table, placement from the plan |
+| Hyatt | Exhibit Level (LL2) | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 10 of 17 rooms | `data/2027/drawings/hyatt-exhibit.json` · sizes from the table, placement from the plan |
+| Hyatt | Atlanta Conference Center (LL3) | have · [Hotel's official floor-plan PDF](https://www.nfaonline.org/docs/default-source/convention-documents/2025-convention/hyatt-regency-atlanta_floorplan.pdf) | yes | `reference/plans/hyatt-floorplan-2012.pdf` | 8 of 20 rooms | `data/2027/drawings/hyatt-acc.json` · sizes from the table, placement from the plan; Courtland and Dunwoody's order to be checked in person |
 | Hilton | 4th Floor | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | 2 of 7 rooms (404–405) | `data/2027/drawings/hilton-l4.json` · sizes from the table, placement from the plan |
 | Hilton | 3rd Floor | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | 15 of 15 rooms | `data/2027/drawings/hilton-l3.json` · sizes from the table, placement from the plan; 306–308's order to be checked in person |
 | Hilton | 2nd Floor | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | 14 of 32 rooms + Grand East/West + Salon as one | `data/2027/drawings/hilton-l2.json` · sizes from the table, placement from the plan; 201 and 215–224 not drawn |
@@ -54,7 +54,10 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 
 - **Marriott** — AOM 2017 level map (image only) + NAQT all-in-one map + NFB prose walk-through; dimensions per room on
   thevendry.co. All levels on one sheet.
-- **Hyatt** — Hotel's official floor-plan PDF (2012 rev.), conference-hosted copy. One page per level; confirm.
+- **Hyatt** — Hotel's official floor-plan PDF (2012 rev.), conference-hosted copy: p. 1 the Ballroom Level (LL1), p. 2
+  the Exhibit Level (LL2), p. 3 the Atlanta Conference Center (LL3), drawn half a turn round from the others, p. 4 the
+  International Tower's two levels, and p. 5 an exploded sketch of every level, the only picture of the Lobby Level.
+  Each plan has its capacity table on its own page.
 - **Hilton** — Hotel's 2024 group sales playbook (floor plans + capacity charts). The floor plans are on pp. 4, 6, 8, 10
   and 12 (the Galleria, then the 1st to 4th Floors), each before its capacity chart on pp. 5, 7, 9 and 11; the 4th
   Floor's chart shares p. 12 with its plan.
@@ -71,6 +74,13 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 - **Hilton** — all five levels drawn from the playbook's floor plans and its sizes, in one frame (DECISIONS #67), tied by
   named anchors. The plans are illustrations, so positions are good to about 10–15 ft until walked; 306–308 follow the
   hotel's order, the reverse of Dragon Con's map's.
+- **Hyatt** — five levels drawn from the hotel's floor plans and its tables, in one frame (DECISIONS #67), tied by named
+  anchors. Where the International Tower stands, 134 ft west and 107 ft south of the atrium elevators, rests on p. 3
+  alone, the only page that draws both towers. Dragon Con's map labels Courtland and Dunwoody the other way round from
+  the hotel's plan; the hotel's is drawn. The plan prints no compass and no streets: north is taken from the
+  International Ballroom's North and South halves and the main entrance on Peachtree Street, and the streets from the
+  con's footprint map. The plans are illustrations, so positions are good to about 10–15 ft until walked. The Lobby
+  Level is not drawn: it has no rooms, and the file has only a sketch of it.
 - **Marriott** — every room the con's map outlines reads as ours: M103–M105, M301, Imperial Ballroom, L401–L403, Atrium
   Ballroom, A601–A602, A703, A704 and A706–A708. The rooms the map names on the Marquis and Atrium levels with no 2026
   programming are in those levels' notes.

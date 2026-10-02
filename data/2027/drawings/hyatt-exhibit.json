@@ -1,0 +1,317 @@
+{
+  "hotel": "Hyatt",
+  "level": "exhibit",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 440,
+    "h": 430
+  },
+  "anchors": [
+    {
+      "name": "atrium elevators",
+      "x": 210.0,
+      "y": 245.0
+    },
+    {
+      "name": "exhibit escalator",
+      "x": 242.7,
+      "y": 196.2
+    },
+    {
+      "name": "conference escalator",
+      "x": 257.3,
+      "y": 229.5
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Grand Hall A",
+      "cx": 211.9,
+      "cy": 50.9,
+      "w": 28,
+      "h": 60,
+      "rot": 0
+    },
+    {
+      "id": "Grand Hall B",
+      "cx": 238.4,
+      "cy": 50.9,
+      "w": 25,
+      "h": 60,
+      "rot": 0
+    },
+    {
+      "id": "Grand Hall C",
+      "cx": 264.9,
+      "cy": 50.9,
+      "w": 28,
+      "h": 60,
+      "rot": 0
+    },
+    {
+      "id": "Grand Hall D",
+      "cx": 292.9,
+      "cy": 50.9,
+      "w": 28,
+      "h": 60,
+      "rot": 0
+    },
+    {
+      "id": "Hanover A",
+      "cx": 321.1,
+      "cy": 176.9,
+      "w": 25.5,
+      "h": 30.5,
+      "rot": 0
+    },
+    {
+      "id": "Hanover B",
+      "cx": 348.0,
+      "cy": 176.9,
+      "w": 28.3,
+      "h": 30.5,
+      "rot": 0
+    },
+    {
+      "id": "Hanover C",
+      "cx": 318.4,
+      "cy": 226.0,
+      "w": 45,
+      "h": 34.4,
+      "rot": 0
+    },
+    {
+      "id": "Hanover D",
+      "cx": 318.4,
+      "cy": 255.4,
+      "w": 45,
+      "h": 24.5,
+      "rot": 0
+    },
+    {
+      "id": "Hanover E",
+      "cx": 315.9,
+      "cy": 281.9,
+      "w": 50,
+      "h": 28.5,
+      "rot": 0
+    },
+    {
+      "id": "Hanover F",
+      "cx": 372.8,
+      "cy": 250.0,
+      "w": 32.5,
+      "h": 45,
+      "rot": 0
+    },
+    {
+      "id": "Hanover G",
+      "cx": 372.8,
+      "cy": 284.4,
+      "w": 32.5,
+      "h": 23.7,
+      "rot": 0
+    },
+    {
+      "id": "Chicago A",
+      "cx": 164.5,
+      "cy": 193.2,
+      "w": 29,
+      "h": 13.3,
+      "rot": 0
+    },
+    {
+      "id": "Chicago B",
+      "cx": 164.5,
+      "cy": 206.5,
+      "w": 29,
+      "h": 13.3,
+      "rot": 0
+    },
+    {
+      "id": "Chicago C",
+      "cx": 164.5,
+      "cy": 219.8,
+      "w": 29,
+      "h": 13.3,
+      "rot": 0
+    },
+    {
+      "id": "Chicago D",
+      "cx": 164.5,
+      "cy": 233.1,
+      "w": 29,
+      "h": 13.3,
+      "rot": 0
+    },
+    {
+      "id": "Chicago E",
+      "cx": 164.5,
+      "cy": 253.1,
+      "w": 29,
+      "h": 26.7,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "Grand Hall A–D",
+      "kind": "ballroom",
+      "rooms": [
+        "Grand Hall A",
+        "Grand Hall B",
+        "Grand Hall C",
+        "Grand Hall D"
+      ],
+      "outline": {
+        "cx": 252.4,
+        "cy": 50.9,
+        "w": 109.0,
+        "h": 60.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "Hanover A–B",
+      "kind": "ballroom",
+      "rooms": [
+        "Hanover A",
+        "Hanover B"
+      ],
+      "outline": {
+        "cx": 335.2,
+        "cy": 176.9,
+        "w": 53.8,
+        "h": 30.5,
+        "rot": 0
+      }
+    },
+    {
+      "name": "Hanover C–E",
+      "kind": "ballroom",
+      "rooms": [
+        "Hanover C",
+        "Hanover D",
+        "Hanover E"
+      ],
+      "outline": {
+        "cx": 315.9,
+        "cy": 252.5,
+        "w": 50.0,
+        "h": 87.3,
+        "rot": 0
+      }
+    },
+    {
+      "name": "Hanover F–G",
+      "kind": "ballroom",
+      "rooms": [
+        "Hanover F",
+        "Hanover G"
+      ],
+      "outline": {
+        "cx": 372.8,
+        "cy": 261.9,
+        "w": 32.5,
+        "h": 68.8,
+        "rot": 0
+      }
+    },
+    {
+      "name": "Chicago A–E",
+      "kind": "run",
+      "rooms": [
+        "Chicago A",
+        "Chicago B",
+        "Chicago C",
+        "Chicago D",
+        "Chicago E"
+      ],
+      "outline": {
+        "cx": 164.5,
+        "cy": 226.5,
+        "w": 29.0,
+        "h": 79.9,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Concourse",
+      "id": "Concourse",
+      "cx": 237.5,
+      "cy": 160.3,
+      "w": 136,
+      "h": 50,
+      "rot": 0
+    },
+    {
+      "name": "Grand Hall West",
+      "cx": 116.6,
+      "cy": 72.9,
+      "w": 161,
+      "h": 113,
+      "rot": 0
+    },
+    {
+      "name": "Grand Hall East",
+      "cx": 286.4,
+      "cy": 72.9,
+      "w": 177,
+      "h": 114,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "Atrium elevators",
+      "x": 210.0,
+      "y": 245.0
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the Ballroom Level",
+      "x": 242.7,
+      "y": 196.2
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the Conference Center",
+      "x": 257.3,
+      "y": 229.5
+    }
+  ],
+  "streets": [
+    {
+      "name": "Baker Street NE",
+      "side": "N"
+    },
+    {
+      "name": "John Portman Blvd NE",
+      "side": "S"
+    },
+    {
+      "name": "Peachtree Street NE",
+      "side": "W"
+    },
+    {
+      "name": "Peachtree Center Ave NE",
+      "side": "E"
+    }
+  ],
+  "sources": [
+    "sizes: the capacity tables printed beside the hotel's floor plans (reference/plans/hyatt-floorplan-2012.pdf, revised 5/12)",
+    "placement, order and orientation: the hotel's own floor plan in the same file, p. 2, measured from the atrium elevators (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "two levels below the lobby, in the Atrium Tower: the Grand Hall under the Centennial Ballroom, Hanover Hall to the south-east, the Chicago rooms west of the atrium elevators",
+    "Grand Hall West and East are the exhibit halls, drawn as open floor: the venues file has no room for them. Grand Hall A to D are part of the East hall's floor, partitioned off along its north wall, which is why they are drawn inside its outline: Dragon Con's map calls C and D Grand Hall East C / D",
+    "the Concourse is the pre-function area, 136 x 50 in the table, where Dragon Con's map marks its stage",
+    "Hanover C, D and E are drawn from the wall they share on the Hanover corridor; the table makes E 5 ft wider than C and D"
+  ]
+}

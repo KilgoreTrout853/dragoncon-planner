@@ -1,0 +1,213 @@
+{
+  "hotel": "Hyatt",
+  "level": "ballroom",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 440,
+    "h": 430
+  },
+  "anchors": [
+    {
+      "name": "atrium elevators",
+      "x": 210.0,
+      "y": 245.0
+    },
+    {
+      "name": "exhibit escalator",
+      "x": 242.7,
+      "y": 196.2
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Centennial I",
+      "cx": 148.8,
+      "cy": 76.7,
+      "w": 68,
+      "h": 105,
+      "rot": 0
+    },
+    {
+      "id": "Centennial II",
+      "cx": 218.3,
+      "cy": 76.7,
+      "w": 71,
+      "h": 105,
+      "rot": 0
+    },
+    {
+      "id": "Centennial III",
+      "cx": 288.8,
+      "cy": 76.7,
+      "w": 70,
+      "h": 105,
+      "rot": 0
+    },
+    {
+      "id": "Centennial IV",
+      "cx": 356.8,
+      "cy": 76.7,
+      "w": 66,
+      "h": 105,
+      "rot": 0
+    },
+    {
+      "id": "Regency V",
+      "cx": 367.0,
+      "cy": 281.3,
+      "w": 92.8,
+      "h": 38.7,
+      "rot": 0
+    },
+    {
+      "id": "Regency VI",
+      "cx": 360.5,
+      "cy": 325.3,
+      "w": 105.7,
+      "h": 49.4,
+      "rot": 0
+    },
+    {
+      "id": "Regency VII",
+      "cx": 346.9,
+      "cy": 374.5,
+      "w": 133,
+      "h": 49,
+      "rot": 0
+    },
+    {
+      "id": "Learning Center",
+      "cx": 150.9,
+      "cy": 235.3,
+      "w": 60,
+      "h": 53,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "Centennial Ballroom",
+      "kind": "ballroom",
+      "rooms": [
+        "Centennial I",
+        "Centennial II",
+        "Centennial III",
+        "Centennial IV"
+      ],
+      "outline": {
+        "cx": 252.3,
+        "cy": 76.7,
+        "w": 275.0,
+        "h": 105.0,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Centennial Foyer",
+      "cx": 233.7,
+      "cy": 167.7,
+      "w": 150,
+      "h": 70,
+      "rot": 0
+    },
+    {
+      "name": "Terrace Foyer",
+      "cx": 258.3,
+      "cy": 247.8,
+      "w": 45,
+      "h": 66,
+      "rot": 0
+    },
+    {
+      "name": "Regency Foyer",
+      "cx": 293.9,
+      "cy": 244.5,
+      "w": 26,
+      "h": 100,
+      "rot": 0
+    },
+    {
+      "name": "Regency Corridor",
+      "cx": 292.6,
+      "cy": 325.6,
+      "w": 26.5,
+      "h": 45,
+      "rot": 0
+    },
+    {
+      "name": "Pool deck",
+      "cx": 360.6,
+      "cy": 207.5,
+      "w": 104,
+      "h": 93,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "Atrium elevators",
+      "x": 210.0,
+      "y": 245.0
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the Exhibit Level",
+      "x": 242.7,
+      "y": 196.2
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the lobby",
+      "x": 258.8,
+      "y": 189.0
+    },
+    {
+      "kind": "info",
+      "name": "Contest and event registration",
+      "x": 293.0,
+      "y": 162.1
+    },
+    {
+      "kind": "info",
+      "name": "Convention information",
+      "x": 281.0,
+      "y": 202.9
+    }
+  ],
+  "streets": [
+    {
+      "name": "Baker Street NE",
+      "side": "N"
+    },
+    {
+      "name": "John Portman Blvd NE",
+      "side": "S"
+    },
+    {
+      "name": "Peachtree Street NE",
+      "side": "W"
+    },
+    {
+      "name": "Peachtree Center Ave NE",
+      "side": "E"
+    }
+  ],
+  "sources": [
+    "sizes: the capacity tables printed beside the hotel's floor plans (reference/plans/hyatt-floorplan-2012.pdf, revised 5/12)",
+    "placement, order and orientation: the hotel's own floor plan in the same file, p. 1, measured from the atrium elevators (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "one level below the lobby, in the Atrium Tower: the Centennial Ballroom to the north, the Regency Ballroom to the south-east, the Learning Center west of the atrium elevators",
+    "Regency V, VI and VII are drawn from the east wall they share at the table's widths, 92'10\", 105'8\" and 133': V and VI stop short of VII's west end, where the Regency Corridor runs; the plan draws V about 12 ft wider than the table",
+    "the Learning Center is a fan-shaped amphitheatre; its rectangle is the table's 60 x 53",
+    "the foyers and the pool deck are the plan's outlines, not the table's",
+    "Contest and event registration is at the hotel's permanent registration desk and Convention information beside the escalators: both are Dragon Con's map's, placed by eye",
+    "the plan prints no compass and no streets: north is taken from the International Ballroom's North and South halves and from the main entrance on Peachtree Street - to be checked in person"
+  ]
+}
