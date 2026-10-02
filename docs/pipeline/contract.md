@@ -601,8 +601,12 @@ their `order`; a hotel's fields and a level's, in the order below.
   Hardy Ivy Park's one key is `Hardy`: the source writes
   `Hardy - Terraces`, so its venue token is `Hardy`, and the rest is the
   room - in `Hardy Ivy Structure`, the room is `Ivy Structure`.
-- **A level:** `id`, unique within its hotel; `name`; `order`; and its
-  `rooms`, `aliases` and `notes`.
+- **A level:** `id`, unique within its hotel; `name`, its full name;
+  `short`, its name where a line has little room, at most 20 characters
+  and unique within its hotel; `order`, the order its hotel's levels are
+  listed in; `storey`, the storey it is on, the hotel's lowest level 0,
+  two levels side by side sharing one (#72); and its `rooms`, `aliases`
+  and `notes`.
 - **A room:** its id is its string as `venues.json` writes it, unique
   within the hotel.
 - **An alias:** an exact string, case-folded and whitespace-collapsed, to
@@ -619,9 +623,11 @@ pair among hotels that are not placeless present, or the default used and
 listed; the slack present. CI loads the committed file and validates it.
 `venues.py` also refuses, as fatal: a hotel key that is not whole tokens
 (single spaces, no comma, no hyphen); an alias not written folded; an
-`order` taken twice among the hotels or among a hotel's levels; a walk
-pair that is not two hotels of the file; and minutes that are not whole
-numbers.
+`order` taken twice among the hotels or among a hotel's levels; a level's
+`short` empty, over 20 characters, or taken twice among a hotel's levels,
+case-folded; a `storey` that is not a whole number, or a hotel's storeys
+not starting at 0 or skipping one; a walk pair that is not two hotels of
+the file; and minutes that are not whole numbers.
 
 The drawings are not in it: they live under `data/2027/drawings/`, one file
 per hotel level (#45).
@@ -667,11 +673,11 @@ rows and on a frozen year's rows alike; it is pure.
     the Courtland Grand), nothing else stripping;
   - partitions: the common prefix of two or more rooms on one level, each
     the prefix and a letter, a number or a roman numeral (`Atrium Ballroom`
-    is its A to D; `Salon`, whose halves are East and West, waits for an
+    is its A to C; `Salon`, whose halves are East and West, is read by an
     alias);
   - the hotel alone;
   - a floor alone, `Nth Floor` or `Floor N`, read as the level named
-    `<Ordinal> Floor` or `Level N`;
+    `<Ordinal> Floor`, `Level N` or `Nth Floor`;
   - a trailing note: the longest leading run of whole words that is a room.
 
   Each rule is a function of the string alone, but partitions, which reads

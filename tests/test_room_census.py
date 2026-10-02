@@ -22,9 +22,9 @@ rc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(rc)
 
 
-def level(lid, name, order, rooms, notes=(), aliases=None):
-    return {"id": lid, "name": name, "order": order, "rooms": list(rooms), "aliases": aliases or {},
-            "notes": list(notes)}
+def level(lid, name, order, rooms, notes=(), aliases=None, short=None):
+    return {"id": lid, "name": name, "short": short or name, "order": order, "storey": order, "rooms": list(rooms),
+            "aliases": aliases or {}, "notes": list(notes)}
 
 
 def hotel(name, order, levels, keys, unplaced=None, placeless=False, display="rest", full=None):
@@ -45,7 +45,7 @@ VENUES = {"walk": {}, "same_venue_min": 5, "unknown_pair_min": 12, "slack_min": 
                         level("f14", "Fourteenth Floor", 1, ["1401"])], ["Westin"], full="The Westin Peachtree Plaza"),
     hotel("Courtland Grand", 3, [level("unknown", "levels unknown", 0, ["Athens"])], ["Courtland Grand", "Courtland"]),
     hotel("AmericasMart", 4, [level("b3f2", "Building 3, Floor 2", 0, []),
-                              level("b2-rooms", "Building 2, meeting rooms", 1, ["203A"])],
+                              level("b2-rooms", "Building 2, meeting rooms", 1, ["203A"], short="Building 2")],
           ["AmericasMart", "Mart2", "Mart"], display="location"),
     hotel("Hardy Ivy Park", 5, [], ["Hardy"]),
     hotel("Streaming", 6, [], ["Streaming"], placeless=True),

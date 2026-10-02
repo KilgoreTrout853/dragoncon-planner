@@ -11,7 +11,7 @@ A record, not held fresh by CI: an edit to the venues file leaves it stale until
 3. The run's venue counters on this schedule: rooms unresolved 30 - the strings read at the hotel alone (section 4); hotels unknown 5 - the locations no key begins. Not counted: 168 events at an unplaced room of the venues file, read at its hotel, and the 981 events placed at a level, by design.
 4. Split again: 2 events of a placeless hotel, read at a placed one (section 4).
 5. Alias hits: 68 events, in 4 strings.
-6. Rooms of the venues file: 230 on levels, and 6 unplaced rooms. Reached by a reading: 150; by none: 80 (section 5).
+6. Rooms of the venues file: 229 on levels, and 6 unplaced rooms. Reached by a reading: 149; by none: 80 (section 5).
 
 ## 1. Hotels
 
@@ -19,7 +19,7 @@ Events by place, per hotel as the stage reads it: `exact`, a room of the venues 
 
 | hotel | levels | rooms | events | strings | exact | alias | rule | level | hotel | none |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Marriott | 4 | 44 | 607 | 20 | 430 | 0 | 169 | 0 | 8 | 0 |
+| Marriott | 4 | 43 | 607 | 20 | 430 | 0 | 169 | 0 | 8 | 0 |
 | Hyatt | 6 | 55 | 499 | 36 | 225 | 0 | 268 | 0 | 6 | 0 |
 | Hilton | 5 | 68 | 739 | 36 | 334 | 51 | 210 | 0 | 144 | 0 |
 | Courtland Grand | 3 | 17 | 151 | 9 | 88 | 17 | 44 | 0 | 2 | 0 |
@@ -67,7 +67,7 @@ The room string the stage read - the location less its hotel's key - with its pl
 | --- | ---: | --- | --- | --- | --- |
 | `International Hall South` | 318 | exact | international | `International Hall South` | - |
 | `L401-L403` | 35 | rule | lobby | `L401`, `L402`, `L403` | numeric run |
-| `Atrium Ballroom` | 32 | rule | atrium | `Atrium Ballroom A`, `Atrium Ballroom B`, `Atrium Ballroom C`, `Atrium Ballroom D` | partitions |
+| `Atrium Ballroom` | 32 | rule | atrium | `Atrium Ballroom A`, `Atrium Ballroom B`, `Atrium Ballroom C` | partitions |
 | `M103-M105` | 31 | rule | marquis | `M103`, `M104`, `M105` | numeric run |
 | `M302-M303` | 29 | rule | marquis | `M302`, `M303` | numeric run |
 | `A706` | 26 | exact | atrium | `A706` | - |
@@ -351,7 +351,7 @@ Per level, the rooms a reading names - exactly, by an alias or by a rule - and t
 | Marriott | International Level (`international`) | 15 | 1 | `International 1`, `International 2`, `International 3`, `International 4`, `International 5`, `International 6`, `International 7`, `International 8`, `International 9`, `International 10`, `International A`, `International B`, `International C`, `International Hall North` |
 | Marriott | Marquis Level (`marquis`) | 12 | 8 | `Marquis Ballroom A`, `Marquis Ballroom B`, `Marquis Ballroom C`, `Marquis Ballroom D` |
 | Marriott | Lobby Level (`lobby`) | 6 | 3 | `L404`, `L405`, `L406` |
-| Marriott | Atrium Level (`atrium`) | 11 | 11 | - |
+| Marriott | Atrium Level (`atrium`) | 10 | 10 | - |
 | Hyatt | Atlanta Conference Center (LL3) (`acc`) | 20 | 8 | `Auburn`, `Baker`, `Courtland`, `Dunwoody`, `Edgewood`, `Fairlie`, `Greenbriar`, `Harris`, `Heritage Boardroom`, `Lenox`, `University`, `Williams` |
 | Hyatt | Exhibit Level (LL2) (`exhibit`) | 17 | 10 | `Grand Hall A`, `Grand Hall B`, `Chicago A`, `Chicago B`, `Chicago C`, `Chicago D`, `Chicago E` |
 | Hyatt | Ballroom Level (LL1) (`ballroom`) | 8 | 8 | - |
@@ -362,37 +362,40 @@ Per level, the rooms a reading names - exactly, by an alias or by a rule - and t
 | Hilton | 2nd Floor (`l2`) | 32 | 16 | `201`, `208`, `215`, `216`, `217`, `218`, `219`, `220`, `221`, `222`, `223`, `224`, `Grand Ballroom A`, `Grand Ballroom B`, `Grand Ballroom C`, `Grand Ballroom D` |
 | Hilton | 3rd Floor (`l3`) | 15 | 15 | - |
 | Hilton | 4th Floor (`l4`) | 7 | 2 | `401`, `402`, `403`, `406`, `407` |
-| Courtland Grand | First Floor (`f1`) | 8 | 6 | `Georgia Ballroom`, `Atlanta 5` |
-| Courtland Grand | Second Floor (`f2`) | 3 | 3 | - |
-| Courtland Grand | Third Floor (`f3`) | 6 | 6 | - |
-| Westin | Sixth Floor (`f6`) | 10 | 10 | - |
-| Westin | Seventh Floor (`f7`) | 11 | 11 | - |
-| Westin | Eighth Floor (`f8`) | 3 | 3 | - |
-| Westin | Twelfth Floor (`f12`) | 8 | 0 | `Piedmont 1`, `Piedmont 2`, `Piedmont 3`, `Piedmont 4`, `Piedmont 5`, `Piedmont 6`, `Piedmont 7`, `Piedmont 8` |
-| Westin | Fourteenth Floor (`f14`) | 8 | 0 | `Ansley 1`, `Ansley 2`, `Ansley 3`, `Ansley 4`, `Ansley 5`, `Ansley 6`, `Ansley 7`, `Ansley 8` |
+| Courtland Grand | 1st Floor (`f1`) | 8 | 6 | `Georgia Ballroom`, `Atlanta 5` |
+| Courtland Grand | 2nd Floor (`f2`) | 3 | 3 | - |
+| Courtland Grand | 3rd Floor (`f3`) | 6 | 6 | - |
+| Westin | 6th Floor (`f6`) | 10 | 10 | - |
+| Westin | 7th Floor (`f7`) | 11 | 11 | - |
+| Westin | 8th Floor (`f8`) | 3 | 3 | - |
+| Westin | 12th Floor (`f12`) | 8 | 0 | `Piedmont 1`, `Piedmont 2`, `Piedmont 3`, `Piedmont 4`, `Piedmont 5`, `Piedmont 6`, `Piedmont 7`, `Piedmont 8` |
+| Westin | 14th Floor (`f14`) | 8 | 0 | `Ansley 1`, `Ansley 2`, `Ansley 3`, `Ansley 4`, `Ansley 5`, `Ansley 6`, `Ansley 7`, `Ansley 8` |
 | AmericasMart | Building 2, meeting rooms (`b2-rooms`) | 6 | 6 | - |
 
 Notes on the levels:
 
+- Marriott, International Level (`international`): `International Hall South is International 4-10, Dragon Con's name for the seven together`
+- Marriott, International Level (`international`): `International Hall North: no source says which rooms it is - neither the hotel's plan nor Dragon Con's map`
 - Marriott, Marquis Level (`marquis`): `room codes carry the level: M = Marquis`
 - Marriott, Marquis Level (`marquis`): `also on the level, no 2026 programming: M101, M102, M106-M109, M201, M202, M304`
 - Marriott, Lobby Level (`lobby`): `L = Lobby`
+- Marriott, Lobby Level (`lobby`): `also on the level, no 2026 programming: L501-L508, labelled on Dragon Con's map (VIP badge pick-up at L508)`
 - Marriott, Atrium Level (`atrium`): `A = Atrium`
 - Marriott, Atrium Level (`atrium`): `also on the level, no 2026 programming: A701, A702, A705`
 - Hyatt, Exhibit Level (LL2) (`exhibit`): `Concourse: the pre-function area and its stage, scheduled like a room; the con's name for it`
 - Hyatt, Lobby Level (`lobby`): `registration and the atrium; no programming rooms known`
 - Hyatt, International Tower · LL2 (`tower-ll2`): `two levels below the lobby, in the International Tower; reached from the ACC`
-- Hilton, Galleria (`galleria`): `directly under the lobby; Galleria 1-8 are the hotel's own partitions`
+- Hilton, Galleria (`galleria`): `one level below the 1st Floor, under its east side and the Pavilion Courtyards; Galleria 1-8 are the hotel's own partitions`
 - Hilton, 1st Floor (`l1`): `street level: the Main Lobby and the Crystal Ballroom; escalators down to the Galleria and up to the 2nd Floor`
 - Hilton, 2nd Floor (`l2`): `the ballroom floor: Grand Ballroom (A-D; Grand West = D+C, Grand East = A+B) and the Salon at the core, breakout rooms in two angled wings to the west`
-- Courtland Grand, First Floor (`f1`): `the con's names, from its 2026 map`
-- Courtland Grand, Second Floor (`f2`): `the con's names, from its 2026 map`
-- Courtland Grand, Third Floor (`f3`): `the con's names, from its 2026 map`
-- Westin, Sixth Floor (`f6`): `the con's names, from its 2026 map`
-- Westin, Seventh Floor (`f7`): `the con's names, from its 2026 map`
-- Westin, Eighth Floor (`f8`): `the con's names, from its 2026 map`
-- Westin, Twelfth Floor (`f12`): `the con's names, from its 2026 map`
-- Westin, Fourteenth Floor (`f14`): `the con's names, from its 2026 map`
+- Courtland Grand, 1st Floor (`f1`): `the con's names, from its 2026 map`
+- Courtland Grand, 2nd Floor (`f2`): `the con's names, from its 2026 map`
+- Courtland Grand, 3rd Floor (`f3`): `the con's map labels one Grand Ballroom; its sections A-F are the schedule's own strings, not the map's`
+- Westin, 6th Floor (`f6`): `the con's names, from its 2026 map`
+- Westin, 7th Floor (`f7`): `the con's names, from its 2026 map`
+- Westin, 8th Floor (`f8`): `the con's names, from its 2026 map`
+- Westin, 12th Floor (`f12`): `the con's names, from its 2026 map`
+- Westin, 14th Floor (`f14`): `the con's names, from its 2026 map`
 
 Unplaced rooms:
 

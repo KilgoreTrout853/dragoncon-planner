@@ -1,7 +1,10 @@
 """Tests for venues.py: one failing fixture per rule, the warning and the two helpers, and the committed files.
 
-The fixtures are inline. The last test loads both committed years, data/2026/venues.json and data/2027/venues.json,
-so that CI checks every later edit to them.
+The fixtures are inline. The last two tests load both committed years, data/2026/venues.json and
+data/2027/venues.json, so that CI checks every later edit to them. The last also reads real 2026 strings through the
+resolver, venues_stage.py - the one test of it that reads data/: the resolver reads a floor alone, and the Mart's
+building floors and vendor halls, by a level's name, so a level renamed in the file would otherwise move those events
+to the hotel alone, and nothing else in CI would say so.
 
 Run:  python -m pytest tests/
 """
@@ -16,11 +19,12 @@ sys.path.insert(0, ROOT)
 import pytest  # noqa: E402
 
 import venues  # noqa: E402
+import venues_stage  # noqa: E402
 
 
 def level(lid, order, rooms, aliases=None, notes=None):
-    return {"id": lid, "name": lid.title(), "order": order, "rooms": list(rooms), "aliases": aliases or {},
-            "notes": notes or []}
+    return {"id": lid, "name": lid.title(), "short": lid.title(), "order": order, "storey": order, "rooms": list(rooms),
+            "aliases": aliases or {}, "notes": notes or []}
 
 
 def hotel(name, order, keys, levels=(), placeless=False, unplaced=None):
@@ -86,6 +90,13 @@ def test_every_key_is_required_and_no_other_is_known():
     d = good()
     d["hotels"][0]["levels"][0]["note"] = "a typo for notes"
     assert only(d) == "hotels[0] Hilton, level 'l2': 'note' is not a key this file knows"
+    for key in ("short", "storey"):                               # a level's two keys of #72: required, as every key is
+        d = good()
+        del d["hotels"][0]["levels"][0][key]
+        assert only(d) == f"hotels[0] Hilton, level 'l2': {key} is missing"
+    d = good()
+    del d["hotels"][0]["levels"][1]["storey"]                     # storey 0's: the rest do not then start at 1
+    assert only(d) == "hotels[0] Hilton, level 'galleria': storey is missing"
 
 
 def test_the_three_minute_values_are_whole_numbers():
@@ -149,6 +160,53 @@ def test_level_ids_are_unique_within_a_hotel():
     d = good()
     d["hotels"][1]["levels"][0]["id"] = "l2"                      # another hotel may use it
     assert problems(d) == []
+
+
+def test_a_levels_short_is_a_string_of_1_to_20_characters_unique_within_its_hotel_case_folded():
+    for bad in ("", "   ", None, 2):
+        d = good()
+        d["hotels"][0]["levels"][0]["short"] = bad
+        assert only(d) == f"hotels[0] Hilton, level 'l2': short {bad!r} is not a non-empty string", bad
+    d = good()
+    d["hotels"][0]["levels"][0]["short"] = "x" * 21
+    assert only(d) == f"hotels[0] Hilton, level 'l2': short {'x' * 21!r} is longer than 20 characters"
+    d = good()
+    d["hotels"][0]["levels"][0]["short"] = "Intl Tower LL2, west"                 # 20 characters: room enough
+    assert problems(d) == []
+    d = good()
+    d["hotels"][0]["levels"][0]["short"] = "GALLERIA"                             # the level after it says Galleria
+    assert only(d) == "hotels[0] Hilton, level 'galleria': short 'Galleria' is taken by level 'l2'"
+    d = good()
+    d["hotels"][1]["levels"][0]["short"] = "Galleria"                             # another hotel may use it
+    assert problems(d) == []
+
+
+def test_a_levels_storey_is_a_whole_number_and_a_hotels_storeys_start_at_0_and_skip_none():
+    for bad in ("1", 1.0, True, None):
+        d = good()
+        d["hotels"][0]["levels"][0]["storey"] = bad
+        assert only(d) == f"hotels[0] Hilton, level 'l2': storey {bad!r} is not a whole number", bad
+    d = good()
+    d["hotels"][0]["levels"][0]["storey"] = 0                                     # two levels on one storey
+    assert problems(d) == []
+    d = good()
+    d["hotels"][0]["levels"][1]["storey"] = 2                                     # 1 and 2: no level on 0
+    assert only(d) == "hotels[0] Hilton: storeys start at 1, not 0"
+    d = good()
+    d["hotels"][0]["levels"][0]["storey"] = 2                                     # 0 and 2: none on 1
+    assert only(d) == "hotels[0] Hilton: storeys skip 1"
+    d = good()
+    d["hotels"][0]["levels"][0]["storey"] = -1                                    # below the lowest level
+    assert only(d) == "hotels[0] Hilton: storeys start at -1, not 0"
+    d = good()
+    d["hotels"][0]["levels"].append(level("l4", 2, []))
+    d["hotels"][0]["levels"][2]["storey"] = 4                                     # 0, 1 and 4: two skipped
+    assert problems(d) == ["hotels[0] Hilton: storeys skip 2", "hotels[0] Hilton: storeys skip 3"]
+    d["hotels"][0]["levels"][2]["storey"] = "4"                                   # one bad value: one problem
+    assert only(d) == "hotels[0] Hilton, level 'l4': storey '4' is not a whole number"
+    d = good()
+    d["hotels"][0]["levels"][1] = "galleria"                                      # storey 0's level, unreadable
+    assert only(d) == "hotels[0] Hilton: levels[1] is str, not an object"
 
 
 def test_room_ids_are_unique_within_a_hotel_case_folded():
@@ -245,3 +303,34 @@ def test_the_committed_venues_files_are_valid():
         if year == "2026":
             assert {e["hotel"] for e in schedule} <= held
         assert {"Streaming", "Other", "Unknown"} <= {h["hotel"] for h in v.hotels() if h["placeless"]}
+
+
+# 2026's own strings that the resolver reads by a level's name, as data/2026/events.json writes them: the location ->
+# (the hotel, the level, the rule that reads it).
+BY_NAME = {
+    "Westin, 14th Floor": ("Westin", "f14", "floor only"),
+    "Westin 12th Floor": ("Westin", "f12", "floor only"),
+    "Westin, 12th Floor": ("Westin", "f12", "floor only"),
+    "Mart Building 3, Floor 1": ("AmericasMart", "b3f1", "mart building"),
+    "Mart Building 3, Floor 2": ("AmericasMart", "b3f2", "mart building"),
+    "Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300": ("AmericasMart", "b2-vendor-f1", "mart vendor hall"),
+    "Mart2 Vendor Hall Floor 2 The Marigolden Bookshelf - booth 2506":
+        ("AmericasMart", "b2-vendor-f2", "mart vendor hall"),
+    "Mart2 Vendor Hall Floor 3 Sidestreet Book Market - booth 3201":
+        ("AmericasMart", "b2-vendor-f3", "mart vendor hall"),
+}
+
+
+def test_the_committed_venues_files_name_their_levels_as_the_resolver_reads_them():
+    """A floor alone and the Mart's building floors and vendor halls are read by a level's name (DECISIONS #45), so
+    each of these real strings reaches its level in both years' files: a level renamed past what the resolver reads
+    would drop its events to the hotel alone. The strings are the source's, checked against the frozen schedule."""
+    with open(os.path.join(ROOT, "data", "2026", "events.json"), "rb") as f:
+        written = {e["location"] for e in json.loads(f.read().decode("utf-8"))["events"]}
+    assert set(BY_NAME) <= written
+    for year in ("2026", "2027"):
+        v = venues.load(os.path.join(ROOT, "data", year, "venues.json"))
+        for location, (hotel, level, rule) in BY_NAME.items():
+            p = venues_stage.place(location, v)
+            assert (p.hotel, p.level, p.rooms, p.place, p.rules) == (hotel, level, (), "level", (rule,)), \
+                (year, location)

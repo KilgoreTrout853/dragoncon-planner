@@ -223,7 +223,8 @@ def test_the_diff_changes_neither_document_and_hands_back_none_of_their_objects(
 # --- through the whole chain ---------------------------------------------------------------
 
 def level(lid, name, order, rooms):
-    return {"id": lid, "name": name, "order": order, "rooms": list(rooms), "aliases": {}, "notes": []}
+    return {"id": lid, "name": name, "short": name, "order": order, "storey": order, "rooms": list(rooms),
+            "aliases": {}, "notes": []}
 
 
 def hotel(name, order, keys, levels=(), placeless=False):

@@ -19,7 +19,7 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 
 | Hotel | Level | Plan | Dims | Local copy | Con map | Our drawing |
 |---|---|---|---|---|---|---|
-| Marriott | Atrium Level | have · [Hotel's floor plan, an image (AOM 2017)](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf), p. 1 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/) on its events page, read 2026-10-02 | `reference/plans/marriott-marquis-aom-2017.pdf` | 11 of 11 rooms (Atrium Ballroom as one outline) | `data/2027/drawings/marriott-atrium.json` · sizes from the chart, placement from the plan; Atrium Ballroom D not drawn, section C drawn at the chart's 23 ft |
+| Marriott | Atrium Level | have · [Hotel's floor plan, an image (AOM 2017)](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf), p. 1 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/) on its events page, read 2026-10-02 | `reference/plans/marriott-marquis-aom-2017.pdf` | 10 of 10 rooms (Atrium Ballroom as one outline) | `data/2027/drawings/marriott-atrium.json` · sizes from the chart, placement from the plan; section C drawn at the chart's 23 ft |
 | Marriott | Lobby Level | have · [Hotel's floor plan, an image (AOM 2017)](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf), p. 2 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/) on its events page, read 2026-10-02 | `reference/plans/marriott-marquis-aom-2017.pdf` | 3 of 6 rooms | `data/2027/drawings/marriott-lobby.json` · sizes from the chart, placement from the plan |
 | Marriott | Marquis Level | have · [Hotel's floor plan, an image (AOM 2017)](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf), p. 3 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/) on its events page, read 2026-10-02 | `reference/plans/marriott-marquis-aom-2017.pdf` | 6 of 12 rooms | `data/2027/drawings/marriott-marquis.json` · sizes from the chart, placement from the plan |
 | Marriott | International Level | have · [Hotel's floor plan, an image (AOM 2017)](https://my.aom.org/ProgramDocs/2017/maps/Atlanta_Marriott_Marquis.pdf), p. 4 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlmq-atlanta-marriott-marquis/events/) on its events page, read 2026-10-02 | `reference/plans/marriott-marquis-aom-2017.pdf` | 0 of 15 rooms | `data/2027/drawings/marriott-international.json` · sizes from the chart, placement from the plan; International Hall North not drawn |
@@ -34,14 +34,14 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 | Hilton | 2nd Floor | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | 14 of 32 rooms + Grand East/West + Salon as one | `data/2027/drawings/hilton-l2.json` · sizes from the table, placement from the plan; 201 and 215–224 not drawn |
 | Hilton | 1st Floor | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | Crystal Ballroom as one outline | `data/2027/drawings/hilton-l1.json` · sizes from the table, placement from the plan |
 | Hilton | Galleria | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | 8 of 8 rooms | `data/2027/drawings/hilton-galleria.json` · placement from the plan; sizes from the table but Galleria 3, 5, 6 and 7, the plan's |
-| Courtland Grand | Third Floor | none | no | — | image only · rooms labelled on the image | none |
-| Courtland Grand | Second Floor | none | no | — | image only · rooms labelled on the image | none |
-| Courtland Grand | First Floor | none | no | — | image only · rooms labelled on the image | none |
-| Westin | Fourteenth Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
-| Westin | Twelfth Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
-| Westin | Eighth Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
-| Westin | Seventh Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
-| Westin | Sixth Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
+| Courtland Grand | 3rd Floor | none | no | — | image only · rooms labelled on the image | none |
+| Courtland Grand | 2nd Floor | none | no | — | image only · rooms labelled on the image | none |
+| Courtland Grand | 1st Floor | none | no | — | image only · rooms labelled on the image | none |
+| Westin | 14th Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
+| Westin | 12th Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
+| Westin | 8th Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
+| Westin | 7th Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
+| Westin | 6th Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
 | AmericasMart | Building 2, Vendor Hall Floor 3 | unknown | no | — | image only | none |
 | AmericasMart | Building 2, Vendor Hall Floor 2 | unknown | no | — | image only | none |
 | AmericasMart | Building 2, Vendor Hall Floor 1 | unknown | no | — | image only | none |
@@ -93,11 +93,12 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
   scale and squashed north to south, so each is read with one scale across and another down; the A700 rooms are 265
   to 345 ft from the elevator core, so those are placed less finely. The plan is an image, so positions are good to
   about 10–15 ft until walked. Every room the con's map outlines reads as ours: M103–M105, M301, Imperial Ballroom,
-  L401–L403, Atrium Ballroom, A601–A602, A703, A704 and A706–A708. The rooms the map names on the Marquis and Atrium
-  levels with no 2026 programming are in those levels' notes.
+  L401–L403, Atrium Ballroom, A601–A602, A703, A704 and A706–A708. The rooms the map names on the Marquis, Lobby and
+  Atrium levels with no 2026 programming are in those levels' notes.
 - **Westin** — its levels and rooms are the con's post-renovation names, from its 2026 map; the old PDF predates them.
   A current plan is still not found.
-- **Courtland Grand** — no hotel plan found; the three floors and their rooms are the con's, from its 2026 map.
+- **Courtland Grand** — no hotel plan found; the three floors and their rooms are the con's, from its 2026 map, but for
+  the Grand Ballroom's sections A–F, which are the schedule's: the map labels one Grand Ballroom.
 - **AmericasMart** — several buildings, each with floors; Dragon Con's map of each building is under
   `reference/dragoncon/`, a picture with no room outlines; its exhibitor maps were not captured. The Mart's drawing is
   W41's, as sources allow (DECISIONS #60).

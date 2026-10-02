@@ -2,11 +2,12 @@
 """The venues file, data/<year>/venues.json: load it and validate it (DECISIONS #45).
 
 Hand-curated, one copy a year (#27), runtime data only. Per hotel: `hotel`, the value the schedule's hotel field holds;
-`name`; `keys`, the prefixes the source writes at the start of a location; `short`, `group`, `var` and `order`, as the
-client's src/venues.js has them until PR 9 moves the client onto this file; `placeless`; `display`, whether the room
-shown is the rest of the location or the whole of it; `levels`, each with `id`, `name`, `order`, `rooms`, `aliases` and
-`notes`; and `unplaced`, a room with no known level and its note. At the top: `walk`, minutes between two hotels keyed
-"A|B", and `same_venue_min`, `unknown_pair_min` and `slack_min`.
+`name`; `keys`, the prefixes the source writes at the start of a location; `short`, `group`, `var` and `order`, which
+the client reads, imported at its build (#49); `placeless`; `display`, whether the room shown is the rest of the
+location or the whole of it; `levels`, each with `id`, `name`, `short`, `order`, `storey`, `rooms`, `aliases` and
+`notes`; and `unplaced`, a room with no known level and its note. A level's `short` is its name where a line has
+little room, and its `storey` the storey it is on, the hotel's lowest level 0 (#72). At the top: `walk`, minutes
+between two hotels keyed "A|B", and `same_venue_min`, `unknown_pair_min` and `slack_min`.
 
     from venues import load
     v = load("data/2027/venues.json")   # raises VenuesError listing every problem, not the first
@@ -16,8 +17,10 @@ shown is the rest of the location or the whole of it; `levels`, each with `id`, 
 
 The rules: a hotel key is whole tokens and no two hotels share one, case-folded; level ids and room ids are unique
 within a hotel; an alias is written folded - case-folded, single spaces - and names rooms on its own level; the three
-minute values are present; `order` is distinct among the hotels and among a hotel's levels; and no object holds a key
-the file does not know, because a typo in a hand-edited file would otherwise do nothing, silently.
+minute values are present; `order` is distinct among the hotels and among a hotel's levels; a level's `short` is a
+string of 1 to 20 characters, no two of a hotel's levels sharing one, case-folded; a level's `storey` is a whole number,
+and a hotel's storeys start at 0 and skip none, though two levels may share one; and no object holds a key the file
+does not know, because a typo in a hand-edited file would otherwise do nothing, silently.
 
 Helpers only. The hotel and room split and the reading of a room string are the venues stage's, venues_stage.py.
 Standard library; nothing here writes a file or prints.
@@ -29,7 +32,8 @@ from itertools import combinations
 TOP = ("walk", "same_venue_min", "unknown_pair_min", "slack_min", "hotels")
 MINUTES = ("same_venue_min", "unknown_pair_min", "slack_min")
 HOTEL = ("hotel", "name", "keys", "short", "group", "var", "order", "placeless", "display", "levels", "unplaced")
-LEVEL = ("id", "name", "order", "rooms", "aliases", "notes")
+LEVEL = ("id", "name", "short", "order", "storey", "rooms", "aliases", "notes")
+SHORT_MAX = 20  # a level's short name: what fits on an event's row after the hotel and the room (#72)
 DISPLAYS = ("rest", "location")
 SPLITS = ",-"   # #45 splits a location at a space, a comma or a hyphen; a key is whole tokens, so it holds none of these
 
@@ -162,13 +166,14 @@ def _hotel_keys(here, hotel_keys, keys, owner):
 
 
 def _rooms(here, h):
-    """The levels, their rooms and aliases, and the unplaced rooms."""
-    out, levels, ids, orders, rooms = [], h.get("levels", []), {}, {}, {}
+    """The levels, their short names, storeys, rooms and aliases, and the unplaced rooms."""
+    out, levels, ids, orders, rooms, shorts, storeys = [], h.get("levels", []), {}, {}, {}, {}, []
     if not isinstance(levels, list):
         return [f"{here}: levels is not a list"]
     for j, lv in enumerate(levels):
         if not isinstance(lv, dict):
             out.append(f"{here}: levels[{j}] is {type(lv).__name__}, not an object")
+            storeys.append(None)
             continue
         at = f"{here}, level {lv.get('id', j)!r}"
         out += _keys(at, lv, LEVEL)
@@ -181,6 +186,16 @@ def _rooms(here, h):
             ids[lid] = j
         if "name" in lv and not _text(lv["name"]):
             out.append(f"{at}: name {lv['name']!r} is not a non-empty string")
+        if "short" in lv:
+            short = lv["short"]
+            if not _text(short):
+                out.append(f"{at}: short {short!r} is not a non-empty string")
+            elif len(short) > SHORT_MAX:
+                out.append(f"{at}: short {short!r} is longer than {SHORT_MAX} characters")
+            elif short.casefold() in shorts:
+                out.append(f"{at}: short {short!r} is taken by level {shorts[short.casefold()]!r}")
+            else:
+                shorts[short.casefold()] = lid
         if "order" in lv:
             if not _whole(lv["order"]):
                 out.append(f"{at}: order {lv['order']!r} is not a whole number")
@@ -188,6 +203,9 @@ def _rooms(here, h):
                 out.append(f"{at}: order {lv['order']} is taken by level {orders[lv['order']]!r}")
             else:
                 orders[lv["order"]] = lid
+        storeys.append(lv.get("storey"))            # None where it is missing, which the key check reports
+        if "storey" in lv and not _whole(lv["storey"]):
+            out.append(f"{at}: storey {lv['storey']!r} is not a whole number")
         if "notes" in lv and not _texts(lv["notes"]):
             out.append(f"{at}: notes is not a list of strings")
         here_rooms = lv.get("rooms", [])
@@ -197,6 +215,7 @@ def _rooms(here, h):
         for r in here_rooms:
             out += _room(at, r, rooms, f"level {lid!r}")
         out += _aliases(at, lv.get("aliases", {}), set(here_rooms))
+    out += _storeys(here, storeys)
     unplaced = h.get("unplaced", {})
     if not isinstance(unplaced, dict) or not all(_text(r) and isinstance(note, str) for r, note in unplaced.items()):
         out.append(f"{here}: unplaced is not a map of a room to its note")
@@ -204,6 +223,16 @@ def _rooms(here, h):
         for r in unplaced:
             out += _room(here, r, rooms, "unplaced")
     return out
+
+
+def _storeys(here, storeys):
+    """A hotel's storeys start at 0 and skip no number; two levels may share one. Judged only when every level has a
+    storey and every storey is a whole number, so that one fault - a storey missing, or not a whole number, or a level
+    that is not an object - is one problem."""
+    if not storeys or not all(_whole(s) for s in storeys):
+        return []
+    out = [] if min(storeys) == 0 else [f"{here}: storeys start at {min(storeys)}, not 0"]
+    return out + [f"{here}: storeys skip {s}" for s in range(min(storeys), max(storeys)) if s not in storeys]
 
 
 def _room(at, room, rooms, where):

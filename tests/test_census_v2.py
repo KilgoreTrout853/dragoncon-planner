@@ -183,7 +183,8 @@ SIDECAR = {"minted": ["castle", "codex-alera", "the-dresden-files"],
 
 def hotel(name, order, keys, rooms=()):
     """A venues.json hotel (#45): placed, on one level, where it has rooms; placeless where it has none."""
-    levels = [{"id": "l1", "name": "Level 1", "order": 0, "rooms": list(rooms), "aliases": {}, "notes": []}]
+    levels = [{"id": "l1", "name": "Level 1", "short": "Level 1", "order": 0, "storey": 0, "rooms": list(rooms),
+               "aliases": {}, "notes": []}]
     return {"hotel": name, "name": name, "keys": list(keys), "short": name, "group": name, "var": name, "order": order,
             "placeless": not rooms, "display": "rest", "levels": levels if rooms else [], "unplaced": {}}
 

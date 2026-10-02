@@ -1042,7 +1042,7 @@ it.
 build tolerant, the test that holds 2026's counters at zero is the
 off-season guard.
 
-### 45. Venue resolution (builds #21, #27, #28) — Decided, not built (2026-09-22) — built by PR 5: `venues_stage.py`, the split, the grammar and the report as `contract.md` has them; its drawings built by #58: `data/<year>/drawings/<hotel>-<level>.json`, geometry only, keyed by level and room ids
+### 45. Venue resolution (builds #21, #27, #28) — Decided, not built (2026-09-22) — built by PR 5: `venues_stage.py`, the split, the grammar and the report as `contract.md` has them; its drawings built by #58: `data/<year>/drawings/<hotel>-<level>.json`, geometry only, keyed by level and room ids; a level gains `storey` and `short` by #72
 **Decided:** `data/2027/venues.json` holds runtime data only, curated by
 hand, one copy a year (#27):
 - Per hotel: its keys (the prefixes the source writes), `short`, `group`,
@@ -1810,7 +1810,7 @@ celebrities, unreviewed, which the loader ignores - and the client sees a
 person only through `events.v2.json`, whose shape has no place for it yet
 (#31).
 
-### 60. The building view is a 2027 commitment — Standing (2026-09-29) — its screens are `docs/screens/contract.md`'s section 6
+### 60. The building view is a 2027 commitment — Standing (2026-09-29) — its screens are `docs/screens/contract.md`'s section 6; its levels stacked by `storey` (#72)
 **Decided:** The building view is built in 2027. This lifts the spring
 gate of #21 and #28, which kept it in only if the foundation and
 Coordinate had landed by the spring checkpoint.
@@ -1944,7 +1944,7 @@ The browser's own Back plays no part: the hash is written by
 Explore page is "← Explore", to the grid, wherever the page was opened
 from: one tap from the event, accepted.
 
-### 64. The row and the gap line — Decided, not built (2026-09-30) — its overlap computed once, by `walk.js` `connection()`: the two picks' intersection, the earlier end less the later start, which the hero and the gap line read and the row's flag is to word, not compute again (PR #76); who's going built by PR #81: a line on the event's sheet, three names and then how many more, tapping nowhere (`docs/screens/contract.md`, section 7, as built)
+### 64. The row and the gap line — Decided, not built (2026-09-30) — its overlap computed once, by `walk.js` `connection()`: the two picks' intersection, the earlier end less the later start, which the hero and the gap line read and the row's flag is to word, not compute again (PR #76); who's going built by PR #81: a line on the event's sheet, three names and then how many more, tapping nowhere (`docs/screens/contract.md`, section 7, as built); the level on line 2 to be its `short` (#72)
 **Decided:** A row is at most three lines, and the walk between two events
 is said between their rows.
 - **Line 1:** the star, the title and the state tags - Cancelled, Removed
@@ -2234,3 +2234,43 @@ hand test presses return between typing a word and deleting it. A word
 taken out by the sheet rewrites the query in lower case with one space
 between words, as a chip's x always has. Kind, second in #70's order, is
 now near the panel's foot, below the fold on a phone.
+
+### 72. A level has a storey and a short name — Standing (2026-10-02)
+**Decided:** Every level of the venues file (#45) gains two keys, required
+like every other, which nothing reads yet:
+- **`storey`**, written after `order`: the storey the level is on, a whole
+  number counted from the hotel's lowest level in the file, which is 0. A
+  larger number is higher, and two levels on one storey stand side by side
+  in different parts of the building - the Hyatt's International Tower
+  LL2 beside its Exhibit Level, LL1 beside its Ballroom Level. It ranks
+  the file's levels and does not count the building's floors: the
+  Westin's 8th and 12th Floors are storeys 2 and 3. The building view
+  (#60; ROADMAP, tentpole 5, step 10) is to stack a hotel's levels by it.
+  The Mart's six are placeholders, each its `order`: it is two buildings
+  in one entry until the building view's pull request splits it and sets
+  them.
+- **`short`**, written after `name`: the level's name where a line has
+  little room - an event's row, after the room (#64). It may equal `name`,
+  and is shown, never read by the resolver, which reads a floor alone, and
+  the Mart's building floors and vendor halls, by `name` (#45). `name`
+  stays the full name, which the event's sheet and the building view
+  show. Its reader is the row's pull request, next in
+  Where things live's step 7, which is to leave the level off where the
+  room already says it - where the room, case-folded, contains the
+  `short`, case-folded, less a trailing " Level" or " Floor" - and the
+  values are chosen for that rule, which that pull request builds.
+- **Fatal** in `venues.py`: a `storey` that is not a whole number, or a
+  hotel whose storeys do not start at 0 or skip a number - two levels may
+  share one; a `short` that is not a non-empty string, is longer than 20
+  characters, or is shared by two levels of one hotel, case-folded.
+
+**Why:** `order` is distinct within a hotel and is the order its levels
+are listed in, so it cannot put two levels on one storey (prototype round
+7, 2026-10-02). `name` is the full name the sheet shows, and "Atlanta
+Conference Center (LL3)" does not fit on a row beside a hotel and a room
+(the step 7 design chat, 2026-10-02).
+**Cost:** Two more keys on every level, kept by hand in both years' files
+and in every test fixture that builds one. A storey says nothing of how
+far apart two levels are, and a level added between two others renumbers
+the storeys above it. The Mart's storeys are wrong until its split. 20
+characters is a guess, to be tried on a phone by the row's pull request.
