@@ -30,7 +30,7 @@ import {
 } from "./shell.js";
 import {
   onApplyPreview, onClearPreview, onEventPanelClick, onFiltersPanelChange, onFiltersPanelClick, onHashChange, onHotelPanelClick,
-  onSharedPanelClick, onMainChange, onMainClick, onMainInput, onMainKeydown, onMinute,
+  onSharedPanelClick, onMainChange, onMainClick, onMainFocusOut, onMainInput, onMainKeydown, onMinute,
 } from "./dispatch.js";
 
 /* ==================================================================
@@ -74,6 +74,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.querySelector("main").addEventListener("input", onMainInput);
   document.querySelector("main").addEventListener("keydown", onMainKeydown);
   document.querySelector("main").addEventListener("change", onMainChange);
+  document.querySelector("main").addEventListener("focusout", onMainFocusOut);
 
   sheetEl.addEventListener("touchstart", onSheetTouchStart, {passive: true});
   sheetEl.addEventListener("touchmove", onSheetTouchMove, {passive: true});

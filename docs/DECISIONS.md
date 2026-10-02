@@ -2144,7 +2144,7 @@ query name, or a version in the year's place, with the old shape read for
 as long as its links live. An id shorter than eight characters cannot
 travel, and the test refuses a year that has one.
 
-### 70. The filter sheet applies as it is tapped — Standing (2026-10-02)
+### 70. The filter sheet applies as it is tapped — Standing (2026-10-02) — its held group retired by #71: one value a filter and the last one set wins, a tap in the sheet taking a word out of the query and a word typed taking the sheet's value to All once the box is left; its groups reordered by #71
 **Decided:** Search's filters leave the page for a sheet panel,
 `#panel-filters` (W13, with W8's topic axes; `docs/screens/contract.md`,
 section 3, as built; PR #88), opened by one Filters button beside the
@@ -2183,3 +2183,54 @@ comes off first. The box's placeholder is shorter, "Titles, guests,
 fandoms", to fit beside the button with Larger text on and the badge
 showing, and the box is named by a label of its own, "Search the
 schedule".
+
+### 71. One value per filter, and the last one set wins — Standing (2026-10-02)
+**Decided:** The filter sheet (#70) has no lock. A word in the box and
+the sheet set the same three filters - the hotel, the kind and the track -
+and whichever was set last is the one in effect (`docs/screens/contract.md`,
+section 3, as built; PR #90):
+- **Nothing in the sheet is disabled,** and "Set by your search" is gone.
+  The sheet shows what is in effect: with "hilton" in the box, the Hilton
+  is pressed.
+- **A tap or a choice in the sheet** on a dimension a word holds takes
+  that word out of the query, as its chip's x does, then sets the value
+  tapped; a second word that would hold the dimension once the first is
+  gone - "hilton hyatt" - comes out too. A second tap on the hotel in
+  effect is All, as before. "kids" taken out by a track takes its hiding
+  of 18+ with it, as its chip's x does. The count on the main button
+  follows at once, and the box shows the changed query when the sheet
+  closes.
+- **A word typed replaces the sheet's value** for its dimension, which
+  goes to All, so nothing is kept unshown and nothing comes back when the
+  word is removed - once the box is left: the return key, the box losing
+  focus, or the sheet opening, which takes the step before the panel
+  draws. Never a keystroke. Until then the word wins, as `activeFilters()`
+  already had it, and `inEffect()` - the badge and the chips under the box
+  - leaves out a dimension a word holds: the one line of the held case
+  that stays. Nothing shown changes at that moment, so nothing is drawn.
+- **The panel's groups** in a new order: Hotel, Fandom with Track, the
+  four topics, Type, Kind, the toggle. The chips under the box, in the
+  sheet's order, follow it.
+
+Amends #70: its "a word in the box holds its dimension", and its cost "a
+held group cannot be changed in the sheet".
+
+**Why:** On an iPhone the held group did not read as locked: "Set by your
+search" and the dimmed chips went unnoticed, and a lock the reader has to
+notice is the wrong design. The moment is the box left, not a keystroke,
+because the box is read on every keystroke and a word holds its dimension
+only while it is a whole word of the query: "photo" on the way to
+"photoshoot", a word in 187 of 2026's titles, holds Kind, as "game" does
+on the way to "games" (34), and "mart" holds the hotel on the way to
+"martial"; and "gaming" holds Kind only as the whole query, so typing
+"gaming trivia" holds it between the two words. Taken per keystroke, the
+step would take the sheet's value to All on the way through, and nothing
+would bring it back. At 402x714 the old order showed only Hotel and Kind
+on the panel's first screen, ending at the fold with nothing to say there
+was more.
+**Cost:** A word deleted before the box is left gives the sheet's value
+back, as #70 had it: until the box is left the old rule stands, and a
+hand test presses return between typing a word and deleting it. A word
+taken out by the sheet rewrites the query in lower case with one space
+between words, as a chip's x always has. Kind, second in #70's order, is
+now near the panel's foot, below the fold on a phone.

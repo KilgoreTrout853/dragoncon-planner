@@ -60,7 +60,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data, read and written through `crews.js`; `syncAfter()`, the run the crew panel waits for after an action; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
 | `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the seven crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks, the reader's own row in a crew, and each crewmate's pick on now or next. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel, who's going and the hotel sheet's crew `sheet.js`'s, the crew on Now `now.js`'s and on the Map `map.js`'s. A leaf. |
 | `src/shareday.js` | Share a day (DECISIONS #69; `docs/screens/contract.md`, section 5, Share a day, as built): which picks a day shares, the days that hold one and the day the panel opens on, the link and the message, and a link read back against a schedule the caller hands it. Pure: no DOM, no storage, no clock; the share panel and the shared day are `sheet.js`'s. A leaf. |
-| `src/filters.js` | The filter sheet (DECISIONS #70; `docs/screens/contract.md`, section 3, as built): Search's filters in a sheet panel - its markup, drawn as it opens, and what a tap writes into it in place, the count on its main button among it; what the sheet set that is in effect, which the Filters button's badge counts and the chips under the box name, a word in the box holding its dimension; Clear's reach, and one filter set. The panel's element is `sheet.js`'s and its handlers `dispatch.js`'s. A leaf. |
+| `src/filters.js` | The filter sheet (DECISIONS #70, #71; `docs/screens/contract.md`, section 3, as built): Search's filters in a sheet panel - its markup, drawn as it opens, and what a tap writes into it in place, the count on its main button among it; what the sheet set that is in effect, which the Filters button's badge counts and the chips under the box name; Clear's reach; one filter set, the last one set winning - a tap taking a word that holds its dimension out of the query - and the step a word typed takes once the box is left, the sheet's value for its dimension to All. The panel's element is `sheet.js`'s and its handlers `dispatch.js`'s. A leaf. |
 | `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `shareday.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `ui.js`, `filters.js` | The twenty-one leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
@@ -492,10 +492,11 @@ markup every view shares, `rowHTML()`, `chipHTML()` and, since PR #82,
 `crewLineHTML()`, a crewmate's pick as a line, which Now's crew section and
 the hotel sheet's both draw. `filters`: the filter sheet (#70) - Search's
 filters in a sheet panel, drawn as it opens and written into in place as
-it is tapped, what it set that is in effect, a word in the box holding its
-dimension, and Clear's reach; it makes the panel's markup and writes into
-the element `sheet` hands it, so it stands below `sheet`, and below
-`browse`, which counts its badge and draws its chips. Five read storage,
+it is tapped, what it set that is in effect, Clear's reach, and the last
+one set winning between it and a word in the box (#71); it makes the
+panel's markup and writes into the element `sheet` hands it, so it stands
+below `sheet`, and below `browse`, which counts its badge and draws its
+chips. Five read storage,
 the document or `navigator` as they are imported: `platform`, `build`,
 `state`, `picks`, `follows`.
 
@@ -600,8 +601,8 @@ run - the mini-bar, the simulated-time chip, larger text, and the redraw on
 coming back to the tab. It imports the five views, the sheet and `loading`;
 nothing below it imports it.
 
-**`dispatch`** is the thirteen handlers whose bodies reach across modules: the
-four delegated listeners on `main` (click, input, keydown, change), the
+**`dispatch`** is the fourteen handlers whose bodies reach across modules: the
+five delegated listeners on `main` (click, input, keydown, change, focusout), the
 clicks inside the sheet's event, hotel and shared-day panels, the clicks
 and changes inside its filter panel, which write `state.browse` and close
 the sheet, Apply and Clear for the
@@ -752,13 +753,15 @@ built in idle time afterwards, then a suggestion index (people by their
 display names, works and topic labels). Query intent parsing turns day/hotel/kind/time words into filters.
 The box, a Filters button beside it and the day chips are the sticky
 block; the other filters are the filter sheet's (DECISIONS #70;
-`docs/screens/contract.md`, section 3, as built): the hotel and the kind,
-panels or gaming, the fandom and the track, the four topic axes and the
+`docs/screens/contract.md`, section 3, as built): the hotel, the fandom
+and the track, the four topic axes, panels or gaming, the kind and the
 photo-session hide, in a sheet panel that applies each tap at once and
 counts what the list will hold, the list drawn again as it closes. Each
 filter it set that is in effect is a chip under the box, beside the
-query's words, and the button's badge counts them; a word in the box
-holds its filter.
+query's words, and the button's badge counts them. One value a filter,
+and the last one set wins (DECISIONS #71): a tap in the sheet takes a word
+that holds its filter out of the query, and a word typed takes the sheet's
+value to All once the box is left.
 
 **Explore.** Everything that can be followed - tracks, works (the Fandoms
 section), axis values (Topics), guests, panelists - as tiles with counts, a

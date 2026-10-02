@@ -518,7 +518,6 @@ select.crew-pick {
 }
 .filter-group { display: grid; gap: 6px; min-width: 0; }
 .filter-label { font-size: .75rem; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; }
-.filter-held { margin: 0; color: var(--muted); font-size: .875rem; }
 .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 #panel-filters .chip { height: 44px; border-radius: 22px; }
 #panel-filters .chip[disabled], #panel-filters select[disabled] { opacity: .6; }

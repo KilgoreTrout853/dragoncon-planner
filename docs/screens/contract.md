@@ -322,7 +322,8 @@ panel's search (section 11). PR 6.
 
 ### Search and the filter sheet, as built
 
-PR #88, step 6 (W13, with W8), with #63, #66 and #70.
+PR #88, step 6 (W13, with W8), with #63, #66 and #70; the last one set
+wins, and the panel's order, by PR #90 (#71).
 
 - **The page** (`browse.js` `renderBrowse()`). The sticky block is the
   box and, right of it at the box's height, 48px, the Filters button, then
@@ -340,22 +341,24 @@ PR #88, step 6 (W13, with W8), with #63, #66 and #70.
   nothing set and nothing typed, the results' title follows the day chips.
 - **The panel,** `#panel-filters` (`filters.js` `filtersHTML()`, which
   `sheet.js` `openSheet("filters")` draws as it opens): the heading
-  "Filters"; a body that scrolls on its own - Hotel, its small label and
-  its chips, All and each hotel; Kind, its label and its chips, Any kind
-  and each kind the schedule has; the Type control, All, Panels, Gaming;
-  Fandom and Track side by side; Medium, Genre, Craft and Subject two by
-  two, each "Any `<axis>`" and then its values by how many events carry
-  them, then by label, with the count, as the Fandom select's works are
-  ordered; and the toggle that hides photo sessions and video-room
-  screenings - and under the body, on screen, "Show `<n>` events" and
-  Clear. The chips wrap. A schedule with no tags has no Kind group, no
-  Fandom select and no topic selects.
+  "Filters"; a body that scrolls on its own, in #71's order - Hotel, its
+  small label and its chips, All and each hotel; Fandom and Track side by
+  side; Medium, Genre, Craft and Subject two by two, each "Any `<axis>`"
+  and then its values by how many events carry them, then by label, with
+  the count, as the Fandom select's works are ordered; the Type control,
+  All, Panels, Gaming; Kind, its label and its chips, Any kind and each
+  kind the schedule has; and the toggle that hides photo sessions and
+  video-room screenings - and under the body, on screen, "Show `<n>`
+  events" and Clear. The chips wrap. A schedule with no tags has no Kind
+  group, no Fandom select and no topic selects.
 - **Live** (`dispatch.js` `onFiltersPanelClick()`,
   `onFiltersPanelChange()`; `filters.js` `setFilter()`, `fillFilters()`).
   A tap or a choice changes `state.browse` at once, one value a filter - a
   second tap on the hotel that is on is All again - and the panel writes
   what changed into the nodes already there, the pressed chips, the
   selects, the toggle, Clear and the count, so focus stays where it was.
+  A tap or a choice on a dimension a word in the box holds takes the word
+  out of the query first (#71; below).
   The count is `search.js` `browseResults()`'s, the list's own: "Show 1
   event", "Show 1,234 events", and "No events match" at none, the button
   still closing the sheet. Nothing behind is drawn while the sheet is open
@@ -368,11 +371,11 @@ PR #88, step 6 (W13, with W8), with #63, #66 and #70.
   starts from its top; with nothing changed, or a change taken back, where
   it was. A drag that starts in the body scrolls it.
 - **Clear** (`filters.js` `clearFilters()`) takes the nine filters - the
-  hotel, the kind, the type, the fandom, the track and the four axes, a
-  held one's kept value among them - back to All, and the toggle to
-  Settings' default; never the day, nor the query. It is disabled with
-  nothing to clear, and enabled when only the toggle differs from Settings'
-  default.
+  hotel, the kind, the type, the fandom, the track and the four axes -
+  back to All, and the toggle to Settings' default; never the day, nor the
+  query, so a word in the box stays, and its value pressed. It is disabled
+  with nothing to clear, and enabled when only the toggle differs from
+  Settings' default.
 - **The chips under the box** (`browse.js` `parsedChipsHTML()`;
   `filters.js` `inEffect()`) are gold, 44px, one row that scrolls
   sideways and keeps its place across a redraw. A long label is cut with
@@ -381,13 +384,29 @@ PR #88, step 6 (W13, with W8), with #63, #66 and #70.
   a query's word out of the box, as before, or the sheet's filter back to
   All - and focus goes to the chip that takes its place in the row, else
   to the Filters button: never to the box, which would raise the keyboard.
-- **A word in the box holds its dimension** (#70). The query's hotel,
-  kind and track words - "hilton", "contest", "kids" - win over the
-  sheet's on their dimension, as `search.js` `activeFilters()` had them.
-  While one is in the box, the group shows the word's value, disabled,
-  with "Set by your search" tied to it for a screen reader; the sheet's
-  own value is kept, unshown under the box and uncounted, and comes back
-  when the word goes. Type, the fandom and the axes have no words.
+- **The last one set wins** (#71; `filters.js` `setFilter()` and
+  `settleWords()`; `dispatch.js` `onMainFocusOut()` and `onMainChange()`).
+  The query's hotel, kind and track words - "hilton", "contest", "photo",
+  "kids" - and the sheet set the same three filters, one value each, and
+  the one set last is in effect. Nothing in the panel is disabled, and
+  each group shows what is in effect, the word's value where a word holds
+  it. A tap or a choice there takes the word out of the query, as its
+  chip's x does (`search.js` `dropPhrase()`), and a second word that
+  would hold the dimension once the first is gone, then sets the value
+  tapped; a second tap on the hotel in effect is All. "kids" taken out by
+  a track takes its hiding of 18+ with it. A word typed takes the sheet's
+  value for its dimension to All once the box is left - the return key,
+  which blurs the box; the box's `focusout` and its `change`, two hands
+  on one idempotent step, `focusout` firing on every blur and `change`
+  only for a value changed since focus; and `sheet.js`
+  `openSheet("filters")`, which takes the step before the panel draws,
+  whether or not the box has lost focus by then - never a keystroke,
+  since "photo" on the way to "photoshoot" holds Kind until the next
+  letter. Until then the word wins, as `search.js` `activeFilters()` has
+  it, and `inEffect()` leaves a dimension a word holds out of the badge
+  and the chips under the box, so a word deleted before the box is left
+  gives the sheet's value back. Nothing shown changes as the box is left,
+  so nothing is drawn. Type, the fandom and the axes have no words.
 - **The empty state,** while a filter of the sheet's is in effect: "No
   matches. Remove a filter above, or try another day or fewer words."
   Unchanged otherwise.
@@ -398,9 +417,10 @@ PR #88, step 6 (W13, with W8), with #63, #66 and #70.
   before, the hotel now a chip under the box and counted on Filters
   (section 11).
 - **The module.** `src/filters.js`, a leaf after `ui` in `ORDER`: the
-  panel's markup, its in-place fill, what is in effect, Clear and one
-  filter set. The panel's element is `sheet.js`'s, its handlers
-  `dispatch.js`'s, which close the sheet as well.
+  panel's markup, its in-place fill, what is in effect, Clear, one filter
+  set, and the step a word typed takes once the box is left. The panel's
+  element is `sheet.js`'s, its handlers `dispatch.js`'s, which close the
+  sheet as well.
 - **#66.** Every control in the panel is labelled and 44px - the chips,
   the Type control and the selects grown from 40, the toggle - and Show
   and Clear are 46px. Every field in the sheet is 16px, so an iPhone does
@@ -418,6 +438,16 @@ PR #88, step 6 (W13, with W8), with #63, #66 and #70.
   sideways, none cut. With Larger text on and the nine set: the box 235px
   beside a 104px button, its placeholder 175px of text in 205; the sheet
   from 142px, the body 373px tall, Show and Clear still at 601 to 647px.
+- **Measured for #71,** in desktop Chromium on the built page with 2026's
+  schedule, the panel with nothing set, its body from 178px. At 375x667
+  the body ends at 589px: Hotel, Fandom with Track, the four topics and
+  Type are on the first screen, Type ending at 572px; Kind starts at
+  586px, 3px above the fold, its label cut, and the toggle is below it.
+  At 402x714 the body ends at 636px: the same four, then Kind's label and
+  the top 50px of its first row of chips, cut by the fold. #70's order at
+  402x714, the same groups moved back in place, showed Hotel, Kind and
+  Type, Type ending at 633px - where the brief's iPhone showed Hotel and
+  Kind alone.
 - **The tests.** `tests/page/filters.test.js`, on a copy of the sample
   whose untagged events carry the four axes at counts that differ: the
   page's sticky block, the box's name and placeholder, nothing between the
@@ -430,10 +460,19 @@ PR #88, step 6 (W13, with W8), with #63, #66 and #70.
   enabling it, and the list back to its first page; the badge and the
   button's name; the chips under the box, their order, a hotel's short
   name, a removal and where focus goes, Today's, a long label, the row's
-  place kept; a word holding its group, for the hotel, the track and the
-  kind, and Clear with one held; a render while open; a query inside a
-  filter; the CSS jsdom cannot show; and a schedule with no tags, where
-  "kids" holds a track it lacks.
+  place kept; the last one set wins (#71) - a tap over a hotel, a kind
+  and a track a word holds, each taking its word out, the kind in effect
+  tapped again and staying set, "kids" and "photo", a phrase and a second
+  hotel word, the count, focus on the control
+  tapped, nothing in the panel disabled, and Clear with a word in the box;
+  a word typed over a sheet value, the box left and the word removed,
+  leaving All, and removed before the box is left, the value back; each
+  moment, the return key, `focusout` and `change`; "photoshoot" typed
+  through "photo", and "gaming trivia", the sheet's kind kept; and the
+  sheet opened straight from typing, the step taken before the panel
+  draws; a render while open; a query inside a filter; the CSS jsdom
+  cannot show; and a schedule with no tags, where "kids" holds a track it
+  lacks and a choice takes it out.
   `tests/unit/axes.test.js`: the four axes in `passesFilters()`. The
   rows of `search.test.js` and `map.test.js` that read the controls on the
   page read them in the panel, and `real-data.test.js` counts the whole con
@@ -444,7 +483,14 @@ PR #88, step 6 (W13, with W8), with #63, #66 and #70.
   The first left ten: six got tests; three were the panel's draw and the
   fill that followed it on open saying the same thing, and the draw now
   says it alone; one, a guard on a disabled chip, which no click reaches,
-  was dropped.
+  was dropped. #71's pass, 28 mutants over the changed lines -
+  `filters.js`, `dispatch.js`, `search.js` `dropPhrase()`, `sheet.js` and
+  `boot.js` - killed 27: one, only a hotel toggling, after a test for it
+  was added. The one left, `dropPhrase()` emptying the query when its
+  phrase is not found, is reached only by a phrase split by another word
+  the query reads first - "photo marriott op" reads as Marriott and Photo
+  op, and "photo op" is not in the box as two words side by side - where
+  a chip's x already leaves the query as it was (section 14).
 
 ## 4. Explore
 
@@ -1348,13 +1394,21 @@ As built: the recon, section 8, what crews' readers offer today.
   page did: two hotels, or two kinds, are two searches (section 3, as
   built).
 - An audience control. Kids and 18+ are words in the box alone - "kids",
-  "18+" - with no control in the filter sheet (section 3).
+  "18+" - with no control in the filter sheet (section 3). A track chosen
+  in the sheet over "kids" takes the word out, and its hiding of 18+ with
+  it (#71).
 - The one-tap hotel filter the filter sheet traded away. The hotel chips
   were on the page, one tap each; now a hotel is Filters, its chip, then
   Show `<n>` events (#70; section 3, as built).
 - Whether Type stays. Once tags exist it says nearly what Kind does: in
   2026, 870 events are Gaming by type and 868 by kind, and 807 of them
   both (section 3).
+- A phrase split by another word. "photo marriott op" reads as Marriott
+  and Photo op, since "marriott" is taken first and "photo op" is then
+  side by side; but "photo op" is not side by side in the box, so the
+  Photo op chip's x leaves the query as it was, and a tap on a kind in the
+  sheet sets it under a word that still holds Kind (`search.js`
+  `parseQuery()`, `dropPhrase()`; #71).
 - The toggle that hides photo sessions and video-room screenings can show
   checked while a Photo op or Screening kind, from the sheet or a word,
   overrides it (`search.js` `activeFilters()`): the list then holds them
