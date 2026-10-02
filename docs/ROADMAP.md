@@ -405,11 +405,16 @@ execution slot (#57), which can run before any of this.
      "Starred by" on the event's sheet, Your crew's picks right now and
      here, "yours too" on a line; words only - built (PR #83; contract,
      sections 2, 7 and 8, as built).
-6. The filter sheet, W13 (contract, section 3).
+6. The filter sheet, W13, with W8's topic axes: no Apply, one value a
+   filter, each filter in effect a chip under the box, and a word in the
+   box holding its filter (#70) - built (PR #88; contract, section 3, as
+   built).
 7. The row and the sheet (#64): the three lines, the facets, W1's flag and
    line, the chips and the place line as entry points at the hotel's
    grain, W18's level where the data is, W42's line once its review has
    merged (contract, sections 7 and 10).
+   - 7b. W7's facets as filters in the filter sheet, once the row shows
+     them (#70; contract, section 3).
 8. Explore's top: For you and the zero state, its source decided at its
    design; W5's Mute beside Follow on a page; W6's cast group in Search and
    in Following (contract, section 4); and Explore's filter box kept across
