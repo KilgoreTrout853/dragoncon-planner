@@ -1,33 +1,36 @@
-/* The filter sheet (W13, with W8's topic axes; DECISIONS #70;
+/* The filter sheet (W13, with W8's topic axes; DECISIONS #70, #71;
    docs/screens/contract.md, section 3, as built): Search's filters in a
    sheet panel, #panel-filters, opened by the Filters button beside the box.
-   The hotel and the kind chips, the Type control, the Fandom and Track
-   selects, the four topic axes two by two, and the toggle that hides photo
+   The hotel chips, the Fandom and Track selects, the four topic axes two by
+   two, the Type control, the kind chips, and the toggle that hides photo
    sessions and video-room screenings. A tap changes state.browse at once -
    there is no Apply - and fillFilters() writes what the panel says in place,
    the pressed chips and the count on its main button, so focus stays on the
    control tapped; the list behind is drawn again only when the sheet closes.
-   One value per filter.
 
-   A word in the box holds its dimension (#70): "hilton" typed, the Hotel
-   group shows the Hilton, disabled, "Set by your search", and the sheet's
-   own hotel is kept, unshown and uncounted, until the word goes. What is in
-   effect - inEffect() - is what the badge counts and the chips under the box
-   name. The panel's element is the sheet's; this draws it and nothing else.
-   The handlers are dispatch.js's. A leaf. */
+   One value per filter, and the last one set wins (#71). The sheet shows
+   what is in effect: "hilton" in the box, the Hilton is pressed. A tap on a
+   dimension a word holds takes the word out of the query, as its chip's x
+   does, then sets the value tapped. A word typed replaces the sheet's value
+   for its dimension once the box is left - settleWords(), as the box loses
+   focus and as the sheet opens - so nothing is kept unshown and nothing
+   comes back when the word goes. Until then the word wins, as
+   activeFilters() has it, and inEffect() - what the badge counts and the
+   chips under the box name - leaves out a dimension a word holds. The
+   panel's element is the sheet's; this draws it and nothing else. The
+   handlers are dispatch.js's. A leaf. */
 import { esc } from "./util.js";
 import { settings, state } from "./state.js";
 import { hotelShort } from "./venues.js";
 import { AXES, events, hotelChips, isNoise, tagsOf, topWorks, tracks, worksById } from "./data.js";
-import { axisLabel, browseResults, KIND_LABELS, parseQuery } from "./search.js";
+import { axisLabel, browseResults, dropPhrase, KIND_LABELS, parseQuery } from "./search.js";
 import { chipHTML } from "./ui.js";
 
 const TYPE_LABELS = {All: "All", panel: "Panels", gaming: "Gaming"};
 const AXIS_NAMES = {medium: "Medium", genre: "Genre", craft: "Craft", subject: "Subject"};
 const AXIS_IDS = {medium: "filterMedium", genre: "filterGenre", craft: "filterCraft", subject: "filterSubject"};
 /* The nine filters the sheet sets, in its order; the toggle is not one. */
-const FILTERS = ["hotel", "kind", "type", "work", "track", ...AXES];
-const HELD = "Set by your search";
+const FILTERS = ["hotel", "work", "track", ...AXES, "type", "kind"];
 
 /* The dimensions a word in the box holds, and the value it holds each at:
    the query read as the list will read it. */
@@ -35,32 +38,56 @@ const heldByQuery = () => parseQuery(state.browse.q).filters;
 const hasTags = () => events.some(e => Object.keys(tagsOf(e)).length > 0);
 
 /* What the sheet has set that is in effect, in the sheet's order: the badge
-   counts these, and the chips under the box name them. */
+   counts these, and the chips under the box name them. A dimension a word
+   holds is the word's chip's while the box is still being typed in. */
 function inEffect() {
   const b = state.browse, held = heldByQuery(), out = [];
   const add = (dim, label) => { if (b[dim] !== "All" && held[dim] === undefined) out.push({dim, label}); };
   add("hotel", hotelShort(b.hotel));
-  add("kind", KIND_LABELS[b.kind] || b.kind);
-  add("type", TYPE_LABELS[b.type] || b.type);
   add("work", (worksById.get(b.work) || {}).name || b.work);
   add("track", b.track);
   AXES.forEach(a => add(a, axisLabel(`${a}:${b[a]}`)));
+  add("type", TYPE_LABELS[b.type] || b.type);
+  add("kind", KIND_LABELS[b.kind] || b.kind);
   return out;
 }
 
-/* Clear's reach: the nine filters, a held one's kept value among them, and
-   the toggle back to Settings' default. Not the day, nor the query. */
+/* A word typed replaces the sheet's value for its dimension (#71), once the
+   box is left and as the sheet opens - never a keystroke, since "photo" on
+   the way to "photoshoot" holds Kind until the next letter. Nothing shown
+   changes, the word winning already, so nothing is drawn. */
+function settleWords() {
+  const held = heldByQuery();
+  FILTERS.forEach(d => { if (held[d] !== undefined) state.browse[d] = "All"; });
+}
+/* The words that hold a dimension, out of the query as their chips' x takes
+   them: until none does, since a second word ("hilton hyatt") holds it once
+   the first is gone. */
+function dropWords(dim) {
+  for (let chip; (chip = parseQuery(state.browse.q).chips.find(c => c.dim === dim));) {
+    const was = state.browse.q;
+    state.browse.q = dropPhrase(was, chip.src);
+    if (state.browse.q === was) return;
+  }
+}
+
+/* Clear's reach: the nine filters, and the toggle back to Settings'
+   default. Not the day, nor the query. */
 const clearable = () => FILTERS.some(d => state.browse[d] !== "All") || state.browse.hideNoise !== settings.hideNoise;
 function clearFilters() {
   FILTERS.forEach(d => { state.browse[d] = "All"; });
   state.browse.hideNoise = settings.hideNoise;
   state.browse.page = 1;
 }
-/* One filter set from the panel: a second tap on the hotel that is on is
-   All again, as the hotel row's was. */
+/* One filter set from the panel, the last one set winning: a word that
+   holds the dimension comes out of the query first. A second tap on the
+   hotel in effect - the word's or the sheet's - is All again, as the hotel
+   row's was. */
 function setFilter(dim, value) {
   if (!FILTERS.includes(dim)) return;
-  state.browse[dim] = dim === "hotel" && state.browse.hotel === value ? "All" : value;
+  const held = heldByQuery()[dim], was = held !== undefined ? held : state.browse[dim];
+  if (held !== undefined) dropWords(dim);
+  state.browse[dim] = dim === "hotel" && was === value ? "All" : value;
   state.browse.page = 1;
 }
 
@@ -79,36 +106,32 @@ function axisOptions(axis) {
     .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
 }
 const option = (value, label, on) => `<option value="${esc(value)}"${on ? " selected" : ""}>${esc(label)}</option>`;
-/* A group's note when a word holds it, tied to the group for a screen reader. */
-const heldNote = (dim, held) => (held[dim] !== undefined ? `<p class="filter-held" id="held-${dim}">${HELD}</p>` : "");
-const heldBy = (dim, held) => (held[dim] !== undefined ? ` aria-describedby="held-${dim}"` : "");
 
-/* The panel, drawn as it opens, whole: a held group shows the word's value,
-   disabled, everything else the sheet's own, and the count and Clear as
-   they stand. */
+/* The panel, drawn as it opens, whole: each group what is in effect - the
+   word's value where a word in the box holds it - and the count and Clear
+   as they stand. */
 function filtersHTML() {
   const b = state.browse, held = heldByQuery(), tagged = hasTags();
   const at = dim => (held[dim] !== undefined ? held[dim] : b[dim]);
-  const dis = dim => (held[dim] !== undefined ? " disabled" : "");
-  const chips = (dim, list) => list.map(([label, value]) => chipHTML(label, at(dim) === value, dim, value).replace("<button ", `<button type="button"${dis(dim)} `)).join("");
+  const chips = (dim, list) => list.map(([label, value]) => chipHTML(label, at(dim) === value, dim, value).replace("<button ", `<button type="button" `)).join("");
   const kinds = tagged ? Object.keys(KIND_LABELS).filter(k => events.some(e => tagsOf(e).kind === k)) : [];
   const noiseCount = events.filter(e => isNoise(e) && (b.day === "All" || e._cd === b.day)).length;
   const trackList = held.track !== undefined && !tracks.includes(held.track) ? [held.track, ...tracks] : tracks;
-  const select = (id, dim, name, first, list) => `<select class="track" id="${id}" data-filter="${dim}" aria-label="${name}"${dis(dim)}${heldBy(dim, held)}>${option("All", first, at(dim) === "All")}${list.map(o => option(o.value, o.label, at(dim) === o.value)).join("")}</select>`;
+  const select = (id, dim, name, first, list) => `<select class="track" id="${id}" data-filter="${dim}" aria-label="${name}">${option("All", first, at(dim) === "All")}${list.map(o => option(o.value, o.label, at(dim) === o.value)).join("")}</select>`;
   const groups = [
-    `<div class="filter-group" data-group="hotel" role="group" aria-labelledby="filterHotelLabel"${heldBy("hotel", held)}>
-      <span class="filter-label" id="filterHotelLabel">Hotel</span>${heldNote("hotel", held)}
+    `<div class="filter-group" data-group="hotel" role="group" aria-labelledby="filterHotelLabel">
+      <span class="filter-label" id="filterHotelLabel">Hotel</span>
       <div class="filter-chips">${chips("hotel", [["All", "All"], ...hotelChips.map(h => [hotelShort(h), h])])}</div></div>`,
-    tagged ? `<div class="filter-group" data-group="kind" role="group" aria-labelledby="filterKindLabel"${heldBy("kind", held)}>
-      <span class="filter-label" id="filterKindLabel">Kind</span>${heldNote("kind", held)}
-      <div class="filter-chips">${chips("kind", [["Any kind", "All"], ...kinds.map(k => [KIND_LABELS[k], k])])}</div></div>` : "",
-    `<div class="filter-group" data-group="type"><div class="seg" role="group" aria-label="Type">${["All", "panel", "gaming"].map(t =>
-      `<button type="button" data-chip="type" data-value="${t}" aria-pressed="${b.type === t}">${TYPE_LABELS[t]}</button>`).join("")}</div></div>`,
     `<div class="filter-group" data-group="pick"><div class="filter-pair">${tagged
       ? select("fandom", "work", "Fandom", "Any fandom", topWorks().map(w => ({value: w.id, label: `${w.name} (${w.count})`}))) : ""}${
-      select("track", "track", "Track", "All tracks", trackList.map(t => ({value: t, label: t})))}</div>${heldNote("track", held)}</div>`,
+      select("track", "track", "Track", "All tracks", trackList.map(t => ({value: t, label: t})))}</div></div>`,
     tagged ? `<div class="filter-group" data-group="topics"><div class="filter-topics">${AXES.map(a =>
       select(AXIS_IDS[a], a, AXIS_NAMES[a], `Any ${a}`, axisOptions(a).map(o => ({value: o.value, label: `${o.label} (${o.n})`})))).join("")}</div></div>` : "",
+    `<div class="filter-group" data-group="type"><div class="seg" role="group" aria-label="Type">${["All", "panel", "gaming"].map(t =>
+      `<button type="button" data-chip="type" data-value="${t}" aria-pressed="${b.type === t}">${TYPE_LABELS[t]}</button>`).join("")}</div></div>`,
+    tagged ? `<div class="filter-group" data-group="kind" role="group" aria-labelledby="filterKindLabel">
+      <span class="filter-label" id="filterKindLabel">Kind</span>
+      <div class="filter-chips">${chips("kind", [["Any kind", "All"], ...kinds.map(k => [KIND_LABELS[k], k])])}</div></div>` : "",
     `<div class="filter-group" data-group="noise"><label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label></div>`,
   ];
   openedWith = snapshot();
@@ -124,8 +147,8 @@ function showWords(n) {
   return n === 1 ? "Show 1 event" : `Show ${n.toLocaleString("en-US")} events`;
 }
 /* After a tap: what the panel says, written into the nodes already there -
-   the pressed chips, the selects, the toggle, Clear and the count. A held
-   group keeps the word's value. */
+   the pressed chips, the selects, the toggle, Clear and the count. Each
+   group says what is in effect, a word's value where one holds it. */
 function fillFilters(panel) {
   const b = state.browse, held = heldByQuery();
   const at = dim => (held[dim] !== undefined ? held[dim] : b[dim]);
@@ -137,4 +160,4 @@ function fillFilters(panel) {
   panel.querySelector("#filtersShow").textContent = showWords(browseResults().length);
 }
 
-export { inEffect, filtersHTML, fillFilters, setFilter, clearFilters, filtersChanged };
+export { inEffect, settleWords, filtersHTML, fillFilters, setFilter, clearFilters, filtersChanged };

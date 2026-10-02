@@ -35,7 +35,7 @@ import { requestRender } from "./bus.js";
 import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter } from "./sync.js";
 import { MAP_HOTELS, mapCrewCounts, mapCrewPicks, mapDay } from "./map.js";
 import { chosenCrew, crewPeople } from "./plans.js";
-import { filtersChanged, filtersHTML } from "./filters.js";
+import { filtersChanged, filtersHTML, settleWords } from "./filters.js";
 
 /* Bottom sheet: one wrapper, seven panels (settings, event, hotel, crew,
    share, shared, filters) */
@@ -877,7 +877,7 @@ function openSheet(kind = "settings", id = null) {
   else if (kind === "crew") openCrew(id || "manage");
   else if (kind === "share") openShare();
   else if (kind === "shared") panelShared.innerHTML = sharedHTML(sharedDay);
-  else if (kind === "filters") panelFilters.innerHTML = filtersHTML();
+  else if (kind === "filters") { settleWords(); panelFilters.innerHTML = filtersHTML(); }   // the box left by the tap on Filters (#71)
   else fillSettings();
   panelSettings.hidden = kind !== "settings";
   panelEvent.hidden = kind !== "event";

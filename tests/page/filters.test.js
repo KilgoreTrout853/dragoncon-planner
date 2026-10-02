@@ -3,8 +3,10 @@
    sheet panel, #panel-filters, opened by the Filters button beside the box.
    A tap changes state.browse at once and the panel's count with it, the
    list behind waiting for the sheet to close; the badge counts what the
-   sheet set that is in effect, and each is a chip under the box. A word in
-   the box holds its dimension. On a copy of the sample whose untagged events
+   sheet set that is in effect, and each is a chip under the box. One value
+   per filter, and the last one set wins: a tap in the sheet takes a word
+   in the box out of the query, and a word typed takes the sheet's value
+   for its dimension to All once the box is left. On a copy of the sample whose untagged events
    carry the four axes at counts that differ, so that each axis's filter and
    the options' order have something to tell apart. New tests, not rows of
    tests/PORT-LEDGER.md. */
@@ -121,8 +123,8 @@ describe("the filter sheet", () => {
       expect(document.activeElement).toBe(el("sheetTitleFilters"));
       expect(el("sheetTitleFilters").textContent).toBe("Filters");
     });
-    it("the groups in order: Hotel, Kind, Type, Fandom with Track, Topics, the toggle", () => {
-      expect([...panel().querySelectorAll("[data-group]")].map(g => g.dataset.group)).toEqual(["hotel", "kind", "type", "pick", "topics", "noise"]);
+    it("the groups in order: Hotel, Fandom with Track, Topics, Type, Kind, the toggle", () => {
+      expect([...panel().querySelectorAll("[data-group]")].map(g => g.dataset.group)).toEqual(["hotel", "pick", "topics", "type", "kind", "noise"]);
     });
     it("Hotel and Kind carry their small labels, which name their groups", () => {
       for (const [group, label] of [["hotel", "Hotel"], ["kind", "Kind"]]) {
@@ -439,26 +441,26 @@ describe("the filter sheet", () => {
       const row = view().querySelector(".parsed-chips");
       expect(row.getAttribute("role")).toBe("group");
       expect(row.getAttribute("aria-label")).toBe("Filters in effect");
-      expect(under()).toEqual(["Remove Saturday filter", "Remove Westin filter", "Remove Performance filter", "Remove Gaming filter",
-        `Remove ${work.name} filter`, "Remove Puppetry filter", "Remove TV filter", "Remove Horror filter", "Remove Writing filter", "Remove Space filter"]);
-      expect(chipsUnder().map(c => c.querySelector(".chip-label").textContent).slice(1, 3)).toEqual(["Westin", "Performance"]);
+      expect(under()).toEqual(["Remove Saturday filter", "Remove Westin filter", `Remove ${work.name} filter`, "Remove Puppetry filter",
+        "Remove TV filter", "Remove Horror filter", "Remove Writing filter", "Remove Space filter", "Remove Gaming filter", "Remove Performance filter"]);
+      expect(chipsUnder().map(c => c.querySelector(".chip-label").textContent).slice(1, 3)).toEqual(["Westin", work.name]);
     });
     it("a tap takes that one filter off, and focus goes to the chip that takes its place", () => {
       view().querySelector('[data-act="unfilter"][data-dim="hotel"]').click();
       expect(state.browse.hotel).toBe("All");
       expect(state.browse).toMatchObject({ kind: "performance", type: "gaming", medium: "tv" });
-      expect(document.activeElement.getAttribute("aria-label")).toBe("Remove Performance filter");
+      expect(document.activeElement.getAttribute("aria-label")).toBe(`Remove ${work.name} filter`);
     });
     it("the last chip taken off gives focus to the Filters button, never the box", () => {
-      view().querySelector('[data-act="unfilter"][data-dim="subject"]').click();
-      expect(state.browse.subject).toBe("All");
+      view().querySelector('[data-act="unfilter"][data-dim="kind"]').click();
+      expect(state.browse.kind).toBe("All");
       expect(document.activeElement).toBe(el("filtersBtn"));
     });
     it("a query's word taken off: focus to the chip in its place, and the word out of the box", () => {
       view().querySelector('[data-act="unparse"]').click();
       expect(state.browse.q).toBe("");
       expect(document.activeElement).not.toBe(el("q"));
-      expect(document.activeElement.getAttribute("aria-label")).toBe("Remove Performance filter");
+      expect(document.activeElement.getAttribute("aria-label")).toBe(`Remove ${work.name} filter`);
     });
     it("the only chip taken off: focus to the Filters button", () => {
       reset({ hotel: "Hilton" });
@@ -493,73 +495,228 @@ describe("the filter sheet", () => {
     });
   });
 
-  describe("a word in the box holds its dimension", () => {
-    const under = () => chipsUnder().map(c => c.getAttribute("aria-label"));
+  /* One value per filter, and the last one set wins (DECISIONS #71): a tap
+     in the sheet on a dimension a word in the box holds takes the word out of
+     the query, as its chip's x does, and sets the value tapped. */
+  describe("the last one set wins: a tap in the sheet over a word in the box", () => {
+    const under = () => chipsUnder().filter(c => c.dataset.act !== "unparse-today").map(c => c.getAttribute("aria-label"));
     afterAll(() => reset());
 
-    it("'hilton' typed over the sheet's Hyatt: the Hilton is in effect, and the Hyatt is kept", () => {
-      reset({ hotel: "Hyatt", q: "hilton", day: "2026-09-05" });
-      expect(app.activeFilters().hotel).toBe("Hilton");
-      expect(state.browse.hotel).toBe("Hyatt");
+    it("the sheet shows what is in effect, and no control that sets a filter is disabled or noted", () => {
+      reset({ q: "hilton contest kids" });
+      open();
+      expect(fchip("hotel", "Hilton").getAttribute("aria-pressed")).toBe("true");
+      expect(fchip("kind", "contest").getAttribute("aria-pressed")).toBe("true");
+      expect(el("track").value).toBe("Kids Track");
+      expect([...panel().querySelectorAll("button, select, input")].filter(c => c.id !== "filtersClear" && c.disabled).map(c => c.outerHTML)).toEqual([]);
+      expect(panel().querySelector("[aria-describedby], .filter-held")).toBe(null);
+      expect(panel().textContent).not.toMatch(/Set by your search/);
     });
-    it("under the box, the word's chip and no chip for the Hyatt; the badge counts none", () => {
+    it("'star trek hilton', the Marriott tapped: the word comes out, the Marriott is set, focus stays on it, nothing behind is drawn", () => {
+      reset({ q: "star trek hilton" });
+      open();
+      const chip = fchip("hotel", "Marriott");
+      chip.focus();
+      expect(mutationsDuring(view(), () => chip.click())).toHaveLength(0);
+      expect(state.browse).toMatchObject({ q: "star trek", hotel: "Marriott" });
+      expect(document.activeElement).toBe(chip);
+      expect(chip.getAttribute("aria-pressed")).toBe("true");
+      expect(fchip("hotel", "Hilton").getAttribute("aria-pressed")).toBe("false");
+      expect(el("q").value).toBe("star trek hilton");
+    });
+    it("the sheet closed: the box shows the changed query, and under it the Marriott alone", () => {
+      el("filtersShow").click();
+      expect(el("q").value).toBe("star trek");
+      expect(under()).toEqual(["Remove Marriott filter"]);
+      expect(el("filtersBadge").textContent).toBe("1");
+    });
+    it("the count follows at once: 'hilton', the Marriott tapped, counts the Marriott's", () => {
+      reset({ q: "hilton" });
+      open();
+      fchip("hotel", "Marriott").click();
+      expect(state.browse.q).toBe("");
+      expect(says()).toBe(showSays(counted(e => app.hotelGroup(e.hotel) === "Marriott")));
+    });
+    it("a second tap on the hotel in effect is All: 'hilton', the Hilton tapped", () => {
+      reset({ q: "hilton" });
+      open();
+      fchip("hotel", "Hilton").click();
+      expect(state.browse).toMatchObject({ q: "", hotel: "All" });
+      expect(fchip("hotel", "All").getAttribute("aria-pressed")).toBe("true");
+      expect(says()).toBe(showSays(counted(() => true)));
+    });
+    it("a kind word: 'contest', Performance tapped", () => {
+      reset({ q: "contest" });
+      open();
+      const chip = fchip("kind", "performance");
+      chip.focus();
+      chip.click();
+      expect(state.browse).toMatchObject({ q: "", kind: "performance" });
+      expect(document.activeElement).toBe(chip);
+      expect(fchip("kind", "contest").getAttribute("aria-pressed")).toBe("false");
+      expect(says()).toBe(showSays(counted(e => tg(e).kind === "performance")));
+    });
+    it("the kind in effect tapped again: 'contest' in the box, Contest tapped - the word comes out and Contest stays set, only a hotel toggling", () => {
+      reset({ q: "contest" });
+      open();
+      fchip("kind", "contest").click();
+      expect(state.browse).toMatchObject({ q: "", kind: "contest" });
+      expect(fchip("kind", "contest").getAttribute("aria-pressed")).toBe("true");
+      fchip("kind", "contest").click();
+      expect(state.browse.kind).toBe("contest");
+    });
+    it("'kids' holds Track: a choice in the select takes the word out, and with it the 18+ it hid", () => {
+      reset({ q: "kids saturday" });
+      open();
+      expect(app.activeFilters()).toMatchObject({ track: "Kids Track", hideAdult: true });
+      el("track").focus();
+      choose("track", "Puppetry");
+      expect(state.browse).toMatchObject({ q: "saturday", track: "Puppetry" });
+      expect(app.activeFilters()).toMatchObject({ track: "Puppetry", hideAdult: false });
+      expect(document.activeElement).toBe(el("track"));
+      expect(el("track").value).toBe("Puppetry");
+    });
+    it("'photo' holds Kind: Contest tapped takes it out, and photo sessions are hidden again", () => {
+      reset({ q: "photo" });
+      open();
+      expect(app.activeFilters()).toMatchObject({ kind: "photo", hideNoise: false });
+      fchip("kind", "contest").click();
+      expect(state.browse).toMatchObject({ q: "", kind: "contest" });
+      expect(app.activeFilters()).toMatchObject({ kind: "contest", hideNoise: true });
+      expect(says()).toBe(showSays(counted(e => tg(e).kind === "contest")));
+    });
+    it("'photo op', a phrase, comes out whole", () => {
+      reset({ q: "trek photo op" });
+      open();
+      fchip("kind", "All").click();
+      expect(state.browse).toMatchObject({ q: "trek", kind: "All" });
+    });
+    it("a second hotel word behind the first comes out too, so the hotel tapped is the one in effect", () => {
+      reset({ q: "hilton hyatt" });
+      open();
+      fchip("hotel", "Marriott").click();
+      expect(state.browse.q).toBe("");
+      expect(app.activeFilters().hotel).toBe("Marriott");
+    });
+    it("Clear takes the sheet's filters back and leaves the query, its word still pressed", () => {
+      reset({ q: "contest", hotel: "Westin" });
+      open();
+      el("filtersClear").click();
+      expect(state.browse).toMatchObject({ q: "contest", kind: "All", hotel: "All" });
+      expect(fchip("kind", "contest").getAttribute("aria-pressed")).toBe("true");
+    });
+  });
+
+  /* And a word typed replaces the sheet's value for its dimension, once the
+     box is left - the return key, the box losing focus, the sheet opening -
+     never a keystroke: "photo" on the way to "photoshoot" is not a word. */
+  describe("the last one set wins: a word typed over the sheet's value, once the box is left", () => {
+    const under = () => chipsUnder().filter(c => c.dataset.act !== "unparse-today").map(c => c.getAttribute("aria-label"));
+    const box = () => el("q");
+    const type = v => { box().focus(); typeInto(box(), v); };
+    const drawn = (label, want = true) => page.until(() => under().includes(label) === want, 5000, "the debounced draw");
+    afterAll(() => { box().blur(); reset(); });
+
+    it("while typing the word wins and the sheet's value is kept, unshown: 'hilton' over the Hyatt", async () => {
+      reset({ hotel: "Hyatt" });
+      type("hilton");
+      await drawn("Remove Hilton filter");
       expect(under()).toEqual(["Remove Hilton filter"]);
       expect(el("filtersBadge").hidden).toBe(true);
+      expect(state.browse.hotel).toBe("Hyatt");
+      expect(app.activeFilters().hotel).toBe("Hilton");
     });
-    it("in the sheet, the Hotel group shows the Hilton, disabled, 'Set by your search', tied to the group", () => {
+    it("the word deleted before the box is left: the Hyatt is still there", async () => {
+      typeInto(box(), "");
+      await drawn("Remove Hyatt filter");
+      expect(state.browse.hotel).toBe("Hyatt");
+      expect(el("filtersBadge").textContent).toBe("1");
+    });
+    it("'hilton' typed and the box left: the Hyatt goes to All, and nothing shown changes", async () => {
+      typeInto(box(), "hilton");
+      await drawn("Remove Hilton filter");
+      expect(mutationsDuring(document.body, () => box().blur())).toHaveLength(0);
+      expect(state.browse.hotel).toBe("All");
+      expect(app.activeFilters().hotel).toBe("Hilton");
+    });
+    it("then the word deleted: the hotel is All, and nothing comes back", async () => {
+      type("");
+      await drawn("Remove Hilton filter", false);
+      box().blur();
+      expect(state.browse.hotel).toBe("All");
+      expect(app.activeFilters().hotel).toBe("All");
+      expect(under()).toEqual([]);
+      expect(el("filtersBadge").hidden).toBe(true);
+    });
+    it.each([
+      ["the box losing focus", () => el("q").blur()],
+      ["the return key", () => el("q").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }))],
+      ["a change event, the box still focused", () => el("q").dispatchEvent(new Event("change", { bubbles: true }))],
+    ])("each moment applies it: %s", (_, finish) => {
+      reset({ kind: "performance" });
+      type("contest");
+      finish();
+      expect(state.browse.kind).toBe("All");
+      app.browseResults();
+      expect(app.activeFilters().kind).toBe("contest");
+      box().blur();
+    });
+    it("Kind = Workshop, 'photoshoot' typed through 'photo', the box left: Workshop still set and in effect", async () => {
+      reset({ kind: "workshop" });
+      type("photo");
+      app.browseResults();
+      expect(app.activeFilters().kind).toBe("photo");
+      typeInto(box(), "photoshoot");
+      box().blur();
+      expect(state.browse.kind).toBe("workshop");
+      app.browseResults();
+      expect(app.activeFilters().kind).toBe("workshop");
+      await drawn("Remove Workshop filter");
+      expect(el("filtersBadge").textContent).toBe("1");
+    });
+    it("'gaming trivia' typed with a sheet kind set: the kind survives", () => {
+      reset({ kind: "performance" });
+      type("gaming");
+      app.browseResults();
+      expect(app.activeFilters().kind).toBe("gaming");
+      typeInto(box(), "gaming trivia");
+      box().blur();
+      expect(state.browse.kind).toBe("performance");
+      app.browseResults();
+      expect(app.activeFilters().kind).toBe("performance");
+    });
+    it("'photo' typed over a kind and the box left: the kind is All", () => {
+      reset({ kind: "performance" });
+      type("photo");
+      box().blur();
+      expect(state.browse.kind).toBe("All");
+    });
+    it("'kids' typed over a track and the box left: the track is All, and stays All once the word is gone", () => {
+      reset({ track: "Puppetry" });
+      type("kids");
+      box().blur();
+      expect(state.browse.track).toBe("All");
+      type("");
+      box().blur();
+      app.browseResults();
+      expect(app.activeFilters().track).toBe("All");
+    });
+    it("a word that holds nothing the sheet sets leaves the sheet alone: 'saturday' over the Westin", () => {
+      reset({ hotel: "Westin" });
+      type("saturday");
+      box().blur();
+      expect(state.browse.hotel).toBe("Westin");
+    });
+    it("the sheet opened straight from typing applies it before the panel draws: nothing left to Clear", () => {
+      reset({ hotel: "Hyatt" });
+      type("hilton");
+      expect(document.activeElement).toBe(box());
       open();
-      const group = panel().querySelector('[data-group="hotel"]');
-      const note = el(group.getAttribute("aria-describedby"));
-      expect(note.textContent).toBe("Set by your search");
-      expect(group.contains(note)).toBe(true);
+      expect(state.browse.hotel).toBe("All");
       expect(fchip("hotel", "Hilton").getAttribute("aria-pressed")).toBe("true");
       expect(fchip("hotel", "Hyatt").getAttribute("aria-pressed")).toBe("false");
-      expect([...group.querySelectorAll("[data-chip]")].every(c => c.disabled)).toBe(true);
-    });
-    it("a tap on a held chip changes nothing", () => {
-      fchip("hotel", "Marriott").click();
-      expect(state.browse.hotel).toBe("Hyatt");
-    });
-    it("the groups the word does not hold are the sheet's as ever", () => {
-      expect(panel().querySelector('[data-group="kind"] [aria-describedby], [data-group="kind"][aria-describedby]')).toBe(null);
-      expect([...panel().querySelectorAll('[data-group="kind"] [data-chip]')].some(c => c.disabled)).toBe(false);
-      expect(el("track").disabled).toBe(false);
-    });
-    it("the count is the Hilton's", () => {
-      const hilton = app.browseResults().length;
-      expect(says()).toBe(showSays(hilton));
-      expect(app.browseResults().every(e => app.hotelGroup(e.hotel) === "Hilton")).toBe(true);
+      expect(el("filtersClear").disabled).toBe(true);
       handle.closeSheet();
-    });
-    it("the word taken off: the Hyatt is back, under the box and in the badge", () => {
-      view().querySelector('[data-act="unparse"]').click();
-      expect(state.browse.q).toBe("");
-      expect(under()).toEqual(["Remove Hyatt filter"]);
-      expect(el("filtersBadge").textContent).toBe("1");
-      expect(app.activeFilters().hotel).toBe("Hyatt");
-    });
-    it("'kids' holds the Track select: Kids Track, disabled, the note tied to it", () => {
-      reset({ track: "Puppetry", q: "kids" });
-      open();
-      const sel = el("track");
-      expect(sel.disabled).toBe(true);
-      expect(sel.value).toBe("Kids Track");
-      expect(el(sel.getAttribute("aria-describedby")).textContent).toBe("Set by your search");
-      expect(state.browse.track).toBe("Puppetry");
-      expect(el("filterMedium").disabled).toBe(false);
-    });
-    it("a kind word holds Kind", () => {
-      reset({ kind: "performance", q: "contest" });
-      open();
-      expect(fchip("kind", "contest").getAttribute("aria-pressed")).toBe("true");
-      expect(fchip("kind", "contest").disabled).toBe(true);
-      expect(el(panel().querySelector('[data-group="kind"]').getAttribute("aria-describedby")).textContent).toBe("Set by your search");
-    });
-    it("Clear takes a held filter's kept value too, and leaves the word", () => {
-      el("filtersClear").click();
-      expect(state.browse.kind).toBe("All");
-      expect(state.browse.q).toBe("contest");
-      expect(fchip("kind", "contest").getAttribute("aria-pressed")).toBe("true");
     });
   });
 
@@ -640,11 +797,11 @@ describe("the filter sheet on a schedule with no tags", () => {
   it("has no kind chips, no Fandom select and no topic selects", () => {
     expect(panel().querySelector('[data-group="kind"], [data-chip="kind"], #fandom, [data-group="topics"], select[data-filter="medium"]')).toBe(null);
   });
-  it("and keeps the hotel chips, the Type control, the Track select and the toggle", () => {
-    expect([...panel().querySelectorAll("[data-group]")].map(g => g.dataset.group)).toEqual(["hotel", "type", "pick", "noise"]);
+  it("and keeps the hotel chips, the Track select, the Type control and the toggle", () => {
+    expect([...panel().querySelectorAll("[data-group]")].map(g => g.dataset.group)).toEqual(["hotel", "pick", "type", "noise"]);
     expect(panel().querySelector(".filter-pair select").id).toBe("track");
   });
-  it("'kids' holds a track the schedule lacks: the select shows Kids Track, first, disabled", () => {
+  it("'kids' holds a track the schedule lacks: the select shows Kids Track, first, and can be changed", () => {
     handle.closeSheet();
     expect([...el("track").options].some(o => o.value === "Kids Track")).toBe(false);
     handle.state.browse.q = "kids";
@@ -653,6 +810,10 @@ describe("the filter sheet on a schedule with no tags", () => {
     const sel = el("track");
     expect(sel.value).toBe("Kids Track");
     expect([...sel.options].map(o => o.value).slice(0, 2)).toEqual(["All", "Kids Track"]);
-    expect(sel.disabled).toBe(true);
+    expect(sel.disabled).toBe(false);
+    sel.value = "All";
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(handle.state.browse.q).toBe("");
+    expect(handle.state.browse.track).toBe("All");
   });
 });

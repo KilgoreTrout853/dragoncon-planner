@@ -279,6 +279,12 @@ function stripPhrase(tokens, phrase) {
   }
   return null;
 }
+/* The query with one word it was read as taken out, as that word's chip
+   under the box takes it: lower case, a space between words. */
+function dropPhrase(q, phrase) {
+  const tokens = tokenise(q);
+  return (stripPhrase(tokens, phrase || "") || tokens).join(" ");
+}
 
 function parseQuery(raw) {
   if (!QUERY_RULES) QUERY_RULES = queryRules();
@@ -465,6 +471,6 @@ function browseResults() {
 
 export {
   STOPWORDS, KIND_LABELS, AXIS_LABELS, axisLabel, index, SEARCH_PLACEHOLDER, processTerm, buildIndex, suggestDocs,
-  buildSuggestIndex, suggestionsFor, expandQuery, tokenise, stripPhrase, parseQuery,
+  buildSuggestIndex, suggestionsFor, expandQuery, tokenise, stripPhrase, dropPhrase, parseQuery,
   passesFilters, activeFilters, termQuality, browseResults,
 };

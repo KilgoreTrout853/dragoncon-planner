@@ -1,10 +1,10 @@
 /* Dispatch: the handlers whose bodies reach across modules, so that no one
-   module below could hold them. The four delegated listeners on main - click,
-   input, keydown, change - which are about whatever view is on screen; the
-   clicks inside the sheet's event, hotel and shared-day panels, and the
-   clicks and changes inside its filter panel; Apply and Clear for the
-   preview clock; the hash; and the minute tick. boot() registers all
-   thirteen. It
+   module below could hold them. The five delegated listeners on main - click,
+   input, keydown, change, focusout - which are about whatever view is on
+   screen; the clicks inside the sheet's event, hotel and shared-day panels,
+   and the clicks and changes inside its filter panel; Apply and Clear for
+   the preview clock; the hash; and the minute tick. boot() registers all
+   fourteen. It
    is last in the order: it imports the views, the sheet, loading and the
    shell, and nothing imports it but the root. It declares nothing but the
    handlers and reads nothing as it is imported. */
@@ -16,7 +16,7 @@ import { byId } from "./data.js";
 import { clearNews, picks, replacePicks, savePickNews, savePicks } from "./picks.js";
 import { toggleFollow } from "./follows.js";
 import { exportEventICS, exportICS } from "./ics.js";
-import { index, stripPhrase, tokenise } from "./search.js";
+import { dropPhrase, index } from "./search.js";
 import { cssEsc, pageScrollTo, revealChip } from "./scroll.js";
 import { runSync } from "./sync.js";
 import { NUDGE_SNOOZE_MS, takeInstallPrompt, tickNow } from "./now.js";
@@ -30,7 +30,7 @@ import {
   closeSheet, closeWholeSheet, drawHotelSheet, eventSheetHTML, openSheet, panelEvent, panelFilters, sheetWrap, showHotelCrew,
 } from "./sheet.js";
 import { holdQuery, updateFresh } from "./loading.js";
-import { clearFilters, fillFilters, setFilter } from "./filters.js";
+import { clearFilters, fillFilters, setFilter, settleWords } from "./filters.js";
 import {
   ARCHIVE_NOTICE_KEY, render, renderMiniBar, renderNotice, setTimeOverride, togglePick,
   updateClock,
@@ -159,10 +159,7 @@ function onMainClick(e) {
     if (a === "show-hidden") { state.browse.showHidden = true; state.browse.page = 1; render(); return; }
     if (a === "unparse-today") { takeOff(act, () => { state.browse.noToday = true; }); return; }
     if (a === "unparse") {
-      takeOff(act, () => {
-        const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
-        state.browse.q = (stripped || tokenise(state.browse.q)).join(" ");
-      });
+      takeOff(act, () => { state.browse.q = dropPhrase(state.browse.q, act.dataset.src); });
       return;
     }
     if (a === "unfilter") { takeOff(act, () => { state.browse[act.dataset.dim] = "All"; }); return; }
@@ -227,13 +224,23 @@ function onMainKeydown(e) {
 }
 function onMainChange(e) {
   if (e.target.id === "crewPick") { state.plans.crew = e.target.value; render(); }
+  if (e.target.id === "q") settleWords();
+}
+/* The box left - the return key blurs it - is when a word in it replaces
+   the filter sheet's value for its dimension (#71), never a keystroke:
+   "photo" on the way to "photoshoot" holds Kind until the next letter.
+   focusout fires on every blur; change, which fires only for a value
+   changed since focus, is a second hand on the same idempotent step.
+   Nothing shown changes, so nothing is drawn. */
+function onMainFocusOut(e) {
+  if (e.target.id === "q") settleWords();
 }
 
 /* The filter sheet (#70): a tap or a choice changes state.browse at once,
    and the panel says so in place - its count among it - while the list
    behind waits for the sheet to close, which draws it once. Show <n>
-   events closes it; Clear takes the sheet's filters back off. A held
-   group's chips are disabled, and a disabled button is never clicked. */
+   events closes it; Clear takes the sheet's filters back off. A tap on a
+   dimension a word in the box holds takes the word out first (#71). */
 function onFiltersPanelClick(e) {
   if (e.target.closest("#filtersShow")) { closeSheet(); return; }
   if (e.target.closest("#filtersClear")) { clearFilters(); fillFilters(panelFilters); return; }
@@ -320,6 +327,6 @@ function onMinute() {
 }
 
 export {
-  onMainClick, onMainInput, onMainKeydown, onMainChange, onEventPanelClick, onHotelPanelClick, onSharedPanelClick,
+  onMainClick, onMainInput, onMainKeydown, onMainChange, onMainFocusOut, onEventPanelClick, onHotelPanelClick, onSharedPanelClick,
   onFiltersPanelClick, onFiltersPanelChange, onApplyPreview, onClearPreview, onHashChange, onMinute,
 };
