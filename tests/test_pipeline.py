@@ -41,7 +41,8 @@ SEASON = {"year": 2027, "slug": "dragoncon27", "source": "https://app.core-apps.
 
 
 def level(lid, name, order, rooms):
-    return {"id": lid, "name": name, "order": order, "rooms": list(rooms), "aliases": {}, "notes": []}
+    return {"id": lid, "name": name, "short": name, "order": order, "storey": order, "rooms": list(rooms),
+            "aliases": {}, "notes": []}
 
 
 def hotel(name, order, keys, levels=(), placeless=False):

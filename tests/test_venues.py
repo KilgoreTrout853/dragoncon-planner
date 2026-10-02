@@ -19,8 +19,8 @@ import venues  # noqa: E402
 
 
 def level(lid, order, rooms, aliases=None, notes=None):
-    return {"id": lid, "name": lid.title(), "order": order, "rooms": list(rooms), "aliases": aliases or {},
-            "notes": notes or []}
+    return {"id": lid, "name": lid.title(), "short": lid.title(), "order": order, "storey": order, "rooms": list(rooms),
+            "aliases": aliases or {}, "notes": notes or []}
 
 
 def hotel(name, order, keys, levels=(), placeless=False, unplaced=None):
@@ -86,6 +86,13 @@ def test_every_key_is_required_and_no_other_is_known():
     d = good()
     d["hotels"][0]["levels"][0]["note"] = "a typo for notes"
     assert only(d) == "hotels[0] Hilton, level 'l2': 'note' is not a key this file knows"
+    for key in ("short", "storey"):                               # a level's two keys of #72: required, as every key is
+        d = good()
+        del d["hotels"][0]["levels"][0][key]
+        assert only(d) == f"hotels[0] Hilton, level 'l2': {key} is missing"
+    d = good()
+    del d["hotels"][0]["levels"][1]["storey"]                     # storey 0's: the rest do not then start at 1
+    assert only(d) == "hotels[0] Hilton, level 'galleria': storey is missing"
 
 
 def test_the_three_minute_values_are_whole_numbers():
@@ -149,6 +156,53 @@ def test_level_ids_are_unique_within_a_hotel():
     d = good()
     d["hotels"][1]["levels"][0]["id"] = "l2"                      # another hotel may use it
     assert problems(d) == []
+
+
+def test_a_levels_short_is_a_string_of_1_to_20_characters_unique_within_its_hotel_case_folded():
+    for bad in ("", "   ", None, 2):
+        d = good()
+        d["hotels"][0]["levels"][0]["short"] = bad
+        assert only(d) == f"hotels[0] Hilton, level 'l2': short {bad!r} is not a non-empty string", bad
+    d = good()
+    d["hotels"][0]["levels"][0]["short"] = "x" * 21
+    assert only(d) == f"hotels[0] Hilton, level 'l2': short {'x' * 21!r} is longer than 20 characters"
+    d = good()
+    d["hotels"][0]["levels"][0]["short"] = "Intl Tower LL2, west"                 # 20 characters: room enough
+    assert problems(d) == []
+    d = good()
+    d["hotels"][0]["levels"][0]["short"] = "GALLERIA"                             # the level after it says Galleria
+    assert only(d) == "hotels[0] Hilton, level 'galleria': short 'Galleria' is taken by level 'l2'"
+    d = good()
+    d["hotels"][1]["levels"][0]["short"] = "Galleria"                             # another hotel may use it
+    assert problems(d) == []
+
+
+def test_a_levels_storey_is_a_whole_number_and_a_hotels_storeys_start_at_0_and_skip_none():
+    for bad in ("1", 1.0, True, None):
+        d = good()
+        d["hotels"][0]["levels"][0]["storey"] = bad
+        assert only(d) == f"hotels[0] Hilton, level 'l2': storey {bad!r} is not a whole number", bad
+    d = good()
+    d["hotels"][0]["levels"][0]["storey"] = 0                                     # two levels on one storey
+    assert problems(d) == []
+    d = good()
+    d["hotels"][0]["levels"][1]["storey"] = 2                                     # 1 and 2: no level on 0
+    assert only(d) == "hotels[0] Hilton: storeys start at 1, not 0"
+    d = good()
+    d["hotels"][0]["levels"][0]["storey"] = 2                                     # 0 and 2: none on 1
+    assert only(d) == "hotels[0] Hilton: storeys skip 1"
+    d = good()
+    d["hotels"][0]["levels"][0]["storey"] = -1                                    # below the lowest level
+    assert only(d) == "hotels[0] Hilton: storeys start at -1, not 0"
+    d = good()
+    d["hotels"][0]["levels"].append(level("l4", 2, []))
+    d["hotels"][0]["levels"][2]["storey"] = 4                                     # 0, 1 and 4: two skipped
+    assert problems(d) == ["hotels[0] Hilton: storeys skip 2", "hotels[0] Hilton: storeys skip 3"]
+    d["hotels"][0]["levels"][2]["storey"] = "4"                                   # one bad value: one problem
+    assert only(d) == "hotels[0] Hilton, level 'l4': storey '4' is not a whole number"
+    d = good()
+    d["hotels"][0]["levels"][1] = "galleria"                                      # storey 0's level, unreadable
+    assert only(d) == "hotels[0] Hilton: levels[1] is str, not an object"
 
 
 def test_room_ids_are_unique_within_a_hotel_case_folded():

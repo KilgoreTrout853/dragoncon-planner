@@ -42,7 +42,9 @@
         {
           "id": "international",
           "name": "International Level",
+          "short": "International Level",
           "order": 0,
+          "storey": 0,
           "rooms": [
             "International 1",
             "International 2",
@@ -66,7 +68,9 @@
         {
           "id": "marquis",
           "name": "Marquis Level",
+          "short": "Marquis Level",
           "order": 1,
+          "storey": 1,
           "rooms": [
             "Marquis Ballroom A",
             "Marquis Ballroom B",
@@ -90,7 +94,9 @@
         {
           "id": "lobby",
           "name": "Lobby Level",
+          "short": "Lobby Level",
           "order": 2,
+          "storey": 2,
           "rooms": [
             "L401",
             "L402",
@@ -107,7 +113,9 @@
         {
           "id": "atrium",
           "name": "Atrium Level",
+          "short": "Atrium Level",
           "order": 3,
+          "storey": 3,
           "rooms": [
             "Atrium Ballroom A",
             "Atrium Ballroom B",
@@ -146,7 +154,9 @@
         {
           "id": "acc",
           "name": "Atlanta Conference Center (LL3)",
+          "short": "Conference Center",
           "order": 0,
+          "storey": 0,
           "rooms": [
             "Auburn",
             "Baker",
@@ -175,7 +185,9 @@
         {
           "id": "exhibit",
           "name": "Exhibit Level (LL2)",
+          "short": "Exhibit Level",
           "order": 1,
+          "storey": 1,
           "rooms": [
             "Grand Hall A",
             "Grand Hall B",
@@ -203,7 +215,9 @@
         {
           "id": "ballroom",
           "name": "Ballroom Level (LL1)",
+          "short": "Ballroom Level",
           "order": 2,
+          "storey": 2,
           "rooms": [
             "Centennial I",
             "Centennial II",
@@ -220,7 +234,9 @@
         {
           "id": "lobby",
           "name": "Lobby Level",
+          "short": "Lobby Level",
           "order": 3,
+          "storey": 3,
           "rooms": [],
           "aliases": {},
           "notes": [
@@ -230,7 +246,9 @@
         {
           "id": "tower-ll2",
           "name": "International Tower · LL2",
+          "short": "Intl Tower LL2",
           "order": 4,
+          "storey": 1,
           "rooms": [
             "Embassy A",
             "Embassy B",
@@ -249,7 +267,9 @@
         {
           "id": "tower-ll1",
           "name": "International Tower · LL1",
+          "short": "Intl Tower LL1",
           "order": 5,
+          "storey": 2,
           "rooms": [
             "International North",
             "International South"
@@ -276,7 +296,9 @@
         {
           "id": "galleria",
           "name": "Galleria",
+          "short": "Galleria",
           "order": 0,
+          "storey": 0,
           "rooms": [
             "Galleria 1",
             "Galleria 2",
@@ -295,7 +317,9 @@
         {
           "id": "l1",
           "name": "1st Floor",
+          "short": "1st Floor",
           "order": 1,
+          "storey": 1,
           "rooms": [
             "Crystal A",
             "Crystal B",
@@ -321,7 +345,9 @@
         {
           "id": "l2",
           "name": "2nd Floor",
+          "short": "2nd Floor",
           "order": 2,
+          "storey": 2,
           "rooms": [
             "201",
             "202",
@@ -369,7 +395,9 @@
         {
           "id": "l3",
           "name": "3rd Floor",
+          "short": "3rd Floor",
           "order": 3,
+          "storey": 3,
           "rooms": [
             "301",
             "302",
@@ -393,7 +421,9 @@
         {
           "id": "l4",
           "name": "4th Floor",
+          "short": "4th Floor",
           "order": 4,
+          "storey": 4,
           "rooms": [
             "401",
             "402",
@@ -431,7 +461,9 @@
         {
           "id": "f1",
           "name": "First Floor",
+          "short": "1st Floor",
           "order": 0,
+          "storey": 0,
           "rooms": [
             "Georgia Ballroom",
             "North Capitol Ballroom",
@@ -455,7 +487,9 @@
         {
           "id": "f2",
           "name": "Second Floor",
+          "short": "2nd Floor",
           "order": 1,
+          "storey": 1,
           "rooms": [
             "Athens",
             "Augusta",
@@ -469,7 +503,9 @@
         {
           "id": "f3",
           "name": "Third Floor",
+          "short": "3rd Floor",
           "order": 2,
+          "storey": 2,
           "rooms": [
             "Grand Ballroom A",
             "Grand Ballroom B",
@@ -502,7 +538,9 @@
         {
           "id": "f6",
           "name": "Sixth Floor",
+          "short": "6th Floor",
           "order": 0,
+          "storey": 0,
           "rooms": [
             "Chastain 1",
             "Chastain 2",
@@ -523,7 +561,9 @@
         {
           "id": "f7",
           "name": "Seventh Floor",
+          "short": "7th Floor",
           "order": 1,
+          "storey": 1,
           "rooms": [
             "Augusta 1",
             "Augusta 2",
@@ -545,7 +585,9 @@
         {
           "id": "f8",
           "name": "Eighth Floor",
+          "short": "8th Floor",
           "order": 2,
+          "storey": 2,
           "rooms": [
             "Peachtree 1",
             "Peachtree 2",
@@ -559,7 +601,9 @@
         {
           "id": "f12",
           "name": "Twelfth Floor",
+          "short": "12th Floor",
           "order": 3,
+          "storey": 3,
           "rooms": [
             "Piedmont 1",
             "Piedmont 2",
@@ -578,7 +622,9 @@
         {
           "id": "f14",
           "name": "Fourteenth Floor",
+          "short": "14th Floor",
           "order": 4,
+          "storey": 4,
           "rooms": [
             "Ansley 1",
             "Ansley 2",
@@ -615,7 +661,9 @@
         {
           "id": "b3f1",
           "name": "Building 3, Floor 1",
+          "short": "Building 3, Floor 1",
           "order": 0,
+          "storey": 0,
           "rooms": [],
           "aliases": {},
           "notes": []
@@ -623,7 +671,9 @@
         {
           "id": "b3f2",
           "name": "Building 3, Floor 2",
+          "short": "Building 3, Floor 2",
           "order": 1,
+          "storey": 1,
           "rooms": [],
           "aliases": {},
           "notes": []
@@ -631,7 +681,9 @@
         {
           "id": "b2-rooms",
           "name": "Building 2, meeting rooms",
+          "short": "Building 2",
           "order": 2,
+          "storey": 2,
           "rooms": [
             "203A",
             "203B",
@@ -646,7 +698,9 @@
         {
           "id": "b2-vendor-f1",
           "name": "Building 2, Vendor Hall Floor 1",
+          "short": "Vendor Hall Floor 1",
           "order": 3,
+          "storey": 3,
           "rooms": [],
           "aliases": {},
           "notes": []
@@ -654,7 +708,9 @@
         {
           "id": "b2-vendor-f2",
           "name": "Building 2, Vendor Hall Floor 2",
+          "short": "Vendor Hall Floor 2",
           "order": 4,
+          "storey": 4,
           "rooms": [],
           "aliases": {},
           "notes": []
@@ -662,7 +718,9 @@
         {
           "id": "b2-vendor-f3",
           "name": "Building 2, Vendor Hall Floor 3",
+          "short": "Vendor Hall Floor 3",
           "order": 5,
+          "storey": 5,
           "rooms": [],
           "aliases": {},
           "notes": []

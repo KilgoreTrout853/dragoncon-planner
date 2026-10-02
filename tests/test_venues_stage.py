@@ -20,8 +20,9 @@ import venues  # noqa: E402
 import venues_stage as vs  # noqa: E402
 
 
-def level(lid, name, order, rooms, aliases=None):
-    return {"id": lid, "name": name, "order": order, "rooms": list(rooms), "aliases": aliases or {}, "notes": []}
+def level(lid, name, order, rooms, aliases=None, short=None):
+    return {"id": lid, "name": name, "short": short or name, "order": order, "storey": order, "rooms": list(rooms),
+            "aliases": aliases or {}, "notes": []}
 
 
 def hotel(name, order, keys, levels=(), unplaced=None, placeless=False, display="rest"):
@@ -62,8 +63,9 @@ VENUES = {"walk": {}, "same_venue_min": 5, "unknown_pair_min": 12, "slack_min": 
     hotel("AmericasMart", 5, ["AmericasMart", "Mart2", "Mart"], [
         level("b3f1", "Building 3, Floor 1", 0, []),
         level("b3f2", "Building 3, Floor 2", 1, []),
-        level("b2-rooms", "Building 2, meeting rooms", 2, ["203A", "203B", "203C", "203D", "204J"]),
-        level("b2-vendor-f1", "Building 2, Vendor Hall Floor 1", 3, [])], display="location"),
+        level("b2-rooms", "Building 2, meeting rooms", 2, ["203A", "203B", "203C", "203D", "204J"], short="Building 2"),
+        level("b2-vendor-f1", "Building 2, Vendor Hall Floor 1", 3, [], short="Vendor Hall Floor 1")],
+          display="location"),
     hotel("Hardy Ivy Park", 6, ["Hardy"]),
     hotel("Streaming", 7, ["Streaming"], placeless=True),
     hotel("Other", 8, ["O", "Other"], placeless=True),
