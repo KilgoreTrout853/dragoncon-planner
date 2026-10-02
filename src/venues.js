@@ -76,10 +76,8 @@ function walkMin(a, b) {
 const hotelShort = h => HOTEL_SHORT[h] || h;
 /* A place in a line of words, as the Map's On now line has always named it:
    the hotel's short name, and an offsite pick by its room, else "offsite".
-   Text, not markup: the caller escapes it. Your crew's picks right now
-   names a crewmate's pick's place the same way, until the row's pull
-   request settles how every line names one (docs/screens/contract.md,
-   Open). */
+   Text, not markup: the caller escapes it. Your crew's picks right now and
+   the hero's next pick name a place the same way (DECISIONS #73). */
 const placeShort = ev => (ev.hotel === "Other" ? ev.room || "offsite" : hotelShort(ev.hotel));
 const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
 const hotelGroup = h => HOTEL_GROUP[h] || h;

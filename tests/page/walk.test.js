@@ -8,6 +8,9 @@
    and the ten-minute slack, and not read back from the app's own
    connection() or walkEstimate(), so a wrong band shows up as the wrong
    words on the hero card. */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
 
@@ -365,5 +368,43 @@ describe("the walk between picks, on the hero, the mini-bar and the map's card",
     expect(pairs).toBeGreaterThan(20000);
     expect([...seen].sort()).toEqual(["a pick inside the one above, now nothing", "a stream within the slack, now nothing", "an overlap with a stream, now nothing",
       "an overlap, now nothing", "none", "tight", "tight, one building", "under the walk", "under the walk, one building"]);
+  });
+});
+
+/* The hero names an offsite next pick as a line of words names a place -
+   by its room, else "offsite" - and never "Other" (DECISIONS #73); a stream
+   keeps its title, above. The sample has no offsite event, so this copy of
+   it makes three on Saturday: one on at the helper's 1:05 PM, and two after
+   2:00, one with a room and one with none. */
+describe("the hero names an offsite next pick by its room", () => {
+  const sample = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "sample-events.json"), "utf8"));
+  const on = sample.events.find(e => e.day === "2026-09-05" && e.start <= "2026-09-05T13:05" && e.end > "2026-09-05T13:05"
+    && e.end <= "2026-09-05T14:00" && !["Streaming", "Other"].includes(e.hotel));
+  const offsite = (id, start, end, room) => ({...on, id, source_id: id, title: `Offsite ${id}`, start: `2026-09-05T${start}`, end: `2026-09-05T${end}`,
+    hotel: "Other", room, location: room ? `O ${room}` : "", level: null, rooms: [], place: "none"});
+  const data = {...sample, events: [...sample.events, offsite("off-on", "12:30", "14:00", "Walton Spring Park"),
+    offsite("off-room", "15:00", "16:00", "Joystick Gamebar"), offsite("off-none", "15:30", "16:30", "")]};
+  let page, app, handle;
+  const line = ids => {
+    handle.picks.set(ids);
+    handle.state.tab = "now";
+    handle.render();
+    return document.querySelector("#view-now .hero .hwhen").textContent.replace(/\s+/g, " ").trim();
+  };
+  beforeAll(async () => { page = await bootPage({data}); ({app, handle} = page); }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("with a room, by the room: then Joystick Gamebar at 3:00 PM, and the walk", () => {
+    const walk = app.walkMin(on.hotel, "Other");
+    expect(line([on.id, "off-room"])).toBe(`ends ${app.fmtShort(app.byId.get(on.id)._e)} · then Joystick Gamebar at 3:00 PM, ~${walk} min walk`);
+  });
+  it("with none, as offsite", () => {
+    expect(line([on.id, "off-none"])).toMatch(/ · then offsite at 3:30 PM, ~\d+ min walk$/);
+  });
+  it("after an offsite pick, by its room too, the two counted as one building", () => {
+    expect(line(["off-on", "off-room"])).toBe("ends 2:00 PM · then Joystick Gamebar next");
+  });
+  it("never as Other", () => {
+    for (const ids of [[on.id, "off-room"], [on.id, "off-none"], ["off-on", "off-room"]]) expect(line(ids)).not.toMatch(/\bOther\b/);
   });
 });

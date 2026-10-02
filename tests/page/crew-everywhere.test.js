@@ -69,11 +69,12 @@ const cssRule = selector => { const at = css.indexOf(`\n${selector} {`); return 
 const parsed = html => { const holder = document.createElement("div"); holder.innerHTML = html; return holder.innerHTML; };
 
 /* The crew line on Now as it was before step 5c moved it to ui.js, word
-   for word but for step 5d's "yours too" (#68): what Now must still draw. */
+   for word but for step 5d's "yours too" (#68) and the row's span that keeps
+   the start on one line (#73): what Now must still draw. */
 function crewLineBefore(app, mine, c) {
   const ev = c.ev, withYou = mine.has(ev.id) ? ` &middot; <span class="cn-with">yours too</span>` : "";
   return `<li><button class="crew-now" id="crewNow-${app.esc(c.user_id)}" data-hero="${app.esc(ev.id)}" aria-haspopup="dialog">
-    <span class="cn-top"><b class="cn-who">${app.esc(c.display_name)}</b> &middot; ${c.on ? "on now" : app.fmtShort(ev._s)}${withYou}</span>
+    <span class="cn-top"><b class="cn-who">${app.esc(c.display_name)}</b> &middot; <span class="cn-when">${c.on ? "on now" : app.fmtShort(ev._s)}</span>${withYou}</span>
     <span class="cn-what"><span class="cn-title">${app.esc(ev.title)}</span><span class="cn-where" style="--h:var(${app.hotelVar(ev.hotel)})">&nbsp;&middot; ${app.esc(app.placeShort(ev))}</span></span>
   </button></li>`;
 }

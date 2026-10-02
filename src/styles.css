@@ -615,6 +615,7 @@ select.crew-pick {
 .crew-now:focus-visible { outline-offset: -3px; }   /* inside the line: main, the scroller, clips at its sides */
 .crew-now .cn-top { display: block; font-size: .9375rem; color: var(--muted); }
 .crew-now .cn-who { color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
+.crew-now .cn-when { white-space: nowrap; }   /* "4:00 PM" on one line, after however long a name */
 .crew-now .cn-with { color: var(--gold); font-weight: 600; }
 .crew-now .cn-what { display: flex; min-width: 0; overflow: hidden; font-size: 1rem; white-space: nowrap; }
 .crew-now .cn-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

@@ -101,11 +101,12 @@ function snippetFor(ev, terms) {
    the start - and the place, "" for none, which leaves the title alone.
    Every name is someone's own text, so escaped. A star is a pick, not a
    whereabouts: the line says what was starred, never that anyone is going
-   (#68), and .cn-with keeps its old name. */
+   (#68), and .cn-with keeps its old name. The words after the name never
+   break inside: "4:00" and "PM" stay on one line (#73). */
 function crewLineHTML(id, name, when, ev, where) {
   const withYou = picks.has(ev.id) ? ` &middot; <span class="cn-with">yours too</span>` : "";
   return `<li><button class="crew-now" id="${esc(id)}" data-hero="${esc(ev.id)}" aria-haspopup="dialog">
-    <span class="cn-top"><b class="cn-who">${esc(name)}</b> &middot; ${esc(when)}${withYou}</span>
+    <span class="cn-top"><b class="cn-who">${esc(name)}</b> &middot; <span class="cn-when">${esc(when)}</span>${withYou}</span>
     <span class="cn-what"><span class="cn-title">${esc(ev.title)}</span>${where ? `<span class="cn-where" style="--h:var(${hotelVar(ev.hotel)})">&nbsp;&middot; ${esc(where)}</span>` : ""}</span>
   </button></li>`;
 }

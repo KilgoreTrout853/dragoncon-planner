@@ -307,6 +307,9 @@ describe("src/styles.css", () => {
     it("each part of line 3 carries its own dot", () => {
       expect(rule(".flags > * + *::before")).toMatch(/content: "· "/);
     });
+    it("a crew line's start never breaks between the time and its meridiem", () => {
+      expect(rule(".crew-now .cn-when")).toMatch(/white-space: nowrap/);
+    });
     it("there is no time column: the text has the row's width, and the gap line starts where the row's text does", () => {
       expect(rule(".row-main")).toMatch(/grid-template-columns: minmax\(0, 1fr\);/);
       expect(css).not.toMatch(/(^|\n)\.t \{/);
