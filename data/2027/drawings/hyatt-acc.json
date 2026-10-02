@@ -1,0 +1,271 @@
+{
+  "hotel": "Hyatt",
+  "level": "acc",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 440,
+    "h": 430
+  },
+  "anchors": [
+    {
+      "name": "atrium elevators",
+      "x": 210.0,
+      "y": 245.0
+    },
+    {
+      "name": "conference escalator",
+      "x": 257.3,
+      "y": 229.5
+    },
+    {
+      "name": "international elevators",
+      "x": 76.3,
+      "y": 352.4
+    },
+    {
+      "name": "international escalators",
+      "x": 66.7,
+      "y": 381.7
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Roswell",
+      "cx": 116.8,
+      "cy": 370.2,
+      "w": 46.8,
+      "h": 22.7,
+      "rot": 0
+    },
+    {
+      "id": "Piedmont",
+      "cx": 153.8,
+      "cy": 379.8,
+      "w": 27.2,
+      "h": 41.9,
+      "rot": 0
+    },
+    {
+      "id": "Marietta",
+      "cx": 176.4,
+      "cy": 376.8,
+      "w": 18,
+      "h": 35.8,
+      "rot": 0
+    },
+    {
+      "id": "University",
+      "cx": 104.0,
+      "cy": 327.1,
+      "w": 21,
+      "h": 37,
+      "rot": 0
+    },
+    {
+      "id": "Techwood",
+      "cx": 126.7,
+      "cy": 327.1,
+      "w": 24.5,
+      "h": 37,
+      "rot": 0
+    },
+    {
+      "id": "Spring",
+      "cx": 153.6,
+      "cy": 327.1,
+      "w": 29.3,
+      "h": 37,
+      "rot": 0
+    },
+    {
+      "id": "Heritage Boardroom",
+      "cx": 175.8,
+      "cy": 332.6,
+      "w": 15,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "Baker",
+      "cx": 313.7,
+      "cy": 342.3,
+      "w": 43,
+      "h": 32.3,
+      "rot": 0
+    },
+    {
+      "id": "Auburn",
+      "cx": 343.9,
+      "cy": 342.3,
+      "w": 17.4,
+      "h": 32.3,
+      "rot": 0
+    },
+    {
+      "id": "Dunwoody",
+      "cx": 317.5,
+      "cy": 292.3,
+      "w": 37,
+      "h": 48,
+      "rot": 0
+    },
+    {
+      "id": "Courtland",
+      "cx": 355.9,
+      "cy": 292.3,
+      "w": 39.8,
+      "h": 48,
+      "rot": 0
+    },
+    {
+      "id": "Greenbriar",
+      "cx": 322.1,
+      "cy": 240.4,
+      "w": 27,
+      "h": 33,
+      "rot": 0
+    },
+    {
+      "id": "Fairlie",
+      "cx": 349.3,
+      "cy": 240.4,
+      "w": 27.5,
+      "h": 33,
+      "rot": 0
+    },
+    {
+      "id": "Edgewood",
+      "cx": 373.3,
+      "cy": 240.4,
+      "w": 20.4,
+      "h": 33,
+      "rot": 0
+    },
+    {
+      "id": "Harris",
+      "cx": 290.8,
+      "cy": 227.1,
+      "w": 19.8,
+      "h": 29.5,
+      "rot": 0
+    },
+    {
+      "id": "Inman",
+      "cx": 160.3,
+      "cy": 230.4,
+      "w": 41.3,
+      "h": 25.4,
+      "rot": 0
+    },
+    {
+      "id": "Kennesaw",
+      "cx": 164.0,
+      "cy": 256.9,
+      "w": 33.8,
+      "h": 27.7,
+      "rot": 0
+    },
+    {
+      "id": "Lenox",
+      "cx": 164.0,
+      "cy": 281.5,
+      "w": 33.8,
+      "h": 21.4,
+      "rot": 0
+    },
+    {
+      "id": "Vinings",
+      "cx": 40.6,
+      "cy": 316.7,
+      "w": 38.8,
+      "h": 24.9,
+      "rot": 0
+    },
+    {
+      "id": "Williams",
+      "cx": 32.4,
+      "cy": 344.6,
+      "w": 22.4,
+      "h": 16.5,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [],
+  "open": [
+    {
+      "name": "Elevator lobby",
+      "cx": 231.0,
+      "cy": 268.5,
+      "w": 95,
+      "h": 25,
+      "rot": 0
+    },
+    {
+      "name": "Motor lobby",
+      "cx": 218.8,
+      "cy": 217.2,
+      "w": 44,
+      "h": 12,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "Atrium elevators",
+      "x": 210.0,
+      "y": 245.0
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to the Exhibit Level",
+      "x": 257.3,
+      "y": 229.5
+    },
+    {
+      "kind": "elevator",
+      "name": "International elevators",
+      "x": 76.3,
+      "y": 352.4
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalator to Embassy Hall",
+      "x": 66.7,
+      "y": 381.7
+    }
+  ],
+  "streets": [
+    {
+      "name": "Baker Street NE",
+      "side": "N"
+    },
+    {
+      "name": "John Portman Blvd NE",
+      "side": "S"
+    },
+    {
+      "name": "Peachtree Street NE",
+      "side": "W"
+    },
+    {
+      "name": "Peachtree Center Ave NE",
+      "side": "E"
+    }
+  ],
+  "sources": [
+    "sizes: the capacity tables printed beside the hotel's floor plans (reference/plans/hyatt-floorplan-2012.pdf, revised 5/12)",
+    "placement, order and orientation: the hotel's own floor plan in the same file, p. 3, measured from the atrium elevators (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "three levels below the lobby, under both towers: its western rooms, from Vinings and Williams to Marietta and the Heritage Boardroom, are under the International Tower and its ballroom; the rest are under the Atrium Tower",
+    "the hotel's plan of this level (p. 3) is drawn half a turn round from its other pages; it is turned back here, and both elevator banks and both escalators then fall where the levels above put them",
+    "Courtland is 39.8 x 48 and Dunwoody 37 x 48: the table gives each the other's width, against its own square footage and the plan",
+    "Dragon Con's map labels Courtland and Dunwoody the other way round from the hotel's plan; the hotel's is drawn - to be checked in person",
+    "the Heritage Boardroom has no dimensions in the table; 15 x 26 is the plan's",
+    "where the International Tower stands, 134 ft west and 107 ft south of the atrium elevators, is read from this level's plan alone: no other page draws both towers"
+  ]
+}

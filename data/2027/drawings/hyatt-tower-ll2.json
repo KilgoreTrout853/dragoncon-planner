@@ -1,0 +1,198 @@
+{
+  "hotel": "Hyatt",
+  "level": "tower-ll2",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 440,
+    "h": 430
+  },
+  "anchors": [
+    {
+      "name": "international elevators",
+      "x": 76.3,
+      "y": 352.4
+    },
+    {
+      "name": "international escalators",
+      "x": 66.7,
+      "y": 381.7
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Embassy A",
+      "cx": 129.0,
+      "cy": 330.6,
+      "w": 30.8,
+      "h": 31.2,
+      "rot": 0
+    },
+    {
+      "id": "Embassy B",
+      "cx": 155.1,
+      "cy": 330.4,
+      "w": 21.4,
+      "h": 31.6,
+      "rot": 0
+    },
+    {
+      "id": "Embassy C",
+      "cx": 180.5,
+      "cy": 329.3,
+      "w": 29.5,
+      "h": 43,
+      "rot": 0
+    },
+    {
+      "id": "Embassy D",
+      "cx": 180.5,
+      "cy": 372.3,
+      "w": 29.5,
+      "h": 43,
+      "rot": 0
+    },
+    {
+      "id": "Embassy F",
+      "cx": 125.0,
+      "cy": 373.6,
+      "w": 31,
+      "h": 30.5,
+      "rot": 0
+    },
+    {
+      "id": "Embassy E",
+      "cx": 153.1,
+      "cy": 374.0,
+      "w": 25.3,
+      "h": 31.3,
+      "rot": 0
+    },
+    {
+      "id": "Embassy G",
+      "cx": 91.0,
+      "cy": 323.5,
+      "w": 26.8,
+      "h": 14.3,
+      "rot": 0
+    },
+    {
+      "id": "Embassy H",
+      "cx": 36.3,
+      "cy": 359.6,
+      "w": 27.8,
+      "h": 11.5,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "Embassy A–B",
+      "kind": "ballroom",
+      "rooms": [
+        "Embassy A",
+        "Embassy B"
+      ],
+      "outline": {
+        "cx": 139.7,
+        "cy": 330.4,
+        "w": 52.2,
+        "h": 31.6,
+        "rot": 0
+      }
+    },
+    {
+      "name": "Embassy C–D",
+      "kind": "ballroom",
+      "rooms": [
+        "Embassy C",
+        "Embassy D"
+      ],
+      "outline": {
+        "cx": 180.5,
+        "cy": 350.8,
+        "w": 29.5,
+        "h": 86.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "Embassy E–F",
+      "kind": "ballroom",
+      "rooms": [
+        "Embassy F",
+        "Embassy E"
+      ],
+      "outline": {
+        "cx": 137.6,
+        "cy": 374.0,
+        "w": 56.2,
+        "h": 31.3,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Embassy Corridor",
+      "cx": 137.6,
+      "cy": 352.3,
+      "w": 56.3,
+      "h": 12.1,
+      "rot": 0
+    },
+    {
+      "name": "Lobby",
+      "cx": 89.9,
+      "cy": 351.5,
+      "w": 19,
+      "h": 36,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "International elevators",
+      "x": 76.3,
+      "y": 352.4
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalators",
+      "x": 66.7,
+      "y": 381.7
+    }
+  ],
+  "streets": [
+    {
+      "name": "Baker Street NE",
+      "side": "N"
+    },
+    {
+      "name": "John Portman Blvd NE",
+      "side": "S"
+    },
+    {
+      "name": "Peachtree Street NE",
+      "side": "W"
+    },
+    {
+      "name": "Peachtree Center Ave NE",
+      "side": "E"
+    }
+  ],
+  "sources": [
+    "sizes: the capacity tables printed beside the hotel's floor plans (reference/plans/hyatt-floorplan-2012.pdf, revised 5/12)",
+    "placement, order and orientation: the hotel's own floor plan in the same file, p. 4, measured from the International Tower's elevators (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "Embassy Hall, two levels below the lobby in the International Tower, under the International Ballroom",
+    "the table's rooms do not tile the hall the plan draws: A and B are drawn from the Embassy corridor at the table's depth, about 31 ft, which leaves them some 7 ft short of the north wall the plan draws them against",
+    "Embassy G and H are the two small rooms beside the elevators; H is the table's 27'10\" x 11'6\", which the plan draws a little larger",
+    "the Embassy corridor and the lobby are the plan's outlines: the corridor is drawn 12 ft deep, where the table says 10'3\" wide",
+    "the escalators beside the elevators go up to the International Ballroom and down to the Conference Center"
+  ]
+}

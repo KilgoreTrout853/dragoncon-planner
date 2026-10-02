@@ -1,0 +1,110 @@
+{
+  "hotel": "Hyatt",
+  "level": "tower-ll1",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 440,
+    "h": 430
+  },
+  "anchors": [
+    {
+      "name": "international elevators",
+      "x": 76.3,
+      "y": 352.4
+    },
+    {
+      "name": "international escalators",
+      "x": 66.7,
+      "y": 381.7
+    }
+  ],
+  "rooms": [
+    {
+      "id": "International North",
+      "cx": 147.2,
+      "cy": 327.1,
+      "w": 96,
+      "h": 47.5,
+      "rot": 0
+    },
+    {
+      "id": "International South",
+      "cx": 147.2,
+      "cy": 375.6,
+      "w": 96,
+      "h": 49.5,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "International Ballroom",
+      "kind": "ballroom",
+      "rooms": [
+        "International North",
+        "International South"
+      ],
+      "outline": {
+        "cx": 147.2,
+        "cy": 351.9,
+        "w": 96.0,
+        "h": 97.0,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Lobby",
+      "cx": 89.8,
+      "cy": 351.7,
+      "w": 19,
+      "h": 36,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "International elevators",
+      "x": 76.3,
+      "y": 352.4
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalators",
+      "x": 66.7,
+      "y": 381.7
+    }
+  ],
+  "streets": [
+    {
+      "name": "Baker Street NE",
+      "side": "N"
+    },
+    {
+      "name": "John Portman Blvd NE",
+      "side": "S"
+    },
+    {
+      "name": "Peachtree Street NE",
+      "side": "W"
+    },
+    {
+      "name": "Peachtree Center Ave NE",
+      "side": "E"
+    }
+  ],
+  "sources": [
+    "sizes: the capacity tables printed beside the hotel's floor plans (reference/plans/hyatt-floorplan-2012.pdf, revised 5/12)",
+    "placement, order and orientation: the hotel's own floor plan in the same file, p. 4, measured from the International Tower's elevators (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, and their names: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "the International Ballroom, one level below the lobby in the International Tower",
+    "this level is as deep as the Atrium Tower's Ballroom Level and stands south-west of it; the two are joined through the lobby above and the Conference Center below",
+    "the escalators beside the elevators go up to the lobby and down to Embassy Hall"
+  ]
+}
