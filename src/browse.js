@@ -1,14 +1,15 @@
-/* The Search tab, which the code calls browse: the box, the chips under it,
-   the rows, and the debounce that keeps typing from redrawing 2,000 nodes a
-   keystroke. What a query means and how it is ranked is search.js's; this is
-   the drawing of it. */
+/* The Search tab, which the code calls browse: the box and the Filters
+   button beside it, the day chips, the chips under them, the rows, and the
+   debounce that keeps typing from redrawing 2,000 nodes a keystroke. What a
+   query means and how it is ranked is search.js's; this is the drawing of
+   it. The filters themselves are the filter sheet's (filters.js, #70). */
 import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
-import { hotelShort } from "./venues.js";
-import { events, hotelChips, isNoise, tagsOf, topWorks, tracks } from "./data.js";
-import { browseResults, index, KIND_LABELS, processTerm, SEARCH_PLACEHOLDER, suggestDocs, suggestionsFor } from "./search.js";
+import { events, isNoise } from "./data.js";
+import { browseResults, index, processTerm, SEARCH_PLACEHOLDER, suggestDocs, suggestionsFor } from "./search.js";
 import { chipHTML, rowHTML } from "./ui.js";
+import { inEffect } from "./filters.js";
 import { chipRowsRestore, chipRowsSnapshot } from "./scroll.js";
 
 const PAGE = 150;
@@ -69,15 +70,30 @@ function hiddenForQueryHTML(results) {
   return `<div class="hidden-note">${hidden.length} photo ${word} hidden &middot; <button data-act="show-hidden">show</button></div>`;
 }
 
-/* Show what the query was read as, and let the reader take it back off. */
-function parsedChipsHTML() {
+/* What is narrowing the list, in one row, and a tap takes one back off:
+   what the query was read as, then what the filter sheet set that is in
+   effect (#70). A long label is cut short on screen; the button's name
+   carries it whole. */
+const removableHTML = (attrs, label, name) =>
+  `<button class="chip parsed" ${attrs} aria-label="${esc(name)}"><span class="chip-label">${esc(label)}</span> <span aria-hidden="true">&times;</span></button>`;
+function parsedChipsHTML(set) {
   const chips = (state.browse.parsed && state.browse.parsed.chips) || [];
-  const today = state.browse.todayScoped
-    ? `<button class="chip parsed" data-act="unparse-today" aria-label="Show the whole con instead of today">Today <span aria-hidden="true">&times;</span></button>`
-    : "";
-  if (!chips.length && !today) return "";
-  return `<div class="chips parsed-chips" aria-label="Filters read from your search">${today}${chips.map(c =>
-    `<button class="chip parsed" data-act="unparse" data-src="${esc(c.src)}" aria-label="Remove ${esc(c.label)} filter">${esc(c.label)} <span aria-hidden="true">&times;</span></button>`).join("")}</div>`;
+  const today = state.browse.todayScoped ? removableHTML(`data-act="unparse-today"`, "Today", "Show the whole con instead of today") : "";
+  if (!chips.length && !today && !set.length) return "";
+  return `<div class="chips parsed-chips" data-row="parsed" role="group" aria-label="Filters in effect">${today}${chips.map(c =>
+    removableHTML(`data-act="unparse" data-src="${esc(c.src)}"`, c.label, `Remove ${c.label} filter`)).join("")}${set.map(f =>
+    removableHTML(`data-act="unfilter" data-dim="${f.dim}"`, f.label, `Remove ${f.label} filter`)).join("")}</div>`;
+}
+
+/* The Filters button: its badge counts the sheet's filters in effect, and
+   its name says so. The button is built once, with the box; a redraw writes
+   only these. */
+const filtersName = n => (n ? `Filters, ${n} set` : "Filters");
+function syncFiltersButton(n) {
+  const btn = document.getElementById("filtersBtn"), badge = document.getElementById("filtersBadge");
+  badge.hidden = n === 0;
+  badge.textContent = n ? String(n) : "";
+  btn.setAttribute("aria-label", filtersName(n));
 }
 
 /* ---- Browse ------------------------------------------------------- */
@@ -88,34 +104,20 @@ function renderBrowse() {
   const searching = !!b.q.trim();
   const results = browseResults();
   const shown = results.slice(0, PAGE * b.page);
-  const noiseCount = events.filter(e => isNoise(e) && (b.day === "All" || e._cd === b.day)).length;
-  /* A schedule with no tags at all - a year's first days, before its first
-     tag - offers no kind chips and no Fandom select. */
-  const hasTags = events.some(e => Object.keys(tagsOf(e)).length > 0);
-  /* The Fandom select holds works, by id: the reviewed ones with 3+ events,
-     their own and those of the works under them. */
-  const works = hasTags ? topWorks() : [];
-  const kindsPresent = hasTags ? Object.keys(KIND_LABELS).filter(k => events.some(e => tagsOf(e).kind === k)) : [];
+  const set = inEffect();
 
   const dayChips = `${chipHTML("All days", b.day === "All", "day", "All")}${CON_DAYS.map(d => chipHTML(DAY_LABEL[d], b.day === d, "day", d)).join("")}`;
   const sticky = `<div class="controls controls-sticky">
-    <input class="search${index ? "" : " indexing"}" type="search" id="q" placeholder="${index ? SEARCH_PLACEHOLDER : "indexing…"}" value="${esc(b.q)}" autocomplete="off" enterkeyhint="search">
+    <div class="search-row">
+      <input class="search${index ? "" : " indexing"}" type="search" id="q" aria-label="Search the schedule" placeholder="${index ? SEARCH_PLACEHOLDER : "indexing…"}" value="${esc(b.q)}" autocomplete="off" enterkeyhint="search">
+      <button class="filters-btn" type="button" id="filtersBtn" data-act="filters" aria-haspopup="dialog" aria-label="${filtersName(set.length)}">Filters<span class="filters-badge" id="filtersBadge"${set.length ? "" : " hidden"}>${set.length || ""}</span></button>
+    </div>
     <div class="chips" data-row="day" id="dayChips">${dayChips}</div>
     </div>`;
-  let html = `<div class="controls controls-rest">
-    <div class="chips" data-row="hotel">${chipHTML("All", b.hotel === "All", "hotel")}${hotelChips.map(h => chipHTML(hotelShort(h), b.hotel === h, "hotel", h)).join("")}</div>
-    ${hasTags ? `<div class="chips" data-row="kind">${chipHTML("Any kind", b.kind === "All", "kind", "All")}${kindsPresent.map(k => chipHTML(KIND_LABELS[k], b.kind === k, "kind", k)).join("")}</div>` : ""}
-    ${suggestHTML()}
-    ${parsedChipsHTML()}
-    <div class="row-controls">
-      <div class="seg" role="group" aria-label="Type">
-        ${["All", "panel", "gaming"].map(t => `<button data-chip="type" data-value="${t}" aria-pressed="${b.type === t}">${{All: "All", panel: "Panels", gaming: "Gaming"}[t]}</button>`).join("")}
-      </div>
-      ${hasTags ? `<select class="track" id="fandom" aria-label="Fandom"><option value="All">Any fandom</option>${works.map(w => `<option value="${esc(w.id)}" ${b.work === w.id ? "selected" : ""}>${esc(w.name)} (${w.count})</option>`).join("")}</select>` : ""}
-      <select class="track" id="track" aria-label="Track"><option value="All">All tracks</option>${tracks.map(t => `<option value="${esc(t)}" ${b.track === t ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>
-    </div>
-    <label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label>
-  </div>
+  /* Under the box, and only when there is something to show: the
+     suggestions, and what is narrowing the list. */
+  const under = suggestHTML() + parsedChipsHTML(set);
+  let html = `${under ? `<div class="controls controls-rest">${under}</div>` : ""}
   ${!index && b.q.trim() ? `<div class="empty indexing-note">Indexing the schedule&hellip; your search will run in a moment.</div>` : ""}
   <div class="section-title">${searching ? "Best matches first" : "Results"} <span class="count">${results.length}</span></div>
   ${noExactMatchHTML(results)}<ul class="list">`;
@@ -145,7 +147,11 @@ function renderBrowse() {
   });
   html += `</ul>`;
   html += hiddenForQueryHTML(results);
-  if (!results.length) html += `<div class="empty"><b>No matches.</b> Try fewer or different words, another day, or turn off the photo/video filter.</div>`;
+  /* With a filter of the sheet's in effect, the first thing to try is to take
+     one off, and the chips to do it with are just above. */
+  if (!results.length) html += set.length
+    ? `<div class="empty"><b>No matches.</b> Remove a filter above, or try another day or fewer words.</div>`
+    : `<div class="empty"><b>No matches.</b> Try fewer or different words, another day, or turn off the photo/video filter.</div>`;
   if (results.length > shown.length) html += `<button class="btn quiet more" data-act="more-browse">Show ${Math.min(PAGE, results.length - shown.length)} more of ${results.length - shown.length}</button>`;
   /* The search box is never rebuilt once it exists. Replacing a focused
      input under an open iOS keyboard left the keyboard attached to a node
@@ -159,6 +165,7 @@ function renderBrowse() {
     q.placeholder = index ? SEARCH_PLACEHOLDER : "indexing…";
     q.classList.toggle("indexing", !index);
     document.getElementById("dayChips").innerHTML = dayChips;
+    syncFiltersButton(set.length);
     rest.innerHTML = html;
   } else {
     view.innerHTML = sticky + `<div id="browseRest">${html}</div>`;

@@ -1,9 +1,10 @@
 /* Dispatch: the handlers whose bodies reach across modules, so that no one
    module below could hold them. The four delegated listeners on main - click,
    input, keydown, change - which are about whatever view is on screen; the
-   clicks inside the sheet's event, hotel and shared-day panels; Apply and
-   Clear for the preview clock; the hash; and the minute tick. boot()
-   registers all eleven. It
+   clicks inside the sheet's event, hotel and shared-day panels, and the
+   clicks and changes inside its filter panel; Apply and Clear for the
+   preview clock; the hash; and the minute tick. boot() registers all
+   thirteen. It
    is last in the order: it imports the views, the sheet, loading and the
    shell, and nothing imports it but the root. It declares nothing but the
    handlers and reads nothing as it is imported. */
@@ -26,9 +27,10 @@ import {
 } from "./explore.js";
 import { tickMap } from "./map.js";
 import {
-  closeSheet, closeWholeSheet, drawHotelSheet, eventSheetHTML, openSheet, panelEvent, sheetWrap, showHotelCrew,
+  closeSheet, closeWholeSheet, drawHotelSheet, eventSheetHTML, openSheet, panelEvent, panelFilters, sheetWrap, showHotelCrew,
 } from "./sheet.js";
 import { holdQuery, updateFresh } from "./loading.js";
+import { clearFilters, fillFilters, setFilter } from "./filters.js";
 import {
   ARCHIVE_NOTICE_KEY, render, renderMiniBar, renderNotice, setTimeOverride, togglePick,
   updateClock,
@@ -40,9 +42,6 @@ function onMainClick(e) {
     const {chip: kind, value} = chip.dataset;
     if (kind === "now-hotel") { state.now.hotel = value; state.now.limit = 80; }
     else if (kind === "day") state.browse.day = value;
-    else if (kind === "hotel") state.browse.hotel = state.browse.hotel === value ? "All" : value;
-    else if (kind === "type") state.browse.type = value;
-    else if (kind === "kind") state.browse.kind = value;
     else if (kind === "map-day") state.map.day = value;
     else if (kind === "plans-day") state.plans.day = value;
     state.browse.page = 1; render();
@@ -66,6 +65,8 @@ function onMainClick(e) {
     if (a === "crew-manage" || a === "crew-create" || a === "crew-join") { openSheet("crew", a.slice("crew-".length)); return; }
     /* My day's Share a day: its panel (W25). */
     if (a === "share-day") { openSheet("share"); return; }
+    /* Search's Filters: the filter sheet (W13, #70). */
+    if (a === "filters") { openSheet("filters"); return; }
     if (a === "plans-mine" || a === "plans-crew") {
       state.plansView = a === "plans-crew" ? "crew" : "mine";
       saveJSON(storageKey("plansView"), state.plansView);
@@ -156,14 +157,15 @@ function onMainClick(e) {
       return;
     }
     if (a === "show-hidden") { state.browse.showHidden = true; state.browse.page = 1; render(); return; }
-    if (a === "unparse-today") { state.browse.noToday = true; state.browse.page = 1; render(); return; }
+    if (a === "unparse-today") { takeOff(act, () => { state.browse.noToday = true; }); return; }
     if (a === "unparse") {
-      const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
-      state.browse.q = (stripped || tokenise(state.browse.q)).join(" ");
-      state.browse.page = 1;
-      render();
+      takeOff(act, () => {
+        const stripped = stripPhrase(tokenise(state.browse.q), act.dataset.src || "");
+        state.browse.q = (stripped || tokenise(state.browse.q)).join(" ");
+      });
       return;
     }
+    if (a === "unfilter") { takeOff(act, () => { state.browse[act.dataset.dim] = "All"; }); return; }
     if (a === "view-timeline" || a === "view-list") {
       state.mineView = a === "view-timeline" ? "timeline" : "list";
       saveJSON(storageKey("mineView"), state.mineView); render();
@@ -182,6 +184,20 @@ function onMainClick(e) {
   if (hero) { openSheet("event", hero.dataset.hero); return; }
   const main = e.target.closest(".row-main");
   if (main) openSheet("event", main.closest(".row").dataset.id);
+}
+
+/* A chip under the box taken off: what was read from the query, or what
+   the filter sheet set. Focus goes to the chip that takes its place in the
+   row, else to the Filters button - never to the box, which would raise the
+   keyboard. */
+function takeOff(chip, change) {
+  const at = [...chip.parentElement.children].indexOf(chip);
+  change();
+  state.browse.page = 1;
+  render();
+  const row = document.querySelector("#view-browse .parsed-chips");
+  const next = (row && row.children[at]) || document.getElementById("filtersBtn");
+  if (next) next.focus({preventScroll: true});
 }
 
 function onMainInput(e) {
@@ -210,10 +226,26 @@ function onMainKeydown(e) {
   if (block) { e.preventDefault(); openSheet("hotel", block.dataset.hotel); }
 }
 function onMainChange(e) {
-  if (e.target.id === "track") { state.browse.track = e.target.value; state.browse.page = 1; render(); }
-  if (e.target.id === "fandom") { state.browse.work = e.target.value; state.browse.page = 1; render(); }
-  if (e.target.id === "hideNoise") { state.browse.hideNoise = e.target.checked; state.browse.page = 1; render(); }
   if (e.target.id === "crewPick") { state.plans.crew = e.target.value; render(); }
+}
+
+/* The filter sheet (#70): a tap or a choice changes state.browse at once,
+   and the panel says so in place - its count among it - while the list
+   behind waits for the sheet to close, which draws it once. Show <n>
+   events closes it; Clear takes the sheet's filters back off. A held
+   group's chips are disabled, and a disabled button is never clicked. */
+function onFiltersPanelClick(e) {
+  if (e.target.closest("#filtersShow")) { closeSheet(); return; }
+  if (e.target.closest("#filtersClear")) { clearFilters(); fillFilters(panelFilters); return; }
+  const chip = e.target.closest("[data-chip]");
+  if (chip) { setFilter(chip.dataset.chip, chip.dataset.value); fillFilters(panelFilters); }
+}
+function onFiltersPanelChange(e) {
+  const t = e.target;
+  if (t.id === "hideNoise") { state.browse.hideNoise = t.checked; state.browse.page = 1; }
+  else if (t.dataset.filter) setFilter(t.dataset.filter, t.value);
+  else return;
+  fillFilters(panelFilters);
 }
 
 function onEventPanelClick(e) {
@@ -289,5 +321,5 @@ function onMinute() {
 
 export {
   onMainClick, onMainInput, onMainKeydown, onMainChange, onEventPanelClick, onHotelPanelClick, onSharedPanelClick,
-  onApplyPreview, onClearPreview, onHashChange, onMinute,
+  onFiltersPanelClick, onFiltersPanelChange, onApplyPreview, onClearPreview, onHashChange, onMinute,
 };

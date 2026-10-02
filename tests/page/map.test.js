@@ -327,8 +327,10 @@ describe("the Map tab", () => {
       it("with the hotel and the day as filters [1516]", () => {
         expect(state.browse).toMatchObject({ hotel: "Westin", day: "2026-09-05", q: "" });
       });
-      it("and the chips show them pressed [1517]", () => {
-        expect(document.querySelector('#view-browse [data-chip="hotel"][data-value="Westin"]').getAttribute("aria-pressed")).toBe("true");
+      it("and the chips show them: the hotel under the box, counted on Filters, the day pressed [1517]", () => {
+        const hotel = document.querySelector('#view-browse .parsed-chips [data-act="unfilter"][data-dim="hotel"]');
+        expect(hotel.querySelector(".chip-label").textContent).toBe("Westin");
+        expect(document.getElementById("filtersBadge").textContent).toBe("1");
         expect(document.querySelector('#view-browse [data-chip="day"][data-value="2026-09-05"]').getAttribute("aria-pressed")).toBe("true");
       });
       it("listing that hotel's Saturday [1518]", () => {

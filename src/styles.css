@@ -175,6 +175,16 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
   background: var(--surface); border: 1px solid var(--line); color: var(--text);
 }
 .search::placeholder { color: var(--dim); }
+/* The box and the Filters button beside it, at the box's height; the badge
+   counts the filter sheet's filters in effect (#70). */
+.search-row { display: flex; gap: 8px; }
+.search-row .search { flex: 1 1 auto; min-width: 0; }
+.filters-btn {
+  flex: none; height: 48px; padding: 0 14px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text); font-weight: 600;
+}
+.filters-badge { background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: .75rem; padding: 1px 6px; font-weight: 700; }
+.filters-badge[hidden] { display: none; }
 .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
 /* The search box and the day row follow you down a long list - those are the
    two you reach for mid-scroll. The rest scroll away; sticking everything
@@ -275,9 +285,14 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .no-exact b { color: var(--text); }
 .hidden-note { padding: 10px 14px; font-size: .875rem; color: var(--muted); }
 .hidden-note button { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--gold); text-decoration: underline; cursor: pointer; }
+/* What narrows the list, one gold row: the query's words and the filter
+   sheet's (#70), each 44px (#66). A long label is cut with an ellipsis; the
+   button's name carries it whole. */
 .parsed-chips { padding-top: 2px; }
 .chip.parsed { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); font-weight: 700; }
-.chip.parsed span { opacity: .65; margin-left: 2px; }
+.parsed-chips .chip { height: 44px; border-radius: 22px; display: inline-flex; align-items: center; max-width: 15rem; }
+.chip.parsed .chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.chip.parsed span[aria-hidden] { flex: none; opacity: .65; margin-left: 4px; }
 .row-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .seg button { height: 40px; padding: 0 12px; background: var(--surface); color: var(--muted); border: 0; font-weight: 500; }
@@ -491,6 +506,31 @@ select.crew-pick {
    description: three rows fit at 375x667 before it scrolls, and the sheet
    still stays under the header. */
 #sharedBody { max-height: 55vh; max-height: 55dvh; }
+/* The filter sheet (W13, #70): its groups in a body that scrolls on its
+   own - a drag there scrolls, and one on the heading dismisses - with Show
+   and Clear under it, on screen at 375x667 with Larger text on. The chips
+   wrap; every control is 44px (#66). */
+#panel-filters { gap: 12px; }
+.filters-body {
+  display: grid; gap: 14px; min-width: 0;
+  max-height: calc(100vh - 16rem - var(--safe-bottom)); max-height: calc(100dvh - 16rem - var(--safe-bottom));
+  overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+}
+.filter-group { display: grid; gap: 6px; min-width: 0; }
+.filter-label { font-size: .75rem; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; }
+.filter-held { margin: 0; color: var(--muted); font-size: .875rem; }
+.filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+#panel-filters .chip { height: 44px; border-radius: 22px; }
+#panel-filters .chip[disabled], #panel-filters select[disabled] { opacity: .6; }
+#panel-filters .seg { justify-self: start; }
+#panel-filters .seg button { height: 44px; }
+.filter-pair { display: flex; gap: 8px; }
+.filter-pair select { flex: 1 1 0; }
+.filter-topics { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+#panel-filters select.track { height: 44px; width: 100%; min-width: 0; }
+#panel-filters .toggle { display: flex; min-height: 44px; }
+.filters-foot { display: flex; gap: 8px; }
+.filters-foot #filtersShow { flex: 1 1 auto; }
 /* Focus lands on a panel's heading as the sheet opens (#66): a ring for a
    keyboard's arrival, none for a tap's. */
 .sheet-panel h2:focus:not(:focus-visible) { outline: none; }
