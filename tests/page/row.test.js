@@ -1,7 +1,8 @@
 /* An event's row (DECISIONS #64, #73): the title, then one line of when and
    where - the day's label where asked, the time as a range, the place, the
    level - then one line of what else is true of the event - Celebrity, the
-   caller's context, the flags, the track - and the star on the right. The
+   overlap flag, the caller's context, the flags, the track - and the star on
+   the right. The
    sample has no event with a facet but an age, no gaming event without a
    track and none with nothing for a third line, so this copy of it makes
    them; its Hilton celebrity panel, its Atrium Ballroom concert and its Mart
@@ -109,6 +110,86 @@ describe("an event's row", () => {
     expect(li.querySelector(".title").firstElementChild.matches(".removed-tag")).toBe(true);
     expect(words(li.querySelector(".title .removed-tag"))).toBe("Removed from the schedule");
   });
+  /* The overlap flag (W1): a long Saturday pick and two that start inside it
+     and miss each other, from the first page of Saturday's list. */
+  describe("the overlap flag", () => {
+    let L, B, C;
+    const minutes = e => (e._e - e._s) / 60000;
+    const flagOf = (id, view = "#view-browse") => {
+      const f = document.querySelector(`${view} .row[data-id="${id}"] .overlap`);
+      return f ? words(f) : null;
+    };
+    const tap = id => document.querySelector(`#view-browse .row[data-id="${id}"] .star`).click();
+    beforeAll(() => {
+      handle.picks.set([]);
+      Object.assign(state.browse, {q: "", day: "2026-09-05", hotel: "All"});
+      state.tab = "browse";
+      handle.render();
+      const shown = [...document.querySelectorAll("#view-browse .row")].map(r => app.byId.get(r.dataset.id))
+        .filter(e => !e.cancelled && e.hotel !== "Streaming" && !app.isCeleb(e));
+      for (const l of shown.filter(e => minutes(e) >= 120)) {
+        const inside = shown.filter(e => e !== l && e._s >= l._s && e._s < l._e);
+        const b = inside[0], c = b && inside.find(e => e._s >= b._e);
+        if (c) { [L, B, C] = [l, b, c]; break; }
+      }
+    });
+    afterAll(() => { handle.picks.set([]); handle.render(); });
+
+    it("appears on both rows at the moment of starring, naming the other", () => {
+      tap(L.id);
+      expect(flagOf(L.id)).toBe(null);
+      tap(B.id);
+      expect([flagOf(L.id), flagOf(B.id)]).toEqual([`Overlaps ${B.title}`, `Overlaps ${L.title}`]);
+    });
+    it("is first on the third line, and its row leaves the track off", () => {
+      const li = document.querySelector(`#view-browse .row[data-id="${B.id}"]`);
+      expect(li.querySelector(".flags > :first-child").matches(".overlap")).toBe(true);
+      expect(li.querySelector(".track")).toBe(null);
+      expect(document.querySelector(`#view-browse .row[data-id="${C.id}"] .track`)).not.toBe(null);
+    });
+    it("over every pick: a pick that clashes with two says how many, and each of the two names it", () => {
+      tap(C.id);
+      expect([flagOf(L.id), flagOf(B.id), flagOf(C.id)]).toEqual(["Overlaps 2 picks", `Overlaps ${L.title}`, `Overlaps ${L.title}`]);
+    });
+    it("says the same in Plans' list, and the gap line between the rows says no overlap", () => {
+      state.mineView = "list";
+      state.tab = "plans";
+      handle.render();
+      expect([flagOf(L.id, "#view-plans"), flagOf(B.id, "#view-plans"), flagOf(C.id, "#view-plans")])
+        .toEqual(["Overlaps 2 picks", `Overlaps ${L.title}`, `Overlaps ${L.title}`]);
+      expect([...document.querySelectorAll("#view-plans .gap")].map(words).filter(w => /overlap/i.test(w))).toEqual([]);
+      state.tab = "browse";
+      handle.render();
+    });
+    it("comes after Celebrity and before the caller's context, on a celebrity pick", () => {
+      const celeb = app.byId.get("s0590");
+      const other = handle.events.find(e => e.id !== celeb.id && !e.cancelled && e._s < celeb._e && celeb._s < e._e);
+      const had = [...handle.picks.get()];
+      handle.picks.set([celeb.id, other.id]);
+      expect([...row(celeb.id, {list: "next", status: "In 25 min"}).querySelectorAll(".flags > *")].map(p => p.className))
+        .toEqual(["celeb", "overlap", "status"]);
+      handle.picks.set(had);
+    });
+    it("shows in a crewmate's block of the crew's day as anywhere: it is the reader's pick", () => {
+      expect(words(row(B.id, {list: "crew:u1"}).querySelector(".overlap"))).toBe(`Overlaps ${L.title}`);
+    });
+    it("goes from both rows when either is unstarred", () => {
+      tap(C.id);
+      tap(L.id);
+      expect([flagOf(L.id), flagOf(B.id), flagOf(C.id)]).toEqual([null, null, null]);
+    });
+    it("is never on a row that is not a pick, nor for a cancelled pick, which counts in no other's", () => {
+      const cancelled = app.byId.get(CANCELLED);
+      const other = handle.events.find(e => e.id !== CANCELLED && !e.cancelled && e._s < cancelled._e && cancelled._s < e._e);
+      handle.picks.set([CANCELLED, other.id]);
+      expect([row(CANCELLED).querySelector(".overlap"), row(other.id).querySelector(".overlap")]).toEqual([null, null]);
+      handle.picks.set([other.id]);
+      const near = handle.events.find(e => e.id !== other.id && e.id !== CANCELLED && !e.cancelled && !e.removed && e._s < other._e && other._s < e._e);
+      expect(near).toBeTruthy();
+      expect([row(near.id).querySelector(".overlap"), row(other.id).querySelector(".overlap")]).toEqual([null, null]);
+    });
+  });
+
   it("says its time under a time head too: one row shape everywhere", () => {
     Object.assign(state.browse, {q: "", day: "2026-09-05", hotel: "All"});
     state.tab = "browse";

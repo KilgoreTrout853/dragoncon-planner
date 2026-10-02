@@ -20,8 +20,9 @@ const minutes = (iso, m) => new Date(new Date(iso).getTime() + m * 60000);
 
 /* Three Saturday picks still to come: first; then the removed one, in
    another hotel and overlapping first; then last, in first's hotel and an
-   hour after both. Counted, the removed pick would make an overlap line and
-   two walk links; without it there is neither. The survivor of the merge is
+   hour after both. Counted, the removed pick would put an overlap flag on
+   first's row and its own (DECISIONS #73) and make two walk links; without
+   it there is neither. The survivor of the merge is
    on Sunday, out of the way. */
 const saturday = sample.events.filter(e => e.start > NOW && e.day === "2026-09-05" && e.end.startsWith("2026-09-05") && placed(e))
   .sort((a, b) => a.start.localeCompare(b.start) || a.title.localeCompare(b.title));
@@ -115,6 +116,9 @@ describe("a schedule that dropped one pick and merged two", () => {
       });
       it("with no gap line on either side: first to last is an hour in one building, which needs none", () => {
         expect(document.querySelectorAll("#view-plans .gap")).toHaveLength(0);
+      });
+      it("and no overlap flag, on it or on the pick it overlapped: it is not happening", () => {
+        for (const id of [first.id, removed.id]) expect(document.querySelector(`#view-plans .row[data-id="${id}"] .overlap`), id).toBe(null);
       });
       it("Export to calendar takes the picks still on the schedule", async () => {
         const had = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };

@@ -808,9 +808,10 @@ function sharedHTML(shared) {
       <p class="shared-note">${SHARED_KEPT}</p>${skipped}</div>
     <div class="ev-body" id="sharedBody">${body}</div>${done}`;
 }
-/* shell.js render()'s: the stars of the open shared day follow the picks -
-   its own taps, the event's sheet, a pull - each row's class and star written
-   in place, so its scroll and the focus on a star stay. */
+/* shell.js render()'s: the open shared day follows the picks - its own taps,
+   the event's sheet, a pull - each row's class, its words and its star
+   written in place, so an overlap flag comes and goes at once (#73) and the
+   panel's scroll and the focus on a star stay. */
 function refreshSharedDay() {
   if (sheetWrap.hidden || panelShared.hidden || !sharedDay || sharedDay.error) return;
   const holder = document.createElement("ul");
@@ -820,6 +821,7 @@ function refreshSharedDay() {
     holder.innerHTML = sharedRowHTML(ev);
     const fresh = holder.firstElementChild;
     if (li.className !== fresh.className) li.className = fresh.className;
+    refill(li.querySelector(".row-main"), fresh.querySelector(".row-main"));
     refill(li.querySelector(".star"), fresh.querySelector(".star"));
   }
 }

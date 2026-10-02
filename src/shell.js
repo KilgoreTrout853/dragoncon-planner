@@ -50,7 +50,7 @@ function render() {
   refreshCrewPanel();          // the join step can be open before the schedule is
   refreshEventSheet();         // an open event's who's-going line, in place
   refreshHotelSheet();         // an open hotel's crew, in place
-  refreshSharedDay();          // the shared day's stars, in place
+  refreshSharedDay();          // the shared day's rows, their words and stars, in place
   if (!events.length) return;
   const rows = chipRowsSnapshot();
   if (state.tab === "now") renderNow();

@@ -358,6 +358,10 @@ select.track {
 .flags > * { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .flags > * + *::before { content: "· "; color: var(--dim); font-weight: 400; }
 .flags .flag.warn { color: var(--warn); }
+/* The overlap flag counts as 8em when the line is filled, then takes what
+   room is left, up to its whole text: its title takes the ellipsis before
+   any later part drops. */
+.flags .overlap { flex: 1 1 8em; max-width: max-content; color: var(--warn); font-weight: 600; }
 .track { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .status { color: var(--gold); font-weight: 600; }
 mark { background: none; color: var(--gold); font-weight: 700; }
@@ -381,7 +385,6 @@ mark { background: none; color: var(--gold); font-weight: 700; }
   margin: 0 14px; padding: 6px 10px; font-size: .875rem; border-left: 3px solid var(--line); color: var(--muted);
 }
 .gap.tight { border-color: var(--warn); color: var(--text); }
-.gap.overlap { border-color: var(--warn); color: var(--warn); font-weight: 600; }
 .empty { padding: 28px 14px; color: var(--muted); font-size: 1rem; }
 .empty b { color: var(--text); }
 .more { margin: 14px; }
@@ -596,8 +599,8 @@ select.crew-pick {
 .hero .hthen { font-size: .8125rem; font-weight: 400; color: var(--muted); }
 .hero .hthen b { color: var(--text); font-weight: 700; }
 /* The gap under the walk, or an overlap: the warn colour the gap line marks
-   those two bands with (DECISIONS #40). Tight but doable stays quiet there,
-   and here. */
+   the first with (DECISIONS #40) and a row's overlap flag the second (#73).
+   Tight but doable stays quiet on the gap line, and here. */
 .hero .hthen.warn, .hero .hthen.warn b { color: var(--warn); }
 /* Your crew's picks right now: a line a crewmate, each a button to the
    event's sheet - who and when, then what and where, the title giving way

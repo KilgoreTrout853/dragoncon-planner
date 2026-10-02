@@ -75,13 +75,14 @@ function overlapsOf(ev) {
   return out.sort((a, b) => a._s - b._s || a.title.localeCompare(b.title));
 }
 
-/* The line between two rows: the pair's band in words, or nothing - nothing
-   either for two picks more than four hours apart across a con day. */
+/* The line between two rows: the pair's walk band in words - a gap under the
+   walk, or under the walk and the slack - or nothing. Nothing for an
+   overlap, which the two rows' flags say (#73), and nothing for two picks
+   more than four hours apart across a con day. */
 function gapHTML(prev, next) {
   if (!prev || !next || prev._cd !== next._cd && minutesBetween(prev._e, next._s) > 240) return "";
   const c = connection(prev, next);
-  if (!c || !c.band) return "";
-  if (c.band === "overlap") return `<div class="gap overlap">Overlaps the one above by ${c.overlap} min</div>`;
+  if (!c || !c.band || c.band === "overlap") return "";
   const move = prev.hotel !== next.hotel ? `${hotelShort(prev.hotel)} to ${hotelShort(next.hotel)}` : `same building`;
   if (c.band === "cant") return `<div class="gap tight">${c.gap} min to get there, ${move} is about ${c.walk} min at con pace</div>`;
   return `<div class="gap">${c.gap} min gap, ${move} about ${c.walk} min. Tight but doable</div>`;

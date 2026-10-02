@@ -298,6 +298,12 @@ describe("src/styles.css", () => {
       expect(rule(".flags > *")).toMatch(/text-overflow: ellipsis/);
       expect(rule(".flags .flag.warn")).toMatch(/color: var\(--warn\)/);
     });
+    it("the overlap flag counts as 8em, then takes the room left up to its whole text, in the warning colour", () => {
+      const o = rule(".flags .overlap");
+      expect(o).toMatch(/flex: 1 1 8em;/);
+      expect(o).toMatch(/max-width: max-content;/);
+      expect(o).toMatch(/color: var\(--warn\)/);
+    });
     it("each part of line 3 carries its own dot", () => {
       expect(rule(".flags > * + *::before")).toMatch(/content: "· "/);
     });

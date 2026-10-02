@@ -2,7 +2,8 @@
    chip, the celebrity badge. Builders and their constants only - this module
    holds no DOM handle, scrolls nothing and draws nothing; it returns strings,
    and whoever asked puts them on the page. rowHTML reads state.sheetId and
-   picks to mark the open and the starred row, and crewLineHTML picks to say
+   picks to mark the open and the starred row, and the plan's overlaps,
+   through walk.js, for a picked row's flag; crewLineHTML reads picks to say
    "yours too". */
 import { esc, fmtRange } from "./util.js";
 import { state } from "./state.js";
@@ -10,6 +11,7 @@ import { DAY_LABEL } from "./time.js";
 import { hotelVar, levelShort, placeHTML } from "./venues.js";
 import { flagsOf, isCeleb } from "./data.js";
 import { picks } from "./picks.js";
+import { overlapsOf } from "./walk.js";
 
 const CELEB_BADGE = `<span class="celeb" title="Celebrity guest">Celebrity</span>`;
 
@@ -23,10 +25,17 @@ const CELEB_BADGE = `<span class="celeb" title="Celebrity guest">Celebrity</span
      time head it says its time all the same: one row shape everywhere. The
      level is a part of its own, so it drops whole where the line cannot hold
      it, before the room is cut (styles.css).
-   - Line 3, one line, only when anything is there: Celebrity; the caller's
-     context - Now's status, the Following feed's labels; the event's flags;
-     the track, or "Gaming". Each part drops whole from the end where the
-     line cannot hold it.
+   - Line 3, one line, only when anything is there: Celebrity; the overlap
+     flag; the caller's context - Now's status, the Following feed's
+     labels; the event's flags; the track, or "Gaming". Each part drops
+     whole from the end where the line cannot hold it; the overlap's title
+     shortens first, and Celebrity and the overlap never drop.
+   - The overlap flag (W1): a picked row that overlaps another pick says so
+     wherever it is drawn - "Overlaps <title>", or "Overlaps <n> picks" -
+     from walk.js overlapsOf(), connection()'s answer over every pick. Every
+     row is drawn again after a star, so the flag comes and goes on both
+     rows at once. A flagged row leaves its track off: there is no room for
+     both, and a clipped track says nothing.
    Search's ranked results keep their snippet under it all. */
 function rowHTML(ev, opts = {}) {
   const mine = picks.has(ev.id), open = state.sheetId === ev.id;
@@ -40,9 +49,12 @@ function rowHTML(ev, opts = {}) {
     + (ev.removed ? `<span class="removed-tag">Removed from the schedule</span> ` : "");
   const hue = `--h:var(${hotelVar(ev.hotel)})`, level = levelShort(ev);
   const day = opts.showDay ? `<span class="day">${DAY_LABEL[ev._cd] || ""}</span> ` : "";
-  const track = ev.track || (ev.type === "gaming" ? "Gaming" : "");
+  const clash = overlapsOf(ev);
+  const overlap = clash.length === 1 ? `Overlaps ${clash[0].title}` : clash.length ? `Overlaps ${clash.length} picks` : "";
+  const track = overlap ? "" : ev.track || (ev.type === "gaming" ? "Gaming" : "");
   const line3 = [
     isCeleb(ev) ? CELEB_BADGE : "",
+    overlap ? `<span class="overlap">${esc(overlap)}</span>` : "",
     opts.status ? `<span class="status">${esc(opts.status)}</span>` : "",
     ...(opts.labels || []).map(l => `<span><span class="flabel">${esc(l)}</span></span>`),
     ...flagsOf(ev).map(f => `<span class="flag${f.key === "sold_out" ? " warn" : ""}">${esc(f.label)}</span>`),
