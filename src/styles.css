@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------
-   Tokens. Color is information here: each hotel has one hue, used on
-   room chips and walk warnings. Gold is reserved for "mine".
+   Tokens. Color is information here: each hotel has one hue, used where
+   a place is named and on the map. Gold is reserved for "mine".
    ------------------------------------------------------------------ */
 :root {
   --ink: #171A33;
@@ -116,7 +116,7 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .section-title .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
 
 /* Map ------------------------------------------------------------------
-   A schematic of the con hotels. Blocks wear their room-chip hue as an
+   A schematic of the con hotels. Blocks wear their hotel's hue as an
    opaque tint, so the route and the streets pass under them rather than
    through their labels; the park is the one green that is not a hotel. */
 /* The Map tab is a column between header and nav: the chip strip, the map,
@@ -305,7 +305,8 @@ select.track {
 .toggle { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .9375rem; min-height: 40px; }
 .toggle input { width: 22px; height: 22px; accent-color: var(--gold); margin: 0; }
 
-/* Rows: a departures board. Time is loudest; the room chip carries the hotel color. */
+/* Rows (DECISIONS #64, #73): the title, then one line of when and where, the
+   place in its hotel's hue, then one line of what else is true of the event. */
 .list { list-style: none; margin: 0; padding: 0; }
 .day-head { padding: 22px 14px 4px; font-size: 1.25rem; font-weight: 700; }
 .time-head { padding: 12px 14px 2px; font-size: .8125rem; color: var(--dim); font-variant-numeric: tabular-nums; border-top: 1px solid var(--line); }
@@ -320,30 +321,46 @@ select.track {
   color: var(--warn); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; line-height: 17px;
 }
 .row-main {
-  width: 100%; display: grid; grid-template-columns: 66px 1fr; gap: 10px; text-align: left;
+  width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); text-align: left;
   background: none; border: 0; padding: 11px 0 11px 14px; align-items: start;
 }
-.row-line { display: grid; grid-template-columns: 1fr 56px; align-items: stretch; }
-.t { font-variant-numeric: tabular-nums; line-height: 1.05; padding-top: 1px; }
-.t .start { font-size: 1.25rem; font-weight: 700; display: block; }
-.t .ampm { font-size: .6875rem; font-weight: 600; color: var(--muted); margin-left: 2px; }
-.t .end { display: block; font-size: .8125rem; color: var(--dim); margin-top: 3px; }
-.body { min-width: 0; }
+.row-line { display: grid; grid-template-columns: minmax(0, 1fr) 56px; align-items: stretch; }
+/* Line 1. A Cancelled or Removed tag leads the title's words, inside its two
+   lines; being inline-block it is not struck through with them. */
 .title { font-size: 1.125rem; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: .875rem; color: var(--muted); }
-/* "Hilton · 313-314" as a chip. The hotel part never shortens; a long room
-   takes the ellipsis. */
-.room {
-  display: inline-flex; align-items: baseline; gap: 5px; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: .8125rem;
-  background: color-mix(in srgb, var(--h) 18%, transparent); color: var(--h); border: 1px solid color-mix(in srgb, var(--h) 45%, transparent);
-  max-width: 100%; min-width: 0; white-space: nowrap;
+/* Line 2 and line 3 are each one line: a wrapping flex line one line tall,
+   whose overflow is clipped, so a part that does not fit wraps onto a line
+   the box does not show - it drops whole, never clipped. Clip, not hidden:
+   a hidden box can be scrolled, and a scrolled line would show the dropped
+   part and hide the rest. The row gap keeps the wrapped line well clear. */
+.when-where, .flags {
+  display: flex; flex-wrap: wrap; align-content: flex-start; align-items: center; column-gap: .3em; row-gap: 2em;
+  line-height: 1.3; overflow: hidden; overflow: clip; font-size: .875rem; white-space: nowrap;
 }
+/* Line 2: the time, the hotel and the room are one part, which shrinks only
+   when it is alone on the line - the room takes the ellipsis, the time and
+   the hotel never shorten; the level, with its dot, is a second part, so it
+   drops whole before the room is cut. */
+.when-where { height: 1.3em; margin-top: 5px; color: var(--dim); }
+.when-where .at { flex: 0 1 auto; min-width: 0; display: flex; column-gap: .3em; }
+.when-where .when { flex: none; color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.when-where .day { color: var(--muted); }
+/* "Hilton · 313-314" in the hotel's hue. The hotel part never shortens; a
+   long room takes the ellipsis. */
+.room { display: inline-flex; flex: 0 1 auto; min-width: 0; column-gap: .3em; color: var(--h); font-weight: 600; }
 .room .rh { flex: none; }
 .room .rr { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.when-where .level { flex: none; color: var(--h); }
+/* Line 3: each part carries its own dot, so it drops with it, the last
+   part first; a part alone on the line takes an ellipsis instead. The pills'
+   17px line and their border set the floor of its height. */
+.flags { height: max(19px, 1.3em); margin-top: 4px; color: var(--muted); }
+.flags > * { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.flags > * + *::before { content: "· "; color: var(--dim); font-weight: 400; }
+.flags .flag.warn { color: var(--warn); }
 .track { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .status { color: var(--gold); font-weight: 600; }
 mark { background: none; color: var(--gold); font-weight: 700; }
-.t .day { display: block; font-size: .6875rem; font-weight: 600; color: var(--muted); margin-bottom: 1px; letter-spacing: .02em; }
 .snippet { margin-top: 5px; font-size: .875rem; color: var(--muted); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .tagline { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { font-size: .8125rem; padding: 2px 8px; border-radius: 6px; background: var(--raised); border: 1px solid var(--line); color: var(--text); }
@@ -361,7 +378,7 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .btn.quiet { background: var(--raised); color: var(--text); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--warn); border: 1px solid var(--line); }
 .gap {
-  margin: 0 14px 0 80px; padding: 6px 10px; font-size: .875rem; border-left: 3px solid var(--line); color: var(--muted);
+  margin: 0 14px; padding: 6px 10px; font-size: .875rem; border-left: 3px solid var(--line); color: var(--muted);
 }
 .gap.tight { border-color: var(--warn); color: var(--text); }
 .gap.overlap { border-color: var(--warn); color: var(--warn); font-weight: 600; }

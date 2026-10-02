@@ -4,37 +4,57 @@
    and whoever asked puts them on the page. rowHTML reads state.sheetId and
    picks to mark the open and the starred row, and crewLineHTML picks to say
    "yours too". */
-import { esc, fmt } from "./util.js";
+import { esc, fmtRange } from "./util.js";
 import { state } from "./state.js";
 import { DAY_LABEL } from "./time.js";
-import { hotelVar, placeHTML } from "./venues.js";
-import { isCeleb } from "./data.js";
+import { hotelVar, levelShort, placeHTML } from "./venues.js";
+import { flagsOf, isCeleb } from "./data.js";
 import { picks } from "./picks.js";
 
 const CELEB_BADGE = `<span class="celeb" title="Celebrity guest">Celebrity</span>`;
 
+/* An event's row (DECISIONS #64, #73): the title, then up to two lines under
+   it, and the star on the right.
+   - Line 1, the title, two lines at most: a cancelled or removed event says
+     so first, inside the title's two lines, where it is never clipped; the
+     strike is the title's words', not the tag's.
+   - Line 2, one line: the day's label where the caller asks for it, the time
+     as a range, the place and the level, each after a middle dot. Under a
+     time head it says its time all the same: one row shape everywhere. The
+     level is a part of its own, so it drops whole where the line cannot hold
+     it, before the room is cut (styles.css).
+   - Line 3, one line, only when anything is there: Celebrity; the caller's
+     context - Now's status, the Following feed's labels; the event's flags;
+     the track, or "Gaming". Each part drops whole from the end where the
+     line cannot hold it.
+   Search's ranked results keep their snippet under it all. */
 function rowHTML(ev, opts = {}) {
-  const s = fmt(ev._s), e = fmt(ev._e);
   const mine = picks.has(ev.id), open = state.sheetId === ev.id;
-  const status = opts.status ? `<span class="status">${esc(opts.status)}</span>` : "";
   /* A removed event is drawn only as a pick, in Plans (DECISIONS #49), and is
      marked as a cancelled one is. It can be unstarred and never starred anew:
      a crewmate's pick of one, in the crew's day, carries no star to add it. */
   const cls = ["row", mine ? "mine" : "", open ? "open" : "", ev.cancelled ? "cancelled" : "", ev.removed ? "removed" : ""].filter(Boolean).join(" ");
   const hl = opts.terms ? highlighter(opts.terms) : (x => esc(x));
   const snippet = opts.terms ? snippetFor(ev, opts.terms) : "";
+  const tags = (ev.cancelled ? `<span class="cancelled-tag">Cancelled</span> ` : "")
+    + (ev.removed ? `<span class="removed-tag">Removed from the schedule</span> ` : "");
+  const hue = `--h:var(${hotelVar(ev.hotel)})`, level = levelShort(ev);
+  const day = opts.showDay ? `<span class="day">${DAY_LABEL[ev._cd] || ""}</span> ` : "";
+  const track = ev.track || (ev.type === "gaming" ? "Gaming" : "");
+  const line3 = [
+    isCeleb(ev) ? CELEB_BADGE : "",
+    opts.status ? `<span class="status">${esc(opts.status)}</span>` : "",
+    ...(opts.labels || []).map(l => `<span><span class="flabel">${esc(l)}</span></span>`),
+    ...flagsOf(ev).map(f => `<span class="flag${f.key === "sold_out" ? " warn" : ""}">${esc(f.label)}</span>`),
+    track ? `<span class="track">${esc(track)}</span>` : "",
+  ].join("");
   return `<li class="${cls}" data-id="${esc(ev.id)}" data-list="${esc(opts.list || "")}">
     <div class="row-line">
       <button class="row-main" aria-haspopup="dialog">
-        <div class="t">${opts.showDay ? `<span class="day">${DAY_LABEL[ev._cd] || ""}</span>` : ""}<span class="start">${s.t}<span class="ampm">${s.ap}</span></span><span class="end">to ${e.t} ${e.ap}</span></div>
-        <div class="body">
-          <div class="title">${hl(ev.title)}</div>
-          <div class="meta">
-            <span class="room" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</span>
-            ${ev.cancelled ? `<span class="cancelled-tag">Cancelled</span>` : ""}${ev.removed ? `<span class="removed-tag">Removed from the schedule</span>` : ""}${status}${isCeleb(ev) ? CELEB_BADGE : ""}${(opts.labels || []).map(l => `<span class="flabel">${esc(l)}</span>`).join("")}<span class="track">${esc(ev.track || (ev.type === "gaming" ? "Gaming" : ""))}</span>
-          </div>
-          ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
-        </div>
+        <div class="title">${tags}${hl(ev.title)}</div>
+        <div class="when-where"><span class="at"><span class="when">${day}${fmtRange(ev._s, ev._e)}</span> · <span class="room" style="${hue}">${placeHTML(ev)}</span></span>${level ? `<span class="level" style="${hue}"> · ${esc(level)}</span>` : ""}</div>
+        ${line3 ? `<div class="flags">${line3}</div>` : ""}
+        ${snippet ? `<div class="snippet">${snippet}</div>` : ""}
       </button>
       <button class="star" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}"${ev.removed && !mine ? " disabled" : ""}>${mine ? "★" : "☆"}</button>
     </div>

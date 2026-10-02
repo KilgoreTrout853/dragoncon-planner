@@ -13,6 +13,9 @@ const HOTELS = [...VENUES.hotels].sort((a, b) => a.order - b.order);
 const HOTEL_ORDER = HOTELS.map(h => h.hotel);
 const HOTEL_VAR = Object.fromEntries(HOTELS.map(h => [h.hotel, h.var]));
 const HOTEL_SHORT = Object.fromEntries(HOTELS.map(h => [h.hotel, h.short]));
+/* Whether a hotel's room is the rest of the location or the whole of it: the
+   Mart's is the whole, "Mart Building 3, Floor 1" (#45). */
+const HOTEL_DISPLAY = Object.fromEntries(HOTELS.map(h => [h.hotel, h.display]));
 /* Streaming and the offsite venues share one chip, their group Other. Neither
    is a con hotel, both wear the same grey, and together they are under 3% of
    the schedule. The data keeps them apart: a stream has no walk, an offsite
@@ -36,10 +39,12 @@ function cleanRoom(hotel, room) {
   return hotel === "Other" ? String(room || "").replace(/^O\s+/, "") : room;
 }
 /* "Hilton · 313-314": the hotel first, so a line reads where before which
-   room. A stream is "Streaming"; an offsite venue is itself - the cleaned
-   room, else the location without its O marker, else "Offsite"; a blank
-   room leaves the hotel alone. The parts are spans so the row chip can
-   shorten the room and never the hotel. */
+   room. A hotel whose room is the whole location - its display "location",
+   the Mart - is its room alone, "Mart Building 3, Floor 1", which names the
+   hotel already (DECISIONS #73). A stream is "Streaming"; an offsite venue
+   is itself - the cleaned room, else the location without its O marker,
+   else "Offsite"; a blank room leaves the hotel alone. The parts are spans
+   so a line can shorten the room and never the hotel. */
 function placeHTML(ev) {
   if (ev.hotel === "Streaming") return `<span class="rh">Streaming</span>`;
   if (ev.hotel === "Other") {
@@ -48,6 +53,7 @@ function placeHTML(ev) {
   }
   if (!ev.hotel || ev.hotel === "Unknown") return `<span class="rr">${esc(ev.room || ev.location || "Location TBA")}</span>`;
   const room = String(ev.room || "").trim();
+  if (room && HOTEL_DISPLAY[ev.hotel] === "location") return `<span class="rr">${esc(room)}</span>`;
   return `<span class="rh">${esc(hotelShort(ev.hotel))}</span>${room ? ` · <span class="rr">${esc(room)}</span>` : ""}`;
 }
 /* The level a row says after the room (DECISIONS #73): the level's short

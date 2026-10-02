@@ -62,7 +62,7 @@ describe("a page booted from ?now=", () => {
     it("and its row is labelled Sat [671]", () => {
       state.browse.q = late.title; state.browse.day = "All"; app.renderBrowse();
       const row = document.querySelector(`#view-browse .row[data-id="${late.id}"]`);
-      expect(row && row.querySelector(".t .day").textContent).toBe("Sat");
+      expect(row && row.querySelector(".when-where .day").textContent).toBe("Sat");
       state.browse.q = "";
     });
     it("Plans' list and timeline file it under the same day [672]", () => {

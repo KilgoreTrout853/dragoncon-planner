@@ -189,7 +189,7 @@ describe("the Now tab", () => {
       it("and shows that pick as one row, labelled Sun [630]", () => {
         const row = view().querySelector('.row[data-list="next"]');
         expect(row.dataset.id).toBe(sun[0].id);
-        expect(row.querySelector(".t .day").textContent).toBe("Sun");
+        expect(row.querySelector(".when-where .day").textContent).toBe("Sun");
       });
       it("there is no 'Rest of your day' for a day with nothing in it [632]", () => {
         expect(view().textContent).not.toMatch(/Rest of your day/);

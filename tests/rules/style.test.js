@@ -110,6 +110,9 @@ describe("src/styles.css", () => {
     it("in the warning colour [912]", () => {
       expect(css).toMatch(/\.cancelled-tag \{[^}]*var\(--warn\)/);
     });
+    it("and the tag leading a struck title is not struck: an inline-block, which the strike does not reach", () => {
+      expect(css).toMatch(/(^|\n)\.removed-tag, \.cancelled-tag \{[^}]*display: inline-block/);
+    });
   });
 
   describe("step 0: the nav - Browse renamed to Search, For you folded into Explore, Map added", () => {
@@ -268,6 +271,40 @@ describe("src/styles.css", () => {
       expect(css).toMatch(/\.room \{[^}]*display: inline-flex/);
       expect(css).toMatch(/\.room \.rr \{[^}]*text-overflow: ellipsis/);
       expect(css).toMatch(/\.room \.rh \{ flex: none/);
+    });
+  });
+
+  /* The row's lines (DECISIONS #73): the rules that make a part drop whole
+     rather than be clipped. What a phone draws with them is the browser
+     check's; these hold the declarations. */
+  describe("the row's second and third lines", () => {
+    const rule = selector => (css.match(new RegExp(`(^|\\n)${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\{([^}]*)\\}`)) || [])[2] || "";
+    it("are each one wrapping flex line, clipped, whose words never wrap", () => {
+      const both = rule(".when-where, .flags");
+      expect(both).toMatch(/display: flex/);
+      expect(both).toMatch(/flex-wrap: wrap/);
+      expect(both).toMatch(/overflow: clip/);
+      expect(both).toMatch(/white-space: nowrap/);
+      expect(rule(".when-where")).toMatch(/height: 1\.3em/);
+      expect(rule(".flags")).toMatch(/height: max\(19px, 1\.3em\)/);
+    });
+    it("the level is a part of its own that never shrinks, after one that may", () => {
+      expect(rule(".when-where .level")).toMatch(/flex: none/);
+      expect(rule(".when-where .at")).toMatch(/min-width: 0/);
+      expect(rule(".when-where .when")).toMatch(/flex: none/);
+    });
+    it("a part of line 3 may shrink to an ellipsis, and a warning flag is in the warning colour", () => {
+      expect(rule(".flags > *")).toMatch(/min-width: 0;/);
+      expect(rule(".flags > *")).toMatch(/text-overflow: ellipsis/);
+      expect(rule(".flags .flag.warn")).toMatch(/color: var\(--warn\)/);
+    });
+    it("each part of line 3 carries its own dot", () => {
+      expect(rule(".flags > * + *::before")).toMatch(/content: "· "/);
+    });
+    it("there is no time column: the text has the row's width, and the gap line starts where the row's text does", () => {
+      expect(rule(".row-main")).toMatch(/grid-template-columns: minmax\(0, 1fr\);/);
+      expect(css).not.toMatch(/(^|\n)\.t \{/);
+      expect(rule(".gap")).toMatch(/margin: 0 14px;/);
     });
   });
 
