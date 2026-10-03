@@ -924,7 +924,7 @@ function settle(toClosed) {
 
 /* What boot() registers on the sheet itself: the drag. */
 function onSheetTouchStart(e) {
-  if (e.target.closest(".ev-body, textarea, .filters-body")) return;   // let the description scroll, the message to share, and the filters
+  if (e.target.closest(".ev-body, textarea, .filters-body, .advanced-body")) return;   // let the description scroll, the message to share, the filters, and Advanced
   const tall = e.target.closest("#panel-crew, #panel-event");
   if (tall && tall.scrollHeight > tall.clientHeight) return;   // and the crew panel or an event's, when it is taller than its room and scrolls
   dragY = e.touches[0].clientY;

@@ -4,6 +4,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
 import { fakeBackend } from "../helpers/backend.js";
+import { touch } from "../helpers/act.js";
 
 describe("the Settings sheet", () => {
   let page, handle;
@@ -74,6 +75,31 @@ describe("the Settings sheet", () => {
       handle.closeSheet();
       handle.openSheet("settings");
       expect(el("advanced").open).toBe(true);
+    });
+    /* Advanced scrolls on its own, and fades where it has more past an edge
+       (DECISIONS #76): a drag that starts in it is a scroll, as one in an
+       event's body or the filters' is, and must not take the sheet with it.
+       New tests, not rows of tests/PORT-LEDGER.md. */
+    it("a drag that starts in Advanced scrolls it: the sheet does not move, and stays open", () => {
+      for (const inside of [el("deviceLine"), el("applyPreview"), el("walkTable"), advanced.querySelector(".advanced-body")]) {
+        touch(inside, "touchstart", { y: 100 });
+        expect(el("sheetBack").classList.contains("dragging")).toBe(false);
+        touch(inside, "touchmove", { y: 300 });
+        expect(el("sheet").style.transform).toBe("");
+        touch(inside, "touchend", null);
+        expect(el("sheetWrap").hidden).toBe(false);
+      }
+    });
+    it("one that starts on the panel outside it - the heading, or Advanced's own summary - still drags the sheet", () => {
+      for (const outside of [el("sheetTitle"), advanced.querySelector("summary")]) {
+        touch(outside, "touchstart", { y: 100 });
+        expect(el("sheetBack").classList.contains("dragging")).toBe(true);
+        touch(outside, "touchmove", { y: 130 });
+        expect(el("sheet").style.transform).toBe("translateY(30px)");
+        touch(outside, "touchcancel", null);
+        expect(el("sheet").style.transform).toBe("");
+        expect(el("sheetWrap").hidden).toBe(false);
+      }
     });
   });
 
