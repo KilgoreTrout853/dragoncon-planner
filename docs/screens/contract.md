@@ -1861,7 +1861,14 @@ screens that own the other areas point at it (sections 3, 5 and 8).
   content and no pointer events; its size in rem and its two borders;
   centred; inside the filters' 12 px gap at both text sizes; its contrast,
   computed from the two tokens; and no animation. None carries a ledger
-  bracket, and no test that stood before PR #97 changed.
+  bracket, and no test that stood before PR #97 changed. A mutation pass
+  of 69 mutants over the new rules - the threshold and the word, the
+  write, the room and the ring's own rule, the arrow's selectors and its
+  declarations - killed all 69. With the pins on the source's text left
+  out, the unit and page tests alone killed 16 of the 17 mutants of the
+  threshold and of the arrow's selectors; the one left, any later sibling
+  for the next one, changes nothing in the six panels as they stand, and
+  the pin holds it.
 
 ## 8. The hotel sheet
 
