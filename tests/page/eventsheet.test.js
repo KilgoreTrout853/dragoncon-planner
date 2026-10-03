@@ -51,9 +51,21 @@ const MADE = [
     people: [person("p-ann", "Ann", "Speaker"), person("p-bo", "Bo Lined", "Moderator"), person("p-cy", "Cy", "Panelist"), person("p-dee", "Dee Lined", "Judge"), person("p-eve", "Eve <i>", "(Alt: )")]}),
   made("x-bare", 5, "21:00", "22:00", {title: "Nothing To Say", hotel: "Streaming", room: "", level: null, description: ""}),
   made("x-mature", 5, "22:00", "23:00", {title: "After Dark", tags: {audience: "mature"}, tracks: ["Late Night"], track: "Late Night"}),
+  /* The entry points (#75): an event of every kind of chip - two tracks, a
+     work its track names, with the track's own words, a work it is about,
+     one nobody has reviewed, and two that are no chip, a cast's work and
+     one the works block does not name; and four places the Map cannot show
+     or names oddly. */
+  made("x-chips", 5, "09:00", "10:00", {title: "Chips Of Every Kind", track: "Star Wars", tracks: ["Star Wars", "Space"],
+    tags: {audience: "all", works: [{id: "star-wars", via: "track"}, {id: "andor", via: "about"}, {id: "x-unseen", via: "about"}, {id: "video-games", via: "credit:p-ann"}, {id: "x-nameless", via: "about"}]}}),
+  made("x-away", 5, "11:00", "12:00", {title: "Offsite Night", hotel: "Other", room: "Joystick Gamebar", rooms: [], level: null, location: "O Joystick Gamebar"}),
+  made("x-tba", 5, "12:00", "13:00", {title: "Somewhere", hotel: "Unknown", room: "", rooms: [], level: null, location: ""}),
+  made("x-noroom", 5, "08:00", "09:00", {title: "No Room Named", hotel: "Hyatt", room: "", rooms: [], level: null, location: "Hyatt"}),
+  made("x-odd", 5, "07:00", "08:00", {title: "Odd Room", room: `Salon "A" <East>`, rooms: [], level: null}),
 ];
 const BLOCK = [{id: "p-bo", name: "Bo Lined", known_for: "Voice of the ship in Deep Space <Nine>"}, {id: "p-dee", name: "Dee Lined", known_for: "Wrote the book."}];
-const data = {...sample, people: BLOCK, events: [...sample.events, ...MADE]};
+const UNSEEN = {id: "x-unseen", name: "Unseen Saga", aliases: [], terms: [], reviewed: false};
+const data = {...sample, works: [...sample.works, UNSEEN], people: BLOCK, events: [...sample.events, ...MADE]};
 
 const el = id => document.getElementById(id);
 const words = node => (node ? node.textContent.replace(/\s+/g, " ").trim() : "");
@@ -458,6 +470,169 @@ describe("the event's sheet", () => {
     });
   });
 
+  /* The entry points (DECISIONS #75). The Map's side - the ring, the card,
+     how the focus ends - is tests/page/map.test.js's. */
+  describe("the place, a tap to the Map", () => {
+    const place = () => el("sheetPlace");
+    const mapCard = () => el("mapNext");
+    it("is one button holding the place's words as they were, named for where it goes", () => {
+      open("x-main");
+      expect([...part(".ev-room").children]).toEqual([place()]);
+      expect([place().tagName, place().className]).toEqual(["BUTTON", "ev-place"]);
+      expect([...place().children].map(c => c.className)).toEqual(["ev-place-words"]);
+      expect(part(".ev-place-words").innerHTML).toBe(app.placeHTML(app.byId.get("x-main")));
+      expect(words(part(".ev-room"))).toBe("Hilton · 404-405");
+      expect(place().getAttribute("aria-label")).toBe("Hilton · 404-405, show on the map");
+    });
+    it("the panel is told whether the Map can show the event, by sheet.js as it draws it; untold, it draws no tap", () => {
+      const holder = document.createElement("div"), ev = app.byId.get("x-main");
+      holder.innerHTML = app.eventSheetHTML(ev);
+      expect([holder.querySelector(".ev-place"), holder.querySelector(".ev-room").innerHTML]).toEqual([null, app.placeHTML(ev)]);
+      holder.innerHTML = app.eventSheetHTML(ev, true);
+      expect(holder.querySelector(".ev-room > .ev-place")).toBeTruthy();
+      expect(app.onTheMap(ev)).toBe(true);
+    });
+    it("in the hotel's hue, which the line still carries", () => {
+      expect(part(".ev-room").getAttribute("style")).toMatch(/--h-Hilton/);
+      expect(place().getAttribute("style")).toBe(null);
+    });
+    it("the level stays under it, outside the tap, and the time above it is no part of it", () => {
+      expect(part(".ev-level").closest("button")).toBe(null);
+      expect(part(".ev-room").nextElementSibling).toBe(part(".ev-level"));
+      expect(part(".ev-when").closest("button")).toBe(null);
+      expect(place().querySelector(".ev-level, .ev-when")).toBe(null);
+    });
+    it("the Mart's is its room, a hotel with no room named is the hotel alone, and what a room holds is escaped", () => {
+      open("s0001");
+      expect(place().getAttribute("aria-label")).toBe("Mart Building 3, Floor 1, show on the map");
+      open("x-noroom");
+      expect([words(place()), place().getAttribute("aria-label")]).toEqual(["Hyatt", "Hyatt, show on the map"]);
+      open("x-odd");
+      expect(place().getAttribute("aria-label")).toBe(`Hilton · Salon "A" <East>, show on the map`);
+      expect(words(place())).toBe(`Hilton · Salon "A" <East>`);
+      expect(place().querySelector("east")).toBe(null);
+    });
+    it("no tap, and the line exactly as it was, for a stream, an offsite event, one with no known place and a cancelled one", () => {
+      for (const [id, said] of [["x-bare", "Streaming"], ["x-away", "Joystick Gamebar"], ["x-tba", "Location TBA"], ["x-off", "Hilton · 404-405"], ["x-gone", "Hilton · 201"]]) {
+        open(id);
+        expect(place(), id).toBe(null);
+        expect(part(".ev-room button"), id).toBe(null);
+        expect(part(".ev-room").innerHTML, id).toBe(app.placeHTML(app.byId.get(id)));
+        expect(words(part(".ev-room")), id).toBe(said);
+        expect(app.onTheMap(app.byId.get(id)), id).toBe(false);
+      }
+    });
+    it("the tap closes the whole sheet and opens the Map at its top, on the event's con day, focused on it - no day written", () => {
+      handle.closeSheet();
+      state.tab = "browse"; state.map.day = null; handle.render();
+      document.querySelector("main").scrollTop = 500;        // Search, scrolled: the sheet's close puts this back, and the Map then opens at its top
+      handle.openSheet("event", "x-sun");
+      press(place());
+      expect([el("sheetWrap").hidden, state.sheetId]).toEqual([true, null]);
+      expect([state.tab, state.map.focus, state.map.day]).toEqual(["map", "x-sun", null]);
+      expect([el("view-map").hidden, el("view-browse").hidden]).toEqual([false, true]);
+      expect(document.querySelector("#view-map .map-wrap").dataset.day).toBe("2026-09-06");
+      expect(app.pageScrollTop()).toBe(0);
+    });
+    it("its hotel ringed, and the card under the map showing that event", () => {
+      expect(document.querySelector("#view-map .map-focus").dataset.hotel).toBe("Hyatt");
+      expect([...mapCard().children].map(words)).toEqual(["You were looking at", "Tai Chi with Erin Gray", "Hyatt · Inman · Conference Center", "Sunday 2:30–3:30 PM"]);
+    });
+    it("keyboard and screen-reader focus lands on that card (#66)", () => {
+      expect(document.activeElement).toBe(mapCard());
+    });
+    it("the way back: the card's tap opens the event's sheet again, and its close returns to the Map, the focus still held", () => {
+      press(mapCard());
+      expect([state.sheetId, words(el("sheetTitleEvent"))]).toEqual(["x-sun", "Tai Chi with Erin Gray"]);
+      expect(place().getAttribute("aria-label")).toBe("Hyatt · Inman, show on the map");
+      press(el("closeSheetEvent"));
+      expect([el("sheetWrap").hidden, state.tab, state.map.focus]).toEqual([true, "map", "x-sun"]);
+      expect(document.activeElement).toBe(mapCard());
+    });
+    it("tapped again from that sheet, over the Map, it comes back to the same focus", () => {
+      press(mapCard());
+      press(part(".ev-place-words .rr"));
+      expect([el("sheetWrap").hidden, state.tab, state.map.focus]).toEqual([true, "map", "x-sun"]);
+      expect(document.activeElement).toBe(mapCard());
+    });
+    it("from a sheet opened from a sheet, it is the second event's place", () => {
+      state.tab = "browse"; handle.render();
+      handle.openSheet("event", "x-main");
+      press(parts(".ev-sessions .ev-link").find(b => b.dataset.event === "x-mon"));
+      expect(state.sheetId).toBe("x-mon");
+      press(place());
+      expect([el("sheetWrap").hidden, state.tab, state.map.focus]).toEqual([true, "map", "x-mon"]);
+      expect(document.querySelector("#view-map .map-wrap").dataset.day).toBe("2026-09-07");
+      expect(document.querySelector("#view-map .map-focus").dataset.hotel).toBe("Hilton");
+      state.tab = "now"; handle.render();
+      expect(state.map.focus).toBe(null);
+    });
+  });
+
+  describe("the chips, taps to Explore", () => {
+    const chips = () => [...part(".tagline").children];
+    const taps = () => parts(".tagline .tag-tap");
+    const back = () => { state.explore.page = null; app.setExploreHash(null); state.tab = "now"; handle.render(); };
+    it("the event's tracks, then the works it names itself: each a button around the chip's own look, to its Explore page", () => {
+      open("x-chips");
+      expect(chips().map(c => [c.tagName, c.className])).toEqual([["BUTTON", "tag-tap"], ["BUTTON", "tag-tap"], ["BUTTON", "tag-tap"], ["BUTTON", "tag-tap"], ["SPAN", "tag plain"]]);
+      expect(taps().map(b => b.dataset.explore)).toEqual(["track:Star Wars", "track:Space", "work:star-wars", "work:andor"]);
+      expect(taps().every(b => b.children.length === 1 && b.firstElementChild.matches("span.tag"))).toBe(true);
+      expect(parts(".tagline .tag").map(words)).toEqual(["Star Wars", "Space", "Star Wars", "Andor", "Unseen Saga"]);
+      expect(words(part(".tagline"))).not.toMatch(/Video Games/);
+    });
+    it("each named by its words and its kind, by Explore's own noun: a track and a work with the same words are two names", () => {
+      expect(taps().map(b => b.getAttribute("aria-label"))).toEqual(["Star Wars, track", "Space, track", "Star Wars, fandom", "Andor, fandom"]);
+      expect([app.KIND_NOUN.track, app.KIND_NOUN.work]).toEqual(["Track", "Fandom"]);
+    });
+    it("an unreviewed work's chip is words alone, and looks it: a span, no tap, no name of its own (#34)", () => {
+      const plain = part(".tagline .tag.plain");
+      expect([words(plain), plain.closest("button"), plain.dataset.explore, plain.getAttribute("aria-label")]).toEqual(["Unseen Saga", null, undefined, null]);
+      expect(app.canFollow("work", "x-unseen")).toBe(false);
+      press(plain);
+      expect([el("sheetWrap").hidden, state.sheetId]).toEqual([false, "x-chips"]);
+    });
+    it("what it draws is chipsOf(): the key an Explore page takes, and whether the page may be opened by a link", () => {
+      expect(app.chipsOf(app.byId.get("x-chips"))).toEqual([
+        {kind: "track", key: "Star Wars", label: "Star Wars", tap: true}, {kind: "track", key: "Space", label: "Space", tap: true},
+        {kind: "work", key: "star-wars", label: "Star Wars", tap: true}, {kind: "work", key: "andor", label: "Andor", tap: true},
+        {kind: "work", key: "x-unseen", label: "Unseen Saga", tap: false}]);
+      expect(app.chipsOf(app.byId.get("x-o1"))).toEqual([]);
+      for (const c of app.chipsOf(app.byId.get("x-chips"))) expect(c.tap, c.key).toBe(app.canFollow(c.kind, c.key));
+    });
+    it("a track's chip lands on its track page, the whole sheet closed behind it, as a person's name does", () => {
+      press(taps()[0]);
+      expect(el("sheetWrap").hidden).toBe(true);
+      expect([state.tab, state.explore.page]).toEqual(["explore", {kind: "track", key: "Star Wars"}]);
+      expect([words(document.querySelector("#view-explore .eh-kind")), words(document.querySelector("#view-explore .eh-name"))]).toEqual(["Track", "Star Wars"]);
+      expect(app.readExploreHash()).toEqual({kind: "track", key: "Star Wars"});
+      expect(document.querySelectorAll("#view-explore .row").length).toBeGreaterThan(0);
+      back();
+    });
+    it("and the work's chip of the same words on its fandom page: two pages", () => {
+      open("x-chips");
+      press(taps()[2].querySelector(".tag"));
+      expect(el("sheetWrap").hidden).toBe(true);
+      expect([state.tab, state.explore.page]).toEqual(["explore", {kind: "work", key: "star-wars"}]);
+      expect([words(document.querySelector("#view-explore .eh-kind")), words(document.querySelector("#view-explore .eh-name"))]).toEqual(["Fandom", "Star Wars"]);
+      expect(app.readExploreHash()).toEqual({kind: "work", key: "star-wars"});
+      back();
+    });
+    it("a track's name goes as it is written, an apostrophe among it", () => {
+      open("s0376");
+      expect(taps().map(b => [b.dataset.explore, b.getAttribute("aria-label")])).toEqual([["track:Writer's Track", "Writer's Track, track"]]);
+      press(taps()[0]);
+      expect(state.explore.page).toEqual({kind: "track", key: "Writer's Track"});
+      expect(app.readExploreHash()).toEqual({kind: "track", key: "Writer's Track"});
+      back();
+    });
+    it("no chips, no line", () => {
+      open("x-o1");
+      expect(part(".tagline")).toBe(null);
+      handle.closeSheet();
+    });
+  });
+
   describe("a removed pick, unstarred in its sheet", () => {
     it("loses its star, which cannot be tapped again, and focus goes to the heading", async () => {
       await page.cleanup();
@@ -467,6 +642,7 @@ describe("the event's sheet", () => {
       state = handle.state;
       pick(["x-o1", "x-main"]);
       open("x-o1");
+      expect([el("sheetPlace"), part(".ev-room").innerHTML]).toEqual([null, app.placeHTML(app.byId.get("x-o1"))]);   // a removed event's place is no tap (#75)
       const star = el("sheetStar"), head = part(".ev-head");
       expect(overlap()).toEqual([]);
       star.focus();
@@ -574,5 +750,21 @@ describe("the event sheet's rules", () => {
   });
   it("the sizes are in rem, so Larger text scales them", () => {
     for (const selector of [".ev-level", ".ev-facts", ".ev-sessions", ".ev-overlap", ".ev-label"]) expect(rule(selector), selector).toMatch(/font-size: [\d.]+rem/);
+  });
+  /* The chips as taps (#75). The place's rule is tests/rules/style.test.js's. */
+  it("a chip that is a tap is 44px tall and at least 44 wide, around a chip that keeps its look (#66)", () => {
+    const tap = rule(".tag-tap");
+    expect([px(tap, "min-height"), px(tap, "min-width")]).toEqual([44, 44]);
+    expect(tap).toMatch(/display: inline-flex; align-items: center;/);
+    expect(tap).toMatch(/background: none; border: 0; padding: 0;/);
+    expect(rule(".tag")).toBe("\n.tag { font-size: .8125rem; padding: 2px 8px; border-radius: 6px; background: var(--raised); border: 1px solid var(--line); color: var(--text); }");
+  });
+  it("so a row of chips is 44px, and the rows need no gap of their own", () => {
+    expect(rule(".tagline")).toMatch(/display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px;/);
+  });
+  it("a chip that is no tap does not look like one: no fill, its words muted, the border as it is", () => {
+    const plain = rule(".tag.plain");
+    expect(plain).toMatch(/background: none; color: var\(--muted\);/);
+    expect(plain).not.toMatch(/border/);
   });
 });

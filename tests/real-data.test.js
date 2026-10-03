@@ -606,4 +606,73 @@ describe("against the real schedule", () => {
       expect(document.querySelector("#view-explore .eh-name").textContent).toBe("Horror");
     });
   });
+
+  /* The event sheet's entry points (DECISIONS #75): the counts the design
+     was settled on, from the committed schedule. New tests, not rows of
+     tests/PORT-LEDGER.md. */
+  describe("the event sheet's entry points, on 2026's schedule", () => {
+    let all, chips;
+    const tally = (list, key) => list.reduce((by, x) => ({ ...by, [key(x)]: (by[key(x)] || 0) + 1 }), {});
+    beforeAll(() => {
+      state.explore.page = null; app.setExploreHash(null); state.tab = "now"; handle.render();
+      all = [...app.byId.values()];
+      chips = all.flatMap(e => app.chipsOf(e).map(c => ({ ...c, event: e.id })));
+    });
+    afterAll(() => { handle.closeSheet(); state.explore.page = null; app.setExploreHash(null); state.tab = "now"; handle.render(); });
+
+    it("3,372 sheets make the place a tap: the 3,374 at the Map's seven places, less the two cancelled", () => {
+      expect(all).toHaveLength(3459);
+      expect(all.filter(e => app.MAP_HOTELS[e.hotel])).toHaveLength(3374);
+      expect(tally(all.filter(e => !app.MAP_HOTELS[e.hotel]), e => e.hotel)).toEqual({ Streaming: 62, Other: 23 });
+      expect(all.filter(e => e.cancelled).map(e => e.hotel)).toEqual(["Courtland Grand", "Courtland Grand"]);
+      expect(all.filter(e => e.removed)).toEqual([]);
+      expect(all.filter(e => app.onTheMap(e))).toHaveLength(3372);
+      expect(tally(all.filter(e => app.onTheMap(e)), e => e.hotel)).toEqual({ AmericasMart: 1033, Hilton: 739, Marriott: 607, Hyatt: 499, Westin: 309, "Courtland Grand": 149, "Hardy Ivy Park": 36 });
+    });
+    it("four of them name no room, so the tap is the hotel's name alone", () => {
+      expect(all.filter(e => app.onTheMap(e) && !String(e.room || "").trim()).map(e => app.placeText(e)).sort()).toEqual(["Hyatt", "Hyatt", "Hyatt", "Westin"]);
+    });
+    it("every event's con day is one of the Map's day chips, so a focus always has a day to show", () => {
+      expect(all.filter(e => !app.CON_DAYS.includes(e._cd)).map(e => e.id)).toEqual([]);
+    });
+    it("5,182 chips on 3,458 events: 3,483 track chips over 54 tracks, 1,699 work chips over 540 works", () => {
+      const of = kind => chips.filter(c => c.kind === kind);
+      expect([chips.length, new Set(chips.map(c => c.event)).size]).toEqual([5182, 3458]);
+      expect([of("track").length, new Set(of("track").map(c => c.key)).size]).toEqual([3483, 54]);
+      expect([of("work").length, new Set(of("work").map(c => c.key)).size]).toEqual([1699, 540]);
+    });
+    it("every track chip is a tap; of the work chips 1,455 are taps and 244 are plain: 64 unreviewed works, on 239 events", () => {
+      const plain = chips.filter(c => !c.tap);
+      expect(chips.filter(c => c.kind === "track" && !c.tap)).toEqual([]);
+      expect([chips.filter(c => c.kind === "work" && c.tap).length, plain.length]).toEqual([1455, 244]);
+      expect([new Set(plain.map(c => c.key)).size, new Set(plain.map(c => c.event)).size]).toEqual([64, 239]);
+      expect(plain.every(c => c.kind === "work" && app.worksById.get(c.key).reviewed !== true)).toBe(true);
+    });
+    it("every chip that is a tap opens a page a link can open, with at least one event on it; 304 of those pages hold one event", () => {
+      const pages = new Map(chips.filter(c => c.tap).map(c => [`${c.kind}:${c.key}`, c]));
+      const sizes = [...pages.values()].map(c => app.eventsFor(c).length);
+      expect(pages.size).toBe(54 + 476);
+      expect([...pages.values()].every(c => app.canFollow(c.kind, c.key))).toBe(true);
+      expect(Math.min(...sizes)).toBe(1);
+      expect(sizes.filter(n => n === 1)).toHaveLength(304);
+    });
+    it("40 events draw two chips with the same words, a track and a work: Star Wars on 35, Artemis Spaceship Bridge Simulator on 5", () => {
+      const twins = all.flatMap(e => { const seen = new Set(); return app.chipsOf(e).filter(c => seen.has(c.label) || !seen.add(c.label)).map(c => c.label); });
+      expect(tally(twins, w => w)).toEqual({ "Star Wars": 35, "Artemis Spaceship Bridge Simulator": 5 });
+    });
+    it("a twin pair on a sheet: two buttons, two names, two pages", () => {
+      const ev = all.find(e => { const c = app.chipsOf(e); return c.length === 2 && c[0].label === "Star Wars" && c[1].label === "Star Wars"; });
+      handle.openSheet("event", ev.id);
+      const taps = [...document.querySelectorAll("#panel-event .tagline .tag-tap")];
+      expect(taps.map(b => [b.textContent, b.dataset.explore, b.getAttribute("aria-label")])).toEqual([["Star Wars", "track:Star Wars", "Star Wars, track"], ["Star Wars", "work:star-wars", "Star Wars, fandom"]]);
+    });
+    it("an unreviewed work's chip on a sheet: plain, and its tap does nothing", () => {
+      const ev = all.find(e => app.chipsOf(e).some(c => c.key === "brandish"));
+      handle.openSheet("event", ev.id);
+      const plain = document.querySelector("#panel-event .tagline .tag.plain");
+      expect([plain.tagName, plain.textContent, plain.closest("button")]).toEqual(["SPAN", app.worksById.get("brandish").name, null]);
+      plain.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      expect([document.getElementById("sheetWrap").hidden, state.sheetId, state.tab]).toEqual([false, ev.id, "now"]);
+    });
+  });
 });

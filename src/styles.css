@@ -369,8 +369,15 @@ select.track {
 .status { color: var(--gold); font-weight: 600; }
 mark { background: none; color: var(--gold); font-weight: 700; }
 .snippet { margin-top: 5px; font-size: .875rem; color: var(--muted); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.tagline { display: flex; flex-wrap: wrap; gap: 6px; }
+/* An event's sheet's chips (DECISIONS #75). A chip that is a tap keeps its
+   small look inside a target 44px tall and at least 44 wide (#66), so a row
+   of them is 44px and the rows need no gap of their own. One that is not a
+   tap - an unreviewed work's - must not look like one: no fill, its words
+   muted, the border as it is; its margin keeps two such rows apart. */
+.tagline { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; }
 .tag { font-size: .8125rem; padding: 2px 8px; border-radius: 6px; background: var(--raised); border: 1px solid var(--line); color: var(--text); }
+.tag-tap { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; background: none; border: 0; padding: 0; font: inherit; color: inherit; }
+.tag.plain { background: none; color: var(--muted); margin: 3px 0; }
 .star {
   background: none; border: 0; color: var(--dim); font-size: 1.625rem; line-height: 1; display: grid; place-items: center; padding: 0 8px 0 0;
 }
@@ -599,6 +606,17 @@ select.crew-pick {
    writes it; the facts, a line that may wrap, each part after the first
    led by its dot, Sold out alone in the warning colour; the other sessions. */
 .ev-level { color: var(--h); font-size: .9375rem; font-weight: 600; }
+/* The place as a tap, to the Map (DECISIONS #75). Its target is 44px tall
+   (#66) and the head, which never scrolls, does not grow: the button takes
+   padding and gives it back as a negative margin of the same size, so its
+   box reaches past its line and the line keeps its height. 16px above,
+   over the when line, which is never a tap; 6px below, which is the head's
+   own gap, so the box ends exactly where the next line starts and never
+   reaches a session's tap. With the line's 22.8px the box is 44.8px tall,
+   48.2 with Larger text. The words are underlined, as the sheet's other
+   taps are, in the hotel's hue. */
+.ev-place { display: inline-block; min-width: 44px; padding: 16px 0 6px; margin: -16px 0 -6px; background: none; border: 0; font: inherit; color: inherit; text-align: left; }
+.ev-place-words { text-decoration: underline; text-underline-offset: 3px; }
 .ev-facts { display: flex; flex-wrap: wrap; align-items: center; column-gap: .3em; row-gap: 4px; font-size: .9375rem; }
 .ev-facts > * + *::before { content: "· "; color: var(--dim); font-weight: 400; }
 .ev-facts .flag.warn { color: var(--warn); }

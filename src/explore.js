@@ -3,17 +3,13 @@ import { state } from "./state.js";
 import { conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
 import { AXES, byId, CAST, events, isCeleb, knownFor, linkedWorks, linksTo, NOISE_TRACKS, personName, tagsOf, topWorks, worksById } from "./data.js";
 import { picks } from "./picks.js";
-import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing } from "./follows.js";
+import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing, KIND_NOUN } from "./follows.js";
 import { axisLabel } from "./search.js";
 import { rowHTML } from "./ui.js";
 import { pageScrollTo, pageScrollTop, revealChip, scroller } from "./scroll.js";
 import { requestRender } from "./bus.js";
 
 /* ---- Explore ------------------------------------------------------- */
-
-/* The words the page uses for each kind of follow. A work is still a
-   fandom and an axis value a topic, to the reader. */
-const KIND_NOUN = {track: "Track", work: "Fandom", axis: "Topic", person: "Person"};
 
 /* What a follow is called on screen: its key is an id. */
 function labelFor(kind, key) {

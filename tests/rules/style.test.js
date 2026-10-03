@@ -401,4 +401,44 @@ describe("src/styles.css", () => {
       expect(rules.filter(r => /(^|[\s,>+~(])(input|textarea|select)\b/.test(r.selector) && under(r)).map(r => r.selector)).toEqual([]);
     });
   });
+
+  /* The event sheet's place is a tap to the Map (DECISIONS #75), and its
+     target is 44px tall without the head, which never scrolls, growing: the
+     button takes padding and gives it back as a negative margin of the same
+     size. A target need not push its neighbours (#66 asks for the target,
+     not for the room). What the box then covers is a browser's to measure;
+     the rule is pinned here. New tests, not rows of tests/PORT-LEDGER.md. */
+  describe("the event sheet's place: a 44px target, and a head that does not grow", () => {
+    const body = selector => { const at = css.indexOf(`\n${selector} {`); return at < 0 ? "" : css.slice(at, css.indexOf("}", at) + 1); };
+    const sides = (text, name) => (new RegExp(`[; {]${name}: (-?\\d+)px 0 (-?\\d+)px;`).exec(text) || []).slice(1, 3).map(Number);
+    const number = (text, name) => Number((new RegExp(`[; {]${name}: (\\d*\\.?\\d+)(?:rem)?;`).exec(text) || [])[1]);
+    const place = body(".ev-place");
+
+    it("the button's padding is 16px above and 6px below, and its margin gives exactly that back", () => {
+      expect(sides(place, "padding")).toEqual([16, 6]);
+      expect(sides(place, "margin")).toEqual([-16, -6]);
+    });
+    it("so its box is 44px or more tall: its line, 1.1875rem at 1.2, and the 22px", () => {
+      const room = body(".ev-room");
+      expect([number(room, "font-size"), number(room, "line-height")]).toEqual([1.1875, 1.2]);
+      expect(1.1875 * 16 * 1.2 + 16 + 6).toBeGreaterThanOrEqual(44);
+      expect(place).toMatch(/font: inherit;/);
+    });
+    it("and nothing in the rule sets a height of its own, which would grow the line", () => {
+      expect(place).not.toMatch(/height/);
+      expect(place).toMatch(/display: inline-block;/);
+    });
+    it("below, it reaches exactly the head's own gap, 6px, and no further: the line under it starts where the box ends", () => {
+      expect(body(".ev-head")).toMatch(/display: grid; gap: 6px;/);
+      expect(sides(place, "padding")[1]).toBe(6);
+    });
+    it("it is at least 44px wide, a hotel's name alone among them", () => {
+      expect(place).toMatch(/min-width: 44px;/);
+    });
+    it("its words are underlined, as the sheet's other taps are, and keep the hotel's hue", () => {
+      expect(body(".ev-place-words")).toMatch(/text-decoration: underline; text-underline-offset: 3px;/);
+      expect(place).toMatch(/color: inherit;/);
+      expect(body(".ev-room")).toMatch(/color: var\(--h\);/);
+    });
+  });
 });

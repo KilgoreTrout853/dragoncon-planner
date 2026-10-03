@@ -308,10 +308,32 @@ describe("Share a day: a ?day= link opened", () => {
   it("a person's name, from an event opened there, closes both, and the list goes", async () => {
     await arrive(dayQuery("sat", [SAT[0], WITH_PEOPLE]));
     press(rowOf(WITH_PEOPLE).querySelector(".row-main"));
-    press(el("panel-event").querySelector("[data-explore]"));
+    press(el("panel-event").querySelector(".who-name"));
     expect(el("sheetWrap").hidden).toBe(true);
-    expect(handle.state.explore.page).not.toBe(null);
+    expect(handle.state.explore.page.kind).toBe("person");
     expect(el("panel-shared").innerHTML).toBe("");
+  });
+  it("a chip, from an event opened there, closes both too, on its Explore page (#75)", async () => {
+    await arrive(dayQuery("sat", [SAT[0], WITH_PEOPLE]));
+    press(rowOf(WITH_PEOPLE).querySelector(".row-main"));
+    press(el("panel-event").querySelector(".tag-tap"));
+    expect(el("sheetWrap").hidden).toBe(true);
+    expect([handle.state.tab, handle.state.explore.page.kind]).toEqual(["explore", "track"]);
+    expect(el("panel-shared").innerHTML).toBe("");
+  });
+  it("the place, from an event opened there, closes both and opens the Map, focused on that event; the Map's card then opens the event alone", async () => {
+    const there = SAT.find(id => id !== CANCELLED && id !== REMOVED && !["Streaming", "Other"].includes(data.events.find(e => e.id === id).hotel));
+    await arrive(dayQuery("sat", [SAT[0], there]));
+    press(rowOf(there).querySelector(".row-main"));
+    press(el("sheetPlace"));
+    expect(el("sheetWrap").hidden).toBe(true);
+    expect([handle.state.tab, handle.state.map.focus]).toEqual(["map", there]);
+    expect(el("panel-shared").innerHTML).toBe("");
+    expect(document.activeElement).toBe(el("mapNext"));
+    press(el("mapNext"));
+    expect([shown(el("panel-event")), handle.state.sheetId]).toEqual([true, there]);
+    press(el("closeSheetEvent"));
+    expect([el("sheetWrap").hidden, handle.state.tab, handle.state.map.focus]).toEqual([true, "map", there]);
   });
   it("closed, it does not come back: Done, then an event from Now and its Done, close to Now", async () => {
     await arrive(dayQuery("sat", [SAT[0], SAT[1]]));

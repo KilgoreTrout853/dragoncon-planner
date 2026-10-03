@@ -25,7 +25,7 @@ import {
   applyExploreHash, closeExplorePage, holdSpyUntil, markActiveSection, openExplorePage,
   renderExploreSections, scrollToExploreSection, scrollToGrid,
 } from "./explore.js";
-import { tickMap } from "./map.js";
+import { showOnMap, tickMap } from "./map.js";
 import { refreshEventSheet } from "./eventsheet.js";
 import {
   closeSheet, closeWholeSheet, drawHotelSheet, openSheet, panelFilters, sheetWrap, showHotelCrew,
@@ -256,16 +256,19 @@ function onFiltersPanelChange(e) {
   fillFilters(panelFilters);
 }
 
-/* The event's panel (DECISIONS #74). A person's name: their Explore page,
-   the whole sheet closed behind it. Another session, or a pick the event
-   overlaps: that event's sheet, in this one's place - Done, the backdrop
-   and Escape then close to the screen underneath, as from any sheet. The
-   star changes the pick and writes what follows from it in place - the
-   star, the overlap line - and draws nothing again, so focus stays on it. */
+/* The event's panel (DECISIONS #74, #75). A person's name, or a track's or
+   a work's chip: its Explore page, the whole sheet closed behind it. The
+   place: the Map, focused on the event - the sheet closed first, since the
+   close draws the tab underneath, which would end a focus set before it.
+   Another session, or a pick the event overlaps: that event's sheet, in
+   this one's place - Done, the backdrop and Escape then close to the screen
+   underneath, as from any sheet. The star changes the pick and writes what
+   follows from it in place - the star, the overlap line - and draws nothing
+   again, so focus stays on it. */
 function onEventPanelClick(e) {
-  const person = e.target.closest("[data-explore]");
-  if (person) {
-    const raw = person.dataset.explore, i = raw.indexOf(":");
+  const toPage = e.target.closest("[data-explore]");
+  if (toPage) {
+    const raw = toPage.dataset.explore, i = raw.indexOf(":");
     closeWholeSheet();
     if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
     return;
@@ -275,6 +278,7 @@ function onEventPanelClick(e) {
   if (other) { openSheet("event", other.dataset.event); return; }
   const ev = byId.get(state.sheetId);
   if (!ev) return;
+  if (e.target.closest("#sheetPlace")) { closeWholeSheet(); showOnMap(ev.id); return; }
   if (e.target.closest("#sheetICS")) { exportEventICS(ev); return; }
   if (e.target.closest("#sheetStar")) {
     if (ev.removed && !picks.has(ev.id)) return;     // unstarred, never starred anew (#49)
