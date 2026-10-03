@@ -546,17 +546,51 @@ describe("against the real schedule", () => {
         state.browse.hideNoise = false;
         expect(app.suggestionsFor("kid").topics.map(t => t.name)).toContain("Kids");
       });
-      it('"18+" finds the mature events and nothing else', () => {
+      it('"18+" finds the 18+ events - a mature audience, a stated minimum of 17 or more, or the marker of the listing - and nothing else: 105', () => {
         const r = search("18+", { noToday: true, hideNoise: false });
-        expect(r.total).toBe(handle.events.filter(e => e.tags.audience === "mature").length);
-        expect(r.results.every(e => e.tags.audience === "mature")).toBe(true);
+        expect(r.total).toBe(105);
+        expect(r.results.every(e => app.isAdult(e))).toBe(true);
+        expect(handle.events.filter(e => app.isAdult(e))).toHaveLength(105);
       });
-      it('"kids" keeps the mature ones out, though the Kids Track has one', () => {
+      it("in 2026 the three halves of that rule name the same 105: the mature audience holds every stated 17, 18 and 21 and every marker", () => {
+        const mature = handle.events.filter(e => e.tags.audience === "mature");
+        expect(mature).toHaveLength(105);
+        expect(handle.events.filter(e => app.isAdult(e) && e.tags.audience !== "mature").map(e => e.title)).toEqual([]);
+        expect(handle.events.filter(e => e.facets.min_age >= 17)).toHaveLength(28);
+        expect(handle.events.filter(e => e.facets.mature)).toHaveLength(75);
+      });
+      it('"kids" keeps the 18+ ones out, though the Kids Track has one: 47 of its 48', () => {
         const kidsTrack = handle.events.filter(e => (e.tracks || []).includes("Kids Track"));
-        expect(kidsTrack.some(e => e.tags.audience === "mature")).toBe(true);
+        expect(kidsTrack).toHaveLength(48);
+        expect(kidsTrack.filter(e => app.isAdult(e)).map(e => e.title)).toEqual(["Grown-up Games: Warrior Cats, or Game of Thrones?"]);
         const r = search("kids", { noToday: true, hideNoise: false });
-        expect(r.total).toBe(kidsTrack.filter(e => e.tags.audience !== "mature").length);
-        expect(r.results.some(e => e.tags.audience === "mature")).toBe(false);
+        expect(r.total).toBe(47);
+        expect(r.results.some(e => app.isAdult(e))).toBe(false);
+      });
+      it.each(["kids 18+", "18+ kids", "adult kids", "kids adult"])('"%s": the explicit word wins, in either order - the one 18+ event of the Kids Track', q => {
+        const r = search(q, { noToday: true, hideNoise: false });
+        expect(r.results.map(e => e.title)).toEqual(["Grown-up Games: Warrior Cats, or Game of Thrones?"]);
+      });
+      /* DECISIONS #77: a row's 18+ asks isAdult(), which reads the listing's
+         marker too. The rule a row had before, written out here, gives every
+         one of 2026's events the flags it gives now. */
+      it("every 2026 event's flags are what they were before the marker was read", () => {
+        const before = e => {
+          const f = e.facets || {}, audience = (e.tags || {}).audience, out = [];
+          if (f.sold_out) out.push({ key: "sold_out", label: "Sold out" });
+          if (f.cost) out.push({ key: "cost", label: "Extra fee" });
+          if (f.signup) out.push({ key: "signup", label: "Sign-up" });
+          if (f.min_age) out.push({ key: "age", label: `${f.min_age}+` });
+          else if (audience === "mature") out.push({ key: "age", label: "18+" });
+          if (audience === "kids") out.push({ key: "kids", label: "Kids" });
+          return out;
+        };
+        expect(handle.events).toHaveLength(3459);
+        expect(handle.events.filter(e => JSON.stringify(app.flagsOf(e)) !== JSON.stringify(before(e))).map(e => e.id)).toEqual([]);
+        const ages = {};
+        handle.events.forEach(e => app.flagsOf(e).filter(f => f.key === "age").forEach(f => { ages[f.label] = (ages[f.label] || 0) + 1; }));
+        expect(ages).toEqual({ "18+": 88, "17+": 14, "21+": 2, "16+": 2, "13+": 1 });
+        expect(app.flagsOf(handle.events.find(e => e.title === "Puppetry 101 - Adults")).map(f => f.label)).toEqual(["16+"]);
       });
       it("the sheet's facts line says a mature event's age - 18+, or the minimum its listing states - and no other event's", () => {
         const ages = () => [...document.querySelectorAll("#panel-event .ev-facts .flag")].map(f => f.textContent).filter(t => /^\d+\+$/.test(t));

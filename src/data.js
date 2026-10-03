@@ -41,10 +41,23 @@ const tagsOf = e => e.tags || NO_TAGS;
    evidence, so they drop out when the toggle is on. */
 const isCeleb = e => tagsOf(e).guests === "celebrity";
 
+/* 18+ is one thing (DECISIONS #77), to the word in the box, to the filter
+   sheet's Audience and to a row's flag: a mature audience, or a stated
+   minimum age of 17 or more, or the listing's own Mature Audience marker.
+   The last two are the parse stage's and ask no tags, so an event the tagger
+   has not reached is 18+ where its listing says so. A 13+ or a 16+ is not. */
+const ADULT_AGE = 17;
+function isAdult(ev) {
+  const f = ev.facets || {};
+  return tagsOf(ev).audience === "mature" || f.min_age >= ADULT_AGE || !!f.mature;
+}
+
 /* An event's flags (W7; DECISIONS #73), in the order a row says them: Sold
    out, Extra fee, Sign-up, an age - the minimum the listing states, else 18+
-   for a mature audience - and Kids. Each is {key, label}, so the sheet and
-   the filter sheet can read the same list; the parse stage's facets and the
+   where isAdult() says so - and Kids. Each is {key, label}, for the row and
+   the event's sheet to say. The filter sheet asks the facets and the
+   audience themselves (#77), and 18+ of the same isAdult(), so a row and the
+   filter cannot disagree about an event; the parse stage's facets and the
    audience are the only sources. */
 function flagsOf(ev) {
   const f = ev.facets || {}, audience = tagsOf(ev).audience, out = [];
@@ -52,7 +65,7 @@ function flagsOf(ev) {
   if (f.cost) out.push({key: "cost", label: "Extra fee"});
   if (f.signup) out.push({key: "signup", label: "Sign-up"});
   if (f.min_age) out.push({key: "age", label: `${f.min_age}+`});
-  else if (audience === "mature") out.push({key: "age", label: "18+"});
+  else if (isAdult(ev)) out.push({key: "age", label: "18+"});
   if (audience === "kids") out.push({key: "kids", label: "Kids"});
   return out;
 }
@@ -205,7 +218,7 @@ function replaceSchedule(data) {
 }
 
 export {
-  NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, tagsOf, isCeleb, flagsOf, factsOf, sessionsOf, knownFor, DATA_URL,
+  NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, tagsOf, isCeleb, isAdult, flagsOf, factsOf, sessionsOf, knownFor, DATA_URL,
   AXES, CAST, worksById, workCounts, axisKeys,
   replaceSchedule, directWorks, linkedWorks, linksTo, personName, topWorks,
 };

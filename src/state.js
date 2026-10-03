@@ -20,10 +20,11 @@ const state = {
   plans: {crew: null, day: null},         /* the crew shown, null the oldest; the crew's day, null the clock's */
   explore: {q: "", page: null, scroll: 0, showPast: false, showCast: false, castNoise: false, expanded: {}, active: null},
   following: {layout: loadJSON(storageKey("followingLayout"), "interest"), expanded: {}, showPast: {}, open: loadJSON(storageKey("followingOpen"), true)},
-  /* Search's: the query, the day, and the filter sheet's nine, the four
-     topic axes among them (W8, #70). */
+  /* Search's: the query, the day, and the filter sheet's thirteen, the four
+     topic axes (W8, #70) and the four of Getting in (W7, #77) among them. */
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All",
     medium: "All", genre: "All", craft: "All", subject: "All",
+    cost: "All", signup: "All", audience: "All", soldOut: "All",
     showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
 };
 

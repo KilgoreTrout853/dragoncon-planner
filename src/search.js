@@ -9,7 +9,7 @@ import { dayOf } from "./util.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
 import { hotelMatches, hotelShort } from "./venues.js";
-import { AXES, byId, events, isNoise, linkedWorks, linksTo, personName, tagsOf, worksById } from "./data.js";
+import { AXES, byId, events, isAdult, isNoise, linkedWorks, linksTo, personName, tagsOf, worksById } from "./data.js";
 
 /* Con vocabulary. If an event mentions any phrase in a group, every phrase in the group becomes searchable for it.
    Add your own lines freely; lowercase, no punctuation needed. */
@@ -196,6 +196,23 @@ function suggestionsFor(raw) {
   return out;
 }
 
+/* Getting in (W7; DECISIONS #77): cost, sign-up, audience and sold out, the
+   filter sheet's four that ask what a row's flags say. Whether an event
+   passes one of them at a value - the filter's answer, and what an option's
+   count counts. An event with no facets has no fee, no sign-up and is not
+   sold out. Kids is the audience, not the Kids Track, so an event with no
+   tags is not known to be Kids; and 18+ is isAdult()'s, which asks no tags
+   of a listing that states an age or carries the marker. */
+const GETTING_IN = ["cost", "signup", "audience", "soldOut"];
+function passesGettingIn(e, dim, value) {
+  if (value === "All") return true;
+  const fc = e.facets || {};
+  if (dim === "cost") return (value === "yes") === !!fc.cost;
+  if (dim === "signup") return (value === "yes") === !!fc.signup;
+  if (dim === "soldOut") return !fc.sold_out;
+  return value === "kids" ? tagsOf(e).audience === "kids" : (value === "adult") === isAdult(e);
+}
+
 function passesFilters(e) {
   const f = activeFilters(), tg = tagsOf(e);
   return (f.day === "All" || e._cd === f.day) &&
@@ -207,8 +224,7 @@ function passesFilters(e) {
     /* The four topic axes (W8), the filter sheet's: one value each, and
        every one set must hold. */
     AXES.every(a => f[a] === "All" || (tg[a] || []).includes(f[a])) &&
-    (!f.adultOnly || tg.audience === "mature") &&
-    (!f.hideAdult || tg.audience !== "mature") &&
+    GETTING_IN.every(d => passesGettingIn(e, d, f[d])) &&
     (!f.time || inTimeBand(e, f.time)) &&
     (!f.hideNoise || !isNoise(e));
 }
@@ -243,9 +259,10 @@ function queryRules() {
   add("contest", "kind", "contest", "Contest");
   add("concert", "kind", "performance", "Performance"); add("performance", "kind", "performance", "Performance");
   add("gaming", "kind", "gaming", "Gaming"); add("game", "kind", "gaming", "Gaming");
-  add("18+", "adult", true, "18+"); add("adult", "adult", true, "18+");
+  add("18+", "audience", "adult", "18+"); add("adult", "audience", "adult", "18+");
   /* Someone searching "kids" wants the Kids Track, not merely the absence of
-     adult content - hiding 18+ is the lesser half of what they mean. */
+     adult content - hiding 18+ is the lesser half of what they mean. One
+     word, two dimensions: the track, and the audience at No 18+ (#77). */
   ["kids", "kid", "family", "children"].forEach(w => add(w, "kidstrack", true, "Kids Track"));
   Object.keys(TIME_BANDS).forEach(w => add(w, "time", w, w[0].toUpperCase() + w.slice(1)));
   add("today", "rel", "today", "Today");
@@ -314,9 +331,15 @@ function parseQuery(raw) {
   return finishParse(residual, found);
 }
 
+/* What the words found hold, and a chip for each: its own dimension, the
+   one it is named for, and in dims every dimension its word holds, which is
+   what the filter sheet takes a word out by (#71, #77). A kids word holds
+   the audience only where no word names one: "18+" or "adult" beside it
+   wins, in either order, and the two give the Kids Track's 18+ events. */
 function finishParse(residual, found) {
   const filters = {};
   const chips = [];
+  const named = found.some(f => f.dim === "audience");
   for (const f of found) {
     if (f.dim === "rel") {
       const base = conDayKey(now());
@@ -326,14 +349,14 @@ function finishParse(residual, found) {
       }
       filters.day = day;
       if (f.value === "tonight") filters.time = "evening";
-      chips.push({dim: "day", label: f.label, src: f.src});
+      chips.push({dim: "day", dims: f.value === "tonight" ? ["day", "time"] : ["day"], label: f.label, src: f.src});
     } else if (f.dim === "kidstrack") {
       filters.track = "Kids Track";
-      filters.adult = false;
-      chips.push({dim: "track", label: f.label, src: f.src});
+      if (!named) filters.audience = "no-adult";
+      chips.push({dim: "track", dims: ["track", "audience"], label: f.label, src: f.src});
     } else {
       filters[f.dim] = f.value;
-      chips.push({dim: f.dim, label: f.label, src: f.src});
+      chips.push({dim: f.dim, dims: [f.dim], label: f.label, src: f.src});
     }
   }
   return {residual, filters, chips};
@@ -359,9 +382,10 @@ function activeFilters() {
     track: f.track !== undefined ? f.track : b.track,
     work: b.work,
     medium: b.medium, genre: b.genre, craft: b.craft, subject: b.subject,
-    adultOnly: f.adult === true,
-    /* Only a query word hides 18+ now ("kids"); the checkbox is gone. */
-    hideAdult: f.adult === false,
+    /* Getting in (#77): the audience is the one of its four a word holds -
+       "18+", "adult", and "kids" at No 18+. */
+    cost: b.cost, signup: b.signup, soldOut: b.soldOut,
+    audience: f.audience !== undefined ? f.audience : b.audience,
     time: f.time,
     /* Asking for photo sessions or screenings outranks the setting that hides
        them; so does tapping their chip, and so does the reveal link. */
@@ -472,5 +496,5 @@ function browseResults() {
 export {
   STOPWORDS, KIND_LABELS, AXIS_LABELS, axisLabel, index, SEARCH_PLACEHOLDER, processTerm, buildIndex, suggestDocs,
   buildSuggestIndex, suggestionsFor, expandQuery, tokenise, stripPhrase, dropPhrase, parseQuery,
-  passesFilters, activeFilters, termQuality, browseResults,
+  GETTING_IN, passesGettingIn, passesFilters, activeFilters, termQuality, browseResults,
 };

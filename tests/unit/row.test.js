@@ -74,7 +74,7 @@ describe("an event's flags", () => {
     expect(flags({repeat_key: "x", part: 2})).toEqual([]);
     expect(flagsOf({})).toEqual([]);
   });
-  it("carry a key each, for the sheet and the filter sheet to read", () => {
+  it("carry a key each, for the row and the event's sheet to read", () => {
     expect(flagsOf({facets: {sold_out: true, cost: "extra", signup: true}, tags: {audience: "mature"}}).map(f => f.key))
       .toEqual(["sold_out", "cost", "signup", "age"]);
     expect(flagsOf({tags: {audience: "kids"}}).map(f => f.key)).toEqual(["kids"]);

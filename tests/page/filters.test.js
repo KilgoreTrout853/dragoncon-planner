@@ -568,11 +568,11 @@ describe("the filter sheet", () => {
     it("'kids' holds Track: a choice in the select takes the word out, and with it the 18+ it hid", () => {
       reset({ q: "kids saturday" });
       open();
-      expect(app.activeFilters()).toMatchObject({ track: "Kids Track", hideAdult: true });
+      expect(app.activeFilters()).toMatchObject({ track: "Kids Track", audience: "no-adult" });
       el("track").focus();
       choose("track", "Puppetry");
       expect(state.browse).toMatchObject({ q: "saturday", track: "Puppetry" });
-      expect(app.activeFilters()).toMatchObject({ track: "Puppetry", hideAdult: false });
+      expect(app.activeFilters()).toMatchObject({ track: "Puppetry", audience: "All" });
       expect(document.activeElement).toBe(el("track"));
       expect(el("track").value).toBe("Puppetry");
     });

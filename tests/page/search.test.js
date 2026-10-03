@@ -365,7 +365,8 @@ describe("Search", () => {
       it("but the word kids still keeps 18+ out [531]", () => {
         state.browse.q = "kids"; state.browse.page = 1; app.renderBrowse();
         expect(app.browseResults().length).toBeGreaterThan(0);
-        expect(app.browseResults().some(e => e.tags && e.tags.audience === "mature")).toBe(false);
+        expect(app.browseResults().some(e => app.isAdult(e))).toBe(false);
+        expect(handle.events.some(e => (e.tracks || []).includes("Kids Track") && app.isAdult(e))).toBe(true);
       });
       it("and with it cleared everything is back [533]", () => {
         state.browse.q = ""; state.browse.day = "All"; state.browse.page = 1; app.renderBrowse();
