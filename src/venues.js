@@ -3,8 +3,8 @@
    tight band allows. All of it is the year's venues file,
    data/<year>/venues.json (DECISIONS #27, #45, #49), which the build resolves
    as virtual:venues and inlines like any import. The helpers beside it answer
-   in the same terms: a room as it should read, a level by its short name, a
-   walk in minutes at the reader's crowd factor. */
+   in the same terms: a room as it should read, a level by its short name or
+   its full one, a walk in minutes at the reader's crowd factor. */
 import VENUES from "virtual:venues";
 import { esc } from "./util.js";
 import { settings } from "./state.js";
@@ -32,6 +32,8 @@ const SAME_VENUE_MIN = VENUES.same_venue_min, UNKNOWN_PAIR_MIN = VENUES.unknown_
 const SLACK_MIN = VENUES.slack_min;
 /* Each hotel's levels by id, to their short names (#72). */
 const LEVEL_SHORT = new Map(HOTELS.map(h => [h.hotel, new Map((h.levels || []).map(lv => [lv.id, lv.short]))]));
+/* And to their full names, which an event's sheet says (#74). */
+const LEVEL_NAME = new Map(HOTELS.map(h => [h.hotel, new Map((h.levels || []).map(lv => [lv.id, lv.name]))]));
 
 /* The source marks offsite venues with a leading "O ": "O Joystick Gamebar".
    The scraper now drops it; this covers data scraped before it did. */
@@ -66,6 +68,11 @@ function levelShort(ev) {
   const said = short.replace(/ (Level|Floor)$/, "").toLowerCase();
   return short && !String(ev.room || "").toLowerCase().includes(said) ? short : "";
 }
+/* The level an event's sheet says under the place (DECISIONS #74): its full
+   name, exactly where a row names the level - levelShort()'s two rules - so
+   the sheet never says a level its room has said. "Atlanta Conference
+   Center (LL3)", where the row says "Conference Center". */
+const levelName = ev => (levelShort(ev) ? LEVEL_NAME.get(ev.hotel).get(ev.level) : "");
 function walkMin(a, b) {
   if (!a || !b || a === "Streaming" || b === "Streaming") return 0;
   if (a === b) return Math.round(SAME_VENUE_MIN * settings.crowd);
@@ -88,6 +95,6 @@ const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hote
 const hotelPhrase = h => h === "Hardy Ivy Park" ? h : `the ${hotelShort(h)}`;
 
 export {
-  HOTEL_ORDER, WALK, SLACK_MIN, cleanRoom, placeHTML, placeShort, levelShort, walkMin, hotelShort, hotelVar,
+  HOTEL_ORDER, WALK, SLACK_MIN, cleanRoom, placeHTML, placeShort, levelShort, levelName, walkMin, hotelShort, hotelVar,
   hotelGroup, hotelMatches, hotelPhrase,
 };

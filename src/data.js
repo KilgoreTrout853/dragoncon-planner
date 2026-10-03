@@ -3,8 +3,9 @@
    or draws - load() in loading.js does - and nothing is read at import but the
    build's year, for the URL. The file is the year's events.v2.json (DECISIONS
    #39, #49): each event names its works by id, and the file's works block says
-   what each id is called and what it belongs to. This module is the only one
-   that walks a work's parent. */
+   what each id is called and what it belongs to; its people block holds a
+   reviewed person's known-for line (#61). This module is the only one that
+   walks a work's parent. */
 import { YEAR } from "./season.js";
 import { toDate } from "./util.js";
 import { conDayKey } from "./time.js";
@@ -26,6 +27,7 @@ const WORK_MIN = 3;           // a work needs this many events for a tile or a p
 let events = [], byId = new Map(), tracks = [], hotels = [], hotelChips = [];
 let meta = {};
 let worksById = new Map(), descendants = new Map(), workCounts = new Map(), personNames = new Map();
+let knownLines = new Map();
 let axisKeys = new Set();
 
 /* An event's tags, or none. An event the tag stage could not answer carries
@@ -54,6 +56,42 @@ function flagsOf(ev) {
   if (audience === "kids") out.push({key: "kids", label: "Kids"});
   return out;
 }
+
+/* What an event's sheet says of it that a row does not (DECISIONS #74),
+   after its flags and in this order: its part, "Part 2", from the parse
+   stage's facets; and a game's format, from the tagger's play, with
+   ", beginners welcome" where its level is beginner - but for Learn to play,
+   which says so itself. Level any says nothing, and a format this table does
+   not hold is not said. {key, label}, as flagsOf() is. */
+const PLAY_FORMAT = {"one-shot": "One-shot game", "organized-play": "Organized play", "learn-to-play": "Learn to play",
+  tournament: "Tournament", demo: "Demo", "open-play": "Open play"};
+function factsOf(ev) {
+  const part = (ev.facets || {}).part, play = tagsOf(ev).play || {}, format = PLAY_FORMAT[play.format], out = [];
+  if (part) out.push({key: "part", label: `Part ${part}`});
+  if (format) out.push({key: "play", label: `${format}${play.level === "beginner" && play.format !== "learn-to-play" ? ", beginners welcome" : ""}`});
+  return out;
+}
+
+/* An event's other sessions (DECISIONS #74): the events with its repeat
+   key, its title and its people, by id - "Author Signing" is eight sessions
+   of eight line-ups, which are not each other's - that are on the schedule
+   and not cancelled. The event's own state is not asked: a cancelled or a
+   removed event names the sessions that still run. Those not yet started at
+   the moment given come first, in start order, then the rest. The moment is
+   a parameter: nothing here reads the clock. */
+const repeatKey = e => (e.facets || {}).repeat_key || "";
+const lineUp = e => JSON.stringify([...new Set((e.people || []).map(p => p.id))].sort());
+function sessionsOf(ev, at) {
+  const key = repeatKey(ev), who = lineUp(ev);
+  if (!key) return [];
+  const others = events.filter(e => e.id !== ev.id && !e.cancelled && repeatKey(e) === key && e.title === ev.title && lineUp(e) === who);
+  return [...others.filter(e => e._s > at), ...others.filter(e => e._s <= at)];
+}
+
+/* A person's known-for line (W42; DECISIONS #61), from the file's people
+   block, joined by id: "" for a person with none - and so for everyone in a
+   file whose block is empty, or that has no block. */
+const knownFor = id => knownLines.get(id) || "";
 
 const DATA_URL = `data/${YEAR}/events.v2.json`;
 
@@ -119,6 +157,7 @@ function replaceSchedule(data) {
   /* The block is a Map, never read in file order: Python sorted it, and
      Python's order is not localeCompare's. */
   worksById = new Map((data.works || []).map(w => [w.id, w]));
+  knownLines = new Map((data.people || []).map(p => [p.id, p.known_for]));
   descendants = new Map([...worksById.keys()].map(id => [id, new Set([id])]));
   for (const id of worksById.keys()) ancestorsOf(id).forEach(a => { if (descendants.has(a)) descendants.get(a).add(id); });
 
@@ -165,7 +204,7 @@ function replaceSchedule(data) {
 }
 
 export {
-  NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, tagsOf, isCeleb, flagsOf, DATA_URL,
+  NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, tagsOf, isCeleb, flagsOf, factsOf, sessionsOf, knownFor, DATA_URL,
   AXES, CAST, worksById, workCounts, axisKeys,
   replaceSchedule, directWorks, linkedWorks, linksTo, personName, topWorks,
 };
