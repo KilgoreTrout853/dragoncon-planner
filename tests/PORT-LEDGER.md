@@ -48,7 +48,11 @@ are no longer side by side - and marked so. Amended in the row
 (2026-10-02, DECISIONS #73), which takes away the row's time column and
 puts the day's label on its second line: 271, 523, 630 and 671 read the
 label there, `.when-where .day`, where they read `.t .day`, their titles
-unchanged. The tables' counts are as of 4b-ii, and
+unchanged. Amended in the event sheet (2026-10-03, DECISIONS #74), which
+makes a person's name the way to their page and takes See all away: 1118
+reads the name's button, `.who-name`, and finds no `.see-all`, retitled;
+1119, 1121 and 1123 follow it through the same variable, their code and
+their titles unchanged. The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
@@ -771,7 +775,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 1109 | a | back returns to the grid | `page/explore.test.js` | 4b-ii | handle | port |
 | 1110 | a | and clears the deep link | `page/explore.test.js` | 4b-ii | dom | port |
 | 1111 | a | the followed tile carries a mark | `page/explore.test.js` | 4b-ii | dom | port |
-| 1118 | a | the detail sheet offers See all beside a speaker | `page/explore.test.js` | 4b-ii | handle | port |
+| 1118 | a | the detail sheet makes a speaker's name the way to their page, and offers no See all | `page/explore.test.js` | 4b-ii | handle | port; rewritten in the event sheet (#74): the name's button, `.who-name`, where it read `.see-all` |
 | 1119 | a | pointing at that person's page | `page/explore.test.js` | 4b-ii | dom | port |
 | 1121 | a | and tapping it lands on the person page | `page/explore.test.js` | 4b-ii | handle | port |
 | 1123 | a | with the sheet closed behind it | `page/explore.test.js` | 4b-ii | dom | port |

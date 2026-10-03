@@ -558,12 +558,17 @@ describe("against the real schedule", () => {
         expect(r.total).toBe(kidsTrack.filter(e => e.tags.audience !== "mature").length);
         expect(r.results.some(e => e.tags.audience === "mature")).toBe(false);
       });
-      it("the sheet marks a mature event 18+, and no other", () => {
-        const mature = handle.events.find(e => e.tags.audience === "mature");
-        const other = handle.events.find(e => e.tags.audience === "all");
-        handle.openSheet("event", mature.id);
-        expect(document.querySelector("#panel-event .tag.adult")).toBeTruthy();
+      it("the sheet's facts line says a mature event's age - 18+, or the minimum its listing states - and no other event's", () => {
+        const ages = () => [...document.querySelectorAll("#panel-event .ev-facts .flag")].map(f => f.textContent).filter(t => /^\d+\+$/.test(t));
+        const mature = handle.events.filter(e => e.tags.audience === "mature");
+        const plain = mature.find(e => !e.facets.min_age), stated = mature.find(e => e.facets.min_age === 21);
+        const other = handle.events.find(e => e.tags.audience === "all" && !e.facets.min_age);
+        handle.openSheet("event", plain.id);
+        expect(ages()).toEqual(["18+"]);
+        handle.openSheet("event", stated.id);
+        expect(ages()).toEqual(["21+"]);
         handle.openSheet("event", other.id);
+        expect(ages()).toEqual([]);
         expect(document.querySelector("#panel-event .tag.adult")).toBe(null);
         handle.closeSheet();
       });

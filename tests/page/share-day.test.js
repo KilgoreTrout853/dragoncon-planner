@@ -24,8 +24,8 @@ function dayOf(day) {
 }
 const SAT = dayOf("2026-09-05"), FRI = dayOf("2026-09-04"), SUN = dayOf("2026-09-06");
 const CANCELLED = SAT[3], REMOVED = SAT[4];
-/* Fifteen of Saturday's, start ties and all; and an event with a person to
-   See all of, from any day - a link is read across the year. */
+/* Fifteen of Saturday's, start ties and all; and an event with a person
+   whose name is tapped, from any day - a link is read across the year. */
 const LONG = base.events.filter(e => e.start >= "2026-09-05T09" && e.start < "2026-09-05T20").sort((a, b) => a.start.localeCompare(b.start)).slice(0, 15).map(e => e.id);
 const WITH_PEOPLE = base.events.find(e => (e.people || []).some(p => p && p.name && p.id)).id;
 /* Two of Saturday's that overlap, neither cancelled nor removed below. */
@@ -305,7 +305,7 @@ describe("Share a day: a ?day= link opened", () => {
     press(el("closeSheetEvent"));
     expect(rowOf(SAT[1]).querySelector(".star").getAttribute("aria-pressed")).toBe("true");
   });
-  it("See all, from an event opened there, closes both, and the list goes", async () => {
+  it("a person's name, from an event opened there, closes both, and the list goes", async () => {
     await arrive(dayQuery("sat", [SAT[0], WITH_PEOPLE]));
     press(rowOf(WITH_PEOPLE).querySelector(".row-main"));
     press(el("panel-event").querySelector("[data-explore]"));
@@ -339,12 +339,32 @@ describe("Share a day: a ?day= link opened", () => {
     handle.closeSheet();
     expect(el("sheetWrap").hidden).toBe(true);
   });
-  it("only an event opened from the shared day itself goes back to it: one opened over that event closes to the page", async () => {
+  it("an event opened over that event keeps the way back: Done returns to the list, focus on the row that opened the first, and the list closes to the page", async () => {
     await arrive(dayQuery("sat", [SAT[0], SAT[1]]));
+    const body = el("sharedBody");
     press(rowOf(SAT[0]).querySelector(".row-main"));
     handle.openSheet("event", SAT[1]);
-    handle.closeSheet();
+    expect(handle.state.sheetId).toBe(SAT[1]);
+    expect(document.activeElement).toBe(el("sheetTitleEvent"));
+    press(el("closeSheetEvent"));
+    expect(el("sheetWrap").hidden).toBe(false);
+    expect(shown(el("panel-shared"))).toBe(true);
+    expect(el("sharedBody")).toBe(body);
+    expect(sharedRows().map(r => r.dataset.id)).toEqual([SAT[0], SAT[1]]);
+    expect(document.activeElement).toBe(rowOf(SAT[0]).querySelector(".row-main"));
+    expect(handle.state.sheetId).toBe(null);
+    escape();
     expect(el("sheetWrap").hidden).toBe(true);
+    expect(el("panel-shared").innerHTML).toBe("");
+  });
+  it("and a third over the second, by Escape, the same", async () => {
+    await arrive(dayQuery("sat", [SAT[0], SAT[1], SAT[2]]));
+    press(rowOf(SAT[1]).querySelector(".row-main"));
+    handle.openSheet("event", SAT[0]);
+    handle.openSheet("event", SAT[2]);
+    escape();
+    expect(shown(el("panel-shared"))).toBe(true);
+    expect(document.activeElement).toBe(rowOf(SAT[1]).querySelector(".row-main"));
   });
   it("ids this schedule does not hold are skipped and counted in one line; a tail cut short is one of them, and a link ending in \"-\" says it was cut", async () => {
     await arrive(`day=${YEAR}.sat.${tail(SAT[0])}-deadbeef-0badf00d-${tail(SAT[1]).slice(0, 5)}`);

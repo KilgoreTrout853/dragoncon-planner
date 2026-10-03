@@ -796,7 +796,8 @@ const TITLES = {event: "sheetTitleEvent", hotel: "sheetTitleHotel", crew: "sheet
    heading, and closing puts it back on what opened the sheet (#66), kept
    as scroll.js focusKey() puts it, since the redraw that closing asks for
    replaces it. An event opened from the shared day keeps the way back to
-   it; any other panel opening takes it. */
+   it, and so does an event opened from that event's sheet - another
+   session, a pick it overlaps (#74); any other panel opening takes it. */
 function openSheet(kind = "settings", id = null) {
   if (kind === "event" && !byId.get(id)) return;
   if (kind === "hotel" && !MAP_HOTELS[id]) return;
@@ -805,8 +806,9 @@ function openSheet(kind = "settings", id = null) {
   if (kind === "shared" && !sharedDay) return;
   if (kind === "filters" && !events.length) return;
   const fromShared = kind === "event" && !sheetWrap.hidden && !panelShared.hidden && !!sharedDay && !sharedDay.error;
+  const fromEvent = kind === "event" && !sheetWrap.hidden && !panelEvent.hidden;     // an event over an event: the way back, if any, stays
   if (fromShared) sharedBack = {scroll: (document.getElementById("sharedBody") || {}).scrollTop || 0, focus: focusKey(document.activeElement)};
-  else if (kind !== "shared") dropShared();     // any other panel: the shared day and its way back go
+  else if (kind !== "shared" && !fromEvent) dropShared();     // any other panel: the shared day and its way back go
   if (sheetWrap.hidden) opener = focusKey(document.activeElement);
   sheetScrollY = pageScrollTop();
   state.sheetId = kind === "event" ? id : null;
@@ -842,8 +844,9 @@ function dropShared() {
   sharedDay = null;
   if (panelShared.firstChild) panelShared.innerHTML = "";
 }
-/* See all, from an event: the Explore page, whatever the event was opened
-   from - an event opened from the shared day closes both, and the list goes. */
+/* A person's name, from an event: the Explore page, whatever the event was
+   opened from - an event opened from the shared day closes both, and the
+   list goes. */
 function closeWholeSheet() {
   sharedBack = null;
   closeSheet();
@@ -918,8 +921,8 @@ function settle(toClosed) {
 /* What boot() registers on the sheet itself: the drag. */
 function onSheetTouchStart(e) {
   if (e.target.closest(".ev-body, textarea, .filters-body")) return;   // let the description scroll, the message to share, and the filters
-  const crew = e.target.closest("#panel-crew");
-  if (crew && crew.scrollHeight > crew.clientHeight) return;   // and the crew panel, when it is taller than the screen
+  const tall = e.target.closest("#panel-crew, #panel-event");
+  if (tall && tall.scrollHeight > tall.clientHeight) return;   // and the crew panel or an event's, when it is taller than its room and scrolls
   dragY = e.touches[0].clientY;
   dragT = performance.now();
   dragDy = 0;
