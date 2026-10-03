@@ -138,8 +138,23 @@ function syncNavHeight() {
   if (h) document.documentElement.style.setProperty("--nav-h", `${h}px`);
 }
 
+/* More past an edge (DECISIONS #76). An area of the sheet that scrolls on its
+   own says what it hides past its top and past its bottom, and the
+   stylesheet fades each edge as deep as what is hidden there, up to its cap.
+   What is hidden, from the element's three numbers and nothing else: whole
+   px, and under one is none - scrollTop is a fraction where the other two
+   are rounded, so an area at its end can be a fraction short of it; never
+   under 0, so a bounce past an end is the end; and never over the ceiling,
+   which stands safely above the deepest band the stylesheet draws - 1.75rem,
+   32.2px with Larger text - so far from an end the number stands still. */
+const MORE_CEILING = 48;
+function moreHidden(scrollTop, clientHeight, scrollHeight) {
+  const px = n => Math.max(0, Math.min(MORE_CEILING, Math.floor(n)));
+  return {above: px(scrollTop), below: px(scrollHeight - clientHeight - scrollTop)};
+}
+
 export {
   scroller, pageScrollTop, pageScrollTo, pageScrollBy, chipRowsSnapshot, chipRowsRestore,
   revealChip, cssEsc, focusKey, shownMatch, focusIn, giveFocusBack, refill, drawInPlace, fitHeaderLine, syncHeaderHeight,
-  syncNavHeight,
+  syncNavHeight, moreHidden,
 };
