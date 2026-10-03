@@ -52,7 +52,11 @@ unchanged. Amended in the event sheet (2026-10-03, DECISIONS #74), which
 makes a person's name the way to their page and takes See all away: 1118
 reads the name's button, `.who-name`, and finds no `.see-all`, retitled;
 1119, 1121 and 1123 follow it through the same variable, their code and
-their titles unchanged. The tables' counts are as of 4b-ii, and
+their titles unchanged. Amended in the facet filters (2026-10-03,
+DECISIONS #77), which makes 18+ one rule: 531 asks `isAdult()` of what
+the word kids leaves, where it read the audience tag, and that the
+fixture's Kids Track has an 18+ event to leave out, its title unchanged.
+The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
@@ -514,7 +518,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 525 | a | fandom select and kind chips render when tags exist | `page/search.test.js` | 4b-ii | dom | port; rewritten in the filter sheet (#70): in the panel |
 | 526 | a | clearing the query restores the day | `page/search.test.js` | 4b-ii | handle | port |
 | 529 | a | there is no Hide 18+ toggle any more | `page/search.test.js` | 4b-ii | handle | port |
-| 531 | a | but the word kids still keeps 18+ out | `page/search.test.js` | 4b-ii | handle | port |
+| 531 | a | but the word kids still keeps 18+ out | `page/search.test.js` | 4b-ii | handle | port; rewritten in the facet filters (#77): 18+ is `isAdult()`'s - a mature audience, a stated minimum of 17 or more, or the listing's marker - and the fixture's Kids Track holds one to keep out |
 | 533 | a | and with it cleared everything is back | `page/search.test.js` | 4b-ii | handle | port |
 | 535 | a | kind chip filters | `page/search.test.js` | 4b-ii | handle | port; rewritten in the filter sheet (#70): the panel's chip, on a list that is not empty |
 | 538 | a | settings opens | `page/sheet.test.js` | 4b-ii | dom | port |

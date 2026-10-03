@@ -61,7 +61,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data, read and written through `crews.js`; `syncAfter()`, the run the crew panel waits for after an action; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
 | `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the seven crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks, the reader's own row in a crew, and each crewmate's pick on now or next. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel, who's going and the hotel sheet's crew `sheet.js`'s, the crew on Now `now.js`'s and on the Map `map.js`'s. A leaf. |
 | `src/shareday.js` | Share a day (DECISIONS #69; `docs/screens/contract.md`, section 5, Share a day, as built): which picks a day shares, the days that hold one and the day the panel opens on, the link and the message, and a link read back against a schedule the caller hands it. Pure: no DOM, no storage, no clock; the share panel and the shared day are `sheet.js`'s. A leaf. |
-| `src/filters.js` | The filter sheet (DECISIONS #70, #71; `docs/screens/contract.md`, section 3, as built): Search's filters in a sheet panel - its markup, drawn as it opens, and what a tap writes into it in place, the count on its main button among it; what the sheet set that is in effect, which the Filters button's badge counts and the chips under the box name; Clear's reach; one filter set, the last one set winning - a tap taking a word that holds its dimension out of the query - and the step a word typed takes once the box is left, the sheet's value for its dimension to All. The panel's element is `sheet.js`'s and its handlers `dispatch.js`'s. A leaf. |
+| `src/filters.js` | The filter sheet (DECISIONS #70, #71, #77; `docs/screens/contract.md`, section 3, as built): Search's filters in a sheet panel - its markup, drawn as it opens, Getting in's four selects and their options' counts among it, and what a tap writes into it in place, the count on its main button among it; what the sheet set that is in effect, which the Filters button's badge counts and the chips under the box name; Clear's reach; one filter set, the last one set winning - a tap taking a word that holds its dimension out of the query - and the step a word typed takes once the box is left, the sheet's value for its dimension to All. The panel's element is `sheet.js`'s and its handlers `dispatch.js`'s. A leaf. |
 | `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `shareday.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `ui.js`, `filters.js` | The twenty-one leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
@@ -479,6 +479,9 @@ block as `worksById`, and `replaceSchedule()`; `tagsOf()`, the one read of
 an event's tags, which an untagged event has none of; `flagsOf()`, an event's
 flags - Sold out, Extra fee, Sign-up, an age, Kids - from its facets and its
 audience, which a row's line 3 and an event's sheet say (DECISIONS #73, #74);
+`isAdult()`, the one rule for 18+ - a mature audience, a stated minimum of
+17 or more, or the listing's Mature Audience marker - which the word in the
+box, the filter sheet's Audience and a row's flag all ask (#77);
 `factsOf()`, what the sheet says besides - the part, a game's format;
 `sessionsOf()`, an event's other sessions not yet started (#75), by its
 repeat key, its title and its people, the moment a parameter; `knownFor()`, a person's known-for line
@@ -503,8 +506,10 @@ flag says (#73), and `clashesOf()`, the same asked of any event, picked
 or not, which the sheet's overlap line says (#74); the gap line says the walk and the tight bands, and no
 overlap. Nothing in it says where the reader is, or when to leave. `search`: the two MiniSearch
 indexes (MiniSearch is an npm dependency, pinned to 7.2.0), the reading of a
-query, the ranking, and `AXIS_LABELS`, the only place an axis slug becomes a
-label. `ui`:
+query, the ranking, `AXIS_LABELS`, the only place an axis slug becomes a
+label, and `passesGettingIn()`, whether an event passes one of the filter
+sheet's cost, sign-up, audience and sold out at a value, which the list and
+an option's count both ask (#77). `ui`:
 markup every view shares, `rowHTML()` - an event's row: the title, then
 the time, the place and the level, then Celebrity, the overlap flag, the
 caller's context, the flags and the track (DECISIONS #64, #73) -
@@ -813,11 +818,12 @@ under it, when that has; focus stays on the control that had it.
 
 **Search.** The first render happens with no index; the search index is
 built in idle time afterwards, then a suggestion index (people by their
-display names, works and topic labels). Query intent parsing turns day/hotel/kind/time words into filters.
+display names, works and topic labels). Query intent parsing turns day/hotel/kind/audience/time words into filters.
 The box, a Filters button beside it and the day chips are the sticky
 block; the other filters are the filter sheet's (DECISIONS #70;
 `docs/screens/contract.md`, section 3, as built): the hotel, the fandom
-and the track, the four topic axes, panels or gaming, the kind and the
+and the track, the four topic axes, panels or gaming, the kind, Getting
+in - cost, sign-up, audience and sold out (#77) - and the
 photo-session hide, in a sheet panel that applies each tap at once and
 counts what the list will hold, the list drawn again as it closes. Each
 filter it set that is in effect is a chip under the box, beside the

@@ -1,5 +1,5 @@
-/* The filter sheet (W13, with W8's topic axes; DECISIONS #70;
-   docs/screens/contract.md, section 3, as built): Search's filters in a
+/* The filter sheet (W13, with W8's topic axes and W7's flags; DECISIONS
+   #70, #71, #77; docs/screens/contract.md, section 3, as built): Search's filters in a
    sheet panel, #panel-filters, opened by the Filters button beside the box.
    A tap changes state.browse at once and the panel's count with it, the
    list behind waiting for the sheet to close; the badge counts what the
@@ -8,8 +8,9 @@
    in the box out of the query, and a word typed takes the sheet's value
    for its dimension to All once the box is left. On a copy of the sample whose untagged events
    carry the four axes at counts that differ, so that each axis's filter and
-   the options' order have something to tell apart. New tests, not rows of
-   tests/PORT-LEDGER.md. */
+   the options' order have something to tell apart, and whose every event
+   carries what Getting in asks - a fee, a sign-up, sold out, an audience -
+   at counts that differ too. New tests, not rows of tests/PORT-LEDGER.md. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -32,7 +33,18 @@ const axesFor = i => ({
   craft: i % 5 === 0 ? ["writing"] : [],
   subject: i % 2 === 0 ? ["space"] : i % 10 === 1 ? ["tech"] : [],
 });
-const data = { ...sample, events: sample.events.map(e => ("tags" in e || e.removed || n >= 150 ? e : { ...e, tags: axesFor(n++) })) };
+/* And an audience each, for Getting in (#77): mature where the listing
+   states an age, as the pipeline has it, else kids one in six, mature one in
+   ten, and the rest all. Every event takes a fee one in seven, a sign-up one
+   in eleven and sold out one in twenty-three. */
+const audienceFor = (i, e) => ((e.facets || {}).min_age ? "mature" : i % 6 === 2 ? "kids" : i % 10 === 3 ? "mature" : "all");
+const facetsFor = (e, i) => ({ ...e.facets, ...(i % 7 === 0 ? { cost: "extra" } : {}), ...(i % 11 === 0 ? { signup: true } : {}), ...(i % 23 === 0 ? { sold_out: true } : {}) });
+const data = { ...sample, events: sample.events
+  .map(e => ("tags" in e || e.removed || n >= 150 ? e : { ...e, tags: { ...axesFor(n), audience: audienceFor(n++, e) } }))
+  .map((e, i) => ({ ...e, facets: facetsFor(e, i) })) };
+/* And a schedule where nothing asks anything: its tagged events alone, each
+   for all ages and with no facets. */
+const plain = { ...sample, events: sample.events.filter(e => "tags" in e && !e.removed).map(e => ({ ...e, facets: {}, tags: { ...e.tags, audience: "all" } })) };
 /* And a schedule with no tags at all: a year's first days, before its first
    tag - and no Kids Track, so that the word "kids" holds a track it lacks. */
 const kidsTrack = t => (t === "Kids Track" ? "Family Track" : t);
@@ -43,8 +55,24 @@ const untagged = { ...sample, events: sample.events.map(e => {
 }) };
 
 const FILTERS = { q: "", day: "All", prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All",
-  medium: "All", genre: "All", craft: "All", subject: "All", showHidden: false, showPast: false, noToday: false, hideNoise: true, page: 1 };
-const NINE = ["hotel", "kind", "type", "work", "track", "medium", "genre", "craft", "subject"];
+  medium: "All", genre: "All", craft: "All", subject: "All", cost: "All", signup: "All", audience: "All", soldOut: "All",
+  showHidden: false, showPast: false, noToday: false, hideNoise: true, page: 1 };
+const THIRTEEN = ["hotel", "kind", "type", "work", "track", "medium", "genre", "craft", "subject", "cost", "signup", "audience", "soldOut"];
+/* Getting in's eight values (#77): the select, the filter, the value, the
+   option's words and the chip's, and the events it keeps - said here from
+   the events, not read back from the app. */
+const fc = e => e.facets || {};
+const adult = e => (e.tags || {}).audience === "mature" || fc(e).min_age >= 17 || !!fc(e).mature;
+const GETTING_IN = [
+  ["filterCost", "cost", "no", "No extra fee", e => !fc(e).cost],
+  ["filterCost", "cost", "yes", "Extra fee", e => !!fc(e).cost],
+  ["filterSignup", "signup", "no", "No sign-up", e => !fc(e).signup],
+  ["filterSignup", "signup", "yes", "Sign-up", e => !!fc(e).signup],
+  ["filterAudience", "audience", "kids", "Kids", e => (e.tags || {}).audience === "kids"],
+  ["filterAudience", "audience", "no-adult", "No 18+", e => !adult(e)],
+  ["filterAudience", "audience", "adult", "18+", e => adult(e)],
+  ["filterSoldOut", "soldOut", "no", "Not sold out", e => !fc(e).sold_out],
+];
 const showSays = k => (k === 0 ? "No events match" : k === 1 ? "Show 1 event" : `Show ${k.toLocaleString("en-US")} events`);
 
 describe("the filter sheet", () => {
@@ -123,11 +151,12 @@ describe("the filter sheet", () => {
       expect(document.activeElement).toBe(el("sheetTitleFilters"));
       expect(el("sheetTitleFilters").textContent).toBe("Filters");
     });
-    it("the groups in order: Hotel, Fandom with Track, Topics, Type, Kind, the toggle", () => {
-      expect([...panel().querySelectorAll("[data-group]")].map(g => g.dataset.group)).toEqual(["hotel", "pick", "topics", "type", "kind", "noise"]);
+    it("the groups in order: Hotel, Fandom with Track, Topics, Type, Kind, Getting in, the toggle", () => {
+      expect([...panel().querySelectorAll("[data-group]")].map(g => g.dataset.group)).toEqual(["hotel", "pick", "topics", "type", "kind", "entry", "noise"]);
     });
-    it("Hotel and Kind carry their small labels, which name their groups", () => {
-      for (const [group, label] of [["hotel", "Hotel"], ["kind", "Kind"]]) {
+    it("Hotel, Kind and Getting in carry their small labels, which name their groups", () => {
+      expect([...panel().querySelectorAll(".filter-label")].map(l => l.textContent)).toEqual(["Hotel", "Kind", "Getting in"]);
+      for (const [group, label] of [["hotel", "Hotel"], ["kind", "Kind"], ["entry", "Getting in"]]) {
         const g = panel().querySelector(`[data-group="${group}"]`);
         expect(g.getAttribute("role")).toBe("group");
         expect(el(g.getAttribute("aria-labelledby")).textContent).toBe(label);
@@ -368,21 +397,22 @@ describe("the filter sheet", () => {
       el("hideNoise").click();
       expect(el("filtersClear").disabled).toBe(true);
     });
-    it("takes every one of the nine back to All, and the toggle to Settings' default - not the day, nor the query", () => {
+    it("takes every one of the thirteen back to All, and the toggle to Settings' default - not the day, nor the query", () => {
       reset({ q: "trek", day: "2026-09-05", hotel: "Hilton", kind: "panel", type: "panel", work: app.topWorks()[0].id, track: "Puppetry",
-        medium: "tv", genre: "horror", craft: "writing", subject: "space", hideNoise: false });
+        medium: "tv", genre: "horror", craft: "writing", subject: "space", cost: "no", signup: "yes", audience: "kids", soldOut: "no", hideNoise: false });
       open();
       expect(el("filtersClear").disabled).toBe(false);
       const quiet = mutationsDuring(view(), () => el("filtersClear").click());
       expect(quiet).toHaveLength(0);
-      expect(NINE.map(d => state.browse[d])).toEqual(NINE.map(() => "All"));
+      expect(THIRTEEN.map(d => state.browse[d])).toEqual(THIRTEEN.map(() => "All"));
       expect(state.browse.hideNoise).toBe(app.settings.hideNoise);
       expect(state.browse).toMatchObject({ q: "trek", day: "2026-09-05" });
     });
     it("and the panel says so in place: the chips, the selects, the toggle, the count, Clear", () => {
       expect(fchip("hotel", "All").getAttribute("aria-pressed")).toBe("true");
       expect(fchip("type", "All").getAttribute("aria-pressed")).toBe("true");
-      expect(["track", "filterMedium", "filterGenre", "filterCraft", "filterSubject"].map(id => el(id).value)).toEqual(["All", "All", "All", "All", "All"]);
+      const selects = ["track", "filterMedium", "filterGenre", "filterCraft", "filterSubject", "filterCost", "filterSignup", "filterAudience", "filterSoldOut"];
+      expect(selects.map(id => el(id).value)).toEqual(selects.map(() => "All"));
       expect(el("hideNoise").checked).toBe(true);
       expect(says()).toBe(showSays(app.browseResults().length));
       expect(el("filtersClear").disabled).toBe(true);
@@ -411,9 +441,15 @@ describe("the filter sheet", () => {
       expect(el("filtersBadge").textContent).toBe("3");
       expect(el("filtersBtn").getAttribute("aria-label")).toBe("Filters, 3 set");
     });
-    it("counts all nine", () => {
-      reset({ hotel: "Hilton", kind: "panel", type: "panel", work: "star-trek", track: "Puppetry", medium: "tv", genre: "horror", craft: "writing", subject: "space" });
-      expect(el("filtersBadge").textContent).toBe("9");
+    it("counts all thirteen", () => {
+      reset({ hotel: "Hilton", kind: "panel", type: "panel", work: "star-trek", track: "Puppetry", medium: "tv", genre: "horror", craft: "writing", subject: "space",
+        cost: "no", signup: "no", audience: "no-adult", soldOut: "no" });
+      expect(el("filtersBadge").textContent).toBe("13");
+      expect(el("filtersBtn").getAttribute("aria-label")).toBe("Filters, 13 set");
+    });
+    it.each(GETTING_IN.map(g => [g[3], g[1], g[2]]))("'%s' counts as one", (label, dim, value) => {
+      reset({ [dim]: value });
+      expect(el("filtersBadge").textContent).toBe("1");
     });
     it("but not the day, the query's words, or the toggle", () => {
       reset({ q: "concert saturday westin", day: "2026-09-04", hideNoise: false });
@@ -508,6 +544,7 @@ describe("the filter sheet", () => {
       expect(fchip("hotel", "Hilton").getAttribute("aria-pressed")).toBe("true");
       expect(fchip("kind", "contest").getAttribute("aria-pressed")).toBe("true");
       expect(el("track").value).toBe("Kids Track");
+      expect(el("filterAudience").value).toBe("no-adult");
       expect([...panel().querySelectorAll("button, select, input")].filter(c => c.id !== "filtersClear" && c.disabled).map(c => c.outerHTML)).toEqual([]);
       expect(panel().querySelector("[aria-describedby], .filter-held")).toBe(null);
       expect(panel().textContent).not.toMatch(/Set by your search/);
@@ -568,11 +605,11 @@ describe("the filter sheet", () => {
     it("'kids' holds Track: a choice in the select takes the word out, and with it the 18+ it hid", () => {
       reset({ q: "kids saturday" });
       open();
-      expect(app.activeFilters()).toMatchObject({ track: "Kids Track", hideAdult: true });
+      expect(app.activeFilters()).toMatchObject({ track: "Kids Track", audience: "no-adult" });
       el("track").focus();
       choose("track", "Puppetry");
       expect(state.browse).toMatchObject({ q: "saturday", track: "Puppetry" });
-      expect(app.activeFilters()).toMatchObject({ track: "Puppetry", hideAdult: false });
+      expect(app.activeFilters()).toMatchObject({ track: "Puppetry", audience: "All" });
       expect(document.activeElement).toBe(el("track"));
       expect(el("track").value).toBe("Puppetry");
     });
@@ -720,6 +757,349 @@ describe("the filter sheet", () => {
     });
   });
 
+  /* Getting in (DECISIONS #77): cost, sign-up, audience and sold out, four
+     selects under one label after Kind and before the toggle, each All or
+     one value, and set, cleared, counted and shown as every other filter. */
+  describe("Getting in: cost, sign-up, audience and sold out", () => {
+    beforeAll(() => { reset(); open(); });
+    afterAll(() => reset());
+    const group = () => panel().querySelector('[data-group="entry"]');
+    const quiet = during => expect(mutationsDuring(view(), during)).toHaveLength(0);
+    const every = pred => handle.events.filter(pred).length;
+    const texts = id => [...el(id).options].map(o => [o.value, o.textContent]);
+    const main = () => document.querySelector("main");
+
+    it("one group, after Kind and before the toggle, under its small label, which names it", () => {
+      const groups = [...panel().querySelectorAll("[data-group]")];
+      expect(groups[groups.indexOf(group()) - 1].dataset.group).toBe("kind");
+      expect(groups[groups.indexOf(group()) + 1].dataset.group).toBe("noise");
+      expect(group().getAttribute("role")).toBe("group");
+      const label = el(group().getAttribute("aria-labelledby"));
+      expect([label.textContent, label.className, label.parentElement]).toEqual(["Getting in", "filter-label", group()]);
+    });
+    it("four selects two by two, in the topic axes' markup and classes, each with its own name", () => {
+      const grid = group().querySelector(".filter-topics");
+      expect([...grid.children].map(c => [c.tagName, c.className, c.id, c.dataset.filter, c.getAttribute("aria-label")])).toEqual([
+        ["SELECT", "track", "filterCost", "cost", "Cost"], ["SELECT", "track", "filterSignup", "signup", "Sign-up"],
+        ["SELECT", "track", "filterAudience", "audience", "Audience"], ["SELECT", "track", "filterSoldOut", "soldOut", "Sold out"]]);
+      expect(grid.className).toBe(panel().querySelector('[data-group="topics"] > div').className);
+      expect([...group().children].map(c => c.tagName)).toEqual(["SPAN", "DIV"]);
+    });
+    it("Cost: Any cost, No extra fee, Extra fee", () => {
+      expect(texts("filterCost")).toEqual([["All", "Any cost"], ["no", "No extra fee"], ["yes", `Extra fee (${every(e => fc(e).cost)})`]]);
+    });
+    it("Sign-up: Any sign-up, No sign-up, Sign-up", () => {
+      expect(texts("filterSignup")).toEqual([["All", "Any sign-up"], ["no", "No sign-up"], ["yes", `Sign-up (${every(e => fc(e).signup)})`]]);
+    });
+    it("Audience: Any audience, Kids, No 18+, 18+", () => {
+      expect(texts("filterAudience")).toEqual([["All", "Any audience"], ["kids", `Kids (${every(e => tg(e).audience === "kids")})`], ["no-adult", "No 18+"], ["adult", `18+ (${every(adult)})`]]);
+    });
+    it("Sold out: Sold out or not, Not sold out - and no option that keeps only what is sold out", () => {
+      expect(texts("filterSoldOut")).toEqual([["All", "Sold out or not"], ["no", "Not sold out"]]);
+    });
+    it("a count stands only on an option that names something an event has; one that takes things away says no number", () => {
+      const options = [...group().querySelectorAll("option")].map(o => o.textContent);
+      expect(options.filter(t => /\(\d[\d,]*\)$/.test(t)).map(t => t.replace(/ \(.*$/, ""))).toEqual(["Extra fee", "Sign-up", "Kids", "18+"]);
+      expect(options.filter(t => /\d\)$/.test(t) === false)).toEqual(["Any cost", "No extra fee", "Any sign-up", "No sign-up", "Any audience", "No 18+", "Sold out or not", "Not sold out"]);
+    });
+    it("the count is over every event, the hidden photo sessions among them, and each of the four is its own", () => {
+      const counts = [e => !!fc(e).cost, e => !!fc(e).signup, e => tg(e).audience === "kids", adult].map(every);
+      expect(new Set(counts).size).toBe(4);
+      expect(counts.every(k => k > 0)).toBe(true);
+      expect(every(e => !!fc(e).cost)).toBeGreaterThan(counted(e => !!fc(e).cost));
+      expect(texts("filterCost")[2][1]).toBe(`Extra fee (${every(e => !!fc(e).cost)})`);
+    });
+    it("the options that name a flag say the flag's own words", () => {
+      expect(app.flagsOf({ facets: { cost: "extra", signup: true }, tags: { audience: "kids" } }).map(f => f.label)).toEqual(["Extra fee", "Sign-up", "Kids"]);
+      expect(app.flagsOf({ tags: { audience: "mature" } }).map(f => f.label)).toEqual(["18+"]);
+      expect([texts("filterCost")[2][1], texts("filterSignup")[2][1], texts("filterAudience")[1][1], texts("filterAudience")[3][1]].map(t => t.replace(/ \(.*$/, "")))
+        .toEqual(["Extra fee", "Sign-up", "Kids", "18+"]);
+    });
+    it.each(GETTING_IN.map(g => [g[3], g]))("'%s' changes the state and the count at once, nothing behind drawn, and All takes it back", (label, [id, dim, value, , keeps]) => {
+      quiet(() => choose(id, value));
+      expect(state.browse[dim]).toBe(value);
+      expect(el(id).value).toBe(value);
+      expect(el(id).options[el(id).selectedIndex].textContent.replace(/ \(.*$/, "")).toBe(label);
+      expect(counted(keeps)).toBeGreaterThan(0);
+      expect(counted(keeps)).toBeLessThan(counted(() => true));
+      expect(says()).toBe(showSays(counted(keeps)));
+      expect(el("filtersClear").disabled).toBe(false);
+      quiet(() => choose(id, "All"));
+      expect(state.browse[dim]).toBe("All");
+      expect(says()).toBe(showSays(counted(() => true)));
+      expect(el("filtersClear").disabled).toBe(true);
+    });
+    it("a choice keeps focus on its select", () => {
+      el("filterSignup").focus();
+      choose("filterSignup", "yes");
+      expect(document.activeElement).toBe(el("filterSignup"));
+      choose("filterSignup", "All");
+    });
+    it("the two of a pair are each other's complement over the list", () => {
+      const of = (id, value) => { choose(id, value); const k = app.browseResults().length; choose(id, "All"); return k; };
+      const whole = counted(() => true);
+      expect(of("filterCost", "no") + of("filterCost", "yes")).toBe(whole);
+      expect(of("filterSignup", "no") + of("filterSignup", "yes")).toBe(whole);
+      expect(of("filterAudience", "no-adult") + of("filterAudience", "adult")).toBe(whole);
+    });
+    it("every event passes each of the four exactly where its row's flags say so", () => {
+      const off = [];
+      for (const e of handle.events) {
+        const flags = app.flagsOf(e), has = key => flags.some(f => f.key === key), age = (flags.find(f => f.key === "age") || {}).label;
+        if (app.passesGettingIn(e, "cost", "yes") !== has("cost")) off.push(["cost", e.id]);
+        if (app.passesGettingIn(e, "signup", "yes") !== has("signup")) off.push(["signup", e.id]);
+        if (app.passesGettingIn(e, "soldOut", "no") === has("sold_out")) off.push(["soldOut", e.id]);
+        if (app.passesGettingIn(e, "audience", "kids") !== has("kids")) off.push(["kids", e.id]);
+        if (app.passesGettingIn(e, "audience", "adult") !== (parseInt(age, 10) >= 17)) off.push(["18+", e.id, age]);
+      }
+      expect(off).toEqual([]);
+    });
+    it("two together, and three: every one set must hold", () => {
+      quiet(() => { choose("filterCost", "no"); choose("filterSoldOut", "no"); });
+      expect(says()).toBe(showSays(counted(e => !fc(e).cost && !fc(e).sold_out)));
+      quiet(() => choose("filterAudience", "no-adult"));
+      expect(says()).toBe(showSays(counted(e => !fc(e).cost && !fc(e).sold_out && !adult(e))));
+      choose("filterCost", "yes"); choose("filterSignup", "yes"); choose("filterAudience", "All");
+      expect(says()).toBe(showSays(counted(e => fc(e).cost && fc(e).signup && !fc(e).sold_out)));
+      ["filterCost", "filterSignup", "filterSoldOut"].forEach(id => choose(id, "All"));
+    });
+    it("all four set, beside a topic axis", () => {
+      choose("filterCost", "no"); choose("filterSignup", "no"); choose("filterAudience", "kids"); choose("filterSoldOut", "no"); choose("filterMedium", "tv");
+      const keeps = e => !fc(e).cost && !fc(e).signup && tg(e).audience === "kids" && !fc(e).sold_out && (tg(e).medium || []).includes("tv");
+      expect(counted(keeps)).toBeGreaterThan(0);
+      expect(says()).toBe(showSays(counted(keeps)));
+    });
+    it("beside a hotel and a day", () => {
+      reset({ day: "2026-09-05", hotel: "Hilton" });
+      open();
+      const here = e => app.hotelGroup(e.hotel) === "Hilton" && e._cd === "2026-09-05";
+      for (const [, [id, , value, , keeps]] of GETTING_IN.map(g => [g[3], g])) {
+        choose(id, value);
+        expect(says(), `${id} ${value}`).toBe(showSays(counted(e => here(e) && keeps(e))));
+        choose(id, "All");
+      }
+      expect(says()).toBe(showSays(counted(here)));
+    });
+    it("the sheet closed: the list is the count's, every row an event the filter keeps", () => {
+      reset();
+      el("filtersBtn").focus();
+      open();
+      choose("filterCost", "yes");
+      const said = says();
+      expect(listDraws(() => el("filtersShow").click())).toBe(1);
+      expect(said).toBe(showSays(counted(e => !!fc(e).cost)));
+      expect(view().querySelector(".section-title .count").textContent).toBe(String(counted(e => !!fc(e).cost)));
+      const rows = [...view().querySelectorAll(".row")].map(li => app.byId.get(li.dataset.id));
+      expect(rows.length).toBeGreaterThan(0);
+      expect(rows.every(e => fc(e).cost === "extra")).toBe(true);
+      expect(document.activeElement).toBe(el("filtersBtn"));
+    });
+    it("a change of one is a change, so the list starts from its top; one taken back is none", () => {
+      reset();
+      main().scrollTop = 300;
+      open();
+      choose("filterSoldOut", "no");
+      el("filtersShow").click();
+      expect(main().scrollTop).toBe(0);
+      reset();
+      main().scrollTop = 300;
+      open();
+      choose("filterAudience", "adult");
+      choose("filterAudience", "All");
+      el("filtersShow").click();
+      expect(main().scrollTop).toBe(300);
+    });
+    it("Clear: one of the four alone enables it, and it takes all four back to All", () => {
+      reset();
+      open();
+      expect(el("filtersClear").disabled).toBe(true);
+      choose("filterSoldOut", "no");
+      expect(el("filtersClear").disabled).toBe(false);
+      choose("filterCost", "yes"); choose("filterSignup", "yes"); choose("filterAudience", "kids");
+      quiet(() => el("filtersClear").click());
+      expect(["cost", "signup", "audience", "soldOut"].map(d => state.browse[d])).toEqual(["All", "All", "All", "All"]);
+      expect(["filterCost", "filterSignup", "filterAudience", "filterSoldOut"].map(id => el(id).value)).toEqual(["All", "All", "All", "All"]);
+      expect(says()).toBe(showSays(counted(() => true)));
+      expect(el("filtersClear").disabled).toBe(true);
+    });
+    it("each is a chip under the box in the option's own words, after Kind, in the sheet's order", () => {
+      reset({ kind: "performance", cost: "no", signup: "yes", audience: "adult", soldOut: "no" });
+      expect(el("filtersBadge").textContent).toBe("5");
+      expect(chipsUnder().map(c => c.getAttribute("aria-label"))).toEqual(["Remove Performance filter", "Remove No extra fee filter", "Remove Sign-up filter", "Remove 18+ filter", "Remove Not sold out filter"]);
+      expect(chipsUnder().map(c => c.querySelector(".chip-label").textContent)).toEqual(["Performance", "No extra fee", "Sign-up", "18+", "Not sold out"]);
+      expect(chipsUnder().map(c => [c.dataset.act, c.dataset.dim])).toEqual([["unfilter", "kind"], ["unfilter", "cost"], ["unfilter", "signup"], ["unfilter", "audience"], ["unfilter", "soldOut"]]);
+    });
+    it.each(GETTING_IN.map(g => [g[3], g[1], g[2]]))("the chip '%s', with no count in it", (label, dim, value) => {
+      reset({ [dim]: value });
+      expect(chipsUnder().map(c => [c.querySelector(".chip-label").textContent, c.getAttribute("aria-label")])).toEqual([[label, `Remove ${label} filter`]]);
+    });
+    it("a chip's x takes that one off, and focus goes to the chip in its place, else to the Filters button, never the box", () => {
+      reset({ cost: "no", audience: "kids", soldOut: "no" });
+      view().querySelector('[data-act="unfilter"][data-dim="cost"]').click();
+      expect(state.browse).toMatchObject({ cost: "All", audience: "kids", soldOut: "no" });
+      expect(document.activeElement.getAttribute("aria-label")).toBe("Remove Kids filter");
+      view().querySelector('[data-act="unfilter"][data-dim="soldOut"]').click();
+      expect(state.browse).toMatchObject({ audience: "kids", soldOut: "All" });
+      expect(document.activeElement).toBe(el("filtersBtn"));
+      view().querySelector('[data-act="unfilter"][data-dim="audience"]').click();
+      expect(state.browse.audience).toBe("All");
+      expect(view().querySelector(".parsed-chips")).toBe(null);
+      expect(document.activeElement).toBe(el("filtersBtn"));
+    });
+    it("with one of them in effect and nothing found, the empty list says to remove a filter first", () => {
+      reset({ q: "zzqxjv", soldOut: "no" });
+      expect(view().querySelector(".empty").textContent).toBe("No matches. Remove a filter above, or try another day or fewer words.");
+    });
+  });
+
+  /* The words already read hold the Audience (#71, #77): "18+" and "adult"
+     at 18+; a kids word holds two dimensions, the track and the Audience at
+     No 18+, with one chip. A tap on a dimension a word holds takes the word
+     out whole. */
+  describe("the words that hold the Audience", () => {
+    const under = () => chipsUnder().filter(c => c.dataset.act !== "unparse-today").map(c => c.getAttribute("aria-label"));
+    const box = () => el("q");
+    const type = v => { box().focus(); typeInto(box(), v); };
+    const kidsTrack = e => (e.tracks || []).includes("Kids Track");
+    afterAll(() => { box().blur(); reset(); });
+
+    it("the schedule has what these ask: Kids Track events that are 18+, and some that are not", () => {
+      expect(counted(e => kidsTrack(e) && adult(e))).toBeGreaterThan(0);
+      expect(counted(e => kidsTrack(e) && !adult(e))).toBeGreaterThan(0);
+    });
+    it.each(["18+", "adult"])("'%s' in the box: one chip, the word's, and the badge does not count it; the Audience shows 18+, and can be changed", word => {
+      reset({ q: word, noToday: true });
+      expect(under()).toEqual(["Remove 18+ filter"]);
+      expect(view().querySelector('[data-act="unparse"]').dataset.src).toBe(word);
+      expect(el("filtersBadge").hidden).toBe(true);
+      open();
+      expect(el("filterAudience").value).toBe("adult");
+      expect(el("filterAudience").disabled).toBe(false);
+      expect(says()).toBe(showSays(counted(adult)));
+      expect(el("filtersClear").disabled).toBe(true);
+    });
+    it("a choice in the Audience over '18+' takes the word out and sets the value chosen; focus stays, nothing behind is drawn", () => {
+      reset({ q: "trek 18+" });
+      open();
+      el("filterAudience").focus();
+      expect(mutationsDuring(view(), () => choose("filterAudience", "kids"))).toHaveLength(0);
+      expect(state.browse).toMatchObject({ q: "trek", audience: "kids" });
+      expect(document.activeElement).toBe(el("filterAudience"));
+      expect(el("filterAudience").value).toBe("kids");
+      el("filtersShow").click();
+      expect(el("q").value).toBe("trek");
+      expect(under()).toEqual(["Remove Kids filter"]);
+      expect(el("filtersBadge").textContent).toBe("1");
+    });
+    it("Any audience chosen over 'adult' takes the word out and leaves the Audience at All", () => {
+      reset({ q: "adult" });
+      open();
+      choose("filterAudience", "All");
+      expect(state.browse).toMatchObject({ q: "", audience: "All" });
+      expect(says()).toBe(showSays(counted(() => true)));
+    });
+    it("'kids' holds two dimensions: the Track shows Kids Track and the Audience No 18+, under one chip, the track's", () => {
+      reset({ q: "kids", noToday: true });
+      expect(under()).toEqual(["Remove Kids Track filter"]);
+      expect(el("filtersBadge").hidden).toBe(true);
+      open();
+      expect(el("track").value).toBe("Kids Track");
+      expect(el("filterAudience").value).toBe("no-adult");
+      expect(says()).toBe(showSays(counted(e => kidsTrack(e) && !adult(e))));
+    });
+    it("a choice in the Audience over 'kids' takes the word out whole, and the Kids Track with it", () => {
+      reset({ q: "kids saturday" });
+      open();
+      el("filterAudience").focus();
+      choose("filterAudience", "kids");
+      expect(state.browse).toMatchObject({ q: "saturday", audience: "kids", track: "All" });
+      expect(app.activeFilters()).toMatchObject({ track: "All", audience: "kids" });
+      expect([el("track").value, el("filterAudience").value]).toEqual(["All", "kids"]);
+      expect(document.activeElement).toBe(el("filterAudience"));
+      expect(says()).toBe(showSays(counted(e => tg(e).audience === "kids" && e._cd === "2026-09-05")));
+    });
+    it("Any audience chosen over 'kids' leaves nothing of the word: the track is All too", () => {
+      reset({ q: "kids" });
+      open();
+      choose("filterAudience", "All");
+      expect(state.browse).toMatchObject({ q: "", audience: "All", track: "All" });
+      expect(says()).toBe(showSays(counted(() => true)));
+    });
+    it.each(["kid", "family", "children"])("'%s' is held and taken out the same way", word => {
+      reset({ q: word });
+      open();
+      expect([el("track").value, el("filterAudience").value]).toEqual(["Kids Track", "no-adult"]);
+      choose("filterAudience", "adult");
+      expect(state.browse).toMatchObject({ q: "", audience: "adult", track: "All" });
+    });
+    it.each(["kids 18+", "18+ kids", "adult kids", "kids adult"])("'%s': the explicit word wins, in either order - the Kids Track at 18+", q => {
+      reset({ q, noToday: true });
+      expect(under().sort()).toEqual(["Remove 18+ filter", "Remove Kids Track filter"]);
+      open();
+      expect([el("track").value, el("filterAudience").value]).toEqual(["Kids Track", "adult"]);
+      expect(says()).toBe(showSays(counted(e => kidsTrack(e) && adult(e))));
+    });
+    it.each(["kids 18+", "18+ kids"])("'%s', a choice in the Audience: both words come out, since each holds it", q => {
+      reset({ q });
+      open();
+      choose("filterAudience", "no-adult");
+      expect(state.browse).toMatchObject({ q: "", audience: "no-adult", track: "All" });
+      expect(app.activeFilters()).toMatchObject({ track: "All", audience: "no-adult" });
+    });
+    it.each(["kids 18+", "18+ kids"])("'%s', a choice in the Track: 'kids' comes out, and '18+' still holds the Audience", q => {
+      reset({ q });
+      open();
+      choose("track", "Puppetry");
+      expect(state.browse).toMatchObject({ q: "18+", track: "Puppetry", audience: "All" });
+      expect(el("filterAudience").value).toBe("adult");
+      expect(app.activeFilters()).toMatchObject({ track: "Puppetry", audience: "adult" });
+    });
+    it("Clear leaves the word, and the Audience still shows what it holds", () => {
+      reset({ q: "18+", cost: "no" });
+      open();
+      el("filtersClear").click();
+      expect(state.browse).toMatchObject({ q: "18+", cost: "All", audience: "All" });
+      expect(el("filterAudience").value).toBe("adult");
+    });
+    it("while typing the word wins and the sheet's Audience is kept, uncounted; the box left, it goes to All and nothing comes back", () => {
+      reset({ audience: "kids" });
+      type("18+");
+      app.browseResults();
+      expect(state.browse.audience).toBe("kids");
+      expect(app.activeFilters().audience).toBe("adult");
+      expect(app.inEffect()).toEqual([]);
+      box().blur();
+      expect(state.browse.audience).toBe("All");
+      type("");
+      box().blur();
+      app.browseResults();
+      expect(app.activeFilters().audience).toBe("All");
+    });
+    it("'kids' typed over a track and an audience, and the box left: both go to All", () => {
+      reset({ track: "Puppetry", audience: "adult" });
+      type("kids");
+      box().blur();
+      expect(state.browse).toMatchObject({ track: "All", audience: "All" });
+    });
+    it("the sheet opened straight from typing settles the Audience before the panel draws: nothing left to Clear", () => {
+      reset({ audience: "kids" });
+      type("adult");
+      expect(document.activeElement).toBe(box());
+      open();
+      expect(state.browse.audience).toBe("All");
+      expect(el("filterAudience").value).toBe("adult");
+      expect(el("filtersClear").disabled).toBe(true);
+      handle.closeSheet();
+    });
+    it("no new word is read: 'free', 'sold out' and 'sign-up' hold nothing, and leave the sheet's four alone", () => {
+      reset({ cost: "no", signup: "yes", audience: "kids", soldOut: "no" });
+      type("free sold out sign-up hilton");
+      box().blur();
+      expect(app.parseQuery("free sold out sign-up").filters).toEqual({});
+      expect(state.browse).toMatchObject({ cost: "no", signup: "yes", audience: "kids", soldOut: "no" });
+    });
+  });
+
   describe("a render while the panel is open", () => {
     afterAll(() => reset());
 
@@ -774,6 +1154,11 @@ describe("the filter sheet", () => {
       expect(rule(".filters-body")).toMatch(/max-height: calc\(100dvh - /);
       expect(rule(".filter-chips")).toMatch(/flex-wrap: wrap/);
     });
+    it("Getting in brings no rule of its own: its label is the small label's, its grid the topics', its selects the panel's", () => {
+      expect(css).not.toMatch(/entry|filterCost|filterSignup|filterAudience|filterSoldOut|getting/i);
+      expect(rule(".filter-label")).toMatch(/text-transform: uppercase/);
+      expect(rule(".filter-topics")).toMatch(/grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\)/);
+    });
     it("its selects are 16px, so an iPhone does not zoom on one", () => {
       expect(rule("#sheet input, #sheet textarea, #sheet select")).toMatch(/font-size: 1rem/);
     });
@@ -797,9 +1182,40 @@ describe("the filter sheet on a schedule with no tags", () => {
   it("has no kind chips, no Fandom select and no topic selects", () => {
     expect(panel().querySelector('[data-group="kind"], [data-chip="kind"], #fandom, [data-group="topics"], select[data-filter="medium"]')).toBe(null);
   });
-  it("and keeps the hotel chips, the Track select, the Type control and the toggle", () => {
-    expect([...panel().querySelectorAll("[data-group]")].map(g => g.dataset.group)).toEqual(["hotel", "pick", "type", "noise"]);
+  it("and keeps the hotel chips, the Track select, the Type control, Getting in and the toggle", () => {
+    expect([...panel().querySelectorAll("[data-group]")].map(g => g.dataset.group)).toEqual(["hotel", "pick", "type", "entry", "noise"]);
     expect(panel().querySelector(".filter-pair select").id).toBe("track");
+  });
+  it("Getting in is Cost, Sign-up and Sold out there, and no Audience: the fourth cell is empty", () => {
+    expect([...panel().querySelectorAll('[data-group="entry"] .filter-topics > *')].map(c => c.getAttribute("aria-label"))).toEqual(["Cost", "Sign-up", "Sold out"]);
+    expect(el("filterAudience")).toBe(null);
+    expect(panel().querySelector('[data-filter="audience"]')).toBe(null);
+  });
+  it("an option is there at 0: the sample has no fee and no sign-up", () => {
+    const texts = id => [...el(id).options].map(o => o.textContent);
+    expect(texts("filterCost")).toEqual(["Any cost", "No extra fee", "Extra fee (0)"]);
+    expect(texts("filterSignup")).toEqual(["Any sign-up", "No sign-up", "Sign-up (0)"]);
+    expect(texts("filterSoldOut")).toEqual(["Sold out or not", "Not sold out"]);
+  });
+  it("and chosen, it keeps none: 'No events match'", () => {
+    const pick = (id, value) => { el(id).value = value; el(id).dispatchEvent(new Event("change", { bubbles: true })); };
+    pick("filterCost", "yes");
+    expect(handle.state.browse.cost).toBe("yes");
+    expect(el("filtersShow").textContent).toBe("No events match");
+    pick("filterCost", "All");
+    expect(el("filtersShow").textContent).toMatch(/^Show \d+ events$/);
+  });
+  it("'18+' asks no tags: the word finds the events whose listings state 18, with no select to show it", () => {
+    const stated = handle.events.filter(e => (e.facets || {}).min_age >= 17 && !noise(e));
+    expect(stated.length).toBeGreaterThan(0);
+    handle.closeSheet();
+    Object.assign(handle.state.browse, { q: "18+", day: "All", noToday: true });
+    handle.render();
+    expect(page.app.browseResults().map(e => e.id).sort()).toEqual(stated.map(e => e.id).sort());
+    expect([...document.querySelectorAll("#view-browse .parsed-chips .chip")].map(c => c.getAttribute("aria-label"))).toEqual(["Remove 18+ filter"]);
+    Object.assign(handle.state.browse, { q: "", noToday: false });
+    handle.render();
+    el("filtersBtn").click();
   });
   it("'kids' holds a track the schedule lacks: the select shows Kids Track, first, and can be changed", () => {
     handle.closeSheet();
@@ -815,5 +1231,46 @@ describe("the filter sheet on a schedule with no tags", () => {
     sel.dispatchEvent(new Event("change", { bubbles: true }));
     expect(handle.state.browse.q).toBe("");
     expect(handle.state.browse.track).toBe("All");
+  });
+});
+
+describe("Getting in on a schedule where no event has what its options name", () => {
+  let page, handle;
+  const el = id => document.getElementById(id);
+  const texts = id => [...el(id).options].map(o => o.textContent);
+
+  beforeAll(async () => {
+    page = await bootPage({ data: plain });
+    ({ handle } = page);
+    handle.state.tab = "browse";
+    Object.assign(handle.state.browse, { day: "All" });
+    handle.render();
+    el("filtersBtn").click();
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("the options are fixed lists: each is there, at 0", () => {
+    expect(handle.events.length).toBeGreaterThan(0);
+    expect(texts("filterCost")).toEqual(["Any cost", "No extra fee", "Extra fee (0)"]);
+    expect(texts("filterSignup")).toEqual(["Any sign-up", "No sign-up", "Sign-up (0)"]);
+    expect(texts("filterAudience")).toEqual(["Any audience", "Kids (0)", "No 18+", "18+ (0)"]);
+    expect(texts("filterSoldOut")).toEqual(["Sold out or not", "Not sold out"]);
+  });
+  it("so a word's value always has its option: '18+' in the box, the Audience shows 18+ and nothing matches", () => {
+    handle.closeSheet();
+    Object.assign(handle.state.browse, { q: "18+", noToday: true });
+    handle.render();
+    el("filtersBtn").click();
+    expect(el("filterAudience").value).toBe("adult");
+    expect(el("filterAudience").options[el("filterAudience").selectedIndex].textContent).toBe("18+ (0)");
+    expect(el("filtersShow").textContent).toBe("No events match");
+  });
+  it("and 'kids' shows No 18+, which keeps every event of a track it holds", () => {
+    handle.closeSheet();
+    Object.assign(handle.state.browse, { q: "kids", noToday: true });
+    handle.render();
+    el("filtersBtn").click();
+    expect(el("filterAudience").value).toBe("no-adult");
+    expect(el("track").value).toBe("Kids Track");
   });
 });

@@ -13,7 +13,8 @@ describe("against the real schedule", () => {
 
   /* run a query with the default filters and say what came back; it does not draw */
   function search(q, over = {}) {
-    Object.assign(state.browse, { q, day: "All", hotel: "All", type: "All", track: "All", work: "All", kind: "All", showHidden: false, showPast: false, noToday: false, hideNoise: true, page: 1 }, over);
+    Object.assign(state.browse, { q, day: "All", hotel: "All", type: "All", track: "All", work: "All", kind: "All",
+      cost: "All", signup: "All", audience: "All", soldOut: "All", showHidden: false, showPast: false, noToday: false, hideNoise: true, page: 1 }, over);
     const results = app.browseResults(), of = section => results.filter(e => e._section === section);
     return { results, total: results.length, main: of("main").length, loose: of("loose").length, past: of("past").length,
       topTitles: of("main").slice(0, 5).map(e => e.title), mainDays: of("main").map(e => e.day), mainEvents: of("main"),
@@ -546,17 +547,51 @@ describe("against the real schedule", () => {
         state.browse.hideNoise = false;
         expect(app.suggestionsFor("kid").topics.map(t => t.name)).toContain("Kids");
       });
-      it('"18+" finds the mature events and nothing else', () => {
+      it('"18+" finds the 18+ events - a mature audience, a stated minimum of 17 or more, or the marker of the listing - and nothing else: 105', () => {
         const r = search("18+", { noToday: true, hideNoise: false });
-        expect(r.total).toBe(handle.events.filter(e => e.tags.audience === "mature").length);
-        expect(r.results.every(e => e.tags.audience === "mature")).toBe(true);
+        expect(r.total).toBe(105);
+        expect(r.results.every(e => app.isAdult(e))).toBe(true);
+        expect(handle.events.filter(e => app.isAdult(e))).toHaveLength(105);
       });
-      it('"kids" keeps the mature ones out, though the Kids Track has one', () => {
+      it("in 2026 the three halves of that rule name the same 105: the mature audience holds every stated 17, 18 and 21 and every marker", () => {
+        const mature = handle.events.filter(e => e.tags.audience === "mature");
+        expect(mature).toHaveLength(105);
+        expect(handle.events.filter(e => app.isAdult(e) && e.tags.audience !== "mature").map(e => e.title)).toEqual([]);
+        expect(handle.events.filter(e => e.facets.min_age >= 17)).toHaveLength(28);
+        expect(handle.events.filter(e => e.facets.mature)).toHaveLength(75);
+      });
+      it('"kids" keeps the 18+ ones out, though the Kids Track has one: 47 of its 48', () => {
         const kidsTrack = handle.events.filter(e => (e.tracks || []).includes("Kids Track"));
-        expect(kidsTrack.some(e => e.tags.audience === "mature")).toBe(true);
+        expect(kidsTrack).toHaveLength(48);
+        expect(kidsTrack.filter(e => app.isAdult(e)).map(e => e.title)).toEqual(["Grown-up Games: Warrior Cats, or Game of Thrones?"]);
         const r = search("kids", { noToday: true, hideNoise: false });
-        expect(r.total).toBe(kidsTrack.filter(e => e.tags.audience !== "mature").length);
-        expect(r.results.some(e => e.tags.audience === "mature")).toBe(false);
+        expect(r.total).toBe(47);
+        expect(r.results.some(e => app.isAdult(e))).toBe(false);
+      });
+      it.each(["kids 18+", "18+ kids", "adult kids", "kids adult"])('"%s": the explicit word wins, in either order - the one 18+ event of the Kids Track', q => {
+        const r = search(q, { noToday: true, hideNoise: false });
+        expect(r.results.map(e => e.title)).toEqual(["Grown-up Games: Warrior Cats, or Game of Thrones?"]);
+      });
+      /* DECISIONS #77: a row's 18+ asks isAdult(), which reads the listing's
+         marker too. The rule a row had before, written out here, gives every
+         one of 2026's events the flags it gives now. */
+      it("every 2026 event's flags are what they were before the marker was read", () => {
+        const before = e => {
+          const f = e.facets || {}, audience = (e.tags || {}).audience, out = [];
+          if (f.sold_out) out.push({ key: "sold_out", label: "Sold out" });
+          if (f.cost) out.push({ key: "cost", label: "Extra fee" });
+          if (f.signup) out.push({ key: "signup", label: "Sign-up" });
+          if (f.min_age) out.push({ key: "age", label: `${f.min_age}+` });
+          else if (audience === "mature") out.push({ key: "age", label: "18+" });
+          if (audience === "kids") out.push({ key: "kids", label: "Kids" });
+          return out;
+        };
+        expect(handle.events).toHaveLength(3459);
+        expect(handle.events.filter(e => JSON.stringify(app.flagsOf(e)) !== JSON.stringify(before(e))).map(e => e.id)).toEqual([]);
+        const ages = {};
+        handle.events.forEach(e => app.flagsOf(e).filter(f => f.key === "age").forEach(f => { ages[f.label] = (ages[f.label] || 0) + 1; }));
+        expect(ages).toEqual({ "18+": 88, "17+": 14, "21+": 2, "16+": 2, "13+": 1 });
+        expect(app.flagsOf(handle.events.find(e => e.title === "Puppetry 101 - Adults")).map(f => f.label)).toEqual(["16+"]);
       });
       it("the sheet's facts line says a mature event's age - 18+, or the minimum its listing states - and no other event's", () => {
         const ages = () => [...document.querySelectorAll("#panel-event .ev-facts .flag")].map(f => f.textContent).filter(t => /^\d+\+$/.test(t));
@@ -673,6 +708,64 @@ describe("against the real schedule", () => {
       expect([plain.tagName, plain.textContent, plain.closest("button")]).toEqual(["SPAN", app.worksById.get("brandish").name, null]);
       plain.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       expect([document.getElementById("sheetWrap").hidden, state.sheetId, state.tab]).toEqual([false, ev.id, "now"]);
+    });
+  });
+
+  /* Getting in (DECISIONS #77): the counts its design was settled on, from
+     the committed schedule. New tests, not rows of tests/PORT-LEDGER.md. */
+  describe("Getting in, on 2026's schedule", () => {
+    const el = id => document.getElementById(id);
+    const texts = id => [...el(id).options].map(o => o.textContent);
+    const choose = (id, value) => { const s = el(id); s.value = value; s.dispatchEvent(new Event("change", { bubbles: true })); };
+    const says = () => el("filtersShow").textContent;
+    beforeAll(() => { handle.closeSheet(); state.explore.page = null; app.setExploreHash(null); state.tab = "browse"; search(""); handle.render(); el("filtersBtn").click(); });
+    afterAll(() => { handle.closeSheet(); search(""); state.tab = "now"; handle.render(); });
+
+    it("the options: a count on those that name something an event has - 214 with a fee, 112 with a sign-up, 88 for kids, 105 that are 18+", () => {
+      expect(texts("filterCost")).toEqual(["Any cost", "No extra fee", "Extra fee (214)"]);
+      expect(texts("filterSignup")).toEqual(["Any sign-up", "No sign-up", "Sign-up (112)"]);
+      expect(texts("filterAudience")).toEqual(["Any audience", "Kids (88)", "No 18+", "18+ (105)"]);
+      expect(texts("filterSoldOut")).toEqual(["Sold out or not", "Not sold out"]);
+    });
+    it("each value over every event: 3,245 with no fee and 214 with one; 3,347 with no sign-up and 112 with one; 88 for kids, 3,354 not 18+ and 105 that are; 3,440 not sold out", () => {
+      const n = (dim, value) => handle.events.filter(e => app.passesGettingIn(e, dim, value)).length;
+      expect(handle.events).toHaveLength(3459);
+      expect([n("cost", "no"), n("cost", "yes"), n("signup", "no"), n("signup", "yes")]).toEqual([3245, 214, 3347, 112]);
+      expect([n("audience", "kids"), n("audience", "no-adult"), n("audience", "adult"), n("soldOut", "no")]).toEqual([88, 3354, 105, 3440]);
+    });
+    it("Kids is the audience, not the Kids Track: 88 events, 47 of them in the track's 48", () => {
+      const kids = handle.events.filter(e => app.passesGettingIn(e, "audience", "kids"));
+      expect(kids.filter(e => (e.tracks || []).includes("Kids Track"))).toHaveLength(47);
+      expect(kids.filter(e => app.isNoise(e))).toHaveLength(22);
+    });
+    it.each([
+      ["filterCost", "no", "Show 2,839 events"], ["filterCost", "yes", "Show 214 events"],
+      ["filterSignup", "no", "Show 2,941 events"], ["filterSignup", "yes", "Show 112 events"],
+      ["filterAudience", "kids", "Show 66 events"], ["filterAudience", "no-adult", "Show 2,948 events"], ["filterAudience", "adult", "Show 105 events"],
+      ["filterSoldOut", "no", "Show 3,034 events"],
+    ])("%s at %s: the main button counts what the list holds with photo sessions hidden - %s", (id, value, words) => {
+      choose(id, value);
+      expect(says()).toBe(words);
+      expect(app.browseResults()).toHaveLength(Number(words.replace(/\D/g, "")));
+      choose(id, "All");
+      expect(says()).toBe("Show 3,053 events");
+    });
+    it("each of the four agrees with a row's flags on every event, but for the one mature event whose listing states 16: 18+ under a row that says 16+", () => {
+      const off = [];
+      for (const e of handle.events) {
+        const flags = app.flagsOf(e), has = key => flags.some(f => f.key === key), age = (flags.find(f => f.key === "age") || {}).label;
+        if (app.passesGettingIn(e, "cost", "yes") !== has("cost")) off.push(["cost", e.title]);
+        if (app.passesGettingIn(e, "signup", "yes") !== has("signup")) off.push(["signup", e.title]);
+        if (app.passesGettingIn(e, "soldOut", "no") === has("sold_out")) off.push(["soldOut", e.title]);
+        if (app.passesGettingIn(e, "audience", "kids") !== has("kids")) off.push(["kids", e.title]);
+        if (app.passesGettingIn(e, "audience", "adult") !== (parseInt(age, 10) >= 17)) off.push(["18+", e.title, age]);
+      }
+      expect(off).toEqual([["18+", "Puppetry 101 - Adults", "16+"]]);
+    });
+    it("the two rows that say an age and are not 18+: a 13+ for kids and a 16+", () => {
+      const aged = handle.events.filter(e => app.flagsOf(e).some(f => f.key === "age") && !app.isAdult(e));
+      expect(aged.map(e => [e.title, app.flagsOf(e).map(f => f.label).join(", ")]).sort()).toEqual([
+        ["Modded Kids Among Us in Real Life (Ages 13+)", "13+, Kids"], ["Troika: Slate & Chalcedony", "16+"]]);
     });
   });
 });
