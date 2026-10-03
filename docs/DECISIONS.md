@@ -569,7 +569,7 @@ frozen file; CI has no model access; reproducibility.
 `data/` into `dist/`, so the v2 file ships unused until the switch unless
 the copy excludes it; decide in the PR that first writes it.
 
-### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21) — its PR 6 items built by #39: the allowlist into `dist/`, and no follow of an unreviewed work; its three build stops (a cache miss, an unresolved name, an unknown track) to become counted degradations, 2026's held at zero by a CI test (#44); `PROMPT_VERSION` to be per year, in `season.json`, and a minted row to record its year and run (#46); the three stops built as counted degradations by Pipeline shape's PR 6, 2026's held at zero by `tests/test_zero_hold.py`; `PROMPT_VERSION` per year, `season.json`'s `prompt_version`, and a minted row's year and run built by Pipeline shape's PR 7a (`contract.md`, The tag stage, as built)
+### 34. Tags v2 as built: one answer an input, cached as names; the model by full id — Standing (2026-09-21) — its PR 6 items built by #39: the allowlist into `dist/`, and no follow of an unreviewed work; its three build stops (a cache miss, an unresolved name, an unknown track) to become counted degradations, 2026's held at zero by a CI test (#44); `PROMPT_VERSION` to be per year, in `season.json`, and a minted row to record its year and run (#46); the three stops built as counted degradations by Pipeline shape's PR 6, 2026's held at zero by `tests/test_zero_hold.py`; `PROMPT_VERSION` per year, `season.json`'s `prompt_version`, and a minted row's year and run built by Pipeline shape's PR 7a (`contract.md`, The tag stage, as built); an unreviewed work's chip on an event's sheet is no tap, by the same rule, `canFollow()` (#75)
 **Decided:** `tag_stage.py` asks the model and `events_v2.py` builds
 (#32, #33); `docs/discover/schema-v2.md` has the detail.
 - **The input and its key.** The model is sent an event's title without its
@@ -1921,7 +1921,7 @@ reader's day, the crew's and the crew's management: the tab the tripwire
 watches most. Before the con a reader opens on Explore, not on Now's
 preview.
 
-### 63. One home, any number of entry points — Decided, not built (2026-09-30)
+### 63. One home, any number of entry points — Decided, not built (2026-09-30) — the event sheet's entry points built by #75, PR #94: the place to the Map, focused on the event, and the chips to their Explore pages (`docs/screens/contract.md`, sections 6, 7 and 11, as built)
 **Decided:** Every item in `docs/screens/contract.md` has one home, the
 screen that owns its state, and any number of entry points: taps from
 context that open the home's own state with parameters - the Map focused
@@ -1944,7 +1944,7 @@ The browser's own Back plays no part: the hash is written by
 Explore page is "← Explore", to the grid, wherever the page was opened
 from: one tap from the event, accepted.
 
-### 64. The row and the gap line — Decided, not built (2026-09-30) — its overlap computed once, by `walk.js` `connection()`: the two picks' intersection, the earlier end less the later start, which the hero and the gap line read and the row's flag is to word, not compute again (PR #76); who's going built by PR #81: a line on the event's sheet, three names and then how many more, tapping nowhere (`docs/screens/contract.md`, section 7, as built); the level on line 2 to be its `short` (#72); amended by #73, the row as built (PR #92): the time a range on line 2 and no time column, Celebrity on line 3, the overlap said by the two rows' flags and the gap line keeping walks and tight connections, a flagged row's track left off, and the level by its `short` (`docs/screens/contract.md`, section 10, as built); its sheet built and amended by #74 (PR #93): the overlap line before starring too, as "Would overlap", and the facts in the row's words, not a second vocabulary (`docs/screens/contract.md`, section 7, as built); its chips and its place line as entry points still to build
+### 64. The row and the gap line — Decided, not built (2026-09-30) — its overlap computed once, by `walk.js` `connection()`: the two picks' intersection, the earlier end less the later start, which the hero and the gap line read and the row's flag is to word, not compute again (PR #76); who's going built by PR #81: a line on the event's sheet, three names and then how many more, tapping nowhere (`docs/screens/contract.md`, section 7, as built); the level on line 2 to be its `short` (#72); amended by #73, the row as built (PR #92): the time a range on line 2 and no time column, Celebrity on line 3, the overlap said by the two rows' flags and the gap line keeping walks and tight connections, a flagged row's track left off, and the level by its `short` (`docs/screens/contract.md`, section 10, as built); its sheet built and amended by #74 (PR #93): the overlap line before starring too, as "Would overlap", and the facts in the row's words, not a second vocabulary (`docs/screens/contract.md`, section 7, as built); its chips and its place line as entry points still to build; built by #75, PR #94: the place a tap to the Map on the event's con day, its hotel ringed and the event on the card, and each track's chip and each reviewed work's a tap to its Explore page, an unreviewed work's staying plain (#34)
 **Decided:** A row is at most three lines, and the walk between two events
 is said between their rows.
 - **Line 1:** the star, the title and the state tags - Cancelled, Removed
@@ -2002,7 +2002,7 @@ after seven days without a visit (#25).
 settles #40's open question - a standing line on Now, or the moment it
 earns itself - as the second.
 
-### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built)
+### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built); the entry points' by PR #94 (#75): the place's target 44 px tall with the head not grown, a chip's 44 px tall and at least 44 wide around the chip's own look, each named for where it goes or by its kind, and keyboard focus landing on what a tap opened - the Map's card, an Explore page's heading, from the grid's tiles too (`docs/screens/contract.md`, sections 6 and 7, as built)
 **Decided:** Every screen Where things live touches meets these, and none
 of them has a screen of its own (W43):
 - a label on every new control;
@@ -2342,7 +2342,7 @@ one, "In 40 min", is lost at none of the three, at either size
 band a cancelled pick, which the row's flag does not (`contract.md`,
 section 14).
 
-### 74. The event sheet as built — Standing (2026-10-03)
+### 74. The event sheet as built — Standing (2026-10-03) — its other sessions amended by #75: only those not yet started, the rest left out; its place and its chips made taps by #75, PR #94
 **Decided:** An event's sheet is #64's, amended in two ways, in three
 parts: a head and a foot that never scroll, and a body between them that
 does (`docs/screens/contract.md`, section 7, as built; PR #93).
@@ -2431,3 +2431,98 @@ from it. The one-line "how to get there" (W18) is not built: no data for
 it exists. The known-for line is built before any line exists: 2026's
 block is empty until the review lands (#61). A live region cannot be heard
 in jsdom, nor a pinned foot seen: both are hand checks on a phone.
+
+### 75. The event sheet's entry points as built — Standing (2026-10-03)
+**Decided:** Three taps leave an event's sheet, each to a home's own state
+(#63), and the Map can hold one event as its focus
+(`docs/screens/contract.md`, sections 6, 7 and 11, as built; PR #94).
+- **The place** is one button on the sheet of an event at one of the Map's
+  seven places that is neither cancelled nor removed: its words as before,
+  underlined, in the hotel's hue, named "`<place>`, show on the map". A
+  stream, an offsite event, one with no known place, a cancelled and a
+  removed event keep the plain line. The level stays under it, outside the
+  tap. Its target is 44 px tall and the head does not grow: the button
+  takes 16 px of padding above and 6 px below and gives both back as
+  negative margins, so its box reaches over the when line, which is never a
+  tap, and ends exactly where the next line starts. The tap closes the
+  whole sheet, a shared day under it too, and opens the Map at its top,
+  focused on the event.
+- **The Map's focus** is one event's id, in memory alone
+  (`state.map.focus`). The focus carries its own day: while it is set the
+  Map shows the event's con day, and `state.map.day` is not written, so
+  when the focus ends the Map is on the day it had - the clock's, where no
+  chip had been tapped. A third ring stands on the event's hotel: the light
+  text colour, not gold, which is the reader's own picks; not pulsing; 11
+  out from the block, outside the now ring and the next ring. The card
+  under the map shows that event in the next pick's place, the same button:
+  "You were looking at", the title, the place and the level as a row says
+  them, the con day's name and the time as a range; a long place wraps. No
+  minutes and no walk. The card is a tap, to the event's sheet, and it
+  shows whatever the clock says: before the con, and after it, where the
+  Map has no card.
+- **The focus ends** when the Map tab is left by any road, which one line
+  of `render()` decides; at a day chip's tap, which chooses the day; when
+  the clock is changed; and when the schedule no longer holds the event, or
+  holds it as removed. A sheet opened and closed over the Map, and a star,
+  leave it. A reload loses it.
+- **A chip** - each track, and each work a person has reviewed - is a
+  button to its Explore page, the whole sheet closing, as a person's name
+  does. Every chip's name says its kind too, by Explore's own noun in lower
+  case: "Star Wars, track", "Star Wars, fandom". An unreviewed work's chip
+  is no tap and does not look like one - a span, no fill, its words muted:
+  its id must not become permanent in an address (#34), and the rule is the
+  hash's own, `canFollow()`.
+- **Focus** lands on what the tap opened (#66), the page staying at its
+  top: the Map's card after the place; the Explore page's heading after a
+  name or a chip - and after a tile, a Following chip or a
+  Because-you-starred tile on Explore's grid, which lost it the same way.
+- **The way back from an Explore page,** "← Explore", lands the grid where
+  it last was: the grid's scroll is taken only where the screen under the
+  tap is the grid itself. From another tab's sheet, or from an Explore
+  page, what the grid last held stays - its top, if it was never left.
+- **Every new tap is 44 px** tall and at least 44 wide (#66); a chip keeps
+  its look inside its target.
+- **The other sessions** are only those not yet started when the panel is
+  drawn, in start order. The rest are left out, "and `<n>` more" counts
+  what is left, and with none left there is no line: after the con no sheet
+  has it, and a cancelled event's sheet lists its live sessions still to
+  come.
+
+Amends #74's other sessions - "those not yet started come first", and "A
+cancelled event's sheet lists the sessions that still run" - and builds
+#64's "the sheet's chips and place line are entry points", its "a track or
+work chip" narrowed to a work a person has reviewed.
+
+**Why:** The step 7 design chat (2026-10-03), after the sheet (#74). The
+map should open from the event a person is reading (#63). Gold is the
+reader's own picks, so a place only looked at takes another colour. A
+reader at the con on Saturday who looked up where a Sunday panel is never
+tapped Sunday: coming back to the Map an hour later, they must find today,
+its rings and its counts - so the focus carries its day and writes none.
+The head never scrolls: 21 px of it for the place's target would open a gap
+between the place and its own level, and #74's tallest case would scroll 32
+px where it scrolls 10; #66 asks for the target, not for the room. A
+session that has started is not one to go to: at Saturday 1:05 PM, 944 of
+the 2,601 sessions 2026's sheets named had started. After a tap that left
+the sheet, focus was on nothing: the sheet's close gave it back to the row
+that opened the sheet, and the tab change then hid the row. And "←
+Explore" landed the grid at the scroll of whatever tab the sheet had stood
+over: 900 px down, from a sheet over Search at 900.
+**Cost:** A row of chips is 44 px where it was 23, and two rows 88 where
+they were 52, in the body, which scrolls: #74's tallest case scrolls as it
+did, by 10, 13 and 0 px at 375x667, 390x664 and 402x714, and its body holds
+160 px where it held 139. The place's box covers the lower 10 px of the
+when line, so a thumb on the time can open the Map: a phone's to check. The
+focus ring is 2 over the next hotel's block where the Hyatt and the
+Marriott stand 10 apart, and 1 inside the frame above the park and under
+the Courtland. A chip that is not a tap sits among chips that are: 244 of
+2026's 1,699 work chips, 64 unreviewed works on 239 events. Two chips can
+carry the same words and go to two pages: "Star Wars", the track and the
+work, on 35 events of 2026, and "Artemis Spaceship Bridge Simulator" on 5.
+304 of the pages a chip opens hold one event, the one the reader came
+from. After the con no sheet names another session. A reload loses the
+focus. While a notice stands above the views - the preview banner before
+the con, "has ended" after it until its OK - the Map tab is taller than
+the screen by the notice, as it was, and the focused card is cut at the
+page's top: by 82 px after the con at 375x667, where the Map had no card
+to cut. "← Explore" still drops keyboard focus to the page.

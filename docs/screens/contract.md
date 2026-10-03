@@ -925,8 +925,9 @@ Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
 
 ### Map, as built
 
-PR #81, step 5a, with #62 and #66: the crew's count. The focused hotel and
-the building view (PRs 7 and 10) are still to come.
+PR #81, step 5a, with #62 and #66: the crew's count. PR #94, step 7's
+third, with #63, #66 and #75: the focused event. The building view (PR 10)
+is still to come.
 
 - **The crew counted per hotel** (`map.js` `mapCrewCounts()`). On a build
   with a backend, for a reader in a crew: at each hotel, how many
@@ -973,6 +974,79 @@ the building view (PRs 7 and 10) are still to come.
   focus kept through a crew's pull and the minute's tick; the contrast,
   computed from the tokens. None carries a ledger bracket.
 
+The focused event, PR #94:
+
+- **The focus** (`map.js` `showOnMap()`, `mapFocus()`; `state.map.focus`).
+  One event's id, in memory alone: the event whose sheet's place line sent
+  the reader here (section 7, as built). `showOnMap()` sets the focus and
+  the tab and nothing else, draws, brings the page to its top and puts
+  keyboard focus on the card. It does nothing for an event `onTheMap()`
+  refuses: one off the Map's seven places, a cancelled one, a removed one.
+- **Its day.** `mapDay()` answers the focused event's con day while a focus
+  is set; then the day a chip chose; then the clock's, as before.
+  `state.map.day` is not written, so when the focus ends the Map is on the
+  day it had - the clock's, where no chip had been tapped. The pills, the
+  crew's counts, the off-map line and a hotel's sheet are the day's the Map
+  shows; the gold rings are today's, and show only where that is today.
+  Every event of 2026 has a con day among the Map's day chips.
+- **Its ring** (`mapFocusSVG()`; `.map-focus`). On the event's hotel, in a
+  class of its own: `--text`, 2 wide, no fill, no pulse, 11 out from the
+  block - the now ring is at 4 and the next ring at 7, its pulse reaching
+  9 - drawn after the gold rings and before the pills. 11 is the largest
+  that stays inside the frame on all seven, with 1 to spare above the park
+  and under the Courtland. Between the Hyatt and the Marriott, 10 apart, it
+  is 2 over the neighbour's block. Decorative, as the other rings are.
+- **Its card** (`focusCardHTML()`). `#mapNext` itself, in the next pick's
+  place: "You were looking at", in `.nc-label`; the title; the place and,
+  after a middle dot, the level's short name, as a row says them; the con
+  day's name and the time as a range, so a session after midnight is
+  "Saturday 12:30–1:30 AM". A long place wraps. No minutes and no walk: it
+  is not a pick. The On now line above it stays. It is drawn before the
+  `conEnded()` exit, so it shows after the con, alone, where the Map has no
+  card, and before it, where the next pick's card or the line on how to
+  get one would stand. Its tap is the card's: the event's sheet.
+- **How it ends.** `shell.js` `render()`: a tab that is not the Map ends
+  it, one line for every road there is - the tab bar, an Explore page, the
+  hotel sheet's search, a hash. A day chip's tap (`dispatch.js`), which
+  writes the day. `setTimeOverride()`. And `mapFocus()` itself, where
+  `byId` lacks the event or holds it as removed - which no page reaches
+  today, since a new schedule comes by a reload, and a reload loses the
+  focus. It is kept through a sheet opened and closed, the event's or a
+  hotel's, a star, a pull's redraw and the minute's tick.
+- **The signatures.** `mapSignature()` carries the focus's id, so a focus
+  set or ended is drawn at the tick; a focused card's signature holds no
+  minutes and no walk, so a minute changes nothing on it.
+- **#66.** Keyboard focus lands on the card as the Map opens, and the card
+  keeps it through a redraw by its id, as before. The hotel's label is
+  unchanged: the card says what is focused. The ring reads at 12.7:1 on the
+  ground and 8.1:1 or more on every block. No new motion; Larger text
+  leaves the ring alone.
+- **Measured** in desktop Chromium, the app's pane, on the built page with
+  2026's schedule, Barlow Semi Condensed loaded, and the page confirmed to
+  be this build; at 375x667, 390x664 and 402x714, Larger text off and on;
+  the phone check to come. With an On now line above the card and the
+  off-map line under it, the focused card is whole in view with the page
+  at its top in every case: "Tai Chi with Erin Gray", 133.5 px, 148 with
+  Larger text; and the tallest of 2026, a two-line title over a place that
+  wraps, 151.7 and 168.9. The map gives the room, down to 201.3 px of its
+  200 at 390x664 with Larger text. With a notice above the views the tab
+  is taller than the screen by the notice, as it was (section 14): at
+  375x667 the card is cut by 31.8 px before the con, as the next pick's
+  card is there, and by 81.8 after it until the notice's OK, then by
+  nothing.
+- **The tests.** `tests/page/map.test.js`, the Map's focus: set as the
+  sheet's place sets it, the day shown and none written; the ring, its
+  place among the others, all three on one hotel, inside the frame on each
+  of the seven, its rule and its contrast; the card's words, the On now
+  line, the Mart, a session after midnight, its tap and the close after
+  it; kept through a hotel's sheet, a star and quiet minutes; each way it
+  ends, and the day the Map is then on; after the con and before it; and
+  the schedule losing the event. None carries a ledger bracket. A mutation
+  pass of 82 mutants over this pull request's new rules - the sessions,
+  the place as words, the focus and its ends, the ring, the card, the
+  signatures, the taps, the chips, focus, the grid's scroll and the CSS -
+  killed all 82.
+
 ## 7. The event sheet
 
 As built: the recon, section 3, the event panel.
@@ -980,7 +1054,7 @@ As built: the recon, section 3, the event panel.
 As built, plus:
 
 - **The place line** is tappable: the Map on that hotel, focused (section
-  6).
+  6). Built by PR #94 (#75), for an event the Map can show.
 - **The level and "how to get there"** (W18) under the place line, from
   the venues file, as the data lands (section 13).
 - **"Known for"** (W42): a guest's reviewed line under each person, and
@@ -988,7 +1062,8 @@ As built, plus:
   file's `people` block (#61), which `data.js` reads since PR #93 and
   which is `[]` in 2026's file until the review lands.
 - **The chips** - each track and each work - are tappable: their Explore
-  page.
+  page. Built by PR #94 (#75): each track, and each work a person has
+  reviewed; an unreviewed work's chip stays plain (#34).
 - **Facets** (W7) in words - the row's words, since #74.
 - **Who's going** (W22): a line, from `crews.js` `goingTo()`, for a reader
   in a crew, saying who starred the event - "Starred by" since PR #83, never
@@ -1021,9 +1096,11 @@ PR #81, step 5a, with #62, #64 and #66: who's going, worded as who starred
 it by PR #83, step 5d, with #68. Focus and Escape were built by PR #77
 (section 5, as built). PR #93, step 7's second, with #66 and #74: the
 panel's three parts, the level, the facts, the other sessions, the people
-and the overlap line, its height, and the star written in place. Still to
-come: the place and the chips as taps (section 11), a cue that more is
-below a scrolling area, and W44's.
+and the overlap line, its height, and the star written in place. PR #94,
+step 7's third, with #63, #66 and #75: the place and the chips as taps
+(section 11), focus after a tap that leaves the sheet, and the other
+sessions still to come alone. Still to come: a cue that more is below a
+scrolling area, and W44's.
 
 - **Three parts** (`eventsheet.js` `eventSheetHTML()`, the panel's own
   module since PR #93; the panel's element and `openSheet()` are
@@ -1056,16 +1133,21 @@ below a scrolling area, and W44's.
   `facets.repeat_key`, the same title and the same people, by id - whatever
   their order - that are neither removed nor cancelled: "Author Signing"
   is eight sessions of eight line-ups, and they are not each other's. A
-  cancelled or a removed event's own sheet lists the sessions that still
-  run. Each is said by its con day's label and its start, so a session
-  after midnight takes the night it belongs to, as a row does. Those not
-  yet started come first, in start order, then the rest - by `now()`
-  (#12), read as the panel is drawn and not again while it is open: the
-  sheet does not tick. Three are named, each a button, then "and `<n>`
-  more" in plain words. No line with no other session. In 2026: 347 groups
-  of two or more, 1,173 events with another session, the largest group 44,
-  and 46 groups with more than three others; 6 groups run in more than one
-  room, which the line does not say.
+  cancelled or a removed event's own sheet lists its live sessions still
+  to come. Each is said by its con day's label and its start, so a session
+  after midnight takes the night it belongs to, as a row does. Only those
+  not yet started are listed, in start order, since PR #94 (#75) - until
+  then they came first, and the rest after them - by `now()` (#12), read
+  as the panel is drawn and not again while it is open: the sheet does not
+  tick. One starting at that very moment has started. Three are named,
+  each a button, then "and `<n>` more" of those left, in plain words. No
+  line with none left: after the con no sheet has one. In 2026, counted
+  before the con: 347 groups of two or more, 1,173 events with another
+  session, the largest group 44, and 46 groups with more than three
+  others; 6 groups run in more than one room, which the line does not say.
+  The sheets with the line, and those of them with more than three: 1,173
+  and 351 before the con, 987 and 151 at Saturday 1:05 PM, none after it.
+  Neither of 2026's two cancelled events has another session.
 - **The people**, under a small "With", a list the label names. Each is as
   the listing spells them; a name is a button to that person's Explore page
   (`data-explore`), and "See all" is gone. A role other than Speaker or
@@ -1124,6 +1206,65 @@ below a scrolling area, and W44's.
   `openSheet()`): its close returns to the list, focus on the row that
   opened the first event (section 5, Share a day, as built). There is no
   way back to the first event (section 14).
+- **The place, a tap to the Map** (PR #94, #75; `#sheetPlace`). Where the
+  Map can show the event - `map.js` `onTheMap()`: at one of its seven
+  places, neither cancelled nor removed, which `sheet.js` tells the panel
+  as it draws it, a boolean that is false untold, since `eventsheet.js`
+  stands below the Map - the place line is one button: its words as
+  before, `placeHTML()`'s, underlined, in the hotel's hue, named
+  "`<place>`, show on the map" by `venues.js` `placeText()`, the same
+  place as words. A stream, an offsite event, one with no known place, a
+  cancelled and a removed event keep the line exactly as it was. The level
+  stays under it, outside the tap. The tap (`dispatch.js`
+  `onEventPanelClick()`) closes the whole sheet, a shared day under it
+  too, then calls `showOnMap()`: the Map at its top, on the event's con
+  day, its hotel ringed, the event on the card (section 6, as built). The
+  close comes first: it draws the tab underneath, which would end a focus
+  set before it. The way back is the Map's card, which opens the sheet
+  again. On 2026's schedule 3,372 sheets have the tap - the 3,374 events at
+  the seven places, less the two cancelled - and 87 do not: 62 streams, 23
+  offsite, 2 cancelled. Four of the 3,372 name no room, and the tap is
+  "Hyatt" or "Westin" alone.
+- **Its target** (`styles.css`, `.ev-place`). 44 px tall, and the head does
+  not grow: the button takes 16 px of padding above and 6 px below and
+  gives both back as negative margins. Above, its box covers the gap and
+  the lower 10 px of the when line, which is never a tap; below, 6 px is
+  the head's own gap, so the box ends exactly where the next line starts
+  and never reaches a session's tap. At least 44 px wide.
+- **The chips, taps to Explore** (PR #94, #75; `eventsheet.js` `chipsOf()`).
+  The event's tracks, then the works it names itself, as before. Each
+  track's chip, and each work's that a person has reviewed, is a button
+  (`.tag-tap`, `data-explore`) around the chip's own look, to its Explore
+  page - `track:<name>` or `work:<id>` - the whole sheet closing, as a
+  person's name does. Every such chip's name says its kind too, by
+  Explore's own noun in lower case (`follows.js` `KIND_NOUN`, which
+  Explore's pages read): "Star Wars, track", "Star Wars, fandom". An
+  unreviewed work's chip is no tap and does not look like one: a span, no
+  fill, its words muted, the border as it is. Whether a chip is a tap is
+  `follows.js` `canFollow()`, the rule a `#explore=` link is read by, so no
+  tap writes an address the app would refuse (#34). In 2026: 5,182 chips on
+  3,458 events - 3,483 track chips over 54 tracks, all taps, and 1,699
+  work chips over 540 works, 1,455 of them taps and 244 plain, 64
+  unreviewed works on 239 events. Every tap opens a page with at least one
+  event; 304 of those pages hold one, the event the reader came from. 40
+  events draw two chips with the same words (section 14).
+- **Focus after a tap that leaves the sheet** (PR #94; #66). The Map's
+  card after the place. The Explore page's heading, `.eh-name`, after a
+  name or a chip: `explore.js` `openExplorePage()` puts it there once the
+  page is drawn, with the page at its top - on arrival, never in the
+  page's draw, which Follow and the folds ask for again - so a tile's, a
+  Following chip's and a Because-you-starred tile's taps land there too.
+  The heading takes `tabindex="-1"`, and shows its ring for a keyboard's
+  arrival and not for a tap's. Until PR #94 focus was on nothing: the
+  sheet's close gave it back to the row that opened the sheet, and the tab
+  change hid the row.
+- **The way back from an Explore page** (PR #94). "← Explore" lands the
+  grid where it last was: `openExplorePage()` takes the grid's scroll only
+  where the screen under the tap is the grid itself - a tile, or a sheet
+  opened over the grid. From another tab's sheet, or from an Explore page,
+  what the grid last held stays - its top, if it was never left. Until
+  PR #94 the scroll of whatever tab the sheet stood over was taken as the
+  grid's.
 - **The height** (`styles.css`, `#panel-event`). The sheet is at most 86%
   of the screen: the panel's cap is `86dvh` less the sheet's own 53px -
   its border, its padding and the gap under the grip - and the inset. The
@@ -1140,6 +1281,11 @@ below a scrolling area, and W44's.
   named by its words, a session's with "Also runs" before them, and the dot
   between two sessions is not read out. Focus is as above. The overlap
   line is a live region. The sizes are in rem; no new motion, no new field.
+  The entry points, PR #94: the place's target is 44 px tall by its padding,
+  the head not grown, and a chip's 44 px tall and at least 44 wide by the
+  button around it, the chip's look as it was. The place is named for
+  where it goes, a chip by its words and its kind. Focus lands on what
+  each tap opened. An unreviewed work's chip is a span, and no control.
 - **Measured** in desktop Chromium, the app's pane, on the built page with
   2026's schedule, Barlow Semi Condensed loaded, and the page confirmed to
   be this build before each pass; the phone check to come. The event with
@@ -1183,6 +1329,33 @@ below a scrolling area, and W44's.
     block's tap opened that pick's sheet, which named the first event back;
     a session's tap opened that session; a name's tap closed the sheet on
     that person's Explore page.
+  - The entry points, PR #94, on its build, at the three sizes with Larger
+    text off and on. The head's height is the same with the place a button
+    as with the plain line: 207.8 px, "Tai Chi with Erin Gray", and 130.5,
+    "Photoshoot: Horror" and "P&T: Open Paint", each with a session's tap
+    directly under the place; 227.8 and 140.8 with Larger text. The place's
+    box is 44.8 px tall, 48.2 with Larger text, from 10 px into the when
+    line to the foot of the gap under the place; where a session's tap is
+    the next line, the box's foot and the tap's top are one line to the
+    tenth of a pixel, and a point 1 px inside the tap is the session's. At
+    that seam Chromium's hit test can give the last fraction of a pixel of
+    the place's box to the session's tap, which is drawn later.
+  - A chip's target is 44 px tall, its look 22.9 as before, 25.4 with
+    Larger text; a row of chips is 44 px where it was 22.9, and two rows 88
+    where they were 51.8 and, with Larger text, 56.9. The line is in the
+    body, which scrolls: the panel in the table's first column scrolls as
+    it did, by 10, 13 and 0 px and, with Larger text, 89, 62 and 19, and
+    the body there holds 160 px where it held 139, 19 more with Larger
+    text.
+  - In the pane, at each size: the place's tap from an event at each of the
+    seven places opened the Map on that event's day, its hotel ringed, the
+    event on the card and keyboard focus on the card, the page at its top;
+    a stream's, an offsite event's and a cancelled event's place was the
+    plain line, and a tap on it did nothing; a track's chip and a work's of
+    the same words opened two pages, focus on each one's heading; an
+    unreviewed work's chip had no fill, muted words and the chips' border,
+    and its tap did nothing; and a Sunday event focused on Saturday showed
+    Sunday, and the tab left and opened again showed Saturday.
 - **The tests.** `tests/unit/eventsheet.test.js`: the five helpers on made
   events and a made people block, and 2026's counts above.
   `tests/page/eventsheet.test.js`, on a copy of the sample with a made
@@ -1216,6 +1389,24 @@ below a scrolling area, and W44's.
   any event, and changes nothing a reader can reach: the shared day is kept
   only while its panel or its event's is up, so every event that opens
   while there is a shared day to drop opens from one of those two.
+  PR #94's: `tests/unit/eventsheet.test.js`, the sessions still to come
+  alone, asked before the con and at later moments, and 2026's counts at
+  three; `tests/unit/venues.test.js`, a place as words, equal to the
+  markup's text for every event of 2026 and of the sample;
+  `tests/page/eventsheet.test.js`, on its made Saturday, with an offsite
+  event, one with no known place, a hotel with no room named and a work
+  nobody has reviewed: the place's button, its name, the level outside it,
+  where there is no tap, the tap and the way back, from a sheet over the
+  Map and from a sheet opened from a sheet; the chips, their names, the
+  plain one, the two pages of one name, and their rules;
+  `tests/rules/style.test.js`, the place's target and the head that does
+  not grow; `tests/page/explore.test.js`, focus on a page's heading from
+  each tap that opens one, and the grid's scroll from the grid, from
+  another tab's sheet, from an Explore page and from a sheet over the
+  grid; `tests/page/share-day.test.js`, the place and a chip from an event
+  opened from a shared day; `tests/real-data.test.js`, 2026's counts of the
+  taps, the chips and the twins. None carries a ledger bracket. The
+  mutation pass is section 6's.
 
 ## 8. The hotel sheet
 
@@ -1566,13 +1757,14 @@ the hash and the address.
 | The Map's crew pill | The hotel sheet, Your crew's picks here brought to the top of its body (#63) | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built, PR #82 |
 | A Map hotel block, a hotel with level data | The building view | the Map's drill-down | the view's own back, to the Map | PR 10 |
 | The hotel sheet's "Search the Hyatt on Saturday" | Search | `state.browse`: the hotel, the day, no query - since PR #88 the hotel a chip under the box, counted on Filters | the tab bar to the Map, whose day `state.map.day` kept | built |
-| A person's name on the event sheet - "See all" beside it until PR #93 | That person's Explore page | `state.explore.page`, the hash | "← Explore", to the grid: one tap from the event, accepted | built; the name since PR #93 |
+| A person's name on the event sheet - "See all" beside it until PR #93 | That person's Explore page, keyboard focus on its heading since PR #94 | `state.explore.page`, the hash | "← Explore", to the grid, where it last was since PR #94 - its top, if it was never left: one tap from the event, accepted | built; the name since PR #93 |
 | Another session on the event sheet's Also runs line | That session's sheet, in this one's place | `state.sheetId` | Done, the backdrop, a swipe, Escape: the screen underneath, focus on what opened the first sheet - the shared day, where the first was opened from it; no way back to the first event (section 14) | built, PR #93 |
 | A pick on the event sheet's overlap line | That pick's sheet, in this one's place | `state.sheetId` | the same | built, PR #93 |
-| An Explore tile, a Following chip, a Because-you-starred tile | Its page | `state.explore.page`, the hash | "← Explore", the grid's scroll put back | built |
+| An Explore tile, a Following chip, a Because-you-starred tile | Its page, keyboard focus on its heading since PR #94 | `state.explore.page`, the hash | "← Explore", the grid's scroll put back | built |
 | A `#explore=` link | Its page | the same, at load | "← Explore", to the grid | built |
-| The event sheet's track or work chip | Its Explore page | the same | "← Explore", to the grid, as a person's name | PR 7 |
-| The event sheet's place line | The Map, focused on the hotel - the room once the building view exists | `state.tab`, a focus in `state.map` | the Map's focused card, which reopens the sheet | PR 7 |
+| The event sheet's track chip, or the chip of a work a person has reviewed | Its Explore page, keyboard focus on its heading | `state.explore.page`, the hash | "← Explore", to the grid, as a person's name | built, PR #94 |
+| The event sheet's place line, where the Map can show the event: at one of its seven places, neither cancelled nor removed | The Map at its top, on the event's con day, focused on the event: its hotel ringed, the event on the card, keyboard focus on the card - on the room once the building view exists | `state.tab`, `state.map.focus` | the Map's focused card, which reopens the sheet | built, PR #94 |
+| The Map's focused card | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the Map, the focus still held, keyboard focus on the card | built, PR #94 |
 | Search's Filters | `#panel-filters` | the panel shown | no Apply (#70): Show `<n>` events, the backdrop, a swipe, Escape: Search, focus on Filters, the list from its top if anything changed | built, PR #88 |
 | A kept `?join=`, in any phase | Plans' join step | `state.tab`, the step open | the step closed: Plans as it opens | built |
 | A line of Now's Your crew's picks right now | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: Now, focus on that crewmate's line | built, PR #81 |
@@ -1745,6 +1937,21 @@ As built: the recon, section 8, what crews' readers offer today.
 - A session in another room. The Also runs line says a day and a start,
   and no place: 6 of 2026's 347 groups run in more than one room, which a
   reader learns by the tap (section 7, as built).
+- Two chips with the same words. On 40 events of 2026 a track's chip and
+  a work's carry one name - "Star Wars" on 35, "Artemis Spaceship Bridge
+  Simulator" on 5 - and open two pages, the track's and the fandom's. Their
+  accessible names say which; their looks do not (#75; section 7, as
+  built). For Explore's design (step 8).
+- "← Explore" drops keyboard focus to the page: its button is redrawn
+  away, as a tile was before PR #94 put focus on the page's heading. For
+  step 11's sweep.
+- A notice above the Map. The Map tab is as tall as the screen less the
+  header and the nav, and a notice above the views is not counted: while
+  one stands - the preview banner before the con, "has ended" after it
+  until its OK - the tab is taller than the screen by the notice, and the
+  card under the map is cut at the page's top. It predates PR #94, which
+  made it show after the con, where the Map had no card: a focused card is
+  cut by 81.8 px at 375x667 until the notice's OK (section 6, as built).
 - The one-line "how to get there" (W18): no data for it exists, and the
   sheet says the level alone (section 13).
 - A role the listing writes "(Alt: )" prints as the listing writes it, in
