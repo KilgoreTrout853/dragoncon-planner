@@ -484,8 +484,11 @@ describe("src/styles.css", () => {
     it("and each of the four scrolls on its own", () => {
       for (const area of AREAS) expect(rules.filter(r => names(r).includes(area) && /overflow-y: auto/.test(r.body)).length).toBe(1);
     });
+    const scroll = fs.readFileSync(path.join(ROOT, "src", "scroll.js"), "utf8");
+    it("the areas scroll.js marks are the four the stylesheet pads: one list, said twice and held equal", () => {
+      expect((/const MORE_AREAS = "([^"]*)";/.exec(scroll) || [])[1]).toBe(AREAS.join(", "));
+    });
     it("scroll.js's ceiling stands above the deepest band these rules draw: 1.75rem with Larger text on", () => {
-      const scroll = fs.readFileSync(path.join(ROOT, "src", "scroll.js"), "utf8");
       const ceiling = Number((/const MORE_CEILING = (\d+);/.exec(scroll) || [])[1]);
       const larger = Number((/html\.bigtext \{ font-size: (\d+)%; \}/.exec(css) || [])[1]) / 100;
       expect(larger).toBe(1.15);

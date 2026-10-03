@@ -9,7 +9,7 @@ import {
   clearNews, picks, reconcilePicks, replaceNews, replacePicks, savePickNews, savePicks,
 } from "./picks.js";
 import { follows, replaceFollows, saveFollows } from "./follows.js";
-import { scroller, syncHeaderHeight, syncNavHeight } from "./scroll.js";
+import { onMoreScroll, scroller, setMoreObserver, syncHeaderHeight, syncMore, syncNavHeight } from "./scroll.js";
 import { setRenderer } from "./bus.js";
 import { onSyncTrigger, onSyncWorkerMessage } from "./sync.js";
 import { onAppInstalled, onBeforeInstallPrompt } from "./now.js";
@@ -80,6 +80,11 @@ export function boot({events: data, reload: reloadWith} = {}) {
   sheetEl.addEventListener("touchmove", onSheetTouchMove, {passive: true});
   sheetEl.addEventListener("touchend", onSheetTouchEnd);
   sheetEl.addEventListener("touchcancel", onSheetTouchCancel);
+  /* More past an edge (DECISIONS #76): a scroll does not bubble, so the
+     sheet hears its areas' in the capture phase; and its child lists are
+     watched - never its attributes - for an area a draw has just replaced. */
+  sheetEl.addEventListener("scroll", onMoreScroll, {capture: true, passive: true});
+  new MutationObserver(syncMore).observe(sheetEl, {childList: true, subtree: true});
   document.addEventListener("keydown", onSheetKeydown);
 
   panelEvent.addEventListener("click", onEventPanelClick);
@@ -132,6 +137,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
     if (hdr) new ResizeObserver(syncHeaderHeight).observe(hdr);
     const nav = document.querySelector(".nav");
     if (nav) new ResizeObserver(syncNavHeight).observe(nav);
+    setMoreObserver(new ResizeObserver(syncMore));   // the sheet's areas and their content, as syncMore() meets them
   }
 
   window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
