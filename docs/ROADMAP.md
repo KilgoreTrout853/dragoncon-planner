@@ -118,8 +118,9 @@ Pipeline shape is closed. What it leaves, carried:
 - The alias worklist: the room strings the venues step reads at the hotel
   alone, 30 of 2026's events (`docs/venues/census-2026.md`, section 4),
   each an alias or a room to curate (#45).
-- A curation gap (#45): the Westin's current, post-renovation floor plan
-  (`docs/venues/README.md`).
+- A curation gap (#45), closed for the Westin's plan: its current floor
+  plans are on the hotel's events page, and its 6th, 7th and 8th Floors
+  are drawn (`docs/venues/README.md`); the 12th and 14th Floors are not.
 - Census v2's 45 double-encoded events are 51 with the six lone "Â"
   events PR #33's encoding probe found: Discover housekeeping in
   `census_v2.py`.

@@ -8,9 +8,10 @@ can light its shape.
 
 The drawings are ours (DECISIONS #28, #67). Placement, order and orientation come from the hotel's own floor plan where
 there is one (`reference/plans/`, gitignored), read for position only. Dragon Con's own map
-(`reference/dragoncon/maps.json`, gitignored) says which rooms the con uses and their names, and places a hotel that
-has no plan. Sizes come from the hotels' published capacity tables, each room turned as the plan draws it; where a
-table contradicts its own square footage, the plan's shape. Nothing of theirs is copied into these files.
+(`reference/dragoncon/`, gitignored: `maps.json`'s outlines, or the picture's labels where it outlines none) says
+which rooms the con uses and their names, and places a hotel that has no plan. Sizes come from the hotels' published
+capacity tables, each room turned as the plan draws it; where a table contradicts its own square footage, the plan's
+shape. Nothing of theirs is copied into these files.
 
 ## Coordinates
 

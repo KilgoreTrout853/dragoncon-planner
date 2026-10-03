@@ -37,11 +37,11 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 | Courtland Grand | 3rd Floor | none | no | — | image only · rooms labelled on the image | none |
 | Courtland Grand | 2nd Floor | none | no | — | image only · rooms labelled on the image | none |
 | Courtland Grand | 1st Floor | none | no | — | image only · rooms labelled on the image | none |
-| Westin | 14th Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
-| Westin | 12th Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
-| Westin | 8th Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
-| Westin | 7th Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
-| Westin | 6th Floor | partial · [Pre-renovation hotel floor-plan PDF](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf) | no | `reference/plans/westin-floorplans-old.pdf` | image only · rooms labelled on the image | none |
+| Westin | 14th Floor | have · [Hotel's current floor plan, a picture](https://www.marriott.com/content/dam/marriott-digital/wi/us-canada/hws/a/atlpl/en_us/floor-plan/meeting-space/assets/atlplf07.png) on its events page, which draws the floor's eight rooms; [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 2 | partial · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03, gives the eight rooms one row, "Ansley 1-8": 38 x 30 ft, 6,800 sq ft | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-14.png` | image only · rooms labelled on the image | none |
+| Westin | 12th Floor | have · [Hotel's current floor plan, a picture](https://www.marriott.com/content/dam/marriott-digital/wi/us-canada/hws/a/atlpl/en_us/floor-plan/meeting-space/assets/atlplf05.png) on its events page, which draws the floor's eight rooms; [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 3 | partial · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03, gives the eight rooms one row, "Piedmont 1-8": 38 x 30 ft, 6,800 sq ft | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-12.png` | image only · rooms labelled on the image | none |
+| Westin | 8th Floor | have · [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 6 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03 | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-8.png` | image only · rooms labelled on the image | `data/2027/drawings/westin-f8.json` · sizes from the chart, placement from the plan |
+| Westin | 7th Floor | have · [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 7 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03 | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-7.png` | image only · rooms labelled on the image | `data/2027/drawings/westin-f7.json` · sizes from the chart, placement from the plan; Augusta H drawn at the chart's 27 ft |
+| Westin | 6th Floor | have · [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 8 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03 | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-6.png` | image only · rooms labelled on the image | `data/2027/drawings/westin-f6.json` · sizes from the chart, placement from the plan; Chastain E drawn as the chart's rectangle, the bounding box of an L |
 | AmericasMart | Building 2, Vendor Hall Floor 3 | unknown | no | — | image only | none |
 | AmericasMart | Building 2, Vendor Hall Floor 2 | unknown | no | — | image only | none |
 | AmericasMart | Building 2, Vendor Hall Floor 1 | unknown | no | — | image only | none |
@@ -65,8 +65,19 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 - **Hilton** — Hotel's 2024 group sales playbook (floor plans + capacity charts). The floor plans are on pp. 4, 6, 8, 10
   and 12 (the Galleria, then the 1st to 4th Floors), each before its capacity chart on pp. 5, 7, 9 and 11; the 4th
   Floor's chart shares p. 12 with its plan.
-- **Westin** — Pre-renovation hotel floor-plan PDF (floors 6-10, 12, 14), one page per floor. It predates the levels'
-  and rooms' post-renovation names, which are the con's, from its 2026 map. A current plan is still not found.
+- **Westin** — the hotel's own floor plan from before its renovation, vector linework, a cover and then one floor a
+  page: p. 2 the 14th Floor, p. 3 the 12th, p. 4 the 10th, p. 5 the 9th, p. 6 the 8th, p. 7 the 7th, p. 8 the 6th.
+  Drawn south up, Peachtree Street on its left, with no compass and no streets; the drawings turn it half a turn. It
+  carries the old names: on the 6th Floor the American Room, the Boardroom and International A, B and C are Chastain A
+  to E, west to east along the north side, International D to H are Chastain F to J, east to west along the south,
+  and Vinings I and II are Chastain 1 and 2; on the 7th the Atlanta Ballroom's A to H are Augusta A to H and Augusta
+  I, II and III are Augusta 1, 2 and 3, 1 the southernmost; on the 8th Roswell I and II are Peachtree 1 and 2, 1 the
+  southern. Sizes from the hotel's capacity chart on its events page, read 2026-10-03; no local copy. The hotel's
+  current floor plans are seven pictures on the same page, 922 px wide, south up as the old plan is, with today's
+  names: they confirm the names above and draw the walls where the old plan does. Saved 2026-10-03 as
+  `reference/plans/westin-site-2026-floor-<n>.png`: floors 6, 7, 8, 9, 10, 12 and 14 are the page's `atlplf02.png`,
+  `01`, `06`, `04`, `03`, `05` and `07`, under
+  `https://www.marriott.com/content/dam/marriott-digital/wi/us-canada/hws/a/atlpl/en_us/floor-plan/meeting-space/assets/`.
 - **Dragon Con's own map** — the official app's map, one image per venue with every floor composited on it, plus the
   room outlines it draws for rooms with events (Hilton, Hyatt, Marriott only; the Westin, Courtland Grand and
   AmericasMart maps are images alone). Read for which rooms the con uses and their names, and for placement where a
@@ -95,8 +106,18 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
   about 10–15 ft until walked. Every room the con's map outlines reads as ours: M103–M105, M301, Imperial Ballroom,
   L401–L403, Atrium Ballroom, A601–A602, A703, A704 and A706–A708. The rooms the map names on the Marquis, Lobby and
   Atrium levels with no 2026 programming are in those levels' notes.
-- **Westin** — its levels and rooms are the con's post-renovation names, from its 2026 map; the old PDF predates them.
-  A current plan is still not found.
+- **Westin** — the 6th, 7th and 8th Floors drawn from the hotel's old plan and its capacity chart, in one frame
+  (DECISIONS #67), tied by two named anchors, the tower elevators and the escalators. The names are today's, the con's
+  from its 2026 map, and the walls the old plan's. The west wing's west wall slants, so its rooms are trapezoids,
+  drawn as rectangles at the chart's sizes from the wing's straight east wall. Chastain E is an L on the plan, drawn
+  as the chart's 52 × 51 ft, its bounding box. Chastain I is 37 ft deep, as the plan draws it, with a door recess
+  between it and the corridor. Augusta H is drawn at the chart's 27 ft, on the corridor; the hotel's plans, old and
+  current, draw it 32 ft deep over the western 35 ft of its width, an office behind it, and as deep as its row over
+  the 9 ft at its east end; its depth is to be checked in person. The Augusta Ballroom's outline is the chart's
+  127 × 104 ft, so the rest rooms behind A and the office behind H lie inside it. The Atrium is a square drawn round a
+  round tower. The 12th and 14th Floors are not drawn: they are round, eight rooms round the tower, and their 20
+  events of 2026 are listed by floor alone. The plan is a vector drawing, so positions are good to a few feet until
+  walked.
 - **Courtland Grand** — no hotel plan found; the three floors and their rooms are the con's, from its 2026 map, but for
   the Grand Ballroom's sections A–F, which are the schedule's: the map labels one Grand Ballroom.
 - **AmericasMart** — several buildings, each with floors; Dragon Con's map of each building is under
