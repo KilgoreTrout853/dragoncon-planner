@@ -56,7 +56,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/boot.js` | The root of the client: `boot()`, which wires the app and starts it, and nothing else. See Boot. |
 | `src/dispatch.js`, `shell.js`, `loading.js`, `sheet.js` | The four modules above the views: the handlers that span modules; `render()` and what is on screen whatever the tab; loading, freshness and offline; the bottom sheet. |
 | `src/now.js`, `browse.js`, `explore.js`, `map.js`, `plans.js` | The five views, one per tab (`browse` is the Search tab). |
-| `src/scroll.js`, `bus.js` | The scroller, the header's measurement and focus found again after a redraw; how a module below the shell asks for a redraw. |
+| `src/scroll.js`, `bus.js` | The scroller, the header's measurement, focus found again after a redraw, and what a scrolling area of the sheet hides past an edge (DECISIONS #76); how a module below the shell asks for a redraw. |
 | `src/eventsheet.js` | The event's panel of the bottom sheet (DECISIONS #74, #75; `docs/screens/contract.md`, section 7, as built): its markup - a head, a body that scrolls and a foot, the place a tap to the Map and the chips taps to Explore - and what a star's tap or a pull's redraw writes into it in place: the star, the overlap line and Starred by. It holds no DOM handle: the panel's element is `sheet.js`'s, and the clicks inside it `dispatch.js`'s. |
 | `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data, read and written through `crews.js`; `syncAfter()`, the run the crew panel waits for after an action; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
 | `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the seven crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks, the reader's own row in a crew, and each crewmate's pick on now or next. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel, who's going and the hotel sheet's crew `sheet.js`'s, the crew on Now `now.js`'s and on the Map `map.js`'s. A leaf. |
@@ -530,7 +530,17 @@ focus keeps it; and the header's measurement:
 under, and `fitHeaderLine()`; and the nav's, `syncNavHeight()`, which sets
 `--nav-h`, what the mini-bar, the end spacer, the update pill, the dev-build
 mark and the Map are laid out from. `loading`, the `shell` and `boot()` all
-need the measurement, so it sits below all three. It imports nothing, and looks
+need the measurement, so it sits below all three. And the mark on an area
+of the sheet that scrolls on its own (DECISIONS #76; `MORE_AREAS`, four
+selectors for six areas): `moreHidden()`, a pure function of an element's
+scrollTop, clientHeight and scrollHeight to the px hidden above and below
+it, which `markMore()` writes onto the element as `--more-above` and
+`--more-below`, with `data-more` while either is above 0, only where a
+value changed; `onMoreScroll()` and `syncMore()`, which `boot()` registers;
+and `moreCap()`, the deepest a band can be on an area, read from its own
+scroll padding, which the hotel sheet's crew pill lands by. The stylesheet
+does the rest: one mask, as deep as what is hidden. It imports nothing,
+and looks
 up `main` as it is imported. **`bus`** is how a module below the shell - a
 view, the sheet, loading - asks for the whole page to be redrawn without
 importing the shell: `requestRender()` calls the function `boot()`
@@ -692,7 +702,11 @@ owns the state it writes (`sheet`, `loading`, `shell`, `explore`, `now`), or
 from `scroll` or `dispatch`. What `boot()` still holds inline is the four
 conditions that decide whether a registration is made at all -
 `document.fonts.ready`, `ResizeObserver`, `IS_IOS`, `serviceWorker` - and the
-empty `catch`. Sync's triggers come last, after the schedule's recheck on
+empty `catch`. Three of the registrations keep the sheet's more-past-an-edge
+mark (DECISIONS #76), and no draw calls for it: a scroll listener on the
+sheet in the capture phase, a MutationObserver on its child lists, and,
+under the `ResizeObserver` condition, one on each scrolling area and its
+children. Sync's triggers come last, after the schedule's recheck on
 the same events. Then it calls `load()`; once it has loaded, a shared
 day's link opens its panel, and a sync run follows.
 
@@ -838,7 +852,11 @@ its own, and in the foot every pick it overlaps - or would, before the
 star; on a build with a backend it says who in the reader's crews starred
 it. A star's tap and a pull write the star, the overlap line and that line
 in place. The sheet is at most 86% of the
-screen, and past that an event's panel scrolls with its foot pinned. Swipe
+screen, and past that an event's panel scrolls with its foot pinned. Six
+areas of the sheet scroll on their own - an event's body, the hotel's list,
+a shared day's, the filters' body, Settings' Advanced and the crew panel -
+and each fades at an edge with more past it, as deep as what is hidden
+there (DECISIONS #76; section 7, More past an edge, as built). Swipe
 down or press Escape to dismiss; focus moves to the panel's heading as it
 opens and back to what opened it as it closes (DECISIONS #66). On a build
 with a backend, Settings carries Keep your plan: the email step, which

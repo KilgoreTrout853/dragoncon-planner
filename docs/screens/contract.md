@@ -452,6 +452,12 @@ wins, and the panel's order, by PR #90 (#71).
   402x714, the same groups moved back in place, showed Hotel, Kind and
   Type, Type ending at 633px - where the brief's iPhone showed Hotel and
   Kind alone.
+- **More past an edge** (PR #95, #76; section 7, More past an edge, as
+  built). The body always holds more than it shows - 411 px of 731 at
+  375x667 - so it fades at its foot as the panel opens, where until then
+  the fold cut a row of chips with nothing to say there was more, and at
+  its top once it is scrolled. Its 33 controls, focused in turn forward
+  and backward, are never inside a band.
 - **The tests.** `tests/page/filters.test.js`, on a copy of the sample
   whose untagged events carry the four axes at counts that differ: the
   page's sticky block, the box's name and placeholder, nothing between the
@@ -598,6 +604,9 @@ built, Share a day among it, and the 2026 app knows no crews.
   leaves focus on the Remove it was on. The invite link's read-only field
   takes a new link in place. Taller than the screen, the panel scrolls on
   its own, and a drag that starts in it scrolls rather than dismisses.
+  Since PR #95 it fades at an edge with more past it (#76; section 7, More
+  past an edge, as built): its manage step scrolls from three members at
+  375x667, and its create and join steps never do.
   - *Create:* Crew name, Your name in the crew, and "Everyone who joins
     this crew sees your name and your starred events, now and later."
   - *Join:* Your name in the crew and "Joining shares your name and your
@@ -837,6 +846,9 @@ that day at once.
   a pull - writes each row's class, its words and its star in place
   (`refreshSharedDay()`, from `render()`), so an overlap flag comes and
   goes at once (#73) and the list's scroll and the focus on a star stay.
+  Since PR #95 the list fades at an edge with more rows past it, from four
+  rows at 375x667 (#76; section 7, More past an edge, as built); the share
+  panel's message, a field that scrolls on its own, does not.
 - **Refused,** in the same panel, headed "A shared day", with Done: another
   year's link - "That link is a day from Dragon Con 2025, and this planner
   is 2026's, so there's nothing of it to show." - and one that does not
@@ -1099,8 +1111,9 @@ panel's three parts, the level, the facts, the other sessions, the people
 and the overlap line, its height, and the star written in place. PR #94,
 step 7's third, with #63, #66 and #75: the place and the chips as taps
 (section 11), focus after a tap that leaves the sheet, and the other
-sessions still to come alone. Still to come: a cue that more is below a
-scrolling area, and W44's.
+sessions still to come alone. PR #95, step 7's fourth, with #66 and #76: a
+fade where the body has more past an edge, as five more areas of the
+sheet have (More past an edge, as built, below). Still to come: W44's.
 
 - **Three parts** (`eventsheet.js` `eventSheetHTML()`, the panel's own
   module since PR #93; the panel's element and `openSheet()` are
@@ -1408,6 +1421,155 @@ scrolling area, and W44's.
   taps, the chips and the twins. None carries a ledger bracket. The
   mutation pass is section 6's.
 
+### More past an edge, as built
+
+PR #95, step 7's fourth, with #66 and #76. Six areas of the sheet scroll
+on their own, and where one has more past an edge, that edge fades to
+nothing. Its home is here, with the event's body; the screens that own
+the other five point at it (sections 3, 5, 8 and 9).
+
+- **The six areas,** by four selectors (`scroll.js` `MORE_AREAS`), each
+  measured in desktop Chromium on 2026's schedule at 375x667, 390x664 and
+  402x714:
+
+  | Area | Its element | Its height | Scrolls in 2026 |
+  |---|---|---|---|
+  | An event's body | `#panel-event > .ev-body` | what the head and the foot leave of the panel, never under 4.5rem (above) | 347, 297 and 120 of 3,459 events with no picks; 1,102, 1,038 and 469 with Larger text |
+  | The hotel sheet's list | `#panel-hotel .ev-body` | at most 48vh: 320, 319, 343 px | from four picks at a hotel on a day; from three with Larger text at the two shorter screens |
+  | The shared day's list | `#sharedBody`, an `.ev-body` | at most 55dvh: 367, 365, 393 px | from four rows; from five at 402x714 at the normal size |
+  | The filter sheet's body | `.filters-body` | at most 100dvh less 16rem: 411, 408, 458 px | always: 731 px of groups, 681 at 402 wide |
+  | Settings' Advanced | `.advanced-body` | at most 45vh: 300, 299, 321 px | never at the normal size, 231 px, until Walk-time defaults is opened, 741; with Larger text by 10 and 11 px at the two shorter screens |
+  | The crew panel | `#panel-crew` | at most 100dvh less 7rem: 555, 552, 602 px | its manage step from three, three and four members, and from two at 390x664 with Larger text; its create and join steps, 367 px, never |
+
+  Not among them: the share panel's message, which is a field; an event's
+  panel scrolling as one, whose body has the cue and whose foot is pinned;
+  and `main`, where the nav cuts the rows in plain sight.
+- **The band** (`styles.css`, one rule, `[data-more]`). A mask on the
+  scrolling element itself, a gradient down it: nothing at the edge, whole
+  from the band's depth in. What fades is the content and what shows
+  through is the sheet; no element is laid over it. A band is as deep as
+  what is hidden past its edge, and at most 1.75rem - 28 px, 32.2 with
+  Larger text - and a fifth of the area's height:
+  `min(1.75rem, 20%, var(--more-above, 0px))`. So a body that hides 6 px
+  fades 6 px, which dims nothing a reader could see whole; a body at its
+  72 px floor fades 14.4 px at each edge; and the band eases out as a thumb
+  nears an end. It does not animate. The property is unprefixed: the floor
+  is Safari 16.4, and the build, Lightning CSS at `safari16.4`, adds no
+  prefix.
+- **The mark** (`scroll.js`). `moreHidden(scrollTop, clientHeight,
+  scrollHeight)` gives the px hidden above and below, whole, under 1 px
+  none, never under 0 - a bounce past an end is the end - and never over a
+  ceiling of 48. `markMore()` writes them onto the element as
+  `--more-above` and `--more-below`, each taken off at 0, with `data-more`,
+  a bare hook the rule hangs on, while either is above 0; only where a
+  value changed, so far from an end a scroll writes nothing and within the
+  ceiling of one it writes once a px. An area that fits carries no mask,
+  no attribute and no empty `style` left behind; an area in a hidden panel
+  measures nothing and loses its mark the same way.
+- **Kept by three registrations** in `boot()`, and no call at any draw:
+
+  | What happens | What hears it |
+  |---|---|
+  | A scroll, a thumb's or a script's - the crew pill's landing, the shared day put back, a focused control scrolled into view | `onMoreScroll()`, a listener on the sheet in the capture phase: a scroll does not bubble |
+  | A panel drawn, so an area that is a new node - every event, hotel, shared day and filter sheet, and the hotel's again at a star; a child put into an area or taken out of one at its cap, as a pull puts Your crew's picks here under four rows | `syncMore()`, from a MutationObserver on the sheet's child lists and subtree - never attributes or character data, so the mark's own write cannot wake it |
+  | A panel shown; Larger text; Advanced or Walk-time defaults opened or closed; the window resized or turned; a star or a pull that changes an event's head or foot; a crew step shown; fonts arriving late; content that grows inside an area whose own box stays as it was | `syncMore()`, from a ResizeObserver on each area and each child of it, handed over once as `syncMore()` meets them (`setMoreObserver()`), where the browser has one |
+
+  The keyboard resizes the visual viewport alone on a current iPhone and
+  Android, so an area's three numbers do not change; where a browser
+  resizes the layout, the area's box changes and the ResizeObserver hears
+  it.
+- **The crew pill's landing** (`sheet.js` `showHotelCrew()`; section 8).
+  Your crew's picks here stops short of the body's top by the deepest the
+  top band can be, the cap, which `scroll.js` `moreCap()` reads from the
+  body's own computed scroll padding - the px and the share of the body's
+  height its `min()` names - so the numbers stay the stylesheet's.
+- **A drag in Advanced** (`sheet.js` `onSheetTouchStart()`) scrolls it and
+  leaves the sheet where it is, as a drag in an event's body or the
+  filters' does: until PR #95 a thumb there scrolled Advanced and dragged
+  the sheet at once.
+- **#66.** No control is added, and the mask moves no box: every tap
+  target keeps its size and its place, a control inside a band among them.
+  Each of the six areas has the cap as its scroll padding, always, not by
+  the mark - `scroll-padding-block: min(1.75rem, 20%)` - so a control that
+  takes focus is scrolled clear of both bands. `data-more` is no ARIA
+  attribute and the mask is paint alone: nothing a screen reader hears
+  changes. Nothing moves, so reduced motion needs no rule. The cap is in
+  rem, so Larger text scales it.
+- **Measured** in desktop Chromium, the app's pane, on the built page with
+  2026's schedule and Barlow Semi Condensed loaded, the page confirmed to
+  be this build first; the phone check to come. The pane was hidden, so a
+  scroll event reached the page only when a frame was forced: at 375x667
+  at the normal size each area was scrolled and the page's own listener
+  marked it, and at the other sizes the scroll event was dispatched by
+  hand.
+  - At 375x667, 390x664 and 402x714, Larger text off and on, each of the
+    six at its top, its middle and its end said what its three numbers
+    give - Friday's "National Puppet Slam", 261 px of 449 at 375x667: 0
+    above and the ceiling's 48 below, 48 and 48, 48 and 0 - and each as it
+    opened, with no scroll; content that fits - "Titan Test Event", a
+    shared day of two rows, Advanced at the normal size, the crew's create
+    step - carried no mark, no attribute and no mask.
+  - A body that hides under 28 px: "Football Hooligans Presents: Learn to
+    Chant Like a Football Hooligan!" hides 6 px at 375x667, and its band is
+    6 px - its last chip whole and undimmed, as before PR #95. Advanced
+    with Larger text hides 10 px, and its band is 10.
+  - The event's body at its floor, "Contemporary NSDM", picked with three
+    overlapped picks and Starred by written in by hand, as above: 72 px of
+    160 at 375x667 and 390x664, the cap 14.4 px, so the middle keeps 43.2
+    px clear; 82.8 of 199 with Larger text, the cap 16.6 and 49.8 clear;
+    at 402x714, 101.7 of 160, the cap 20.4, and 82.8 of 176 with Larger
+    text. The panel scrolls as it did, by 10, 13 and 0 px, and 89, 62 and
+    19 with Larger text. The one control in that body, its last chip,
+    stands at its end, where there is no band.
+  - Focus: the filter sheet's 33 controls and the crew panel's 13, each
+    focused in turn forward and then backward: none inside a band, at any
+    of the three sizes, at either text size.
+  - The crew pill, on a build with a backend and a kept crew of six, six
+    picks of the reader's own at the Marriott: at 375x667 the section 28.1
+    px below the body's top and its heading's words from 34.1, the top
+    band 28 deep; 32.3, 39 and 32.2 with Larger text; within a third of a
+    px of those at the other two sizes.
+  - The refresh: a star in the hotel's sheet drew a new body, marked as it
+    arrived; a filter chosen left the body's mark right; Advanced opened
+    carried none, and Walk-time defaults opened marked it, 300 px of 741;
+    Larger text switched with Settings open and Advanced at its end, 741
+    px grown to 877 in an area still 300, added the band below; and the
+    window resized to 375x520 kept the marks right.
+  - A drag from a row of the walk table, by touches made in script: the
+    sheet did not move and stayed open; the same drag from the heading
+    moved it.
+- **The tests.** `tests/unit/scroll.test.js`: `moreHidden()` where
+  everything fits, with jsdom's zeros, at the top, the middle and the end,
+  at 1 px, at a fraction, past either end and at the ceiling.
+  `tests/rules/style.test.js`: one rule masks, on the mark alone; its two
+  bands and their three limits; no px in the cap; no prefix; no transition
+  or animation on the mark's rule or an area's; the scroll padding on the
+  four selectors, which are `scroll.js`'s, each scrolling on its own; and
+  the ceiling above the cap with Larger text. `tests/page/more.test.js`,
+  with a stand-in for the ResizeObserver jsdom lacks, an area given the
+  numbers a phone would give it: each of the six at its top, its middle,
+  its end, far from both and fitting; one write where a value changes and
+  none where it does not, nor any asked of the element's style; the hook
+  on and off once; an inline style of the area's own left where it was; a
+  bounce; no mark on an event's panel, the message's field or `main`; a
+  panel opened onto an area that hides something, a star's new body, a
+  child put in and taken out, a line's words written, and no waking by an
+  attribute or a text node's data; the observer handed each area and
+  child once, and nothing else; its callback; a hidden panel's area; a
+  page with nothing opened yet, the areas in it handed over all the same;
+  and a page with no ResizeObserver. `tests/page/crew-everywhere.test.js`:
+  the crew pill's landing by the px, by the fifth, by either alone and by
+  nothing. `tests/page/settings.test.js`: a drag from Advanced, and one
+  from the panel outside it. None carries a ledger bracket, and no test
+  that stood before PR #95 changed. A mutation pass of 71 mutants over the
+  new rules - the arithmetic, the four selectors, the mark, the listener
+  and the two observers, the cap and the crew pill's landing, the drag and
+  the stylesheet - killed all 71 on its last run. The first left three,
+  and each got a test: a write asked for where nothing changed, which
+  jsdom, like a browser, drops by itself; an inline style of an area's own
+  taken off with the mark; and the areas already in the page handed to the
+  observer by the first draw alone, not as `boot()` registers it.
+
 ## 8. The hotel sheet
 
 As built: the recon, section 3, the hotel panel.
@@ -1465,7 +1627,11 @@ by PR #83, step 5d, with #68.
   few picks of the reader's own the section starts below the fold - at 375
   px, four put it 409 px down a body 390 px tall; on the row of PR #92, 394
   px down, and 432 with Larger text, measured in Chromium at 375x812, the
-  phone check to come. A tap on the block or the
+  phone check to come. Since PR #95 the section stops short of the body's
+  top by the cap of the band that fades there, 28 px and 32.2 with Larger
+  text, so its heading stands clear of the fade and the row above it shows
+  through (#76; section 7, More past an edge, as built). A tap on the
+  block or the
   gold pill opens the sheet at its top, as before, and so does the block's
   keyboard path, Enter or Space; focus goes to the heading whichever opened
   it (#66). A pill left on the Map from crew picks another tab has since
@@ -1483,6 +1649,13 @@ by PR #83, step 5d, with #68.
   written when nothing changed. The reader's own rows and count stay as
   drawn, so a pull that changes the reader's picks leaves them stale
   (ROADMAP, Flags), while "yours too" follows the reader's picks.
+- **More past an edge** (PR #95, #76; section 7, More past an edge, as
+  built). The list fades at an edge with more past it: from four picks at
+  a hotel on a day, and from three with Larger text at 375x667 and
+  390x664. A section a pull puts under four rows changes no box, only what
+  is hidden, and the mark follows it. A star's tap draws the panel again
+  (`drawHotelSheet()`), so the list goes back to its top, and its new body
+  is marked there (section 14).
 - **#66.** Each line is a button, 44 px or taller, labelled by what it
   says, its focus ring drawn inside it, where the body clips at its sides.
   Its id is the crewmate's and the event's, `crewHere-<user>-<event>`,
@@ -1529,6 +1702,12 @@ In order:
    sequenced with the gear PR.
 5. Done.
 6. Remove all picks, last.
+
+Since PR #95 Advanced fades at an edge with more past it, and a drag that
+starts in it scrolls it and no longer drags the sheet (#76; section 7,
+More past an edge, as built). At the normal size it holds 231 px and never
+scrolls until Walk-time defaults is opened, 741 px; with Larger text it
+hides 10 px at 375x667 and 11 at 390x664, and its band is as deep.
 
 **Home of:** W32; W34; W45.
 
@@ -1952,6 +2131,20 @@ As built: the recon, section 8, what crews' readers offer today.
   card under the map is cut at the page's top. It predates PR #94, which
   made it show after the con, where the Map had no card: a focused card is
   cut by 81.8 px at 375x667 until the notice's OK (section 6, as built).
+- A star in the hotel's sheet draws its whole panel again, so the list
+  jumps back to its top under the thumb that tapped: older than PR #95,
+  which left it - the new body is marked afresh, so its fade is right, at
+  the top (#76; sections 7 and 8, as built; ROADMAP, Flags).
+- Settings is taller than a short screen once Advanced is open. At
+  375x667 the sheet is 691 px with Advanced open, its top 24 px above the
+  screen; 760 with Walk-time defaults open, and 801 with Larger text, the
+  heading and the crowd factor above the screen and out of reach, since
+  the sheet itself does not scroll. Older than PR #95, which changed no
+  height; the gear's pull request (step 9) is where it goes.
+- An event's body at its 72 px floor keeps 43.2 px clear between its two
+  bands, 0.8 short of a 44 px tap. In 2026 the one control in such a body
+  is its last chip, at the end, where there is no band (#76; section 7,
+  More past an edge, as built).
 - The one-line "how to get there" (W18): no data for it exists, and the
   sheet says the level alone (section 13).
 - A role the listing writes "(Alt: )" prints as the listing writes it, in
