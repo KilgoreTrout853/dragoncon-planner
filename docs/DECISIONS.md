@@ -2002,7 +2002,7 @@ after seven days without a visit (#25).
 settles #40's open question - a standing line on Now, or the moment it
 earns itself - as the second.
 
-### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built); the entry points' by PR #94 (#75): the place's target 44 px tall with the head not grown, a chip's 44 px tall and at least 44 wide around the chip's own look, each named for where it goes or by its kind, and keyboard focus landing on what a tap opened - the Map's card, an Explore page's heading, from the grid's tiles too (`docs/screens/contract.md`, sections 6 and 7, as built); the more-below cue's by PR #95 (#76): no new control and no tap target's size or place changed, a control that takes focus scrolled clear of both bands by each area's scroll padding, nothing a screen reader hears changed, and nothing that moves, so no reduced-motion rule (`docs/screens/contract.md`, section 7, as built); the facet filters' by PR #96 (#77): four selects, each with a name of its own and 44 px tall, under a small label that names their group, at the sheet's 16 px so an iPhone does not zoom, a choice written in place with focus kept on its select, and a chip taken off sending focus as the others do (`docs/screens/contract.md`, section 3, as built)
+### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built); the entry points' by PR #94 (#75): the place's target 44 px tall with the head not grown, a chip's 44 px tall and at least 44 wide around the chip's own look, each named for where it goes or by its kind, and keyboard focus landing on what a tap opened - the Map's card, an Explore page's heading, from the grid's tiles too (`docs/screens/contract.md`, sections 6 and 7, as built); the more-below cue's by PR #95 (#76): no new control and no tap target's size or place changed, a control that takes focus scrolled clear of both bands by each area's scroll padding, nothing a screen reader hears changed, and nothing that moves, so no reduced-motion rule (`docs/screens/contract.md`, section 7, as built); the facet filters' by PR #96 (#77): four selects, each with a name of its own and 44 px tall, under a small label that names their group, at the sheet's 16 px so an iPhone does not zoom, a choice written in place with focus kept on its select, and a chip taken off sending focus as the others do (`docs/screens/contract.md`, section 3, as built); the sheet's edges' by PR #97 (#78): a focus ring drawn whole at the sides of the sheet's five scrollers, by 4 px of room that moves nothing, and an arrow where an area has more below that is no control - no tap, nothing a screen reader meets - at 6.3:1 on the sheet and with no animation; a ring is still cut at an area's top or foot, and at an event's panel's (`docs/screens/contract.md`, section 7, The sheet's edges, as built, and section 14)
 **Decided:** Every screen Where things live touches meets these, and none
 of them has a screen of its own (W43):
 - a label on every new control;
@@ -2527,7 +2527,7 @@ the screen by the notice, as it was, and the focused card is cut at the
 page's top: by 82 px after the con at 375x667, where the Map had no card
 to cut. "← Explore" still drops keyboard focus to the page.
 
-### 76. A fade where a scrolling area has more past its edge — Standing (2026-10-03)
+### 76. A fade where a scrolling area has more past its edge — Standing (2026-10-03) — its fade cannot show where the fold lands in a gap: an arrow beside it where an area hides enough below, and `data-more` a word, not a bare hook, by #78, PR #97
 **Decided:** Six areas of the bottom sheet scroll on their own - an
 event's body, the hotel sheet's list, the shared day's, the filter sheet's
 body, Settings' Advanced and the crew panel - and where one has more past
@@ -2696,3 +2696,94 @@ the Audience over it takes the Kids Track too. "adult" is an ordinary word
 as well - "young adult" reads as 18+ and "young" - which is older than
 this entry and now shows in the Audience select (`contract.md`, section
 14). A schedule with no tags shows three selects, the fourth cell empty.
+
+### 78. An arrow where more is below, and room for the focus ring — Standing (2026-10-03)
+**Decided:** Two rules at the edges of the sheet's scrolling areas, both
+follow-ups to #76 (`docs/screens/contract.md`, section 7, The sheet's
+edges, as built; PR #97).
+- **The arrow.** Where an area hides 20 px or more below and an element
+  follows it in its panel - an event's foot, the hotel sheet's and the
+  shared day's Done row, the filters' foot - a small down chevron stands
+  centred in the gap just above that element. The fade stays (#76), and
+  under 20 px it speaks alone.
+- **Outside the area.** The chevron is the `::before` of the element that
+  follows, out of the flow: it is outside the scrolling area and outside
+  its mask, so it shows whatever the fold lands on, and it moves nothing,
+  the element it hangs on least of all.
+- **The word.** `scroll.js` `markMore()` writes `data-more` as it did, and
+  its value is now a word: `below` while the area hides the threshold or
+  more below, and nothing under it - `moreWord()`, a pure function of what
+  `moreHidden()` gives. One rule of the stylesheet reads the word, the
+  arrow's; the mask hangs on the attribute alone, as it did. The
+  threshold, 20 px, stands under the ceiling of 48.
+- **Not a control.** No content, no tap, no pointer events, nothing a
+  screen reader meets. Two borders of a square turned 45 degrees,
+  0.6875rem a side and 0.125rem thick, so Larger text scales it: 15.6 px
+  wide and 7.8 tall, 17.9 and 8.9 with Larger text. Its colour is
+  `--muted`, 6.3:1 on the sheet, where #66 asks 3:1 of a graphic. It comes
+  and goes with no animation.
+- **No arrow for more above:** the reader scrolled there. And none on
+  Settings' Advanced or the crew panel, which have nothing after them:
+  both keep the fade alone.
+- **Room for the ring.** The sheet's five scrollers - #76's four selectors
+  and an event's panel, `#panel-event` (#74) - take 4 px of inline padding
+  and give it back as a negative inline margin of the same size, so a
+  focus ring at either side is drawn whole and nothing moves. The 4 px is
+  the ring's reach, its 2 px offset and its 2 px width, and a style test
+  holds the room equal to their sum: a change to the ring cannot outrun
+  it. The ring's own rule does not change, and no ring is drawn inside a
+  control but the two that were (`.plans-seg`, `.crew-now`).
+
+Amends #76: its "`data-more`, a bare hook", since the attribute carries a
+word; and its fade as the one cue, which cannot show where the fold lands
+in a gap.
+
+**Why:** Both faults were found on the next site on 2026-10-03, after
+PR #96. A fade can only dim content that is there to be cut. On a 390-wide
+iPhone the filter sheet opens with its fold between the Type control and
+Kind: the sheet looks complete, and Kind, Getting in and the toggle are
+below with no hint. On `next`'s build at 076f8cc, in Chromium with Barlow
+loaded, the band as the filter sheet opens holds the last 11 px of the
+Type control and 3 px of the Kind label's box at 375x667; the last 14 px
+of the Type control and nothing else at 390x664; 9 px and 10 px at 402x714
+with Larger text; at 402x714 at the normal size it cuts Kind's first row,
+which is why PR #95's phone test passed. The arrow is the cue that does
+not depend on the content. Twenty px is about a line of text, and 2026's
+bodies part there: on the schedule with no picks, the clock at Saturday
+1:05 PM, 374, 304 and 117 of the 3,459 events have a body that scrolls at
+375x667, 390x664 and 402x714, and 142, 111 and 17 of them hide under 20
+px - every one ends in a row of chips, and hides the space under its last
+chip and at most 8 px of the chip itself, which the fade dims in plain
+sight; 232, 193 and 100 hide 20 px or more, at least 10 px of a chip among
+it. With Larger text 1,125, 1,031 and 506 scroll: 221, 181 and 164 under,
+at most 10 px of a chip, and 904, 850 and 342 at or over. In 5, 20 and 2
+of the bodies that hide 20 px or more the band holds no text and no chip
+at all, 25, 37 and 8 with Larger text: "Diversity In DIY Rave Music" at
+375x667 hides 41 px under a fold in the gap below its people. The ring is
+drawn 4 px outside its control and a scrolling area clips at its own box,
+so a control at an area's left edge lost the left of its ring and one at
+the right its right: the Fandom and the axis selects since PR #88, and on
+`next` at 375x667 20 of the filter sheet's 39 controls, 10 of an event's
+13, 14 of 16 in a hotel's sheet of seven picks, 12 of 14 in a shared day
+of six rows, 3 of Settings' 11 and 13 of the crew panel's 16. An iPhone
+shows the ring after a pick from a select, which is where it was seen. A
+ring inside the control was not the answer: Done and "Show `<n>` events"
+are gold, and a gold ring inside a gold button cannot be seen.
+**Cost:** The threshold is a number in script, in px, where #76 kept its
+cap in the stylesheet: a rule cannot compare what is hidden with a length,
+and the element the arrow hangs on cannot read its sibling's property. At
+the threshold a scroll writes the attribute once more. An event's panel
+scrolling as one (#74) has its foot pinned over the gap, so the arrow
+stands over the foot of what shows of the body until the panel is at its
+end: over its last 4 and 7 px at 375x667 and 390x664 in #74's tallest
+case, and with Larger text over a body of which 10, 37 and 80 px show at
+375x667, 390x664 and 402x714. A ring is still cut at an area's top or
+foot, where its first or last thing is a control and the area is at that
+end - block padding would change heights - and at the foot of an event's
+panel on every sheet, where the star, Add this to calendar and Done lose
+the bottom of theirs (`contract.md`, section 14). Each area is 8 px wider,
+so a drag that starts in the 4 px beside one scrolls it where it dragged
+the sheet. The stylesheet names the three elements an arrow hangs on, and
+a new area with something after it needs its own. Whether the arrow draws
+in Safari on the filter sheet, and the ring whole after a pick from a
+left-hand select, are a phone's to check.
