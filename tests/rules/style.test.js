@@ -113,6 +113,12 @@ describe("src/styles.css", () => {
     it("and the tag leading a struck title is not struck: an inline-block, which the strike does not reach", () => {
       expect(css).toMatch(/(^|\n)\.removed-tag, \.cancelled-tag \{[^}]*display: inline-block/);
     });
+    it("nor is a pick's star before it: an inline-block too, its gap a margin and not a space the box would drop", () => {
+      const star = (css.match(/(^|\n)\.row\.mine \.title::before \{([^}]*)\}/) || [])[2] || "";
+      expect(star).toMatch(/content: "★";/);
+      expect(star).toMatch(/display: inline-block;/);
+      expect(star).toMatch(/margin-right: \.2em;/);
+    });
   });
 
   describe("step 0: the nav - Browse renamed to Search, For you folded into Explore, Map added", () => {

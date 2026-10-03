@@ -1223,7 +1223,7 @@ The event sheet is next (ROADMAP, step 7).
 
   | Line | What |
   |---|---|
-  | 1 | The title, two lines at most, its ★ before it when picked, struck when cancelled or removed. "Cancelled" or "Removed from the schedule" leads its words, inside the two lines, the tag not struck. |
+  | 1 | The title, two lines at most, its ★ before it when picked, struck when cancelled or removed. "Cancelled" or "Removed from the schedule" leads its words, inside the two lines; the strike is the words', the tag and the ★ each an inline-block it does not reach. |
   | 2 | The day's label where `showDay` asks and the time, `util.js` `fmtRange()` - "Sat 2:30–3:30 PM", "11:30 AM–12:30 PM"; then the place, `venues.js` `placeHTML()`, as text in the hotel's hue, no box, and the level, `levelShort()`, each after a middle dot. |
   | 3, only when anything is there | Celebrity; the overlap flag; the caller's context - Now's `.status`, the Following feed's labels; the flags, `data.js` `flagsOf()`; the track, or "Gaming". A middle dot between each two; an empty part is left out, and with none there is no line. |
   | under 3 | Search's ranked results: the snippet, as before; a compact list hides it. |
@@ -1248,8 +1248,9 @@ The event sheet is next (ROADMAP, step 7).
   overlap flag counts as 8em when the line is filled and then takes the
   room left, up to its whole text, so its title shortens first; it and
   Celebrity never drop. A Celebrity row with an overlap can lose Now's
-  status: in Chromium only with Larger text, and then at 375, 390 and 402
-  alike (#73's Cost).
+  status: the long one, "On now, ends 2:00 PM", at 375 at the normal text
+  size and at 375, 390 and 402 with Larger text; the short one, "In 40
+  min", at none (measured below; #73's Cost).
 - **The place** (`venues.js` `placeHTML()`). A hotel whose `display` is
   "location", the Mart, is its room alone - "Mart Building 3, Floor 1",
   where every screen said "Mart · Mart Building 3, Floor 1" - on all five
@@ -1322,8 +1323,31 @@ The event sheet is next (ROADMAP, step 7).
   - At 375, 390 and 402 wide, Larger text off and on, on Search (Saturday,
     and a query), Plans' list, Now, the Hilton's sheet and a shared day of
     ten: no part of line 2 or line 3 shown in part, no room cut while its
-    level showed, no line scrolled. Under Larger text, line 3 dropped Now's
-    status on one row at each width, a celebrity pick with an overlap.
+    level showed, no line scrolled.
+  - Now's status on a Celebrity row with an overlap, on Now, Barlow Semi
+    Condensed loaded, the overlap naming a title and so held to its 8em:
+
+    | Status | Text size | 375, a 305 px line | 390, 320 px | 402, 332 px |
+    |---|---|---|---|---|
+    | "On now, ends 2:00 PM" | Normal, 125 px | lost | shown | shown |
+    | "On now, ends 2:00 PM" | Larger, 144 px | lost | lost | lost |
+    | "In 40 min" | Normal, 57 px | shown | shown | shown |
+    | "In 40 min" | Larger, 65 px | shown | shown | shown |
+
+    Celebrity is 68 px, 76 with Larger text; the overlap's 8em is 112 and
+    129; the gap between two parts is 4 and 5. At 390 the long status fits
+    with 6 px to spare, and the widest end time of every five minutes of
+    the clock, "10:40 AM", is 5 px wider, so each still fits there. An
+    overlap that says a count, "Overlaps 2 picks", is 96 px, under its 8em:
+    it keeps the long status at 375 at the normal size and loses it with
+    Larger text, which is all this check's first run met, at all three
+    widths.
+  - A pick's star as an inline-block, its gap a margin: at 375 and 402,
+    Larger text off and on, a picked row and a cancelled picked row keep
+    their height, the title's place and height and line 2's place, and what
+    follows the star moves 0.02 px at most. The strike no longer runs
+    through the star; after the tag it begins at the space before the
+    title's words, as before.
   - A shared day still fits three rows at 375x667 (section 5), and four of
     the reader's picks put the hotel sheet's crew 394 px down at 375x812,
     432 with Larger text (section 8).
@@ -1339,16 +1363,16 @@ The event sheet is next (ROADMAP, step 7).
   `removed.test.js` holds a removed pick to no flag, `share-day.test.js`
   the shared day's flags in place, `crew-everywhere.test.js`'s pin the
   crew line's span, and `style.test.js` the two lines' rules, line 3's
-  parts and the overlap's among them, and the tag's, which the title's
-  strike does not reach. [271], [523], [630] and [671] read the day's
-  label on line 2 (`tests/PORT-LEDGER.md`); the new tests carry no ledger
-  bracket. A mutation pass of 37 mutants over the new rules - the range,
-  the level, the flags, the overlap and its order, the gap line, the Mart,
-  the shared day, the hero's name, the crew line and the CSS - killed all
-  37 on its last run. The first run, of 30, left one, Celebrity after the
-  overlap, which got a test; the seven more are the rules a review found
-  no test held - the level's " Floor", the tag's inline-block, line 3's
-  parts and the overlap's flex - which got pins.
+  parts and the overlap's among them, and the tag's and the star's, which
+  the title's strike does not reach. [271], [523], [630] and [671] read the
+  day's label on line 2 (`tests/PORT-LEDGER.md`); the new tests carry no
+  ledger bracket. A mutation pass of 40 mutants over the new rules - the
+  range, the level, the flags, the overlap and its order, the gap line, the
+  Mart, the shared day, the hero's name, the crew line and the CSS - killed
+  all 40 on its last run. The first run, of 30, left one, Celebrity after
+  the overlap, which got a test; seven more are the rules a review found no
+  test held - the level's " Floor", the tag's inline-block, line 3's parts
+  and the overlap's flex - which got pins; and three are the star's rule.
 
 ## 11. Entry points
 

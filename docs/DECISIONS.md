@@ -2283,7 +2283,7 @@ up to two lines under it, and the star on the right
   picked, struck when cancelled or removed. "Cancelled" or "Removed from
   the schedule" leads the title's words, inside its two lines, where it is
   never clipped and the row gains no line; the strike is the words', not
-  the tag's.
+  the tag's or the star's.
 - **Line 2, one line:** the day's label where the caller asks for it, the
   time as a range - "2:30–3:30 PM", the meridiem once, both where they
   differ - then the place and the level, each after a middle dot, as text
@@ -2334,7 +2334,10 @@ it: at 375 px with Larger text and a day label, the level shows on a
 minority of the rows that have one, as measured in Chromium (`contract.md`,
 section 10, as built), and a dropped level stays in the row's text, so a
 screen reader reads what the eye does not see. A Celebrity row with an
-overlap can lose Now's status: in Chromium only with Larger text, and then
-at 375, 390 and 402 px alike. The hero and the gap line still
+overlap can lose Now's status. Measured in Chromium, the overlap naming a
+title: the long status, "On now, ends 2:00 PM", is lost at 375 px at the
+normal text size, and at 375, 390 and 402 px with Larger text; the short
+one, "In 40 min", is lost at none of the three, at either size
+(`contract.md`, section 10, as built). The hero and the gap line still
 band a cancelled pick, which the row's flag does not (`contract.md`,
 section 14).

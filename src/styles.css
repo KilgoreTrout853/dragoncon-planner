@@ -312,7 +312,10 @@ select.track {
 .time-head { padding: 12px 14px 2px; font-size: .8125rem; color: var(--dim); font-variant-numeric: tabular-nums; border-top: 1px solid var(--line); }
 .row { border-top: 1px solid var(--line); }
 .row.open { background: var(--surface); }
-.row.mine .title::before { content: "★ "; color: var(--gold); }
+/* A pick's star is an inline-block, as the tag below is, so a struck title's
+   line stops at its words (DECISIONS #73). An inline-block drops a trailing
+   space, so the gap after the star is a margin: the font's space, .2em. */
+.row.mine .title::before { content: "★"; display: inline-block; margin-right: .2em; color: var(--gold); }
 .row.cancelled .title, .row.removed .title { text-decoration: line-through; color: var(--muted); }
 /* A strike-through alone reads as a rendering glitch; say the word. A pick
    the source dropped says it the same way. */
