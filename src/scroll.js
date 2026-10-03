@@ -210,9 +210,20 @@ function setMoreObserver(observer) {
   moreSizes = observer;
   syncMore();
 }
+/* The deepest a band on an area can be, for what a script scrolls into one
+   and must land clear of it. The cap is the area's scroll padding too, so it
+   is read from there - the px and the share of the area's height its min()
+   names - and the numbers stay the stylesheet's alone: Larger text moves
+   this with them. 0 where no padding is said: jsdom computes none. */
+function moreCap(area) {
+  const said = getComputedStyle(area).scrollPaddingTop || "";
+  const px = /([\d.]+)px/.exec(said), share = /([\d.]+)%/.exec(said);
+  if (!px && !share) return 0;
+  return Math.min(px ? Number(px[1]) : Infinity, share ? area.clientHeight * Number(share[1]) / 100 : Infinity);
+}
 
 export {
   scroller, pageScrollTop, pageScrollTo, pageScrollBy, chipRowsSnapshot, chipRowsRestore,
   revealChip, cssEsc, focusKey, shownMatch, focusIn, giveFocusBack, refill, drawInPlace, fitHeaderLine, syncHeaderHeight,
-  syncNavHeight, moreHidden, onMoreScroll, syncMore, setMoreObserver,
+  syncNavHeight, moreHidden, onMoreScroll, syncMore, setMoreObserver, moreCap,
 };
