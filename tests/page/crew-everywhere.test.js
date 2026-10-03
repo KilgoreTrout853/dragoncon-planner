@@ -305,9 +305,11 @@ describe("who starred it (W22, who's going): a line on the event's sheet", () =>
     expect(going("s0257")).toEqual(["", true]);
     expect(going("s0254")).toEqual(["Starred by Bo", false]);
   });
-  it("a star in the sheet draws it again, the line with it", () => {
+  it("a star in the sheet writes the panel in place, the line as it stood", () => {
     going("s0376");
+    const line = el("sheetGoing");
     el("sheetStar").click();
+    expect(el("sheetGoing")).toBe(line);
     expect(words(el("sheetGoing"))).toBe("Starred by Bo, Cy, Dee");
     el("sheetStar").click();
   });
@@ -1110,7 +1112,9 @@ describe("the crew's words (step 5d, #68): a star is a pick, not a whereabouts",
      its elements carry for a screen reader. */
   const said = root => [root.textContent, ...[...root.querySelectorAll("[aria-label], [title], [placeholder], [alt]")]
     .flatMap(n => ["aria-label", "title", "placeholder", "alt"].map(a => n.getAttribute(a) || ""))].join(" ");
-  const NEVER = /going|with you/i;
+  /* Whole words: the event's sheet says "With" over its people, and "With
+     Young ..." is not "with you". */
+  const NEVER = /\bgoing\b|\bwith you\b/i;
 
   it("no string the crew screens draw says a crewmate is going, or with you: Now, the Map, the hotel sheet, the event sheet, Plans' crew and the crew panel", () => {
     const screens = {};

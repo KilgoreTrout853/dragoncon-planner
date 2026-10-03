@@ -2,7 +2,8 @@
    from the pick before, the tight-connection flag between two picks in a
    row - an overlap, a gap shorter than the walk, or one shorter than the walk
    and the slack (DECISIONS #40) - and every pick a pick overlaps across the
-   plan (#73). Facts about the plan, never about the
+   plan (#73), or an event would if it were one (#74). Facts about the plan,
+   never about the
    reader: nothing here says where anyone is, or when to leave. The function
    that needs the moment takes it as a parameter called now, so this module
    does not import now() - and must not: the parameter shadows it. */
@@ -62,8 +63,14 @@ function connection(prev, next) {
    flag and the hero hold one opinion. A cancelled or removed pick is not
    happening: it overlaps nothing and is in no other pick's list. [] for an
    event that is not a pick. */
-function overlapsOf(ev) {
-  if (!picks.has(ev.id) || ev.cancelled || ev.removed) return [];
+function overlapsOf(ev) { return picks.has(ev.id) ? clashesOf(ev) : []; }
+/* And every pick an event overlaps whether it is a pick or not (DECISIONS
+   #74): what it would overlap if it were starred, which the event's sheet
+   says before the star is tapped. The same pairs asked of connection() in
+   the same order, so the sheet's line, a row's flag and the hero hold one
+   opinion, and an overlap is still computed in one place. */
+function clashesOf(ev) {
+  if (ev.cancelled || ev.removed) return [];
   const out = [];
   for (const id of picks) {
     const p = byId.get(id);
@@ -93,4 +100,4 @@ function nextPickInConDay(now) {
   return events.find(e => picks.has(e.id) && e._s > now && conDayKey(e._s) === key) || null;
 }
 
-export { walkEstimate, connection, overlapsOf, gapHTML, nextPickInConDay };
+export { walkEstimate, connection, overlapsOf, clashesOf, gapHTML, nextPickInConDay };

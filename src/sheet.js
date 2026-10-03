@@ -1,13 +1,13 @@
-/* The bottom sheet: one wrapper and seven panels - Settings, an event, a
-   hotel, a crew, Share a day, a day shared with the reader and Search's
-   filters, which filters.js draws - with what fills each, what opens and
-   closes it, the swipe and the Escape that dismiss it, focus into it and
-   back (#66), and the handlers boot()
+/* The bottom sheet: one wrapper and seven panels - Settings, an event,
+   which eventsheet.js draws, a hotel, a crew, Share a day, a day shared with
+   the reader and Search's filters, which filters.js draws - with what fills
+   each, what opens and closes it, the swipe and the Escape that dismiss it,
+   focus into it and back (#66), and the handlers boot()
    registers on it, on the Settings controls - the email step's among them -
    in the crew panel and in the share panel, whose state is this module's,
    as the shared day is. A pull's redraw refills the open crew panel, the
-   open event's who's-going line, the open hotel's crew and the shared day's
-   stars, in place.
+   open hotel's crew and the shared day's stars, in place; the open event's
+   line is eventsheet.js's.
    The clicks inside the event, hotel, shared-day and filter panels are
    dispatch's: they reach further than the sheet. closeSheet() asks for its
    redraw over the bus, because render() is the shell's, above this module.
@@ -20,17 +20,18 @@ import { deviceLine, storageKey } from "./build.js";
 import { hasBackend } from "./backend.js";
 import { codeSentTo, confirmCode, plainMessage, sendCode, signedInAs, signOut } from "./identity.js";
 import {
-  createCrew, crewMessage, deleteCrew, goingTo, inviteLink, isCreator, joinCrew, leaveCrew, myCrews, myMembership, newInvite,
+  createCrew, crewMessage, deleteCrew, inviteLink, isCreator, joinCrew, leaveCrew, myCrews, myMembership, newInvite,
   pendingJoin, readInvite, removeMember, setMyName, takePendingJoin,
 } from "./crews.js";
 import { settings, state } from "./state.js";
 import { conDayKey, DAY_LABEL, DAY_LONG, localInputValue, now, timeOverride } from "./time.js";
-import { hotelPhrase, hotelVar, placeHTML, WALK } from "./venues.js";
+import { hotelPhrase, WALK } from "./venues.js";
 import { dayLink, dayMessage, defaultShareDay, readSharedDay, shareableDays, sharedPicks } from "./shareday.js";
-import { byId, directWorks, events, isCeleb, tagsOf, worksById } from "./data.js";
+import { byId, events } from "./data.js";
 import { picks, replacePicks, savePicks } from "./picks.js";
-import { CELEB_BADGE, chipHTML, crewLineHTML, rowHTML } from "./ui.js";
+import { chipHTML, crewLineHTML, rowHTML } from "./ui.js";
 import { focusIn, focusKey, pageScrollTo, pageScrollTop, refill, shownMatch } from "./scroll.js";
+import { eventSheetHTML } from "./eventsheet.js";
 import { requestRender } from "./bus.js";
 import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter } from "./sync.js";
 import { MAP_HOTELS, mapCrewCounts, mapCrewPicks, mapDay } from "./map.js";
@@ -108,59 +109,6 @@ function fillKeep() {
   document.getElementById("keepSignOut").disabled = keepBusy;
   document.getElementById("keepNote").textContent = keepNote;
   fillSyncStatus();
-}
-
-/* Who's going (W22; DECISIONS #62, #64): the crewmates whose picks hold the
-   event, by name, three of them and then how many more - from what the pull
-   kept (crews.js goingTo()), so on a build with a backend alone, and never
-   for a removed event, which is not happening. "" for no one. Every name is
-   someone's own text, escaped where it is drawn. In 2027 it taps nowhere.
-   The screen says what they starred, "Starred by", never that they are
-   going: a star is a pick (#68). The code's names - goingText(),
-   #sheetGoing, .ev-going - keep "going". */
-const GOING_NAMED = 3;
-function goingText(ev) {
-  const going = hasBackend && !ev.removed ? goingTo(ev.id) : [];
-  if (!going.length) return "";
-  const more = going.length - GOING_NAMED;
-  return `Starred by ${going.slice(0, GOING_NAMED).map(p => p.display_name).join(", ")}${more > 0 ? ` and ${more} more` : ""}`;
-}
-
-function eventSheetHTML(ev) {
-  const mine = picks.has(ev.id), going = goingText(ev);
-  /* Each person as this listing spells them, with the role it gives them;
-     See all opens their page by id. */
-  const peopleRows = (ev.people || []).filter(p => p && p.name).map(p => ({
-    id: p.id,
-    label: p.role && p.role !== "Speaker" && p.role !== "Panelist" ? `${p.name} (${p.role.toLowerCase()})` : p.name,
-  }));
-  const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
-  const chips = [...(ev.tracks || []), ...directWorks(ev).map(id => (worksById.get(id) || {}).name).filter(Boolean)];
-  const mature = tagsOf(ev).audience === "mature";
-  /* The calendar takes only what is on the schedule: Plans' export leaves a
-     removed pick out, and so does this, the other door to the same calendar
-     (DECISIONS #49). A cancelled event keeps its button, as it always had. */
-  const ics = ev.removed ? "" : `<button class="btn quiet" id="sheetICS">Add this to calendar</button>`;
-  return `<div class="ev-head">
-      <h2 id="sheetTitleEvent" tabindex="-1">${esc(ev.title)}</h2>
-      <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}${ev._cd !== ev.day ? ` &middot; ${DAY_LONG[ev._cd] || ev._cd} night` : ""}</div>
-      <div class="ev-room" style="--h:var(${hotelVar(ev.hotel)})">${placeHTML(ev)}</div>
-      ${ev.cancelled ? `<div><span class="cancelled-tag">Cancelled</span></div>` : ""}
-      ${ev.removed ? `<div><span class="removed-tag">Removed from the schedule</span></div>` : ""}
-      ${isCeleb(ev) ? `<div>${CELEB_BADGE}</div>` : ""}
-      <p class="ev-going" id="sheetGoing"${going ? "" : " hidden"}>${esc(going)}</p>
-    </div>
-    <div class="ev-body">
-      ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
-      ${peopleRows.length ? `<div class="ev-people">With ${peopleRows.map(p =>
-        `<span class="who"><span>${esc(p.label)}</span> <button class="see-all" data-explore="person:${esc(p.id)}">See all</button></span>`).join(", ")}</div>` : ""}
-      ${chips.length || mature ? `<div class="tagline">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${mature ? `<span class="tag adult">18+</span>` : ""}</div>` : ""}
-    </div>
-    <div class="ev-actions">
-      <button class="ev-star" id="sheetStar" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}"${ev.removed && !mine ? " disabled" : ""}>${mine ? "★" : "☆"}</button>
-      ${ics}
-      <button class="btn" id="closeSheetEvent">Done</button>
-    </div>`;
 }
 
 /* ---- The hotel sheet (docs/screens/contract.md, section 8) -------- */
@@ -451,17 +399,6 @@ function onCrewInput(e) {
 
 /* shell.js render()'s: a pull's redraw reaches the open panel too. */
 function refreshCrewPanel() { if (!sheetWrap.hidden && !panelCrew.hidden) fillCrew(); }
-/* And the open event - `state.sheetId` is one only while its panel is
-   shown: its who's-going line alone, its words and whether it shows, in
-   place - the panel is never drawn again for it, so focus and everything
-   else in the sheet stay as they are (#66). */
-function refreshEventSheet() {
-  const ev = state.sheetId ? byId.get(state.sheetId) : null, line = document.getElementById("sheetGoing");
-  if (!ev || !line) return;
-  const going = goingText(ev);
-  if (line.textContent !== going) line.textContent = going;
-  line.hidden = !going;
-}
 /* And the open hotel sheet: what it draws of the crew, on the day it was
    drawn for, written in place - the count in its head, the words above its
    Search button, and Your crew's picks here, put in or taken out whole, or
@@ -859,7 +796,8 @@ const TITLES = {event: "sheetTitleEvent", hotel: "sheetTitleHotel", crew: "sheet
    heading, and closing puts it back on what opened the sheet (#66), kept
    as scroll.js focusKey() puts it, since the redraw that closing asks for
    replaces it. An event opened from the shared day keeps the way back to
-   it; any other panel opening takes it. */
+   it, and so does an event opened from that event's sheet - another
+   session, a pick it overlaps (#74); any other panel opening takes it. */
 function openSheet(kind = "settings", id = null) {
   if (kind === "event" && !byId.get(id)) return;
   if (kind === "hotel" && !MAP_HOTELS[id]) return;
@@ -868,8 +806,9 @@ function openSheet(kind = "settings", id = null) {
   if (kind === "shared" && !sharedDay) return;
   if (kind === "filters" && !events.length) return;
   const fromShared = kind === "event" && !sheetWrap.hidden && !panelShared.hidden && !!sharedDay && !sharedDay.error;
+  const fromEvent = kind === "event" && !sheetWrap.hidden && !panelEvent.hidden;     // an event over an event: the way back, if any, stays
   if (fromShared) sharedBack = {scroll: (document.getElementById("sharedBody") || {}).scrollTop || 0, focus: focusKey(document.activeElement)};
-  else if (kind !== "shared") dropShared();     // any other panel: the shared day and its way back go
+  else if (kind !== "shared" && !fromEvent) dropShared();     // any other panel: the shared day and its way back go
   if (sheetWrap.hidden) opener = focusKey(document.activeElement);
   sheetScrollY = pageScrollTop();
   state.sheetId = kind === "event" ? id : null;
@@ -905,8 +844,9 @@ function dropShared() {
   sharedDay = null;
   if (panelShared.firstChild) panelShared.innerHTML = "";
 }
-/* See all, from an event: the Explore page, whatever the event was opened
-   from - an event opened from the shared day closes both, and the list goes. */
+/* A person's name, from an event: the Explore page, whatever the event was
+   opened from - an event opened from the shared day closes both, and the
+   list goes. */
 function closeWholeSheet() {
   sharedBack = null;
   closeSheet();
@@ -981,8 +921,8 @@ function settle(toClosed) {
 /* What boot() registers on the sheet itself: the drag. */
 function onSheetTouchStart(e) {
   if (e.target.closest(".ev-body, textarea, .filters-body")) return;   // let the description scroll, the message to share, and the filters
-  const crew = e.target.closest("#panel-crew");
-  if (crew && crew.scrollHeight > crew.clientHeight) return;   // and the crew panel, when it is taller than the screen
+  const tall = e.target.closest("#panel-crew, #panel-event");
+  if (tall && tall.scrollHeight > tall.clientHeight) return;   // and the crew panel or an event's, when it is taller than its room and scrolls
   dragY = e.touches[0].clientY;
   dragT = performance.now();
   dragDy = 0;
@@ -1075,8 +1015,8 @@ async function onKeepClick(e) {
 }
 
 export {
-  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, panelShare, panelShared, panelFilters, eventSheetHTML, hotelSheetHTML, drawHotelSheet, showHotelCrew,
+  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, panelShare, panelShared, panelFilters, hotelSheetHTML, drawHotelSheet, showHotelCrew,
   openSheet, closeSheet, closeWholeSheet, onSheetKeydown, onShareClick, takeDayLink, openSharedDay, refreshSharedDay, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
   onSettingsClick, onCrowdInput, onNoiseDefaultChange, onResetPicks, onKeepSubmit, onKeepClick,
-  refreshCrewPanel, refreshEventSheet, refreshHotelSheet, onCrewSubmit, onCrewClick, onCrewInput, openKeptJoin,
+  refreshCrewPanel, refreshHotelSheet, onCrewSubmit, onCrewClick, onCrewInput, openKeptJoin,
 };

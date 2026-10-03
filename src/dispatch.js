@@ -5,8 +5,8 @@
    and the clicks and changes inside its filter panel; Apply and Clear for
    the preview clock; the hash; and the minute tick. boot() registers all
    fourteen. It
-   is last in the order: it imports the views, the sheet, loading and the
-   shell, and nothing imports it but the root. It declares nothing but the
+   is last in the order: it imports the views, the event's panel, the sheet,
+   loading and the shell, and nothing imports it but the root. It declares nothing but the
    handlers and reads nothing as it is imported. */
 import { saveJSON } from "./storage.js";
 import { storageKey } from "./build.js";
@@ -26,8 +26,9 @@ import {
   renderExploreSections, scrollToExploreSection, scrollToGrid,
 } from "./explore.js";
 import { tickMap } from "./map.js";
+import { refreshEventSheet } from "./eventsheet.js";
 import {
-  closeSheet, closeWholeSheet, drawHotelSheet, eventSheetHTML, openSheet, panelEvent, panelFilters, sheetWrap, showHotelCrew,
+  closeSheet, closeWholeSheet, drawHotelSheet, openSheet, panelFilters, sheetWrap, showHotelCrew,
 } from "./sheet.js";
 import { holdQuery, updateFresh } from "./loading.js";
 import { clearFilters, fillFilters, setFilter, settleWords } from "./filters.js";
@@ -255,15 +256,23 @@ function onFiltersPanelChange(e) {
   fillFilters(panelFilters);
 }
 
+/* The event's panel (DECISIONS #74). A person's name: their Explore page,
+   the whole sheet closed behind it. Another session, or a pick the event
+   overlaps: that event's sheet, in this one's place - Done, the backdrop
+   and Escape then close to the screen underneath, as from any sheet. The
+   star changes the pick and writes what follows from it in place - the
+   star, the overlap line - and draws nothing again, so focus stays on it. */
 function onEventPanelClick(e) {
-  const seeAll = e.target.closest("[data-explore]");
-  if (seeAll) {
-    const raw = seeAll.dataset.explore, i = raw.indexOf(":");
+  const person = e.target.closest("[data-explore]");
+  if (person) {
+    const raw = person.dataset.explore, i = raw.indexOf(":");
     closeWholeSheet();
     if (i > 0) openExplorePage(raw.slice(0, i), raw.slice(i + 1));
     return;
   }
   if (e.target.closest("#closeSheetEvent")) { closeSheet(); return; }
+  const other = e.target.closest("[data-event]");
+  if (other) { openSheet("event", other.dataset.event); return; }
   const ev = byId.get(state.sheetId);
   if (!ev) return;
   if (e.target.closest("#sheetICS")) { exportEventICS(ev); return; }
@@ -271,7 +280,7 @@ function onEventPanelClick(e) {
     if (ev.removed && !picks.has(ev.id)) return;     // unstarred, never starred anew (#49)
     if (picks.has(ev.id)) picks.delete(ev.id); else picks.add(ev.id);
     savePicks();
-    panelEvent.innerHTML = eventSheetHTML(ev);
+    refreshEventSheet();
   }
 }
 

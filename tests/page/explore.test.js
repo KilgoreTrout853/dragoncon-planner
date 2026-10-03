@@ -282,12 +282,14 @@ describe("Explore", () => {
       state.tab = "browse"; handle.render();
       ev = handle.events.find(e => (e.people || []).length > 0);
       handle.openSheet("event", ev.id);
-      seeAll = document.querySelector("#panel-event .see-all");
+      seeAll = document.querySelector("#panel-event .ev-people .who-name");
     });
     afterAll(() => { state.explore.page = null; app.setExploreHash(null); state.tab = "now"; handle.render(); });
 
-    it("the detail sheet offers See all beside a speaker [1118]", () => {
+    it("the detail sheet makes a speaker's name the way to their page, and offers no See all [1118]", () => {
       expect(seeAll).toBeTruthy();
+      expect(seeAll.textContent).toBe(ev.people[0].name);
+      expect(document.querySelector("#panel-event .see-all")).toBe(null);
     });
     it("pointing at that person's page [1119]", () => {
       expect(seeAll.dataset.explore).toBe("person:" + ev.people[0].id);

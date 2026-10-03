@@ -415,8 +415,14 @@ execution slot (#57), which can run before any of this.
    merged (contract, sections 7 and 10). The row - the time a range on
    line 2, the place as text and the level by its short name, the facet
    flags and W1's overlap flag on line 3, and the gap line saying no
-   overlap - built (PR #92, #73; contract, section 10, as built); the sheet
-   next.
+   overlap - built (PR #92, #73; contract, section 10, as built). The
+   sheet - the level in full, the facts in the row's words, the other
+   sessions, W1's line before the star and after it, the people with
+   W42's line under a name, and the star written in place - built (PR #93,
+   #74; contract, section 7, as built); W42's line shows once its review
+   has merged. What is left of this step, in no set order: the place line
+   and the chips as entry points; a cue that more is below a scrolling
+   area; and 7b.
    - 7b. W7's facets as filters in the filter sheet, now that the row
      shows them (#70; contract, section 3).
 8. Explore's top: For you and the zero state, its source decided at its
@@ -505,16 +511,19 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   Explore again behind it, where focus is in the sheet and the filter box
   keeps its text. The picks path is as it was. Keeping Explore's filter box
   across a redraw, which lifts the gate, is step 8's (Explore's top).
-- A pull that changes the reader's own pick of an open event leaves the
+- ~~A pull that changes the reader's own pick of an open event leaves the
   sheet's star stale until the sheet is reopened - a tap on it meanwhile
   does what the pick as kept calls for, not what the star shows:
   `render()` never drew the event's panel again, and since PR #81 refills
   only its who's-going line. It predates PR #81, and `sheet.js`
-  `refreshEventSheet()` is where the fix goes. An open hotel sheet is the
-  same: a pull that changes the reader's own picks leaves its rows, their
+  `refreshEventSheet()` is where the fix goes.~~ Closed for an event's
+  sheet by PR #93 (#74): `eventsheet.js` `refreshEventSheet()` writes the
+  star and the overlap line in place, with Starred by, on a pull as at the
+  star's own tap. An open hotel sheet is as it was: a pull that changes
+  the reader's own picks leaves its rows, their
   stars and its own count as drawn, since PR #82 refills only what it draws
   of the crew - "yours too" on a crew line follows the picks, the rows above
-  it do not. It predates PR #82 too, and `refreshHotelSheet()` is where
+  it do not. It predates PR #82, and `refreshHotelSheet()` is where
   that fix goes. Since PR #92 the rows' overlap flags are among what stays
   as drawn, until the sheet is drawn again (#73).
 - Three places rewrite the address, each its own way: `time.js`
