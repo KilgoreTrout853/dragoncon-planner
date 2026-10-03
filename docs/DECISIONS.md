@@ -2002,7 +2002,7 @@ after seven days without a visit (#25).
 settles #40's open question - a standing line on Now, or the moment it
 earns itself - as the second.
 
-### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built); the entry points' by PR #94 (#75): the place's target 44 px tall with the head not grown, a chip's 44 px tall and at least 44 wide around the chip's own look, each named for where it goes or by its kind, and keyboard focus landing on what a tap opened - the Map's card, an Explore page's heading, from the grid's tiles too (`docs/screens/contract.md`, sections 6 and 7, as built)
+### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built); the entry points' by PR #94 (#75): the place's target 44 px tall with the head not grown, a chip's 44 px tall and at least 44 wide around the chip's own look, each named for where it goes or by its kind, and keyboard focus landing on what a tap opened - the Map's card, an Explore page's heading, from the grid's tiles too (`docs/screens/contract.md`, sections 6 and 7, as built); the more-below cue's by PR #95 (#76): no new control and no tap target's size or place changed, a control that takes focus scrolled clear of both bands by each area's scroll padding, nothing a screen reader hears changed, and nothing that moves, so no reduced-motion rule (`docs/screens/contract.md`, section 7, as built)
 **Decided:** Every screen Where things live touches meets these, and none
 of them has a screen of its own (W43):
 - a label on every new control;
@@ -2342,7 +2342,7 @@ one, "In 40 min", is lost at none of the three, at either size
 band a cancelled pick, which the row's flag does not (`contract.md`,
 section 14).
 
-### 74. The event sheet as built — Standing (2026-10-03) — its other sessions amended by #75: only those not yet started, the rest left out; its place and its chips made taps by #75, PR #94
+### 74. The event sheet as built — Standing (2026-10-03) — its other sessions amended by #75: only those not yet started, the rest left out; its place and its chips made taps by #75, PR #94; its body fades where it has more past an edge, by #76, PR #95
 **Decided:** An event's sheet is #64's, amended in two ways, in three
 parts: a head and a foot that never scroll, and a body between them that
 does (`docs/screens/contract.md`, section 7, as built; PR #93).
@@ -2526,3 +2526,90 @@ the con, "has ended" after it until its OK - the Map tab is taller than
 the screen by the notice, as it was, and the focused card is cut at the
 page's top: by 82 px after the con at 375x667, where the Map had no card
 to cut. "← Explore" still drops keyboard focus to the page.
+
+### 76. A fade where a scrolling area has more past its edge — Standing (2026-10-03)
+**Decided:** Six areas of the bottom sheet scroll on their own - an
+event's body, the hotel sheet's list, the shared day's, the filter sheet's
+body, Settings' Advanced and the crew panel - and where one has more past
+an edge, that edge fades to nothing: the bottom with more below, the top
+with more above, both in the middle, neither where everything fits
+(`docs/screens/contract.md`, section 7, as built; PR #95).
+- **A mask, not an overlay:** `mask-image` on the scrolling element
+  itself, so what fades is the content and what shows through is the
+  sheet, with no element laid over it and no colour kept in step with the
+  sheet's. One rule, on the mark, serves all six, and no area has its own.
+  The property is unprefixed: the floor is Safari 16.4 (#23). It does not
+  animate as it comes and goes.
+- **Graded, not on or off.** A band is as deep as what is hidden past its
+  edge, and at most 1.75rem and a fifth of the area's height. A few hidden
+  px dim nothing a reader can see whole; a short area keeps a clear
+  middle; Larger text scales the cap with no script; and the band eases
+  out as a thumb nears an end, where an on-off band would pop.
+- **The mark.** The element carries what it hides, in whole px, as two
+  custom properties, `--more-above` and `--more-below`, and `data-more`, a
+  bare hook the rule hangs on, while either is above 0: an area that fits
+  carries no mask and no attribute of the cue's. `scroll.js`
+  `moreHidden()` is a pure function of the element's three numbers -
+  scrollTop, clientHeight and scrollHeight - to the two: under 1 px hidden
+  is 0; never under 0, so a bounce past an end is the end; and never over a
+  ceiling of 48 px, which stands above the deepest band, 32.2 px with
+  Larger text, so that far from an end the number does not change and
+  nothing is written.
+- **Kept by three registrations** in `boot()`, and no call at any draw: a
+  scroll listener on the sheet in the capture phase, since a scroll does
+  not bubble; a MutationObserver on the sheet's child lists - never its
+  attributes or character data, so the mark's own write cannot wake it -
+  for an area a draw has just replaced and a child put into one at its cap;
+  and a ResizeObserver on each area and each child of it, for a panel
+  shown, Larger text, Advanced opened, the window resized or turned, and
+  content that grows inside an area whose own box stays as it was.
+- **Not among the six:** the share panel's message, which is a field; an
+  event's panel scrolling as one, whose body has the cue and whose foot is
+  pinned (#74); and `main`, where the nav cuts the rows in plain sight.
+- **#66.** The same cap, `min(1.75rem, 20%)`, is each area's scroll
+  padding, always and not by the mark - where a focused control lands must
+  not depend on a number written after the scroll - so a control that
+  takes focus is scrolled clear of both bands. The mask changes nothing a
+  screen reader hears, and no tap target's size or place. Nothing moves, so
+  reduced motion needs no rule.
+- **Two fixes with it.** The crew pill's way into the hotel sheet (#63)
+  lands Your crew's picks here short of the body's top by the cap, which
+  `scroll.js` `moreCap()` reads from the body's own scroll padding, so the
+  heading the pill opened stands clear of the top band. And a drag that
+  starts in Advanced scrolls it and no longer drags the sheet: `sheet.js`
+  `onSheetTouchStart()` leaves `.advanced-body` alone, as it leaves an
+  event's body and the filters'.
+
+**Why:** The step 7 design chat (2026-10-03): the last line of a scrolling
+area was cut mid-letter, and a reader could not tell a full list from a
+cut one. A fade, not a shadow: a dark shadow on the dark sheet barely
+shows. On 2026's schedule in Chromium, with no picks, 347, 297 and 120 of
+the 3,459 events have a body that scrolls at 375x667, 390x664 and 402x714,
+and 1,102, 1,038 and 469 with Larger text; the filter sheet's body always
+scrolls, and at 375x667 the hotel's list does from four picks, the shared
+day's from four rows and the crew panel from three members. Graded,
+because at 375x667 161 of
+those 347 bodies hide less than 28 px: "Football Hooligans Presents: Learn
+to Chant Like a Football Hooligan!" hides 6, all of it the space under its
+last chip, and a 28 px band there dims a chip none of which is cut. The
+fifth, because at the event body's floor, 72 px (#74), two 28 px bands
+would leave 16 px clear. The padding always, because a padding that
+followed the mark would be set after the scroll it is meant to steer. A
+cue on Advanced invites a scroll, and a scroll there that also dragged the
+sheet away was worse with the cue than without it.
+**Cost:** Text inside a band is dimmer than it is anywhere else, by
+design, until it is scrolled clear. Within the ceiling of an end a scroll
+writes the element's style once a px, and nowhere else. The area's own
+scrollbar fades with its content at a marked edge. Three registrations
+more in `boot()`, and an observer on each area and each of its children.
+The cap is said twice in the stylesheet, as the mask's and as the scroll
+padding, and `scroll.js` names the four selectors the stylesheet pads and
+a ceiling that must stand above the cap: a style test holds each. At its
+72 px floor a body's two bands leave 43.2 px clear, 0.8 short of a 44 px
+tap; in 2026 the one control in such a body is its last chip, which stands
+at the end, where there is no band. `moreCap()` reads the cap out of the
+computed scroll padding's own words, `min(28px, 20%)` in Chromium; where a
+browser says it another way the crew pill lands at the body's top, as it
+did. Whether the fade draws in Safari on a scrolling area and holds steady
+under a thumb is a phone's to check, and jsdom lays nothing out, so the
+tests give a node its numbers.

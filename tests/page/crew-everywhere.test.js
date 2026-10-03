@@ -1013,6 +1013,46 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     expect(document.activeElement).toBe(el("sheetTitleHotel"));
     escape();
   });
+  /* The body fades at its top once there is more above it (DECISIONS #76),
+     and the section's heading must stand clear of that band: the section
+     stops short of the top by the deepest the band can be, which
+     showHotelCrew() reads from the body's own scroll padding - the
+     stylesheet's cap, 1.75rem and a fifth of the body's height. jsdom
+     computes no scroll padding and no height, so the body is given both
+     while `during` runs. */
+  function padded(said, height, during) {
+    const real = window.getComputedStyle, tall = Object.getOwnPropertyDescriptor(Element.prototype, "clientHeight");
+    const isBody = node => !!node.matches && node.matches("#panel-hotel .ev-body");
+    window.getComputedStyle = globalThis.getComputedStyle = (node, pseudo) => (isBody(node) ? { scrollPaddingTop: said } : real.call(window, node, pseudo));
+    Object.defineProperty(Element.prototype, "clientHeight", { configurable: true, get() { return isBody(this) ? height : tall.get.call(this); } });
+    try { laidOut(during); } finally {
+      window.getComputedStyle = globalThis.getComputedStyle = real;
+      Object.defineProperty(Element.prototype, "clientHeight", tall);
+    }
+  }
+  it("and its heading lands clear of the band at the body's top: short of it by the cap, 1.75rem - 28px, 32.2 with Larger text", () => {
+    for (const [said, landed] of [["min(28px, 20%)", 392], ["min(32.2px, 20%)", 387.8]]) {
+      padded(said, 390, () => tapSVG(crewPill("Hyatt").querySelector("rect")));
+      expect(bodyScroll()).toBe(landed);
+      expect(document.activeElement).toBe(el("sheetTitleHotel"));
+      escape();
+    }
+  });
+  it("or by a fifth of the body's height, in a body so short that is less", () => {
+    padded("min(28px, 20%)", 100, () => tapSVG(crewPill("Hyatt").querySelector("rect")));
+    expect(bodyScroll()).toBe(400);
+    escape();
+    padded("min(28px, 20%)", 140, () => tapSVG(crewPill("Hyatt").querySelector("rect")));
+    expect(bodyScroll()).toBe(392);
+    escape();
+  });
+  it("by whichever the padding names alone, and by nothing where none is said", () => {
+    for (const [said, landed] of [["28px", 392], ["10%", 381], ["auto", 420], ["", 420]]) {
+      padded(said, 390, () => tapSVG(crewPill("Hyatt").querySelector("rect")));
+      expect(bodyScroll()).toBe(landed);
+      escape();
+    }
+  });
   it("the gold pill opens it at its top, as before", () => {
     laidOut(() => tapSVG(document.querySelector('#view-map .map-pill[data-hotel="Hyatt"] rect')));
     expect(s.handle.state.sheetHotel).toBe("Hyatt");

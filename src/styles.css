@@ -654,6 +654,25 @@ select.crew-pick {
 .ev-clash .ov-title { font-weight: 600; color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
 .ev-overlap.is .ov-title { color: inherit; }
 .ev-clash .ov-when { display: block; font-variant-numeric: tabular-nums; }
+/* More past an edge (DECISIONS #76). Six areas of the sheet scroll on their
+   own - an event's body, the hotel's list and the shared day's, which are
+   .ev-body too, the filters' body, Settings' Advanced and the crew panel -
+   and the last line of one is cut mid-letter, with nothing to say whether
+   the list goes on. Where it does, that edge fades to nothing: a mask on
+   the scrolling element itself, so what fades is the content and what shows
+   through is the sheet, with no element laid over it and no colour to keep
+   in step. scroll.js writes what is hidden past each edge into --more-above
+   and --more-below, and sets data-more while either is above 0. A band is as
+   deep as what is hidden past its edge, and at most 1.75rem and a fifth of
+   the area's height: a few hidden px dim nothing a reader can see whole, a
+   short area keeps a clear middle, Larger text scales the cap, and the band
+   eases out as a thumb nears an end. Nothing here moves, so reduced motion
+   needs no rule. The cap is each area's scroll padding too, always, so a
+   control that takes focus is scrolled clear of both bands (#66). */
+.ev-body, .filters-body, .advanced-body, #panel-crew { scroll-padding-block: min(1.75rem, 20%); }
+[data-more] {
+  mask-image: linear-gradient(to bottom, transparent, #000 min(1.75rem, 20%, var(--more-above, 0px)), #000 calc(100% - min(1.75rem, 20%, var(--more-below, 0px))), transparent);
+}
 
 /* Hero card: the next thing you have to act on */
 .hero {

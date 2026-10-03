@@ -7,7 +7,8 @@
    measured here too: what scrolls parks under it (--hdr-h), and loading, the
    shell and boot() all need the measurement from a module below them. So is
    the nav: what sits on it or clears it is laid out from its height
-   (--nav-h). */
+   (--nav-h). And what an area of the sheet hides past an edge, which the
+   stylesheet fades (DECISIONS #76). */
 
 /* Everything that scrolls the page goes through here, because the page is
    not the scroller - main is (see the CSS). jsdom has no scrollTo on
@@ -138,8 +139,91 @@ function syncNavHeight() {
   if (h) document.documentElement.style.setProperty("--nav-h", `${h}px`);
 }
 
+/* More past an edge (DECISIONS #76). An area of the sheet that scrolls on its
+   own says what it hides past its top and past its bottom, and the
+   stylesheet fades each edge as deep as what is hidden there, up to its cap.
+   What is hidden, from the element's three numbers and nothing else: whole
+   px, and under one is none - scrollTop is a fraction where the other two
+   are rounded, so an area at its end can be a fraction short of it; never
+   under 0, so a bounce past an end is the end; and never over the ceiling,
+   which stands safely above the deepest band the stylesheet draws - 1.75rem,
+   32.2px with Larger text - so far from an end the number stands still. */
+const MORE_CEILING = 48;
+function moreHidden(scrollTop, clientHeight, scrollHeight) {
+  const px = n => Math.max(0, Math.min(MORE_CEILING, Math.floor(n)));
+  return {above: px(scrollTop), below: px(scrollHeight - clientHeight - scrollTop)};
+}
+/* The six areas, by four selectors: an event's body, the hotel's list and
+   the shared day's are each an .ev-body. Not the share panel's message,
+   which is a field; not an event's panel scrolling as one, whose body has
+   the cue and whose foot is pinned; and not main. The stylesheet gives the
+   same four their scroll padding. */
+const MORE_AREAS = ".ev-body, .filters-body, .advanced-body, #panel-crew";
+/* An area's mark, from its own three numbers, written only where it
+   changed: the two properties, each gone at 0, and data-more, the hook the
+   stylesheet's mask hangs on, there while either is above 0 - so an area
+   whose content fits carries no mask, and nothing of ours: the style
+   attribute the last property leaves empty goes too. An area in a hidden
+   panel measures 0, and loses its mark the same way. */
+function markMore(area) {
+  const hidden = moreHidden(area.scrollTop, area.clientHeight, area.scrollHeight);
+  for (const edge of ["above", "below"]) {
+    const name = `--more-${edge}`, px = hidden[edge] ? `${hidden[edge]}px` : "";
+    if (area.style.getPropertyValue(name) === px) continue;
+    if (px) area.style.setProperty(name, px); else area.style.removeProperty(name);
+  }
+  const more = hidden.above > 0 || hidden.below > 0;
+  if (area.hasAttribute("data-more") !== more) area.toggleAttribute("data-more", more);
+  if (!more && area.getAttribute("style") === "") area.removeAttribute("style");
+}
+/* What boot() registers on the sheet, three things, and no draw calls any
+   of this. A scroll, heard in the capture phase since a scroll does not
+   bubble: the area scrolled says again what it hides - far from an end
+   nothing is written, and within the ceiling of one, a write a px. */
+function onMoreScroll(e) {
+  const area = e.target;
+  if (area.matches && area.matches(MORE_AREAS)) markMore(area);
+}
+/* And its two observers' callback: every area marked, and each one and each
+   child of it handed, once, to the ResizeObserver. A MutationObserver on the
+   sheet's child lists - never its attributes, so the mark's own write cannot
+   wake it - finds an area a draw has just replaced, and a child put into one
+   at its cap, which changes no box. The ResizeObserver hears the rest: a
+   panel shown, Larger text, Advanced opened, the window resized or turned,
+   and content that grows inside an area whose own box stays as it was. No
+   node is ever unobserved: one a draw replaced goes with its panel. */
+let moreSizes = null;
+const moreWatched = new WeakSet();
+function syncMore() {
+  for (const area of document.querySelectorAll(MORE_AREAS)) {
+    for (const node of moreSizes ? [area, ...area.children] : []) {
+      if (moreWatched.has(node)) continue;
+      moreWatched.add(node);
+      moreSizes.observe(node);
+    }
+    markMore(area);
+  }
+}
+/* boot()'s, where the browser has a ResizeObserver - jsdom has none: the one
+   syncMore() hands the areas to, and the areas already in the page. */
+function setMoreObserver(observer) {
+  moreSizes = observer;
+  syncMore();
+}
+/* The deepest a band on an area can be, for what a script scrolls into one
+   and must land clear of it. The cap is the area's scroll padding too, so it
+   is read from there - the px and the share of the area's height its min()
+   names - and the numbers stay the stylesheet's alone: Larger text moves
+   this with them. 0 where no padding is said: jsdom computes none. */
+function moreCap(area) {
+  const said = getComputedStyle(area).scrollPaddingTop || "";
+  const px = /([\d.]+)px/.exec(said), share = /([\d.]+)%/.exec(said);
+  if (!px && !share) return 0;
+  return Math.min(px ? Number(px[1]) : Infinity, share ? area.clientHeight * Number(share[1]) / 100 : Infinity);
+}
+
 export {
   scroller, pageScrollTop, pageScrollTo, pageScrollBy, chipRowsSnapshot, chipRowsRestore,
   revealChip, cssEsc, focusKey, shownMatch, focusIn, giveFocusBack, refill, drawInPlace, fitHeaderLine, syncHeaderHeight,
-  syncNavHeight,
+  syncNavHeight, moreHidden, onMoreScroll, syncMore, setMoreObserver, moreCap,
 };

@@ -441,4 +441,58 @@ describe("src/styles.css", () => {
       expect(body(".ev-room")).toMatch(/color: var\(--h\);/);
     });
   });
+
+  /* More past an edge (DECISIONS #76): a mask on the scrolling area itself,
+     as deep as what scroll.js says is hidden past that edge, and at most
+     1.75rem and a fifth of the area's height; and that cap as each area's
+     scroll padding, always. What a phone draws with them is a browser's to
+     see; the declarations are pinned here. New tests, not rows of
+     tests/PORT-LEDGER.md. */
+  describe("more past an edge: a mask as deep as what is hidden, up to its cap", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim() }));
+    const AREAS = [".ev-body", ".filters-body", ".advanced-body", "#panel-crew"];
+    const masks = rules.filter(r => /mask/.test(r.body));
+    const names = r => r.selector.split(",").map(s => s.trim());
+
+    it("one rule in the stylesheet masks anything, and it hangs on the mark alone: no area has a rule of its own", () => {
+      expect(masks.map(r => r.selector)).toEqual(["[data-more]"]);
+      expect(masks[0].body.match(/mask/g).length).toBe(1);
+    });
+    it("a band at each edge: nothing at the edge itself, and whole from the band's depth in", () => {
+      expect(masks[0].body).toMatch(/^mask-image: linear-gradient\(to bottom, transparent, #000 min\([^()]*var\(--more-above, 0px\)\), #000 calc\(100% - min\([^()]*var\(--more-below, 0px\)\)\), transparent\);$/);
+    });
+    it("a band is the least of 1.75rem, a fifth of the area's height and what is hidden past its edge - none where nothing is said", () => {
+      const depths = [...masks[0].body.matchAll(/min\(([^()]*(?:\([^()]*\))?)\)/g)].map(m => m[1]);
+      expect(depths).toEqual(["1.75rem, 20%, var(--more-above, 0px)", "1.75rem, 20%, var(--more-below, 0px)"]);
+    });
+    it("the cap is in rem, so Larger text scales it, and no px is written into it", () => {
+      expect(masks[0].body.replace(/var\(--more-(above|below), 0px\)/g, "")).not.toMatch(/\dpx/);
+    });
+    it("the unprefixed property alone: the floor is Safari 16.4, which takes it", () => {
+      expect(bare).not.toMatch(/-webkit-mask/);
+    });
+    it("it does not animate as it comes and goes: no transition and no animation on the mark's rule or on an area's own", () => {
+      const moving = rules.filter(r => /(^|[\s;])(transition|animation)(-[a-z-]+)?:/.test(r.body) && names(r).some(s => s === "[data-more]" || AREAS.includes(s)));
+      expect(moving.map(r => r.selector)).toEqual([]);
+    });
+    it("the same cap is each area's scroll padding, always - on the four selectors the six areas are, never on the mark", () => {
+      const padded = rules.filter(r => /scroll-padding/.test(r.body));
+      expect(padded.map(r => r.selector)).toEqual([AREAS.join(", ")]);
+      expect(padded[0].body).toBe("scroll-padding-block: min(1.75rem, 20%);");
+    });
+    it("and each of the four scrolls on its own", () => {
+      for (const area of AREAS) expect(rules.filter(r => names(r).includes(area) && /overflow-y: auto/.test(r.body)).length).toBe(1);
+    });
+    const scroll = fs.readFileSync(path.join(ROOT, "src", "scroll.js"), "utf8");
+    it("the areas scroll.js marks are the four the stylesheet pads: one list, said twice and held equal", () => {
+      expect((/const MORE_AREAS = "([^"]*)";/.exec(scroll) || [])[1]).toBe(AREAS.join(", "));
+    });
+    it("scroll.js's ceiling stands above the deepest band these rules draw: 1.75rem with Larger text on", () => {
+      const ceiling = Number((/const MORE_CEILING = (\d+);/.exec(scroll) || [])[1]);
+      const larger = Number((/html\.bigtext \{ font-size: (\d+)%; \}/.exec(css) || [])[1]) / 100;
+      expect(larger).toBe(1.15);
+      expect(ceiling).toBeGreaterThan(1.75 * 16 * larger);
+    });
+  });
 });

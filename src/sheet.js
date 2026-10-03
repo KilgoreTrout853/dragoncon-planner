@@ -30,7 +30,7 @@ import { dayLink, dayMessage, defaultShareDay, readSharedDay, shareableDays, sha
 import { byId, events } from "./data.js";
 import { picks, replacePicks, savePicks } from "./picks.js";
 import { chipHTML, crewLineHTML, rowHTML } from "./ui.js";
-import { focusIn, focusKey, pageScrollTo, pageScrollTop, refill, shownMatch } from "./scroll.js";
+import { focusIn, focusKey, moreCap, pageScrollTo, pageScrollTop, refill, shownMatch } from "./scroll.js";
 import { eventSheetHTML } from "./eventsheet.js";
 import { requestRender } from "./bus.js";
 import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter } from "./sync.js";
@@ -157,10 +157,13 @@ function drawHotelSheet(day = hotelDay) {
    brought to the top of the body. The block and the gold pill open the
    sheet at its top, and focus is on the heading whichever opened it (#66).
    A pill left on the Map from crew picks another tab has since changed may
-   find no section. */
+   find no section. The body fades at its top once there is more above
+   (#76), so the section stops short of the top by the deepest that band can
+   be, the body's own cap (scroll.js moreCap()): its heading stands clear of
+   the fade, and the row above it shows through. */
 function showHotelCrew() {
   const body = panelHotel.querySelector(".ev-body"), crew = document.getElementById("hotelCrew");
-  if (body && crew) body.scrollTop += crew.getBoundingClientRect().top - body.getBoundingClientRect().top;
+  if (body && crew) body.scrollTop += crew.getBoundingClientRect().top - body.getBoundingClientRect().top - moreCap(body);
 }
 
 /* ---- The crew panel (DECISIONS #56, #62; docs/screens/contract.md,
@@ -921,7 +924,7 @@ function settle(toClosed) {
 
 /* What boot() registers on the sheet itself: the drag. */
 function onSheetTouchStart(e) {
-  if (e.target.closest(".ev-body, textarea, .filters-body")) return;   // let the description scroll, the message to share, and the filters
+  if (e.target.closest(".ev-body, textarea, .filters-body, .advanced-body")) return;   // let the description scroll, the message to share, the filters, and Advanced
   const tall = e.target.closest("#panel-crew, #panel-event");
   if (tall && tall.scrollHeight > tall.clientHeight) return;   // and the crew panel or an event's, when it is taller than its room and scrolls
   dragY = e.touches[0].clientY;

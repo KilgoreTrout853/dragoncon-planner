@@ -424,9 +424,11 @@ execution slot (#57), which can run before any of this.
    on the event, the hotel's grain a ring on its block; each track's chip
    and each reviewed work's a tap to its Explore page; focus on what a tap
    opened; and the other sessions still to come alone - built (PR #94,
-   #75; contract, sections 6, 7 and 11, as built). What is left of this
-   step, in no set order: a cue that more is below a scrolling area; and
-   7b.
+   #75; contract, sections 6, 7 and 11, as built). The cue that a
+   scrolling area has more past its edge - a fade on six areas of the
+   sheet, as deep as what is hidden there, with the crew pill's landing
+   and a drag in Advanced fixed beside it - built (PR #95, #76; contract,
+   section 7, as built). What is left of this step is 7b.
    - 7b. W7's facets as filters in the filter sheet, now that the row
      shows them (#70; contract, section 3).
 8. Explore's top: For you and the zero state, its source decided at its
@@ -530,6 +532,19 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   it do not. It predates PR #82, and `refreshHotelSheet()` is where
   that fix goes. Since PR #92 the rows' overlap flags are among what stays
   as drawn, until the sheet is drawn again (#73).
+- A star in the hotel's sheet draws the whole panel again
+  (`dispatch.js` `onHotelPanelClick()`, `sheet.js` `drawHotelSheet()`), so
+  its list jumps back to its top under the thumb that tapped. It is older
+  than PR #95, which did not fix it: the new body is marked afresh, so the
+  fade is right, at the top (#76; contract, sections 8 and 14). Writing
+  the star in place, as an event's sheet does since PR #93, is where the
+  fix goes.
+- Settings is taller than a short screen once Advanced is open: at
+  375x667 its top stands 24 px above the screen, 93 with Walk-time
+  defaults open and 134 with Larger text too, and the sheet does not
+  scroll, so the heading and the crowd factor are out of reach. Found by
+  PR #95's browser run, older than it, and the gear's pull request's to
+  fix (step 9; contract, section 14).
 - The Map tab's height counts the header and the nav and not a notice
   above the views: while one stands - the preview banner before the con,
   "has ended" after it until its OK - the tab is taller than the screen by
