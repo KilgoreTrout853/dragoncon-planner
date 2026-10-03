@@ -52,7 +52,7 @@ describe("Search", () => {
     });
     it("All days + query shows per-row day labels [271]", () => {
       chip("day", "All").click();
-      expect(view().querySelectorAll(".t .day").length).toBeGreaterThan(1);
+      expect(view().querySelectorAll(".when-where .day").length).toBeGreaterThan(1);
     });
     it("search cleared [274]", () => {
       typeInto(box(), "");
@@ -342,7 +342,7 @@ describe("Search", () => {
       await page.until(() => view().querySelector("mark"), 5000, "the debounced draw");
     });
     it("day label shown in relevance mode [523]", () => {
-      expect(view().querySelector(".t .day")).toBeTruthy();
+      expect(view().querySelector(".when-where .day")).toBeTruthy();
     });
     it("fandom select and kind chips render when tags exist [525]", () => {
       openFilters();

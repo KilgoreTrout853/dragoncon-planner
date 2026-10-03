@@ -39,6 +39,22 @@ const tagsOf = e => e.tags || NO_TAGS;
    evidence, so they drop out when the toggle is on. */
 const isCeleb = e => tagsOf(e).guests === "celebrity";
 
+/* An event's flags (W7; DECISIONS #73), in the order a row says them: Sold
+   out, Extra fee, Sign-up, an age - the minimum the listing states, else 18+
+   for a mature audience - and Kids. Each is {key, label}, so the sheet and
+   the filter sheet can read the same list; the parse stage's facets and the
+   audience are the only sources. */
+function flagsOf(ev) {
+  const f = ev.facets || {}, audience = tagsOf(ev).audience, out = [];
+  if (f.sold_out) out.push({key: "sold_out", label: "Sold out"});
+  if (f.cost) out.push({key: "cost", label: "Extra fee"});
+  if (f.signup) out.push({key: "signup", label: "Sign-up"});
+  if (f.min_age) out.push({key: "age", label: `${f.min_age}+`});
+  else if (audience === "mature") out.push({key: "age", label: "18+"});
+  if (audience === "kids") out.push({key: "kids", label: "Kids"});
+  return out;
+}
+
 const DATA_URL = `data/${YEAR}/events.v2.json`;
 
 const viaKind = via => String(via || "").split(":")[0];
@@ -149,7 +165,7 @@ function replaceSchedule(data) {
 }
 
 export {
-  NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, tagsOf, isCeleb, DATA_URL,
+  NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, tagsOf, isCeleb, flagsOf, DATA_URL,
   AXES, CAST, worksById, workCounts, axisKeys,
   replaceSchedule, directWorks, linkedWorks, linksTo, personName, topWorks,
 };

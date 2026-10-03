@@ -35,14 +35,17 @@ function ringHTML(fraction, minutes) {
 }
 
 /* What comes after the pick that is on: the next pick today and the
-   connection between the two, the band in the gap line's words - the gap
-   line under the hero is the same pair, and the app holds one opinion about
-   it (#40, #64). Never when to leave: that would say where the reader is. A
-   pair with no band says what is next and no more - by its building, or by
-   its title for a stream, which has none. */
+   connection between the two - for a walk the band the gap line under the
+   hero gives, the same pair, and for an overlap what the two picks' rows
+   flag: the app holds one opinion about it (#40, #64, #73). Never when to
+   leave: that would say where the reader is. A pair with no band says what
+   is next and no more. The next pick is named by its place as a line of
+   words names one (venues.js placeShort()) - its building, or an offsite
+   pick by its room, else "offsite" - or by its title for a stream, which
+   has no place. */
 function thenHTML(on, next) {
   const c = connection(on, next);
-  const name = esc(next.hotel === "Streaming" ? next.title : hotelShort(next.hotel));
+  const name = esc(next.hotel === "Streaming" ? next.title : placeShort(next));
   const at = `then <b>${name}</b> at ${fmtShort(next._s)}`;
   let then, warn = false;
   if (!c || !c.band) then = c && on.hotel !== next.hotel ? `${at}, ~${c.walk} min walk` : `then ${name} next`;

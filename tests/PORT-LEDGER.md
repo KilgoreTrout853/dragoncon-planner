@@ -44,7 +44,11 @@ sideways row; 1261 and 1262 find no hotel or kind chip on the page and
 both in the panel, 1261 retitled; 1517 finds the hotel a chip under the
 box, counted on Filters, retitled; and 1253, the hotel row leading with
 All so that the day row and it match, is retired in place - the two rows
-are no longer side by side - and marked so. The tables' counts are as of 4b-ii, and
+are no longer side by side - and marked so. Amended in the row
+(2026-10-02, DECISIONS #73), which takes away the row's time column and
+puts the day's label on its second line: 271, 523, 630 and 671 read the
+label there, `.when-where .day`, where they read `.t .day`, their titles
+unchanged. The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's

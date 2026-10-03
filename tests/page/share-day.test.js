@@ -28,6 +28,13 @@ const CANCELLED = SAT[3], REMOVED = SAT[4];
    See all of, from any day - a link is read across the year. */
 const LONG = base.events.filter(e => e.start >= "2026-09-05T09" && e.start < "2026-09-05T20").sort((a, b) => a.start.localeCompare(b.start)).slice(0, 15).map(e => e.id);
 const WITH_PEOPLE = base.events.find(e => (e.people || []).some(p => p && p.name && p.id)).id;
+/* Two of Saturday's that overlap, neither cancelled nor removed below. */
+const CLASH = (() => {
+  const sat = base.events.filter(e => e.start >= "2026-09-05T09" && e.start < "2026-09-05T20" && !["Streaming", "Other"].includes(e.hotel))
+    .sort((a, b) => a.start.localeCompare(b.start));
+  for (const a of sat) { const b = sat.find(e => e.id !== a.id && e.start >= a.start && e.start < a.end && ![SAT[3], SAT[4]].includes(e.id)); if (b && ![SAT[3], SAT[4]].includes(a.id)) return [a, b]; }
+  return [];
+})();
 const data = { ...base, events: base.events.map(e => (e.id === CANCELLED ? { ...e, cancelled: true } : e.id === REMOVED ? { ...e, removed: true } : e)) };
 const NOW = "2026-09-05T13:05";
 const tail = id => id.slice(-8);
@@ -277,6 +284,18 @@ describe("Share a day: a ?day= link opened", () => {
     escape();
     expect(el("sheetWrap").hidden).toBe(true);
     expect(el("panel-shared").innerHTML).toBe("");
+  });
+  it("a star there puts the overlap flag on both rows of a clash at once, written in place, and either star takes it off", async () => {
+    const [a, b] = CLASH;
+    await arrive(dayQuery("sat", [a.id, b.id]));
+    const main = rowOf(b.id).querySelector(".row-main"), star = rowOf(a.id).querySelector(".star");
+    press(star);
+    press(rowOf(b.id).querySelector(".star"));
+    expect([words(rowOf(a.id).querySelector(".overlap")), words(rowOf(b.id).querySelector(".overlap"))]).toEqual([`Overlaps ${b.title}`, `Overlaps ${a.title}`]);
+    expect(rowOf(b.id).querySelector(".row-main")).toBe(main);
+    expect(document.activeElement).toBe(rowOf(b.id).querySelector(".star"));
+    press(star);
+    expect([rowOf(a.id).querySelector(".overlap"), rowOf(b.id).querySelector(".overlap")]).toEqual([null, null]);
   });
   it("a star in the event's sheet shows on the shared day's row once it is back", async () => {
     await arrive(dayQuery("sat", [SAT[0], SAT[1]]));

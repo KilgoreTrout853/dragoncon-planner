@@ -825,7 +825,7 @@ live site drops `next`'s work and axis follows. The worker's update notice
 keys on `generated_at`, which every rebuild of `events.v2.json` keeps
 (ROADMAP, Held).
 
-### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55); its client half - no leave-by on the hero, the mini-bar or the map card, the slack renamed `SLACK_MIN`, `leave.js` renamed `walk.js` and `currentLocation()` deleted, so that the app no longer says where the reader is - to be built by PR 3 of Where things live's sequence (ROADMAP, tentpole 5; `docs/screens/contract.md`, section 12); when the install nudge shows decided by #65; its client half built by PR #76: no leave-by on the hero, the mini-bar or the map card - the hero says the walk to the next pick and the band `walk.js` `connection()` gives the pair, as the gap line between their rows does - `SLACK_MIN`, `walk.js`, and `currentLocation()` deleted, so the app no longer says where the reader is (`docs/screens/contract.md`, sections 2 and 12, as built)
+### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55); its client half - no leave-by on the hero, the mini-bar or the map card, the slack renamed `SLACK_MIN`, `leave.js` renamed `walk.js` and `currentLocation()` deleted, so that the app no longer says where the reader is - to be built by PR 3 of Where things live's sequence (ROADMAP, tentpole 5; `docs/screens/contract.md`, section 12); when the install nudge shows decided by #65; its client half built by PR #76: no leave-by on the hero, the mini-bar or the map card - the hero says the walk to the next pick and the band `walk.js` `connection()` gives the pair, as the gap line between their rows does - `SLACK_MIN`, `walk.js`, and `currentLocation()` deleted, so the app no longer says where the reader is (`docs/screens/contract.md`, sections 2 and 12, as built); the gap line no longer says an overlap, the two rows' flags do (#73)
 **Decided:** Leave-by is retired: no `leave by <time>` countdown on any
 screen, and no leave-by push.
 - The plan keeps what is true of the plan rather than the person: a walk
@@ -1944,7 +1944,7 @@ The browser's own Back plays no part: the hash is written by
 Explore page is "← Explore", to the grid, wherever the page was opened
 from: one tap from the event, accepted.
 
-### 64. The row and the gap line — Decided, not built (2026-09-30) — its overlap computed once, by `walk.js` `connection()`: the two picks' intersection, the earlier end less the later start, which the hero and the gap line read and the row's flag is to word, not compute again (PR #76); who's going built by PR #81: a line on the event's sheet, three names and then how many more, tapping nowhere (`docs/screens/contract.md`, section 7, as built); the level on line 2 to be its `short` (#72)
+### 64. The row and the gap line — Decided, not built (2026-09-30) — its overlap computed once, by `walk.js` `connection()`: the two picks' intersection, the earlier end less the later start, which the hero and the gap line read and the row's flag is to word, not compute again (PR #76); who's going built by PR #81: a line on the event's sheet, three names and then how many more, tapping nowhere (`docs/screens/contract.md`, section 7, as built); the level on line 2 to be its `short` (#72); amended by #73, the row as built (PR #92): the time a range on line 2 and no time column, Celebrity on line 3, the overlap said by the two rows' flags and the gap line keeping walks and tight connections, a flagged row's track left off, and the level by its `short` (`docs/screens/contract.md`, section 10, as built)
 **Decided:** A row is at most three lines, and the walk between two events
 is said between their rows.
 - **Line 1:** the star, the title and the state tags - Cancelled, Removed
@@ -2235,7 +2235,7 @@ taken out by the sheet rewrites the query in lower case with one space
 between words, as a chip's x always has. Kind, second in #70's order, is
 now near the panel's foot, below the fold on a phone.
 
-### 72. A level has a storey and a short name — Standing (2026-10-02)
+### 72. A level has a storey and a short name — Standing (2026-10-02) — its `short` read by the row since PR #92 (#73)
 **Decided:** Every level of the venues file (#45) gains two keys, required
 like every other, which nothing reads yet:
 - **`storey`**, written after `order`: the storey the level is on, a whole
@@ -2274,3 +2274,70 @@ and in every test fixture that builds one. A storey says nothing of how
 far apart two levels are, and a level added between two others renumbers
 the storeys above it. The Mart's storeys are wrong until its split. 20
 characters is a guess, to be tried on a phone by the row's pull request.
+
+### 73. The row as built — Standing (2026-10-02)
+**Decided:** An event's row is #64's, amended in five ways: the title, then
+up to two lines under it, and the star on the right
+(`docs/screens/contract.md`, section 10, as built; PR #92).
+- **Line 1:** the title, at most two lines, its gold star before it when
+  picked, struck when cancelled or removed. "Cancelled" or "Removed from
+  the schedule" leads the title's words, inside its two lines, where it is
+  never clipped and the row gains no line; the strike is the words', not
+  the tag's or the star's.
+- **Line 2, one line:** the day's label where the caller asks for it, the
+  time as a range - "2:30–3:30 PM", the meridiem once, both where they
+  differ - then the place and the level, each after a middle dot, as text
+  in the hotel's colour. There is no time column, and under a time head
+  the row says its time all the same: one shape everywhere. The hotel never
+  shortens, and the room takes the ellipsis; a hotel whose `display` is
+  "location", the Mart, is its room alone, on every screen `placeHTML()`
+  feeds. The level is its `short` (#72): none where the event has no level,
+  left off where the room, case-folded, holds the `short` less a trailing
+  " Level" or " Floor", and dropped whole where the line cannot hold it,
+  before the room is cut.
+- **Line 3, one line, only when anything is present:** Celebrity; the
+  overlap flag; the caller's context - Now's status, the Following feed's
+  labels; the flags; the track, or "Gaming". A part that does not fit drops
+  whole, from the end: the track, then the flags from last to first, then
+  the context. Celebrity and the overlap never drop, the overlap's title
+  shortening first: the reason a row is on its screen outlasts its flags.
+- **The overlap flag** (W1): a picked row that overlaps another pick says
+  "Overlaps `<title>`", or "Overlaps `<n>` picks", in the warning colour,
+  wherever it is drawn - in a crewmate's block of the crew's day and in a
+  shared day as anywhere - over every pick, by `connection()`'s band, the
+  hero's answer. It comes and goes on both rows at the moment of starring.
+  A cancelled or removed pick neither carries one nor counts in another's.
+  A flagged row leaves its track off.
+- **The flags** (W7), words after a middle dot, in this order: Sold out,
+  alone in the warning colour; Extra fee; Sign-up; an age, "`<n>`+", else
+  18+ for a mature audience; Kids. One helper says an event's flags, for
+  the row now and for the sheet and the filter sheet later.
+- **The gap line** says the walk and the two tight bands, and no longer an
+  overlap: the two rows' flags say it.
+
+Amends #64: the time on line 2 as a range, and no time column; Celebrity
+on line 3; the overlap said by the flags alone, the gap line keeping walks
+and tight connections; a flagged row's track left off; the level by its
+`short`.
+
+**Why:** The step 7 design chat sketched #64 on real 2026 events
+(2026-10-02). On line 1, Celebrity fell to a line of its own after a title
+that nearly filled the row. The gap line said an overlap a third time,
+after both rows' flags. Line 3 had no room for an overlap flag and a track,
+and "Trek Tra…" says nothing. "Atlanta Conference Center (LL3)" does not
+fit after a hotel and a room (#72), and a level the room already names -
+"Atrium Ballroom", "Galleria 5" - says it twice. A tag in the title's first
+words cannot be clipped by the title's two lines, and adds none.
+**Cost:** A row is up to four lines. Every row's markup changes, and the
+tests that read its parts with it. A line that cannot hold the level drops
+it: at 375 px with Larger text and a day label, the level shows on a
+minority of the rows that have one, as measured in Chromium (`contract.md`,
+section 10, as built), and a dropped level stays in the row's text, so a
+screen reader reads what the eye does not see. A Celebrity row with an
+overlap can lose Now's status. Measured in Chromium, the overlap naming a
+title: the long status, "On now, ends 2:00 PM", is lost at 375 px at the
+normal text size, and at 375, 390 and 402 px with Larger text; the short
+one, "In 40 min", is lost at none of the three, at either size
+(`contract.md`, section 10, as built). The hero and the gap line still
+band a cancelled pick, which the row's flag does not (`contract.md`,
+section 14).

@@ -412,9 +412,13 @@ execution slot (#57), which can run before any of this.
 7. The row and the sheet (#64): the three lines, the facets, W1's flag and
    line, the chips and the place line as entry points at the hotel's
    grain, W18's level where the data is, W42's line once its review has
-   merged (contract, sections 7 and 10).
-   - 7b. W7's facets as filters in the filter sheet, once the row shows
-     them (#70; contract, section 3).
+   merged (contract, sections 7 and 10). The row - the time a range on
+   line 2, the place as text and the level by its short name, the facet
+   flags and W1's overlap flag on line 3, and the gap line saying no
+   overlap - built (PR #92, #73; contract, section 10, as built); the sheet
+   next.
+   - 7b. W7's facets as filters in the filter sheet, now that the row
+     shows them (#70; contract, section 3).
 8. Explore's top: For you and the zero state, its source decided at its
    design; W5's Mute beside Follow on a page; W6's cast group in Search and
    in Following (contract, section 4); and Explore's filter box kept across
@@ -511,7 +515,8 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   stars and its own count as drawn, since PR #82 refills only what it draws
   of the crew - "yours too" on a crew line follows the picks, the rows above
   it do not. It predates PR #82 too, and `refreshHotelSheet()` is where
-  that fix goes.
+  that fix goes. Since PR #92 the rows' overlap flags are among what stays
+  as drawn, until the sheet is drawn again (#73).
 - Three places rewrite the address, each its own way: `time.js`
   `setOverride()`, the `?now=`; `crews.js` `readJoinLink()`, the `?join=`;
   and since PR #85 `sheet.js` `takeDayLink()`, the `?day=`. One helper for
