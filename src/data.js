@@ -72,20 +72,21 @@ function factsOf(ev) {
   return out;
 }
 
-/* An event's other sessions (DECISIONS #74): the events with its repeat
-   key, its title and its people, by id - "Author Signing" is eight sessions
-   of eight line-ups, which are not each other's - that are on the schedule
-   and not cancelled. The event's own state is not asked: a cancelled or a
-   removed event names the sessions that still run. Those not yet started at
-   the moment given come first, in start order, then the rest. The moment is
-   a parameter: nothing here reads the clock. */
+/* An event's other sessions (DECISIONS #74, #75): the events with its
+   repeat key, its title and its people, by id - "Author Signing" is eight
+   sessions of eight line-ups, which are not each other's - that are on the
+   schedule, not cancelled, and not yet started at the moment given, in
+   start order. One that has started is left out: it is no longer a session
+   to go to, and one starting at that very moment has started. The event's
+   own state is not asked: a cancelled or a removed event names its live
+   sessions still to come. The moment is a parameter: nothing here reads the
+   clock. */
 const repeatKey = e => (e.facets || {}).repeat_key || "";
 const lineUp = e => JSON.stringify([...new Set((e.people || []).map(p => p.id))].sort());
 function sessionsOf(ev, at) {
   const key = repeatKey(ev), who = lineUp(ev);
   if (!key) return [];
-  const others = events.filter(e => e.id !== ev.id && !e.cancelled && repeatKey(e) === key && e.title === ev.title && lineUp(e) === who);
-  return [...others.filter(e => e._s > at), ...others.filter(e => e._s <= at)];
+  return events.filter(e => e.id !== ev.id && !e.cancelled && e._s > at && repeatKey(e) === key && e.title === ev.title && lineUp(e) === who);
 }
 
 /* A person's known-for line (W42; DECISIONS #61), from the file's people

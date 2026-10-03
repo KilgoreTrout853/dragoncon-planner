@@ -39,13 +39,14 @@ function goingText(ev) {
   return `Starred by ${going.slice(0, GOING_NAMED).map(p => p.display_name).join(", ")}${more > 0 ? ` and ${more} more` : ""}`;
 }
 
-/* The other sessions (data.js sessionsOf()): "Also runs Fri 4:00 PM · Sun
+/* The other sessions (data.js sessionsOf()): "Also runs Sat 4:00 PM · Sun
    2:30 PM", each by its con day's label and its start, as a row with a day
-   says it - so a session after midnight takes the night it belongs to - and
-   those not yet started first, as the clock stood when the panel was drawn.
-   Three are named, then how many more, in plain words. Each named session
-   is a tap, to its own sheet in this one's place. No line with no other
-   session. */
+   says it - so a session after midnight takes the night it belongs to -
+   and only those not yet started, as the clock stood when the panel was
+   drawn (DECISIONS #75). Three are named, then how many more of them, in
+   plain words. Each named session is a tap, to its own sheet in this one's
+   place. No line with none still to come: after the con, no sheet has
+   one. */
 const SESSIONS_NAMED = 3;
 function sessionsHTML(ev) {
   const sessions = sessionsOf(ev, now()), more = sessions.length - SESSIONS_NAMED;

@@ -76,20 +76,27 @@ const SESSIONS = [
 
 describe("an event's other sessions", () => {
   beforeAll(() => replaceSchedule({generated_at: "x", works: [], events: SESSIONS}));
-  const SAT_NOON = new Date("2026-09-05T12:00");
-  const of = (id, at = SAT_NOON) => ids(sessionsOf(byId.get(id), at));
+  /* Which events are an event's sessions is asked before the con, when none
+     has started; what the moment leaves out, at Saturday noon and after. */
+  const BEFORE = new Date("2026-09-03T08:00"), SAT_NOON = new Date("2026-09-05T12:00"), AFTER = new Date("2026-09-08T08:00");
+  const of = (id, at = BEFORE) => ids(sessionsOf(byId.get(id), at));
 
   it("are the events with its repeat key, its title and its people, never itself", () => {
-    expect(of("demo-fri").sort()).toEqual(["demo-sat", "demo-sat-late", "demo-sun"]);
+    expect(of("demo-fri")).toEqual(["demo-sat", "demo-sat-late", "demo-sun"]);
     expect(of("demo-sat")).not.toContain("demo-sat");
   });
-  it("those not yet started come first, in start order, then the rest", () => {
-    expect(of("demo-sat")).toEqual(["demo-sat-late", "demo-sun", "demo-fri"]);
-    expect(of("demo-sat", new Date("2026-09-03T08:00"))).toEqual(["demo-fri", "demo-sat-late", "demo-sun"]);
-    expect(of("demo-sat", new Date("2026-09-08T08:00"))).toEqual(["demo-fri", "demo-sat-late", "demo-sun"]);
+  it("only those not yet started, in start order: the rest are left out", () => {
+    expect(of("demo-sat")).toEqual(["demo-fri", "demo-sat-late", "demo-sun"]);
+    expect(of("demo-sat", SAT_NOON)).toEqual(["demo-sat-late", "demo-sun"]);
+    expect(of("demo-fri", SAT_NOON)).toEqual(["demo-sat-late", "demo-sun"]);
+    expect(of("demo-sat", new Date("2026-09-06T09:59"))).toEqual(["demo-sun"]);
+  });
+  it("with none left there are none: after the con, every list is empty", () => {
+    for (const e of SESSIONS) expect(of(e.id, AFTER), e.id).toEqual([]);
   });
   it("a session starting at the moment asked has started", () => {
-    expect(of("demo-fri", new Date("2026-09-05T16:00"))).toEqual(["demo-sun", "demo-sat", "demo-sat-late"]);
+    expect(of("demo-fri", new Date("2026-09-05T16:00"))).toEqual(["demo-sun"]);
+    expect(of("demo-fri", new Date("2026-09-05T15:59"))).toEqual(["demo-sat-late", "demo-sun"]);
   });
   it("the same people, by id, whatever their order and however often the listing names one", () => {
     expect(of("sign-ab")).toEqual(["sign-ba"]);
@@ -106,10 +113,13 @@ describe("an event's other sessions", () => {
   it("a cancelled or a removed session is in no other's list", () => {
     expect(of("demo-sun")).not.toContain("demo-cancelled");
     expect(of("demo-sun")).not.toContain("demo-removed");
+    expect(of("demo-sun")).toEqual(["demo-fri", "demo-sat", "demo-sat-late"]);
   });
-  it("but a cancelled or a removed event names the sessions that still run", () => {
-    expect(of("demo-cancelled")).toEqual(["demo-sat-late", "demo-sun", "demo-fri", "demo-sat"]);
-    expect(of("demo-removed")).toEqual(["demo-sat-late", "demo-sun", "demo-fri", "demo-sat"]);
+  it("but a cancelled or a removed event names its live sessions still to come", () => {
+    expect(of("demo-cancelled")).toEqual(["demo-fri", "demo-sat", "demo-sat-late", "demo-sun"]);
+    expect(of("demo-removed")).toEqual(["demo-fri", "demo-sat", "demo-sat-late", "demo-sun"]);
+    expect(of("demo-cancelled", SAT_NOON)).toEqual(["demo-sat-late", "demo-sun"]);
+    expect(of("demo-removed", SAT_NOON)).toEqual(["demo-sat-late", "demo-sun"]);
   });
   it("none for an event with no repeat key, though another has its title", () => {
     expect(of("alone")).toEqual([]);
@@ -235,17 +245,30 @@ describe("on 2026's schedule", () => {
     expect(said.filter(l => l.endsWith(", beginners welcome"))).toHaveLength(172);
     expect(said).not.toContain("Learn to play, beginners welcome");
   });
-  it("1,173 events have another session, in 347 groups, the largest of 44; 46 groups have more than three others", () => {
-    const AFTER = new Date("2027-01-01T00:00"), groups = new Map();
+  /* Counted before the con, when no session has started: a moment later
+     than a session leaves it out (#75). */
+  it("before the con, 1,173 events have another session, in 347 groups, the largest of 44; 46 groups have more than three others", () => {
+    const BEFORE = new Date("2026-09-01T00:00"), groups = new Map();
     let withOthers = 0;
     for (const e of all) {
-      const others = sessionsOf(e, AFTER);
+      const others = sessionsOf(e, BEFORE);
       if (!others.length) continue;
       withOthers++;
       groups.set([e.id, ...ids(others)].sort()[0], others.length + 1);
     }
     const sizes = [...groups.values()];
     expect([withOthers, sizes.length, Math.max(...sizes), sizes.filter(n => n - 1 > 3).length]).toEqual([1173, 347, 44, 46]);
+  });
+  it("the sheets with an Also runs line, and those of them with more than three: 1,173 and 351 before the con, 987 and 151 at Saturday 1:05 PM, none after it", () => {
+    const at = iso => { const lists = all.map(e => sessionsOf(e, new Date(iso)).length); return [lists.filter(n => n).length, lists.filter(n => n > 3).length]; };
+    expect(at("2026-09-01T00:00")).toEqual([1173, 351]);
+    expect(at("2026-09-05T13:05")).toEqual([987, 151]);
+    expect(at("2026-09-08T00:00")).toEqual([0, 0]);
+  });
+  it("neither of the two cancelled events has another session: no cancelled event's sheet has the line", () => {
+    const cancelled = all.filter(e => e.cancelled);
+    expect(cancelled).toHaveLength(2);
+    for (const e of cancelled) expect(sessionsOf(e, new Date("2026-09-01T00:00"))).toEqual([]);
   });
   it("the eight Author Signings are not each other's sessions", () => {
     const signings = all.filter(e => e.title === "Author Signing");

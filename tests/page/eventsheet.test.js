@@ -169,33 +169,55 @@ describe("the event's sheet", () => {
 
   describe("the other sessions", () => {
     const links = () => parts(".ev-sessions .ev-link");
-    it("Also runs: each by its con day's label and its start, those not yet started first, three named and then how many more", () => {
+    it("Also runs: each by its con day's label and its start, only those not yet started, in start order", () => {
       open("x-main");
-      expect(words(part(".ev-sessions"))).toBe("Also runs Sat 12:30 AM · Sun 2:30 PM · Mon 10:00 AM and 2 more");
+      expect(words(part(".ev-sessions"))).toBe("Also runs Sat 12:30 AM · Sun 2:30 PM · Mon 10:00 AM");
       expect(links().map(b => b.dataset.event)).toEqual(["x-late", "x-sun", "x-mon"]);
     });
     it("a session after midnight takes the night it belongs to, as a row does", () => {
       expect(app.byId.get("x-late").day).toBe("2026-09-06");
       expect(words(links()[0])).toBe("Sat 12:30 AM");
     });
-    it("and how many more is plain words, not a tap", () => {
-      expect(links()).toHaveLength(3);
-      expect(parts(".ev-sessions button").map(words)).not.toContain("and 2 more");
-    });
     it("each is a button named for what it is, and the dot between them is not read out", () => {
       expect(links().map(b => b.getAttribute("aria-label"))).toEqual(["Also runs Sat 12:30 AM", "Also runs Sun 2:30 PM", "Also runs Mon 10:00 AM"]);
       expect(parts(".ev-sessions .dot").every(d => d.getAttribute("aria-hidden") === "true")).toBe(true);
     });
-    it("a cancelled session is in no list, and its own sheet lists the ones that still run", () => {
+    it("the sessions already started are left out, of the line and of its count (#75)", () => {
+      for (const id of ["x-main", "x-late", "x-sun", "x-mon"]) {
+        open(id);
+        expect(links().map(b => b.dataset.event), id).not.toContain("x-thu");
+        expect(links().map(b => b.dataset.event), id).not.toContain("x-fri");
+        expect(words(part(".ev-sessions")), id).not.toMatch(/Thu|Fri/);
+      }
+      open("x-mon");
+      expect(words(part(".ev-sessions"))).toBe("Also runs Sat 2:30 PM · Sat 12:30 AM · Sun 2:30 PM");
+    });
+    it("three are named, then how many more of those still to come, in plain words, not a tap", () => {
+      open("x-thu");
+      expect(words(part(".ev-sessions"))).toBe("Also runs Sat 2:30 PM · Sat 12:30 AM · Sun 2:30 PM and 1 more");
+      expect(links().map(b => b.dataset.event)).toEqual(["x-main", "x-late", "x-sun"]);
+      expect(links()).toHaveLength(3);
+      expect(parts(".ev-sessions button").map(words)).not.toContain("and 1 more");
+    });
+    it("a cancelled session is in no list, and its own sheet lists its live sessions still to come", () => {
       for (const id of ["x-main", "x-thu", "x-mon"]) { open(id); expect(links().map(b => b.dataset.event), id).not.toContain("x-off"); }
       open("x-off");
-      expect(words(part(".ev-sessions"))).toBe("Also runs Sat 2:30 PM · Sat 12:30 AM · Sun 2:30 PM and 3 more");
-      open("x-mon");
-      expect(words(part(".ev-sessions"))).toBe("Also runs Sat 2:30 PM · Sat 12:30 AM · Sun 2:30 PM and 2 more");
+      expect(words(part(".ev-sessions"))).toBe("Also runs Sat 2:30 PM · Sat 12:30 AM · Sun 2:30 PM and 1 more");
     });
     it("no line where there is no other session", () => {
       open("x-o1");
       expect(part(".ev-sessions")).toBe(null);
+    });
+    it("and none where no session is left to come: the clock as the panel is drawn decides, and after the con no sheet has the line", () => {
+      handle.closeSheet();
+      handle.setTimeOverride("2026-09-07T10:00");
+      for (const id of ["x-main", "x-thu", "x-off", "x-mon"]) { handle.openSheet("event", id); expect(part(".ev-sessions"), id).toBe(null); handle.closeSheet(); }
+      handle.setTimeOverride("2026-09-08T12:00");
+      handle.openSheet("event", "x-main");
+      expect(part(".ev-sessions")).toBe(null);
+      expect([...part(".ev-head").children].map(c => c.id || c.className)).toEqual(["sheetTitleEvent", "ev-when", "ev-room", "ev-level", "ev-facts", "sheetGoing"]);
+      handle.closeSheet();
+      handle.setTimeOverride("2026-09-05T13:05");
     });
     it("a tap opens that session's sheet in this one's place, focus on its heading", () => {
       open("x-main");
