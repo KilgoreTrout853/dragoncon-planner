@@ -1,7 +1,7 @@
 import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
 import { conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
-import { AXES, byId, CAST, events, isCeleb, linkedWorks, linksTo, NOISE_TRACKS, personName, tagsOf, topWorks, worksById } from "./data.js";
+import { AXES, byId, CAST, events, isCeleb, knownFor, linkedWorks, linksTo, NOISE_TRACKS, personName, tagsOf, topWorks, worksById } from "./data.js";
 import { picks } from "./picks.js";
 import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing } from "./follows.js";
 import { axisLabel } from "./search.js";
@@ -308,11 +308,16 @@ function renderExplorePage() {
   const button = on || canFollow(kind, key)
     ? `<button class="btn follow-btn${on ? " on" : ""}" data-act="toggle-follow" aria-pressed="${on}">${on ? "Following" : "Follow"}</button>`
     : "";
+  /* A person's known-for line, under the name, as the event's sheet says it
+     (W42; DECISIONS #61, #74): the file's people block's, so only a reviewed
+     person with a line has one. */
+  const known = kind === "person" ? knownFor(key) : "";
 
   let html = `<div class="explore-head">
     <button class="back" data-act="explore-back" aria-label="Back to Explore">&#8592; Explore</button>
     <div class="eh-kind">${KIND_NOUN[kind] || kind}</div>
     <h2 class="eh-name">${esc(labelFor(kind, key))}</h2>
+    ${known ? `<p class="eh-known">${esc(known)}</p>` : ""}
     <div class="eh-count">${all.length} event${all.length === 1 ? "" : "s"}${past.length ? ` &middot; ${upcoming.length} still to come` : ""}</div>
     ${button}
   </div>`;
