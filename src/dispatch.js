@@ -5,8 +5,8 @@
    and the clicks and changes inside its filter panel; Apply and Clear for
    the preview clock; the hash; and the minute tick. boot() registers all
    fourteen. It
-   is last in the order: it imports the views, the sheet, loading and the
-   shell, and nothing imports it but the root. It declares nothing but the
+   is last in the order: it imports the views, the event's panel, the sheet,
+   loading and the shell, and nothing imports it but the root. It declares nothing but the
    handlers and reads nothing as it is imported. */
 import { saveJSON } from "./storage.js";
 import { storageKey } from "./build.js";
@@ -26,8 +26,9 @@ import {
   renderExploreSections, scrollToExploreSection, scrollToGrid,
 } from "./explore.js";
 import { tickMap } from "./map.js";
+import { eventSheetHTML } from "./eventsheet.js";
 import {
-  closeSheet, closeWholeSheet, drawHotelSheet, eventSheetHTML, openSheet, panelEvent, panelFilters, sheetWrap, showHotelCrew,
+  closeSheet, closeWholeSheet, drawHotelSheet, openSheet, panelEvent, panelFilters, sheetWrap, showHotelCrew,
 } from "./sheet.js";
 import { holdQuery, updateFresh } from "./loading.js";
 import { clearFilters, fillFilters, setFilter, settleWords } from "./filters.js";

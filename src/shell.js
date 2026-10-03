@@ -30,7 +30,8 @@ import { cancelQueuedBrowseRender, renderBrowse } from "./browse.js";
 import { renderExplore } from "./explore.js";
 import { renderMap } from "./map.js";
 import { renderPlans } from "./plans.js";
-import { refreshCrewPanel, refreshEventSheet, refreshHotelSheet, refreshSharedDay } from "./sheet.js";
+import { refreshEventSheet } from "./eventsheet.js";
+import { refreshCrewPanel, refreshHotelSheet, refreshSharedDay } from "./sheet.js";
 import { updateFresh } from "./loading.js";
 
 /* ==================================================================

@@ -57,6 +57,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/dispatch.js`, `shell.js`, `loading.js`, `sheet.js` | The four modules above the views: the handlers that span modules; `render()` and what is on screen whatever the tab; loading, freshness and offline; the bottom sheet. |
 | `src/now.js`, `browse.js`, `explore.js`, `map.js`, `plans.js` | The five views, one per tab (`browse` is the Search tab). |
 | `src/scroll.js`, `bus.js` | The scroller, the header's measurement and focus found again after a redraw; how a module below the shell asks for a redraw. |
+| `src/eventsheet.js` | The event's panel of the bottom sheet: its markup, and what a pull's redraw writes into it in place. It holds no DOM handle: the panel's element is `sheet.js`'s, and the clicks inside it `dispatch.js`'s. |
 | `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data, read and written through `crews.js`; `syncAfter()`, the run the crew panel waits for after an action; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
 | `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the seven crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks, the reader's own row in a crew, and each crewmate's pick on now or next. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel, who's going and the hotel sheet's crew `sheet.js`'s, the crew on Now `now.js`'s and on the Map `map.js`'s. A leaf. |
 | `src/shareday.js` | Share a day (DECISIONS #69; `docs/screens/contract.md`, section 5, Share a day, as built): which picks a day shares, the days that hold one and the day the panel opens on, the link and the message, and a link read back against a schedule the caller hands it. Pure: no DOM, no storage, no clock; the share panel and the shared day are `sheet.js`'s. A leaf. |
@@ -406,7 +407,7 @@ a reviewer, and each review's decisions are committed as a record in
 
 ## The client: modules and their order
 
-One program in thirty-four modules under `src/`, and `main.js`, the entry.
+One program in thirty-five modules under `src/`, and `main.js`, the entry.
 The markup it drives is in `index.html` and the CSS in `src/styles.css`.
 
 The modules stand in one order, which is the array `ORDER` in
@@ -416,7 +417,7 @@ The modules stand in one order, which is the array `ORDER` in
 season  util  storage  platform  build  backend  identity  crews  state
 time  outbox  venues  shareday  data  picks  follows  ics  walk  search
 ui  filters                                            the twenty-one leaves
-scroll  bus  sync
+scroll  eventsheet  bus  sync
 now  browse  explore  map  plans                       the five views
 sheet  loading  shell  dispatch
                                                        boot.js, the root
@@ -526,6 +527,15 @@ importing the shell: `requestRender()` calls the function `boot()`
 registered with `setRenderer(render)`, synchronously, and throws if none is
 registered. Only `render()` goes over it.
 
+**`eventsheet`** is the event's panel of the bottom sheet: `eventSheetHTML()`,
+what the panel says of one event, the line that says who in the reader's
+crews starred it among it (#68), and `refreshEventSheet()`, which refills
+that line alone, in place, when `render()` runs. It holds no DOM handle -
+it finds what it writes by id, when asked - so it stands below `sheet`,
+which draws it into the panel as it opens, and below `dispatch`, whose
+clicks those inside the panel are. It stands after `scroll`, for the
+helpers its refill is to use.
+
 **`sync`** is sync's run (DECISIONS #53; `docs/sync/contract.md`,
 section 5, as built): `runSync()` drains the outbox, then pulls - the
 crews, the oldest first with their invite tokens, then the picks and the
@@ -561,9 +571,10 @@ both give focus back to the
 control that had it, as `scroll`'s `focusKey()` finds it, each time they
 draw and at the minute's tick.
 
-**`sheet`** is the bottom sheet: its seven panels (Settings, an event, a
-hotel, a crew, Share a day, a day shared with the reader and Search's
-filters, which `filters` draws) and what fills them, `openSheet()` and `closeSheet()`, the
+**`sheet`** is the bottom sheet: its seven panels (Settings, an event,
+which `eventsheet` draws, a hotel, a crew, Share a day, a day shared with
+the reader and Search's filters, which `filters` draws) and what fills
+them, `openSheet()` and `closeSheet()`, the
 swipe and the Escape that dismiss it, focus into it and back to what
 opened it (DECISIONS #66), and the handlers for the drag and the Settings
 controls - the email step's among them, Keep your plan, which it draws
@@ -577,9 +588,7 @@ among what manage changes - its state the module's: each action is one
 request at a time, then `syncAfter()`, then the panel and Plans drawn
 from what the pull kept; `openKeptJoin()` opens its join step for a kept
 invite at boot, and `refreshCrewPanel()` refills it when `render()` runs.
-An event's panel says who in the reader's crews starred it (#68), and
-`refreshEventSheet()` refills that line alone, in place, when `render()`
-runs. A hotel's panel lists the crew's picks there under the reader's own,
+A hotel's panel lists the crew's picks there under the reader's own,
 on the day it was drawn for, which it keeps - opened from the Map's crew
 pill, with them brought to the top of its body (`showHotelCrew()`);
 `refreshHotelSheet()` writes what it draws of the crew in place when
@@ -607,8 +616,8 @@ clock, the notice and the mini-bar; `setTimeOverride()`; `setOpeningTab()`,
 the tab the app opens on - Plans for a kept invite; `togglePick()`; the iOS
 edge guard; and the handlers for the tab bar - a tap on Plans starts a sync
 run - the mini-bar, the simulated-time chip, larger text, and the redraw on
-coming back to the tab. It imports the five views, the sheet and `loading`;
-nothing below it imports it.
+coming back to the tab. It imports the five views, `eventsheet`, the sheet
+and `loading`; nothing below it imports it.
 
 **`dispatch`** is the fourteen handlers whose bodies reach across modules: the
 five delegated listeners on `main` (click, input, keydown, change, focusout), the
