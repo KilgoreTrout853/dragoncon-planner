@@ -274,6 +274,9 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .explore-head .back { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
 .explore-head .eh-kind { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-top: 4px; }
 .explore-head .eh-name { margin: 0; font-size: 1.375rem; line-height: 1.2; }
+/* Focus lands on a page's heading as a tap opens it (#66, #75): a ring for
+   a keyboard's arrival, none for a tap's - as on a sheet panel's heading. */
+.explore-head .eh-name:focus:not(:focus-visible) { outline: none; }
 .explore-head .eh-known { margin: 0; font-size: .9375rem; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; }
 .explore-head .eh-count { font-size: .875rem; color: var(--muted); }
 .follow-btn { margin-top: 6px; }

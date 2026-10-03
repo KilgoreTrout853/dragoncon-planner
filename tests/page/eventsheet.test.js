@@ -466,6 +466,7 @@ describe("the event's sheet", () => {
       press(names().find(b => words(b) === "Dee Lined"));
       expect(el("sheetWrap").hidden).toBe(true);
       expect([state.tab, state.explore.page]).toEqual(["explore", {kind: "person", key: "p-dee"}]);
+      expect(document.activeElement).toBe(document.querySelector("#view-explore .eh-name"));       // focus lands on what the tap opened (#75)
       state.explore.page = null; app.setExploreHash(null); state.tab = "now"; handle.render();
     });
   });
@@ -607,6 +608,8 @@ describe("the event's sheet", () => {
       expect([words(document.querySelector("#view-explore .eh-kind")), words(document.querySelector("#view-explore .eh-name"))]).toEqual(["Track", "Star Wars"]);
       expect(app.readExploreHash()).toEqual({kind: "track", key: "Star Wars"});
       expect(document.querySelectorAll("#view-explore .row").length).toBeGreaterThan(0);
+      expect(document.activeElement).toBe(document.querySelector("#view-explore .eh-name"));       // focus lands on what the tap opened
+      expect(app.pageScrollTop()).toBe(0);
       back();
     });
     it("and the work's chip of the same words on its fandom page: two pages", () => {

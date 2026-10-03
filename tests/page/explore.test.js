@@ -1,9 +1,14 @@
 /* Explore: the grid of things to follow, their pages, and the suggestions drawn
    from the reader's own picks. The number in brackets is the harness line the
    assertion came from (tests/PORT-LEDGER.md). */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
 import { typeInto } from "../helpers/act.js";
+
+const css = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "styles.css"), "utf8").replace(/\r\n/g, "\n");
 
 describe("Explore", () => {
   let page, app, handle, state;
@@ -301,6 +306,143 @@ describe("Explore", () => {
     });
     it("with the sheet closed behind it [1123]", () => {
       expect(el("sheetWrap").hidden).toBe(true);
+    });
+  });
+
+  /* A page opened by a tap (DECISIONS #66, #75): where keyboard focus lands,
+     and where "← Explore" then lands the grid. jsdom keeps a scroller's
+     scrollTop as it is set, which is all these ask of it. New tests, not rows
+     of tests/PORT-LEDGER.md. */
+  describe("a page opened by a tap", () => {
+    let ev, track;
+    const main = () => document.querySelector("main");
+    const heading = () => view().querySelector(".eh-name");
+    const back = () => document.querySelector('[data-act="explore-back"]').click();
+    const fresh = () => { handle.closeSheet(); handle.picks.set([]); state.explore.expanded = {}; state.explore.scroll = 0; main().scrollTop = 0; grid(); };
+
+    beforeAll(() => {
+      fresh();
+      ev = handle.events.find(e => (e.people || []).length > 0 && (e.tracks || []).length > 0 && e._s > handle.now());
+      track = app.getCatalogue().track[0].key;
+    });
+    afterAll(() => { app.setExploreHash(null); fresh(); });
+
+    describe("keyboard and screen-reader focus lands on its heading", () => {
+      it("which can take focus, and is no stop on the way through the page", () => {
+        app.openExplorePage("track", track);
+        expect(heading().getAttribute("tabindex")).toBe("-1");
+        expect(document.activeElement).toBe(heading());
+        back();
+      });
+      it("from a tile on the grid, the page at its top", () => {
+        const tile = view().querySelector("#exploreGrid .tile");
+        tile.focus(); tile.click();
+        expect(state.explore.page).toBeTruthy();
+        expect(document.activeElement).toBe(heading());
+        expect(app.pageScrollTop()).toBe(0);
+        back();
+      });
+      it("from a Following chip", () => {
+        handle.follows.set([{ kind: "track", key: track }]); handle.render();
+        const chip = view().querySelector(".follow-chips .fc-name");
+        chip.focus(); chip.click();
+        expect(state.explore.page).toEqual({ kind: "track", key: track });
+        expect(document.activeElement).toBe(heading());
+        back();
+        handle.follows.set([]); handle.render();
+      });
+      it("from a Because-you-starred tile", () => {
+        handle.picks.set([handle.events.find(e => (e.tracks || []).some(t => !app.NOISE_TRACKS.has(t))).id]); handle.render();
+        const tile = el("suggested").querySelector(".tile");
+        tile.focus(); tile.click();
+        expect(state.explore.page).toBeTruthy();
+        expect(document.activeElement).toBe(heading());
+        back();
+        handle.picks.set([]); handle.render();
+      });
+      it("from a person's name on an event's sheet, over another tab: the sheet's close gives focus to the row, the tab change hides the row, and the heading has it", () => {
+        state.tab = "browse"; handle.render();
+        handle.openSheet("event", ev.id);
+        document.querySelector("#panel-event .who-name").click();
+        expect([el("sheetWrap").hidden, state.tab, state.explore.page.kind]).toEqual([true, "explore", "person"]);
+        expect(document.activeElement).toBe(heading());
+        expect(app.pageScrollTop()).toBe(0);
+        back();
+      });
+      it("and from a chip on an event's sheet", () => {
+        state.tab = "browse"; handle.render();
+        handle.openSheet("event", ev.id);
+        document.querySelector("#panel-event .tag-tap").click();
+        expect([el("sheetWrap").hidden, state.tab, state.explore.page]).toEqual([true, "explore", { kind: "track", key: ev.tracks[0] }]);
+        expect(document.activeElement).toBe(heading());
+        back();
+      });
+      it("on arrival, and never when the page is drawn again: Follow and a redraw leave focus alone", () => {
+        grid();
+        app.openExplorePage("track", track);
+        const follow = view().querySelector(".follow-btn");
+        follow.focus(); follow.click();
+        expect(app.isFollowing("track", track)).toBe(true);
+        expect(document.activeElement).not.toBe(heading());
+        handle.render();
+        expect(document.activeElement).not.toBe(heading());
+        back();
+        handle.follows.set([]); handle.render();
+      });
+      it("its ring shows for a keyboard's arrival and not for a tap's, as a sheet's heading does", () => {
+        expect(css).toMatch(/\n\.explore-head \.eh-name:focus:not\(:focus-visible\) \{ outline: none; \}/);
+        expect(css).toMatch(/\n\.sheet-panel h2:focus:not\(:focus-visible\) \{ outline: none; \}/);
+      });
+    });
+
+    describe("the way back, \"← Explore\": the grid where it was", () => {
+      it("the grid's scroll is taken where the screen under the tap is the grid itself: a tile", () => {
+        grid(); main().scrollTop = 300;
+        view().querySelector("#exploreGrid .tile").click();
+        expect([state.explore.scroll, app.pageScrollTop()]).toEqual([300, 0]);
+        back();
+        expect([state.explore.page, app.pageScrollTop()]).toEqual([null, 300]);
+      });
+      it("from another tab's sheet, what the grid last held stays: Search's scroll is not the grid's", () => {
+        state.tab = "browse"; handle.render(); main().scrollTop = 900;
+        handle.openSheet("event", ev.id);
+        document.querySelector("#panel-event .who-name").click();
+        expect([state.tab, state.explore.scroll, app.pageScrollTop()]).toEqual(["explore", 300, 0]);
+        back();
+        expect(app.pageScrollTop()).toBe(300);
+      });
+      it("from an Explore page - a chip on the sheet of one of its rows - it stays too", () => {
+        grid(); main().scrollTop = 300;
+        app.openExplorePage("person", ev.people[0].id);
+        expect(state.explore.scroll).toBe(300);
+        main().scrollTop = 150;
+        view().querySelector(".row .row-main").click();
+        expect(el("panel-event").hidden).toBe(false);
+        document.querySelector("#panel-event .tag-tap").click();
+        expect([state.explore.page.kind, state.explore.scroll, app.pageScrollTop()]).toEqual(["track", 300, 0]);
+        back();
+        expect(app.pageScrollTop()).toBe(300);
+      });
+      it("from a sheet over the grid itself - a row of the Following feed - it is taken, as from a tile", () => {
+        handle.follows.set([{ kind: "track", key: ev.tracks[0] }]); state.tab = "explore"; state.explore.page = null; handle.render();
+        main().scrollTop = 420;
+        view().querySelector("#following .row .row-main").click();
+        expect(el("panel-event").hidden).toBe(false);
+        document.querySelector("#panel-event .tag-tap").click();
+        expect([state.tab, state.explore.scroll, app.pageScrollTop()]).toEqual(["explore", 420, 0]);
+        back();
+        expect(app.pageScrollTop()).toBe(420);
+        handle.follows.set([]); handle.render();
+      });
+      it("and the grid never left is at its top: from another tab's sheet, \"← Explore\" lands there", () => {
+        fresh();
+        state.tab = "browse"; handle.render(); main().scrollTop = 900;
+        handle.openSheet("event", ev.id);
+        document.querySelector("#panel-event .tag-tap").click();
+        expect([state.tab, state.explore.scroll]).toEqual(["explore", 0]);
+        back();
+        expect(app.pageScrollTop()).toBe(0);
+      });
     });
   });
 
