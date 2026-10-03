@@ -1,12 +1,14 @@
-/* The filter sheet (W13, with W8's topic axes; DECISIONS #70, #71;
-   docs/screens/contract.md, section 3, as built): Search's filters in a
-   sheet panel, #panel-filters, opened by the Filters button beside the box.
-   The hotel chips, the Fandom and Track selects, the four topic axes two by
-   two, the Type control, the kind chips, and the toggle that hides photo
-   sessions and video-room screenings. A tap changes state.browse at once -
-   there is no Apply - and fillFilters() writes what the panel says in place,
-   the pressed chips and the count on its main button, so focus stays on the
-   control tapped; the list behind is drawn again only when the sheet closes.
+/* The filter sheet (W13, with W8's topic axes and W7's flags; DECISIONS
+   #70, #71, #77; docs/screens/contract.md, section 3, as built): Search's
+   filters in a sheet panel, #panel-filters, opened by the Filters button
+   beside the box. The hotel chips, the Fandom and Track selects, the four
+   topic axes two by two, the Type control, the kind chips, Getting in - cost,
+   sign-up, audience and sold out, two by two - and the toggle that hides
+   photo sessions and video-room screenings. A tap changes state.browse at
+   once - there is no Apply - and fillFilters() writes what the panel says in
+   place, the pressed chips and the count on its main button, so focus stays
+   on the control tapped; the list behind is drawn again only when the sheet
+   closes.
 
    One value per filter, and the last one set wins (#71). The sheet shows
    what is in effect: "hilton" in the box, the Hilton is pressed. A tap on a
@@ -23,14 +25,28 @@ import { esc } from "./util.js";
 import { settings, state } from "./state.js";
 import { hotelShort } from "./venues.js";
 import { AXES, events, hotelChips, isNoise, tagsOf, topWorks, tracks, worksById } from "./data.js";
-import { axisLabel, browseResults, dropPhrase, KIND_LABELS, parseQuery } from "./search.js";
+import { axisLabel, browseResults, dropPhrase, GETTING_IN, KIND_LABELS, parseQuery, passesGettingIn } from "./search.js";
 import { chipHTML } from "./ui.js";
 
 const TYPE_LABELS = {All: "All", panel: "Panels", gaming: "Gaming"};
 const AXIS_NAMES = {medium: "Medium", genre: "Genre", craft: "Craft", subject: "Subject"};
 const AXIS_IDS = {medium: "filterMedium", genre: "filterGenre", craft: "filterCraft", subject: "filterSubject"};
-/* The nine filters the sheet sets, in its order; the toggle is not one. */
-const FILTERS = ["hotel", "work", "track", ...AXES, "type", "kind"];
+/* Getting in (W7; #77): each select's name, its first option, and its fixed
+   options in order - an option is there at 0, so a value a word in the box
+   holds always has its option to show. The third of an option says whether
+   it names something an event has, and so carries its count; one that takes
+   things away says no number, since the list hides photo sessions and the
+   main button's count is the true one. A chip under the box says the
+   option's own words. */
+const GETTING_IN_SELECTS = {
+  cost: {id: "filterCost", name: "Cost", first: "Any cost", options: [["no", "No extra fee", false], ["yes", "Extra fee", true]]},
+  signup: {id: "filterSignup", name: "Sign-up", first: "Any sign-up", options: [["no", "No sign-up", false], ["yes", "Sign-up", true]]},
+  audience: {id: "filterAudience", name: "Audience", first: "Any audience", options: [["kids", "Kids", true], ["no-adult", "No 18+", false], ["adult", "18+", true]]},
+  soldOut: {id: "filterSoldOut", name: "Sold out", first: "Sold out or not", options: [["no", "Not sold out", false]]},
+};
+const gettingInLabel = (dim, value) => (GETTING_IN_SELECTS[dim].options.find(o => o[0] === value) || [value, value])[1];
+/* The thirteen filters the sheet sets, in its order; the toggle is not one. */
+const FILTERS = ["hotel", "work", "track", ...AXES, "type", "kind", ...GETTING_IN];
 
 /* The dimensions a word in the box holds, and the value it holds each at:
    the query read as the list will read it. */
@@ -49,6 +65,7 @@ function inEffect() {
   AXES.forEach(a => add(a, axisLabel(`${a}:${b[a]}`)));
   add("type", TYPE_LABELS[b.type] || b.type);
   add("kind", KIND_LABELS[b.kind] || b.kind);
+  GETTING_IN.forEach(d => add(d, gettingInLabel(d, b[d])));
   return out;
 }
 
@@ -62,16 +79,18 @@ function settleWords() {
 }
 /* The words that hold a dimension, out of the query as their chips' x takes
    them: until none does, since a second word ("hilton hyatt") holds it once
-   the first is gone. */
+   the first is gone. A chip names every dimension its word holds, so a tap
+   on the Audience over "kids" takes the word out whole, and the Kids Track
+   with it (#77). */
 function dropWords(dim) {
-  for (let chip; (chip = parseQuery(state.browse.q).chips.find(c => c.dim === dim));) {
+  for (let chip; (chip = parseQuery(state.browse.q).chips.find(c => c.dims.includes(dim)));) {
     const was = state.browse.q;
     state.browse.q = dropPhrase(was, chip.src);
     if (state.browse.q === was) return;
   }
 }
 
-/* Clear's reach: the nine filters, and the toggle back to Settings'
+/* Clear's reach: the thirteen filters, and the toggle back to Settings'
    default. Not the day, nor the query. */
 const clearable = () => FILTERS.some(d => state.browse[d] !== "All") || state.browse.hideNoise !== settings.hideNoise;
 function clearFilters() {
@@ -105,6 +124,14 @@ function axisOptions(axis) {
   return [...counts].map(([v, n]) => ({value: v, label: axisLabel(`${axis}:${v}`), n}))
     .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
 }
+/* Getting in's options, each with its label as the select says it: the
+   count, over every event as an axis's is, on the options that name
+   something an event has. A schedule with no tags has no Audience. */
+function gettingInOptions(tagged) {
+  return GETTING_IN.filter(d => tagged || d !== "audience").map(d => ({dim: d, ...GETTING_IN_SELECTS[d],
+    options: GETTING_IN_SELECTS[d].options.map(([value, label, has]) => ({value,
+      label: has ? `${label} (${events.filter(e => passesGettingIn(e, d, value)).length})` : label}))}));
+}
 const option = (value, label, on) => `<option value="${esc(value)}"${on ? " selected" : ""}>${esc(label)}</option>`;
 
 /* The panel, drawn as it opens, whole: each group what is in effect - the
@@ -132,6 +159,9 @@ function filtersHTML() {
     tagged ? `<div class="filter-group" data-group="kind" role="group" aria-labelledby="filterKindLabel">
       <span class="filter-label" id="filterKindLabel">Kind</span>
       <div class="filter-chips">${chips("kind", [["Any kind", "All"], ...kinds.map(k => [KIND_LABELS[k], k])])}</div></div>` : "",
+    `<div class="filter-group" data-group="entry" role="group" aria-labelledby="filterEntryLabel">
+      <span class="filter-label" id="filterEntryLabel">Getting in</span>
+      <div class="filter-topics">${gettingInOptions(tagged).map(g => select(g.id, g.dim, g.name, g.first, g.options)).join("")}</div></div>`,
     `<div class="filter-group" data-group="noise"><label class="toggle"><input type="checkbox" id="hideNoise" ${b.hideNoise ? "checked" : ""}> Hide photo sessions and video-room screenings${noiseCount ? ` (${noiseCount})` : ""}</label></div>`,
   ];
   openedWith = snapshot();

@@ -15,7 +15,8 @@ import { mutationsDuring, typeInto } from "../helpers/act.js";
 const fixture = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "sample-events.json"), "utf8"));
 const VENUES = [...new Set(fixture.events.map(e => e.hotel))];
 const FILTERS = { q: "", day: "All", prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All",
-  medium: "All", genre: "All", craft: "All", subject: "All", showHidden: false, showPast: false, noToday: false, hideNoise: false, page: 1 };
+  medium: "All", genre: "All", craft: "All", subject: "All", cost: "All", signup: "All", audience: "All", soldOut: "All",
+  showHidden: false, showPast: false, noToday: false, hideNoise: false, page: 1 };
 
 describe("Search", () => {
   let page, app, handle, state;
