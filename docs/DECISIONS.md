@@ -2002,7 +2002,7 @@ after seven days without a visit (#25).
 settles #40's open question - a standing line on Now, or the moment it
 earns itself - as the second.
 
-### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built); the entry points' by PR #94 (#75): the place's target 44 px tall with the head not grown, a chip's 44 px tall and at least 44 wide around the chip's own look, each named for where it goes or by its kind, and keyboard focus landing on what a tap opened - the Map's card, an Explore page's heading, from the grid's tiles too (`docs/screens/contract.md`, sections 6 and 7, as built); the more-below cue's by PR #95 (#76): no new control and no tap target's size or place changed, a control that takes focus scrolled clear of both bands by each area's scroll padding, nothing a screen reader hears changed, and nothing that moves, so no reduced-motion rule (`docs/screens/contract.md`, section 7, as built)
+### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built); the entry points' by PR #94 (#75): the place's target 44 px tall with the head not grown, a chip's 44 px tall and at least 44 wide around the chip's own look, each named for where it goes or by its kind, and keyboard focus landing on what a tap opened - the Map's card, an Explore page's heading, from the grid's tiles too (`docs/screens/contract.md`, sections 6 and 7, as built); the more-below cue's by PR #95 (#76): no new control and no tap target's size or place changed, a control that takes focus scrolled clear of both bands by each area's scroll padding, nothing a screen reader hears changed, and nothing that moves, so no reduced-motion rule (`docs/screens/contract.md`, section 7, as built); the facet filters' by PR #96 (#77): four selects, each with a name of its own and 44 px tall, under a small label that names their group, at the sheet's 16 px so an iPhone does not zoom, a choice written in place with focus kept on its select, and a chip taken off sending focus as the others do (`docs/screens/contract.md`, section 3, as built)
 **Decided:** Every screen Where things live touches meets these, and none
 of them has a screen of its own (W43):
 - a label on every new control;
@@ -2144,7 +2144,7 @@ query name, or a version in the year's place, with the old shape read for
 as long as its links live. An id shorter than eight characters cannot
 travel, and the test refuses a year that has one.
 
-### 70. The filter sheet applies as it is tapped — Standing (2026-10-02) — its held group retired by #71: one value a filter and the last one set wins, a tap in the sheet taking a word out of the query and a word typed taking the sheet's value to All once the box is left; its groups reordered by #71
+### 70. The filter sheet applies as it is tapped — Standing (2026-10-02) — its held group retired by #71: one value a filter and the last one set wins, a tap in the sheet taking a word out of the query and a word typed taking the sheet's value to All once the box is left; its groups reordered by #71; its facet filters built by #77, PR #96: cost, sign-up, audience and sold out, under Getting in, and the sheet's filters thirteen
 **Decided:** Search's filters leave the page for a sheet panel,
 `#panel-filters` (W13, with W8's topic axes; `docs/screens/contract.md`,
 section 3, as built; PR #88), opened by one Filters button beside the
@@ -2184,7 +2184,7 @@ fandoms", to fit beside the button with Larger text on and the badge
 showing, and the box is named by a label of its own, "Search the
 schedule".
 
-### 71. One value per filter, and the last one set wins — Standing (2026-10-02)
+### 71. One value per filter, and the last one set wins — Standing (2026-10-02) — a fourth filter a word sets, the audience, by #77: "18+" and "adult" hold it at 18+, and a kids word holds the track and the audience both, taken out whole by a tap on either
 **Decided:** The filter sheet (#70) has no lock. A word in the box and
 the sheet set the same three filters - the hotel, the kind and the track -
 and whichever was set last is the one in effect (`docs/screens/contract.md`,
@@ -2275,7 +2275,7 @@ far apart two levels are, and a level added between two others renumbers
 the storeys above it. The Mart's storeys are wrong until its split. 20
 characters is a guess, to be tried on a phone by the row's pull request.
 
-### 73. The row as built — Standing (2026-10-02)
+### 73. The row as built — Standing (2026-10-02) — its flags made filters by #77, PR #96: the filter sheet asks the facets and the audience themselves, not the row's flags; and a row's 18+ asks `isAdult()`, which reads the listing's Mature Audience marker too, every 2026 event's flags as they were
 **Decided:** An event's row is #64's, amended in five ways: the title, then
 up to two lines under it, and the star on the right
 (`docs/screens/contract.md`, section 10, as built; PR #92).
@@ -2613,3 +2613,86 @@ browser says it another way the crew pill lands at the body's top, as it
 did. Whether the fade draws in Safari on a scrolling area and holds steady
 under a thumb is a phone's to check, and jsdom lays nothing out, so the
 tests give a node its numbers.
+
+### 77. Cost, sign-up, audience and sold out are filters — Standing (2026-10-03)
+**Decided:** The filter sheet (#70, #71) gains four filters, the flags a
+row has said since #73 (W7; `docs/screens/contract.md`, section 3, as
+built; PR #96). Each is All or one value, and is set, cleared, counted in
+the badge and shown as a chip under the box as the other nine are: the
+sheet's filters are thirteen.
+- **One group, "Getting in",** after Kind and before the toggle: four
+  selects two by two, in the topic axes' markup and classes, each with a
+  name of its own. Cost: Any cost, No extra fee, Extra fee. Sign-up: Any
+  sign-up, No sign-up, Sign-up. Audience: Any audience, Kids, No 18+, 18+.
+  Sold out: Sold out or not, Not sold out. A chip under the box says the
+  option's own words.
+- **Both directions where both are useful,** not switches that only hide:
+  "Extra fee" and "Sign-up" find, "No extra fee" and "No sign-up" leave
+  out. There is no "Only sold out".
+- **The options are fixed lists.** An option is there at 0, so a value a
+  word in the box holds always has its option to show. A count stands only
+  on an option that names something an event has - "Extra fee (214)",
+  "Sign-up (112)", "Kids (88)" and "18+ (105)" in 2026 - counted over every
+  event, as an axis's is, by the filter's own rule. An option that takes
+  things away says no number, and the main button's count is the true one.
+- **18+ is one thing:** a mature audience, or a stated minimum age of 17
+  or more, or the listing's own Mature Audience marker - `data.js`
+  `isAdult()`, which the word in the box, the select, its count and a
+  row's flag all ask. The stated age and the marker are the parse stage's
+  (`docs/discover/schema-v2.md`, Facets) and ask no tags, so an event the
+  tagger has not reached (#46) is 18+ where its listing says so. A 13+ or
+  a 16+ is not 18+. A row's flag says 18+ where `isAdult()` does and the
+  listing states no age; a stated minimum still wins the label (#73).
+- **Kids is the audience,** not the Kids Track.
+- **An event that says nothing:** with no facets it has no fee, no
+  sign-up and is not sold out; with no tags, no such age and no marker it
+  is not known to be for kids or 18+ - it passes No 18+ and fails Kids and
+  18+.
+- **The words** already read hold the Audience, a fourth filter a word
+  sets (#71). "18+" and "adult" hold it at 18+. "kids", "kid", "family"
+  and "children" hold two dimensions, the track at Kids Track and the
+  Audience at No 18+, under one chip, "Kids Track". A chip names every
+  dimension its word holds, and a tap on either select takes the word out
+  whole: the Kids Track goes with a tap on the Audience. Beside "18+" or
+  "adult" the explicit word wins, in either order: both give the Kids
+  Track's 18+ events. No new word is read: not "free", not "sold out", not
+  "sign-up".
+- **A schedule with no tags** has Cost, Sign-up and Sold out, and no
+  Audience.
+- **Not filters:** a game's format and its level.
+
+Amends #70: its "Facet filters (W7) come after step 7", and Clear's nine
+are thirteen. Amends #71: the filters a word and the sheet both set are
+four. Amends #73: the filter sheet does not read the row's flags - it asks
+the facets and the audience themselves - and a row's 18+ asks `isAdult()`.
+
+**Why:** A row has shown its flags since PR #92 and nothing could filter
+by them (the step 7 design chat, 2026-10-03). "Getting in": the four
+answer one question a reader has of an event before going - can I get in,
+and what does it take: a fee, a sign-up, an age, a seat left. Both
+directions: "No extra fee" and "Not sold out" are asked at the con;
+"Sign-up" is asked before it, to find what needs registering, and switches
+that only hide would lose the second. No "Only sold out": no one looks for
+what they cannot get into. Not a game's format or level: a row does not
+show them, and 7b's rule (#70) was to filter by what a row shows. A count
+on an option that takes things away tells a reader nothing - "No extra fee
+(3,245)" - and is not what the list shows once photo sessions are hidden,
+2,839. One rule for 18+, so that a row and the filter cannot disagree
+about an event: in 2026 its three halves name the same 105 events - each
+of the 28 that state 17, 18 or 21 and of the 75 that carry the marker is a
+mature audience - and every event's flags are what they were. The explicit
+word, because "kids 18+" gave the Kids Track's 18+ events and "adult kids"
+the track without them: the answer turned on which word was the longer.
+**Cost:** The panel's content is 131 px taller, 134 with Larger text, and
+the group is below the fold at 375x667, 390x664 and 402x714 (`contract.md`,
+section 3, as built). "Not sold out" hides only a listing that says sold
+out - one that says its classes are full is not flagged (`contract.md`,
+section 14) - so the filter is not a promise. A count is over every event,
+so "Kids (88)" lists 66 while photo sessions are hidden. "No 18+" hides a
+row whose flag says 16+ - "Puppetry 101 - Adults", a mature audience whose
+listing states 16 - and "18+" lists rows flagged 17+ and 21+. "kids" holds
+the Audience with no chip of its own, uncounted by the badge, and a tap on
+the Audience over it takes the Kids Track too. "adult" is an ordinary word
+as well - "young adult" reads as 18+ and "young" - which is older than
+this entry and now shows in the Audience select (`contract.md`, section
+14). A schedule with no tags shows three selects, the fourth cell empty.

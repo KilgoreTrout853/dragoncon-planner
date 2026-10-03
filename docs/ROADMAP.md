@@ -428,9 +428,13 @@ execution slot (#57), which can run before any of this.
    scrolling area has more past its edge - a fade on six areas of the
    sheet, as deep as what is hidden there, with the crew pill's landing
    and a drag in Advanced fixed beside it - built (PR #95, #76; contract,
-   section 7, as built). What is left of this step is 7b.
+   section 7, as built). Nothing is left of this step.
    - 7b. W7's facets as filters in the filter sheet, now that the row
-     shows them (#70; contract, section 3).
+     shows them (#70): cost, sign-up, audience and sold out, four selects
+     under Getting in, each one value like every other filter, with 18+
+     one rule for the word, the filter and the row's flag; not a game's
+     format or level - built (PR #96, #77; contract, section 3, as
+     built).
 8. Explore's top: For you and the zero state, its source decided at its
    design; W5's Mute beside Follow on a page; W6's cast group in Search and
    in Following (contract, section 4); and Explore's filter box kept across

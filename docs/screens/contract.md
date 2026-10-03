@@ -309,7 +309,8 @@ As built: the recon, section 2, Search, items 1 to 15.
   Track selects and the noise toggle (items 3, 4, 7 and 8), and gains
   W8's four topic axes. No Apply: a tap applies at once, and the list is
   drawn again when the sheet closes; Clear (#70). W7's facets as filters
-  follow, as step 7b, now that a row shows them (section 10, as built).
+  are built, as step 7b: cost, sign-up, audience and sold out, under
+  Getting in (#77; as built, below).
 - **Under the box,** as built: the suggestions and the parsed chips
   (items 5 and 6), and in the parsed chips' row each filter the sheet set.
 - Everything else as built: the results' title, the no-exact line, the
@@ -327,7 +328,8 @@ panel's search (section 11). PR 6.
 ### Search and the filter sheet, as built
 
 PR #88, step 6 (W13, with W8), with #63, #66 and #70; the last one set
-wins, and the panel's order, by PR #90 (#71).
+wins, and the panel's order, by PR #90 (#71); Getting in, W7's four
+filters, by PR #96, step 7b (#77).
 
 - **The page** (`browse.js` `renderBrowse()`). The sticky block is the
   box and, right of it at the box's height, 48px, the Filters button, then
@@ -351,10 +353,12 @@ wins, and the panel's order, by PR #90 (#71).
   and then its values by how many events carry them, then by label, with
   the count, as the Fandom select's works are ordered; the Type control,
   All, Panels, Gaming; Kind, its label and its chips, Any kind and each
-  kind the schedule has; and the toggle that hides photo sessions and
-  video-room screenings - and under the body, on screen, "Show `<n>`
-  events" and Clear. The chips wrap. A schedule with no tags has no Kind
-  group, no Fandom select and no topic selects.
+  kind the schedule has; Getting in, its label and its four selects two
+  by two, Cost, Sign-up, Audience and Sold out (#77; below); and the
+  toggle that hides photo sessions and video-room screenings - and under
+  the body, on screen, "Show `<n>` events" and Clear. The chips wrap. A
+  schedule with no tags has no Kind group, no Fandom select, no topic
+  selects, and no Audience among Getting in's selects.
 - **Live** (`dispatch.js` `onFiltersPanelClick()`,
   `onFiltersPanelChange()`; `filters.js` `setFilter()`, `fillFilters()`).
   A tap or a choice changes `state.browse` at once, one value a filter - a
@@ -374,12 +378,12 @@ wins, and the panel's order, by PR #90 (#71).
   Filters button. With anything changed since the sheet opened the list
   starts from its top; with nothing changed, or a change taken back, where
   it was. A drag that starts in the body scrolls it.
-- **Clear** (`filters.js` `clearFilters()`) takes the nine filters - the
-  hotel, the kind, the type, the fandom, the track and the four axes -
-  back to All, and the toggle to Settings' default; never the day, nor the
-  query, so a word in the box stays, and its value pressed. It is disabled
-  with nothing to clear, and enabled when only the toggle differs from
-  Settings' default.
+- **Clear** (`filters.js` `clearFilters()`) takes the thirteen filters -
+  the hotel, the kind, the type, the fandom, the track, the four axes and
+  Getting in's four - back to All, and the toggle to Settings' default;
+  never the day, nor the query, so a word in the box stays, and its value
+  pressed. It is disabled with nothing to clear, and enabled when only the
+  toggle differs from Settings' default.
 - **The chips under the box** (`browse.js` `parsedChipsHTML()`;
   `filters.js` `inEffect()`) are gold, 44px, one row that scrolls
   sideways and keeps its place across a redraw. A long label is cut with
@@ -390,15 +394,17 @@ wins, and the panel's order, by PR #90 (#71).
   to the Filters button: never to the box, which would raise the keyboard.
 - **The last one set wins** (#71; `filters.js` `setFilter()` and
   `settleWords()`; `dispatch.js` `onMainFocusOut()` and `onMainChange()`).
-  The query's hotel, kind and track words - "hilton", "contest", "photo",
-  "kids" - and the sheet set the same three filters, one value each, and
-  the one set last is in effect. Nothing in the panel is disabled, and
+  The query's hotel, kind, track and audience words - "hilton",
+  "contest", "photo", "kids", "18+" - and the sheet set the same four
+  filters, the audience since #77, one value each, and the one set last
+  is in effect. Nothing in the panel is disabled, and
   each group shows what is in effect, the word's value where a word holds
   it. A tap or a choice there takes the word out of the query, as its
   chip's x does (`search.js` `dropPhrase()`), and a second word that
   would hold the dimension once the first is gone, then sets the value
   tapped; a second tap on the hotel in effect is All. "kids" taken out by
-  a track takes its hiding of 18+ with it. A word typed takes the sheet's
+  a track takes its No 18+ with it, and taken out by the Audience its
+  Kids Track (#77; below). A word typed takes the sheet's
   value for its dimension to All once the box is left - the return key,
   which blurs the box; the box's `focusout` and its `change`, two hands
   on one idempotent step, `focusout` firing on every blur and `change`
@@ -410,7 +416,8 @@ wins, and the panel's order, by PR #90 (#71).
   it, and `inEffect()` leaves a dimension a word holds out of the badge
   and the chips under the box, so a word deleted before the box is left
   gives the sheet's value back. Nothing shown changes as the box is left,
-  so nothing is drawn. Type, the fandom and the axes have no words.
+  so nothing is drawn. Type, the fandom, the axes, and Getting in's
+  cost, sign-up and sold out have no words.
 - **The empty state,** while a filter of the sheet's is in effect: "No
   matches. Remove a filter above, or try another day or fewer words."
   Unchanged otherwise.
@@ -431,6 +438,10 @@ wins, and the panel's order, by PR #90 (#71).
   not zoom on a select. Focus goes to the heading as the panel opens and
   back to the Filters button as it closes; Escape closes it. The row
   under the box is 44px. The day chips and the suggestions stay at 38px.
+  Getting in's four selects (#77) are the panel's selects - 44px, 16px,
+  each with a name of its own, Cost, Sign-up, Audience and Sold out -
+  under a small label that names their group, as Hotel's and Kind's do; a
+  choice writes the panel in place, so focus stays on its select.
 - **Measured** at 375x667 in desktop Chromium, on the built page with
   2026's schedule and the real clock's has-ended notice, 111px, above
   Search. The first result is 382px down, where it was 684px: 271px and
@@ -457,7 +468,74 @@ wins, and the panel's order, by PR #90 (#71).
   375x667 - so it fades at its foot as the panel opens, where until then
   the fold cut a row of chips with nothing to say there was more, and at
   its top once it is scrolled. Its 33 controls, focused in turn forward
-  and backward, are never inside a band.
+  and backward, are never inside a band. Since PR #96 the body holds 862
+  px and 37 controls, and both still hold (Measured for #77, below).
+- **Getting in** (PR #96, step 7b; #77; `filters.js` `filtersHTML()`,
+  `search.js` `passesGettingIn()`, `data.js` `isAdult()`). Four filters,
+  the flags a row says (section 10, as built), each All or one value in
+  `state.browse` - `cost` and `signup`, `no` or `yes`; `audience`, `kids`,
+  `no-adult` or `adult`; `soldOut`, `no` - at the end of `filters.js`
+  `FILTERS`, which is thirteen, so each is set, cleared, snapshotted,
+  counted in the badge and shown as a chip under the box by the code that
+  was there. One group after Kind and before the toggle, labelled "Getting
+  in", its four selects two by two in the topic axes' markup and classes,
+  with no rule of its own in the stylesheet: Cost - Any cost, No extra
+  fee, Extra fee; Sign-up - Any sign-up, No sign-up, Sign-up; Audience -
+  Any audience, Kids, No 18+, 18+; Sold out - Sold out or not, Not sold
+  out. The options are fixed lists, there at 0. A count stands only on an
+  option that names something an event has, over every event as an axis's
+  is and by the filter's own `passesGettingIn()`: "Extra fee (214)",
+  "Sign-up (112)", "Kids (88)" and "18+ (105)" on 2026's schedule; "No
+  extra fee", "No sign-up", "No 18+" and "Not sold out" say no number. A
+  chip under the box says the option's words without the count, after
+  Kind's, in the sheet's order.
+- **What each keeps.** Extra fee is `facets.cost`, Sign-up
+  `facets.signup` and sold out `facets.sold_out`; an event with no facets
+  has no fee, no sign-up and is not sold out. Kids is the audience, not
+  the Kids Track. 18+ is `isAdult()`: a mature audience, or a stated
+  minimum age of 17 or more, or the listing's Mature Audience marker,
+  `facets.mature` - the last two the parse stage's, asking no tags, so an
+  event the tagger has not reached is 18+ where its listing says so; with
+  no tags, no such age and no marker an event passes No 18+ and fails
+  Kids and 18+. A row's 18+ flag asks the same `isAdult()` where the
+  listing states no age (section 10, as built). On 2026's schedule, over
+  all 3,459 events: 3,245 with no fee and 214 with one; 3,347 with no
+  sign-up and 112 with one; 88 for kids, 3,354 not 18+ and 105 that are;
+  3,440 not sold out. The list, with photo sessions and video-room
+  screenings hidden, holds 2,839 and 214; 2,941 and 112; 66, 2,948 and
+  105; 3,034. The three halves of 18+ name the same 105 events there.
+- **The words and the Audience** (`search.js` `parseQuery()`,
+  `finishParse()`; `filters.js` `dropWords()`). "18+" and "adult" hold the
+  Audience at 18+, one chip, "18+". "kids", "kid", "family" and "children"
+  hold two dimensions, the track at Kids Track and the Audience at No
+  18+, under one chip, "Kids Track": the sheet shows both, and the badge
+  counts neither. A parsed chip names every dimension its word holds, and
+  a tap on a select takes out each word that holds its dimension: a
+  choice in the Audience over "kids" takes the word out whole, and the
+  Kids Track with it. Beside "18+" or "adult" the explicit word wins, in
+  either order - "kids 18+" and "18+ kids" are the Kids Track's 18+
+  events, one in 2026 - and a choice in the Audience then takes both
+  words out, one in the Track "kids" alone. `filters.adult` is gone. No
+  new word is read. A schedule with no tags has Cost, Sign-up and Sold
+  out, the fourth cell empty; "18+" there holds a dimension the panel has
+  no select for, as "contest" does Kind.
+- **Measured for #77,** in desktop Chromium on the built page with 2026's
+  schedule, at a simulated Saturday 1:05 PM, the panel with nothing set.
+  The body's own height and Show and Clear are where they were; its
+  content is the group and one gap taller. At 375x667 the body shows 411
+  px of 862, where it held 731; at 390x664, 408 of 862; at 402x714, 458
+  of 812, where it held 681. With Larger text: 373, 370 and 420 px of
+  870, where it held 736. The group starts 686.5 px down the content at
+  375x667 and 390x664 and 636.5 at 402x714, and 691.2 at all three with
+  Larger text: below the fold at all six. Each select is 44 px tall -
+  167, 174.3 and 180.3 px wide - at 16 px, 18.4 with Larger text. The
+  fade: more below at the ceiling, 48 px, as the panel opens, and more
+  above and none below at its foot; the 37 controls, focused in turn
+  forward and backward, never inside a band; at all six. At 375x667 with
+  Larger text every option of the four fits its closed select whole, the
+  widest "Sold out or not" at 103.5 px of text; the axes' longest,
+  "Cosplay Photography (171)" at 180.3 px, is wider than its select
+  there, as it was. A choice takes about 1.6 ms.
 - **The tests.** `tests/page/filters.test.js`, on a copy of the sample
   whose untagged events carry the four axes at counts that differ: the
   page's sticky block, the box's name and placeholder, nothing between the
@@ -501,6 +579,37 @@ wins, and the panel's order, by PR #90 (#71).
   the query reads first - "photo marriott op" reads as Marriott and Photo
   op, and "photo op" is not in the box as two words side by side - where
   a chip's x already leaves the query as it was (section 14).
+  For #77: `tests/unit/facets.test.js`, on a schedule of its own - the
+  four in `passesFilters()`, each value and its complement, two, three
+  and four together, `isAdult()`'s three halves and what is not 18+, an
+  event with no facets and one with no tags, an untagged event that
+  states 18 or carries the marker, a row's 18+ asking the same rule, and
+  the words: the two that hold the Audience, the four that hold two
+  dimensions, the explicit word winning in either order, and the
+  dimensions every chip names. `filters.test.js`, whose copy of the
+  sample carries a fee, a sign-up, sold out and an audience at counts
+  that differ: the group, its place, its label and its markup, each
+  select's options, a count only where an option names something an event
+  has, each value changing the state and the count with nothing behind
+  drawn, every event passing each filter exactly where its row's flags
+  say, two, three and four together and beside a hotel and a day, the
+  list as the sheet closes, Clear, the badge at thirteen, each chip's
+  words, a chip's x and where focus goes; the words - each held value
+  shown, a choice over "18+" and over "kids", the Kids Track going with
+  the Audience, "kids 18+" and "18+ kids", the step as the box is left
+  and as the sheet opens, and no new word; a schedule with no tags, three
+  selects and an option at 0; and a schedule where no event has what the
+  options name, every option there at 0 and a word's value shown.
+  `real-data.test.js`: the four counts on the options, the eight over
+  every event, the main button's under each value, each filter against
+  the row's flags on every event, and every event's flags as they were
+  before the marker was read. `search.test.js`'s 531 asks the one rule
+  (`tests/PORT-LEDGER.md`). A mutation pass of 73 mutants over the new
+  rules - `data.js` `isAdult()` and the row's 18+, `search.js`
+  `passesGettingIn()`, the words and `activeFilters()`, `state.js`, and
+  `filters.js`'s group, options, counts and `dropWords()` - killed 72. The
+  one left reorders `filters.js` `FILTERS`, whose order nothing reads: the
+  chips' order is `inEffect()`'s own, which a test holds.
 
 ## 4. Explore
 
@@ -1813,6 +1922,10 @@ The event sheet followed, in PR #93 (section 7, as built).
   says them: Sold out, alone in the warning colour; Extra fee; Sign-up; an
   age, the listing's minimum, else 18+ for a mature audience; Kids. On
   2026's schedule 460 events carry one or more: 387 one, 66 two, 7 three.
+  Since PR #96 the 18+ asks `data.js` `isAdult()` - a mature audience, or
+  the listing's Mature Audience marker where the tagger has not answered -
+  so a row and the filter sheet's Audience agree; every one of 2026's
+  events is flagged as it was (#77; section 3, as built).
   Since PR #93 the event's sheet says the same flags on its facts line,
   the age in the row's colour, and its 18+ chip is gone (section 7, as
   built).
@@ -2153,7 +2266,8 @@ As built: the recon, section 8, what crews' readers offer today.
 - A listing that says its classes are full, with no "sold out" in it,
   carries no Sold out flag - "Workshop: Chainmail Dice Bag" is one. The
   parse stage prefers a missed flag to a false one, so a row or a sheet
-  without the flag is not a promise. The pipeline's.
+  without the flag is not a promise, and nor is the Not sold out filter,
+  which keeps it (#77). The pipeline's.
 - A cancelled pick. The hero and the gap line still band it - "then
   `<place>` at 3:00 PM: overlaps by 30 min", a walk band between rows -
   while a row's overlap flag counts a cancelled pick in no other pick's,
@@ -2185,10 +2299,25 @@ As built: the recon, section 8, what crews' readers offer today.
 - More than one value a filter. The filter sheet takes one (#70), as the
   page did: two hotels, or two kinds, are two searches (section 3, as
   built).
-- An audience control. Kids and 18+ are words in the box alone - "kids",
+- ~~An audience control. Kids and 18+ are words in the box alone - "kids",
   "18+" - with no control in the filter sheet (section 3). A track chosen
   in the sheet over "kids" takes the word out, and its hiding of 18+ with
-  it (#71).
+  it (#71).~~ Settled by PR #96, step 7b: the Audience select, Kids, No
+  18+ and 18+, which the words hold (#77; section 3, as built).
+- "adult" is an ordinary word too. It is a whole word of four of 2026's
+  titles and of the track Young Adult Literature, and "young adult" reads
+  as 18+ and "young". Older than PR #96, which did not change what is
+  read: since it, the Audience select shows 18+ for such a query, and the
+  box left takes the sheet's own Audience to All (#77).
+- An option's count and the list. Getting in's counts are over every
+  event, as the axes' are, and the list hides photo sessions and
+  video-room screenings: "Kids (88)" lists 66. The main button's count is
+  the list's (#77; section 3, as built).
+- A row that says 16+ under 18+. "Puppetry 101 - Adults" is a mature
+  audience whose listing states 16: its row says 16+, the stated minimum
+  winning the label, and it is 18+ to the word and the filter - No 18+
+  hides it and keeps the other 16+, "Troika: Slate & Chalcedony" (#73,
+  #77).
 - The one-tap hotel filter the filter sheet traded away. The hotel chips
   were on the page, one tap each; now a hotel is Filters, its chip, then
   Show `<n>` events (#70; section 3, as built).
