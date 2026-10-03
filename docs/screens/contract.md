@@ -708,7 +708,8 @@ built, Share a day among it, and the 2026 app knows no crews.
   the Map or Plans is the tab, or the crew panel or an event's sheet is
   open (sections 2, 6 and 7, as built). `render()` keeps Search's box and
   an open sheet as they were - an event's refills its who's-going line
-  alone, in place - but rebuilds Explore's grid and its filter box with
+  in place, and since PR #93 its star and its overlap line with it - but
+  rebuilds Explore's grid and its filter box with
   it, so a crewmate's star pulled while the reader types there would take
   the caret (ROADMAP, Flags): Search and Explore alone draw nothing for a
   crew's change. An event's sheet open over Explore draws Explore again
@@ -846,9 +847,11 @@ that day at once.
   drawn again, its list's scroll put back, since a browser drops a hidden
   scroller's place, and focus on the row that opened the event. The shared
   day itself closes to the page, and the list goes with it. The way back
-  is taken whenever the shared panel closes or another panel opens, and
-  See all, from that event, closes both. The hotel sheet's rows close to
-  the Map, as before.
+  is taken whenever the shared panel closes or another panel opens - but
+  not by an event opened over that event's sheet, another session or an
+  overlapped pick, which keeps it since PR #93 (#74), its close returning
+  to the list - and a person's name, from that event, closes both. The
+  hotel sheet's rows close to the Map, as before.
 - **#66.** Focus goes to each panel's heading. The share panel gives it
   back to Share a day; a shared day that a link opened, with no control
   behind it, leaves it to the page. Escape closes each, and from an event
@@ -873,8 +876,9 @@ that day at once.
   the skipped line and its cut-short words; a removed, a cancelled and
   another day's row; the refusals; a join winning, from the address and
   from the session; no schedule; the event and back, with its scroll and
-  focus, Escape, a star in the event's sheet, See all; the way back taken
-  by a close and by another panel; and the 44px rules. `plans.test.js`
+  focus, Escape, a star in the event's sheet, a person's name; the way
+  back taken by a close and by another panel, and kept by an event opened
+  over that event, since PR #93; and the 44px rules. `plans.test.js`
   [433] and [510] count the strip's third action, the port ledger amended
   for them. None of the new tests carries a ledger bracket. A mutation
   pass over the new code is not committed: every mutant of its last run
@@ -981,17 +985,18 @@ As built, plus:
   the venues file, as the data lands (section 13).
 - **"Known for"** (W42): a guest's reviewed line under each person, and
   under the name on that person's Explore page, joined by id from the
-  file's `people` block (#61), which `data.js` does not read today and
+  file's `people` block (#61), which `data.js` reads since PR #93 and
   which is `[]` in 2026's file until the review lands.
 - **The chips** - each track and each work - are tappable: their Explore
   page.
-- **Facets** (W7) in words.
+- **Facets** (W7) in words - the row's words, since #74.
 - **Who's going** (W22): a line, from `crews.js` `goingTo()`, for a reader
   in a crew, saying who starred the event - "Starred by" since PR #83, never
   that anyone is going (#68); in 2027 it taps nowhere.
 - **The overlap** (W1): at the moment of starring, a line that lists
   every pick it overlaps, each with its times; a line, not a toast. The
-  row's flag is section 10's.
+  row's flag is section 10's. Amended by #74: the line shows before the
+  star too, as "Would overlap".
 - **Add to calendar** with W44's alarm, a fixed lead before the start - the
   same `ics.js` as Plans' Export, so both doors carry it. W44 is a
   standalone pull request in a free execution slot (#57), outside the
@@ -1002,7 +1007,8 @@ As built, plus:
 
 **Home of:** W18; W22; W42; W44.
 
-Moves: `sheet.js` `eventSheetHTML()`, `openSheet()`, `closeSheet()`;
+Moves: `sheet.js` `eventSheetHTML()` - `eventsheet.js`'s since PR #93 -
+`openSheet()`, `closeSheet()`;
 `dispatch.js` `onEventPanelClick()`; `data.js` (the people block);
 `explore.js` `renderExplorePage()` (the line); `ics.js`.
 Tests: `sheet.test.js`, `explore.test.js`'s "the detail sheet offers a way
@@ -1013,10 +1019,80 @@ standalone.
 
 PR #81, step 5a, with #62, #64 and #66: who's going, worded as who starred
 it by PR #83, step 5d, with #68. Focus and Escape were built by PR #77
-(section 5, as built); the rest is PR 7's, and W44's.
+(section 5, as built). PR #93, step 7's second, with #66 and #74: the
+panel's three parts, the level, the facts, the other sessions, the people
+and the overlap line, its height, and the star written in place. Still to
+come: the place and the chips as taps (section 11), a cue that more is
+below a scrolling area, and W44's.
 
-- **Who's going** (W22; `sheet.js` `goingText()`). On a build with a
-  backend, a line in the sheet's head, under the place and its tags:
+- **Three parts** (`eventsheet.js` `eventSheetHTML()`, the panel's own
+  module since PR #93; the panel's element and `openSheet()` are
+  `sheet.js`'s, and its clicks `dispatch.js` `onEventPanelClick()`'s).
+  `.ev-head`, which never scrolls: the title, when, the place, the level,
+  Cancelled or Removed from the schedule, the facts, the other sessions,
+  Starred by. `.ev-body`, which scrolls: the description, the people, the
+  track and work chips. `.ev-foot`, which never scrolls: the overlap line,
+  then the star, Add this to calendar and Done.
+- **The level** (`venues.js` `levelName()`): the level's full `name`, in the
+  hotel's hue, on a line of its own under the place - "Atlanta Conference
+  Center (LL3)", where a row says "Conference Center" - exactly where
+  `levelShort()` says one (section 10, as built), so the sheet never says a
+  level its room has said. On 2026's schedule 1,634 events show one, and
+  for 565 of them it says more than the row's short name. There is no
+  one-line "how to get there": no data for it exists (section 13).
+- **The facts** (`.ev-facts`), one line that may wrap, a middle dot before
+  each part but the first: Celebrity, the pill; the row's flags, `data.js`
+  `flagsOf()`, in the row's words and the row's order, Sold out alone in
+  the warning colour; then `factsOf()` - "Part `<n>`", from `facets.part`,
+  and a game's format, from `tags.play`: "One-shot game", "Organized play",
+  "Learn to play", "Tournament", "Demo" or "Open play", with ", beginners
+  welcome" where its level is beginner, but for Learn to play, which says
+  so itself; level any says nothing. The age is on this line, in the row's
+  colour, and the body's 18+ chip is gone. No line with nothing to say. On
+  2026's schedule 16 events say a part, 868 a format, and 172 of those
+  beginners welcome.
+- **The other sessions** (`data.js` `sessionsOf()`): "Also runs Fri 4:00 PM
+  · Sun 2:30 PM". An event's other sessions are the events with the same
+  `facets.repeat_key`, the same title and the same people, by id - whatever
+  their order - that are neither removed nor cancelled: "Author Signing"
+  is eight sessions of eight line-ups, and they are not each other's. A
+  cancelled or a removed event's own sheet lists the sessions that still
+  run. Each is said by its con day's label and its start, so a session
+  after midnight takes the night it belongs to, as a row does. Those not
+  yet started come first, in start order, then the rest - by `now()`
+  (#12), read as the panel is drawn and not again while it is open: the
+  sheet does not tick. Three are named, each a button, then "and `<n>`
+  more" in plain words. No line with no other session. In 2026: 347 groups
+  of two or more, 1,173 events with another session, the largest group 44,
+  and 46 groups with more than three others; 6 groups run in more than one
+  room, which the line does not say.
+- **The people**, under a small "With", a list the label names. Each is as
+  the listing spells them; a name is a button to that person's Explore page
+  (`data-explore`), and "See all" is gone. A role other than Speaker or
+  Panelist follows the name in lower case, muted, with no parentheses. A
+  person with a known-for line - `data.js` `knownFor()`, the file's
+  `people` block joined by id, an absent or empty block being no lines
+  (#61) - is a block, the name and under it the line, and they come first,
+  in the listing's order; everyone else is one wrapping line after them,
+  their names after commas, opening "and" where lined people stand above.
+  The same line stands under the name on a person's Explore page
+  (`explore.js` `renderExplorePage()`, `.eh-known`), and on no other kind
+  of page. 2026's block is empty, so no one has a line yet.
+- **The overlap line** (W1; `#sheetOverlap`; `walk.js` `clashesOf()`), in
+  the foot. `clashesOf()` is `overlapsOf()`'s loop, asked whether the
+  event is a pick or not - the same pairs put to `connection()` in the same
+  order, so an overlap is still computed in one place - and `overlapsOf()`
+  asks it for a pick alone, the row's flag unchanged. On a pick, "Overlaps
+  `<title>`" and under it its time as a range; a second and a third pick
+  take a block each, "and `<title>`"; three at most, then "and `<n>` more"
+  in plain words; in the warning colour. On an event that is not a pick,
+  "Would overlap `<title>`", in the same shape, quietly. A block is one
+  button, its first line cut with an ellipsis and never wrapped. A
+  cancelled or removed event has no line and counts in none. The element
+  is always in the panel, empty and unseen with no overlap, and is a polite
+  live region (`role="status"`).
+- **Who's going** (W22; `eventsheet.js` `goingText()`). On a build with a
+  backend, a line in the sheet's head, the last of it:
   "Starred by " - "Going: " until PR #83: a star is a pick, not a
   whereabouts (#68) - and the crewmates whose picks hold the event, from
   every crew the reader is in, by `crews.js` `goingTo()` - a person once, by
@@ -1027,20 +1103,119 @@ it by PR #83, step 5d, with #68. Focus and Escape were built by PR #77
   hidden. Never on a removed event, which is not happening; a cancelled one
   has its line. Every name is someone's own text, and escaped. In 2027 it
   taps nowhere.
-- **In place** (`refreshEventSheet()`, from `render()` beside
-  `refreshCrewPanel()`). A pull's change refills the open event's line -
-  its words, and whether it shows - and nothing else: the sheet is never
-  drawn again for it, so focus and everything in it stay where they are.
-  The star's tap draws the panel again, as before, the line with it.
-- **The tests.** `tests/page/crew-everywhere.test.js`: no one, one, three,
+- **In place** (`eventsheet.js` `refreshEventSheet()`, from `render()` beside
+  `refreshCrewPanel()`, and from the star's own tap). Three parts are
+  written into the nodes already there: Starred by, its words and whether
+  it shows; the star, pressed and named anew; and the overlap line, "Would
+  overlap" becoming "Overlaps" at the tap. The panel is never drawn again
+  for any of them - it is drawn once, as it opens - so focus stays on the
+  star, the body keeps its scroll, and a screen reader hears the line
+  change. A pull that changes the reader's own pick of the open event fills
+  the same three, so its star is no longer stale (ROADMAP, Flags). Focus on
+  an overlapped pick that is still listed stays on it, by its id; on one
+  that has gone, or on a removed pick's star once it is unstarred and can
+  no longer be tapped, it goes to the heading. Until PR #93 the star's tap
+  drew the whole panel again, and a pull refilled Starred by alone.
+- **A sheet from a sheet.** A session or an overlapped pick opens that
+  event's sheet in this one's place, focus on its heading. `opener` is
+  kept, so Done, the backdrop, a swipe and Escape close to the screen
+  underneath, with focus on what opened the first sheet. An event opened
+  over a shared day's event keeps the way back to the list (`sheet.js`
+  `openSheet()`): its close returns to the list, focus on the row that
+  opened the first event (section 5, Share a day, as built). There is no
+  way back to the first event (section 14).
+- **The height** (`styles.css`, `#panel-event`). The sheet is at most 86%
+  of the screen: the panel's cap is `86dvh` less the sheet's own 53px -
+  its border, its padding and the gap under the grip - and the inset. The
+  panel is a column: the head and the foot keep their height, and the body
+  takes what is left and scrolls, never under 4.5rem. Where the head and
+  the foot leave it less than that, the panel scrolls as one with its foot
+  pinned (`position: sticky`), so the star and Done stay on screen, and a
+  drag that starts in a scrolling panel scrolls it rather than dismisses
+  (`sheet.js` `onSheetTouchStart()`), as the crew panel's does. The other
+  panels keep their rules: `.ev-body`'s 48vh is still the hotel sheet's.
+- **#66.** Every new tap is 44 px tall and at least 44 wide: a name and a
+  session by the button's `min-height` and `min-width`, so the line they
+  stand in is 44 px tall; an overlapped pick as its block. Each is a button
+  named by its words, a session's with "Also runs" before them, and the dot
+  between two sessions is not read out. Focus is as above. The overlap
+  line is a live region. The sizes are in rem; no new motion, no new field.
+- **Measured** in desktop Chromium, the app's pane, on the built page with
+  2026's schedule, Barlow Semi Condensed loaded, and the page confirmed to
+  be this build before each pass; the phone check to come. The event with
+  the tallest head at 375 px wide, "Contemporary NSDM – National Security
+  Decision Making MegaGame" - 208 px, 258 with Larger text - picked, with
+  the three longest-titled events that overlap it as picks; "Starred by
+  Bo, Cy, Dee and 2 more" written into its line by hand, the build having
+  no backend; and the shortest sheet, "Titan Test Event". Each cell is the
+  sheet's height, then the body's of what it holds:
+
+  | Size, text | Three overlapped picks and Starred by | Three overlapped picks | One overlapped pick and Starred by | The short event |
+  |---|---|---|---|---|
+  | 375x667 | 573.6; 72 of 139, the panel scrolling 10 | 573.6; 86.8 of 139 | 562.1; whole | 283.5; 72 |
+  | 375x667, Larger | 573.6; 82.8 of 181, scrolling 89 | 573.6; 82.8 of 181, scrolling 60 | 573.6; 91.7 of 180 | 304.6; 82.8 |
+  | 390x664 | 571; 72 of 139, scrolling 13 | 571; 84.2 of 139 | 562.1; whole | 283.5; 72 |
+  | 390x664, Larger | 571; 82.8 of 181, scrolling 62 | 571; 82.8 of 181, scrolling 33 | 570.7; 119 of 180 | 304.6; 82.8 |
+  | 402x714 | 614; 101.7 of 139 | 614; 127.2 of 139 | 562.1; whole | 283.5; 72 |
+  | 402x714, Larger | 614; 82.8 of 157, scrolling 19 | 614; 92.7 of 157 | 608; whole | 304.6; 82.8 |
+
+  - Not picked, the same event says "Would overlap" over the same three
+    and measures the same. Three overlapped picks are 132 px of the foot,
+    146.5 with Larger text, and one is 44 and 48.8; the sessions line is 44
+    px. On the design's prototype, the same three as words in a line were
+    58.5 and 67.3 px, the sessions line 19.5, and three long titles left to
+    wrap 249 and 269.
+  - Where the panel scrolls, the foot stays at the panel's foot: at
+    375x667 with Larger text, three overlapped picks and Starred by, it is
+    in one place with the panel at its top and scrolled its 89 px, the star
+    and Done on screen, and the body scrolls its own 98 px inside.
+  - The short event's body holds 56 px and stands at the floor, 72. On the
+    prototype, 12 to 15 of 2026's events had a body under the floor at the
+    three widths, 4 to 6 with Larger text.
+  - 15 people, "National Puppet Slam", the one such event: the names are
+    five lines, 220 px, in a body of 428 at 375 wide, 523 with Larger
+    text; on the prototype the five lines were 264 with Larger text, and
+    as words in a line 98 and 135.
+  - In every case no part of the panel or the body scrolled sideways, and
+    every tap measured at least 44 by 44 px, the narrowest name 54 wide.
+  - In the pane: the star's tap kept the head, the body and the region as
+    the nodes they were, the body's scroll and the focus on the star; a
+    block's tap opened that pick's sheet, which named the first event back;
+    a session's tap opened that session; a name's tap closed the sheet on
+    that person's Explore page.
+- **The tests.** `tests/unit/eventsheet.test.js`: the five helpers on made
+  events and a made people block, and 2026's counts above.
+  `tests/page/eventsheet.test.js`, on a copy of the sample with a made
+  Saturday and a block: the parts and their order; the level; the facts,
+  the row's flags among them and no 18+ chip; the sessions' words, their
+  order, a cancelled one, a tap and the close after it, by Done, the
+  backdrop and Escape; the overlap line picked and not, to three and past
+  it, its rule the row's, and a tap; the star in place - the region, the
+  star and the body the nodes they were, the scroll and the focus kept; a
+  redraw's fill, and focus when an overlapped pick goes; the people, lined
+  and not, the role, a name's tap; a removed pick unstarred; the drag on a
+  scrolling panel; and the rules of `styles.css`, the 53px against the
+  sheet's own numbers among them. `tests/page/known-for.test.js`: the line
+  on a person's Explore page, and none without a block.
+  `tests/page/crew-everywhere.test.js`: who's going - no one, one, three,
   four and six; never the reader; a name escaped; a removed event and a
-  cancelled one; the star's redraw; the line refilled in place with focus
-  kept, and hidden by the last unstar; an open sheet over Search and over
-  Explore, Explore's filter box keeping its text; none on a build with no
-  backend; and, since PR #83, that no string the crew screens draw - Now,
-  the Map, the hotel and event sheets, Plans' crew and the crew panel, their
-  labels among them - says "going" or "with you". None carries a ledger
-  bracket.
+  cancelled one; the star, written in place since PR #93; the line
+  refilled in place with focus kept, and hidden by the last unstar; an open
+  sheet over Search and over Explore, Explore's filter box keeping its
+  text; none on a build with no backend; and, since PR #83, that no string
+  the crew screens draw - Now, the Map, the hotel and event sheets, Plans'
+  crew and the crew panel, their labels among them - says "going" or "with
+  you", as whole words since PR #93, the sheet's "With" standing over its
+  people. `explore.test.js` [1118] reads the name's button
+  (`tests/PORT-LEDGER.md`), `real-data.test.js` the facts line's age for a
+  mature event, and `share-day.test.js` the way back kept. The new tests
+  carry no ledger bracket. A mutation pass of 85 mutants over the new
+  rules - the helpers, the panel's words and order, the fill in place, the
+  taps, the way back, the drag, Explore's line and the CSS - killed 84.
+  The one left loosens `openSheet()`'s test for an event over an event to
+  any event, and changes nothing a reader can reach: the shared day is kept
+  only while its panel or its event's is up, so every event that opens
+  while there is a shared day to drop opens from one of those two.
 
 ## 8. The hotel sheet
 
@@ -1216,7 +1391,7 @@ options. Tests: the page tests that read a row's parts, and
 PR #92, step 7's first (W1, W7, W18), with #64, #66, #72 and #73: the
 row's lines, the facet flags, the level and the overlap flag; the gap line
 saying no overlap; and two lines of words, the hero's and a crew line's.
-The event sheet is next (ROADMAP, step 7).
+The event sheet followed, in PR #93 (section 7, as built).
 
 - **The row** (`ui.js` `rowHTML()`), for all fifteen of its calls, their
   options unchanged:
@@ -1262,13 +1437,15 @@ The event sheet is next (ROADMAP, step 7).
   or " Floor" - "Atrium Ballroom" is said to be on the Atrium Level,
   "Imperial Ballroom" is not said to be on the Marquis Level. On 2026's
   schedule 1,634 events show a level, 1,542 leave it off and 283 have
-  none. The sheet PR shows the level in full.
+  none. The event's sheet shows the level in full, `levelName()`, by the
+  same two rules, since PR #93 (section 7, as built).
 - **The flags** (`data.js` `flagsOf()`), `{key, label}` in the order a row
   says them: Sold out, alone in the warning colour; Extra fee; Sign-up; an
   age, the listing's minimum, else 18+ for a mature audience; Kids. On
   2026's schedule 460 events carry one or more: 387 one, 66 two, 7 three.
-  The event sheet's 18+ tag keeps its warning colour until the sheet PR
-  reconciles the two.
+  Since PR #93 the event's sheet says the same flags on its facts line,
+  the age in the row's colour, and its 18+ chip is gone (section 7, as
+  built).
 - **The overlap flag** (`walk.js` `overlapsOf()`): every other pick a pick
   overlaps, over the whole plan, each pair asked of `connection()` in start
   order, so the flag and the hero hold one answer; a cancelled or removed
@@ -1389,10 +1566,12 @@ the hash and the address.
 | The Map's crew pill | The hotel sheet, Your crew's picks here brought to the top of its body (#63) | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built, PR #82 |
 | A Map hotel block, a hotel with level data | The building view | the Map's drill-down | the view's own back, to the Map | PR 10 |
 | The hotel sheet's "Search the Hyatt on Saturday" | Search | `state.browse`: the hotel, the day, no query - since PR #88 the hotel a chip under the box, counted on Filters | the tab bar to the Map, whose day `state.map.day` kept | built |
-| The event sheet's "See all" beside a person | That person's Explore page | `state.explore.page`, the hash | "← Explore", to the grid: one tap from the event, accepted | built |
+| A person's name on the event sheet - "See all" beside it until PR #93 | That person's Explore page | `state.explore.page`, the hash | "← Explore", to the grid: one tap from the event, accepted | built; the name since PR #93 |
+| Another session on the event sheet's Also runs line | That session's sheet, in this one's place | `state.sheetId` | Done, the backdrop, a swipe, Escape: the screen underneath, focus on what opened the first sheet - the shared day, where the first was opened from it; no way back to the first event (section 14) | built, PR #93 |
+| A pick on the event sheet's overlap line | That pick's sheet, in this one's place | `state.sheetId` | the same | built, PR #93 |
 | An Explore tile, a Following chip, a Because-you-starred tile | Its page | `state.explore.page`, the hash | "← Explore", the grid's scroll put back | built |
 | A `#explore=` link | Its page | the same, at load | "← Explore", to the grid | built |
-| The event sheet's track or work chip | Its Explore page | the same | "← Explore", to the grid, as See all | PR 7 |
+| The event sheet's track or work chip | Its Explore page | the same | "← Explore", to the grid, as a person's name | PR 7 |
 | The event sheet's place line | The Map, focused on the hotel - the room once the building view exists | `state.tab`, a focus in `state.map` | the Map's focused card, which reopens the sheet | PR 7 |
 | Search's Filters | `#panel-filters` | the panel shown | no Apply (#70): Show `<n>` events, the backdrop, a swipe, Escape: Search, focus on Filters, the list from its top if anything changed | built, PR #88 |
 | A kept `?join=`, in any phase | Plans' join step | `state.tab`, the step open | the step closed: Plans as it opens | built |
@@ -1401,7 +1580,7 @@ the hash and the address.
 | A line of the hotel sheet's Your crew's picks here | The event sheet, in the hotel's place | `state.sheetId` | Done, the backdrop, a swipe, Escape: the Map, focus on what opened the hotel sheet - no way back to the hotel sheet, as for its rows | built, PR #82 |
 | My day's Share a day | The share panel, `#panel-share` | the panel shown, the day chosen | Done, the backdrop, a swipe, Escape: Plans, focus on Share a day | built, PR #85 |
 | A `?day=` link, in any phase | The shared day, `#panel-shared`, over the phase's tab, once the schedule has loaded | the day, in memory alone; the address cleaned | Done, the backdrop, a swipe, Escape: the tab as it opened; a reload loses the day | built, PR #85 |
-| A row of the shared day | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the shared day, its scroll kept and focus on the row; See all closes both | built, PR #85 |
+| A row of the shared day | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the shared day, its scroll kept and focus on the row; a person's name closes both | built, PR #85 |
 
 ## 12. Removals (#40)
 
@@ -1502,15 +1681,16 @@ PR #76, with #40.
 As built: the recon, section 3, what the event panel does not carry.
 
 - **W42:** the `people` block is `[]` in 2026's file until the line
-  review lands (#61); the sheet's line shows only once it has rows.
+  review lands (#61); the sheet's line, and the Explore page's, built by
+  PR #93 (section 7, as built), show only once it has rows.
 - **W18:** the levels are in `venues.json` for six hotels - the Marriott,
   the Hyatt, the Hilton, the Westin, the Courtland Grand and the Mart
   (#45; the Westin's as the con names them, and the Courtland Grand's,
   since PR #78) - each with a
   short name and a storey (#72); a row names an event's level by its short
-  name since PR #92 (section 10, as built). The sheet's level and the
-  one-line "how to get there" wait for the sheet PR, and the line exists
-  nowhere yet.
+  name since PR #92 (section 10, as built), and the event's sheet by its
+  full name since PR #93 (section 7, as built). The one-line "how to get
+  there" is not built: the line exists nowhere yet, in no file.
 - **W16:** the zero state's curated source (section 4; Open).
 - **W45:** the server-side delete, a `supabase/` migration and RPC, with
   the gear PR.
@@ -1559,6 +1739,21 @@ As built: the recon, section 8, what crews' readers offer today.
   settles how a row and a line say a time.~~ Settled by PR #92, step 7:
   the start is a span that does not wrap, `fmtShort()` unchanged (section
   10, as built).
+- A sheet opened from a sheet has no way back to the first event: a
+  session or an overlapped pick opens in the sheet's place, and its close
+  goes to the screen underneath (#74; section 7, as built).
+- A session in another room. The Also runs line says a day and a start,
+  and no place: 6 of 2026's 347 groups run in more than one room, which a
+  reader learns by the tap (section 7, as built).
+- The one-line "how to get there" (W18): no data for it exists, and the
+  sheet says the level alone (section 13).
+- A role the listing writes "(Alt: )" prints as the listing writes it, in
+  lower case, after the name: one person in 2026. The pipeline's, not the
+  sheet's.
+- A listing that says its classes are full, with no "sold out" in it,
+  carries no Sold out flag - "Workshop: Chainmail Dice Bag" is one. The
+  parse stage prefers a missed flag to a false one, so a row or a sheet
+  without the flag is not a promise. The pipeline's.
 - A cancelled pick. The hero and the gap line still band it - "then
   `<place>` at 3:00 PM: overlaps by 30 min", a walk band between rows -
   while a row's overlap flag counts a cancelled pick in no other pick's,

@@ -425,7 +425,7 @@ mode now also covers moved partitions. The map needs one persistent SVG
 mutated in place rather than the innerHTML rebuild in `src/app.js` — a
 constraint on step 4's module split.
 
-### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53); an eighteenth, `outbox`, after `time`, and `sync` after the bus (#53); a nineteenth, `crews`, after `identity` (#56); `mine` renamed `plans` in the fifth view's place (#62); `leave` renamed `walk` in its place (#40, PR #76)
+### 29. Module order and the bus — Standing (2026-09-19) — a fifteenth leaf, `season`, first in the order, and each year's data file importable by the one module that owns it, `virtual:season` by `season` and `virtual:venues` by `venues` (#49); a sixteenth and a seventeenth, `backend` and `identity`, after `build` (#53); an eighteenth, `outbox`, after `time`, and `sync` after the bus (#53); a nineteenth, `crews`, after `identity` (#56); `mine` renamed `plans` in the fifth view's place (#62); `leave` renamed `walk` in its place (#40, PR #76); a module for the sheet's event panel, `eventsheet`, after `scroll` (#74, PR #93)
 **Decided:** The client's modules stand in one order, and `src/boot.js` is
 its root. The order is the array `ORDER` in `tests/rules/imports.test.js` -
 the fourteen leaves, then `scroll` and the `bus`, the five views, then
@@ -1838,7 +1838,7 @@ not now. Before its screens: the Marriott's and the Hyatt's levels drawn,
 each hotel's levels put in one frame so that they stack (#58's Cost), and
 the map made one persistent SVG (#28's Cost).
 
-### 61. Known for is registry data, a people block in v2 — Standing (2026-09-30) — the line's screen is `docs/screens/contract.md`'s section 7
+### 61. Known for is registry data, a people block in v2 — Standing (2026-09-30) — the line's screen is `docs/screens/contract.md`'s section 7; the client's half built by PR #93 (#74): `data.js` reads the block, and the line stands under the name on the event's sheet and on the person's Explore page, for no one until the line review lands
 **Decided:** W42's line (#59) is a field of the registry, reviewed, and
 reaches the client in a block of `events.v2.json`, on #38's pattern.
 - `people.json` gains an optional `known_for`: one plain line, a string,
@@ -1944,7 +1944,7 @@ The browser's own Back plays no part: the hash is written by
 Explore page is "← Explore", to the grid, wherever the page was opened
 from: one tap from the event, accepted.
 
-### 64. The row and the gap line — Decided, not built (2026-09-30) — its overlap computed once, by `walk.js` `connection()`: the two picks' intersection, the earlier end less the later start, which the hero and the gap line read and the row's flag is to word, not compute again (PR #76); who's going built by PR #81: a line on the event's sheet, three names and then how many more, tapping nowhere (`docs/screens/contract.md`, section 7, as built); the level on line 2 to be its `short` (#72); amended by #73, the row as built (PR #92): the time a range on line 2 and no time column, Celebrity on line 3, the overlap said by the two rows' flags and the gap line keeping walks and tight connections, a flagged row's track left off, and the level by its `short` (`docs/screens/contract.md`, section 10, as built)
+### 64. The row and the gap line — Decided, not built (2026-09-30) — its overlap computed once, by `walk.js` `connection()`: the two picks' intersection, the earlier end less the later start, which the hero and the gap line read and the row's flag is to word, not compute again (PR #76); who's going built by PR #81: a line on the event's sheet, three names and then how many more, tapping nowhere (`docs/screens/contract.md`, section 7, as built); the level on line 2 to be its `short` (#72); amended by #73, the row as built (PR #92): the time a range on line 2 and no time column, Celebrity on line 3, the overlap said by the two rows' flags and the gap line keeping walks and tight connections, a flagged row's track left off, and the level by its `short` (`docs/screens/contract.md`, section 10, as built); its sheet built and amended by #74 (PR #93): the overlap line before starring too, as "Would overlap", and the facts in the row's words, not a second vocabulary (`docs/screens/contract.md`, section 7, as built); its chips and its place line as entry points still to build
 **Decided:** A row is at most three lines, and the walk between two events
 is said between their rows.
 - **Line 1:** the star, the title and the state tags - Cancelled, Removed
@@ -2002,7 +2002,7 @@ after seven days without a visit (#25).
 settles #40's open question - a standing line on Now, or the moment it
 earns itself - as the second.
 
-### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built)
+### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built)
 **Decided:** Every screen Where things live touches meets these, and none
 of them has a screen of its own (W43):
 - a label on every new control;
@@ -2341,3 +2341,93 @@ one, "In 40 min", is lost at none of the three, at either size
 (`contract.md`, section 10, as built). The hero and the gap line still
 band a cancelled pick, which the row's flag does not (`contract.md`,
 section 14).
+
+### 74. The event sheet as built — Standing (2026-10-03)
+**Decided:** An event's sheet is #64's, amended in two ways, in three
+parts: a head and a foot that never scroll, and a body between them that
+does (`docs/screens/contract.md`, section 7, as built; PR #93).
+- **The head:** the title and when, as before; the place, and under it the
+  level's full `name` (#72), exactly where a row names the level (#73) -
+  the event has one, and the room does not already say it; Cancelled or
+  Removed from the schedule; the facts; the other sessions; Starred by
+  (#68).
+- **The facts,** one line that may wrap, in the row's words: Celebrity; the
+  row's flags in the row's order, Sold out alone in the warning colour
+  (#73); then two things a row does not carry - "Part `<n>`", and a game's
+  format, "One-shot game", "Organized play", "Learn to play", "Tournament",
+  "Demo" or "Open play", with ", beginners welcome" where its level is
+  beginner, but for Learn to play, which says so itself. The age is on this
+  line, and the body's 18+ chip is gone.
+- **The other sessions:** "Also runs Fri 4:00 PM · Sun 2:30 PM" - the
+  events with the same repeat key, the same title and the same people, by
+  id, neither removed nor cancelled. Each is said by its con day's label
+  and its start, as a row says a day, so a session after midnight takes the
+  night it belongs to; those not yet started come first; three are named,
+  then "and `<n>` more". A named session is a tap, to its own sheet in this
+  one's place. A cancelled event's sheet lists the sessions that still run.
+- **The body:** the description; the people, under a small "With"; the
+  track and work chips. A person's name is the tap to their Explore page,
+  and See all is gone. A role other than Speaker or Panelist follows the
+  name, in lower case, muted. A person with a known-for line (#61) has a
+  line of their own, the name and under it the line, and they come first,
+  in the listing's order; everyone else shares one wrapping line. The same
+  line stands under the name on that person's Explore page.
+- **The foot:** the overlap line (W1), then the actions. On a pick,
+  "Overlaps `<title>`" and under it its time as a range, a block a pick,
+  "and `<title>`" for a second and a third, then "and `<n>` more"; on an
+  event that is not a pick, "Would overlap `<title>`", quietly. The title
+  is cut to one line. A block is one tap, to that pick's sheet in this
+  one's place. The rule is the row's (#73): `connection()`'s band over
+  every pick, and a cancelled or removed event has no line and counts in
+  none. The line is a polite live region.
+- **In place:** the star's tap writes the star, the overlap line and
+  Starred by where they stand, and a pull's redraw fills the same three by
+  the same function. The panel is drawn once, as it opens.
+- **The height:** the sheet is at most 86% of the screen, its padding, its
+  grip and its border counted. The head and the foot keep their height and
+  the body takes what is left, never under 4.5rem; where they leave it
+  less, the panel scrolls as one with its foot pinned, and a drag there
+  scrolls rather than dismisses.
+- **A sheet from a sheet:** Done, the backdrop, a swipe and Escape close to
+  the screen underneath, focus on what opened the first sheet; an event
+  opened over a shared day's event keeps the way back to the list (#69).
+- **Every new tap is 44 px** tall and at least 44 wide (#66): a name, a
+  session, an overlapped pick.
+
+Amends #64's sheet: the overlap line shows before starring too, where #64
+gave it "at the moment of starring"; and the facts are the row's words,
+where #64 had "flags on a row and words on the sheet".
+
+**Why:** The step 7 design chat sketched the sheet on real 2026 events
+(2026-10-02), after the row (#73). A reader deciding whether to star needs
+the overlap before the star, not after it. A fact said two ways, a flag on
+the row and other words on the sheet, is two things to learn. A repeat key
+alone is not a session: "Author Signing" is eight sessions of eight
+line-ups; by key, title and people 2026 has 347 groups of two or more over
+1,173 events, the largest of 44. A redraw at the star dropped focus to the
+page, sent the body back to its top and replaced the live region, which a
+screen reader then does not read; and a pull left the open sheet's star
+stale (ROADMAP, Flags). The taps are made walking through a hotel, and two
+names side by side in a comma line are the easiest wrong tap in the app:
+#66 holds as written. Three long titles that wrap take 249 px of the foot
+at 375 px wide, 269 with Larger text, measured in Chromium; cut to a line
+each, 132 and 147. A foot that scrolled away would take the star and Done
+with it.
+**Cost:** Height, most of it in the body, which scrolls: 15 people's names
+are 220 px at 375 px wide where words in a line would be 98, 264 and 135
+with Larger text. In the parts that never scroll, the sessions line is 44
+px where words would be 20, and three overlapped picks are 132 px, 147
+with Larger text, where words in a line would be 59 and 67. With the
+tallest head of 2026 - 208 px at 375 wide, 258 with Larger text - three
+overlapped picks and a Starred by line, the body is at its floor and the
+panel scrolls: by 10 px at 375x667 and 13 at 390x664, and with Larger text
+by 89, 62 and 19 at 375x667, 390x664 and 402x714; with one overlapped pick
+it scrolls at none of the three, at either size (`contract.md`, section 7,
+as built). A title in the overlap line is cut, and an event with almost
+nothing in its body gains up to 16 px of space under it. A session in
+another room is not said until it is tapped: 6 of 2026's 347 groups run in
+more than one. There is no way back to the first event from a sheet opened
+from it. The one-line "how to get there" (W18) is not built: no data for
+it exists. The known-for line is built before any line exists: 2026's
+block is empty until the review lands (#61). A live region cannot be heard
+in jsdom, nor a pinned foot seen: both are hand checks on a phone.

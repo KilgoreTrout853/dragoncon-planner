@@ -57,7 +57,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/dispatch.js`, `shell.js`, `loading.js`, `sheet.js` | The four modules above the views: the handlers that span modules; `render()` and what is on screen whatever the tab; loading, freshness and offline; the bottom sheet. |
 | `src/now.js`, `browse.js`, `explore.js`, `map.js`, `plans.js` | The five views, one per tab (`browse` is the Search tab). |
 | `src/scroll.js`, `bus.js` | The scroller, the header's measurement and focus found again after a redraw; how a module below the shell asks for a redraw. |
-| `src/eventsheet.js` | The event's panel of the bottom sheet: its markup, and what a pull's redraw writes into it in place. It holds no DOM handle: the panel's element is `sheet.js`'s, and the clicks inside it `dispatch.js`'s. |
+| `src/eventsheet.js` | The event's panel of the bottom sheet (DECISIONS #74; `docs/screens/contract.md`, section 7, as built): its markup - a head, a body that scrolls and a foot - and what a star's tap or a pull's redraw writes into it in place: the star, the overlap line and Starred by. It holds no DOM handle: the panel's element is `sheet.js`'s, and the clicks inside it `dispatch.js`'s. |
 | `src/sync.js` | Sync (DECISIONS #53): a run - the drain, then the pull - on every trigger; the crew's data, read and written through `crews.js`; `syncAfter()`, the run the crew panel waits for after an action; Sign out's send of what waits; and its lines in Keep your plan, the status and a refused Sign out's count. |
 | `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the seven crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks, the reader's own row in a crew, and each crewmate's pick on now or next. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel, who's going and the hotel sheet's crew `sheet.js`'s, the crew on Now `now.js`'s and on the Map `map.js`'s. A leaf. |
 | `src/shareday.js` | Share a day (DECISIONS #69; `docs/screens/contract.md`, section 5, Share a day, as built): which picks a day shares, the days that hold one and the day the panel opens on, the link and the message, and a link read back against a schedule the caller hands it. Pure: no DOM, no storage, no clock; the share panel and the shared day are `sheet.js`'s. A leaf. |
@@ -465,7 +465,8 @@ backoff (DECISIONS #53). `venues`: hotel
 identity, the `WALK` table, the slack, `SLACK_MIN`, `walkMin()`, `placeHTML()` -
 a hotel whose `display` is "location", the Mart, its room alone - `levelShort()`,
 the level a row says after the room, left off where the room says it (DECISIONS
-#72, #73), and `placeShort()`, a place in a line of words as the Map's On now
+#72, #73), `levelName()`, the same level in full, which an event's sheet says
+under the place (#74), and `placeShort()`, a place in a line of words as the Map's On now
 line, Now's crew section and the hero's next pick name it, all from
 the year's venues file, inlined at build as `virtual:venues`. `shareday`:
 Share a day's link and message (#69) - the picks a day shares, the link,
@@ -476,7 +477,11 @@ stands before it. `data`:
 block as `worksById`, and `replaceSchedule()`; `tagsOf()`, the one read of
 an event's tags, which an untagged event has none of; `flagsOf()`, an event's
 flags - Sold out, Extra fee, Sign-up, an age, Kids - from its facets and its
-audience, which a row's line 3 says (DECISIONS #73); `linksTo()`, which says whether an
+audience, which a row's line 3 and an event's sheet say (DECISIONS #73, #74);
+`factsOf()`, what the sheet says besides - the part, a game's format;
+`sessionsOf()`, an event's other sessions, by its repeat key, its title and
+its people, the moment a parameter; `knownFor()`, a person's known-for line
+from the file's people block (#61); `linksTo()`, which says whether an
 event is about a work or anything under it, the rolled-up counts and
 `topWorks()` it agrees with, and a person's display name. `data` is the only
 module that walks a work's parent. `picks` and `follows`: what the reader starred and follows -
@@ -490,7 +495,8 @@ estimate from the pick before, and the tight-connection flag between two
 picks in a row, `connection()`, which the Now tab's hero and the gap line
 between rows both read (DECISIONS #40) - and, from it, `overlapsOf()`,
 every other pick a pick overlaps across the plan, which a row's overlap
-flag says (#73); the gap line says the walk and the tight bands, and no
+flag says (#73), and `clashesOf()`, the same asked of any event, picked
+or not, which the sheet's overlap line says (#74); the gap line says the walk and the tight bands, and no
 overlap. Nothing in it says where the reader is, or when to leave. `search`: the two MiniSearch
 indexes (MiniSearch is an npm dependency, pinned to 7.2.0), the reading of a
 query, the ranking, and `AXIS_LABELS`, the only place an axis slug becomes a
@@ -527,14 +533,18 @@ importing the shell: `requestRender()` calls the function `boot()`
 registered with `setRenderer(render)`, synchronously, and throws if none is
 registered. Only `render()` goes over it.
 
-**`eventsheet`** is the event's panel of the bottom sheet: `eventSheetHTML()`,
-what the panel says of one event, the line that says who in the reader's
-crews starred it among it (#68), and `refreshEventSheet()`, which refills
-that line alone, in place, when `render()` runs. It holds no DOM handle -
-it finds what it writes by id, when asked - so it stands below `sheet`,
-which draws it into the panel as it opens, and below `dispatch`, whose
-clicks those inside the panel are. It stands after `scroll`, for the
-helpers its refill is to use.
+**`eventsheet`** is the event's panel of the bottom sheet (DECISIONS #74):
+`eventSheetHTML()`, what the panel says of one event - a head that never
+scrolls, with the level, the facts, the other sessions and who in the
+reader's crews starred it (#68); a body that scrolls, with the description,
+the people and the chips; and a foot, with the overlap line and the
+actions - and `refreshEventSheet()`, which writes the star, the overlap
+line and Starred by in place, at the star's own tap and when `render()`
+runs, so the panel is drawn once, as it opens. It holds no DOM handle - it
+finds what it writes by id, when asked - so it stands below `sheet`, which
+draws it into the panel as it opens, and below `dispatch`, whose clicks
+those inside the panel are. It stands after `scroll`, whose `refill()` and
+`focusIn()` its fill uses.
 
 **`sync`** is sync's run (DECISIONS #53; `docs/sync/contract.md`,
 section 5, as built): `runSync()` drains the outbox, then pulls - the
@@ -598,7 +608,8 @@ a join winning - kept in memory alone and opened once the schedule has
 loaded (`openSharedDay()`), and `refreshSharedDay()` writes its rows' words
 and stars in place when `render()` runs, so an overlap flag follows a star
 (DECISIONS #73). An event opened from the shared day closes
-back to it, its scroll kept (#63). `closeSheet()` asks for its redraw over
+back to it, its scroll kept (#63), and so does one opened over that
+event's sheet (#74). `closeSheet()` asks for its redraw over
 the bus; the filter sheet closed with anything changed brings the list
 back to its top. It looks up the eleven sheet elements as it is imported.
 
@@ -610,8 +621,8 @@ the first draw over the bus. It looks up `#updatePill` as it is imported.
 
 **`shell`** is what is on screen whatever the tab: `render()`, which redraws
 the page from `state` and is what the bus calls, the open crew panel with
-it, an open event's who's-going line, an open hotel's crew and an open
-shared day's rows; the header's
+it, an open event's star, overlap line and who's-going line, an open
+hotel's crew and an open shared day's rows; the header's
 clock, the notice and the mini-bar; `setTimeOverride()`; `setOpeningTab()`,
 the tab the app opens on - Plans for a kept invite; `togglePick()`; the iOS
 edge guard; and the handlers for the tab bar - a tap on Plans starts a sync
@@ -797,9 +808,14 @@ under them (`docs/screens/contract.md`, section 8, as built) - on a
 build with a backend a crew - create,
 join and manage (`docs/screens/contract.md`, section 5, as built) - Share
 a day and a day shared with the reader (section 5, Share a day, as
-built), and Search's filters (section 3, as built). On a
-build with a backend an event's detail says who in the reader's crews is
-going, a line a pull refills in place (section 7, as built). Swipe
+built), and Search's filters (section 3, as built). An event's detail is
+a head, a body that scrolls and a foot (DECISIONS #74; section 7, as
+built): under the place the level in full, the facts in a row's words,
+its other sessions, the people, and in the foot every pick it overlaps -
+or would, before the star; on a build with a backend it says who in the
+reader's crews starred it. A star's tap and a pull write the star, the
+overlap line and that line in place. The sheet is at most 86% of the
+screen, and past that an event's panel scrolls with its foot pinned. Swipe
 down or press Escape to dismiss; focus moves to the panel's heading as it
 opens and back to what opened it as it closes (DECISIONS #66). On a build
 with a backend, Settings carries Keep your plan: the email step, which
