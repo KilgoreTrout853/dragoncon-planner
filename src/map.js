@@ -1,14 +1,15 @@
-import { esc, fmtMins, fmtShort, minutesBetween } from "./util.js";
+import { esc, fmtMins, fmtRange, fmtShort, minutesBetween } from "./util.js";
 import { hasBackend } from "./backend.js";
 import { crewmatesByEvent } from "./crews.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, conEnded, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
-import { hotelShort, hotelVar, placeHTML, placeShort } from "./venues.js";
-import { events } from "./data.js";
+import { hotelShort, hotelVar, levelShort, placeHTML, placeShort } from "./venues.js";
+import { byId, events } from "./data.js";
 import { picks } from "./picks.js";
 import { walkEstimate } from "./walk.js";
 import { chipHTML } from "./ui.js";
-import { chipRowsRestore, chipRowsSnapshot, drawInPlace, focusIn, giveFocusBack } from "./scroll.js";
+import { chipRowsRestore, chipRowsSnapshot, drawInPlace, focusIn, giveFocusBack, pageScrollTo } from "./scroll.js";
+import { requestRender } from "./bus.js";
 import { nowModel } from "./now.js";
 
 /* ---- Map ---------------------------------------------------------- */
@@ -37,6 +38,47 @@ const MAP_HOTELS = {
 };
 /* Each pair is left-to-right or top-to-bottom. None crosses Peachtree. */
 const MAP_BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
+
+/* The Map's focus (DECISIONS #63, #75): one event, by id, in `state.map.focus`
+   and in memory alone - the event whose sheet's place line sent the reader
+   here. While it is set the Map shows that event's con day, a third ring
+   stands on its hotel, and the card under the map shows it in the next
+   pick's place. The focus carries its own day: `state.map.day` is not
+   written, so when the focus ends the Map is on the day it had.
+   It ends when the Map tab is left by any road (shell.js render(), the one
+   place a tab becomes the screen), at a day chip's tap (dispatch.js), when
+   the clock is changed (shell.js setTimeOverride()), and here, when the
+   schedule no longer holds the event - it is gone, or kept as removed - which
+   no page reaches today, since a new schedule comes by a reload. A sheet
+   opened and closed over the Map, and a star, leave it. */
+/* Whether an event can be shown on the Map: it is at one of the seven
+   places the Map draws, and is neither cancelled nor removed. An event's
+   sheet makes its place a tap exactly where this holds. */
+const onTheMap = ev => !!ev && !!MAP_HOTELS[ev.hotel] && !ev.cancelled && !ev.removed;
+/* The focused event, or null - and the focus cleared where the schedule no
+   longer holds it. */
+function mapFocus() {
+  if (!state.map.focus) return null;
+  const ev = byId.get(state.map.focus);
+  if (ev && !ev.removed) return ev;
+  state.map.focus = null;
+  return null;
+}
+/* The entry point: the Map, focused on the event, at its top, with keyboard
+   and screen-reader focus on the card that shows it (#66). It sets the focus
+   and the tab and nothing else, and does nothing for an event the Map cannot
+   show. A caller with a sheet open closes it first: the close's own redraw
+   is of the tab underneath, and would end a focus set before it. */
+function showOnMap(id) {
+  const ev = byId.get(id);
+  if (!onTheMap(ev)) return;
+  state.map.focus = ev.id;
+  state.tab = "map";
+  requestRender();
+  pageScrollTo(0);
+  const card = document.getElementById("mapNext");
+  if (card) card.focus({preventScroll: true});
+}
 
 function mapCounts(day) {
   const counts = {};
@@ -112,22 +154,48 @@ function mapRingsSVG(st) {
   };
   return (st.onNow ? ring(st.onNow.hotel, "now") : "") + (st.next ? ring(st.next.hotel, "next") : "");
 }
+/* The focus's ring (#75), on the focused event's hotel whatever the day: a
+   third ring, outside the other two so that all three can stand on one
+   hotel - the next ring's pulse reaches 9 from the block at its widest, and
+   this one's stroke runs from 10 to 12 - and the largest that stays inside
+   the frame for all seven: 1 to spare above the park and under the
+   Courtland. A class of its own, not a gold ring: gold is the reader's own
+   picks. It does not pulse. Decorative, as the other rings are: the card
+   says what is focused. */
+const FOCUS_PAD = 11;
+function mapFocusSVG(ev) {
+  const b = ev ? MAP_HOTELS[ev.hotel] : null;
+  if (!b) return "";
+  return `<rect class="map-focus" data-hotel="${esc(ev.hotel)}" x="${b.x - FOCUS_PAD}" y="${b.y - FOCUS_PAD}" width="${b.w + 2 * FOCUS_PAD}" height="${b.h + 2 * FOCUS_PAD}" rx="${(b.park ? 6 : 10) + FOCUS_PAD}"/>`;
+}
 /* The card under the map: the next pick, as the hero sees it - the same
    nowModel, the same walk estimate: its start, how long until it, and the
    walk from the pick before, never when to leave (DECISIONS #40). It shows
    whichever day the map has selected, because it is about now, not about
    the day being looked at. With nothing left today it shows the first pick
-   of the next con day; with no picks at all, how to get one. */
+   of the next con day; with no picks at all, how to get one.
+   With a focus (#75) it shows the focused event in the next pick's place,
+   the same button in the same place, `#mapNext`, so whatever keeps focus on
+   the card keeps it: a small label, "You were looking at"; the title; the
+   place and the level as a row says them, wrapping where they must; the con
+   day's name and the time as a range. No "in 47 min" and no walk: it is not
+   a pick. It shows whatever the clock says - before the con, and after it,
+   where with no focus there is no card. The On now line above it stays. */
 function mapCardState() {
   const at = now(), model = nowModel(at), today = conDayKey(at);
   const next = model.upcoming[0] || null;
   const later = next ? null : (events.find(e => picks.has(e.id) && e._s > at && conDayKey(e._s) > today) || null);
-  return {now: at, onNow: model.onNowEv, next, later, estimate: next ? walkEstimate(next) : null};
+  return {now: at, onNow: model.onNowEv, next, later, estimate: next ? walkEstimate(next) : null, focus: mapFocus()};
+}
+function focusCardHTML(ev) {
+  const level = levelShort(ev);
+  return `<button class="next-card" id="mapNext" data-hero="${esc(ev.id)}" style="--h:var(${hotelVar(ev.hotel)})"><div class="nc-label">You were looking at</div><div class="nc-title">${esc(ev.title)}</div><div class="nc-where">${placeHTML(ev)}${level ? ` · ${esc(level)}` : ""}</div><div class="nc-when">${esc(DAY_LONG[ev._cd] || ev._cd)} ${fmtRange(ev._s, ev._e)}</div></button>`;
 }
 function mapCardHTML(cs) {
-  if (conEnded()) return "";                 // nothing is next any more
-  const {now, onNow, next, later, estimate} = cs;
+  const {now, onNow, next, later, estimate, focus} = cs;
+  if (conEnded() && !focus) return "";       // nothing is next any more
   const onLine = onNow ? `<button class="next-on" id="mapOnNow" data-hero="${esc(onNow.id)}">On now: <b>${esc(onNow.title)}</b> &middot; ends ${fmtShort(onNow._e)} &middot; ${esc(placeShort(onNow))}</button>` : "";
+  if (focus) return onLine + focusCardHTML(focus);
   const ev = next || later;
   if (!ev) return onLine + `<div class="next-card empty">Star things in Search and your next pick shows here.</div>`;
   let label = "", when;
@@ -145,7 +213,7 @@ const offLineHTML = off => off ? `<div class="map-offmap">${off} pick${off === 1
 /* Picks that day at venues the map does not draw: streams and offsite. */
 const mapOffMapCount = day => events.filter(e => picks.has(e.id) && e._cd === day && !MAP_HOTELS[e.hotel]).length;
 
-function mapSVG(day, st = mapNowState(day), counts = mapCounts(day), crew = mapCrewCounts(day)) {
+function mapSVG(day, st = mapNowState(day), counts = mapCounts(day), crew = mapCrewCounts(day), focus = mapFocus()) {
   const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="${MAP_VIEW.y}" x2="${x}" y2="${MAP_VIEW.y + MAP_VIEW.h}"/>
     <text class="map-street-label" transform="translate(${x - 7} 212) rotate(-90)">${name} St</text>`;
   const bridges = MAP_BRIDGES.map(([a, b]) => {
@@ -161,13 +229,16 @@ function mapSVG(day, st = mapNowState(day), counts = mapCounts(day), crew = mapC
   return `<svg class="map" viewBox="${MAP_VIEW.x} ${MAP_VIEW.y} ${MAP_VIEW.w} ${MAP_VIEW.h}" role="group" aria-label="Schematic map of the con hotels, not to scale">
     <rect class="map-ground" x="${MAP_VIEW.x}" y="${MAP_VIEW.y}" width="${MAP_VIEW.w}" height="${MAP_VIEW.h}" rx="14"/>
     ${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
-    ${bridges}${blocks}${rings}${pills}</svg>`;
+    ${bridges}${blocks}${rings}${mapFocusSVG(focus)}${pills}</svg>`;
 }
 
-/* The day the map shows: the one tapped, else the con day the clock is in,
-   with the timeline's 5 AM boundary. Outside con week, the first full day,
+/* The day the map shows: the focused event's con day while there is a
+   focus (#75); else the one tapped; else the con day the clock is in, with
+   the timeline's 5 AM boundary. Outside con week, the first full day,
    Thursday. */
 function mapDay() {
+  const focus = mapFocus();
+  if (focus) return focus._cd;
   if (state.map.day) return state.map.day;
   const d = conDayKey(now());
   return CON_DAYS.includes(d) ? d : FIRST_FULL_DAY;
@@ -180,29 +251,32 @@ function renderMap() {
   const chips = CON_DAYS.map(d => chipHTML(DAY_LABEL[d], day === d, "map-day", d)).join("");
   const view = document.getElementById("view-map"), back = focusIn(view);
   view.innerHTML = `<div class="controls controls-sticky"><div class="chips" data-row="map-day">${chips}</div></div>
-    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts, crew)}<div class="map-under" id="mapUnder">${mapCardHTML(cs)}${offLineHTML(off)}</div></div>`;
+    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts, crew, cs.focus)}<div class="map-under" id="mapUnder">${mapCardHTML(cs)}${offLineHTML(off)}</div></div>`;
   giveFocusBack(back);
-  lastMapSig = mapSignature(day, st, counts, crew);
+  lastMapSig = mapSignature(day, st, counts, crew, cs.focus);
   lastCardSig = mapCardSignature(cs, off);
 }
 
 /* The minute tick redraws only what changed. The SVG is redrawn when a ring
-   or a pill would move - the crew's among them - since a redraw restarts
-   the pulse on the next ring, so a quiet minute must leave it alone. The
-   card is refreshed on its own when its words change, which "in 47 min"
-   does every minute. */
+   or a pill would move - the crew's among them, and the focus's ring -
+   since a redraw restarts the pulse on the next ring, so a quiet minute
+   must leave it alone. The card is refreshed on its own when its words
+   change, which "in 47 min" does every minute; a focused card says nothing
+   of the minute, so its signature holds neither the minutes nor the walk,
+   and a minute changes nothing on it. */
 let lastMapSig = null, lastCardSig = null;
-function mapSignature(day, st, counts, crew) {
-  return JSON.stringify([day, st && st.onNow && st.onNow.id, st && st.next && st.next.id, counts, crew]);
+function mapSignature(day, st, counts, crew, focus) {
+  return JSON.stringify([day, st && st.onNow && st.onNow.id, st && st.next && st.next.id, counts, crew, focus ? focus.id : null]);
 }
 function mapCardSignature(cs, off) {
+  if (cs.focus) return JSON.stringify([cs.onNow && cs.onNow.id, "focus", cs.focus.id, off]);
   const ev = cs.next || cs.later;
   return JSON.stringify([cs.onNow && cs.onNow.id, cs.next && cs.next.id, cs.later && cs.later.id,
     ev ? minutesBetween(cs.now, ev._s) : null, cs.estimate ? cs.estimate.label : null, off]);
 }
 function tickMap() {
   const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day), cs = mapCardState();
-  if (mapSignature(day, st, counts, mapCrewCounts(day)) !== lastMapSig) {
+  if (mapSignature(day, st, counts, mapCrewCounts(day), cs.focus) !== lastMapSig) {
     const rows = chipRowsSnapshot();
     renderMap();
     chipRowsRestore(rows);
@@ -218,4 +292,4 @@ function tickMap() {
   return true;
 }
 
-export { MAP_HOTELS, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, renderMap, tickMap };
+export { MAP_HOTELS, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, onTheMap, renderMap, showOnMap, tickMap };

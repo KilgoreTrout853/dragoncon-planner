@@ -12,7 +12,11 @@ const state = {
      the day and the crews decide it as Plans draws (plans.js). */
   plansView: loadJSON(storageKey("plansView"), null),
   now: {hotel: "All", limit: 80},
-  map: {day: null},                       /* null: follow the clock */
+  /* The Map's: the day a chip chose, null to follow the clock; and its
+     focus, the id of the event an event's sheet sent the reader here to
+     find, null for none - in memory alone, and it carries its own day
+     (map.js; DECISIONS #75). */
+  map: {day: null, focus: null},
   plans: {crew: null, day: null},         /* the crew shown, null the oldest; the crew's day, null the clock's */
   explore: {q: "", page: null, scroll: 0, showPast: false, showCast: false, castNoise: false, expanded: {}, active: null},
   following: {layout: loadJSON(storageKey("followingLayout"), "interest"), expanded: {}, showPast: {}, open: loadJSON(storageKey("followingOpen"), true)},

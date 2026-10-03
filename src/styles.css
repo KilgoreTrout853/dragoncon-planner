@@ -154,6 +154,10 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .map-ring.next { stroke-width: 2; animation: map-pulse 1.6s ease-in-out infinite; }
 @keyframes map-pulse { 0%, 100% { stroke-opacity: 1; stroke-width: 2; } 50% { stroke-opacity: .35; stroke-width: 4; } }
 @media (prefers-reduced-motion: reduce) { .map-ring.next { animation: none; } }
+/* The focus's ring (DECISIONS #75): the hotel of the event the reader was
+   looking at. The light text colour, not gold - gold is "mine" - 12.7:1 on
+   the ground, and it does not pulse. */
+.map-focus { fill: none; stroke: var(--text); stroke-width: 2; pointer-events: none; }
 /* The card under the map: the next pick, as the hero sees it. Tappable like
    the hero, and so is the On now line above it. */
 .next-on { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 10px 2px 0; font: inherit; font-size: .875rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }

@@ -43,7 +43,7 @@ function onMainClick(e) {
     const {chip: kind, value} = chip.dataset;
     if (kind === "now-hotel") { state.now.hotel = value; state.now.limit = 80; }
     else if (kind === "day") state.browse.day = value;
-    else if (kind === "map-day") state.map.day = value;
+    else if (kind === "map-day") { state.map.day = value; state.map.focus = null; }   // a day chosen ends the Map's focus (#75)
     else if (kind === "plans-day") state.plans.day = value;
     state.browse.page = 1; render();
     revealChip(document.querySelector(`.chips [data-chip="${kind}"][data-value="${cssEsc(value)}"]`));
