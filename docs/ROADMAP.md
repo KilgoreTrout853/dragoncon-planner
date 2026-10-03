@@ -549,6 +549,19 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   scroll, so the heading and the crowd factor are out of reach. Found by
   PR #95's browser run, older than it, and the gear's pull request's to
   fix (step 9; contract, section 14).
+- A focus ring is still cut at the top and the foot of a scrolling area
+  of the sheet, where its first or last thing is a control and the area
+  is at that end - a hotel's list and a shared day's at both ends, an
+  event's body at its foot, the crew panel at both - and at the foot of
+  an event's panel on every sheet, where the star, Add this to calendar
+  and Done lose the bottom of their ring. PR #97 gave a ring room at the
+  sides alone (#78): block padding would change heights. Older than it,
+  and step 11's sweep's (contract, sections 7 and 14).
+- The filter sheet's Type control shows no focus ring above or below a
+  focused button, nor at its two ends: `.seg` clips at its box and has
+  no ring drawn inside, as Plans' segment has (`.plans-seg`). Found by
+  PR #97's browser run, older than it, and step 11's sweep's (contract,
+  section 14).
 - The Map tab's height counts the header and the nav and not a notice
   above the views: while one stands - the preview banner before the con,
   "has ended" after it until its OK - the tab is taller than the screen by

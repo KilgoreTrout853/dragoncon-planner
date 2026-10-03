@@ -673,6 +673,33 @@ select.crew-pick {
 [data-more] {
   mask-image: linear-gradient(to bottom, transparent, #000 min(1.75rem, 20%, var(--more-above, 0px)), #000 calc(100% - min(1.75rem, 20%, var(--more-below, 0px))), transparent);
 }
+/* The sheet's edges (DECISIONS #78). Room for the focus ring: a ring is
+   drawn outside its control, 2px off it and 2px wide, and a scrolling area
+   clips at its own box, so a control at an area's side lost that side of
+   its ring. The five scrollers of the sheet - the four above and an event's
+   panel - take the ring's reach as inline padding and give it back as a
+   negative margin of the same size: the ring is whole and nothing moves. */
+.ev-body, .filters-body, .advanced-body, #panel-crew, #panel-event { margin-inline: -4px; padding-inline: 4px; }
+/* And an arrow where more is below. A fade can only dim what is there to be
+   cut: where the fold lands in a gap it says nothing. So where an area
+   hides enough below - scroll.js says so with the word "below" in
+   data-more - a small down chevron stands in the gap above what follows
+   the area in its panel: an event's foot, the hotel's and the shared day's
+   Done row, the filters' foot. It is that element's ::before, so it is
+   outside the area and outside its mask; it is out of the flow, so nothing
+   moves; and it is no control - no content, no tap. Two borders of a
+   square turned 45 degrees, sized in rem so Larger text scales it, 4px
+   above the element: its point then stands 1.7px over it and its top 9.5,
+   1.4 and 10.3 with Larger text, inside the filters' 12px gap, the
+   smallest. In --muted, 6.3:1 on the sheet (#66). It does not animate.
+   Advanced and the crew panel have nothing after them, and keep the fade
+   alone. */
+.ev-body + .ev-actions, .filters-foot { position: relative; }
+[data-more~="below"] + .ev-foot::before, [data-more~="below"] + .ev-actions::before, [data-more~="below"] + .filters-foot::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); margin: 0 auto; box-sizing: border-box;
+  width: .6875rem; height: .6875rem; border: solid var(--muted); border-width: 0 .125rem .125rem 0;
+  transform: rotate(45deg); pointer-events: none;
+}
 
 /* Hero card: the next thing you have to act on */
 .hero {
@@ -705,8 +732,8 @@ select.crew-pick {
    event's sheet - who and when, then what and where, the title giving way
    before the place does. "yours too" is gold, .cn-with: the pick is the
    reader's too. The hotel sheet's Your crew's picks here draws the same
-   lines, its focus ring inside them too: the sheet's scrolling body clips
-   at its sides. */
+   lines, its focus ring inside them too, by the same rule: the sheet's
+   scrolling body has had room for a ring at its sides since #78. */
 .crew-now {
   display: block; width: 100%; min-height: 44px; padding: 8px 14px; text-align: left;
   background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); font: inherit; cursor: pointer;

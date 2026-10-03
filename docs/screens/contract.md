@@ -470,6 +470,17 @@ filters, by PR #96, step 7b (#77).
   its top once it is scrolled. Its 33 controls, focused in turn forward
   and backward, are never inside a band. Since PR #96 the body holds 862
   px and 37 controls, and both still hold (Measured for #77, below).
+- **The sheet's edges** (PR #97, #78; section 7, The sheet's edges, as
+  built). While the body hides 20 px or more below, a small down arrow
+  stands in the 12 px gap above Show and Clear: as the panel opens, at
+  every size, and it goes within 20 px of the body's end. It is there for
+  the fold the fade cannot show: at 375x667 and 390x664, and at 402x714
+  with Larger text, the panel opens with its fold in the gap between Type
+  and Kind, the band holding the foot of the Type control and at most the
+  top of Kind's label, none of its letters. And the body has room for a
+  focus ring at its sides: the chips that start a row and the left-hand
+  selects lost its left, the right-hand selects its right - 20 of the
+  panel's 39 controls at 375x667.
 - **Getting in** (PR #96, step 7b; #77; `filters.js` `filtersHTML()`,
   `search.js` `passesGettingIn()`, `data.js` `isAdult()`). Four filters,
   the flags a row says (section 10, as built), each All or one value in
@@ -715,7 +726,10 @@ built, Share a day among it, and the 2026 app knows no crews.
   its own, and a drag that starts in it scrolls rather than dismisses.
   Since PR #95 it fades at an edge with more past it (#76; section 7, More
   past an edge, as built): its manage step scrolls from three members at
-  375x667, and its create and join steps never do.
+  375x667, and its create and join steps never do. Since PR #97 it has
+  room for a focus ring at its sides; nothing follows it, so it has no
+  arrow, and keeps the fade alone (#78; section 7, The sheet's edges, as
+  built; section 14).
   - *Create:* Crew name, Your name in the crew, and "Everyone who joins
     this crew sees your name and your starred events, now and later."
   - *Join:* Your name in the crew and "Joining shares your name and your
@@ -957,7 +971,10 @@ that day at once.
   goes at once (#73) and the list's scroll and the focus on a star stay.
   Since PR #95 the list fades at an edge with more rows past it, from four
   rows at 375x667 (#76; section 7, More past an edge, as built); the share
-  panel's message, a field that scrolls on its own, does not.
+  panel's message, a field that scrolls on its own, does not. Since PR #97
+  a small down arrow stands in the gap above Done while the list hides 20
+  px or more below, and a row's ring and its star's are whole at the
+  list's sides (#78; section 7, The sheet's edges, as built).
 - **Refused,** in the same panel, headed "A shared day", with Done: another
   year's link - "That link is a day from Dragon Con 2025, and this planner
   is 2026's, so there's nothing of it to show." - and one that does not
@@ -1222,7 +1239,10 @@ step 7's third, with #63, #66 and #75: the place and the chips as taps
 (section 11), focus after a tap that leaves the sheet, and the other
 sessions still to come alone. PR #95, step 7's fourth, with #66 and #76: a
 fade where the body has more past an edge, as five more areas of the
-sheet have (More past an edge, as built, below). Still to come: W44's.
+sheet have (More past an edge, as built, below). PR #97, a follow-up to
+it, with #66 and #78: an arrow above the foot where the body has more
+below, and room for a focus ring at the sides of the body and of the
+panel (The sheet's edges, as built, below). Still to come: W44's.
 
 - **Three parts** (`eventsheet.js` `eventSheetHTML()`, the panel's own
   module since PR #93; the panel's element and `openSheet()` are
@@ -1570,9 +1590,10 @@ the other five point at it (sections 3, 5, 8 and 9).
   none, never under 0 - a bounce past an end is the end - and never over a
   ceiling of 48. `markMore()` writes them onto the element as
   `--more-above` and `--more-below`, each taken off at 0, with `data-more`,
-  a bare hook the rule hangs on, while either is above 0; only where a
-  value changed, so far from an end a scroll writes nothing and within the
-  ceiling of one it writes once a px. An area that fits carries no mask,
+  the hook the rule hangs on - bare until PR #97, since then carrying a
+  word (The sheet's edges, as built, below) - while either is above 0;
+  only where a value changed, so far from an end a scroll writes nothing
+  and within the ceiling of one it writes once a px. An area that fits carries no mask,
   no attribute and no empty `style` left behind; an area in a hidden panel
   measures nothing and loses its mark the same way.
 - **Kept by three registrations** in `boot()`, and no call at any draw:
@@ -1679,6 +1700,176 @@ the other five point at it (sections 3, 5, 8 and 9).
   taken off with the mark; and the areas already in the page handed to the
   observer by the first draw alone, not as `boot()` registers it.
 
+### The sheet's edges, as built
+
+PR #97, a follow-up to PR #95, with #66 and #78. Two faults at the edges
+of the sheet's scrolling areas, found on the next site on 2026-10-03 after
+PR #96: the fade says nothing where the fold lands in a gap, and a focus
+ring is cut at an area's side. Its home is here, beside the fade's; the
+screens that own the other areas point at it (sections 3, 5 and 8).
+
+- **The word** (`scroll.js`). `moreWord()` gives `below` while what
+  `moreHidden()` says is hidden below is 20 px or more - `MORE_ARROW`,
+  which stands under the ceiling of 48 - and nothing under that.
+  `markMore()` writes it as the value of `data-more`, which was bare, only
+  when it changes: one write as the threshold is crossed, either way, and
+  none either side of it. What is hidden above never says a word: there
+  is no arrow for more above. The mask's rule, `[data-more]`, hangs on the
+  attribute alone and is as it was.
+- **The arrow** (`styles.css`, one rule, the only one that reads the
+  word). It is the `::before` of what follows the area in its panel:
+
+  | Area | What follows it | The gap it stands in |
+  |---|---|---|
+  | An event's body | the foot, `.ev-foot` | 16 px |
+  | The hotel sheet's list | its Done row, `.ev-actions` | 16 px |
+  | The shared day's list | its Done row, `.ev-actions` | 16 px |
+  | The filter sheet's body | `.filters-foot`, Show and Clear | 12 px |
+  | Settings' Advanced | nothing: it is the last thing in its `<details>` | none: the fade alone |
+  | The crew panel | nothing: it is its own scroller | none: the fade alone |
+
+  Being the following element's, it is outside the area and outside its
+  mask, and shows whatever the fold lands on. It is absolute, so out of
+  the flow and moving nothing: the two Done rows and the filters' foot are
+  `position: relative` for it, and an event's foot is sticky already. It
+  has no content and takes no pointer events: no tap, and nothing a screen
+  reader meets. Two borders of a square turned 45 degrees, 0.6875rem a
+  side and 0.125rem thick - 15.6 px wide and 7.8 tall, 17.9 and 8.9 with
+  Larger text - centred on the element and 4 px above it: its point
+  stands 1.7 px over the element and its top 9.5, 1.4 and 10.3 with Larger
+  text, so in the filters' 12 px gap it is 2.5 px clear of the body, 1.7
+  with Larger text, and 4 px more in the others. Its colour is `--muted`,
+  6.3:1 on the sheet (#66 asks 3:1 of a graphic). It does not animate.
+- **The threshold's census.** Every event's sheet opened in turn in
+  desktop Chromium, the app's pane with a phone's viewport, on 2026's
+  schedule with no picks and the clock at a simulated Saturday 1:05 PM:
+
+  | Size | Bodies that scroll | Hide under 20 px | Hide 20 px or more | Of those, the band holds no text and no chip |
+  |---|---|---|---|---|
+  | 375x667 | 374 | 142 | 232 | 5 |
+  | 390x664 | 304 | 111 | 193 | 20 |
+  | 402x714 | 117 | 17 | 100 | 2 |
+  | 375x667, Larger text | 1,125 | 221 | 904 | 25 |
+  | 390x664, Larger text | 1,031 | 181 | 850 | 37 |
+  | 402x714, Larger text | 506 | 164 | 342 | 8 |
+
+  Every body that hides under 20 px ends in a row of chips, and what it
+  hides is the space under its last chip and at most 8 px of the chip
+  itself, 10 with Larger text, which the fade dims in plain sight; every
+  body that hides 20 px or more hides at least 10 px of a chip, or more
+  than a chip. At 375x667 one body hides 20 to 23 px, where 11 hide 16 to
+  19 and 14 hide 24 to 27. The last column is the fault in an event's
+  body: the fold in a gap, the band empty, and until PR #97 nothing to say
+  there was more - "Diversity In DIY Rave Music" at 375x667 hides 41 px
+  under a fold in the gap below its people.
+- **The ring's room** (`styles.css`, one rule). Five scrollers of the
+  sheet take `padding-inline: 4px` and give it back as `margin-inline:
+  -4px`: the fade's four selectors and an event's panel, `#panel-event`,
+  which scrolls too (above). Each is 8 px wider and its content is where
+  it was. The 4 px is the ring's reach: `:focus-visible` is a 2 px outline
+  2 px off its control, and that rule is unchanged. No ring is drawn
+  inside a control but the two that were, `.plans-seg`'s buttons and
+  `.crew-now`. A drag that starts in the 4 px beside an area scrolls it,
+  where it dragged the sheet.
+- **An event's panel scrolling as one** (above). Its foot is pinned over
+  the gap, so there is no gap for the arrow, and it stands over the foot
+  of what shows of the body until the panel is at its end, where it is in
+  the gap again. In the tallest case of 2026 - "Contemporary NSDM", picked
+  with three overlapped picks and Starred by written in by hand - the
+  arrow is over the body's last 4.2 px at 375x667 and 6.8 at 390x664, and
+  clear at 402x714; with Larger text 9.6, 37.2 and 80.2 px of the body
+  show above the foot and the arrow is over the last 10.3 of them, at
+  375x667 all of them (section 14).
+- **A ring at an area's top or foot** is still cut, where the area's
+  first or last thing is a control and the area is at that end: block
+  padding would change heights, and #78 left it (section 14). Measured at
+  375x667: the hotel's list and the shared day's at both ends, by 3 px at
+  the top and 4 at the foot - the first and the last row and their stars;
+  an event's body at its foot, its last chip, by just over 3 px; the crew
+  panel at both, its heading and Done, by 4 px. Not the filters' body,
+  which starts with a label and ends with the toggle, nor Advanced, which
+  has 12 px of padding above and ends with the device line. And an event's
+  panel, the fifth scroller, at both ends on every sheet: its heading's
+  ring at the top, and at the foot the star's, Add this to calendar's and
+  Done's, each cut by 4 px - the whole bottom edge of the ring.
+- **#66.** The arrow is no control: no label, no target, no tap, and
+  nothing a screen reader meets; 6.3:1 on the sheet; nothing moves or
+  animates, so reduced motion needs no rule. The room moves no tap target
+  and changes no size: every control keeps its place.
+- **Measured** in desktop Chromium, the app's pane, on the built page with
+  2026's schedule and Barlow Semi Condensed loaded, the page confirmed to
+  be this build first, beside `next`'s build at 076f8cc; the phone check
+  to come. Seen means a picture of the page was looked at; the rest was
+  read by script, a scroll event dispatched by hand after each scroll a
+  script made.
+  - `next`'s build first: as the filter sheet opens the band holds 10.6
+    px of the Type control and 3.4 of the Kind label's box at 375x667;
+    13.6 and 0.4 at 390x664; 8.5 and 9.7 at 402x714 with Larger text - a
+    label's box starts above its letters - and Kind's first row at
+    402x714 at the normal size. Seen at 390x664: no cue above Show, and
+    the Fandom select's ring cut at its left.
+  - The arrow, at 375x667, 390x664 and 402x714, Larger text off and on:
+    on the filter sheet as it opens, gone at its end, gone 19 px short of
+    it and back 20 px short; the same walk on an event's body, the shared
+    day's list of twenty rows and the hotel's list of seven picks; never
+    on Advanced or the crew panel, which said `below` and drew none.
+    Twenty events' sheets at each of the six: an arrow wherever the body
+    hid 20 px or more and nowhere else, the mask wherever it hid 1 px or
+    more - "PFS2 7-02: Shipyard Sabotage" at 375x667 hides 19 px, the fade
+    and no arrow; "DDAL FR-DC-CGB-05: Orctoberfest" at 402x714 hides 20,
+    both; "Joystick Gamebar Presents: FREE Arcade Games!!! Wednesday 6pm
+    to 4am!" fits, neither. Seen: the filter sheet as it opens at 375x667,
+    390x664 and 402x714, and at 402x714 with Larger text; at its end at
+    375x667, no arrow; the hotel's list and the shared day's at 375x667;
+    an event that hides 19 px and one whose fold is in a gap, at 375x667.
+  - Nothing moved. For each of the five scrollers, in six states - the
+    filter sheet, an event, a hotel of seven picks, a shared day, Advanced
+    with Walk-time defaults open, and the crew panel's manage step, its
+    markup written in by hand, the build having no backend - at the three
+    sizes at both text sizes: every element inside the scroller has the
+    left, the right, the top and the height it has on `next`'s build, to a
+    hundredth of a px; so have the panel's heading, its foot and the
+    sheet; the scroller's own box is 4 px wider at each side; and none
+    scrolls sideways - its scroll width is its client width, and a
+    scrollLeft set to 50 reads back 0.
+  - The ring. On `next` at 375x667 a scroller cut a ring at a side on 20
+    of the filter sheet's 39 controls, 10 of an event's 13, 14 of the
+    hotel sheet's 16, 12 of the shared day's 14, 3 of Settings' 11 and 13
+    of the crew panel's 16; on this build on none, at either text size.
+    Seen, focus moved by the Tab key: the ring whole on the Fandom and
+    the Track selects at 390x664, on Cost and on the first hotel chip at
+    375x667, and on the last hotel chip at 402x714 with Larger text; on
+    the event sheet's star and Done at 375x667 whole at both sides and
+    cut at the bottom; on the hotel's first row whole at both sides and
+    cut at the top.
+- **The tests.** `tests/unit/scroll.test.js`: `moreWord()` under the
+  threshold, at it and over it, a fraction under it, far from an end,
+  with more above alone, and where everything fits.
+  `tests/page/more.test.js`: for each of the six areas, the word not said
+  at 19 px, written at 20, kept far from both ends, taken away 19 px short
+  of the end and back at 20, never said for more above, and gone with the
+  mark; the stylesheet's own arrow selectors, less their `::before`,
+  finding the element that follows each of the four areas and nothing for
+  Advanced or the crew panel; and one write of the hook as the threshold
+  is crossed, either way. `tests/rules/style.test.js`: the ring's rule as
+  it was; one rule giving the room, to the five scrollers, equal to the
+  ring's offset and width together; no other rule setting an inline
+  padding or margin on a scroller; no ring drawn inside a control but the
+  two; two rules reading the mark, the mask and the arrow; the arrow's
+  three selectors; the word and the threshold as `scroll.js` has them,
+  under its ceiling; absolute, in an element that is positioned; no
+  content and no pointer events; its size in rem and its two borders;
+  centred; inside the filters' 12 px gap at both text sizes; its contrast,
+  computed from the two tokens; and no animation. None carries a ledger
+  bracket, and no test that stood before PR #97 changed. A mutation pass
+  of 69 mutants over the new rules - the threshold and the word, the
+  write, the room and the ring's own rule, the arrow's selectors and its
+  declarations - killed all 69. With the pins on the source's text left
+  out, the unit and page tests alone killed 16 of the 17 mutants of the
+  threshold and of the arrow's selectors; the one left, any later sibling
+  for the next one, changes nothing in the six panels as they stand, and
+  the pin holds it.
+
 ## 8. The hotel sheet
 
 As built: the recon, section 3, the hotel panel.
@@ -1765,8 +1956,14 @@ by PR #83, step 5d, with #68.
   is hidden, and the mark follows it. A star's tap draws the panel again
   (`drawHotelSheet()`), so the list goes back to its top, and its new body
   is marked there (section 14).
+- **The sheet's edges** (PR #97, #78; section 7, The sheet's edges, as
+  built). A small down arrow stands in the gap above Done while the list
+  hides 20 px or more below. A row's ring and its star's are whole at the
+  list's sides; the first row's is still cut at the list's top and the
+  last row's at its foot (section 14).
 - **#66.** Each line is a button, 44 px or taller, labelled by what it
-  says, its focus ring drawn inside it, where the body clips at its sides.
+  says, its focus ring drawn inside it, as Now's lines have theirs, by one
+  rule; since PR #97 the body no longer clips a ring at its sides (#78).
   Its id is the crewmate's and the event's, `crewHere-<user>-<event>`,
   unique on the page - Now's lines, hidden behind the Map, are
   `crewNow-<user>` - so `scroll.js` `focusKey()` finds it by its id, never
@@ -2258,6 +2455,36 @@ As built: the recon, section 8, what crews' readers offer today.
   bands, 0.8 short of a 44 px tap. In 2026 the one control in such a body
   is its last chip, at the end, where there is no band (#76; section 7,
   More past an edge, as built).
+- Advanced and the crew panel with the fade alone. Nothing follows either
+  in its panel - Advanced is the last thing in its `<details>`, and the
+  crew panel is its own scroller - so neither has the arrow (#78), and
+  where the fold lands in a gap there the fade says nothing, as the filter
+  sheet's did. At 375x667 Advanced with Walk-time defaults open hides 463
+  px, and the crew panel's manage step for a crew of six 155 (section 7,
+  The sheet's edges, as built). Advanced is the gear's pull request's
+  (step 9).
+- A focus ring cut at an area's top or foot. #78 gave a ring room at an
+  area's sides alone: block padding would change heights. Where an area's
+  first or last thing is a control and the area is at that end, the area
+  still cuts its ring: the hotel's list and the shared day's at both ends,
+  the first and the last row; an event's body at its foot, its last chip;
+  the crew panel at both, its heading and Done. Not the filters' body nor
+  Advanced. And an event's panel, which scrolls too, cuts the bottom of
+  the ring on the star, Add this to calendar and Done on every event's
+  sheet, and the top of its heading's. Older than PR #97, which measured
+  it (section 7, The sheet's edges, as built; ROADMAP, Flags). For step
+  11's sweep.
+- The Type control's ring. `.seg` clips at its own box and its buttons
+  fill it, so a focused button of the filter sheet's Type control shows no
+  ring above or below it, nor at the control's two ends. Plans' segment
+  draws its ring inside (`.plans-seg`); the Type control, a `.seg` too,
+  does not. Older than PR #97, whose browser run found it (ROADMAP,
+  Flags). For step 11's sweep.
+- The arrow over the body. While an event's panel scrolls as one, its
+  foot is pinned over the gap the arrow stands in, and the arrow is drawn
+  over the foot of what shows of the body until the panel is at its end:
+  over text, with Larger text on a short screen in 2026's tallest case
+  (#74, #78; section 7, The sheet's edges, as built).
 - The one-line "how to get there" (W18): no data for it exists, and the
   sheet says the level alone (section 13).
 - A role the listing writes "(Alt: )" prints as the listing writes it, in

@@ -8,7 +8,8 @@
    shell and boot() all need the measurement from a module below them. So is
    the nav: what sits on it or clears it is laid out from its height
    (--nav-h). And what an area of the sheet hides past an edge, which the
-   stylesheet fades (DECISIONS #76). */
+   stylesheet fades (DECISIONS #76), with an arrow under an area that hides
+   enough below (#78). */
 
 /* Everything that scrolls the page goes through here, because the page is
    not the scroller - main is (see the CSS). jsdom has no scrollTo on
@@ -153,6 +154,13 @@ function moreHidden(scrollTop, clientHeight, scrollHeight) {
   const px = n => Math.max(0, Math.min(MORE_CEILING, Math.floor(n)));
   return {above: px(scrollTop), below: px(scrollHeight - clientHeight - scrollTop)};
 }
+/* The word the mark carries (DECISIONS #78): "below" while an area hides
+   enough below to be worth a scroll - about a line of text - and none under
+   that, where the fade alone speaks: a few px of space under a last chip
+   are not more to read. The stylesheet hangs the arrow on the word. The
+   threshold stands under the ceiling, or the word would never be said. */
+const MORE_ARROW = 20;
+const moreWord = hidden => (hidden.below >= MORE_ARROW ? "below" : "");
 /* The six areas, by four selectors: an event's body, the hotel's list and
    the shared day's are each an .ev-body. Not the share panel's message,
    which is a field; not an event's panel scrolling as one, whose body has
@@ -163,8 +171,9 @@ const MORE_AREAS = ".ev-body, .filters-body, .advanced-body, #panel-crew";
    changed: the two properties, each gone at 0, and data-more, the hook the
    stylesheet's mask hangs on, there while either is above 0 - so an area
    whose content fits carries no mask, and nothing of ours: the style
-   attribute the last property leaves empty goes too. An area in a hidden
-   panel measures 0, and loses its mark the same way. */
+   attribute the last property leaves empty goes too. The hook's value is
+   moreWord()'s: "below" or nothing. An area in a hidden panel measures 0,
+   and loses its mark the same way. */
 function markMore(area) {
   const hidden = moreHidden(area.scrollTop, area.clientHeight, area.scrollHeight);
   for (const edge of ["above", "below"]) {
@@ -172,8 +181,10 @@ function markMore(area) {
     if (area.style.getPropertyValue(name) === px) continue;
     if (px) area.style.setProperty(name, px); else area.style.removeProperty(name);
   }
-  const more = hidden.above > 0 || hidden.below > 0;
-  if (area.hasAttribute("data-more") !== more) area.toggleAttribute("data-more", more);
+  const more = hidden.above > 0 || hidden.below > 0, word = more ? moreWord(hidden) : null;
+  if (area.getAttribute("data-more") !== word) {
+    if (more) area.setAttribute("data-more", word); else area.removeAttribute("data-more");
+  }
   if (!more && area.getAttribute("style") === "") area.removeAttribute("style");
 }
 /* What boot() registers on the sheet, three things, and no draw calls any
@@ -225,5 +236,5 @@ function moreCap(area) {
 export {
   scroller, pageScrollTop, pageScrollTo, pageScrollBy, chipRowsSnapshot, chipRowsRestore,
   revealChip, cssEsc, focusKey, shownMatch, focusIn, giveFocusBack, refill, drawInPlace, fitHeaderLine, syncHeaderHeight,
-  syncNavHeight, moreHidden, onMoreScroll, syncMore, setMoreObserver, moreCap,
+  syncNavHeight, moreHidden, moreWord, onMoreScroll, syncMore, setMoreObserver, moreCap,
 };
