@@ -1,10 +1,12 @@
 /* scroll.js moreHidden() (DECISIONS #76): what an area of the sheet hides
    past its top and past its bottom, from its three numbers alone - no page
    and no layout, which jsdom lacks. Importing the module looks up <main>;
-   with no markup it is null, and nothing here reaches it. New tests, not
-   rows of tests/PORT-LEDGER.md, so their titles carry no harness line. */
+   with no markup it is null, and nothing here reaches it. And moreWord()
+   (#78): the word the mark carries while an area hides enough below. New
+   tests, not rows of tests/PORT-LEDGER.md, so their titles carry no harness
+   line. */
 import { describe, expect, it } from "vitest";
-import { moreHidden } from "../../src/scroll.js";
+import { moreHidden, moreWord } from "../../src/scroll.js";
 
 describe("what a scrolling area hides past each edge", () => {
   it("nothing, where everything fits", () => {
@@ -51,5 +53,38 @@ describe("what a scrolling area hides past each edge", () => {
     expect(moreHidden(1651, 300, 2000)).toEqual({above: 48, below: 48});
     expect(moreHidden(1653, 300, 2000)).toEqual({above: 48, below: 47});
     expect(moreHidden(47, 300, 2000)).toEqual({above: 47, below: 48});
+  });
+});
+
+describe("the word an area's mark carries: below, while it hides enough below to scroll to", () => {
+  const word = (scrollTop, clientHeight, scrollHeight) => moreWord(moreHidden(scrollTop, clientHeight, scrollHeight));
+
+  it("under the threshold, 20 px, there is none: the fade alone speaks", () => {
+    expect(moreWord({above: 0, below: 19})).toBe("");
+    expect(moreWord({above: 0, below: 1})).toBe("");
+    expect(word(0, 300, 319)).toBe("");
+  });
+  it("at the threshold it is said, and over it", () => {
+    expect(moreWord({above: 0, below: 20})).toBe("below");
+    expect(moreWord({above: 0, below: 21})).toBe("below");
+    expect(word(0, 300, 320)).toBe("below");
+  });
+  it("a fraction under the threshold is under it: what is hidden is cut to whole px first", () => {
+    expect(word(0.5, 300, 320)).toBe("");
+    expect(word(0, 300, 320.9)).toBe("below");
+  });
+  it("far from an end it is said: the ceiling stands above the threshold", () => {
+    expect(word(0, 300, 2000)).toBe("below");
+    expect(word(900, 300, 2000)).toBe("below");
+  });
+  it("what is hidden above never says it: there is no arrow for more above", () => {
+    expect(moreWord({above: 48, below: 0})).toBe("");
+    expect(moreWord({above: 48, below: 19})).toBe("");
+    expect(moreWord({above: 20, below: 0})).toBe("");
+    expect(word(1700, 300, 2000)).toBe("");
+  });
+  it("and where everything fits there is none", () => {
+    expect(word(0, 300, 300)).toBe("");
+    expect(word(0, 0, 0)).toBe("");
   });
 });

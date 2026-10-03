@@ -5,7 +5,9 @@
    while either is above 0 - which the stylesheet fades. The mark is kept by
    three things boot() registers on the sheet and by no call at any draw: a
    scroll listener in the capture phase, a MutationObserver on its child
-   lists, and a ResizeObserver on each area and its children.
+   lists, and a ResizeObserver on each area and its children. Since #78 the
+   mark carries a word, "below", while an area hides 20 px or more below,
+   and the stylesheet draws an arrow on what follows the area in its panel.
 
    jsdom lays nothing out, so an area's three numbers are 0 and no mark is
    ever written: a test gives a node the numbers a phone would, and a scroll
@@ -61,6 +63,14 @@ function laidOut(selector, [scrollTop, clientHeight, scrollHeight]) {
 const scrolled = node => node.dispatchEvent(new Event("scroll"));   // as a browser sends one: it does not bubble
 const mark = node => [node.hasAttribute("data-more"), node.style.getPropertyValue("--more-above"), node.style.getPropertyValue("--more-below")];
 const NONE = [false, "", ""];
+/* The selectors of the stylesheet's arrow rule (DECISIONS #78), each less
+   its ::before: the one rule that reads the word in data-more. */
+const ARROW = (() => {
+  const css = source("styles.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const rule = [...css.matchAll(/([^{}]+)\{[^{}]*\}/g)].map(m => m[1].trim()).filter(s => s.includes('[data-more~="below"]'));
+  if (rule.length !== 1) throw new Error(`one rule reads the word, not ${rule.length}`);
+  return rule[0].split(",").map(s => s.trim().replace(/::before$/, ""));
+})();
 
 /* A stand-in for ResizeObserver that keeps what it is handed, in order. It
    has observe() and disconnect() and nothing else: the page never
@@ -101,6 +111,18 @@ describe("more past an edge", () => {
     ["Settings' Advanced", () => { handle.openSheet("settings"); el("advanced").open = true; }, () => el("advanced").querySelector(".advanced-body")],
     ["the crew panel", () => handle.openSheet("crew", "create"), () => el("panel-crew")],
   ];
+  /* What follows each area in its panel, which the arrow is drawn on
+     (DECISIONS #78): an event's foot, the hotel's and the shared day's Done
+     row, the filters' foot. Nothing follows Advanced in its <details>, and
+     the crew panel is its own scroller: both keep the fade alone. */
+  const FOLLOWS = {
+    "the shared day's list": ".ev-actions", "an event's body": ".ev-foot", "the hotel sheet's list": ".ev-actions",
+    "the filter sheet's body": ".filters-foot", "Settings' Advanced": null, "the crew panel": null,
+  };
+  /* The element the stylesheet's arrow rule finds after an area, by the
+     rule's own selectors less their ::before - jsdom draws no pseudo-element,
+     but it matches a selector - or null where the rule finds none. */
+  const arrowOn = area => ARROW.flatMap(s => [...document.querySelectorAll(s)]).find(next => next.previousElementSibling === area) || null;
 
   describe("each of the six areas says what it hides, as it is scrolled", () => {
     for (const [name, open, find] of AREAS) {
@@ -140,6 +162,63 @@ describe("more past an edge", () => {
           expect(mark(area)).toEqual(NONE);
           expect(area.hasAttribute("style")).toBe(false);
           expect(area.hasAttribute("data-more")).toBe(false);
+        });
+
+        /* The word (DECISIONS #78): the mark says "below" while the area
+           hides the threshold, 20 px, or more below, and the stylesheet's
+           arrow hangs on the word. */
+        it("hiding under the threshold below, the mark is there and says no word", () => {
+          sized(area, 0, 300, 319);
+          scrolled(area);
+          expect(mark(area)).toEqual([true, "", "19px"]);
+          expect(area.getAttribute("data-more")).toBe("");
+          expect(arrowOn(area)).toBe(null);
+        });
+        it("at the threshold the word is written", () => {
+          sized(area, 0, 300, 320);
+          scrolled(area);
+          expect(area.getAttribute("data-more")).toBe("below");
+        });
+        it(FOLLOWS[name] ? `and the arrow's rule finds what follows the area in its panel: ${FOLLOWS[name]}` : "and the arrow's rule finds nothing: nothing follows this area", () => {
+          const next = arrowOn(area);
+          if (FOLLOWS[name]) {
+            expect(next).toBe(area.nextElementSibling);
+            expect(next.matches(FOLLOWS[name])).toBe(true);
+            expect(next.closest("[hidden]")).toBe(null);
+          } else expect(next).toBe(null);
+        });
+        it("the word stays far from both ends, where the fade is at its cap", () => {
+          sized(area, 700, 300, 2000);
+          scrolled(area);
+          expect(area.getAttribute("data-more")).toBe("below");
+        });
+        it("it is taken away as the area nears its end, the mark staying for what is still hidden", () => {
+          sized(area, 1681, 300, 2000);
+          scrolled(area);
+          expect(mark(area)).toEqual([true, "48px", "19px"]);
+          expect(area.getAttribute("data-more")).toBe("");
+          expect(arrowOn(area)).toBe(null);
+        });
+        it("it is back on the way up", () => {
+          sized(area, 1680, 300, 2000);
+          scrolled(area);
+          expect(area.getAttribute("data-more")).toBe("below");
+        });
+        it("what is hidden above alone never says it: at its end the mark is bare", () => {
+          sized(area, 1700, 300, 2000);
+          scrolled(area);
+          expect(mark(area)).toEqual([true, "48px", ""]);
+          expect(area.getAttribute("data-more")).toBe("");
+        });
+        it("and with nothing hidden the word goes with the mark", () => {
+          sized(area, 0, 300, 320);
+          scrolled(area);
+          expect(area.getAttribute("data-more")).toBe("below");
+          sized(area, 0, 300, 300);
+          scrolled(area);
+          expect(area.hasAttribute("data-more")).toBe(false);
+          expect(area.hasAttribute("style")).toBe(false);
+          expect(arrowOn(area)).toBe(null);
         });
       });
     }
@@ -202,6 +281,20 @@ describe("more past an edge", () => {
       expect(writes(() => { sized(area, 0, 300, 305); scrolled(area); })).toEqual(["style"]);
       expect(writes(() => { sized(area, 0, 300, 300); scrolled(area); })).toEqual(["style", "data-more", "style"]);
       expect(area.hasAttribute("style")).toBe(false);
+    });
+    it("the word is one write of the hook as the threshold is crossed, either way, and none either side of it", () => {
+      sized(area, 0, 300, 319);
+      scrolled(area);
+      expect(area.getAttribute("data-more")).toBe("");
+      expect(writes(() => { sized(area, 0, 300, 320); scrolled(area); })).toEqual(["style", "data-more"]);
+      expect(area.getAttribute("data-more")).toBe("below");
+      expect(writes(() => { sized(area, 0, 300, 321); scrolled(area); })).toEqual(["style"]);
+      expect(writes(() => { sized(area, 0, 300, 319); scrolled(area); })).toEqual(["style", "data-more"]);
+      expect(area.getAttribute("data-more")).toBe("");
+      expect(writes(() => { sized(area, 0, 300, 318); scrolled(area); })).toEqual(["style"]);
+      sized(area, 0, 300, 300);
+      scrolled(area);
+      expect(mark(area)).toEqual(NONE);
     });
     it("a bounce past an end is that end: nothing negative is written", () => {
       sized(area, -30, 300, 320);

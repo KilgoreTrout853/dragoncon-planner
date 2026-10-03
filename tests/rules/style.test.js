@@ -495,4 +495,125 @@ describe("src/styles.css", () => {
       expect(ceiling).toBeGreaterThan(1.75 * 16 * larger);
     });
   });
+
+  /* The sheet's edges (DECISIONS #78). Room for the focus ring at the sides
+     of the sheet's five scrollers, as much as the ring reaches and no more,
+     so a change to the ring cannot outrun it; and an arrow in the gap above
+     what follows an area that hides enough below, which scroll.js says with
+     a word in data-more. What a phone draws is a browser's to see; the
+     declarations are pinned here. New tests, not rows of
+     tests/PORT-LEDGER.md. */
+  describe("the sheet's edges: room for the focus ring, and an arrow where more is below", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim().replace(/\s+/g, " ") }));
+    const names = r => r.selector.split(",").map(s => s.trim());
+    const AREAS = [".ev-body", ".filters-body", ".advanced-body", "#panel-crew"];
+    const SCROLLERS = [...AREAS, "#panel-event"];
+    const scroll = fs.readFileSync(path.join(ROOT, "src", "scroll.js"), "utf8");
+    const one = (body, re) => Number((re.exec(body) || [])[1]);
+
+    describe("the ring's room", () => {
+      const ring = rules.filter(r => r.selector === ":focus-visible");
+      const reach = () => one(ring[0].body, /outline: (\d+)px solid/) + one(ring[0].body, /outline-offset: (\d+)px;/);
+      const room = rules.filter(r => /(^|[; ])(margin|padding)-inline/.test(r.body));
+
+      it("the ring's own rule is as it was: 2px of gold, 2px off its control, so it reaches 4px", () => {
+        expect(ring.map(r => r.body)).toEqual(["outline: 2px solid var(--gold); outline-offset: 2px;"]);
+        expect(reach()).toBe(4);
+      });
+      it("one rule gives the room, to the sheet's five scrollers: the four areas scroll.js marks, and an event's panel", () => {
+        expect(room.map(r => r.selector)).toEqual([SCROLLERS.join(", ")]);
+        expect((/const MORE_AREAS = "([^"]*)";/.exec(scroll) || [])[1]).toBe(AREAS.join(", "));
+      });
+      it("the room is the ring's reach - its offset and its width - as inline padding, given back as a negative margin of the same size", () => {
+        expect(room[0].body).toBe(`margin-inline: -${reach()}px; padding-inline: ${reach()}px;`);
+        expect(one(room[0].body, /padding-inline: (\d+)px;/)).toBe(reach());
+        expect(one(room[0].body, /margin-inline: -(\d+)px;/)).toBe(reach());
+      });
+      it("each of the five scrolls, so each clips at its box", () => {
+        for (const s of SCROLLERS) expect(rules.filter(r => names(r).includes(s) && /overflow-y: auto/.test(r.body)).length).toBe(1);
+      });
+      it("no other rule on a scroller sets an inline padding or margin, which would take the room back or move its content", () => {
+        const ends = r => names(r).some(s => SCROLLERS.some(a => s === a || new RegExp(`[\\s>+~]${a.replace(/[.#]/g, "\\$&")}$`).test(s)));
+        const sideways = rules.filter(r => ends(r) && r !== room[0] && /(^|[; ])(padding|margin)(-left|-right|-inline[a-z-]*)?:/.test(r.body));
+        expect(sideways.map(r => r.selector)).toEqual([]);
+      });
+      it("no ring is drawn inside a control but the two that were: a gold ring inside a gold button cannot be seen", () => {
+        expect(rules.filter(r => /outline-offset: -/.test(r.body)).map(r => r.selector)).toEqual([".plans-seg button:focus-visible", ".crew-now:focus-visible"]);
+      });
+    });
+
+    describe("the arrow", () => {
+      const reads = rules.filter(r => /data-more/.test(r.selector));
+      const arrow = rules.filter(r => /::before/.test(r.selector) && /data-more/.test(r.selector));
+      const FOLLOWERS = [".ev-foot", ".ev-actions", ".filters-foot"];
+      const rem = (body, name) => one(body, new RegExp(`(?:^|[; ])${name}: (\\d*\\.?\\d+)rem;`));
+      /* Two borders of a square turned 45 degrees: its point is half its
+         diagonal under its centre, and its arms end level with the centre. */
+      const stands = size => {
+        const side = rem(arrow[0].body, "width") * size, off = one(arrow[0].body, /bottom: calc\(100% \+ (\d+)px\);/);
+        return { point: off + side / 2 - side / Math.SQRT2, top: off + side / 2, tall: side / Math.SQRT2 };
+      };
+
+      it("two rules read the mark: the mask, on the mark alone, and the arrow, on its word", () => {
+        expect(reads.map(r => r.selector)).toEqual(["[data-more]", arrow[0].selector]);
+        expect(arrow.length).toBe(1);
+      });
+      it("it is the ::before of what follows an area that says below: an event's foot, a Done row, the filters' foot", () => {
+        expect(names(arrow[0])).toEqual(FOLLOWERS.map(f => `[data-more~="below"] + ${f}::before`));
+      });
+      it("the word is the one scroll.js writes, at a threshold that stands under its ceiling", () => {
+        expect(scroll).toContain('const moreWord = hidden => (hidden.below >= MORE_ARROW ? "below" : "");');
+        const threshold = Number((/const MORE_ARROW = (\d+);/.exec(scroll) || [])[1]), ceiling = Number((/const MORE_CEILING = (\d+);/.exec(scroll) || [])[1]);
+        expect(threshold).toBe(20);
+        expect(threshold).toBeLessThan(ceiling);
+      });
+      it("it is outside the flow, so it moves nothing: absolute, in an element that is positioned", () => {
+        expect(arrow[0].body).toMatch(/(^|; )position: absolute;/);
+        expect(rules.filter(r => r.selector === ".ev-body + .ev-actions, .filters-foot").map(r => r.body)).toEqual(["position: relative;"]);
+        expect(rules.filter(r => r.selector === "#panel-event > .ev-foot" && /position: sticky;/.test(r.body)).length).toBe(1);
+      });
+      it("it is no control: no content, so nothing a screen reader meets, and no tap", () => {
+        expect(arrow[0].body).toMatch(/(^|; )content: "";/);
+        expect(arrow[0].body).toMatch(/(^|; )pointer-events: none;/);
+      });
+      it("it is a square's two borders, turned to point down, its size in rem so Larger text scales it", () => {
+        expect(arrow[0].body).toMatch(/(^|; )box-sizing: border-box;/);
+        expect(rem(arrow[0].body, "width")).toBe(0.6875);
+        expect(rem(arrow[0].body, "height")).toBe(rem(arrow[0].body, "width"));
+        expect(arrow[0].body).toMatch(/(^|; )border: solid var\(--muted\); border-width: 0 \.125rem \.125rem 0;/);
+        expect(arrow[0].body).toMatch(/(^|; )transform: rotate\(45deg\);/);
+        expect(arrow[0].body.replace(/bottom: calc\(100% \+ \d+px\);/, "")).not.toMatch(/\dpx/);
+      });
+      it("it is centred on the element it hangs on", () => {
+        expect(arrow[0].body).toMatch(/(^|; )left: 0; right: 0;/);
+        expect(arrow[0].body).toMatch(/(^|; )margin: 0 auto;/);
+      });
+      it("it stands inside the smallest gap it is drawn in, the filters' 12px, clear of the area and of the element, at both text sizes", () => {
+        const gaps = [one((rules.find(r => r.selector === "#panel-filters") || {}).body, /(?:^|; )gap: (\d+)px;/), one((rules.find(r => r.selector === ".sheet-panel") || {}).body, /(?:^|; )gap: (\d+)px;/)];
+        expect(gaps).toEqual([12, 16]);
+        const larger = Number((/html\.bigtext \{ font-size: (\d+)%; \}/.exec(css) || [])[1]) / 100;
+        for (const size of [16, 16 * larger]) {
+          const { point, top, tall } = stands(size);
+          expect(point).toBeGreaterThan(1);
+          expect(top).toBeLessThan(Math.min(...gaps) - 1);
+          expect(tall).toBeGreaterThan(7);
+        }
+        expect(stands(16).point).toBeCloseTo(1.72, 2);
+        expect(stands(16).top).toBeCloseTo(9.5, 2);
+      });
+      it("its colour is --muted, 6.3:1 on the sheet: a graphic needs 3:1 (#66)", () => {
+        const token = name => (new RegExp(`--${name}: (#[0-9A-Fa-f]{6});`).exec(css) || [])[1];
+        const channel = c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+        const luminance = hex => [1, 3, 5].map(i => channel(parseInt(hex.slice(i, i + 2), 16) / 255)).reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
+        const ratio = (luminance(token("muted")) + 0.05) / (luminance(token("surface")) + 0.05);
+        expect(ratio).toBeGreaterThanOrEqual(3);
+        expect(ratio).toBeCloseTo(6.31, 2);
+        expect((rules.find(r => r.selector === ".sheet") || {}).body).toMatch(/background: var\(--surface\);/);
+      });
+      it("it does not animate as it comes and goes", () => {
+        expect(arrow[0].body).not.toMatch(/(transition|animation)/);
+      });
+    });
+  });
 });
