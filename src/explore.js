@@ -3,17 +3,13 @@ import { state } from "./state.js";
 import { conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
 import { AXES, byId, CAST, events, isCeleb, knownFor, linkedWorks, linksTo, NOISE_TRACKS, personName, tagsOf, topWorks, worksById } from "./data.js";
 import { picks } from "./picks.js";
-import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing } from "./follows.js";
+import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing, KIND_NOUN } from "./follows.js";
 import { axisLabel } from "./search.js";
 import { rowHTML } from "./ui.js";
 import { pageScrollTo, pageScrollTop, revealChip, scroller } from "./scroll.js";
 import { requestRender } from "./bus.js";
 
 /* ---- Explore ------------------------------------------------------- */
-
-/* The words the page uses for each kind of follow. A work is still a
-   fandom and an axis value a topic, to the reader. */
-const KIND_NOUN = {track: "Track", work: "Fandom", axis: "Topic", person: "Person"};
 
 /* What a follow is called on screen: its key is an id. */
 function labelFor(kind, key) {
@@ -104,8 +100,20 @@ function readExploreHash() {
      link by name, or to a work nobody has reviewed, opens no page. */
   return FOLLOW_KINDS.includes(kind) && key && canFollow(kind, key) ? {kind, key} : null;
 }
-function openExplorePage(kind, key, keepScroll) {
-  if (!keepScroll) state.explore.scroll = pageScrollTop();
+/* A page opened by a tap: a tile, a Following chip or a Because-you-starred
+   tile on the grid, or a person's name or a chip on an event's sheet
+   (DECISIONS #63, #75). Two things follow the draw, which the bus makes
+   then and there.
+   The way back, "← Explore", is to the grid where it was: its scroll is
+   taken only where the screen under the tap is the grid itself. From
+   another tab's sheet, or from an Explore page, what the grid last held
+   stays - its top, if it was never left.
+   And keyboard and screen-reader focus lands on the page's heading (#66),
+   the page staying at its top: what was tapped is gone, redrawn away or
+   hidden with its tab. Here, on arrival, and never in the page's draw,
+   which Follow and the folds ask for again. */
+function openExplorePage(kind, key) {
+  if (state.tab === "explore" && !state.explore.page) state.explore.scroll = pageScrollTop();
   state.explore.page = {kind, key};
   state.explore.showPast = false;
   state.explore.showCast = false;
@@ -114,6 +122,8 @@ function openExplorePage(kind, key, keepScroll) {
   setExploreHash(`${kind}:${key}`);
   requestRender();
   pageScrollTo(0);
+  const name = document.querySelector("#view-explore .eh-name");
+  if (name) name.focus({preventScroll: true});
 }
 function closeExplorePage() {
   state.explore.page = null;
@@ -316,7 +326,7 @@ function renderExplorePage() {
   let html = `<div class="explore-head">
     <button class="back" data-act="explore-back" aria-label="Back to Explore">&#8592; Explore</button>
     <div class="eh-kind">${KIND_NOUN[kind] || kind}</div>
-    <h2 class="eh-name">${esc(labelFor(kind, key))}</h2>
+    <h2 class="eh-name" tabindex="-1">${esc(labelFor(kind, key))}</h2>
     ${known ? `<p class="eh-known">${esc(known)}</p>` : ""}
     <div class="eh-count">${all.length} event${all.length === 1 ? "" : "s"}${past.length ? ` &middot; ${upcoming.length} still to come` : ""}</div>
     ${button}

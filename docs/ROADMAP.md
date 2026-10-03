@@ -420,9 +420,13 @@ execution slot (#57), which can run before any of this.
    sessions, W1's line before the star and after it, the people with
    W42's line under a name, and the star written in place - built (PR #93,
    #74; contract, section 7, as built); W42's line shows once its review
-   has merged. What is left of this step, in no set order: the place line
-   and the chips as entry points; a cue that more is below a scrolling
-   area; and 7b.
+   has merged. The entry points - the place line a tap to the Map, focused
+   on the event, the hotel's grain a ring on its block; each track's chip
+   and each reviewed work's a tap to its Explore page; focus on what a tap
+   opened; and the other sessions still to come alone - built (PR #94,
+   #75; contract, sections 6, 7 and 11, as built). What is left of this
+   step, in no set order: a cue that more is below a scrolling area; and
+   7b.
    - 7b. W7's facets as filters in the filter sheet, now that the row
      shows them (#70; contract, section 3).
 8. Explore's top: For you and the zero state, its source decided at its
@@ -526,6 +530,12 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   it do not. It predates PR #82, and `refreshHotelSheet()` is where
   that fix goes. Since PR #92 the rows' overlap flags are among what stays
   as drawn, until the sheet is drawn again (#73).
+- The Map tab's height counts the header and the nav and not a notice
+  above the views: while one stands - the preview banner before the con,
+  "has ended" after it until its OK - the tab is taller than the screen by
+  the notice, and the card under the map is cut at the page's top. It
+  predates PR #94, which made it show after the con too, where the Map had
+  no card and a focused event now has one (contract, sections 6 and 14).
 - Three places rewrite the address, each its own way: `time.js`
   `setOverride()`, the `?now=`; `crews.js` `readJoinLink()`, the `?join=`;
   and since PR #85 `sheet.js` `takeDayLink()`, the `?day=`. One helper for

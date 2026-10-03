@@ -34,7 +34,7 @@ import { focusIn, focusKey, pageScrollTo, pageScrollTop, refill, shownMatch } fr
 import { eventSheetHTML } from "./eventsheet.js";
 import { requestRender } from "./bus.js";
 import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter } from "./sync.js";
-import { MAP_HOTELS, mapCrewCounts, mapCrewPicks, mapDay } from "./map.js";
+import { MAP_HOTELS, mapCrewCounts, mapCrewPicks, mapDay, onTheMap } from "./map.js";
 import { chosenCrew, crewPeople } from "./plans.js";
 import { filtersChanged, filtersHTML, settleWords } from "./filters.js";
 
@@ -813,7 +813,7 @@ function openSheet(kind = "settings", id = null) {
   sheetScrollY = pageScrollTop();
   state.sheetId = kind === "event" ? id : null;
   state.sheetHotel = kind === "hotel" ? id : null;
-  if (kind === "event") panelEvent.innerHTML = eventSheetHTML(byId.get(id));
+  if (kind === "event") panelEvent.innerHTML = eventSheetHTML(byId.get(id), onTheMap(byId.get(id)));   // the place a tap where the Map can show it (#75)
   else if (kind === "hotel") drawHotelSheet(mapDay());
   else if (kind === "crew") openCrew(id || "manage");
   else if (kind === "share") openShare();
@@ -844,8 +844,9 @@ function dropShared() {
   sharedDay = null;
   if (panelShared.firstChild) panelShared.innerHTML = "";
 }
-/* A person's name, from an event: the Explore page, whatever the event was
-   opened from - an event opened from the shared day closes both, and the
+/* A tap that leaves the sheet, from an event - a person's name or a chip,
+   to its Explore page; the place, to the Map (#75) - whatever the event was
+   opened from: an event opened from the shared day closes both, and the
    list goes. */
 function closeWholeSheet() {
   sharedBack = null;

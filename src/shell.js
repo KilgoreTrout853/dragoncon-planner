@@ -40,6 +40,10 @@ import { updateFresh } from "./loading.js";
    ================================================================== */
 
 function render() {
+  /* The Map's focus ends when its tab is left, by any road (DECISIONS #75):
+     every road writes `state.tab` and then draws, so this one line is the
+     rule, and no writer needs its own. */
+  if (state.tab !== "map") state.map.focus = null;
   cancelQueuedBrowseRender();
   updateClock();
   renderNotice();
@@ -120,11 +124,12 @@ function renderNotice() {
 /* value: an ISO date-time, or null for the real clock. setOverride() in
    time.js sets it, keeps it for the session and keeps the URL in step; this
    is what the page does about a new moment. The day chips follow the clock
-   again until tapped. */
+   again until tapped, and the Map's focus ends (#75). */
 function setTimeOverride(value) {
   setOverride(value);
   state.browse.day = null;
   state.map.day = null;
+  state.map.focus = null;
   state.plans.day = null;
   render();
   updateFresh();                             // "refreshed 2 h ago" is relative to the clock too

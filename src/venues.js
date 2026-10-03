@@ -45,18 +45,33 @@ function cleanRoom(hotel, room) {
    the Mart - is its room alone, "Mart Building 3, Floor 1", which names the
    hotel already (DECISIONS #73). A stream is "Streaming"; an offsite venue
    is itself - the cleaned room, else the location without its O marker,
-   else "Offsite"; a blank room leaves the hotel alone. The parts are spans
-   so a line can shorten the room and never the hotel. */
-function placeHTML(ev) {
-  if (ev.hotel === "Streaming") return `<span class="rh">Streaming</span>`;
+   else "Offsite"; a blank room leaves the hotel alone. Its two parts, the
+   hotel and the room, either of which may be "": placeHTML() and
+   placeText() are both made of them, so the markup and the words cannot
+   differ. */
+function placeParts(ev) {
+  if (ev.hotel === "Streaming") return {hotel: "Streaming", room: ""};
   if (ev.hotel === "Other") {
     const venue = (ev.room && ev.room !== "Other" ? ev.room : cleanRoom("Other", ev.location)) || "Offsite";
-    return `<span class="rr">${esc(venue === "Other" ? "Offsite" : venue)}</span>`;
+    return {hotel: "", room: venue === "Other" ? "Offsite" : venue};
   }
-  if (!ev.hotel || ev.hotel === "Unknown") return `<span class="rr">${esc(ev.room || ev.location || "Location TBA")}</span>`;
+  if (!ev.hotel || ev.hotel === "Unknown") return {hotel: "", room: ev.room || ev.location || "Location TBA"};
   const room = String(ev.room || "").trim();
-  if (room && HOTEL_DISPLAY[ev.hotel] === "location") return `<span class="rr">${esc(room)}</span>`;
-  return `<span class="rh">${esc(hotelShort(ev.hotel))}</span>${room ? ` · <span class="rr">${esc(room)}</span>` : ""}`;
+  if (room && HOTEL_DISPLAY[ev.hotel] === "location") return {hotel: "", room};
+  return {hotel: hotelShort(ev.hotel), room};
+}
+/* The place as markup: the parts are spans so a line can shorten the room
+   and never the hotel. */
+function placeHTML(ev) {
+  const {hotel, room} = placeParts(ev);
+  return `${hotel ? `<span class="rh">${esc(hotel)}</span>` : ""}${hotel && room ? " · " : ""}${room ? `<span class="rr">${esc(room)}</span>` : ""}`;
+}
+/* And as words, for a label (DECISIONS #75): exactly the text of
+   placeHTML(), "Hilton · 313-314". Text, not markup: the caller escapes
+   it. */
+function placeText(ev) {
+  const {hotel, room} = placeParts(ev);
+  return [hotel, room].filter(Boolean).join(" · ");
 }
 /* The level a row says after the room (DECISIONS #73): the level's short
    name, or "" where the event has no level, and where the room already says
@@ -95,6 +110,6 @@ const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hote
 const hotelPhrase = h => h === "Hardy Ivy Park" ? h : `the ${hotelShort(h)}`;
 
 export {
-  HOTEL_ORDER, WALK, SLACK_MIN, cleanRoom, placeHTML, placeShort, levelShort, levelName, walkMin, hotelShort, hotelVar,
+  HOTEL_ORDER, WALK, SLACK_MIN, cleanRoom, placeHTML, placeText, placeShort, levelShort, levelName, walkMin, hotelShort, hotelVar,
   hotelGroup, hotelMatches, hotelPhrase,
 };

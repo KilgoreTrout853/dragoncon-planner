@@ -1,24 +1,27 @@
-/* The event's panel of the bottom sheet (DECISIONS #74;
+/* The event's panel of the bottom sheet (DECISIONS #74, #75;
    docs/screens/contract.md, section 7, as built): what it says of one event,
    in three parts. The head, which never scrolls: the title, when, the place
-   and under it the level, Cancelled or Removed, the facts, the other
-   sessions, and who in the reader's crews starred it. The body, which
-   scrolls: the description, the people, the track and work chips. The foot,
-   which never scrolls either: the overlap line and the actions. And what a
-   star's tap or a pull's redraw writes into it in place - the star, the
-   overlap line and Starred by - so the panel is drawn once, as it opens.
+   - a tap to the Map, where the Map can show the event - and under it the
+   level, Cancelled or Removed, the facts, the other sessions, and who in
+   the reader's crews starred it. The body, which scrolls: the description,
+   the people, the track and work chips, each a tap to its Explore page. The
+   foot, which never scrolls either: the overlap line and the actions. And
+   what a star's tap or a pull's redraw writes into it in place - the star,
+   the overlap line and Starred by - so the panel is drawn once, as it opens.
    Markup and what is written into it, found by id when asked: the panel's
    element is sheet.js's, which draws this into it as it opens, and the
-   clicks inside it are dispatch's. It stands below both, and holds no DOM
-   handle. */
+   clicks inside it are dispatch's. It stands below both, and below the
+   Map, so sheet.js tells it whether the Map can show the event; it holds no
+   DOM handle. */
 import { esc, fmtRange, fmtShort } from "./util.js";
 import { hasBackend } from "./backend.js";
 import { goingTo } from "./crews.js";
 import { state } from "./state.js";
 import { DAY_LABEL, DAY_LONG, now } from "./time.js";
-import { hotelVar, levelName, placeHTML } from "./venues.js";
+import { hotelVar, levelName, placeHTML, placeText } from "./venues.js";
 import { byId, directWorks, factsOf, flagsOf, isCeleb, knownFor, sessionsOf, worksById } from "./data.js";
 import { picks } from "./picks.js";
+import { canFollow, KIND_NOUN } from "./follows.js";
 import { clashesOf } from "./walk.js";
 import { CELEB_BADGE } from "./ui.js";
 import { focusIn, refill, shownMatch } from "./scroll.js";
@@ -39,13 +42,14 @@ function goingText(ev) {
   return `Starred by ${going.slice(0, GOING_NAMED).map(p => p.display_name).join(", ")}${more > 0 ? ` and ${more} more` : ""}`;
 }
 
-/* The other sessions (data.js sessionsOf()): "Also runs Fri 4:00 PM · Sun
+/* The other sessions (data.js sessionsOf()): "Also runs Sat 4:00 PM · Sun
    2:30 PM", each by its con day's label and its start, as a row with a day
-   says it - so a session after midnight takes the night it belongs to - and
-   those not yet started first, as the clock stood when the panel was drawn.
-   Three are named, then how many more, in plain words. Each named session
-   is a tap, to its own sheet in this one's place. No line with no other
-   session. */
+   says it - so a session after midnight takes the night it belongs to -
+   and only those not yet started, as the clock stood when the panel was
+   drawn (DECISIONS #75). Three are named, then how many more of them, in
+   plain words. Each named session is a tap, to its own sheet in this one's
+   place. No line with none still to come: after the con, no sheet has
+   one. */
 const SESSIONS_NAMED = 3;
 function sessionsHTML(ev) {
   const sessions = sessionsOf(ev, now()), more = sessions.length - SESSIONS_NAMED;
@@ -93,16 +97,50 @@ function overlapHTML(ev) {
   return `<div class="ev-overlap${mine && clash.length ? " is" : ""}" id="sheetOverlap" role="status">${blocks.join("")}${more > 0 ? `<div class="ov-more">and ${more} more</div>` : ""}</div>`;
 }
 
+/* The chips (#64, #75): the event's tracks, then the works it names itself
+   (data.js directWorks()), by the names the file's works block gives them.
+   Each is {kind, key, label, tap}: a track by its name, a work by its id -
+   the keys an Explore page takes - and whether it is a tap, which is
+   whether its page may be opened by a link, follows.js canFollow(), the
+   hash's own rule: every track, and a work a person has reviewed. An
+   unreviewed work's id must not become permanent in an address (#34), so
+   its chip is words alone. */
+function chipsOf(ev) {
+  return [
+    ...(ev.tracks || []).map(name => ({kind: "track", key: name, label: name})),
+    ...directWorks(ev).map(id => ({kind: "work", key: id, label: (worksById.get(id) || {}).name})).filter(c => c.label),
+  ].map(c => ({...c, tap: canFollow(c.kind, c.key)}));
+}
+/* A chip that is a tap is a button, 44px tall and at least 44 wide, around
+   the chip's own small look (#66), to its Explore page, as a person's name
+   is. Its name says its kind too, by Explore's own noun - "Star Wars,
+   track", "Star Wars, fandom" - since a track and a work can carry the same
+   words and go to two pages. One that is not a tap is a span, and looks
+   plain. */
+const tagHTML = c => (c.tap
+  ? `<button class="tag-tap" data-explore="${esc(`${c.kind}:${c.key}`)}" aria-label="${esc(c.label)}, ${KIND_NOUN[c.kind].toLowerCase()}"><span class="tag">${esc(c.label)}</span></button>`
+  : `<span class="tag plain">${esc(c.label)}</span>`);
+
 /* The star. A removed event can be unstarred, never starred anew (#49). */
 function starHTML(ev) {
   const mine = picks.has(ev.id);
   return `<button class="ev-star" id="sheetStar" aria-pressed="${mine}" aria-label="${mine ? "Remove from my schedule" : "Add to my schedule"}"${ev.removed && !mine ? " disabled" : ""}>${mine ? "★" : "☆"}</button>`;
 }
 
-function eventSheetHTML(ev) {
+/* placeOpensMap: whether the Map can show the event (map.js onTheMap()), as
+   sheet.js says when it draws the panel - this module stands below the Map.
+   Where it can, the place is one button, `#sheetPlace`: its words as
+   before, underlined, in the hotel's hue, named for where it goes (#75).
+   Where it cannot - a stream, an offsite event, one with no known place, a
+   cancelled or a removed event - the line is exactly as it was. The level
+   stays under it, outside the tap. */
+function eventSheetHTML(ev, placeOpensMap = false) {
   const going = goingText(ev), level = levelName(ev), hue = `--h:var(${hotelVar(ev.hotel)})`;
   const dur = ev.duration_min ? (ev.duration_min >= 60 ? `${Math.floor(ev.duration_min / 60)} h${ev.duration_min % 60 ? ` ${ev.duration_min % 60} min` : ""}` : `${ev.duration_min} min`) : "";
-  const chips = [...(ev.tracks || []), ...directWorks(ev).map(id => (worksById.get(id) || {}).name).filter(Boolean)];
+  const chips = chipsOf(ev);
+  const place = placeOpensMap
+    ? `<button class="ev-place" id="sheetPlace" aria-label="${esc(placeText(ev))}, show on the map"><span class="ev-place-words">${placeHTML(ev)}</span></button>`
+    : placeHTML(ev);
   /* The facts, one line that may wrap: Celebrity; the row's flags, in the
      row's words and the row's order (data.js flagsOf()), Sold out alone in
      the warning colour; then what a row does not carry, the part and a
@@ -119,7 +157,7 @@ function eventSheetHTML(ev) {
   return `<div class="ev-head">
       <h2 id="sheetTitleEvent" tabindex="-1">${esc(ev.title)}</h2>
       <div class="ev-when">${DAY_LONG[ev.day] || ev.day}, ${fmtShort(ev._s)} to ${fmtShort(ev._e)}${dur ? ` &middot; ${dur}` : ""}${ev._cd !== ev.day ? ` &middot; ${DAY_LONG[ev._cd] || ev._cd} night` : ""}</div>
-      <div class="ev-room" style="${hue}">${placeHTML(ev)}</div>
+      <div class="ev-room" style="${hue}">${place}</div>
       ${level ? `<div class="ev-level" style="${hue}">${esc(level)}</div>` : ""}
       ${ev.cancelled ? `<div><span class="cancelled-tag">Cancelled</span></div>` : ""}
       ${ev.removed ? `<div><span class="removed-tag">Removed from the schedule</span></div>` : ""}
@@ -130,7 +168,7 @@ function eventSheetHTML(ev) {
     <div class="ev-body">
       ${ev.description ? `<p>${esc(ev.description)}</p>` : `<p style="color:var(--muted)">No description.</p>`}
       ${peopleHTML(ev)}
-      ${chips.length ? `<div class="tagline">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
+      ${chips.length ? `<div class="tagline">${chips.map(tagHTML).join("")}</div>` : ""}
     </div>
     <div class="ev-foot">
       ${overlapHTML(ev)}
@@ -168,4 +206,4 @@ function refreshEventSheet() {
   if (back && !region.contains(document.activeElement)) (shownMatch(back) || title).focus({preventScroll: true});
 }
 
-export { eventSheetHTML, refreshEventSheet };
+export { chipsOf, eventSheetHTML, refreshEventSheet };

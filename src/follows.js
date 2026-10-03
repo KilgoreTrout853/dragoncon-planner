@@ -10,6 +10,10 @@ import { axisKeys, events, linksTo, personName, tagsOf, worksById } from "./data
    because the Following feed presents them that way.
    ================================================================== */
 const FOLLOW_KINDS = ["track", "work", "axis", "person"];
+/* The words the page uses for each kind of follow. A work is still a
+   fandom and an axis value a topic, to the reader. Explore's pages and its
+   Following feed say them, and an event's sheet names each chip by them. */
+const KIND_NOUN = {track: "Track", work: "Fandom", axis: "Topic", person: "Person"};
 const FOLLOW_AXES = ["medium", "genre", "craft", "subject", "audience"];
 const SLUG = /^[a-z0-9-]+$/;
 /* What a stored follow must look like to be kept, read as the module is
@@ -116,6 +120,6 @@ function eventsFor(follow) {
 function replaceFollows(list) { follows = [...list]; }
 
 export {
-  FOLLOW_KINDS, wellFormedFollow, follows, followId, saveFollows, applyPulledFollows, isFollowing, canFollow, toggleFollow,
+  FOLLOW_KINDS, KIND_NOUN, wellFormedFollow, follows, followId, saveFollows, applyPulledFollows, isFollowing, canFollow, toggleFollow,
   eventsFor, replaceFollows,
 };

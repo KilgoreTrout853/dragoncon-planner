@@ -1,10 +1,18 @@
 /* The Map tab: the drawing, the day chips, the pick pills and the hotel sheet,
    the now and next rings, the card under the map, and the minute tick. The
    number in brackets is the harness line the assertion came from
-   (tests/PORT-LEDGER.md). The clock is Saturday 1:05 PM. */
+   (tests/PORT-LEDGER.md). The clock is Saturday 1:05 PM. The Map's focus
+   (DECISIONS #75) is new, and its tests carry no bracket. */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { bootPage } from "../helpers/page.js";
 import { mutationsDuring, tap } from "../helpers/act.js";
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const SAMPLE = path.join(HERE, "..", "sample-events.json");
+const css = fs.readFileSync(path.join(HERE, "..", "..", "src", "styles.css"), "utf8").replace(/\r\n/g, "\n");
 
 describe("the Map tab", () => {
   let page, app, handle, state, at, today;
@@ -613,6 +621,319 @@ describe("the Map tab", () => {
       expect(seen.length).toBeGreaterThan(0);
       seen.forEach(record => expect(el("mapUnder").contains(record.target)).toBe(true));
       expect(map().querySelector(".map-offmap").textContent).toMatch(/1 pick streaming or offsite/);
+    });
+  });
+
+  /* The Map's focus (DECISIONS #75; docs/screens/contract.md, section 6, as
+     built): the event an event's sheet sent the reader here to find. The
+     sheet's tap is tests/page/eventsheet.test.js's; here the focus is set as
+     that tap sets it, by showOnMap(). New tests, not rows of the ledger. */
+  describe("the Map's focus", () => {
+    const SAT = "2026-09-05", SUN = "2026-09-06", FRI = "2026-09-04";
+    let hotel, on, next, sat, sun, mart;
+    const focusRing = () => map().querySelector(".map-focus");
+    const card = () => el("mapNext");
+    const words = node => (node ? node.textContent.replace(/\s+/g, " ").trim() : "");
+    const dayShown = () => map().querySelector(".map-wrap").dataset.day;
+    const navTo = tab => document.querySelector(`.nav button[data-tab="${tab}"]`).click();
+    const dayChip = day => map().querySelector(`[data-chip="map-day"][data-value="${day}"]`);
+    const plain = () => { state.tab = "map"; state.map.focus = null; setPicks([on.id, next.id]); };
+
+    beforeAll(() => {
+      /* One hotel with a pick on now, a next pick and a third event today,
+         so that all three rings can stand on it; a Sunday event elsewhere;
+         and one at the Mart, whose room is its whole place. */
+      const here = h => handle.events.filter(e => e.hotel === h && e._cd === SAT);
+      hotel = Object.keys(app.MAP_HOTELS).find(h => !app.MAP_HOTELS[h].park && here(h).some(e => e._s <= at && at < e._e) && here(h).filter(e => e._s > at).length >= 2);
+      on = here(hotel).find(e => e._s <= at && at < e._e);
+      [next, sat] = here(hotel).filter(e => e._s > at);
+      sun = handle.events.find(e => e._cd === SUN && e.hotel !== hotel && app.MAP_HOTELS[e.hotel] && !!app.levelShort(e));
+      mart = handle.events.find(e => e.hotel === "AmericasMart" && e.room === "Mart Building 3, Floor 1");
+      plain();
+    });
+    afterAll(() => { handle.closeSheet(); state.explore.page = null; app.setExploreHash(null); Object.assign(state.browse, { hotel: "All", day: null }); state.tab = "map"; state.map.focus = null; setPicks([]); });
+
+    it("found the events the tests stand on", () => {
+      expect([hotel, on, next, sat, sun, mart].every(Boolean)).toBe(true);
+      expect(handle.picks.get().has(sat.id) || handle.picks.get().has(sun.id)).toBe(false);
+    });
+
+    describe("set, as the sheet's place sets it", () => {
+      it("showOnMap() opens the Map at its top, on the event's con day, focused on it - and writes no day", () => {
+        state.tab = "browse"; handle.render();
+        document.querySelector("main").scrollTop = 400;      // the tab underneath, scrolled
+        app.showOnMap(sun.id);
+        expect([state.tab, state.map.focus, state.map.day]).toEqual(["map", sun.id, null]);
+        expect([map().hidden, el("view-browse").hidden]).toEqual([false, true]);
+        expect([app.mapDay(), dayShown(), pressedDay()]).toEqual([SUN, SUN, SUN]);
+        expect(app.pageScrollTop()).toBe(0);
+      });
+      it("with keyboard and screen-reader focus on the card that shows it", () => {
+        expect(document.activeElement).toBe(card());
+        expect(card().dataset.hero).toBe(sun.id);
+      });
+      it("the pills are that day's, and the gold rings, which are today's, are not drawn on it", () => {
+        expect(pillsOf()).toEqual({});
+        expect(map().querySelector(".map-ring")).toBe(null);
+        expect(focusRing().dataset.hotel).toBe(sun.hotel);
+      });
+      it("is not set for an event the Map cannot show: a stream, one the schedule lacks, or none", () => {
+        plain();
+        const stream = handle.events.find(e => e.hotel === "Streaming");
+        state.tab = "browse"; handle.render();
+        for (const id of [stream.id, "no-such-event", undefined]) { app.showOnMap(id); expect([state.tab, state.map.focus], String(id)).toEqual(["browse", null]); }
+        state.tab = "map"; handle.render();
+      });
+      it("onTheMap(): at one of the seven places, and neither cancelled nor removed", () => {
+        expect(Object.keys(app.MAP_HOTELS).map(h => app.onTheMap({ hotel: h }))).toEqual([true, true, true, true, true, true, true]);
+        expect([{ hotel: "Hilton", cancelled: true }, { hotel: "Hilton", removed: true }, { hotel: "Streaming" }, { hotel: "Other" }, { hotel: "Unknown" }, {}, null, undefined]
+          .map(ev => app.onTheMap(ev))).toEqual([false, false, false, false, false, false, false, false]);
+      });
+    });
+
+    describe("the ring", () => {
+      let b;
+      beforeAll(() => { plain(); app.showOnMap(sat.id); b = app.MAP_HOTELS[hotel]; });
+
+      it("a third ring on the event's hotel, 11 out from the block", () => {
+        const ring = focusRing();
+        expect(map().querySelectorAll(".map-focus")).toHaveLength(1);
+        expect(ring.dataset.hotel).toBe(hotel);
+        expect([num(ring, "x"), num(ring, "y"), num(ring, "width"), num(ring, "height"), num(ring, "rx")]).toEqual([b.x - 11, b.y - 11, b.w + 22, b.h + 22, 21]);
+      });
+      it("is not one of the gold rings, and is drawn after them and before the pills", () => {
+        expect(focusRing().classList.contains("map-ring")).toBe(false);
+        const order = [...svg().children].map(n => n.getAttribute("class") || "");
+        expect(order.lastIndexOf("map-ring next")).toBeGreaterThan(-1);
+        expect(order.lastIndexOf("map-ring next")).toBeLessThan(order.indexOf("map-focus"));
+        expect(order.indexOf("map-focus")).toBeLessThan(order.indexOf("map-pill"));
+      });
+      it("all three can stand on one hotel: now at 4, next at 7, the focus at 11", () => {
+        expect(rings()).toBe(`next:${hotel} now:${hotel}`);
+        expect([...map().querySelectorAll(".map-ring, .map-focus")].map(r => [r.dataset.hotel, b.x - num(r, "x")])).toEqual([[hotel, 4], [hotel, 7], [hotel, 11]]);
+      });
+      it("on each of the seven it stays inside the frame, its stroke counted", () => {
+        const [vx, vy, vw, vh] = svg().getAttribute("viewBox").split(" ").map(Number);
+        for (const h of Object.keys(app.MAP_HOTELS)) {
+          const ev = handle.events.find(e => e.hotel === h);
+          expect(ev, h).toBeTruthy();
+          app.showOnMap(ev.id);
+          const r = focusRing();
+          expect(r.dataset.hotel).toBe(h);
+          expect([num(r, "x") - 1 >= vx, num(r, "y") - 1 >= vy, num(r, "x") + num(r, "width") + 1 <= vx + vw, num(r, "y") + num(r, "height") + 1 <= vy + vh], h).toEqual([true, true, true, true]);
+        }
+      });
+      it("its rule: the light text colour, never gold, no fill, no pulse and no tap of its own", () => {
+        const rule = /\n\.map-focus \{([^}]*)\}/.exec(css)[1];
+        expect(rule).toMatch(/fill: none; stroke: var\(--text\); stroke-width: 2; pointer-events: none;/);
+        expect(css).not.toMatch(/\.map-focus[^{]*\{[^}]*(--gold|animation)/);
+        expect(css.match(/\.map-focus\b/g)).toHaveLength(1);
+      });
+      it("reads at 3:1 or more against the ground and every block it can cross (#66)", () => {
+        const token = name => new RegExp(`--${name}: (#[0-9A-Fa-f]{6})`).exec(css)[1];
+        const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+        const lum = c => { const [r, g, bl] = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * bl; };
+        const contrast = (x, y) => { const [hi, lo] = [lum(x), lum(y)].sort((p, q) => q - p); return (hi + 0.05) / (lo + 0.05); };
+        const mix = (hue, p) => rgb(token(hue)).map((v, i) => Math.round(v * p + rgb(token("surface"))[i] * (1 - p)));
+        const grounds = [rgb(token("surface")), ...["Marriott", "Hyatt", "Hilton", "Courtland", "Westin", "Mart"].map(h => mix(`h-${h}`, 0.18)), mix("park", 0.12)];
+        for (const fill of grounds) expect(contrast(rgb(token("text")), fill)).toBeGreaterThanOrEqual(3);
+        expect(contrast(rgb(token("text")), rgb(token("surface")))).toBeGreaterThan(12);
+      });
+    });
+
+    describe("the card", () => {
+      beforeAll(() => { plain(); app.showOnMap(sat.id); });
+
+      it("shows the focused event in the next pick's place: the same button, in the same place", () => {
+        expect(map().querySelectorAll(".next-card")).toHaveLength(1);
+        expect([card().tagName, card().className, card().dataset.hero]).toEqual(["BUTTON", "next-card", sat.id]);
+        expect(card().parentElement).toBe(el("mapUnder"));
+        expect(card().getAttribute("style")).toBe(map().querySelector(`.map-hotel[data-hotel="${hotel}"]`).getAttribute("style"));
+      });
+      it("a small label, the title, the place and the level as a row says them, the con day's name and the time as a range", () => {
+        const level = app.levelShort(sat);
+        expect([...card().children].map(n => n.className)).toEqual(["nc-label", "nc-title", "nc-where", "nc-when"]);
+        expect([...card().children].map(words)).toEqual(["You were looking at", sat.title, app.placeText(sat) + (level ? ` · ${level}` : ""), `Saturday ${app.fmtRange(sat._s, sat._e)}`]);
+        const row = document.createElement("ul");
+        row.innerHTML = app.rowHTML(sat, { list: "test" });
+        expect(card().querySelector(".nc-where").innerHTML.startsWith(row.querySelector(".room").innerHTML)).toBe(true);
+      });
+      it("says nothing of the minutes or the walk: it is not a pick", () => {
+        expect(card().querySelector(".nc-walk")).toBe(null);
+        expect(words(card())).not.toMatch(/\bin \d+ (min|h)\b|~\d+ min/);
+      });
+      it("the On now line above it stays as it is", () => {
+        expect(words(el("mapOnNow"))).toBe(`On now: ${on.title} · ends ${app.fmtShort(on._e)} · ${app.hotelShort(on.hotel)}`);
+        expect(el("mapOnNow").nextElementSibling).toBe(card());
+      });
+      it("no level where a row says none: the Mart's room is its whole place", () => {
+        app.showOnMap(mart.id);
+        expect(words(card().querySelector(".nc-where"))).toBe("Mart Building 3, Floor 1");
+        expect(dayShown()).toBe(mart._cd);
+      });
+      it("a session after midnight is said by the night it belongs to, as a row says it; a title is escaped", () => {
+        const holder = document.createElement("div");
+        holder.innerHTML = app.mapCardHTML({ now: handle.now(), onNow: null, next: null, later: null, estimate: null,
+          focus: { id: "x", title: "Late <b>", hotel: "Hilton", room: "201", _cd: SAT, _s: new Date("2026-09-06T00:30"), _e: new Date("2026-09-06T01:30") } });
+        expect(words(holder.querySelector(".nc-when"))).toBe("Saturday 12:30–1:30 AM");
+        expect([words(holder.querySelector(".nc-title")), holder.querySelector(".nc-title b")]).toEqual(["Late <b>", null]);
+      });
+      it("its tap opens that event's sheet, as the card's tap does", () => {
+        app.showOnMap(sat.id);
+        card().click();
+        expect([el("sheetWrap").hidden, el("panel-event").hidden, state.sheetId]).toEqual([false, false, sat.id]);
+        expect(el("sheetTitleEvent").textContent).toBe(sat.title);
+      });
+      it("and the sheet closed, the focus is still held, with keyboard focus back on the card", () => {
+        el("closeSheetEvent").click();
+        expect([el("sheetWrap").hidden, state.tab, state.map.focus]).toEqual([true, "map", sat.id]);
+        expect(document.activeElement).toBe(card());
+        expect(focusRing().dataset.hotel).toBe(hotel);
+      });
+      it("a redraw gives keyboard focus back to the card, by its place", () => {
+        const before = card();
+        before.focus();
+        handle.render();
+        expect(card()).not.toBe(before);
+        expect(document.activeElement).toBe(card());
+        expect(app.focusKey(card())).toBe("#mapNext");
+      });
+    });
+
+    describe("is kept", () => {
+      beforeAll(() => { plain(); app.showOnMap(sun.id); });
+
+      it("through a hotel's sheet opened and closed, which is the focused day's", () => {
+        tap(map().querySelector(`.map-hotel[data-hotel="${sun.hotel}"] rect`));
+        expect(el("panel-hotel").hidden).toBe(false);
+        expect(el("panel-hotel").textContent).toMatch(/Sunday/);
+        handle.closeSheet();
+        expect([state.map.focus, dayShown()]).toEqual([sun.id, SUN]);
+      });
+      it("through a star and an unstar: the pill follows, the ring and the card stay", () => {
+        handle.picks.set([on.id, next.id, sun.id]); handle.render();
+        expect(pillsOf()).toEqual({ [sun.hotel]: "1" });
+        expect([state.map.focus, card().dataset.hero, focusRing().dataset.hotel]).toEqual([sun.id, sun.id, sun.hotel]);
+        handle.picks.set([on.id, next.id]); handle.render();
+        expect([state.map.focus, card().dataset.hero]).toEqual([sun.id, sun.id]);
+      });
+      it("through quiet minutes, which draw nothing - and the minutes moving, which leave a focused card alone", () => {
+        app.showOnMap(sat.id);
+        let results;
+        expect(mutationsDuring(map(), () => { results = [app.tickMap(), app.tickMap()]; })).toHaveLength(0);
+        expect(results).toEqual([false, false]);
+        app.setOverride("2026-09-05T13:06");                 // the next pick is a minute nearer, and the card does not say so
+        expect(mutationsDuring(map(), () => { results = [app.tickMap()]; })).toHaveLength(0);
+        expect(results).toEqual([false]);
+        state.map.focus = null;
+        expect(app.tickMap()).toBe(true);                    // with no focus the same minute redraws: the ring goes, the card counts down
+        expect(cardWhen()).toBe(`${app.fmtShort(next._s)} · in ${app.fmtMins(Math.round((next._s - handle.now()) / 60000))}`);
+        app.setOverride("2026-09-05T13:05");
+        handle.render();
+      });
+      it("and its ring is in the map's signature: a focus set or ended with no draw is drawn at the tick", () => {
+        expect([state.map.focus, focusRing()]).toEqual([null, null]);
+        expect(app.tickMap()).toBe(false);
+        state.map.focus = sat.id;
+        expect(app.tickMap()).toBe(true);
+        expect([focusRing().dataset.hotel, card().dataset.hero]).toEqual([hotel, sat.id]);
+        expect(app.tickMap()).toBe(false);
+        state.map.focus = null;
+        expect(app.tickMap()).toBe(true);
+        expect([focusRing(), card().dataset.hero]).toEqual([null, next.id]);
+      });
+    });
+
+    describe("ends", () => {
+      beforeAll(() => plain());
+
+      it("when the Map tab is left, by any road - and the Map is then on the day it had, the clock's, with its rings and its card", () => {
+        const roads = {
+          "the tab bar": () => navTo("browse"),
+          "an Explore page": () => app.openExplorePage("track", handle.events[0].tracks[0]),
+          "the hotel sheet's search": () => { tap(map().querySelector('.map-hotel[data-hotel="Westin"] rect')); el("panel-hotel").querySelector('[data-act="map-search"]').click(); },
+          "a tab set and drawn": () => { state.tab = "plans"; handle.render(); },
+        };
+        for (const [road, go] of Object.entries(roads)) {
+          app.showOnMap(sun.id);
+          expect([state.map.focus, dayShown()], road).toEqual([sun.id, SUN]);
+          go();
+          expect([state.tab === "map", state.map.focus], road).toEqual([false, null]);
+          navTo("map");
+          expect([state.map.focus, state.map.day, dayShown(), pressedDay()], road).toEqual([null, null, SAT, SAT]);
+          expect(focusRing(), road).toBe(null);
+          expect([card().dataset.hero, rings()], road).toEqual([next.id, `next:${hotel} now:${hotel}`]);
+        }
+        state.explore.page = null; app.setExploreHash(null); Object.assign(state.browse, { hotel: "All", day: null });
+      });
+      it("or on the day a chip had chosen, where one was: the focus never wrote the day", () => {
+        dayChip(FRI).click();
+        app.showOnMap(sun.id);
+        expect([state.map.day, dayShown(), pressedDay()]).toEqual([FRI, SUN, SUN]);
+        navTo("now"); navTo("map");
+        expect([state.map.focus, state.map.day, dayShown(), pressedDay()]).toEqual([null, FRI, FRI, FRI]);
+        state.map.day = null; handle.render();
+      });
+      it("at a day chip's tap, which chooses the day as it always did - the focused day's own chip too", () => {
+        app.showOnMap(sun.id);
+        dayChip(FRI).click();
+        expect([state.map.focus, state.map.day, dayShown(), focusRing()]).toEqual([null, FRI, FRI, null]);
+        app.showOnMap(sun.id);
+        dayChip(SUN).click();
+        expect([state.map.focus, state.map.day, dayShown(), focusRing()]).toEqual([null, SUN, SUN, null]);
+        state.map.day = null; handle.render();
+      });
+      it("when the clock is changed", () => {
+        app.showOnMap(sun.id);
+        handle.setTimeOverride("2026-09-05T13:10");
+        expect([state.tab, state.map.focus, dayShown(), focusRing()]).toEqual(["map", null, SAT, null]);
+        handle.setTimeOverride("2026-09-05T13:05");
+      });
+    });
+
+    describe("whatever the clock says", () => {
+      it("after the con, where the Map has no card, the focused card shows alone - and the tab left, there is none again", () => {
+        handle.setTimeOverride("2026-09-08T12:00");
+        expect(map().querySelector(".next-card")).toBe(null);
+        app.showOnMap(sun.id);
+        expect([words(card().querySelector(".nc-label")), card().dataset.hero]).toEqual(["You were looking at", sun.id]);
+        expect([...el("mapUnder").children]).toEqual([card()]);
+        expect([map().querySelector(".map-ring"), focusRing().dataset.hotel, dayShown()]).toEqual([null, sun.hotel, SUN]);
+        navTo("now"); navTo("map");
+        expect([map().querySelector(".next-card"), focusRing()]).toEqual([null, null]);
+      });
+      it("before the con, it stands where the next pick's card, or the line on how to get one, would", () => {
+        handle.setTimeOverride("2026-08-20T10:00");
+        handle.picks.set([]); handle.render();
+        expect(map().querySelector(".next-card.empty")).toBeTruthy();
+        app.showOnMap(sun.id);
+        expect([card().dataset.hero, map().querySelector(".next-card.empty"), dayShown()]).toEqual([sun.id, null, SUN]);
+        handle.setTimeOverride("2026-09-05T13:05");
+        plain();
+      });
+    });
+
+    /* No page reaches this today: a new schedule comes by a reload, which
+       takes the focus with it. The guard is the lookup's all the same. */
+    describe("the schedule no longer holds the event", () => {
+      let sample;
+      beforeAll(() => { sample = JSON.parse(fs.readFileSync(SAMPLE, "utf8")); plain(); });
+      afterAll(() => { app.replaceSchedule(sample); plain(); });
+
+      it("gone: the minute's tick finds it so, the focus ends and the Map is as it was", () => {
+        app.showOnMap(sun.id);
+        app.replaceSchedule({ ...sample, events: sample.events.filter(e => e.id !== sun.id) });
+        expect(app.tickMap()).toBe(true);
+        expect([state.tab, state.map.focus, dayShown(), focusRing()]).toEqual(["map", null, SAT, null]);
+        expect(card().dataset.hero).toBe(next.id);
+      });
+      it("kept as removed: a draw ends it, and it cannot be set again", () => {
+        app.replaceSchedule({ ...sample, events: sample.events.map(e => (e.id === sun.id ? { ...e, removed: true } : e)) });
+        state.map.focus = sun.id; handle.render();
+        expect([state.map.focus, dayShown(), focusRing()]).toEqual([null, SAT, null]);
+        app.showOnMap(sun.id);
+        expect([state.map.focus, dayShown()]).toEqual([null, SAT]);
+      });
     });
   });
 
