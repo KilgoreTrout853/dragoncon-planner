@@ -4,7 +4,6 @@ import { storageKey } from "./build.js";
 import { BackendError, callBackendAsUser, hasBackend, storedSession } from "./backend.js";
 import { plainMessage } from "./identity.js";
 import { applyPulledCrews, crewGained, forgetCrews } from "./crews.js";
-import { state } from "./state.js";
 import {
   clearOutbox, drainNow, drainsSettled, holdDrains, outboxState, pendingKeys, releaseDrains, seedOutbox,
 } from "./outbox.js";
@@ -42,10 +41,10 @@ import { requestRender } from "./bus.js";
    crewmates' picks are kept by crews.js, which the pull writes them
    through, as it writes the reader's own rows through the owners of picks
    and follows; a departed member's picks are dropped there. A pull asks
-   for a redraw when the reader's own picks or follows changed, and when
-   what a crew screen draws changed while one is on screen: Now, the Map or
-   Plans as the tab, or the crew panel, an event's sheet or a hotel's open
-   over any - never Search or Explore alone.
+   for a redraw when the reader's own picks or follows changed, or what a
+   crew screen draws did, on any tab: one rule (DECISIONS #80). On Search
+   and Explore that redraw draws nothing new, and each keeps its box. An
+   open sheet is refilled in place by render().
 
    The owner: when the session's user is not the one the watermark was
    kept for - a mint, a recover, a sign-in in another tab - the outbox is
@@ -99,7 +98,7 @@ function adopt(user) {
   seedOutbox(user, {picks: [...picks], follows: follows.map(followId)});
   const stamp = {user, picks: null, follows: null};
   saveJSON(STAMP_KEY, stamp);
-  if (forgetCrews()) redrawCrew();
+  if (forgetCrews()) requestRender();
   return stamp;
 }
 /* No session: nothing of sync's is kept. */
@@ -110,22 +109,7 @@ function forgetSync() {
   lastRun = null;
   refusedAt = null;
   fillSyncStatus();
-  if (forgot) redrawCrew();
-}
-
-/* Where a crew is drawn: Now, the Map and Plans, the crew panel, an event's
-   sheet, whose who's-going line render() refills in place, and a hotel's,
-   whose crew it refills in place too. A crew's change asks for a redraw
-   only while one of them is on screen: Search draws no crew, and a redraw
-   rebuilds Explore's grid, its filter box with it, and a crewmate's star
-   should not take the caret from a reader typing there (ROADMAP, Flags).
-   With the sheet open, focus is in it, whatever tab is behind. The tab's
-   own draw, and the sheet's when it opens, show the rest. */
-const CREW_TABS = ["now", "map", "plans"];
-function redrawCrew() {
-  const sheet = document.getElementById("sheetWrap"), panel = document.getElementById("panel-crew");
-  const open = !!sheet && !sheet.hidden;
-  if (CREW_TABS.includes(state.tab) || (open && ((panel && !panel.hidden) || state.sheetId !== null || state.sheetHotel !== null))) requestRender();
+  if (forgot) requestRender();
 }
 
 /* Every row of a table newer than since, less the overlap - every row with
@@ -172,8 +156,7 @@ async function pull(user, stamp) {
     const followsChanged = applyPulledFollows(followRows.filter(r => !pending.follows.has(`${r.kind}:${r.key}`)));
     const crewChanged = applyPulledCrews(crew, pickRows, user);
     saveJSON(STAMP_KEY, {user, picks: watermark(pickRows, heldPicks, stamp.picks), follows: watermark(followRows, heldFollows, stamp.follows)});
-    if (picksChanged || followsChanged) requestRender();
-    else if (crewChanged) redrawCrew();
+    if (picksChanged || followsChanged || crewChanged) requestRender();
   } finally {
     releaseDrains();
   }

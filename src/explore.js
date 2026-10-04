@@ -164,12 +164,14 @@ function exploreSectionsHTML() {
   return html;
 }
 
-function exploreJumpHTML() {
+/* The jump row's chips, which a draw writes into the row; the row itself is
+   built once, with the filter box. */
+function exploreJumpChipsHTML() {
   const cat = getCatalogue();
-  return `<div class="chips explore-jump" data-row="explore-jump" aria-label="Jump to a section">${EXPLORE_SECTIONS.map(sec => {
+  return EXPLORE_SECTIONS.map(sec => {
     const n = (cat[sec.id] || []).length;
     return n ? `<button class="chip" data-act="explore-jump" data-section="${sec.id}" aria-pressed="${state.explore.active === sec.id}">${sec.label} <span class="n">${n}</span></button>` : "";
-  }).join("")}</div>`;
+  }).join("");
 }
 
 /* Tracks, fandoms and guests behind the reader's own picks that they do not
@@ -214,14 +216,39 @@ function suggestedHTML() {
   </section>`;
 }
 
+/* What stands above the sticky block: Following, when anything is followed,
+   and Because you starred. */
+const exploreTopHTML = () => followingHTML() + suggestedHTML();
+
+/* The filter box is built once (DECISIONS #80), as Search's is: the first
+   draw of the grid makes the view whole, and every later one writes around
+   the box - what stands above the sticky block taken out and written again
+   at the view's start, the jump row's chips, and the tiles. Replacing a
+   focused input took its focus, its caret and the next key typed, and on
+   an iPhone left the keyboard on a node that was gone. The box's value is
+   put in step with the filter only where the two differ, so a draw never
+   writes to a box the reader is typing in. No element is added, moved or
+   wrapped for this: the view's elements are what one whole draw would
+   write, in the same order. A page replaces the view, the box with it,
+   and the way back builds the grid anew, the text kept. */
 function renderExploreGrid() {
-  document.getElementById("view-explore").innerHTML = `${followingHTML()}${suggestedHTML()}
+  const view = document.getElementById("view-explore"), box = document.getElementById("exploreQ");
+  if (box) {
+    const sticky = box.parentElement;
+    while (sticky.previousElementSibling) sticky.previousElementSibling.remove();
+    view.insertAdjacentHTML("afterbegin", exploreTopHTML());
+    if (box.value !== state.explore.q) box.value = state.explore.q;
+    sticky.querySelector(".explore-jump").innerHTML = exploreJumpChipsHTML();
+    document.getElementById("exploreGrid").innerHTML = exploreSectionsHTML();
+  } else {
+    view.innerHTML = `${exploreTopHTML()}
     <div class="controls controls-sticky">
       <input class="search" type="search" id="exploreQ" placeholder="Filter tracks, fandoms, topics, people"
         value="${esc(state.explore.q)}" autocomplete="off" aria-label="Filter what you can follow">
-      ${exploreJumpHTML()}
+      <div class="chips explore-jump" data-row="explore-jump" aria-label="Jump to a section">${exploreJumpChipsHTML()}</div>
     </div>
     <div id="exploreGrid">${exploreSectionsHTML()}</div>`;
+  }
   syncActiveSection();
 }
 
@@ -276,8 +303,9 @@ function onScrollSpy() {
   });
 }
 
-/* Typing in the filter box redraws the tiles and nothing else. Rebuilding the
-   whole view would replace the input mid-word, and take the keyboard with it. */
+/* Typing in the filter box, and Show all, draw the tiles and nothing else:
+   nothing above them changes with either. The box is kept by any draw of
+   the grid (renderExploreGrid()). */
 function renderExploreSections() {
   const grid = document.getElementById("exploreGrid");
   if (grid && !state.explore.page) grid.innerHTML = exploreSectionsHTML(); else renderExplore();
