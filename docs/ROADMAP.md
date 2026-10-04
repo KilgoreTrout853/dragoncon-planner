@@ -299,9 +299,10 @@ Checklist, below, keeps the history:
   function secrets - and Vault's two rows, `project_url` and
   `push_secret`; and the function deployed (Checklist; #55;
   `docs/sync/contract.md`, section 7, as built).
-- Before the freeze, `database` required on the `main` ruleset beside
-  `client` and `pipeline`: the Checklist's line names those two, written
-  before the `database` job existed (Checklist; #48, #52).
+- Before the freeze, `database` and `browser` required on the `main`
+  ruleset beside `client` and `pipeline`: the Checklist's line names
+  those two, written before the `database` and `browser` jobs existed
+  (Checklist; #48, #52, #81).
 - At the freeze, the build that publishes `main` given production's
   `DC_SUPABASE_URL` and `DC_SUPABASE_KEY`, as the next site's build is
   given the dev project's - variables, not secrets, since the key is the
