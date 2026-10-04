@@ -6,7 +6,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
+import { fakeBackend } from "../helpers/backend.js";
 import { typeInto } from "../helpers/act.js";
+import { YY } from "../../src/season.js";
 
 const css = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "styles.css"), "utf8").replace(/\r\n/g, "\n");
 
@@ -446,6 +448,174 @@ describe("Explore", () => {
     });
   });
 
+  /* The filter box is built once (DECISIONS #80): the first draw of the grid
+     makes it, and every later one writes around it. A tap here is a click(),
+     which moves no focus - as an iPhone moves none to a tapped button - so
+     the box still has the keyboard through the draw the tap asks for. New
+     tests, not rows of tests/PORT-LEDGER.md. */
+  describe("the filter box is built once: a draw of the grid writes around it", () => {
+    let track, node;
+    const box = () => el("exploreQ");
+    const jump = () => view().querySelector('[data-act="explore-jump"]');
+    const act = name => view().querySelector(`[data-act="${name}"]`);
+    const kinds = of => [...of.children].map(c => `${c.tagName.toLowerCase()}${c.id ? `#${c.id}` : ""}.${c.className.split(" ").join(".")}`);
+    /* Text typed, the caret left inside it, and the box holding focus. */
+    const typing = (text, from, to) => { box().focus(); typeInto(box(), text); box().setSelectionRange(from, to); };
+    const kept = (text, from, to) => {
+      expect(box()).toBe(node);
+      expect(document.activeElement).toBe(node);
+      expect([node.value, node.selectionStart, node.selectionEnd]).toEqual([text, from, to]);
+    };
+    /* A whole draw of the grid, seen by what it replaced: the jump chips,
+       which typing's own draw leaves alone. */
+    const drawn = during => { const chip = jump(); during(); return !chip.isConnected && jump() !== null && jump() !== chip; };
+    const plain = () => Object.assign(state.following, { open: true, layout: "interest", expanded: {}, showPast: {} });
+    const reader = (follows, picks) => {
+      handle.closeSheet(); handle.picks.set(picks); handle.follows.set(follows); plain();
+      state.tab = "explore"; state.explore.page = null; state.explore.q = ""; state.explore.expanded = {};
+      handle.render();
+    };
+
+    beforeAll(() => {
+      /* a track whose feed has a Show more and an Already happened */
+      const at = handle.now();
+      track = app.getCatalogue().track.find(t => {
+        const all = app.eventsFor({ kind: "track", key: t.key }), left = all.filter(e => !app.isPast(e, at)).length;
+        return left > 8 && left < all.length;
+      }).key;
+      reader([{ kind: "track", key: track }], []);
+      node = box();
+    });
+    afterAll(() => { document.activeElement.blur(); reader([], []); });
+
+    it("a whole draw, with text typed and the caret inside it: the same node, with its focus, its caret and its text", () => {
+      typing("star", 1, 2);
+      expect(drawn(() => handle.render())).toBe(true);
+      kept("star", 1, 2);
+      expect(state.explore.q).toBe("star");
+    });
+    it("a return to the page draws it whole too", () => {
+      expect(drawn(() => app.onVisibleRender())).toBe(true);
+      kept("star", 1, 2);
+    });
+    it("the Following heading tapped, folded and open again", () => {
+      expect(drawn(() => act("fol-toggle").click())).toBe(true);
+      expect([state.following.open, el("folBody").hidden]).toEqual([false, true]);
+      kept("star", 1, 2);
+      expect(drawn(() => act("fol-toggle").click())).toBe(true);
+      expect([state.following.open, el("folBody").hidden]).toEqual([true, false]);
+      kept("star", 1, 2);
+    });
+    it("By time tapped, and By interest", () => {
+      expect(drawn(() => act("fol-time").click())).toBe(true);
+      expect([state.following.layout, view().querySelector("#following .time-head") !== null]).toEqual(["time", true]);
+      kept("star", 1, 2);
+      expect(drawn(() => act("fol-interest").click())).toBe(true);
+      expect([state.following.layout, view().querySelector("#following .time-head")]).toEqual(["interest", null]);
+      kept("star", 1, 2);
+    });
+    it("Show more tapped on a follow's events", () => {
+      const rows = view().querySelectorAll("#following .row").length;
+      expect(drawn(() => act("fol-more").click())).toBe(true);
+      expect(act("fol-more")).toBe(null);
+      expect(view().querySelectorAll("#following .row").length).toBeGreaterThan(rows);
+      kept("star", 1, 2);
+    });
+    it("Already happened tapped", () => {
+      expect(act("fol-past").getAttribute("aria-expanded")).toBe("false");
+      expect(drawn(() => act("fol-past").click())).toBe(true);
+      expect(act("fol-past").getAttribute("aria-expanded")).toBe("true");
+      kept("star", 1, 2);
+    });
+    it("a star tapped on a Following row", () => {
+      const star = view().querySelector("#following .row .star:not([disabled])"), id = star.closest(".row").dataset.id;
+      expect(drawn(() => star.click())).toBe(true);
+      expect(handle.picks.get().has(id)).toBe(true);
+      expect(view().querySelector(`#following .row[data-id="${id}"] .star`).getAttribute("aria-pressed")).toBe("true");
+      expect(kinds(view())).toEqual(["section#following.following", "div.controls.controls-sticky", "div#exploreGrid."]);
+      kept("star", 1, 2);
+    });
+    it("and an unfollow, which takes Following from above it and puts Because you starred there", () => {
+      expect(drawn(() => view().querySelector('#following [data-act="unfollow"]').click())).toBe(true);
+      expect([handle.follows.get().length, el("following")]).toEqual([0, null]);
+      expect(kinds(view())).toEqual(["section#suggested.suggested", "div.controls.controls-sticky", "div#exploreGrid."]);
+      kept("star", 1, 2);
+    });
+    it("the box's value follows the filter when something else sets it, and a draw writes to the box only then", () => {
+      const own = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value"), writes = [];
+      Object.defineProperty(node, "value", { configurable: true, get() { return own.get.call(this); }, set(text) { writes.push(text); own.set.call(this, text); } });
+      handle.render();
+      expect(writes).toEqual([]);                            // the two agree, as they do while the reader types
+      state.explore.q = "cost"; handle.render();
+      expect(writes).toEqual(["cost"]);
+      handle.render();
+      expect(writes).toEqual(["cost"]);
+      delete node.value;
+      expect([box(), node.value]).toEqual([node, "cost"]);
+      const names = [...view().querySelectorAll("#exploreGrid .tile-name")].map(n => n.textContent);
+      expect(names.length).toBeGreaterThan(0);
+      names.forEach(n => expect(n).toMatch(/cost/i));
+    });
+    it("a page replaces the view, the box with it, and the way back builds the grid anew: another box, with the text kept", () => {
+      view().querySelector("#exploreGrid .tile").click();
+      expect([state.explore.page !== null, box(), node.isConnected]).toEqual([true, null, false]);
+      document.querySelector('[data-act="explore-back"]').click();
+      expect(state.explore.page).toBe(null);
+      expect(box()).not.toBe(node);
+      expect([box().value, state.explore.q]).toEqual(["cost", "cost"]);
+      node = box();
+      typing("cos", 1, 2);
+      expect(drawn(() => handle.render())).toBe(true);
+      kept("cos", 1, 2);
+    });
+    it("the view's children are the same kinds in the same order after a draw as before it, Following first, and the jump chips the sticky block's own child", () => {
+      reader([{ kind: "track", key: track }], [handle.events.find(e => (e.tracks || []).some(t => !app.NOISE_TRACKS.has(t) && t !== track)).id]);
+      node = box();
+      const before = kinds(view());
+      expect(before).toEqual(["section#following.following", "section#suggested.suggested", "div.controls.controls-sticky", "div#exploreGrid."]);
+      expect(drawn(() => handle.render())).toBe(true);
+      expect(kinds(view())).toEqual(before);
+      expect(view().firstElementChild).toBe(el("following"));
+      expect(kinds(node.parentElement)).toEqual(["input#exploreQ.search", "div.chips.explore-jump"]);
+      expect(box()).toBe(node);
+    });
+    /* The view as draws around the box leave it, beside the view as one
+       whole draw makes it: emptied, the view has no box, and the next draw
+       builds it whole. Each state is reached from the one before it. */
+    it("its markup is what one whole draw would write, byte for byte, in every state: a stranger's, follows and picks, Following folded, by time, picks alone, a section opened", () => {
+      const pick = [...handle.picks.get()], follow = [{ kind: "track", key: track }];
+      const bothWays = change => {
+        change(); handle.render();
+        const around = view().innerHTML;
+        view().innerHTML = ""; handle.render();
+        return [around === view().innerHTML, around.length > 500];
+      };
+      view().innerHTML = ""; reader([], []);                 // a box built with nothing in it
+      expect(pick.length).toBe(1);
+      const states = {
+        "follows and picks": () => { handle.follows.set(follow); handle.picks.set(pick); },
+        "Following folded": () => { state.following.open = false; },
+        "by time": () => { state.following.open = true; state.following.layout = "time"; },
+        "picks alone": () => { handle.follows.set([]); plain(); },
+        "a stranger": () => { handle.picks.set([]); },
+        "a section opened": () => { state.explore.expanded.track = true; },
+        "and closed": () => { state.explore.expanded = {}; },
+      };
+      for (const [name, change] of Object.entries(states)) expect(bothWays(change), name).toEqual([true, true]);
+    });
+    it("but for the box's value attribute, which stays as the box was built: its text is its value", () => {
+      const less = html => html.replace(/ value="[^"]*"/, "");
+      view().innerHTML = ""; reader([], []);
+      state.explore.q = "cost"; handle.render();
+      const around = view().innerHTML, built = box().getAttribute("value");
+      expect([box().value, built]).toEqual(["cost", ""]);
+      view().innerHTML = ""; handle.render();
+      expect([box().value, box().getAttribute("value")]).toEqual(["cost", "cost"]);
+      expect(around).not.toBe(view().innerHTML);
+      expect(less(around)).toBe(less(view().innerHTML));
+    });
+  });
+
   /* The harness replaced revealChip and recorded its calls. The chip is
      revealed by scrolling its own row: give the row and the chip rects that put
      the chip off the edge, and watch the row. */
@@ -459,6 +629,60 @@ describe("Explore", () => {
     app.markActiveSection("topic"); app.markActiveSection("topic"); app.markActiveSection("track");
     expect(calls).toHaveLength(2);                           // once for topic, once for track; the repeat moved nothing
     calls.forEach(c => expect(c.left).toBeGreaterThan(0));
+    delete row.scrollTo; delete row.getBoundingClientRect;   // a draw keeps the row (DECISIONS #80), so its stand-ins go by hand
     handle.render();
+  });
+});
+
+/* The pull's redraw (DECISIONS #80; docs/sync/contract.md, section 5): the
+   reader's own change made on another device asks for one on any tab, and
+   Explore's box is kept through it. Against the fake backend,
+   tests/helpers/backend.js. New tests, not rows of tests/PORT-LEDGER.md. */
+describe("Explore's filter box through a pull of the reader's own picks and follows", () => {
+  let page, app, handle, fake, ada, pickId, track;
+  const el = id => document.getElementById(id);
+  const jump = () => document.querySelector('#view-explore [data-act="explore-jump"]');
+  const iso = ms => new Date(ms).toISOString();
+  const run = async () => { await app.runSync(); await app.syncSettled(); };
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    ada = fake.held("ada@example.test");
+    const s = fake.issue(ada.id);
+    window.localStorage.setItem(`dc${YY}.session`, JSON.stringify({ access_token: s.access_token, refresh_token: s.refresh_token,
+      user: { id: ada.id, email: ada.email || "", is_anonymous: ada.is_anonymous } }));
+    window.localStorage.setItem(`dc${YY}.syncStamp`, JSON.stringify({ user: ada.id, picks: null, follows: null }));
+    page = await bootPage({ backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+    const ev = handle.events.find(e => (e.tracks || []).some(t => !app.NOISE_TRACKS.has(t)));
+    pickId = ev.id;
+    track = ev.tracks.find(t => !app.NOISE_TRACKS.has(t));
+    document.querySelector('.nav button[data-tab="explore"]').click();
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("a pick made on another device, pulled while the reader types: Explore is drawn again with Because you starred above the box, and the box is the same node with its text, its focus and its caret", async () => {
+    const box = el("exploreQ"), chip = jump();
+    box.focus(); typeInto(box, "star"); box.setSelectionRange(1, 2);
+    expect(el("suggested")).toBe(null);
+    fake.write(ada.id, "picks", { event_id: pickId, picked: true, changed_at: iso(Date.now()) });
+    await run();
+    expect(handle.picks.get().has(pickId)).toBe(true);
+    expect([chip.isConnected, jump() !== null, el("suggested") !== null]).toEqual([false, true, true]);
+    expect(el("exploreQ")).toBe(box);
+    expect(document.activeElement).toBe(box);
+    expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["star", 1, 2]);
+  });
+  it("and a follow: Following stands first in the view, the box as it was", async () => {
+    const box = el("exploreQ"), chip = jump();
+    fake.write(ada.id, "follows", { kind: "track", key: track, followed: true, changed_at: iso(Date.now()) });
+    await run();
+    expect(handle.follows.get()).toEqual([{ kind: "track", key: track }]);
+    expect([chip.isConnected, jump() !== null]).toEqual([false, true]);
+    expect(el("view-explore").firstElementChild).toBe(el("following"));
+    expect(el("exploreQ")).toBe(box);
+    expect(document.activeElement).toBe(box);
+    expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["star", 1, 2]);
   });
 });

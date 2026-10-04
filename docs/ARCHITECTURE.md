@@ -582,11 +582,9 @@ waits, which lets every run and drain under way finish, makes a try of its
 own, and says how much still waits; `syncAfter()`, the run the crew panel
 waits for after an action, one that began after it; and two lines in Keep
 your plan, the status and, after a refused Sign out, what still waits. It
-stands above the bus, because a pull that changed the plan asks for a
-redraw - one that changed what a crew screen draws, only while Now, the
-Map or Plans is the tab, or the crew panel, an event's sheet or a hotel's
-is open, which it reads from `state` and the sheet's markup: never on
-Search or Explore alone. The outbox stands
+stands above the bus, because a pull that changed the plan, or what a
+crew screen draws, asks for a redraw - on any tab, one rule (DECISIONS
+#80), so it reads neither `state` nor the page. The outbox stands
 below `picks` and `follows`, whose doors call it, so a drain it starts
 after a tap is followed by no pull: the next trigger's run pulls.
 
@@ -843,7 +841,11 @@ cast, apart and collapsed; above the grid, a Following feed and suggestions
 drawn from the reader's picks. A page opened by a tap takes keyboard focus
 on its heading, and "← Explore" lands the grid where it last was
 (DECISIONS #75). The jump chips follow the scroll through a spy that
-runs once per animation frame.
+runs once per animation frame. The filter box and the jump chips are the
+sticky block, and the box is built once, as Search's is: a later draw of
+the grid writes around it - what stands above the block, the jump chips
+and the tiles - so a redraw never takes the box from a reader typing in
+it (DECISIONS #80; `docs/screens/contract.md`, section 4, as built).
 
 **The sheet.** One bottom sheet, seven panels: Settings, an event's detail, a
 hotel's picks for the day - on a build with a backend the crew's there

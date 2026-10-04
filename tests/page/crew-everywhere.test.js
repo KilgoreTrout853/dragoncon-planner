@@ -3,9 +3,10 @@
    event on its sheet, Your crew's picks right now on Now, the crew counted
    per hotel on
    the Map - people, not picks - and the sync redraw that reaches them: a
-   crew's change pulled draws Now, the Map and Plans, the crew panel and an
-   open event's who's-going line, in place, and never Search or Explore
-   alone. Now and the Map give focus back to what had it through every
+   crew's change pulled is a redraw on any tab (DECISIONS #80) - Now, the
+   Map and Plans, the crew panel and an open event's who's-going line, in
+   place - and Search and Explore are drawn again, each with its box
+   kept. Now and the Map give focus back to what had it through every
    redraw and every minute's tick. And step 5c (contract, section 8): the
    hotel sheet's crew, Your crew's picks here, its lines Now's, refilled in place
    by a pull, on the day the sheet was drawn for.
@@ -55,6 +56,13 @@ function press(node) { node.focus(); node.click(); }
 const escape = () => document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
 const typeIn = (box, value, from, to) => { box.focus(); box.value = value; box.dispatchEvent(new Event("input", { bubbles: true })); box.setSelectionRange(from, to); };
 const before = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+/* What a whole draw of a tab replaces, and typing's own draw does not:
+   Explore's first jump chip. And Search's first node under its box. A draw
+   happened when the node kept from before is off the page and another
+   stands in its place. */
+const jumpChip = () => document.querySelector('#view-explore [data-act="explore-jump"]');
+const listTop = () => el("browseRest").firstElementChild;
+const replaced = (marker, again) => !marker.isConnected && again() !== null && again() !== marker;
 
 const now = () => el("view-now");
 const crewTitle = () => [...now().querySelectorAll(".section-title")].find(t => words(t) === "Your crew's picks right now") || null;
@@ -147,7 +155,7 @@ async function crewScene({ mates, mine = [], theirs = {}, data, now: at }) {
   return { page, app: page.app, handle: page.handle, fake, ada, crew, run, ...people };
 }
 
-describe("the gate: a crew's change pulled draws Now, the Map, Plans, the crew panel and an open event, and never Search or Explore alone", () => {
+describe("a crew's change pulled is a redraw on any tab: Now, the Map and Plans draw the crew, the crew panel and an open event are refilled in place, and Search and Explore are drawn again with their boxes kept", () => {
   let s;
   beforeAll(async () => {
     s = await crewScene({ mates: [["bo", "Bo"], ["cy", "Cy"], ["dee", "Dee"]], mine: ["s0294"], theirs: { bo: ["s0590"] } });
@@ -183,16 +191,20 @@ describe("the gate: a crew's change pulled draws Now, the Map, Plans, the crew p
     expect([...el("crewMembers").children].map(li => words(li))).toContain("Cyrus Remove");
     s.app.closeSheet();
   });
-  it("the crew panel closed again - its panel's markup left behind the closed sheet - is no gate: Explore draws nothing", async () => {
+  it("the crew panel closed again - its panel's markup left behind the closed sheet: Explore is drawn again, and its filter box is the same node with its text, its focus and its caret", async () => {
     expect(el("sheetWrap").hidden).toBe(true);
     expect(el("panel-crew").hidden).toBe(false);
     tapTab("explore");
     const box = el("exploreQ");
     typeIn(box, "tre", 1, 2);
+    const marker = jumpChip();
     pick(s.fake, s.bo, "s0304");
     await s.run();
+    expect(replaced(marker, jumpChip)).toBe(true);
     expect(el("exploreQ")).toBe(box);
+    expect(document.activeElement).toBe(box);
     expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["tre", 1, 2]);
+    expect(el("sheetWrap").hidden).toBe(true);
   });
   it("an event's sheet open over Search: its who's-going line, in place - the sheet not drawn again, focus where it was - and Search's box as typed", async () => {
     tapTab("browse");
@@ -211,40 +223,47 @@ describe("the gate: a crew's change pulled draws Now, the Map, Plans, the crew p
     expect(el("q")).toBe(q);
     expect(q.value).toBe("dar");
   });
-  it("an event's sheet open over Explore: Explore is drawn again behind it, and its filter box keeps the text typed in it", async () => {
+  it("an event's sheet open over Explore: Explore is drawn again behind it, and its filter box is the same node with its text and its caret - and has its focus again when the sheet closes", async () => {
     tapTab("explore");
     const box = el("exploreQ");
-    typeIn(box, "sta", 3, 3);
+    typeIn(box, "sta", 1, 2);
     s.app.openSheet("event", "s0590");
+    const marker = jumpChip();
     pick(s.fake, s.dee, "s0590");
     await s.run();
     expect(words(el("sheetGoing"))).toBe("Starred by Bo, Cyrus, Dee");
-    expect(el("exploreQ")).not.toBe(box);
-    expect(el("exploreQ").value).toBe("sta");
+    expect(replaced(marker, jumpChip)).toBe(true);
+    expect(el("exploreQ")).toBe(box);
+    expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["sta", 1, 2]);
     expect(s.handle.state.explore.q).toBe("sta");
     escape();
-    expect(el("exploreQ").value).toBe("sta");
+    expect(el("exploreQ")).toBe(box);
+    expect(document.activeElement).toBe(box);
+    expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["sta", 1, 2]);
   });
-  it("Search alone: nothing drawn, and its box keeps its text, its focus and its caret", async () => {
+  it("Search alone: drawn again, and its box is the same node with its text, its focus and its caret", async () => {
     tapTab("browse");
     await s.page.until(() => s.app.index, 10000, "the search index");
     const q = el("q");
     typeIn(q, "dark", 1, 3);
     s.handle.render();                        // the typing's own draw, now rather than after its pause
     q.setSelectionRange(1, 3);
-    const marker = el("browseRest").firstElementChild;
+    const marker = listTop();
     pick(s.fake, s.bo, "s0263");
     await s.run();
-    expect(el("browseRest").firstElementChild).toBe(marker);
+    expect(replaced(marker, listTop)).toBe(true);
+    expect(el("q")).toBe(q);
     expect(document.activeElement).toBe(q);
     expect([q.value, q.selectionStart, q.selectionEnd]).toEqual(["dark", 1, 3]);
   });
-  it("Explore alone: nothing drawn, and its filter box keeps its text, its focus and its caret", async () => {
+  it("Explore alone: drawn again, and its filter box is the same node with its text, its focus and its caret", async () => {
     tapTab("explore");
     const box = el("exploreQ");
     typeIn(box, "star", 1, 2);
+    const marker = jumpChip();
     pick(s.fake, s.bo, "s0349");
     await s.run();
+    expect(replaced(marker, jumpChip)).toBe(true);
     expect(el("exploreQ")).toBe(box);
     expect(document.activeElement).toBe(box);
     expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["star", 1, 2]);
@@ -259,6 +278,74 @@ describe("the gate: a crew's change pulled draws Now, the Map, Plans, the crew p
     tapTab("map");
     expect(document.querySelector("#view-map .map-crew")).toBe(null);
     expect(blockOf("Hyatt").getAttribute("aria-label")).toBe("Hyatt: no picks on Saturday");
+  });
+});
+
+/* The crews forgotten ask for a redraw on any tab too (DECISIONS #80): with
+   no session - another tab signed out - and at a change of owner - another
+   tab signed in as someone else. Between the two the reader signs in again,
+   and the pull brings the crew back. */
+describe("the crews forgotten are a redraw on any tab: with no session, and at a change of owner, Explore and Search are drawn again with their boxes kept", () => {
+  let s, zed;
+  const crews = () => (read("crew") || []).length;
+  const back = async () => { signIn(s.fake, s.ada); await s.run(); expect(crews()).toBe(1); };
+  const onExplore = () => { tapTab("explore"); const box = el("exploreQ"); typeIn(box, "star", 1, 2); return [box, jumpChip()]; };
+  const onSearch = async () => {
+    tapTab("browse");
+    await s.page.until(() => s.app.index, 10000, "the search index");
+    const q = el("q");
+    typeIn(q, "dark", 1, 3);
+    s.handle.render();                        // the typing's own draw, now rather than after its pause
+    q.setSelectionRange(1, 3);
+    return [q, listTop()];
+  };
+  const kept = (box, id, text, from, to) => {
+    expect(el(id)).toBe(box);
+    expect(document.activeElement).toBe(box);
+    expect([box.value, box.selectionStart, box.selectionEnd]).toEqual([text, from, to]);
+  };
+
+  beforeAll(async () => {
+    s = await crewScene({ mates: [["bo", "Bo"]], theirs: { bo: ["s0590"] } });
+    zed = s.fake.held("zed@example.test");
+  }, 30000);
+  afterAll(() => s.page.cleanup());
+
+  it("no session, on Explore", async () => {
+    expect(crews()).toBe(1);
+    const [box, marker] = onExplore();
+    window.localStorage.removeItem(KEY("session"));
+    await s.run();
+    expect(crews()).toBe(0);
+    expect(replaced(marker, jumpChip)).toBe(true);
+    kept(box, "exploreQ", "star", 1, 2);
+  });
+  it("a change of owner, on Search", async () => {
+    await back();
+    const [q, marker] = await onSearch();
+    signIn(s.fake, zed);
+    await s.run();
+    expect([crews(), read("syncStamp").user]).toEqual([0, zed.id]);
+    expect(replaced(marker, listTop)).toBe(true);
+    kept(q, "q", "dark", 1, 3);
+  });
+  it("no session, on Search", async () => {
+    await back();
+    const [q, marker] = await onSearch();
+    window.localStorage.removeItem(KEY("session"));
+    await s.run();
+    expect(crews()).toBe(0);
+    expect(replaced(marker, listTop)).toBe(true);
+    kept(q, "q", "dark", 1, 3);
+  });
+  it("a change of owner, on Explore", async () => {
+    await back();
+    const [box, marker] = onExplore();
+    signIn(s.fake, zed);
+    await s.run();
+    expect([crews(), read("syncStamp").user]).toEqual([0, zed.id]);
+    expect(replaced(marker, jumpChip)).toBe(true);
+    kept(box, "exploreQ", "star", 1, 2);
   });
 });
 
@@ -952,11 +1039,12 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     expect(hereOf(s.bo, "s0376").querySelector(".cn-with")).not.toBe(null);
     escape();
   });
-  it("the gate: a hotel's sheet open over Explore counts - its crew drawn, Explore drawn again behind it, its filter box keeping its text - and with the crew gone, the sheet is next's again", async () => {
+  it("a hotel's sheet open over Explore: its crew drawn, Explore drawn again behind it, its filter box the same node with its text and its caret, and its focus again when the sheet closes - and with the crew gone, the sheet is next's again", async () => {
     tapTab("explore");
     const box = el("exploreQ");
-    typeIn(box, "sta", 3, 3);
+    typeIn(box, "sta", 1, 2);
     s.app.openSheet("hotel", "Marriott");
+    const marker = jumpChip();
     const drawn = hotelPanel().innerHTML;
     expect(drawn).toBe(parsed(hotelSheetBefore(s.app, s.handle.picks.get(), "Marriott", SATURDAY_DAY)));
     pick(s.fake, s.eve, "s0253");
@@ -965,12 +1053,15 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     expect(words(hotelPanel().querySelector(".ev-body p"))).toBe("None of your own picks here on Saturday.");
     expect(hereLines()).toEqual(["Eve · 4:00 PM Fan Panel: Discworld · A601-A602"]);
     expect(before(hotelPanel().querySelector('[data-act="map-search"]'), el("hotelCrew"))).toBe(true);
-    expect(el("exploreQ")).not.toBe(box);
-    expect(el("exploreQ").value).toBe("sta");
+    expect(replaced(marker, jumpChip)).toBe(true);
+    expect(el("exploreQ")).toBe(box);
+    expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["sta", 1, 2]);
     pick(s.fake, s.eve, "s0253", false);
     await s.run();
     expect(hotelPanel().innerHTML).toBe(drawn);
     escape();
+    expect(document.activeElement).toBe(box);
+    expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["sta", 1, 2]);
     tapTab("map");
   });
   it("#66: each line a button, 44px or taller, labelled by what it says, its focus ring inside it", () => {

@@ -1015,19 +1015,22 @@ describe("the crew's day, the segment, and the redraws", () => {
     await run();
     expect(plans().firstElementChild).toBe(marker);
   });
-  it("off Plans, a crew's change pulled draws nothing: Explore's filter keeps its focus and caret", async () => {
+  it("off Plans, a crew's change pulled draws the tab again: Explore's filter box is the same node, with its text, its focus and its caret", async () => {
     tapTab("explore");
     await app.syncSettled();
-    const box = el("exploreQ");
+    const box = el("exploreQ"), jumpChip = () => document.querySelector('#view-explore [data-act="explore-jump"]');
     box.focus();
     box.value = "sta";
     box.dispatchEvent(new Event("input", { bubbles: true }));
     box.setSelectionRange(1, 2);
+    const marker = jumpChip();                // a whole draw of Explore writes its jump chips anew; typing does not
     pick(fake, bo, SAT[5]);
     await run();
+    expect(marker.isConnected).toBe(false);
+    expect([jumpChip() !== null, jumpChip() !== marker]).toEqual([true, true]);
     expect(el("exploreQ")).toBe(box);
     expect(document.activeElement).toBe(box);
-    expect([box.selectionStart, box.selectionEnd]).toEqual([1, 2]);
+    expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["sta", 1, 2]);
     tapTab("plans");
     await app.syncSettled();
     expect(blocks().find(b => b.who.startsWith("Bo")).rows).toContain(SAT[5]);
