@@ -213,6 +213,20 @@ def test_every_level_renders_at_one_scale_with_the_frame_at_one_offset():
     assert size(a)[0] == size(b)[0] and int(size(b)[1]) > int(size(a)[1])
 
 
+def test_a_ballrooms_member_is_labelled_by_the_words_its_groups_name_lacks():
+    svg = render_drawings.render(good(), "2nd Floor", "Hilton Atlanta")
+    for label in ("A", "B", "West", "East"):   # Grand Ballroom A in Grand Ballroom; Salon West in Salon
+        assert f">{label}</text>" in svg
+    d = good()   # the id's last word is the group's: the words before it are the label
+    d["composites"] = []
+    d["rooms"][0]["id"], d["rooms"][1]["id"] = "North Grand Ballroom", "South Grand Ballroom"
+    d["groups"][0]["rooms"] = ["North Grand Ballroom", "South Grand Ballroom"]
+    svg = render_drawings.render(d, "2nd Floor", "Hilton Atlanta")
+    assert ">North</text>" in svg and ">South</text>" in svg and ">Ballroom</text>" not in svg
+    d["rooms"][0]["id"] = d["groups"][0]["rooms"][0] = "Grand Ballroom"   # every word the group's: its last word
+    assert ">Ballroom</text>" in render_drawings.render(d, "2nd Floor", "Hilton Atlanta")
+
+
 # --- the hotel, the level and the file's name ------------------------------------
 
 def test_the_hotel_and_the_level_are_the_venues_files():

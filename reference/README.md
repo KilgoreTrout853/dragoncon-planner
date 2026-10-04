@@ -6,7 +6,8 @@ maps are theirs; we keep copies here for placing our own drawings and never comm
 Layout:
 
     reference/
-      plans/      hotel floor-plan PDFs, named <hotel>-<source>-<year>.pdf (paths are recorded in docs/venues/README.md)
+      plans/      the hotels' floor plans, PDFs and pictures, named <hotel>-<source>-<year>, a picture of one level
+                  with the level after it (paths are recorded in docs/venues/README.md)
       shots/      screenshots of single levels, named <hotel>-<level>.png, for use as a drawing underlay
       dragoncon/  the official app's maps: one PNG per venue with every floor on it, and maps.json, which records
                   where the app outlines each room (Dragon Con's room name, polygon in image pixels, door points,
@@ -19,5 +20,5 @@ Layout:
     reference/*
     !reference/README.md
 
-A new clone has none of it. To rebuild: the PDFs are linked from docs/venues/README.md; the con's maps are at
+A new clone has none of it. To rebuild: the plans are linked from docs/venues/README.md; the con's maps are at
 app.core-apps.com/dragoncon26/maps, and reference/dragoncon/README.md describes the capture.

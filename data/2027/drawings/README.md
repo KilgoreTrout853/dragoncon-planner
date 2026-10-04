@@ -11,7 +11,9 @@ there is one (`reference/plans/`, gitignored), read for position only. Dragon Co
 (`reference/dragoncon/`, gitignored: `maps.json`'s outlines, or the picture's labels where it outlines none) says
 which rooms the con uses and their names, and places a hotel that has no plan. Sizes come from the hotels' published
 capacity tables, each room turned as the plan draws it; where a table contradicts its own square footage, the plan's
-shape. Nothing of theirs is copied into these files.
+shape; and where a table gives a room's area and not its sides, the whole feet whose product is the area and whose
+shape is the plan's, a row of rooms sharing the side the plan draws them sharing (DECISIONS #79; the Courtland
+Grand). Nothing of theirs is copied into these files.
 
 ## Coordinates
 

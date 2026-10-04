@@ -1,0 +1,160 @@
+{
+  "hotel": "Courtland Grand",
+  "level": "f3",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 320,
+    "h": 310
+  },
+  "anchors": [
+    {
+      "name": "north tower elevators",
+      "x": 234.6,
+      "y": 92.1
+    },
+    {
+      "name": "south tower elevators",
+      "x": 170.0,
+      "y": 290.0
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Grand Ballroom A",
+      "cx": 112.7,
+      "cy": 184.0,
+      "w": 48,
+      "h": 54,
+      "rot": 0
+    },
+    {
+      "id": "Grand Ballroom B",
+      "cx": 112.7,
+      "cy": 238.5,
+      "w": 48,
+      "h": 55,
+      "rot": 0
+    },
+    {
+      "id": "Grand Ballroom C",
+      "cx": 112.7,
+      "cy": 276.5,
+      "w": 48,
+      "h": 21,
+      "rot": 0
+    },
+    {
+      "id": "Grand Ballroom D",
+      "cx": 44.7,
+      "cy": 184.0,
+      "w": 48,
+      "h": 54,
+      "rot": 0
+    },
+    {
+      "id": "Grand Ballroom E",
+      "cx": 44.7,
+      "cy": 238.5,
+      "w": 48,
+      "h": 55,
+      "rot": 0
+    },
+    {
+      "id": "Grand Ballroom F",
+      "cx": 45.7,
+      "cy": 276.5,
+      "w": 46,
+      "h": 21,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "Grand Ballroom",
+      "kind": "ballroom",
+      "rooms": [
+        "Grand Ballroom A",
+        "Grand Ballroom B",
+        "Grand Ballroom C",
+        "Grand Ballroom D",
+        "Grand Ballroom E",
+        "Grand Ballroom F"
+      ],
+      "outline": {
+        "cx": 78.7,
+        "cy": 222.0,
+        "w": 116,
+        "h": 130,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Salon Hallway",
+      "cx": 78.7,
+      "cy": 222.0,
+      "w": 20.0,
+      "h": 130.0,
+      "rot": 0
+    },
+    {
+      "name": "Grand Prefunction",
+      "cx": 78.7,
+      "cy": 141.5,
+      "w": 116.0,
+      "h": 31.0,
+      "rot": 0
+    },
+    {
+      "name": "Grand Foyer",
+      "cx": 148.2,
+      "cy": 222.0,
+      "w": 23.0,
+      "h": 130.0,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "North Tower elevators",
+      "x": 234.6,
+      "y": 92.1
+    },
+    {
+      "kind": "elevator",
+      "name": "South Tower elevators",
+      "x": 170.0,
+      "y": 290.0
+    }
+  ],
+  "streets": [
+    {
+      "name": "Andrew Young International Blvd NE",
+      "side": "N"
+    },
+    {
+      "name": "Courtland Street NE",
+      "side": "W"
+    },
+    {
+      "name": "Ellis Street NE",
+      "side": "S"
+    }
+  ],
+  "sources": [
+    "sizes: the hotel's own capacity chart (https://courtlandgrandhotel.com/floor-plan-capacity-charts/, read 2026-10-03). The chart gives each room's area and not its sides: the sides are the whole feet whose product is the chart's area and whose shape is the plan's",
+    "placement, order and orientation: the hotel's own floor plan, reference/plans/courtland-grand-site-2024-level-3.webp, the picture of level 3 on the same page (2194 x 1734 px), measured from the two banks of elevators it draws (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, what it calls them and which way is north: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "the Grand Ballroom, on the Courtland Street side, above the front drive: the Grand Prefunction along its north end and the Grand Foyer down its east side, towards the elevators",
+    "the venues file's Grand Ballroom A to F are the hotel's Salons A to F: A, B and C down the east side, north to south, and D, E and F down the west, with the Salon Hallway, 20 ft wide and inside the ballroom, between the two columns. The ballroom is 130 x 116 ft in the chart",
+    "A and D are 54 ft north to south, B and E 55, C and F 21; each is 48 ft wide but F, which is 46 and is drawn against the hallway. F's 46 is its own row's 966 sq ft; the chart's combined rows, Salon D-F and E-F, count it as 1,008, which is 48",
+    "the plan draws the ballroom larger than the chart: measured from the two banks of elevators, as the other two floors are, it is about 122 x 140 ft. It is drawn at the chart's 116 x 130, centred on the plan's, so its north and south walls are about 5 ft inside the plan's, and the South Tower elevators stand just south of its south wall's line where the plan has them just north of it",
+    "the Salon Hallway is the chart's 130 x 116 less the two columns of salons; the Grand Prefunction and the Grand Foyer are drawn by eye"
+  ]
+}

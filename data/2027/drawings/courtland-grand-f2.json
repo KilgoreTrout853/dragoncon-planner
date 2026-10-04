@@ -1,0 +1,113 @@
+{
+  "hotel": "Courtland Grand",
+  "level": "f2",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 320,
+    "h": 310
+  },
+  "anchors": [
+    {
+      "name": "north tower elevators",
+      "x": 234.6,
+      "y": 92.1
+    },
+    {
+      "name": "south tower elevators",
+      "x": 170.0,
+      "y": 290.0
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Athens",
+      "cx": 115.3,
+      "cy": 168.8,
+      "w": 44,
+      "h": 39,
+      "rot": 0
+    },
+    {
+      "id": "Augusta",
+      "cx": 115.3,
+      "cy": 202.3,
+      "w": 44,
+      "h": 28,
+      "rot": 0
+    },
+    {
+      "id": "Macon",
+      "cx": 115.3,
+      "cy": 230.3,
+      "w": 44,
+      "h": 28,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [],
+  "open": [
+    {
+      "name": "Cities Hallway",
+      "cx": 151.1,
+      "cy": 210.3,
+      "w": 27.7,
+      "h": 122.0,
+      "rot": 0
+    },
+    {
+      "name": "Lobby",
+      "cx": 181.5,
+      "cy": 55.0,
+      "w": 77.2,
+      "h": 27.6,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "North Tower elevators",
+      "x": 234.6,
+      "y": 92.1
+    },
+    {
+      "kind": "elevator",
+      "name": "South Tower elevators",
+      "x": 170.0,
+      "y": 290.0
+    },
+    {
+      "kind": "entrance",
+      "name": "Courtland Street entrance",
+      "x": 142.1,
+      "y": 58.4
+    }
+  ],
+  "streets": [
+    {
+      "name": "Andrew Young International Blvd NE",
+      "side": "N"
+    },
+    {
+      "name": "Courtland Street NE",
+      "side": "W"
+    },
+    {
+      "name": "Ellis Street NE",
+      "side": "S"
+    }
+  ],
+  "sources": [
+    "sizes: the hotel's own capacity chart (https://courtlandgrandhotel.com/floor-plan-capacity-charts/, read 2026-10-03). The chart gives each room's area and not its sides: the sides are the whole feet whose product is the chart's area and whose shape is the plan's",
+    "placement, order and orientation: the hotel's own floor plan, reference/plans/courtland-grand-site-2024-level-2.webp, the picture of level 2 on the same page (2436 x 1830 px), measured from the two banks of elevators it draws (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, what it calls them and which way is north: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "the lobby floor: the front drive and the Courtland Street entrance at the north-west, the lobby east of it, and the meeting rooms in a row down the west side of the Cities Hallway",
+    "Athens, Augusta and Macon run north to south, 39, 28 and 28 ft, on one 44 ft depth. Valdosta, 27 ft, ends the row south of Macon; it is on the plan, is not a room of the venues file and had no 2026 programming, so it is not drawn",
+    "the Cities Hallway and the Lobby are drawn by eye. The hallway is drawn its whole length, so it runs 27 ft past Macon with nothing beside it: Valdosta is there. The Savannah rooms, south-east of the hallway, are on the plan and not in the venues file",
+    "the plan is measured from the two banks of elevators all three floors' plans draw. At that scale it draws the row, Valdosta with it, 44.0 x 122.0 ft against the chart's 44 x 122"
+  ]
+}
