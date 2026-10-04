@@ -34,7 +34,8 @@ sheet) and 7 (what each reader sees).
   text leaves the map alone; a field's text is never under 16px: an
   iPhone zooms the page on focus - and zoom itself is never limited or
   blocked. Each pull request's description says how it met them until
-  Playwright checks them (#24, #57).
+  the browser tests check them: the harness is built (#81), and step 11's
+  sweep adds these to it.
 - **The ladder** (VISION): useful in ten seconds, better with a crew, best
   installed. Every screen makes sense at the rung the reader is on and
   makes the next rung obvious without nagging: a stranger opens on
@@ -65,7 +66,8 @@ As built: the recon, section 1; the numbers, section 9.
   con, Now during it and after it. A `#explore=` link opens its page, and a
   kept `?join=` opens Plans' join step in any phase (section 11). Today
   `state.tab` starts as `"now"` on every load (`state.js`).
-- **The header** is unchanged.
+- **The header** is unchanged, but for where its simulated-time chip
+  stands (#82; The chip, as built).
 - **The mini-bar** shows on Search, Explore and Plans, as today it shows on
   Search, Explore and Mine. Its right-hand words are "in 47 min", by
   `util.js` `fmtMins()`, as today; the leave-by cases go (section 12).
@@ -157,6 +159,21 @@ PR #74, with #62.
   The phone check passed: the five labels in order, the badge on
   Plans, the mini-bar flush on the nav with the dev-build mark lifted above
   it, and the map filling to the nav with its card below.
+
+### The chip, as built
+
+PR #101, with #66, #81 and #82. While a clock is simulated the header's line
+reads the clock, the chip, then the freshness line: `#simChip` stands
+between `#clock` and `#fresh`, so the words after it take the ellipsis
+and the chip is drawn whole at every size, with Larger text on,
+whatever the hour. Its look is as it was. Its tap area is its `::after`,
+18 px above its box and 9 below - 44 px tall or more, and inside the
+header on every tab - and `.hdr-line` carries that room as padding, taken
+back as margin: the header's height and `--hdr-h` are what they were,
+63 px, and nothing else in the header moved. A screen reader meets the
+clock, the chip, the freshness line, then the gear. Held by
+`tests/browser/chip.spec.js`, in Chromium and in WebKit at 375, 390 and
+402 wide; on a phone it is the pull request's to check.
 
 ## 2. Now
 

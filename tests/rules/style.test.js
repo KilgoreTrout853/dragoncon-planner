@@ -6,8 +6,8 @@
    assertion that also made a claim about the page: that half is a page test.
 
    These pin declarations, not rendering. jsdom computes no layout, so a rule
-   over the text is the most that can be said here; what a phone actually
-   draws is Playwright's to check when it arrives (DECISIONS #24). */
+   over the text is the most that can be said here; what a browser actually
+   draws is the browser tests' to check (tests/browser/, DECISIONS #81). */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

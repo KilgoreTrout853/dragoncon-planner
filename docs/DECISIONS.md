@@ -277,7 +277,7 @@ execute `<script type="module">`, so the inlined script is emitted as a
 classic script (or the test loader strips the attribute). Two toolchains:
 Python owns the pipeline, Node owns the client.
 
-### 24. Vitest and pytest; ESLint with two rules (three since 2026-09-19: `no-unused-vars`); Playwright deferred — Built (2026-09-18) — pgTAP for the database, in a `database` CI job, by #52; Playwright may come forward as a standalone pull request before Delivery, by #57; Playwright is to check #66's requirements when it comes
+### 24. Vitest and pytest; ESLint with two rules (three since 2026-09-19: `no-unused-vars`); Playwright deferred — Built (2026-09-18) — pgTAP for the database, in a `database` CI job, by #52; Playwright may come forward as a standalone pull request before Delivery, by #57; Playwright is to check #66's requirements when it comes; the harness built by #81, PR #101, for layout, its trigger amended: it came with a layout fault, before any change to `sw.js`; its tests of the worker, of offline and of install are still to write
 **Decided:** Vitest (jsdom environment) for the client, run by `npm test`;
 pytest for the pipeline, run by `python -m pytest tests/` (the existing
 test files are already pytest-shaped; only the manual `__main__` runners
@@ -1709,7 +1709,7 @@ that mints and then fails leaves an anonymous user with no crew, for the
 cleanup. An installed iPhone reader joins by pasting the link, not by
 tapping it.
 
-### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28) — the runner pin, PR #64, went first, for GitHub's date; the built inventory, `docs/scope-2027.md`'s section 1, added as a source and read before the wanted list; the verdicts landed, `docs/scope-2027.md`'s sections 2 and 3, with #59 and #60 (PR #69); Places' building view is #60's: its drawings a side lane, its screens Where things live's; W44, the calendar alarm, a standalone pull request in a free execution slot, as Playwright may be; Part B landed, `docs/official-app-2026.md` (PR #70); Where things live opened with the pass's output, the recon PR #72
+### 57. The order after Identity and sync: the scope pass, Where things live, Delivery last — Standing (2026-09-28) — the runner pin, PR #64, went first, for GitHub's date; the built inventory, `docs/scope-2027.md`'s section 1, added as a source and read before the wanted list; the verdicts landed, `docs/scope-2027.md`'s sections 2 and 3, with #59 and #60 (PR #69); Places' building view is #60's: its drawings a side lane, its screens Where things live's; W44, the calendar alarm, a standalone pull request in a free execution slot, as Playwright may be; Part B landed, `docs/official-app-2026.md` (PR #70); Where things live opened with the pass's output, the recon PR #72; Playwright came forward by this leave, a standalone pull request in the execution slot (#81, PR #101)
 **Decided:** After Identity and sync the design slot goes to a scope pass;
 Where things live opens with its output, and Delivery comes last. This
 amends #37's order and adds to #30 a step that is not a tentpole;
@@ -2002,7 +2002,7 @@ after seven days without a visit (#25).
 settles #40's open question - a standing line on Now, or the moment it
 earns itself - as the second.
 
-### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built); the entry points' by PR #94 (#75): the place's target 44 px tall with the head not grown, a chip's 44 px tall and at least 44 wide around the chip's own look, each named for where it goes or by its kind, and keyboard focus landing on what a tap opened - the Map's card, an Explore page's heading, from the grid's tiles too (`docs/screens/contract.md`, sections 6 and 7, as built); the more-below cue's by PR #95 (#76): no new control and no tap target's size or place changed, a control that takes focus scrolled clear of both bands by each area's scroll padding, nothing a screen reader hears changed, and nothing that moves, so no reduced-motion rule (`docs/screens/contract.md`, section 7, as built); the facet filters' by PR #96 (#77): four selects, each with a name of its own and 44 px tall, under a small label that names their group, at the sheet's 16 px so an iPhone does not zoom, a choice written in place with focus kept on its select, and a chip taken off sending focus as the others do (`docs/screens/contract.md`, section 3, as built); the sheet's edges' by PR #97 (#78): a focus ring drawn whole at the sides of the sheet's five scrollers, by 4 px of room that moves nothing, and an arrow where an area has more below that is no control - no tap, nothing a screen reader meets - at 6.3:1 on the sheet and with no animation; a ring is still cut at an area's top or foot, and at an event's panel's (`docs/screens/contract.md`, section 7, The sheet's edges, as built, and section 14)
+### 66. Accessibility is a requirement, not a home — Decided, not built (2026-09-30) — focus into the sheet on open and back to what opened it on close, and Escape closing it, built for every panel by PR #77, with a label and 44px on every control that PR added (`docs/screens/contract.md`, section 5, as built); focus kept through a redraw on Now and the Map, and through the minute's tick, by PR #81, with a label and 44px on its new controls and the contrast of the Map's crew count (`docs/screens/contract.md`, sections 2 and 6, as built); focus kept through a pull's refill of the hotel sheet's crew, in place, by PR #82, with a label and 44px on its lines (`docs/screens/contract.md`, section 8, as built); focus, Escape and the way back for Share a day's two panels by PR #85, with a label and 44px on their controls, and My day's action strip and view toggle grown to 44px (`docs/screens/contract.md`, section 5, Share a day, as built); the filter sheet's by PR #88 (#70): focus to its heading and back to the Filters button, Escape, a label and 44px on every control in its panel - the Type control and the selects grown from 40 - the Filters button at the box's 48px, the row of chips under the box grown to 44px, and focus, when a chip there is taken off, on the one that takes its place, else on the Filters button, never the box (`docs/screens/contract.md`, section 3, as built); the event sheet's by PR #93 (#74): every new tap 44 px tall and at least 44 wide - a person's name, a session, an overlapped pick - the star's tap and a pull written in place with focus kept, the overlap line a polite live region, and focus on the heading of a sheet opened from a sheet (`docs/screens/contract.md`, section 7, as built); the entry points' by PR #94 (#75): the place's target 44 px tall with the head not grown, a chip's 44 px tall and at least 44 wide around the chip's own look, each named for where it goes or by its kind, and keyboard focus landing on what a tap opened - the Map's card, an Explore page's heading, from the grid's tiles too (`docs/screens/contract.md`, sections 6 and 7, as built); the more-below cue's by PR #95 (#76): no new control and no tap target's size or place changed, a control that takes focus scrolled clear of both bands by each area's scroll padding, nothing a screen reader hears changed, and nothing that moves, so no reduced-motion rule (`docs/screens/contract.md`, section 7, as built); the facet filters' by PR #96 (#77): four selects, each with a name of its own and 44 px tall, under a small label that names their group, at the sheet's 16 px so an iPhone does not zoom, a choice written in place with focus kept on its select, and a chip taken off sending focus as the others do (`docs/screens/contract.md`, section 3, as built); the sheet's edges' by PR #97 (#78): a focus ring drawn whole at the sides of the sheet's five scrollers, by 4 px of room that moves nothing, and an arrow where an area has more below that is no control - no tap, nothing a screen reader meets - at 6.3:1 on the sheet and with no animation; a ring is still cut at an area's top or foot, and at an event's panel's (`docs/screens/contract.md`, section 7, The sheet's edges, as built, and section 14); the browser tests came with #81, PR #101, and check none of these yet but the tap area of the header's simulated-time chip, 44 px tall or more (#82): step 11's sweep adds the rest to the harness, and until then "met" is still a pull request's word
 **Decided:** Every screen Where things live touches meets these, and none
 of them has a screen of its own (W43):
 - a label on every new control;
@@ -2867,3 +2867,81 @@ box into view - in Chromium at 375x667 to the foot of `main`, under the
 mini-bar and the nav, where a key typed in a box scrolled away already
 put it. What an iPhone's keyboard does through each of these is a
 phone's to check.
+
+### 81. Browser tests: Playwright, thin, in two engines at three sizes — Standing (2026-10-04)
+**Decided:** A second kind of test runs the built page in real browsers
+(`npm run test:browser`; `tests/browser/`; PR #101). It amends #24's
+trigger - Playwright came with a layout fault, not with a change to
+`sw.js` - and uses #57's leave. `@playwright/test` drives Chromium and
+WebKit at the three sizes the reviews use, 375x667, 390x664 and 402x714,
+as a phone, touch on, against `dist/` built afresh for the default year
+with no channel and no backend and served by the harness, which never
+uses a server it finds; the worker is blocked, the clock is `?now=`, the
+zone is the season file's. Barlow is always the face measured: its four
+weights come from `@fontsource/barlow-semi-condensed` in place of the
+Google Fonts request, a test fails where one did not load, and a request
+to any other machine fails it too. It is kept thin: two standing checks
+on each of the five tabs, for a stranger and for a reader with picks and
+follows, at a moment during the con and one before it, and a named test
+for each layout fault from here on. Nothing scrolls sideways: `main` and
+the page are no wider than the screen. No control is cut off: every
+button, link, input, select and textarea that is shown lies inside every
+ancestor that clips it, on each axis, up to the first ancestor that
+scrolls on that axis - what is past a scroller's edge is reached by
+scrolling, and is not cut - and a control in a fixed element is checked
+up to that element, then against the screen. No retries, here or in CI,
+and no waits by the clock. Left out: pictures kept and compared; the
+worker, offline and install, which stay Delivery's (#24; ROADMAP); the
+accessibility sweep, step 11's, which adds to this harness (#66); and
+the sheet's panels, which the pull request that touches one adds. And it
+is not an iPhone: no iOS keyboard, no safe-area insets, no home-screen
+app, and `IS_IOS` is false in both engines. Those stay checks on a phone.
+
+**Why:** jsdom has no layout: it knows what is on the page and not where,
+nor how wide. Four layout faults reached a phone that no test could see -
+one in PR #81, one in PR #82, PR #95's fade at 390 wide, and the header's
+chip (#82). The stop at a scroller is the rule: without it every row
+below the fold and every chip in a sideways row reads as cut.
+**Cost:** A fourth CI job, `browser`, and its minutes on every pull
+request - about three when it was added, the longest of the four jobs -
+which grow with every test; it is required on `next` once it is
+added to the ruleset by hand, after its first green run there, as
+`database` was (#26; ROADMAP, Checklist). Two dev dependencies, each
+pinned to an exact version, which move by hand - Dependabot is for
+actions alone (#26) - with CI's cache of the engines keyed by the
+Playwright version, so a moved pin fetches its own; the engines'
+system libraries come by apt at every run. A one-time install of the
+engines on each machine (README). A check that is skipped is named,
+dated, says why and has a ROADMAP Flag.
+
+### 82. The simulated-time chip stands after the clock, with a tap area 44 px tall — Standing (2026-10-04)
+**Decided:** While the clock is simulated the header's chip is drawn
+whole - at every size, in both engines, with Larger text on, whatever the
+hour and whatever the freshness line says: the words give way, never the
+chip (`docs/screens/contract.md`, section 1, The chip, as built; PR #101).
+`#simChip` stands between `#clock` and `#fresh`, a note on the clock, so
+the end of the line is words, which take the ellipsis after
+`fitHeaderLine()`'s two steps; nothing new is measured, and a screen
+reader meets the clock, the chip, the freshness line and then the gear.
+Its tap area is its `::after`, 18 px above the chip's box and 9 below:
+44 px tall or more, and uneven so that it ends inside the header on every
+tab, with Larger text too. The line clips what leaves it, so the line is
+given that room as padding and takes it back as margin: nothing moves,
+and the header is no taller. The browser tests hold all of it (#81),
+and no rule over the stylesheet does.
+
+**Why:** The chip is the one tap back to the real clock, and on a phone
+it was not drawn: it stood last in a line that is one line, and an
+ellipsis drops whole a box that does not fit. On `next` it was cut at 375
+and at 390 wide at any hour, and at 402 under a wider clock - "Thu 10:00
+AM" - or with Larger text on, in Chromium and in WebKit alike. At 402
+wide, at 1:05 PM, with Larger text off, WebKit on Windows draws it with
+7 px to spare, so why an iPhone of that width never showed it is not
+settled by any test here. And it was 20 px tall where #66 asks 44.
+**Cost:** While a clock is simulated the freshness line is cut short
+sooner - at 375 wide its "Mon 8:50 AM" ends in an ellipsis - which only a
+simulated clock ever shows. The line's box is 27 px taller than its
+text, by padding its margin takes back: a later rule on `.hdr-line` keeps
+both, or the chip's area is clipped. A chip tapped by keyboard goes with
+focus on it, and focus falls to the page: older than this, and step 11's
+sweep's (ROADMAP, Flags).

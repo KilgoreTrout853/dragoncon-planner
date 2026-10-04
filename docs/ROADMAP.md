@@ -299,9 +299,10 @@ Checklist, below, keeps the history:
   function secrets - and Vault's two rows, `project_url` and
   `push_secret`; and the function deployed (Checklist; #55;
   `docs/sync/contract.md`, section 7, as built).
-- Before the freeze, `database` required on the `main` ruleset beside
-  `client` and `pipeline`: the Checklist's line names those two, written
-  before the `database` job existed (Checklist; #48, #52).
+- Before the freeze, `database` and `browser` required on the `main`
+  ruleset beside `client` and `pipeline`: the Checklist's line names
+  those two, written before the `database` and `browser` jobs existed
+  (Checklist; #48, #52, #81).
 - At the freeze, the build that publishes `main` given production's
   `DC_SUPABASE_URL` and `DC_SUPABASE_KEY`, as the next site's build is
   given the dev project's - variables, not secrets, since the key is the
@@ -455,8 +456,11 @@ execution slot (#57), which can run before any of this.
 10. The building view (#60): a short sequence of its own, the drawings a
     side lane; the place line reaches the room's grain here (contract,
     section 6).
-11. An accessibility sweep (#66) of what the pull requests above left;
-    then Playwright, from the execution slot.
+11. An accessibility sweep (#66) of what the pull requests above left,
+    which adds its checks to the browser tests. Their harness came
+    forward from the execution slot - built (PR #101, #81): Playwright in
+    two engines at three sizes, two standing checks on every tab, and
+    the header's simulated-time chip its first named test (#82).
 
 The rename and the leave-by removal are the first two changes a reader
 sees: the group can tap the five tabs after PR 2 and the quieter Now after
@@ -476,7 +480,8 @@ Open here (contract, Open):
 
 How the app reaches a phone and stays current: `sw.js` and its cache version
 (#4), hashed assets against the single file (#23), the IIFE-or-module sharp
-edge (ARCHITECTURE.md), Playwright (#24), the install flow, the client side
+edge (ARCHITECTURE.md), Playwright's tests of the worker, of offline and
+of install (#24; its harness is built, #81), the install flow, the client side
 of a push subscription, and Pages from Actions (#26).
 
 The install flow is W36 (`docs/scope-2027.md`), 2027, W37 folded in: its
@@ -484,9 +489,10 @@ mechanics are Delivery's; what it says and when it shows are the install
 nudge's, whose home is the top of Now, shown once the reader has a pick
 (#65; `docs/screens/contract.md`, section 2).
 
-Playwright (#24) may come forward as a standalone pull request in a free
-execution slot (#57): a real-browser test earns its place under a UI
-reshaping, and depends on nothing else here.
+Playwright (#24) came forward as a standalone pull request in the
+execution slot (#57), for layout (PR #101, #81): a real-browser test earns
+its place under a UI reshaping, and depended on nothing else here. Its
+tests of the worker, of offline and of install are still Delivery's.
 
 Open: `index.html` needs `mobile-web-app-capable` beside the Apple meta
 (Chrome's deprecation warning, 2026-09-25).
@@ -553,8 +559,10 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   because `main` has no scroll padding for them - in Chromium at 375x667
   the box's top stands at 633 px, the mini-bar's at 549 and the nav's at
   597 - which is older than PR #100, where a key typed in a box scrolled
-  away put it in the same place. Step 11's sweep's (contract, sections 4
-  and 14).
+  away put it in the same place. And the header's simulated-time chip,
+  tapped by keyboard, goes with focus on it, and focus falls to the page:
+  older than PR #101, which moved the chip and did not fix it (#82). Step
+  11's sweep's (contract, sections 4 and 14).
 - ~~A pull that changes the reader's own pick of an open event leaves the
   sheet's star stale until the sheet is reopened - a tap on it meanwhile
   does what the pick as kept calls for, not what the star shows:
@@ -602,6 +610,12 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   the notice, and the card under the map is cut at the page's top. It
   predates PR #94, which made it show after the con too, where the Map had
   no card and a focused event now has one (contract, sections 6 and 14).
+- The star's anchoring has no test that can fail. [53] in
+  `tests/page/now.test.js` cannot fail without layout - every rect in
+  jsdom is 0 - and [1240] in `tests/rules/source.test.js` pins
+  `togglePick()`'s signature in its place. Both stay until a browser test
+  of the star's anchoring is written, and retire with it: the harness for
+  one exists since PR #101 (#81), and the test is not written.
 - Three places rewrite the address, each its own way: `time.js`
   `setOverride()`, the `?now=`; `crews.js` `readJoinLink()`, the `?join=`;
   and since PR #85 `sheet.js` `takeDayLink()`, the `?day=`. One helper for
@@ -620,6 +634,8 @@ Steps taken by hand, beside the PRs rather than in them:
   repository variable.
 - After the `database` job's first green run: `database` required on the
   `next` ruleset (#52).
+- After the `browser` job's first green run on `next`: `browser` required
+  on the `next` ruleset (#81).
 - On the dev project, for the email step: anonymous sign-ins turned on, and
   the Magic Link and Change Email Address templates sending the code,
   `{{ .Token }}`, rather than a link (#51, #53).

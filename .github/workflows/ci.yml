@@ -1,9 +1,10 @@
 name: CI
 
 # DECISIONS #26. One job per toolchain: Node owns the client, Python owns the
-# pipeline, and SQL the database (#52). The job ids `client`, `pipeline` and
-# `database` are the check names the ruleset on `next` requires - renaming any
-# one un-gates the branch.
+# pipeline, and SQL the database (#52); a fourth, `browser`, runs the client
+# in real browsers (#81). The job ids `client`, `pipeline` and `database` are
+# the check names the ruleset on `next` requires - renaming any one un-gates
+# the branch - and `browser` is one of them once it is added there by hand.
 on:
   pull_request:
     branches: [next, main]
@@ -71,3 +72,40 @@ jobs:
       # The database alone: the migrations and the seed applied.
       - run: npm --prefix supabase run start
       - run: npm --prefix supabase test
+
+  # The built page in Chromium and in WebKit, by Playwright (#81). The engines
+  # - Chromium's headless shell, and WebKit - are kept in a cache keyed by the
+  # Playwright version, so a moved pin fetches its own; the system libraries
+  # they need come by apt at every run. test:browser builds the page for
+  # itself. A failed run keeps its report, the traces in it.
+  browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - id: engines
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.engines.outputs.cache-hit != 'true'
+        run: npx playwright install --only-shell chromium webkit
+      - run: npx playwright install-deps chromium webkit
+
+      - run: npm run test:browser
+
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
