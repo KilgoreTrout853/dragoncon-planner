@@ -1,0 +1,196 @@
+{
+  "hotel": "Courtland Grand",
+  "level": "f1",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 320,
+    "h": 310
+  },
+  "anchors": [
+    {
+      "name": "north tower elevators",
+      "x": 234.6,
+      "y": 92.1
+    },
+    {
+      "name": "south tower elevators",
+      "x": 170.0,
+      "y": 290.0
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Georgia Ballroom",
+      "cx": 96.3,
+      "cy": 189.3,
+      "w": 84,
+      "h": 162,
+      "rot": 0
+    },
+    {
+      "id": "North Capitol Ballroom",
+      "cx": 209.5,
+      "cy": 145.8,
+      "w": 70,
+      "h": 97,
+      "rot": 0
+    },
+    {
+      "id": "South Capitol Ballroom",
+      "cx": 209.5,
+      "cy": 214.3,
+      "w": 70,
+      "h": 40,
+      "rot": 0
+    },
+    {
+      "id": "Atlanta 1",
+      "cx": 280.1,
+      "cy": 106.0,
+      "w": 32,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "Atlanta 2",
+      "cx": 280.1,
+      "cy": 132.0,
+      "w": 32,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "Atlanta 3",
+      "cx": 280.1,
+      "cy": 158.0,
+      "w": 32,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "Atlanta 4",
+      "cx": 280.1,
+      "cy": 184.0,
+      "w": 32,
+      "h": 26,
+      "rot": 0
+    },
+    {
+      "id": "Atlanta 5",
+      "cx": 280.1,
+      "cy": 210.0,
+      "w": 32,
+      "h": 26,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "Capitol Ballroom",
+      "kind": "ballroom",
+      "rooms": [
+        "North Capitol Ballroom",
+        "South Capitol Ballroom"
+      ],
+      "outline": {
+        "cx": 209.5,
+        "cy": 165.8,
+        "w": 70.0,
+        "h": 137.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "Atlanta 1–5",
+      "kind": "run",
+      "rooms": [
+        "Atlanta 1",
+        "Atlanta 2",
+        "Atlanta 3",
+        "Atlanta 4",
+        "Atlanta 5"
+      ],
+      "outline": {
+        "cx": 280.1,
+        "cy": 158.0,
+        "w": 32.0,
+        "h": 130.0,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Georgia Prefunction",
+      "cx": 88.5,
+      "cy": 84.1,
+      "w": 115.9,
+      "h": 41.9,
+      "rot": 0
+    },
+    {
+      "name": "Capitol Prefunction",
+      "cx": 205.5,
+      "cy": 79.0,
+      "w": 114.5,
+      "h": 31.7,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "North Tower elevators",
+      "x": 234.6,
+      "y": 92.1
+    },
+    {
+      "kind": "elevator",
+      "name": "South Tower elevators",
+      "x": 170.0,
+      "y": 290.0
+    },
+    {
+      "kind": "entrance",
+      "name": "Andrew Young International Blvd entrance",
+      "x": 160.1,
+      "y": 22.3
+    },
+    {
+      "kind": "info",
+      "name": "Convention information",
+      "x": 101.8,
+      "y": 67.1
+    }
+  ],
+  "streets": [
+    {
+      "name": "Andrew Young International Blvd NE",
+      "side": "N"
+    },
+    {
+      "name": "Courtland Street NE",
+      "side": "W"
+    },
+    {
+      "name": "Ellis Street NE",
+      "side": "S"
+    }
+  ],
+  "sources": [
+    "sizes: the hotel's own capacity chart (https://courtlandgrandhotel.com/floor-plan-capacity-charts/, read 2026-10-03). The chart gives each room's area and not its sides: the sides are the whole feet whose product is the chart's area and whose shape is the plan's",
+    "placement, order and orientation: the hotel's own floor plan, reference/plans/courtland-grand-site-2024-level-1.webp, the picture of level 1 on the same page (1514 x 1138 px), measured from the two banks of elevators it draws (DECISIONS #28: read for position only, nothing copied)",
+    "which rooms the con uses, what it calls them and which way is north: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "the lowest of the hotel's three meeting floors, below the lobby: the Georgia Ballroom on the Courtland Street side, the Capitol Ballroom in the middle and the Atlanta rooms east of it, with the prefunction halls along their north ends",
+    "the Georgia Ballroom is the con's name for what the hotel calls Georgia Hall: Georgia 2 to 12 opened into one room, six rooms down the west side and five down the east. It is drawn as one room, 84 x 162 ft, the chart's rooms added up; the corner at its north-east, 45 x 29 ft, is GA 1 and its stairs, which are not part of the hall. The hotel's venues page prints the hall as 160 x 76.9: its area over 160",
+    "the hotel divides the Capitol Ballroom into three: North, 57 ft, then Center and South, 40 ft each, 137 x 70 together. The con's map draws two, North Capitol and South Capitol, with the wall between them where the plan draws the one between Center and South; so North Capitol is drawn as the hotel's North and Center together, 97 ft, and South Capitol as its South",
+    "Atlanta 1 to 5 are five equal rooms in a row, 1 at the north end, 130 x 32 together",
+    "the two prefunction halls are drawn by eye; the Georgia Prefunction also runs down the hall's west side, which is not drawn",
+    "Convention information is Dragon Con's map's, in the Georgia Prefunction, placed by eye; the entrance is the one the con's map marks, on the Andrew Young International Blvd side",
+    "the plan is measured from the two banks of elevators all three floors' plans draw. At that scale it draws the Georgia hall about 87 x 165 ft, the Capitol Ballroom 68 x 138 and the Atlanta rooms 31 x 126"
+  ]
+}
