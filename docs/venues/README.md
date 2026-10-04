@@ -34,9 +34,9 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 | Hilton | 2nd Floor | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | 14 of 32 rooms + Grand East/West + Salon as one | `data/2027/drawings/hilton-l2.json` · sizes from the table, placement from the plan; 201 and 215–224 not drawn |
 | Hilton | 1st Floor | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | Crystal Ballroom as one outline | `data/2027/drawings/hilton-l1.json` · sizes from the table, placement from the plan |
 | Hilton | Galleria | have · [Hotel's 2024 group sales playbook](https://hiltonatlanta.com/wp-content/uploads/HiltonAtlanta_2024-GroupSalesPlaybook_EditablewUpdated_July_2024.pdf) | yes | `reference/plans/hilton-playbook-2024.pdf` | 8 of 8 rooms | `data/2027/drawings/hilton-galleria.json` · placement from the plan; sizes from the table but Galleria 3, 5, 6 and 7, the plan's |
-| Courtland Grand | 3rd Floor | none | no | — | image only · rooms labelled on the image | none |
-| Courtland Grand | 2nd Floor | none | no | — | image only · rooms labelled on the image | none |
-| Courtland Grand | 1st Floor | none | no | — | image only · rooms labelled on the image | none |
+| Courtland Grand | 3rd Floor | have · [Hotel's own floor plan, a picture](https://courtlandgrandhotel.com/wp-content/webp-express/webp-images/doc-root/wp-content/uploads/Screenshot-2024-10-23-at-17.38.31.png.webp) on its [floor plans page](https://courtlandgrandhotel.com/floor-plan-capacity-charts/) | areas only · the hotel's capacity chart on the same page, read 2026-10-03 | `reference/plans/courtland-grand-site-2024-level-3.webp` | image only · rooms labelled on the image | `data/2027/drawings/courtland-grand-f3.json` · sides from the chart's areas, placement from the plan; the Grand Ballroom at the chart's 116 × 130 ft, about 5 ft inside the plan's north and south walls |
+| Courtland Grand | 2nd Floor | have · [Hotel's own floor plan, a picture](https://courtlandgrandhotel.com/wp-content/webp-express/webp-images/doc-root/wp-content/uploads/Screenshot-2024-10-23-at-17.16.46.png.webp) on its [floor plans page](https://courtlandgrandhotel.com/floor-plan-capacity-charts/) | areas only · the hotel's capacity chart on the same page, read 2026-10-03 | `reference/plans/courtland-grand-site-2024-level-2.webp` | image only · rooms labelled on the image | `data/2027/drawings/courtland-grand-f2.json` · sides from the chart's areas, placement from the plan |
+| Courtland Grand | 1st Floor | have · [Hotel's own floor plan, a picture](https://courtlandgrandhotel.com/wp-content/webp-express/webp-images/doc-root/wp-content/uploads/Screenshot-2024-10-23-at-16.24.45.png.webp) on its [floor plans page](https://courtlandgrandhotel.com/floor-plan-capacity-charts/) | areas only · the hotel's capacity chart on the same page, read 2026-10-03 | `reference/plans/courtland-grand-site-2024-level-1.webp` | image only · rooms labelled on the image | `data/2027/drawings/courtland-grand-f1.json` · sides from the chart's areas, placement from the plan; North Capitol is the hotel's North and Center; the Georgia Ballroom one rectangle, its north-east corner really GA 1 |
 | Westin | 14th Floor | have · [Hotel's current floor plan, a picture](https://www.marriott.com/content/dam/marriott-digital/wi/us-canada/hws/a/atlpl/en_us/floor-plan/meeting-space/assets/atlplf07.png) on its events page, which draws the floor's eight rooms; [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 2 | partial · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03, gives the eight rooms one row, "Ansley 1-8": 38 x 30 ft, 6,800 sq ft | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-14.png` | image only · rooms labelled on the image | none |
 | Westin | 12th Floor | have · [Hotel's current floor plan, a picture](https://www.marriott.com/content/dam/marriott-digital/wi/us-canada/hws/a/atlpl/en_us/floor-plan/meeting-space/assets/atlplf05.png) on its events page, which draws the floor's eight rooms; [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 3 | partial · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03, gives the eight rooms one row, "Piedmont 1-8": 38 x 30 ft, 6,800 sq ft | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-12.png` | image only · rooms labelled on the image | none |
 | Westin | 8th Floor | have · [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 6 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03 | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-8.png` | image only · rooms labelled on the image | `data/2027/drawings/westin-f8.json` · sizes from the chart, placement from the plan |
@@ -78,6 +78,12 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
   `reference/plans/westin-site-2026-floor-<n>.png`: floors 6, 7, 8, 9, 10, 12 and 14 are the page's `atlplf02.png`,
   `01`, `06`, `04`, `03`, `05` and `07`, under
   `https://www.marriott.com/content/dam/marriott-digital/wi/us-canada/hws/a/atlpl/en_us/floor-plan/meeting-space/assets/`.
+- **Courtland Grand** — the hotel's own floor plans, three pictures on its Floor Plans & Capacity Chart page, one a
+  level, saved 2026-10-03 as `reference/plans/courtland-grand-site-2024-level-<n>.webp` (1514 × 1138, 2436 × 1830 and
+  2194 × 1734 px). They print no scale, no north arrow and no streets; north is up on all three, as Dragon Con's
+  picture, which traces the same outlines, names the streets. All three draw the hotel's two banks of elevators, the
+  North Tower's three cars and the South Tower's two. The capacity chart on the same page gives each room's area and
+  no sides, read 2026-10-03; no local copy.
 - **Dragon Con's own map** — the official app's map, one image per venue with every floor composited on it, plus the
   room outlines it draws for rooms with events (Hilton, Hyatt, Marriott only; the Westin, Courtland Grand and
   AmericasMart maps are images alone). Read for which rooms the con uses and their names, and for placement where a
@@ -118,8 +124,20 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
   round tower. The 12th and 14th Floors are not drawn: they are round, eight rooms round the tower, and their 20
   events of 2026 are listed by floor alone. The plan is a vector drawing, so positions are good to a few feet until
   walked.
-- **Courtland Grand** — no hotel plan found; the three floors and their rooms are the con's, from its 2026 map, but for
-  the Grand Ballroom's sections A–F, which are the schedule's: the map labels one Grand Ballroom.
+- **Courtland Grand** — three floors drawn from the hotel's floor plans and its capacity chart, in one frame
+  (DECISIONS #67), tied by the two banks of elevators, which also set each picture's scale: 64.6 ft apart east to
+  west and 197.9 north to south. The chart gives areas alone, so a room's sides are the whole feet whose product is
+  its area and whose shape is the plan's (DECISIONS #79). North Capitol is the hotel's North and Center sections and
+  South Capitol its South: Dragon Con's picture puts its wall where the plan draws the one between Center and South.
+  The Georgia Ballroom is the hotel's Georgia Hall, Georgia 2 to 12 opened into one room, drawn as one rectangle
+  whose north-east corner, 45 × 29 ft, is really GA 1 and its stairs. On the 2nd Floor the Cities Hallway is drawn
+  its whole length, 27 ft past Macon, where Valdosta is. The Grand Ballroom's A to F are the hotel's Salons A to F,
+  the schedule's sections: the con's map labels one Grand Ballroom. Salon F is drawn 46 ft wide, its own row's. The
+  plan draws the ballroom about 122 × 140 ft; it is drawn at the chart's 116 × 130, its north and south walls about
+  5 ft inside the plan's, so the South Tower elevators stand just south of its south wall's line where the plan has
+  them just north of it. On the plan and not in the venues file: the Capitol's Center section, Valdosta, the Savannah
+  rooms, GA 1, Georgia 13 to 15 and the conference rooms. The plan is a picture, so positions are good to about 5 ft
+  against it until walked.
 - **AmericasMart** — several buildings, each with floors; Dragon Con's map of each building is under
   `reference/dragoncon/`, a picture with no room outlines; its exhibitor maps were not captured. The Mart's drawing is
   W41's, as sources allow (DECISIONS #60).

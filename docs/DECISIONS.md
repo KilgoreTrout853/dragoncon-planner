@@ -2030,7 +2030,7 @@ grow in the pull request that touches them, and the style rules that pin
 their heights move with them. Until Playwright, "met" is a pull request's
 word.
 
-### 67. A hotel's levels share one frame, placed from the hotel's own plan — Standing (2026-09-30)
+### 67. A hotel's levels share one frame, placed from the hotel's own plan — Standing (2026-09-30) — its sizes gain a case by #79: where a chart gives areas alone, a room's sides are whole feet in the plan's shape
 **Decided:** Builds on #58: the drawing format
 (`data/2027/drawings/README.md`) gains four rules, and the Hilton's five
 levels are redrawn to them.
@@ -2787,3 +2787,23 @@ the sheet. The stylesheet names the three elements an arrow hangs on, and
 a new area with something after it needs its own. Whether the arrow draws
 in Safari on the filter sheet, and the ring whole after a pick from a
 left-hand select, are a phone's to check.
+
+### 79. Where a chart gives areas alone, a room's sides are whole feet in the plan's shape — Standing (2026-10-03)
+**Decided:** Builds on #67's sizes. Where a hotel's chart gives each room's
+area and not its sides, a room's sides are the whole feet whose product is
+the chart's area and whose shape is the plan's, a row of rooms sharing the
+side the plan draws them sharing. The Courtland Grand is drawn so: Atlanta
+1 to 5, 832 sq ft each, are 32 x 26, five in a row, 130 x 32.
+
+**Why:** #67 takes a room's sides from the hotel's table, and the Courtland
+Grand's chart prints none. Its plans are pictures with no scale, so the
+plan alone cannot size a room. The areas factor into whole feet that add
+up along each row to the chart's own combined rows: 137 x 70 for the
+Capitol Ballroom's 9,590, 130 x 116 for the Grand Ballroom's 15,080.
+**Cost:** The sides are inferred, not printed, and no test holds a drawing
+to them. Where the chart's rows disagree with each other - the Atlanta
+Ballroom at 4,100 where five 832s make 4,160, the Salon Hallway at 3,432
+where the ballroom leaves 2,600, Salon F at its own row's 966 where the
+combined rows count it as 1,008 - the single rooms' areas are followed.
+The Grand Ballroom is drawn at 116 x 130 where the plan draws about
+122 x 140.
