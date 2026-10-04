@@ -1,0 +1,222 @@
+{
+  "hotel": "Westin",
+  "level": "f6",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 450,
+    "h": 240
+  },
+  "anchors": [
+    {
+      "name": "tower elevators",
+      "x": 170.0,
+      "y": 150.0
+    },
+    {
+      "name": "escalators",
+      "x": 114.0,
+      "y": 150.0
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Chastain J",
+      "cx": 264.8,
+      "cy": 181.2,
+      "w": 29,
+      "h": 44,
+      "rot": 0
+    },
+    {
+      "id": "Chastain I",
+      "cx": 291.8,
+      "cy": 184.7,
+      "w": 25,
+      "h": 37,
+      "rot": 0
+    },
+    {
+      "id": "Chastain H",
+      "cx": 319.8,
+      "cy": 181.7,
+      "w": 31,
+      "h": 43,
+      "rot": 0
+    },
+    {
+      "id": "Chastain G",
+      "cx": 349.3,
+      "cy": 180.7,
+      "w": 28,
+      "h": 45,
+      "rot": 0
+    },
+    {
+      "id": "Chastain F",
+      "cx": 387.3,
+      "cy": 180.2,
+      "w": 48,
+      "h": 46,
+      "rot": 0
+    },
+    {
+      "id": "Chastain D",
+      "cx": 345.6,
+      "cy": 118.2,
+      "w": 26,
+      "h": 49,
+      "rot": 0
+    },
+    {
+      "id": "Chastain E",
+      "cx": 384.6,
+      "cy": 117.2,
+      "w": 52,
+      "h": 51,
+      "rot": 0
+    },
+    {
+      "id": "Chastain 2",
+      "cx": 59.4,
+      "cy": 129.9,
+      "w": 48,
+      "h": 41,
+      "rot": 0
+    },
+    {
+      "id": "Chastain 1",
+      "cx": 55.9,
+      "cy": 170.4,
+      "w": 55,
+      "h": 40,
+      "rot": 0
+    },
+    {
+      "id": "Overlook",
+      "cx": 101.5,
+      "cy": 50.4,
+      "w": 38,
+      "h": 64,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "Chastain F–J",
+      "kind": "run",
+      "rooms": [
+        "Chastain J",
+        "Chastain I",
+        "Chastain H",
+        "Chastain G",
+        "Chastain F"
+      ],
+      "outline": {
+        "cx": 330.8,
+        "cy": 180.2,
+        "w": 161.0,
+        "h": 46.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "Chastain D–E",
+      "kind": "run",
+      "rooms": [
+        "Chastain D",
+        "Chastain E"
+      ],
+      "outline": {
+        "cx": 371.6,
+        "cy": 117.2,
+        "w": 78.0,
+        "h": 51.0,
+        "rot": 0
+      }
+    },
+    {
+      "name": "Chastain 1–2",
+      "kind": "ballroom",
+      "rooms": [
+        "Chastain 2",
+        "Chastain 1"
+      ],
+      "outline": {
+        "cx": 55.9,
+        "cy": 149.9,
+        "w": 55.0,
+        "h": 81.0,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Atrium",
+      "cx": 170.0,
+      "cy": 150.0,
+      "w": 124,
+      "h": 120,
+      "rot": 0
+    },
+    {
+      "name": "Corridor",
+      "cx": 330.8,
+      "cy": 150.2,
+      "w": 159.6,
+      "h": 14.1,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "Tower elevators",
+      "x": 170.0,
+      "y": 150.0
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalators",
+      "x": 114.0,
+      "y": 150.0
+    },
+    {
+      "kind": "info",
+      "name": "Convention information",
+      "x": 226.0,
+      "y": 174.0
+    }
+  ],
+  "streets": [
+    {
+      "name": "Andrew Young International Blvd NW",
+      "side": "N"
+    },
+    {
+      "name": "Peachtree Street NW",
+      "side": "E"
+    },
+    {
+      "name": "Ted Turner Dr NW",
+      "side": "W"
+    }
+  ],
+  "sources": [
+    "sizes: the hotel's own capacity chart, on its events page (https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/, read 2026-10-03)",
+    "placement, order and orientation: the hotel's own floor plan, reference/plans/westin-floorplans-old.pdf, p. 8, measured from the centre of the ring of columns round the tower. The plan is from before the hotel's renovation, when these rooms were International A to H, the Boardroom, the American Room and Vinings I and II; it is drawn south up, and is turned half a turn here (DECISIONS #28: read for position only, nothing copied)",
+    "today's names, room for room: the hotel's current floor plan of this floor, a picture on its events page (the same address; reference/plans/westin-site-2026-floor-6.png), which draws the walls where the old plan does",
+    "which rooms the con uses and which way is north: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "the lowest of the three meeting floors in the base of the hotel, under the round tower: the Chastain rooms east of the tower, towards Peachtree Street, Chastain 1 and 2 in the west wing, and the Overlook north of that wing",
+    "the plan's rooms are today's under other names, each within a few feet of its row in today's chart: Chastain A to E are the plan's American Room, Boardroom and International A, B and C, west to east along the north side; F to J are its International D to H, east to west along the south side; Chastain 1 and 2 are its Vinings I and II",
+    "only the rooms the venues file holds are drawn: Chastain A, B and C are on the plan, west of D, and had no 2026 programming",
+    "the west wing's west wall slants, so Chastain 1 and 2 are trapezoids; they are drawn as rectangles at the chart's sizes from the wing's straight east wall",
+    "Chastain F to J stand on the south wall they share at the chart's depths, 37 to 46 ft, as the plan draws them; D and E on the corridor. Chastain I, 37 ft, stops short of the corridor: the plan draws a door recess, about 6 ft, between the two",
+    "Chastain E is an L on the plan, about 49 ft wide: the chart's 51 ft deep over the 12 ft at its east end, 44 over the next 12 and 37 over its western half, behind a door recess off the corridor; about 2,020 sq ft, against the chart's 2,157. It is drawn as the chart's 52 x 51, the L's bounding box",
+    "the Atrium is the open floor round the tower, drawn by eye; Convention information is Dragon Con's map's, in the hallway, placed by eye"
+  ]
+}

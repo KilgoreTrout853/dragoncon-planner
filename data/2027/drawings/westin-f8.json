@@ -1,0 +1,117 @@
+{
+  "hotel": "Westin",
+  "level": "f8",
+  "units": "ft",
+  "north": "up",
+  "extent": {
+    "w": 450,
+    "h": 240
+  },
+  "anchors": [
+    {
+      "name": "tower elevators",
+      "x": 170.0,
+      "y": 150.0
+    },
+    {
+      "name": "escalators",
+      "x": 114.0,
+      "y": 150.0
+    }
+  ],
+  "rooms": [
+    {
+      "id": "Peachtree Ballroom",
+      "cx": 342.6,
+      "cy": 151.4,
+      "w": 133,
+      "h": 113,
+      "rot": 0
+    },
+    {
+      "id": "Peachtree 2",
+      "cx": 52.5,
+      "cy": 135.5,
+      "w": 33,
+      "h": 28,
+      "rot": 0
+    },
+    {
+      "id": "Peachtree 1",
+      "cx": 48.5,
+      "cy": 169.5,
+      "w": 41,
+      "h": 40,
+      "rot": 0
+    }
+  ],
+  "composites": [],
+  "groups": [
+    {
+      "name": "Peachtree 1–2",
+      "kind": "ballroom",
+      "rooms": [
+        "Peachtree 2",
+        "Peachtree 1"
+      ],
+      "outline": {
+        "cx": 48.5,
+        "cy": 155.5,
+        "w": 41.0,
+        "h": 68.0,
+        "rot": 0
+      }
+    }
+  ],
+  "open": [
+    {
+      "name": "Atrium",
+      "cx": 170.0,
+      "cy": 150.0,
+      "w": 124,
+      "h": 120,
+      "rot": 0
+    }
+  ],
+  "landmarks": [
+    {
+      "kind": "elevator",
+      "name": "Tower elevators",
+      "x": 170.0,
+      "y": 150.0
+    },
+    {
+      "kind": "escalator",
+      "name": "Escalators",
+      "x": 114.0,
+      "y": 150.0
+    }
+  ],
+  "streets": [
+    {
+      "name": "Andrew Young International Blvd NW",
+      "side": "N"
+    },
+    {
+      "name": "Peachtree Street NW",
+      "side": "E"
+    },
+    {
+      "name": "Ted Turner Dr NW",
+      "side": "W"
+    }
+  ],
+  "sources": [
+    "sizes: the hotel's own capacity chart, on its events page (https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/, read 2026-10-03)",
+    "placement, order and orientation: the hotel's own floor plan, reference/plans/westin-floorplans-old.pdf, p. 6, measured from the centre of the ring of columns round the tower. The plan is from before the hotel's renovation, when Peachtree 1 and 2 were Roswell I and II; it is drawn south up, and is turned half a turn here (DECISIONS #28: read for position only, nothing copied)",
+    "today's names, room for room: the hotel's current floor plan of this floor, a picture on its events page (the same address; reference/plans/westin-site-2026-floor-8.png), which draws the walls where the old plan does",
+    "which rooms the con uses and which way is north: Dragon Con's 2026 map, reference/dragoncon/ (read only)"
+  ],
+  "notes": [
+    "the Peachtree Ballroom east of the tower, towards Peachtree Street, and Peachtree 1 and 2 in the west wing",
+    "the Peachtree Ballroom is one room in the venues file, drawn at the chart's 133 x 113 ft and centred on the plan's, which draws it about 138 x 109. The plan divides it into six sections and today's chart into four, A to D; none is a room of the venues file",
+    "Peachtree 1 and 2 are the chart's 41 x 40 and 33 x 28, 68 ft together north to south as its Peachtree Room is, from the wing's straight east wall and the wall between them",
+    "this page of the plan is drawn about 1% smaller than the other two, and is read at its own scale",
+    "the Atrium is the open floor round the tower, drawn by eye"
+  ]
+}
