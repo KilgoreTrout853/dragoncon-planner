@@ -636,15 +636,20 @@ PR #56, with #53.
   changed what a crew screen draws - a crew, its name, its token or its
   members, compared by id since the read gives members in no order, or a
   crewmate's stars, compared alone - and forgetting the crews at a change
-  of owner or with no session. Those two are asked only while Plans is the
-  tab or the crew panel is open - since PR #81, while Now, the Map or
-  Plans is the tab, or the crew panel or an event's sheet is open, whose
-  who's-going line `render()` refills in place - and since PR #82 a
-  hotel's sheet, whose crew it refills in place too
-  (`docs/screens/contract.md`, section 8, as built): a redraw rebuilds
-  Explore's grid, its filter box with it, and a crewmate's star should not
-  take the caret from a reader typing there (ROADMAP, Flags), and Search
-  draws no crew. The tab's own draw shows the rest when it is tapped.
+  of owner or with no session. Since PR #100 those two are asked on any
+  tab too (DECISIONS #80): one rule for a pull, and `sync.js` reads
+  neither `state` nor the sheet's markup. Until then they were asked only
+  while a crew screen was on screen - Plans as the tab or the crew panel
+  open; since PR #81 Now, the Map or Plans as the tab, or the crew panel
+  or an event's sheet open; since PR #82 a hotel's sheet too - because a
+  redraw rebuilt Explore's grid, its filter box with it, and a crewmate's
+  star took the caret from a reader typing there. The box is built once
+  now (`docs/screens/contract.md`, section 4, The filter box, as built),
+  so the gate had no reason left. On Search and on Explore the redraw
+  draws nothing new - neither shows a crew - and each keeps its box; an
+  open sheet is refilled in place by `render()`, an event's who's-going
+  line and a hotel's crew among it
+  (`docs/screens/contract.md`, sections 7 and 8, as built).
 - **The watermark stops at a held row.** A row of the reader's own that a
   pending op holds is passed over, and the watermark goes no later than
   it, so the next pull reads it again, and applies the server's value if

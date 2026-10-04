@@ -1430,7 +1430,7 @@ and pytest, and `database` one more job on every pull request. A crew
 whose creator is gone can no longer regenerate its invite or remove
 anyone.
 
-### 53. The fetch layer, the captcha, and the sync rules — Decided, not built (2026-09-25) — the fetch layer and the captcha's plain message built by PR #55: `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the sync rules built by PR #56: `src/outbox.js`, `src/sync.js` and a second migration, the watermark stopping at a row a pending op holds (`contract.md`, section 5, as built); two triggers more since PR #77 - a tap on the Plans tab and a tap on its Crew segment - and a crew action's run, for which the crew panel waits for a run that began after the action (`syncAfter()`); and a redraw when what a crew screen draws has changed, asked only while Plans or the crew panel is on screen, since a redraw rebuilds Explore's filter box (`contract.md`, section 5, as built); that redraw widened by PR #81 to Now and the Map as the tab and an event's sheet open over any, whose who's-going line it refills in place - never Search or Explore alone (`contract.md`, section 5, as built)
+### 53. The fetch layer, the captcha, and the sync rules — Decided, not built (2026-09-25) — the fetch layer and the captcha's plain message built by PR #55: `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the sync rules built by PR #56: `src/outbox.js`, `src/sync.js` and a second migration, the watermark stopping at a row a pending op holds (`contract.md`, section 5, as built); two triggers more since PR #77 - a tap on the Plans tab and a tap on its Crew segment - and a crew action's run, for which the crew panel waits for a run that began after the action (`syncAfter()`); and a redraw when what a crew screen draws has changed, asked only while Plans or the crew panel is on screen, since a redraw rebuilds Explore's filter box (`contract.md`, section 5, as built); that redraw widened by PR #81 to Now and the Map as the tab and an event's sheet open over any, whose who's-going line it refills in place - never Search or Explore alone (`contract.md`, section 5, as built); the gate lifted by #80, PR #100: Explore's filter box is built once, so that redraw is asked on any tab, Search and Explore among them (`contract.md`, section 5, as built)
 **Decided:** How the client talks to the backend, what it says when a
 captcha is demanded, and how it will move picks and follows;
 `docs/sync/contract.md` has the detail, in section 1, as built, and
@@ -2807,3 +2807,63 @@ where the ballroom leaves 2,600, Salon F at its own row's 966 where the
 combined rows count it as 1,008 - the single rooms' areas are followed.
 The Grand Ballroom is drawn at 116 x 130 where the plan draws about
 122 x 140.
+
+### 80. Explore's filter box is built once, and a pull's redraw is not gated — Standing (2026-10-04)
+**Decided:** Two rules, the second resting on the first
+(`docs/screens/contract.md`, section 4, The filter box, as built;
+`docs/sync/contract.md`, section 5, as built; PR #100).
+- **The box is built once.** While the grid is what Explore draws,
+  `#exploreQ` is made by the first draw and is the same node after every
+  later one, as Search's box is. A later draw writes what stands above
+  the sticky block, the jump chips and `#exploreGrid`, and sets the box's
+  value from `state.explore.q` only where the two differ - never while
+  the reader types, when they agree. The node kept is the whole fix: its
+  focus, its caret and an iPhone's keyboard stay because nothing replaced
+  it.
+- **Nothing is added, removed or moved.** The view's children are the
+  kinds they were, in the same order, Following first when there is one,
+  and the jump chips stay the sticky block's own child. No screen looks
+  different.
+- **A page** replaces the view as it did, and the way back builds the
+  grid anew, the box with it and its text kept.
+- **The gate goes.** A crew's change pulled, and the crews forgotten, ask
+  for a redraw on any tab, as the reader's own picks and follows do: one
+  rule for a pull. `sync.js` `redrawCrew()` and `CREW_TABS` are gone, and
+  `sync.js` reads neither `state` nor the sheet's markup. An open sheet
+  is refilled in place by `render()`, as it was.
+- **Not here.** What had focus elsewhere on the grid - a tile, a fold, a
+  row - is still lost when the grid is drawn again: step 11's sweep
+  (ROADMAP, Flags).
+
+Amends #53's redraw for a crew's change, which was asked only while a
+crew screen was on screen (PRs #77, #81 and #82).
+
+**Why:** A redraw replaced the box under the reader. On `next`'s build at
+c799393, in Chromium at 375x667, 390x664 and 402x714, with something
+followed and "star" typed in the box, the caret inside the word: after a
+whole draw - `render()`, asked by a `hashchange` - the box is another
+node, focus is on the body, the caret reads 0-0 and the next key typed
+goes nowhere; the same after a tap on the Following heading. It is the
+fault `browse.js` records for Search's box,
+where an iPhone's keyboard was left on a node that was gone. What draws
+the page while the reader types there: a pull of the reader's own picks
+or follows - another device's - on any tab; a return to the page; and a
+tap in Explore that draws it whole - the Following heading, By interest
+and By time, Show more, Already happened, an unfollow, a star on a
+Following row - since an iPhone does not move focus to a tapped button,
+so the box still has the keyboard. The gate was a guard for the box and
+nothing else: with the box kept it has no reason left, and the other
+three pull requests of step 8 put more on Explore that redraws.
+**Cost:** A redraw on Search and on Explore that draws nothing new, since
+neither shows a crew - spent work, and only when a pull runs: at a
+trigger, never on a timer (#53). A kept box keeps the `value` attribute
+it was built with while its value follows the filter, so once text is
+typed and the page drawn whole, the view's markup differs from `next`'s
+in that one attribute. A tile, a Following chip or a suggestion tapped
+while the box has the keyboard still opens a page, which takes the box
+away with the view; focus goes to the page's heading (#75). A key typed
+while the box is off screen now lands in it, and the browser scrolls the
+box into view - in Chromium at 375x667 to the foot of `main`, under the
+mini-bar and the nav, where a key typed in a box scrolled away already
+put it. What an iPhone's keyboard does through each of these is a
+phone's to check.

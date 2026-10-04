@@ -439,7 +439,11 @@ execution slot (#57), which can run before any of this.
 8. Explore's top: For you and the zero state, its source decided at its
    design; W5's Mute beside Follow on a page; W6's cast group in Search and
    in Following (contract, section 4); and Explore's filter box kept across
-   a redraw, which lifts the crew redraw's gate (Flags).
+   a redraw, which lifts the crew redraw's gate (Flags). That last clause
+   went first, since the rest puts more on Explore that redraws: the box
+   built once, a draw of the grid writing around it, and a crew's change
+   a redraw on any tab - built (PR #100, #80; contract, section 4, as
+   built). For you, the zero state, Mute and the cast group are not built.
    - 8b. W2, the alternatives in the time a cancelled or moved pick
      vacated, under the picks-changed notice on Now and Plans: its own
      small pull request (contract, section 2).
@@ -511,7 +515,7 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   schedule.
 - The listing-only pre-check, held as a fallback against 403 pushback
   (#48).
-- A redraw rebuilds Explore's grid, and its filter box with it, so a pull
+- ~~A redraw rebuilds Explore's grid, and its filter box with it, so a pull
   that changes the reader's own picks or follows - another device's - takes
   the focus and the caret from a reader typing there; the text stays.
   Search's box is kept across a redraw. PR #77 asks for a crew's redraw
@@ -521,7 +525,31 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   Explore alone. An event's or a hotel's sheet open over Explore draws
   Explore again behind it, where focus is in the sheet and the filter box
   keeps its text. The picks path is as it was. Keeping Explore's filter box
-  across a redraw, which lifts the gate, is step 8's (Explore's top).
+  across a redraw, which lifts the gate, is step 8's (Explore's top).~~
+  Closed by PR #100 (#80): the filter box is built once, and a draw of the
+  grid writes around it - what stands above the sticky block, the jump
+  chips and the tiles - so the box keeps its node, and with it its focus,
+  its caret and its text, through a pull's redraw, a return to the page
+  and a tap that draws the page whole. The gate is gone: a crew's change
+  pulled, and the crews forgotten, ask for a redraw on any tab, as the
+  reader's own picks and follows do (contract, section 4, The filter
+  box, as built).
+- A redraw of Explore still takes focus from whatever else had it. On
+  the grid: the Following heading, a follow's chip and its unfollow,
+  "+ Follow more", By interest and By time, a Following row and its
+  star, Show more, Already happened, a Because-you-starred tile, a jump
+  chip, a tile and Show all. On a page: the way back, Follow, the folds,
+  a row and its star. PR #100 kept the filter box alone (#80). Now and the
+  Map give focus back after a draw (#66; `scroll.js` `focusIn()`,
+  `giveFocusBack()`), and Plans to its own controls that carry an id -
+  the picker, the segment, Manage; Search keeps its box and its Filters
+  button and loses a day chip's and a row's, and Plans its view toggle's,
+  a timeline block's and its action strip's.
+  And a tile, a Following chip or a suggestion tapped while the filter
+  box has the keyboard opens a page, which takes the focused box away
+  with the view before focus goes to the page's heading (#75): what the
+  keyboard does then is a phone's to check. Step 11's sweep's (contract,
+  sections 4 and 14).
 - ~~A pull that changes the reader's own pick of an open event leaves the
   sheet's star stale until the sheet is reopened - a tap on it meanwhile
   does what the pick as kept calls for, not what the star shows:

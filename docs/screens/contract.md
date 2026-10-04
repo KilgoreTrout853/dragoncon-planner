@@ -655,6 +655,100 @@ Moves: `explore.js` `renderExploreGrid()`, `renderExplorePage()`,
 (the cast group). Tests: `explore.test.js`, `follows.test.js`,
 `spy.test.js`. PR 8.
 
+### The filter box, as built
+
+PR #100, the first of step 8's, with #66 and #80: Explore's filter box is
+built once, which lifts the crew redraw's gate (section 5, as built;
+`docs/sync/contract.md`, section 5, as built). No screen looks different.
+For you, the zero state, Mute and the cast group are not built.
+
+- **The first draw of the grid** makes the view whole, as every draw
+  did: what stands above the sticky block - Following, when anything is
+  followed, and Because you starred - the sticky block, which is the
+  box, `#exploreQ`, and the jump row, and `#exploreGrid`.
+- **Every later draw** (`explore.js` `renderExploreGrid()`) finds the box
+  and writes around it: the sections before the sticky block are taken
+  out and written again at the view's start, the jump chips are written
+  into their row, and the tiles into `#exploreGrid`. The box's value is
+  set from `state.explore.q` only where the two differ, so a draw writes
+  nothing to a box the reader is typing in. The box keeps its node, and
+  with it its focus, its caret and its text, through a pull's redraw, a
+  return to the page, and a tap in Explore that draws the page whole -
+  the Following heading, By interest and By time, Show more, Already
+  happened, an unfollow, a star on a Following row - where an iPhone,
+  which does not move focus to a tapped button, leaves the keyboard on
+  the box.
+- **Nothing is added, removed, moved or wrapped.** The view's children
+  are the kinds they were, in the same order, Following first when there
+  is one ([1155]), and the jump chips are the sticky block's own child,
+  as its rules expect: in the design's trial a wrapper round them made
+  `main` 561 px wide at 390. The markup is what one whole draw writes,
+  byte for byte, but for the box's `value` attribute, which stays as the
+  box was built while its value follows the filter.
+- **Typing and Show all** draw the tiles alone, as they did
+  (`renderExploreSections()`; [1049], [1083]).
+- **A page** replaces the view, the box with it, and the way back builds
+  the grid anew, with the text kept. A tile, a Following chip or a
+  suggestion tapped while the box has the keyboard takes the focused box
+  away with the view, as it did, and focus goes to the page's heading
+  (#75).
+- **The jump row** is kept with the box, so its sideways scroll stays
+  through a draw with nothing to put back, and `syncActiveSection()`
+  runs after every draw, as it did.
+- **#66.** No new control. The box's focus is kept by keeping the box;
+  what else had focus on the grid is still lost at a draw, and on a page
+  (ROADMAP, Flags; section 14).
+- **The browser run,** this build beside `next`'s at c799393, each a
+  built page in Chromium with Barlow loaded, at 375x667, 390x664 and
+  402x714, the clock simulated at Saturday 1:05 PM. On `next`, after a
+  whole draw and after the Following heading tapped, the box is another
+  node, focus is on the body, the caret reads 0-0 and a key typed goes
+  nowhere. On this build, after each of a whole draw, By time tapped, a
+  star tapped on a Following row and the Following heading tapped, the
+  box is the same node with its focus and its caret, 1-2 in "star", and
+  the next key typed lands: "sxar". Thirty states at each size - a
+  stranger's grid, a filter typed and cleared, Tracks opened with Show
+  all, a page, a follow made there and the way back, Following folded
+  and open, by time and by interest, Show more, Already happened, a star
+  and an unfollow, picks and follows, picks alone, follows alone, the
+  grid's reached by a first draw and by a later one - gave markup equal
+  to `next`'s in
+  twenty-nine and, in the thirtieth, a filter typed and the page then
+  drawn whole, equal but for the `value` attribute; and the left, top,
+  width and height of every element of the view, 15,513 across the
+  thirty, equal to a tenth of a px in all of them. `main` is no wider
+  than the screen in any. Scrolled past its place, the sticky block
+  stands at 63 px, under the header; the jump row, scrolled 80 px
+  sideways, is at 80 after a whole draw. A tap was a `click()` from
+  script, which moves no focus, and a key a real one. Seen, in pictures
+  of the page: the box reading "sxar" with its ring at 390 and 402 wide,
+  the caret after the "x" at 375, and the sticky block under the header
+  at 375 and 402; the rest was measured. What an iPhone's keyboard does
+  is a phone's to check.
+- **The tests.** `tests/page/explore.test.js`: a whole draw and a return
+  to the page with text typed and the caret inside it - the same node,
+  its focus, its caret, its text; each tap that draws the page whole;
+  the value following the filter when something else sets it, and
+  written only then; a page and back; the view's children the same
+  kinds in the same order, the jump chips the sticky block's own child;
+  the markup of seven states beside one whole draw's, byte for byte, and
+  the `value` attribute apart; and, against the fake backend, the
+  reader's own pick and follow pulled while they type. [817] takes its
+  stand-ins off the jump row by hand, since a draw keeps the row; no
+  ledger row changes meaning, and the new tests carry no bracket.
+  `tests/page/crew-everywhere.test.js` and `crew-screens.test.js`: the
+  six tests that stated the gate, restated - the tab drawn again, seen
+  by a jump chip or the list's first node replaced, and the box the same
+  node with its text, its focus and its caret - and the crews forgotten,
+  with no session and at a change of owner, on Explore and on Search. A
+  mutation pass of 30 mutants over the two rules - the box rebuilt on
+  every draw, the value never put in step, always written or its test
+  inverted, each of the three writes left out or misplaced, the jump row
+  wrapped, the gate put back for each tab in the pull, in forgetting and
+  at a change of owner - is not committed: every mutant of its last run
+  failed a test, once the three survivors of the first, the crews
+  forgotten gated off Explore or Search, had the tests above.
+
 ## 5. Plans
 
 As built: the recon, section 2, Mine; section 8, crews' seam.
@@ -835,17 +929,19 @@ built, Share a day among it, and the 2026 app knows no crews.
 - **The redraw** (`docs/sync/contract.md`, section 5, as built). A pull
   whose crews or crewmates' picks would draw differently - members
   compared by id, stars alone - asks for a redraw, and so does forgetting
-  the crews at a change of owner or with no session; both only while
-  Plans is the tab or the crew panel is open - since PR #81, while Now,
-  the Map or Plans is the tab, or the crew panel or an event's sheet is
-  open (sections 2, 6 and 7, as built). `render()` keeps Search's box and
-  an open sheet as they were - an event's refills its who's-going line
-  in place, and since PR #93 its star and its overlap line with it - but
-  rebuilds Explore's grid and its filter box with
-  it, so a crewmate's star pulled while the reader types there would take
-  the caret (ROADMAP, Flags): Search and Explore alone draw nothing for a
-  crew's change. An event's sheet open over Explore draws Explore again
-  behind it; focus is in the sheet, and the filter box keeps its text.
+  the crews at a change of owner or with no session; since PR #100 both
+  on any tab (DECISIONS #80), as the reader's own picks and follows do.
+  Until then both were asked only while Plans was the tab or the crew
+  panel open - since PR #81, while Now, the Map or Plans was the tab, or
+  the crew panel or an event's sheet open (sections 2, 6 and 7, as
+  built), and since PR #82 a hotel's (section 8, as built) - because
+  `render()` rebuilt Explore's grid and its filter box with it, and a
+  crewmate's star pulled while the reader typed there took the caret.
+  `render()` keeps Search's box, Explore's since PR #100 (section 4, The
+  filter box, as built) and an open sheet as they were - an event's
+  refills its who's-going line in place, and since PR #93 its star and
+  its overlap line with it. On Search and on Explore a crew's change
+  draws nothing new.
 - **#66.** Every new control has a label, and every new one is 44px tall:
   the header's button and picker, the segment, the day chips, the panel's
   fields and buttons. The sheet's four panels take focus to their heading
@@ -869,7 +965,8 @@ built, Share a day among it, and the 2026 app knows no crews.
   closed or opened again, a crew taken away under the panel, a kept
   invite before the con and beside `#explore=`, the segment and its
   defaults, the crew's day with its members, a removed pick and an unknown
-  one, the redraws and the gate, a change of owner, the refresh that keeps
+  one, the redraws - since PR #100 off Plans too, Explore drawn again with
+  its filter box the same node - a change of owner, the refresh that keeps
   a half-typed name and a focused Remove, focus and Escape for the gear, an
   event, a timeline block, a map hotel and a crewmate's row, and the new
   controls' 44px rules. `crews.test.js`: the two readers and the share
@@ -1516,8 +1613,9 @@ panel (The sheet's edges, as built, below). Still to come: W44's.
   four and six; never the reader; a name escaped; a removed event and a
   cancelled one; the star, written in place since PR #93; the line
   refilled in place with focus kept, and hidden by the last unstar; an open
-  sheet over Search and over Explore, Explore's filter box keeping its
-  text; none on a build with no backend; and, since PR #83, that no string
+  sheet over Search and over Explore, Explore drawn again behind it and,
+  since PR #100, its filter box the same node with its text and its caret;
+  none on a build with no backend; and, since PR #83, that no string
   the crew screens draw - Now, the Map, the hotel and event sheets, Plans'
   crew and the crew panel, their labels among them - says "going" or "with
   you", as whole words since PR #93, the sheet's "With" standing over its
@@ -1970,10 +2068,11 @@ by PR #83, step 5d, with #68.
   by its event, which the Map's card behind may show too. A line the new
   order moves has focus again; one taken away while it had focus gives it
   to the sheet's heading.
-- **The gate.** An open hotel sheet counts, as an open event's does: a
-  crew's change pulled while one is open asks for a redraw whatever the
-  tab (`docs/sync/contract.md`, section 5, as built), so PR 7's entry
-  points from other tabs find it ready.
+- **The gate.** An open hotel sheet counted, as an open event's did: a
+  crew's change pulled while one was open asked for a redraw whatever the
+  tab, so PR 7's entry points from other tabs found it ready. Since
+  PR #100 there is no gate: a crew's change asks for a redraw on any tab
+  (DECISIONS #80; `docs/sync/contract.md`, section 5, as built).
 - **The tests.** `tests/page/crew-everywhere.test.js`: the section under the
   reader's rows and under the sentence; a line a pick, two for one crewmate;
   the order, two events at one start with the names interleaved; "yours too";
@@ -1984,8 +2083,10 @@ by PR #83, step 5d, with #68.
   pill left stale by another tab; a removed and an unknown pick; a name and
   a title escaped; the tap and the close; the ids; a pull adding a line
   above the one with focus, a rename reordering them, a line taken away with
-  focus, a pull that changes nothing and the reader's own unstar; the gate
-  over Explore; the day kept past 5 AM; next's markup, byte for byte, with
+  focus, a pull that changes nothing and the reader's own unstar; the
+  sheet open over Explore, since PR #100 Explore drawn again behind it with
+  its filter box the same node; the day kept past 5 AM; next's markup,
+  byte for byte, with
   no backend, with no crew, and where the crew has none; and Now's lines,
   byte for byte as they were. None carries a ledger bracket.
 
@@ -2434,6 +2535,18 @@ As built: the recon, section 8, what crews' readers offer today.
 - "← Explore" drops keyboard focus to the page: its button is redrawn
   away, as a tile was before PR #94 put focus on the page's heading. For
   step 11's sweep.
+- A redraw of Explore drops keyboard focus from every control but the
+  filter box, which PR #100 kept (#80; section 4, The filter box, as
+  built): on the grid, the Following heading, a follow's chip and its
+  unfollow, "+ Follow more", By interest and By time, a Following row
+  and its star, Show more, Already happened, a Because-you-starred tile,
+  a jump chip, a tile and Show all; on a page, Follow, the folds, a row
+  and its star. For step 11's sweep (ROADMAP, Flags).
+- A tile, a Following chip or a suggestion tapped while the filter box
+  has the keyboard opens a page, which takes the focused box away with
+  the view; focus then goes to the page's heading (#75). Older than
+  PR #100, which left it; what an iPhone's keyboard does then is a phone's
+  to check.
 - A notice above the Map. The Map tab is as tall as the screen less the
   header and the nav, and a notice above the views is not counted: while
   one stands - the preview banner before the con, "has ended" after it
