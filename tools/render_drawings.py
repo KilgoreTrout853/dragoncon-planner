@@ -121,7 +121,7 @@ def render(d, level_name, hotel_name):
         g = in_group.get(r["id"])
         if g:
             o.append(draw_rect(r, "none", ROOM_STROKE, 1.3, "6 4", rx=0, opacity=".85"))
-            o.append(draw_label(r, r["id"].split()[-1] if g["kind"] == "ballroom" else r["id"], big=g["kind"] == "ballroom", dims=True))
+            o.append(draw_label(r, (" ".join(w for w in r["id"].split() if w not in g["name"].split()) or r["id"].split()[-1]) if g["kind"] == "ballroom" else r["id"], big=g["kind"] == "ballroom", dims=True))
         else:
             o.append(draw_rect(r, ROOM_FILL, ROOM_STROKE, 1.5)); o.append(draw_label(r, r["id"]))
     for g in d["groups"]: o.append(draw_rect(g["outline"], "none", ROOM_STROKE, 2 if g["kind"] == "ballroom" else 1.5, rx=4))
