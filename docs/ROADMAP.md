@@ -548,8 +548,13 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   And a tile, a Following chip or a suggestion tapped while the filter
   box has the keyboard opens a page, which takes the focused box away
   with the view before focus goes to the page's heading (#75): what the
-  keyboard does then is a phone's to check. Step 11's sweep's (contract,
-  sections 4 and 14).
+  keyboard does then is a phone's to check. A key typed while the filter
+  box is off screen brings it into view under the mini-bar and the nav,
+  because `main` has no scroll padding for them - in Chromium at 375x667
+  the box's top stands at 633 px, the mini-bar's at 549 and the nav's at
+  597 - which is older than PR #100, where a key typed in a box scrolled
+  away put it in the same place. Step 11's sweep's (contract, sections 4
+  and 14).
 - ~~A pull that changes the reader's own pick of an open event leaves the
   sheet's star stale until the sheet is reopened - a tap on it meanwhile
   does what the pick as kept calls for, not what the star shows:
