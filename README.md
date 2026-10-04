@@ -47,11 +47,15 @@ The root `index.html` is a build template: opening it as a file, or serving the 
 npm ci
 npm run lint                     # eslint: three rules
 npm test                         # vitest: units, rules, the page in jsdom, the real schedule, the build
+npx playwright install chromium webkit   # once: the two engines the browser tests drive, about 875 MB
+npm run test:browser             # playwright: the built page in Chromium and WebKit, at three phone sizes
 pip install -r requirements.txt
 python -m pytest tests/          # the pipeline: scraper, parse, tag and build stages, registries
 ```
 
-CI runs the same commands on every pull request (`.github/workflows/ci.yml`), and a third job, `database`, runs the schema's pgTAP tests; `next` takes no pull request until all three pass.
+CI runs the same commands on every pull request (`.github/workflows/ci.yml`); a third job, `database`, runs the schema's pgTAP tests, and a fourth, `browser`, the browser tests. `next` takes no pull request until `client`, `pipeline` and `database` pass, and `browser` too once it is added to the ruleset.
+
+The browser tests (`tests/browser/`, DECISIONS #81) check layout, which jsdom cannot: nothing scrolls sideways and no control is cut off, on every tab, and a named test for each layout fault. They build the page themselves and serve it on port 4173, and stop with a message if something is already listening there. The one-time install puts Chromium and WebKit under `%LOCALAPPDATA%\ms-playwright` on Windows (`~/.cache/ms-playwright` on Linux, where `npx playwright install-deps chromium webkit` adds the system libraries they need). A failed run leaves a report: `npx playwright show-report`.
 
 The page tests boot the source in jsdom against `tests/sample-events.json` (558 synthetic events in the v2 shape, deterministic, which `python tools/sample_v2.py` makes from `tests/sample-events.v1.json`; CI checks it is fresh); `tests/real-data.test.js` boots it once more against the real `data/2026/events.v2.json`, because ranking questions are meaningless against synthetic rows. `docs/ARCHITECTURE.md` says how the suite is put together.
 

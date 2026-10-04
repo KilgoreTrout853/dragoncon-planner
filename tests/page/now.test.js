@@ -60,7 +60,7 @@ describe("the Now tab", () => {
       /* This cannot fail without layout: every rect in jsdom is 0, so the drift
          is 0 by construction. It still runs the measure-and-restore path. The
          rule that guards the fix is 1240 in tests/rules/source.test.js; both
-         retire when Playwright arrives. */
+         retire when a browser test of the star's anchoring is written. */
       it("starring does not shift neighbouring rows [53]", () => {
         expect(drift).not.toBe(null);
         expect(Math.abs(drift)).toBeLessThanOrEqual(2);

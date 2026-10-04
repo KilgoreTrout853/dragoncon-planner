@@ -7,7 +7,7 @@
    `next`. Every change is a feature branch off `next` and a PR into
    `next`, squash-merged.
 3. Before writing code, summarize what you found and your plan.
-4. Before pushing: `npm run lint`, `npm test` and
+4. Before pushing: `npm run lint`, `npm test`, `npm run test:browser` and
    `python -m pytest tests/` all green; and when anything under `supabase/`
    changed, the database tests too: `npm --prefix supabase run start`, then
    `npm --prefix supabase test`. They need Docker running - the local

@@ -37,7 +37,8 @@ const PAGE = [
 ];
 
 export default [
-  { ignores: ["node_modules/", "dist/", "data/"] },
+  /* playwright-report/ and test-results/: what a run of the browser tests leaves. */
+  { ignores: ["node_modules/", "dist/", "data/", "playwright-report/", "test-results/"] },
 
   {
     languageOptions: { globals: { ...globals.browser, ...globals.node } },

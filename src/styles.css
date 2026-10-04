@@ -69,14 +69,21 @@ button { cursor: pointer; }
    on the Now tab only; everywhere else the line is the whole header. */
 .hdr .hdr-text { flex: 1; min-width: 0; }
 .hdr .brand { font-size: .75rem; color: var(--muted); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
-.hdr .hdr-line { font-size: clamp(.8125rem, 4vw, .9375rem); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdr .hdr-line { font-size: clamp(.8125rem, 4vw, .9375rem); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 18px 0 9px; margin: -18px 0 -9px; }
 .hdr .fresh { color: var(--muted); }
 /* When the line is still too long - a preview clock, a narrow phone - the
    word "refreshed" goes before anything is clipped. Measured, not guessed. */
 .hdr .hdr-line.tight .word { display: none; }
 .hdr .hdr-line.tighter { font-size: .8125rem; }   /* and if that is not enough, a size down */
-/* Only there while a ?now= override is on; a tap goes back to the real clock. */
-.sim-chip { display: inline-block; vertical-align: 1px; margin-left: 8px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--gold); background: transparent; color: var(--gold); font: inherit; font-size: .6875rem; font-weight: 600; line-height: 1.6; cursor: pointer; }
+/* Only there while a ?now= override is on; a tap goes back to the real clock.
+   It stands after the clock, so the words after it take the ellipsis and the
+   chip is always drawn whole (DECISIONS #82). Its tap area is its ::after,
+   18px above its box and 9 below: 44px tall or more, and uneven so that it
+   ends inside the header on every tab, with Larger text too. The line clips
+   what leaves it, so the line above is given that much room as padding and
+   takes it back as margin: nothing moves. */
+.sim-chip::after { content: ""; position: absolute; left: 0; right: 0; top: -18px; bottom: -9px; }
+.sim-chip { position: relative; display: inline-block; vertical-align: 1px; margin-left: 8px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--gold); background: transparent; color: var(--gold); font: inherit; font-size: .6875rem; font-weight: 600; line-height: 1.6; cursor: pointer; }
 .sim-chip span { opacity: .7; }
 .icon-btn {
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;

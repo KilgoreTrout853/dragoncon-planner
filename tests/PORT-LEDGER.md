@@ -144,7 +144,7 @@ The brief's counts are executed assertions, not call sites: (c) is 35 sites but 
 
 Half a row more: **1541** keeps its DOM claim (no `.map-leave`, no `.map-route` in the SVG) and drops its grep of source and page for five removed names, which is history.
 
-**1240 is not deleted.** It matches `function togglePick(id, anchor)` and stays as a rule in `tests/rules/source.test.js`: it guards the star-anchoring fix, and its behaviour test (53) cannot fail in jsdom. Both retire when Playwright arrives.
+**1240 is not deleted.** It matches `function togglePick(id, anchor)` and stays as a rule in `tests/rules/source.test.js`: it guards the star-anchoring fix, and its behaviour test (53) cannot fail in jsdom. Both retire when a browser test of the star's anchoring is written.
 
 ## Skips
 
@@ -295,7 +295,7 @@ One row per call site, in harness order, under the harness's own section comment
 | 37 | a | badge counts 1 pick | `page/now.test.js` | 4b-ii | dom | port |
 | 38 | a | pick persisted to localStorage | `page/now.test.js` | 4b-ii | dom | port |
 | 52 | a | starring adds exactly one pick | `page/now.test.js` | 4b-ii | handle | port |
-| 53 | a | starring does not shift neighbouring rows (drift …px) | `page/now.test.js` | 4b-ii | handle | port. with a comment in the test: it cannot fail without layout (every rect in jsdom is 0, so drift is 0 by construction). It retires with 1240 when Playwright arrives |
+| 53 | a | starring does not shift neighbouring rows (drift …px) | `page/now.test.js` | 4b-ii | handle | port. with a comment in the test: it cannot fail without layout (every rect in jsdom is 0, so drift is 0 by construction). It retires with 1240 when a browser test of the star's anchoring is written |
 | 60 | a | row tap opens the sheet | `page/sheet.test.js` | 4b-ii | handle | port |
 | 61 | a | event panel is shown | `page/sheet.test.js` | 4b-ii | dom | port |
 | 62 | a | settings panel is hidden | `page/sheet.test.js` | 4b-ii | dom | port |
@@ -843,7 +843,7 @@ One row per call site, in harness order, under the harness's own section comment
 | line | class | message | destination | PR | mechanism | disposition |
 |---:|---|---|---|---|---|---|
 | 1239 | d | togglePick still exists | `page/minibar.test.js` | 4b-ii |  | **delete** `typeof togglePick === 'function'` is existence by name; 52 stars through it |
-| 1240 | b lint | with the anchoring signature the star fix gave it | `rules/source.test.js` | 4b-i | rule | port. guards the star-anchoring fix; its behaviour test (53) cannot fail in jsdom — both retire when Playwright arrives |
+| 1240 | b lint | with the anchoring signature the star fix gave it | `rules/source.test.js` | 4b-i | rule | port. guards the star-anchoring fix; its behaviour test (53) cannot fail in jsdom — both retire when a browser test of the star's anchoring is written |
 | 1241 | d | the mini-bar still reads picks, not follows | `page/minibar.test.js` | 4b-ii | handle | **rewrite** follow a track that has events later today, with no picks: the mini-bar stays hidden off Now |
 | 1242 | d | and knows nothing about follows | `page/minibar.test.js` | 4b-ii |  | **merge** with 1241: same behaviour; 1242 only re-reads the function's text |
 | 1244 | d | nor does the hero card | `page/now.test.js` | 4b-ii | handle | **rewrite** follow a track that has events later today, with no picks: Now has no hero |

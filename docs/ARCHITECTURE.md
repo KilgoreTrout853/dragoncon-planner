@@ -103,6 +103,8 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, and smokes that boot the built pages - the next site's, given a backend, signing in by email and syncing a star. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
+| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds; `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82). |
+| `playwright.config.js` | The browser tests' configuration: a project for each engine at each size, a phone with touch on, the worker blocked, the zone the season file's, no retries. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record. |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
 | `tests/test_fetch.py` | The fetch stage on a fake source, with no network: the rows and their order, a failed page carried stale or named alone, a listing gone carried removed and every move between the two flags, each fatal rule at its boundary, `--limit`, the file's bytes, the repair before whitespace is collapsed and a clean page untouched by it, and `main()`'s frozen refusal and its `--previous`. |
@@ -1021,6 +1023,8 @@ their caches and storage keys apart (DECISIONS #15, #39).
 npm ci                        # once; Node major from .nvmrc
 npm run lint                  # eslint .
 npm test                      # vitest run: everything under tests/ that ends .test.js
+npx playwright install chromium webkit   # once: the two engines the browser tests drive
+npm run test:browser          # playwright test: every tests/browser/*.spec.js, in both engines at three sizes
 pip install -r requirements.txt
 python -m pytest tests/       # every tests/test_*.py: the pipeline's tests
 npm ci --prefix supabase         # once; the Supabase CLI, pinned in supabase/package.json
@@ -1083,8 +1087,8 @@ seen to follow the files.
 **Rules** (`tests/rules/`) are regexes over the text of `src/styles.css` and
 of every module under `src/`, read one after another: declarations a page
 in jsdom cannot show, since jsdom computes no layout. Two source rules
-remain: [1240], the signature of `togglePick()`, which goes when Playwright
-arrives, and [1728], no inline pixel font size, which stays a rule; ESLint
+remain: [1240], the signature of `togglePick()`, which goes when a browser
+test of the star's anchoring is written (ROADMAP, Flags), and [1728], no inline pixel font size, which stays a rule; ESLint
 took the others. Two more hold the build's year (DECISIONS #49): no `dc26`
 in `src/`, and no date written into a string under `src/`. `imports.test.js` reads the module graph instead: only
 `main.js` imports `boot.js`, a module imports only npm packages, the year's
@@ -1112,11 +1116,47 @@ the fake's PostgREST as the user's pick.
 **`tests/worker.test.js`** runs `public/sw.js` in Node against fakes of
 `self`, `caches`, `fetch` and the worker's clients (DECISIONS #49): the
 digest rule and its fallback, what the stamps name, and which caches
-activate clears. It is not a browser, and does not stand in for
-Playwright (#24).
+activate clears. It is not a browser, and does not stand in for a
+browser test of the worker, which is still to write (#24, #81).
 
 jsdom is Vitest's default environment; the files that only read text or run
 the build opt out with a `// @vitest-environment node` docblock.
+
+And the client is tested in real browsers by Playwright (DECISIONS #81),
+for what jsdom cannot see: where a thing is, and how wide. `npm run
+test:browser` runs every `tests/browser/*.spec.js` - Vitest collects none
+of them - in Chromium and in WebKit at 375x667, 390x664 and 402x714, a
+project for each engine at each size, as a phone with touch on. Its
+`globalSetup`, `tests/browser/serve.js`, builds `dist/` afresh - the
+default year, no channel, no backend, whatever the shell says - and
+serves it with Vite's preview on port 4173 for the run; a port already
+taken stops the run and says so, so a preview left running is never what
+is tested. `tests/browser/harness.js` holds the states in one place - the
+engines, the sizes, the clocks, the readers - and what every test opens
+the page with: the service worker blocked, the clock `?now=`, the zone
+the season file's, a reader seeded through localStorage by the keys a
+build with no channel reads, the Google Fonts request answered with
+Barlow's four weights from `@fontsource/barlow-semi-condensed`, and any
+other request off this machine refused and failed on. Every test waits
+for the four weights and fails where one did not load. There are no
+retries and no waits by the clock; a failure keeps its trace. At most
+four tests run at once: with sixteen side by side on one machine WebKit's
+page stood still for seconds now and then, and a test timed out.
+`standing.spec.js` is the two standing checks on each of the five tabs,
+for a stranger and for a reader with picks and follows, at a moment
+during the con and one before it: nothing scrolls sideways, and no
+control is cut off - each shown button, link, input, select and textarea
+lies inside every ancestor that clips it, on each axis, up to the first
+ancestor that scrolls on that axis, and a control in a fixed element
+inside the screen. One page a test, its assertions soft and named for
+their tab, so a run reports every tab that fails. `rule.spec.js` holds
+the rule itself on a page of its own, where every box has its size
+written on it: that it still flags a control cut by an ancestor or by
+the screen, and still stops at a scroller. A layout fault gets a named
+test of its own: `chip.spec.js` is the first (#82). It is not an
+iPhone - no iOS keyboard, no safe-area insets, no home-screen app,
+`IS_IOS` false in both engines - and it tests nothing of the worker,
+offline or install.
 
 `tests/PORT-LEDGER.md` is the record of how this suite was made: one row for
 each assertion in the smoke harness it replaced (`tests/ui_smoke.cjs`,
@@ -1180,6 +1220,15 @@ runs the pgTAP tests. Docker is already running on GitHub's Ubuntu runners.
 It is a required check too, by its job id like the other two: it was added
 to the `next` ruleset by hand after its first green run (ROADMAP, Checklist).
 
+A fourth, `browser` (DECISIONS #81), runs the browser tests: `npm ci`, the
+two engines - Chromium's headless shell and WebKit, kept in a cache keyed
+by the Playwright version, so a moved pin fetches its own - the system
+libraries they need, by apt at every run, and `npm run test:browser`,
+which builds the page for itself. A failed run keeps Playwright's report,
+the traces in it, as an artifact for a week. It becomes a required check
+when it is added to the `next` ruleset by hand, after its first green run
+on `next` (ROADMAP, Checklist).
+
 ## Branches
 
 - `main` — the frozen 2026 app, tagged `v2026-final`. Ruleset `main`,
@@ -1188,7 +1237,8 @@ to the `next` ruleset by hand after its first green run (ROADMAP, Checklist).
 - `next` — development, and the repo's default branch for the off-season.
   Ruleset `next - PR only`, active: a pull request is required (no
   approvals), squash is the only merge method, the checks `client`,
-  `pipeline` and `database` must pass, the branch cannot be deleted or
+  `pipeline` and `database` must pass - and `browser`, once it is added
+  (ROADMAP, Checklist) - the branch cannot be deleted or
   force-pushed, and only the repository admin can bypass it.
 - Feature branches target `next`. GitHub deletes a head branch when its pull
   request merges, and a squash commit takes the pull request's title (the
@@ -1237,7 +1287,7 @@ to the `next` ruleset by hand after its first green run (ROADMAP, Checklist).
   written into the template. The fix is an IIFE wrap in `dcBuild`, or
   shipping the module script and teaching the build smoke to run one.
   Either changes the bytes the worker serves, so it belongs with the
-  `sw.js` and Playwright work (DECISIONS #24). `npm run dev` and the page
+  `sw.js` work and its browser tests (DECISIONS #24). `npm run dev` and the page
   tests run real modules and do not show it.
 - `sw.js` cache version is bumped by hand. Any change to `public/sw.js`,
   a comment included, is a new worker for every installed client.

@@ -4,8 +4,8 @@
    are tested by what they do: when it tells the page of a new schedule
    (DECISIONS #42, #49), what its stamps name, and which caches it clears. A
    harness of fakes, not a browser: registration, an event's lifetime and a
-   real CacheStorage are Playwright's, still deferred (#24), and this does not
-   stand in for it. New tests, not rows of tests/PORT-LEDGER.md. What the
+   real CacheStorage are a browser test's, still to write (#24, #81), and this
+   does not stand in for one. New tests, not rows of tests/PORT-LEDGER.md. What the
    build does to the file is tests/build.test.js's. */
 import fs from "node:fs";
 import path from "node:path";
