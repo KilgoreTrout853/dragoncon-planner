@@ -2903,7 +2903,8 @@ one in PR #81, one in PR #82, PR #95's fade at 390 wide, and the header's
 chip (#82). The stop at a scroller is the rule: without it every row
 below the fold and every chip in a sideways row reads as cut.
 **Cost:** A fourth CI job, `browser`, and its minutes on every pull
-request, which grow with every test; it is required on `next` once it is
+request - about three when it was added, the longest of the four jobs -
+which grow with every test; it is required on `next` once it is
 added to the ruleset by hand, after its first green run there, as
 `database` was (#26; ROADMAP, Checklist). Two dev dependencies, each
 pinned to an exact version, which move by hand - Dependabot is for
