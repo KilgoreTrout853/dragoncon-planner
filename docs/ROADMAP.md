@@ -445,8 +445,10 @@ execution slot (#57), which can run before any of this.
    built once, a draw of the grid writing around it, and a crew's change
    a redraw on any tab - built (PR #100, #80; contract, section 4, as
    built). Mute beside Follow, and the cast group in Search and in
-   Following - built (PR #103, #84, #85; contract, section 4). For you and
-   the zero state are not built.
+   Following - built (PR #103, #84, #85; contract, section 4). What is
+   tapped stays where it stood, a fix before For you, which puts a Show
+   more where the folds are - built (PR #104, #86; contract, section 0).
+   For you and the zero state are not built.
    - 8b. W2, the alternatives in the time a cancelled or moved pick
      vacated, under the picks-changed notice on Now and Plans: its own
      small pull request (contract, section 2).
@@ -618,12 +620,15 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   the notice, and the card under the map is cut at the page's top. It
   predates PR #94, which made it show after the con too, where the Map had
   no card and a focused event now has one (contract, sections 6 and 14).
-- The star's anchoring has no test that can fail. [53] in
+- ~~The star's anchoring has no test that can fail. [53] in
   `tests/page/now.test.js` cannot fail without layout - every rect in
   jsdom is 0 - and [1240] in `tests/rules/source.test.js` pins
   `togglePick()`'s signature in its place. Both stay until a browser test
   of the star's anchoring is written, and retire with it: the harness for
-  one exists since PR #101 (#81), and the test is not written.
+  one exists since PR #101 (#81), and the test is not written.~~
+  Closed by PR #104 (#86): `tests/browser/tap-place.spec.js` holds the
+  star's row where it stood, in both engines, and [53] and [1240] are
+  deleted.
 - Three places rewrite the address, each its own way: `time.js`
   `setOverride()`, the `?now=`; `crews.js` `readJoinLink()`, the `?join=`;
   and since PR #85 `sheet.js` `takeDayLink()`, the `?day=`. One helper for

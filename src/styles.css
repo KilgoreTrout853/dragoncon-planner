@@ -108,6 +108,12 @@ button { cursor: pointer; }
 main {
   position: fixed; top: 0; bottom: 0; left: 0; right: 0; max-width: 760px; margin: 0 auto;
   overflow-y: auto; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch;
+  /* What is tapped stays where it stood (DECISIONS #86). A browser that
+     anchors its scroll holds a node a draw kept - Explore's filter block,
+     since #80 - where it was when what stands above it changes height, by
+     scrolling: the list a fold opened then stood where the fold had been,
+     and the fold was gone above it. So the scroller does not anchor. */
+  overflow-anchor: none;
 }
 /* Room for the header above and the nav below, as content rather than
    padding: a scroll container's top padding shifts where sticky children

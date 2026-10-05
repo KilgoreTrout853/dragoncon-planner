@@ -46,6 +46,11 @@ sheet) and 7 (what each reader sees).
   4); crew sections show only to a reader in a crew, and Plans' header
   offers the rung to one who is not (sections 2, 5); the nudge waits for a
   pick (#65; section 2).
+- **What is tapped stays where it stood** (#86; PR #104). A control
+  that is tapped, and is still there after the draw, stands where it
+  stood, to 1 px, wherever the page is scrolled; where the tap takes
+  it away, what stood just above it stays. The page's scroller does
+  not anchor, and the browser tests hold the rule.
 
 **Home of:** W43, as a rule on every screen, not a screen.
 
