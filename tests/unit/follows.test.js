@@ -2,10 +2,12 @@
    kept by its shape as the module is imported, before any schedule: v1's
    follows fall away with no migration, and a follow of something with no
    events stays. What may be followed is asked of the loaded schedule, when
-   the reader acts. No page. */
+   the reader acts. And a mute (DECISIONS #84): of what can be followed, one
+   or the other with a follow. No page. */
 import { beforeAll, describe, expect, it } from "vitest";
+import { storageKey } from "../../src/build.js";
 import { replaceSchedule } from "../../src/data.js";
-import { canFollow, isFollowing, toggleFollow, wellFormedFollow } from "../../src/follows.js";
+import { canFollow, isFollowing, isMuted, mutes, toggleFollow, toggleMute, wellFormedFollow } from "../../src/follows.js";
 
 describe("a stored follow is kept by its shape", () => {
   it.each([
@@ -34,14 +36,16 @@ describe("a stored follow is kept by its shape", () => {
   });
 });
 
+const SCHEDULE = { works: [
+  { id: "firefly", name: "Firefly", aliases: [], terms: [], reviewed: true },
+  { id: "not-yet-looked-at", name: "Not Yet Looked At", aliases: [], terms: [], reviewed: false },
+], events: [{ id: "e1", title: "Firefly", start: "2026-09-05T10:00", end: "2026-09-05T11:00", tracks: ["Whedon"], speakers: [],
+  people: [{ id: "gina-torres", name: "Gina Torres", role: "Speaker", src: "speakers" }], facets: {},
+  tags: { kind: "qa", works: [{ id: "firefly", via: "about" }, { id: "not-yet-looked-at", via: "about" }],
+    medium: ["tv"], genre: ["sci-fi"], craft: [], subject: [], audience: "kids" } }] };
+
 describe("what may be followed is asked of the loaded schedule", () => {
-  beforeAll(() => replaceSchedule({ works: [
-    { id: "firefly", name: "Firefly", aliases: [], terms: [], reviewed: true },
-    { id: "not-yet-looked-at", name: "Not Yet Looked At", aliases: [], terms: [], reviewed: false },
-  ], events: [{ id: "e1", title: "Firefly", start: "2026-09-05T10:00", end: "2026-09-05T11:00", tracks: ["Whedon"], speakers: [],
-    people: [{ id: "gina-torres", name: "Gina Torres", role: "Speaker", src: "speakers" }], facets: {},
-    tags: { kind: "qa", works: [{ id: "firefly", via: "about" }, { id: "not-yet-looked-at", via: "about" }],
-      medium: ["tv"], genre: ["sci-fi"], craft: [], subject: [], audience: "kids" } }] }));
+  beforeAll(() => replaceSchedule(structuredClone(SCHEDULE)));
 
   it("a reviewed work, a person, an axis value and the kids audience the schedule carries", () => {
     expect(canFollow("work", "firefly")).toBe(true);
@@ -65,5 +69,48 @@ describe("what may be followed is asked of the loaded schedule", () => {
     expect(isFollowing("work", "firefly")).toBe(true);
     expect(toggleFollow("work", "firefly")).toBe(false);
     expect(isFollowing("work", "firefly")).toBe(false);
+  });
+});
+
+describe("a mute is of what can be followed, and one or the other with a follow", () => {
+  const stored = () => JSON.parse(window.localStorage.getItem(storageKey("mutes")));
+  beforeAll(() => replaceSchedule(structuredClone(SCHEDULE)));
+
+  it("what cannot be followed cannot be muted: an unreviewed work, an id the schedule does not carry, a kind that is none", () => {
+    for (const [kind, key] of [["work", "not-yet-looked-at"], ["work", "no-such-work"], ["person", "nathan-fillion"], ["fandom", "Firefly"]]) {
+      expect(toggleMute(kind, key), `${kind}:${key}`).toBe(false);
+      expect(isMuted(kind, key), `${kind}:${key}`).toBe(false);
+    }
+    expect(mutes).toEqual([]);
+  });
+  it("what can be followed can be muted, each kind: kept under storageKey()'s key as {kind, key}, in the order made", () => {
+    const made = [["person", "gina-torres"], ["work", "firefly"], ["axis", "genre:sci-fi"], ["track", "Whedon"]];
+    for (const [kind, key] of made) expect(toggleMute(kind, key), `${kind}:${key}`).toBe(true);
+    expect(storageKey("mutes")).toBe("dc26.mutes");
+    expect(stored()).toEqual(made.map(([kind, key]) => ({ kind, key })));
+    expect(mutes).toEqual(stored());
+    expect(mutes.every(wellFormedFollow)).toBe(true);
+  });
+  it("a tap on what is muted unmutes it", () => {
+    expect(toggleMute("axis", "genre:sci-fi")).toBe(false);
+    expect(isMuted("axis", "genre:sci-fi")).toBe(false);
+    expect(stored().map(m => m.kind)).toEqual(["person", "work", "track"]);
+  });
+  it("a follow of something muted unmutes it, and a mute of something followed unfollows it: never both", () => {
+    expect(toggleFollow("work", "firefly")).toBe(true);
+    expect([isFollowing("work", "firefly"), isMuted("work", "firefly")]).toEqual([true, false]);
+    expect(stored().map(m => m.kind)).toEqual(["person", "track"]);
+    expect(toggleMute("work", "firefly")).toBe(true);
+    expect([isFollowing("work", "firefly"), isMuted("work", "firefly")]).toEqual([false, true]);
+    expect(JSON.parse(window.localStorage.getItem(storageKey("follows")))).toEqual([]);
+  });
+  it("a mute the schedule no longer offers stays, can be undone, and cannot be made again", () => {
+    replaceSchedule({ works: [], events: [] });
+    expect(canFollow("work", "firefly")).toBe(false);
+    expect(isMuted("work", "firefly")).toBe(true);
+    expect(toggleMute("work", "firefly")).toBe(false);
+    expect(isMuted("work", "firefly")).toBe(false);
+    expect(toggleMute("work", "firefly")).toBe(false);
+    expect(isMuted("work", "firefly")).toBe(false);
   });
 });

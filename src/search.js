@@ -2,14 +2,15 @@
    indexes, and the reading of a query - which words are filters, what is left
    to rank by, and the ranking. It reads state.browse and writes to it (the
    parsed query, the today scope), and stamps _hit and _section on the events
-   it returns. Building the indexes in idle time is loading.js's, and drawing
+   it returns; with the Fandom filter set and nothing to rank by, it keeps
+   the cast group beside the list (#85). Building the indexes in idle time is loading.js's, and drawing
    the results is browse.js's. */
 import MiniSearch from "minisearch";
 import { dayOf } from "./util.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
 import { hotelMatches, hotelShort } from "./venues.js";
-import { AXES, byId, events, isAdult, isNoise, linkedWorks, linksTo, personName, tagsOf, worksById } from "./data.js";
+import { AXES, byId, castEvents, events, isAdult, isNoise, linkedWorks, linksTo, personName, tagsOf, worksById } from "./data.js";
 
 /* Con vocabulary. If an event mentions any phrase in a group, every phrase in the group becomes searchable for it.
    Add your own lines freely; lowercase, no punctuation needed. */
@@ -213,8 +214,10 @@ function passesGettingIn(e, dim, value) {
   return value === "kids" ? tagsOf(e).audience === "kids" : (value === "adult") === isAdult(e);
 }
 
-function passesFilters(e) {
-  const f = activeFilters(), tg = tagsOf(e);
+/* Whether an event passes the filters f, activeFilters()'s or a copy with
+   one changed: Search's cast group asks every filter but the Fandom's. */
+function passes(e, f) {
+  const tg = tagsOf(e);
   return (f.day === "All" || e._cd === f.day) &&
     hotelMatches(e, f.hotel) &&
     (f.type === "All" || e.type === f.type) &&
@@ -228,6 +231,7 @@ function passesFilters(e) {
     (!f.time || inTimeBand(e, f.time)) &&
     (!f.hideNoise || !isNoise(e));
 }
+function passesFilters(e) { return passes(e, activeFilters()); }
 /* ==================================================================
    Query intent: "star trek saturday hilton" is three different asks.
    Pull the filter words out, search on what's left, and show what we
@@ -433,6 +437,24 @@ function collectHits(text, opts, queryTerms, seen) {
   return out;
 }
 
+/* Search's cast group (DECISIONS #85), which browseResults() works out
+   beside the list it returns: only with the Fandom filter set, and only on
+   the road that ranks nothing. Every event with the fandom's cast that
+   passes every filter in effect but the Fandom's, on today alone where the
+   list is, in the list's order: what is to come, then what has passed.
+   castEvents() gives none that is about the fandom, so no event is in both
+   the list and the group. What the filters leave is the group, whatever
+   its kind: the photo and video filter stands for a button of its own. */
+let castGroup = [];
+function castFor(today, at) {
+  const f = activeFilters();
+  if (f.work === "All") return [];
+  const rest = {...f, work: "All"};
+  const list = castEvents(f.work).filter(e => passes(e, rest) && (!today || conDayKey(e._s) === today));
+  return list.filter(e => !isPast(e, at)).concat(list.filter(e => isPast(e, at)));
+}
+const browseCast = () => castGroup;
+
 function browseResults() {
   state.browse.parsed = parseQuery(state.browse.q);
   const raw = state.browse.parsed.residual;
@@ -454,18 +476,18 @@ function browseResults() {
     const scope = !!b.q.trim() && !parsedDay && b.day === "All" && !b.noToday && !conEnded();
     b.todayScoped = scope;
     let list = events.filter(passesFilters);
-    if (scope) {
-      const today = conDayKey(now());
-      list = list.filter(e => conDayKey(e._s) === today);
-    }
+    const today = scope ? conDayKey(now()) : null;
+    if (scope) list = list.filter(e => conDayKey(e._s) === today);
     list.sort((a, b2) => a._s - b2._s);
     const at = now(), up = [], gone = [];
+    castGroup = castFor(today, at);
     list.forEach(e => { e._hit = null; (isPast(e, at) ? gone : up).push(e); });
     up.forEach(e => e._section = "main");
     gone.forEach(e => e._section = "past");
     return up.concat(gone);
   }
   state.browse.todayScoped = false;
+  castGroup = [];                        // a ranked list has no cast group
 
   const seen = new Set();
   let main, loose = [];
@@ -496,5 +518,5 @@ function browseResults() {
 export {
   STOPWORDS, KIND_LABELS, AXIS_LABELS, axisLabel, index, SEARCH_PLACEHOLDER, processTerm, buildIndex, suggestDocs,
   buildSuggestIndex, suggestionsFor, expandQuery, tokenise, stripPhrase, dropPhrase, parseQuery,
-  GETTING_IN, passesGettingIn, passesFilters, activeFilters, termQuality, browseResults,
+  GETTING_IN, passesGettingIn, passesFilters, activeFilters, termQuality, browseResults, browseCast,
 };

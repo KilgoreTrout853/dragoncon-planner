@@ -571,7 +571,9 @@ Embedding a typed query at runtime stays out (#22).
 
 On the device, and keyed by the same ids as the data: follows, mutes, and
 weights computed from stars. Weights are recomputed from the picks and
-follows, which sync, and settings do not sync in 2027 (#50). Since the
+follows, which sync, and settings do not sync in 2027 (#50). Mutes are kept
+beside the follows, in the same shape under a key of their own, and do not
+sync either (#84). Since the
 client switch (#39) a follow is stored by id - a work, an axis value as
 `<axis>:<value>`, a person - or, for a track, by its name. v1's fandom,
 topic and person follows were not mapped: they fall away as the stored list
@@ -589,10 +591,13 @@ For Firefly that is the 9 events about it (section 2), and then, apart,
 where its cast is appearing.
 
 As built by the client switch (#39), the second group is on a work's
-Explore page only: collapsed, "With the cast (N)", with its photo ops and
+Explore page: collapsed, "With the cast (N)", with its photo ops and
 signings behind a reveal of their own, and none of the events already in
-the first group. The Following feed and search take the events about the
-work, and search has no cast section.
+the first group. Since #85 it is also the last of a followed work's block
+in the Following feed, by interest, the events still to come and the same
+reveal; and in search, after the list, where the Fandom filter is set and
+no word is left to rank by - there every filter in effect but the Fandom's
+applies, and the photo and video filter stands for the reveal.
 
 ## The derived file and the cache
 

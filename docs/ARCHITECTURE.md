@@ -103,7 +103,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, and smokes that boot the built pages - the next site's, given a backend, signing in by email and syncing a star. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
-| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds; `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82). |
+| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds; `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85). |
 | `playwright.config.js` | The browser tests' configuration: a project for each engine at each size, a phone with touch on, the worker blocked, the zone the season file's, no retries. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record, frozen: never edited (DECISIONS #83). |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
@@ -457,7 +457,9 @@ next today, from a schedule the caller hands it, since `crews` comes before
 the schedule and the clock. Writing and forgetting, it says whether anything a crew screen
 draws has changed, for the pull's redraw. It reads its keys when asked,
 never as it is imported. `state`: `settings` and `state`, Plans' crew
-and day and the Map's day and focus among it.
+and day and the Map's day and focus among it, and the folds kept in memory:
+`explore.mutedOpen`, `following.showCast` and `following.castNoise` by
+follow, and `browse.castOpen` (#84, #85).
 `time`: `now()`, the override, `CON` - the season file's days - and the
 days' names, `conPhase()`, `conDayKey()`, `effectiveNow()`. `outbox`: what
 the doors have changed and the server has not yet taken - one op per
@@ -489,7 +491,9 @@ box, the filter sheet's Audience and a row's flag all ask (#77);
 repeat key, its title and its people, the moment a parameter; `knownFor()`, a person's known-for line
 from the file's people block (#61); `linksTo()`, which says whether an
 event is about a work or anything under it, the rolled-up counts and
-`topWorks()` it agrees with, and a person's display name. `data` is the only
+`topWorks()` it agrees with, `castEvents()`, the events with a work's cast
+that are not about it, which a work's page, the Following feed and Search
+all ask (#85), and a person's display name. `data` is the only
 module that walks a work's parent. `picks` and `follows`: what the reader starred and follows -
 a follow is a track by name, or a work, an axis value or a person by id,
 each kind with the word the screen has for it, `KIND_NOUN`, and
@@ -498,7 +502,12 @@ an event's chips are read by -
 and their doors, `savePicks()` and `saveFollows()`, which hand the outbox
 every key changed since the last save; `applyPulledPicks()` and
 `applyPulledFollows()` are how a pull changes them without sending them
-back.
+back. `follows` keeps the mutes too (DECISIONS #84): what the reader said
+"not this" of, in a follow's shape under a key of its own, on the device
+alone - never handed to the outbox, never read from a pull - with
+`isMuted()` and `toggleMute()`. The write of the follows is where a follow
+unmutes, and a mute of something followed unfollows it through
+`saveFollows()`, so nothing is both.
 `ics`: the calendar export. `walk`: the walk between picks - the walk
 estimate from the pick before, and the tight-connection flag between two
 picks in a row, `connection()`, which the Now tab's hero and the gap line
@@ -509,9 +518,10 @@ or not, which the sheet's overlap line says (#74); the gap line says the walk an
 overlap. Nothing in it says where the reader is, or when to leave. `search`: the two MiniSearch
 indexes (MiniSearch is an npm dependency, pinned to 7.2.0), the reading of a
 query, the ranking, `AXIS_LABELS`, the only place an axis slug becomes a
-label, and `passesGettingIn()`, whether an event passes one of the filter
+label, `passesGettingIn()`, whether an event passes one of the filter
 sheet's cost, sign-up, audience and sold out at a value, which the list and
-an option's count both ask (#77). `ui`:
+an option's count both ask (#77), and `browseCast()`, Search's cast group,
+which `browseResults()` works out beside the list (#85). `ui`:
 markup every view shares, `rowHTML()` - an event's row: the title, then
 the time, the place and the level, then Celebrity, the overlap flag, the
 caller's context, the flags and the track (DECISIONS #64, #73) -
@@ -833,14 +843,19 @@ filter it set that is in effect is a chip under the box, beside the
 query's words, and the button's badge counts them. One value a filter,
 and the last one set wins (DECISIONS #71): a tap in the sheet takes a word
 that holds its filter out of the query, and a word typed takes the sheet's
-value to All once the box is left.
+value to All once the box is left. With the Fandom filter set and no word
+to rank by, the fandom's cast group stands after the list: a fold, open, of
+the cast's events that pass every other filter in effect (DECISIONS #85).
 
 **Explore.** Everything that can be followed - tracks, works (the Fandoms
 section), axis values (Topics), guests, panelists - as tiles with counts, a
 work's count taking in the works under it; a page for each, linkable as
-`#explore=kind:key` with the key an id, or a track's name, and a work's page ending with its
-cast, apart and collapsed; above the grid, a Following feed and suggestions
-drawn from the reader's picks. A page opened by a tap takes keyboard focus
+`#explore=kind:key` with the key an id, or a track's name, with Follow and, beside it,
+Mute (DECISIONS #84), and a work's page ending with its
+cast, apart and collapsed; above the grid, a Following feed - a followed
+work's block ending with its cast too, by interest (#85) - suggestions
+drawn from the reader's picks, and a fold of what the reader muted, which
+the suggestions leave out and nothing else does. A page opened by a tap takes keyboard focus
 on its heading, and "← Explore" lands the grid where it last was
 (DECISIONS #75). The jump chips follow the scroll through a spy that
 runs once per animation frame. The filter box and the jump chips are the
@@ -894,6 +909,7 @@ its origin (#39). `storageKey()` in `build.js` names them all.
 |---|---|---|---|
 | `dc<yy>.picks`, `dc<yy>.pickInfo`, `dc<yy>.pickNews` | `picks` | `picks` | Starred event ids; what each looked like when starred; the report of what changed |
 | `dc<yy>.follows` | `follows` | `follows` | What the reader follows: `{kind, key}`, a track by name, a work, an axis value or a person by id; kept by its shape as it is read (DECISIONS #39) |
+| `dc<yy>.mutes` | `follows` | `follows` | What the reader muted: `{kind, key}`, a follow's shape and kept by it as it is read, less anything also followed; on the device alone, never synced (DECISIONS #84) |
 | `dc<yy>.settings` | `state` | `sheet` | Crowd factor, the default noise filter |
 | `dc<yy>.mineView`, `dc<yy>.followingLayout`, `dc<yy>.followingOpen` | `state` | `dispatch` | Timeline or list; the Following feed's layout, and whether it is folded |
 | `dc<yy>.plansView` | `state` | `dispatch` | My day or Crew, `"mine"` or `"crew"`, once tapped; absent, Plans decides by the day and the crews (DECISIONS #62) |
@@ -1153,7 +1169,8 @@ their tab, so a run reports every tab that fails. `rule.spec.js` holds
 the rule itself on a page of its own, where every box has its size
 written on it: that it still flags a control cut by an ancestor or by
 the screen, and still stops at a scroller. A layout fault gets a named
-test of its own: `chip.spec.js` is the first (#82). It is not an
+test of its own: `chip.spec.js` is the first (#82), and
+`mute-cast.spec.js` holds what Mute and the cast folds added (#84, #85). It is not an
 iPhone - no iOS keyboard, no safe-area insets, no home-screen app,
 `IS_IOS` false in both engines - and it tests nothing of the worker,
 offline or install.

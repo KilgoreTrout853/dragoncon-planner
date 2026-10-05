@@ -650,3 +650,55 @@ describe("a query typed before the index is ready waits for it", () => {
     expect(document.querySelectorAll("#view-browse .row mark").length).toBeGreaterThan(0);   // drawn from the index, not the unfiltered list
   });
 });
+
+/* Search's cast group stands last (DECISIONS #85): after the list's Show
+   more, which no fandom of 2026's file has - its longest list is under a
+   page - so the schedule here is the fixture with a fandom made long, and
+   given a cast. And a fandom's name in the empty line is escaped. New
+   tests, not rows of tests/PORT-LEDGER.md. */
+describe("the cast group after a list too long for a page", () => {
+  let page, handle, state;
+  const rest = () => document.getElementById("browseRest");
+  const data = structuredClone(fixture);
+  const live = data.events.filter(e => !e.removed);
+  data.works.push({ id: "long-show", name: "Long <Show>", aliases: [], terms: [], reviewed: true });
+  live.slice(0, 160).forEach(e => { e.tags = { ...e.tags, works: [...((e.tags || {}).works || []), { id: "long-show", via: "about" }] }; });
+  live.slice(160, 165).forEach(e => {
+    e.tags = { ...e.tags, works: [...((e.tags || {}).works || []), { id: "long-show", via: "credit:p-ann" }] };
+    e.tracks = [...(e.tracks || []), "Only The Cast"];
+  });
+
+  beforeAll(async () => {
+    page = await bootPage({ data });
+    ({ handle } = page);
+    state = handle.state;
+    state.tab = "browse";
+    Object.assign(state.browse, FILTERS, { work: "long-show" });
+    handle.render();
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("the list, its Show more, then the group: the fold and its rows are the last of what is drawn", () => {
+    const kids = [...rest().children], more = rest().querySelector('[data-act="more-browse"]'), fold = rest().querySelector('[data-act="browse-cast"]');
+    expect(rest().querySelectorAll('.row[data-list="browse"]')).toHaveLength(150);
+    expect(more.textContent).toBe("Show 10 more of 10");
+    expect(fold.textContent.replace(/\s+/g, " ").trim()).toBe("With the cast (5) ▾");
+    expect(kids.slice(-3)).toEqual([more, fold.parentElement, rest().lastElementChild]);
+    expect(rest().lastElementChild.querySelectorAll('.row[data-list="browse-cast"]')).toHaveLength(5);
+  });
+  it("Show more grows the list above the group, and the group stays last", () => {
+    rest().querySelector('[data-act="more-browse"]').click();
+    expect(rest().querySelectorAll('.row[data-list="browse"]')).toHaveLength(160);
+    expect(rest().querySelector('[data-act="more-browse"]')).toBe(null);
+    expect(rest().lastElementChild.querySelectorAll('.row[data-list="browse-cast"]')).toHaveLength(5);
+  });
+  it("an empty list over the group names the fandom as the filter sheet does, escaped", () => {
+    Object.assign(state.browse, FILTERS, { work: "long-show", track: "Only The Cast" });
+    handle.render();
+    const bold = rest().querySelector(".empty b");
+    expect(rest().querySelectorAll('.row[data-list="browse"]')).toHaveLength(0);
+    expect([bold.textContent, bold.children.length]).toEqual(["No events about Long <Show>.", 0]);
+    expect(bold.innerHTML).toBe("No events about Long &lt;Show&gt;.");
+    expect(rest().lastElementChild.querySelectorAll('.row[data-list="browse-cast"]')).toHaveLength(5);
+  });
+});

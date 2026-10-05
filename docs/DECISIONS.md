@@ -517,7 +517,7 @@ because fame is not in a blurb.
 rename or merge keeps an alias, because follows are stored by id. An
 unreviewed work can be wrong until someone looks.
 
-### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's; its golden-query gate replaced by #36; PR 6 built by #38 and #39, the cast group on a work's page only; its weights do not sync as settings in 2027: For-you's are recomputed from picks and follows, which sync (#50); For you's home is the top of Explore (#62; `docs/screens/contract.md`, section 4)
+### 32. Tags v2 — Decided, not built (2026-09-20) — the pipeline half built by #34, which supersedes its line on axes; the client half is PR 6's; its golden-query gate replaced by #36; PR 6 built by #38 and #39, the cast group on a work's page only; its weights do not sync as settings in 2027: For-you's are recomputed from picks and follows, which sync (#50); For you's home is the top of Explore (#62; `docs/screens/contract.md`, section 4); amended by #85
 **Decided:** Supersedes #3's tag shape and its keying by event id, when
 built. Parse what the source states; closed lists for what the model fills;
 every link says why.
@@ -748,7 +748,7 @@ terms, reviewed flag or parent of a work in the block now changes
 marks such works reviewed now rebuilds the file. The census report does not
 read the block.
 
-### 39. The client switch as built — Standing (2026-09-22) — by year since #49: the file is `DC_YEAR`'s, and every storage key carries the year, so a build for 2027 starts with no picks, follows or settings of 2026's, by design; the update notice keys on the `digest`; its Cost's shared storage closed by PR #52: every storage key carries the channel, `storageKey()` in `src/build.js`
+### 39. The client switch as built — Standing (2026-09-22) — by year since #49: the file is `DC_YEAR`'s, and every storage key carries the year, so a build for 2027 starts with no picks, follows or settings of 2026's, by design; the update notice keys on the `digest`; its Cost's shared storage closed by PR #52: every storage key carries the channel, `storageKey()` in `src/build.js`; amended by #85
 **Decided:** The client on `next` reads `data/2026/events.v2.json` (#33,
 #38), and every surface keeps its behaviour: plumbing and parity, not a
 search redesign (#36). `docs/discover/schema-v2.md` has the detail, under
@@ -2970,3 +2970,55 @@ whole, so every later session pays for what a pull request adds.
 and not in the repo, so a reader of the repo alone no longer finds them.
 An "as built" part can say something a later pull request changed, with
 only its "Changed by" line to say so, until the parts are moved out.
+
+### 84. Mute: not suggested, and nothing else — Standing (2026-10-04)
+**Decided:** A reader can say "not this" of anything they could follow
+(W5; PR #103; `docs/screens/contract.md`, section 4).
+- **One thing.** A muted thing is no longer suggested: not in Because you
+  starred, nor in For you when it is built, which asks `isMuted()`. A mute
+  hides nothing - not in Search, on the thing's page, in Following or in
+  the grid.
+- **One or the other.** Muting unfollows and following unmutes, on every
+  road: a tap, a follow a pull brings, the handle. An unfollow a pull
+  brings leaves a mute alone.
+- **On the device.** Kept by `{kind, key}` beside the follows, under a key
+  of its own, and not synced in 2027: no column, no outbox op.
+- **Where.** Mute stands beside Follow on a page, and a muted page says so
+  in one line. The muted are in a fold, "Muted (n)", after Because you
+  starred, each a chip whose x unmutes; a suggestion's tile has no x.
+- A mute is of one thing, by its id. Every control this adds is 44 px tall
+  or more (#66), a fold's button with them wherever the app draws one.
+
+**Why:** A suggestion the reader cannot turn down comes back at every
+visit. Hiding would be another promise, and a wrong one: a muted guest is
+still on the panels of a fandom the reader follows.
+**Cost:** A mute does not follow the reader to another phone. One made of
+something followed, with no session, is undone by the first pull after a
+sign-in, which brings the follow back by the union rule (#53). What a
+fandom's mute means for the fandoms under it is For you's to decide.
+
+### 85. The cast group in Search and in Following — Standing (2026-10-04)
+**Decided:** The "With the cast" group a fandom's page ends with (#39) is
+Search's and the Following feed's too (W6; PR #103). One function,
+`data.js` `castEvents()`, answers for all three: the events linked to the
+fandom by a credit that are not about it.
+- **Following,** By interest alone: a followed fandom's block ends with
+  the fold, shut, counting the cast's events still to come. Open, its
+  photo ops and signings are behind the page's button. By time is as it
+  was.
+- **Search,** only with the Fandom filter set and no word to rank by:
+  after the list, a fold, open, of every cast event that passes every
+  filter in effect but the Fandom's. A word that ranks is a text search
+  and has no group (#36). Every count is the list's alone, and an empty
+  list over a group says "No events about" the fandom.
+- **No button in Search.** What the filters leave is the group: the photo
+  and video filter stands for the photo ops' button there.
+- Amends #32 and #39, on the feed and on search.
+
+**Why:** #32 decided both groups wherever a work is followed or searched,
+and #39 built the page's alone: 43 of the 106 fandoms in the Fandom select
+have a cast, which only a visit to the page showed. Search's own filter
+already holds back what the page's button does.
+**Cost:** Two rules for photo ops: a button on a page and in the feed, a
+filter in Search. A word that ranks loses the group. The feed's fold
+counts what is to come, where the page's counts every one.

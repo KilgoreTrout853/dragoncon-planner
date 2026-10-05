@@ -47,7 +47,9 @@ const CLOCKS = [
 ];
 /* What a reader's phone holds, by the names src/build.js storageKey() keys:
    nine picks - two of Friday's, six of Saturday's, two of them at 1:00 PM,
-   one of Sunday's - and a work and a person followed. */
+   one of Sunday's - a work and a person followed, and two tracks muted, one
+   of them the picks would have suggested and one with a long name, so the
+   standing checks walk Explore with the Muted fold. */
 const READERS = {
   "a stranger": {},
   "a reader with picks and follows": {
@@ -57,6 +59,7 @@ const READERS = {
       "1e3995157984a4c0e6515a2ed62daba8", "1e3995157984a4c0e6515a2ed62ce249", "1e3995157984a4c0e6515a2ed62ccf66",
     ],
     follows: [{ kind: "work", key: "star-trek" }, { kind: "person", key: "alan-tudyk" }],
+    mutes: [{ kind: "track", key: "Main Programming" }, { kind: "track", key: "Live Performances - Hyatt Concourse" }],
   },
 };
 
@@ -126,9 +129,10 @@ async function barlow(page) {
 const settled = page => page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
 
 /* The page, at a simulated moment - null for the real clock - once the
-   schedule is in and Barlow is the face. */
-async function open(page, now) {
-  await page.goto(now ? `./?now=${now}` : "./");
+   schedule is in and Barlow is the face. hash: what follows the address,
+   an Explore page's "#explore=kind:key". */
+async function open(page, now, hash = "") {
+  await page.goto((now ? `./?now=${now}` : "./") + hash);
   await expect(page.locator("#fresh")).not.toBeEmpty();
   await barlow(page);
   await settled(page);

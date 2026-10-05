@@ -515,6 +515,233 @@ describe("against the real schedule", () => {
       });
     });
 
+    /* DECISIONS #85: the cast group a work's page has, in the Following feed
+       and in Search. On the real file, since the fixture has no cast. New
+       tests, not rows of tests/PORT-LEDGER.md. */
+    describe("a followed fandom's block in Following ends with its cast, By interest alone", () => {
+      let about, whole, cast, quiet;
+      const QUIET = ["photo", "signing"];
+      const fol = () => document.getElementById("following");
+      const folds = () => [...fol().querySelectorAll('[data-act="fol-cast"]')];
+      const reveal = () => fol().querySelector('[data-act="fol-cast-noise"]');
+      const rows = list => [...fol().querySelectorAll(`.row[data-list="${list}"]`)].map(r => r.dataset.id);
+      const feed = follows => {
+        handle.follows.set(follows);
+        Object.assign(state.following, { open: true, layout: "interest", expanded: {}, showPast: {}, showCast: {}, castNoise: {} });
+        state.explore.page = null; state.tab = "explore"; handle.render();
+      };
+      beforeAll(() => {
+        const at = handle.now();
+        about = app.eventsFor({ kind: "work", key: "firefly" }).map(e => e.id);
+        whole = handle.events.filter(e => app.linksTo(e, "firefly", ["credit"]) && !about.includes(e.id));
+        cast = whole.filter(e => !app.isPast(e, at));
+        quiet = cast.filter(e => QUIET.includes(e.tags.kind)).map(e => e.id);
+        feed([{ kind: "work", key: "firefly" }, { kind: "track", key: "Trek Track" }, { kind: "person", key: "alan-tudyk" }, { kind: "axis", key: "genre:horror" }]);
+      });
+      afterAll(() => { handle.follows.set([]); state.following.layout = "interest"; });
+
+      it("Firefly's cast has events that have passed and events to come, part of them photo ops and signings", () => {
+        expect(cast.length).toBeGreaterThan(quiet.length);
+        expect(quiet.length).toBeGreaterThan(0);
+        expect(whole.length).toBeGreaterThan(cast.length);
+      });
+      it("only the fandom's block has the fold: none for a track, a person or a topic", () => {
+        expect(folds().map(b => b.dataset.follow)).toEqual(["work:firefly"]);
+      });
+      it("shut, and its count is the cast's events still to come", () => {
+        expect(folds()[0].getAttribute("aria-expanded")).toBe("false");
+        expect(folds()[0].textContent.replace(/\s+/g, " ").trim()).toBe(`With the cast (${cast.length}) ▸`);
+        expect(rows("folc:work:firefly")).toEqual([]);
+        expect(reveal()).toBe(null);
+      });
+      it("it ends the block: after the block's Already happened, before the next follow's title", () => {
+        const past = fol().querySelector('[data-act="fol-past"][data-follow="work:firefly"]');
+        const next = [...fol().querySelectorAll(".section-title")][1];
+        expect(past.compareDocumentPosition(folds()[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(folds()[0].compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(folds()[0].parentElement.nextElementSibling).toBe(next);
+      });
+      it("the block's own count and its rows are the events about the fandom, as they were", () => {
+        const at = handle.now(), toCome = app.eventsFor({ kind: "work", key: "firefly" }).filter(e => !app.isPast(e, at)).map(e => e.id);
+        expect(fol().querySelector(".section-title .count").textContent.replace(/\s+/g, " ").trim()).toBe(`Fandom · ${toCome.length} to come`);
+        expect(rows("fol:work:firefly")).toEqual(toCome.slice(0, 8));
+      });
+      it("opened, its rows are the cast's events to come less the photo ops and signings, the day on each, and the button says how many those are", () => {
+        folds()[0].click();
+        expect(folds()[0].getAttribute("aria-expanded")).toBe("true");
+        expect(state.following.showCast).toEqual({ "work:firefly": true });
+        expect(rows("folc:work:firefly")).toEqual(cast.map(e => e.id).filter(id => !quiet.includes(id)));
+        expect([...fol().querySelectorAll('.row[data-list="folc:work:firefly"]')].every(r => r.querySelector(".when-where .day"))).toBe(true);
+        expect(reveal().textContent).toBe(`show photo ops and signings (${quiet.length})`);
+        expect(reveal().dataset.follow).toBe("work:firefly");
+      });
+      it("the button adds them, and goes", () => {
+        reveal().click();
+        expect(rows("folc:work:firefly")).toEqual(cast.map(e => e.id));
+        expect(reveal()).toBe(null);
+        expect(state.following.castNoise).toEqual({ "work:firefly": true });
+      });
+      it("no event is both in the block's rows and in the group, with everything of the block shown", () => {
+        state.following.expanded["work:firefly"] = true; state.following.showPast["work:firefly"] = true; handle.render();
+        const own = [...rows("fol:work:firefly"), ...rows("folp:work:firefly")];
+        expect(own.sort()).toEqual([...about].sort());
+        expect(rows("folc:work:firefly").filter(id => own.includes(id))).toEqual([]);
+      });
+      it("a block with nothing left of its own still gets it", () => {
+        const at = handle.now();
+        const w = handle.meta.works.find(x => x.reviewed && !app.eventsFor({ kind: "work", key: x.id }).some(e => !app.isPast(e, at))
+          && handle.events.some(e => app.linksTo(e, x.id, ["credit"]) && !app.linksTo(e, x.id) && !app.isPast(e, at)));
+        expect(w).toBeTruthy();
+        feed([{ kind: "work", key: w.id }]);
+        expect(fol().querySelector(".empty").textContent).toBe("Nothing left today or later.");
+        expect(folds().map(b => b.dataset.follow)).toEqual([`work:${w.id}`]);
+      });
+      it("no fold for a fandom with no cast event to come", () => {
+        const w = app.topWorks().find(x => !handle.events.some(e => app.linksTo(e, x.id, ["credit"]) && !app.linksTo(e, x.id)));
+        expect(w).toBeTruthy();
+        feed([{ kind: "work", key: w.id }]);
+        expect(fol().querySelectorAll(".row").length).toBeGreaterThan(0);
+        expect(folds()).toEqual([]);
+      });
+      it("By time is as it was: no fold, and no cast event among its rows", () => {
+        feed([{ kind: "work", key: "firefly" }]);
+        state.following.showCast["work:firefly"] = true;
+        fol().querySelector('[data-act="fol-time"]').click();
+        state.following.showPast.__time = true; handle.render();
+        expect(state.following.layout).toBe("time");
+        expect(fol().querySelector('[data-act="fol-cast"], [data-act="fol-cast-noise"]')).toBe(null);
+        expect(rows("foltime").sort()).toEqual([...about].sort());
+        expect(rows("foltime").filter(id => whole.some(e => e.id === id))).toEqual([]);
+      });
+    });
+
+    describe("Search with the Fandom filter set: the list, then its cast", () => {
+      const rest = () => document.getElementById("browseRest");
+      const fold = () => rest().querySelector('[data-act="browse-cast"]');
+      const rows = list => [...rest().querySelectorAll(`.row[data-list="${list}"]`)].map(r => r.dataset.id);
+      const draw = (q, over) => { const found = search(q, over); state.tab = "browse"; handle.render(); return found; };
+      /* What the group should hold, asked the long way: the filters as they
+         stand with the Fandom taken off, and the list's own scope and order. */
+      const expected = work => {
+        const at = handle.now(), today = state.browse.todayScoped ? app.conDayKey(at) : null;
+        state.browse.work = "All";
+        const list = handle.events.filter(e => app.linksTo(e, work, ["credit"]) && !app.linksTo(e, work) && app.passesFilters(e)
+          && (!today || app.conDayKey(e._s) === today));
+        state.browse.work = work;
+        return [...list.filter(e => !app.isPast(e, at)), ...list.filter(e => app.isPast(e, at))].map(e => e.id);
+      };
+      const both = (q, over) => { const found = draw(q, over); return { found, want: expected(over.work), got: rows("browse-cast") }; };
+      beforeAll(() => { state.browse.castOpen = true; });
+      afterAll(() => { state.browse.castOpen = true; search(""); });
+
+      it("all days: every cast event the other filters pass, what is to come by its start, then what has passed", () => {
+        const { want, got } = both("", { work: "star-trek" });
+        expect(want.length).toBeGreaterThan(3);
+        expect(got).toEqual(want);
+        const at = handle.now(), gone = got.map(id => app.isPast(handle.events.find(e => e.id === id), at));
+        expect(gone).toContain(true);
+        expect(gone).toContain(false);
+        expect(gone.indexOf(true)).toBe(gone.lastIndexOf(false) + 1);
+      });
+      it("a fold after the list, open, saying how many it holds, its rows with the day on each", () => {
+        expect(fold().getAttribute("aria-expanded")).toBe("true");
+        expect(fold().textContent.replace(/\s+/g, " ").trim()).toBe(`With the cast (${rows("browse-cast").length}) ▾`);
+        const list = rest().querySelector("ul.list");
+        expect(list.compareDocumentPosition(fold()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(rest().lastElementChild.querySelectorAll('.row[data-list="browse-cast"]').length).toBe(rows("browse-cast").length);
+        expect([...rest().querySelectorAll('.row[data-list="browse-cast"]')].every(r => r.querySelector(".when-where .day"))).toBe(true);
+      });
+      it("the title's count, the Filters badge and the sheet's Show count are the list's alone", () => {
+        const n = handle.events.filter(app.passesFilters).length;
+        expect(n).toBe(rows("browse").length);
+        expect(rest().querySelector(".section-title .count").textContent).toBe(String(n));
+        expect(document.getElementById("filtersBadge").textContent).toBe("1");
+        handle.openSheet("filters");
+        expect(document.getElementById("filtersShow").textContent).toBe(`Show ${n} events`);
+        handle.closeSheet();
+      });
+      it("no event is in both the list and the group", () => {
+        expect(rows("browse-cast").filter(id => rows("browse").includes(id))).toEqual([]);
+        expect(rows("browse").every(id => app.linksTo(handle.events.find(e => e.id === id), "star-trek"))).toBe(true);
+      });
+      it("a tap shuts it and a tap opens it, kept while the list is drawn again", () => {
+        fold().click();
+        expect([state.browse.castOpen, fold().getAttribute("aria-expanded"), rows("browse-cast")]).toEqual([false, "false", []]);
+        handle.render();
+        expect(fold().getAttribute("aria-expanded")).toBe("false");
+        fold().click();
+        expect([state.browse.castOpen, fold().getAttribute("aria-expanded")]).toEqual([true, "true"]);
+        expect(rows("browse-cast").length).toBeGreaterThan(0);
+      });
+      it("under a day chip it holds that day's alone", () => {
+        const all = both("", { work: "star-trek" }).got;
+        const { want, got } = both("", { work: "star-trek", day: "2026-09-06" });
+        expect(got).toEqual(want);
+        expect(got.length).toBeGreaterThan(0);
+        expect(got.length).toBeLessThan(all.length);
+        expect(got.every(id => handle.events.find(e => e.id === id)._cd === "2026-09-06")).toBe(true);
+      });
+      it("with the photo and video filter off it holds what that filter held back too", () => {
+        const on = both("", { work: "star-trek" }).got;
+        const { want, got } = both("", { work: "star-trek", hideNoise: false });
+        expect(got).toEqual(want);
+        expect(got.length).toBeGreaterThan(on.length);
+      });
+      it("with a filter of the sheet's set it holds what passes that filter", () => {
+        const all = both("", { work: "star-trek" }).got;
+        const { want, got } = both("", { work: "star-trek", hotel: "Marriott" });
+        expect(got).toEqual(want);
+        expect(got.length).toBeGreaterThan(0);
+        expect(got.length).toBeLessThan(all.length);
+        expect(got.every(id => handle.events.find(e => e.id === id).hotel === "Marriott")).toBe(true);
+      });
+      it("a word read as a filter keeps the group: \"sunday\", and Sunday's cast alone", () => {
+        const { found, want, got } = both("sunday", { work: "star-trek" });
+        expect(found.results.every(e => !e._hit)).toBe(true);
+        expect(got).toEqual(want);
+        expect(got.length).toBeGreaterThan(0);
+        expect(got.every(id => handle.events.find(e => e.id === id)._cd === "2026-09-06")).toBe(true);
+      });
+      it("where the list is today's alone, so is the group", () => {
+        const { want, got } = both("qa", { work: "star-trek", noToday: false, hideNoise: false });
+        expect(state.browse.todayScoped).toBe(true);
+        expect(got).toEqual(want);
+        expect(got.length).toBeGreaterThan(0);
+        expect(got.every(id => handle.events.find(e => e.id === id)._cd === "2026-09-05")).toBe(true);
+        expect(both("qa", { work: "star-trek", noToday: true, hideNoise: false }).got.length).toBeGreaterThan(got.length);
+      });
+      it("with a word that ranks there is no group", () => {
+        const found = draw("serenity", { work: "firefly" });
+        expect(found.results.some(e => e._hit)).toBe(true);
+        expect([fold(), app.browseCast(), rows("browse-cast")]).toEqual([null, [], []]);
+      });
+      it("with no Fandom set there is no group", () => {
+        draw("", {});
+        expect([fold(), app.browseCast(), rows("browse-cast")]).toEqual([null, [], []]);
+        draw("sunday", {});
+        expect([fold(), app.browseCast()]).toEqual([null, []]);
+      });
+      it("an empty list over a group says which list is empty, by the fandom's name, and the rest of the line as it was", () => {
+        const pair = app.topWorks().flatMap(w => app.CON_DAYS.map(day => ({ w, day })))
+          .find(({ w, day }) => { const { found, got } = both("", { work: w.id, day }); return !found.total && got.length; });
+        expect(pair).toBeTruthy();
+        draw("", { work: pair.w.id, day: pair.day });
+        const empty = rest().querySelector(".empty");
+        expect(empty.querySelector("b").textContent).toBe(`No events about ${pair.w.name}.`);
+        expect(empty.textContent).toBe(`No events about ${pair.w.name}. Remove a filter above, or try another day or fewer words.`);
+        expect(empty.compareDocumentPosition(fold()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(rest().querySelector(".section-title .count").textContent).toBe("0");
+      });
+      it("where the list and the group are both empty the line is as it was", () => {
+        const pair = app.topWorks().flatMap(w => app.CON_DAYS.map(day => ({ w, day })))
+          .find(({ w, day }) => { const { found, got } = both("", { work: w.id, day }); return !found.total && !got.length; });
+        expect(pair).toBeTruthy();
+        draw("", { work: pair.w.id, day: pair.day });
+        expect(rest().querySelector(".empty").textContent).toBe("No matches. Remove a filter above, or try another day or fewer words.");
+        expect(fold()).toBe(null);
+      });
+    });
+
     describe("what the index holds of a work, an axis and the audience", () => {
       const text = e => [e.title, e.description, ...(e.tracks || []), ...(e.people || []).map(p => p.name)].join(" ").toLowerCase();
       const found = (q, over = {}) => new Set(search(q, { hideNoise: false, noToday: true, ...over }).results.map(e => e.id));

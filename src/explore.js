@@ -1,9 +1,9 @@
 import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
 import { conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
-import { AXES, byId, CAST, events, isCeleb, knownFor, linkedWorks, linksTo, NOISE_TRACKS, personName, tagsOf, topWorks, worksById } from "./data.js";
+import { AXES, byId, castEvents, events, isCeleb, knownFor, linkedWorks, NOISE_TRACKS, personName, tagsOf, topWorks, worksById } from "./data.js";
 import { picks } from "./picks.js";
-import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing, KIND_NOUN } from "./follows.js";
+import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing, isMuted, KIND_NOUN, mutes } from "./follows.js";
 import { axisLabel } from "./search.js";
 import { rowHTML } from "./ui.js";
 import { pageScrollTo, pageScrollTop, revealChip, scroller } from "./scroll.js";
@@ -177,7 +177,8 @@ function exploreJumpChipsHTML() {
 /* Tracks, fandoms and guests behind the reader's own picks that they do not
    follow yet, derived on every render. A starred photo session says
    something about the guest, not the track, so the noise tracks stay out;
-   only things with a tile of their own are offered, so each has a page. */
+   only things with a tile of their own are offered, so each has a page.
+   Nothing muted is offered (DECISIONS #84), and the next takes its place. */
 const SUGGEST_MAX = 6;
 function suggestedFollows() {
   if (!picks.size) return [];
@@ -185,7 +186,7 @@ function suggestedFollows() {
   const lists = {track: cat.track, work: cat.fandom, person: cat.guest};
   const tally = new Map();
   const bump = (kind, key) => {
-    if (!key || isFollowing(kind, key)) return;
+    if (!key || isFollowing(kind, key) || isMuted(kind, key)) return;
     const item = lists[kind].find(t => t.key === key);
     if (!item) return;
     const id = `${kind}:${key}`;
@@ -216,9 +217,26 @@ function suggestedHTML() {
   </section>`;
 }
 
+/* The muted, in a fold after Because you starred (DECISIONS #84): shut on
+   every load, and not there with nothing muted. Open, one row that scrolls
+   sideways, a chip a mute in the follow chips' shape and never gold - gold
+   is a follow's. The name opens the thing's page; the x unmutes. */
+function mutedHTML() {
+  if (!mutes.length) return "";
+  const open = !!state.explore.mutedOpen;
+  const chips = mutes.map(m => `<span class="follow-chip mute-chip">
+      <button class="fc-name" data-explore="${esc(followId(m))}">${esc(labelFor(m.kind, m.key))}</button>
+      <button class="fc-x" data-act="unmute" data-follow="${esc(followId(m))}" aria-label="Unmute ${esc(labelFor(m.kind, m.key))}">&times;</button>
+    </span>`).join("");
+  return `<section class="muted" id="muted">
+    <div class="divider fold"><button data-act="explore-muted" aria-expanded="${open}">Muted (${mutes.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>
+    ${open ? `<div class="controls"><div class="chips mute-chips" data-row="mutes">${chips}</div></div>` : ""}
+  </section>`;
+}
+
 /* What stands above the sticky block: Following, when anything is followed,
-   and Because you starred. */
-const exploreTopHTML = () => followingHTML() + suggestedHTML();
+   Because you starred, and the Muted fold, when anything is muted. */
+const exploreTopHTML = () => followingHTML() + suggestedHTML() + mutedHTML();
 
 /* The filter box is built once (DECISIONS #80), as Search's is: the first
    draw of the grid makes the view whole, and every later one writes around
@@ -330,21 +348,30 @@ function scrollToExploreSection(id) {
   smoothScrollTo(el.getBoundingClientRect().top + pageScrollTop() - hdr - stickyH);
 }
 
-/* The kinds a work's cast group keeps behind its own reveal. */
+/* The kinds a work's cast group keeps behind its own reveal, on its page and
+   in the Following feed. */
 const CAST_QUIET = ["photo", "signing"];
+const isQuiet = e => CAST_QUIET.includes(tagsOf(e).kind);
 
 function renderExplorePage() {
   const {kind, key} = state.explore.page;
   const all = eventsFor({kind, key});
   const at = now();
   const upcoming = all.filter(e => !isPast(e, at)), past = all.filter(e => isPast(e, at));
-  const on = isFollowing(kind, key);
+  const on = isFollowing(kind, key), muted = isMuted(kind, key), offered = canFollow(kind, key);
   /* A work's page ends with the events its cast is on - linked by a credit to
      the work or anything under it - that are not already in the list above. */
-  const cast = kind === "work" ? events.filter(e => linksTo(e, key, CAST) && !linksTo(e, key)) : [];
+  const cast = kind === "work" ? castEvents(key) : [];
   /* Nothing unreviewed is followable; a follow already made can still be undone here. */
-  const button = on || canFollow(kind, key)
+  const follow = on || offered
     ? `<button class="btn follow-btn${on ? " on" : ""}" data-act="toggle-follow" aria-pressed="${on}">${on ? "Following" : "Follow"}</button>`
+    : "";
+  /* Mute stands beside Follow, on one line with it (DECISIONS #84): there
+     when the thing is muted or can be followed, so a mute already made can
+     still be undone here. The quiet button, and never gold. A muted page
+     says what a mute does in one line under the two, text and no control. */
+  const mute = muted || offered
+    ? `<button class="btn quiet mute-btn" data-act="toggle-mute" aria-pressed="${muted}">${muted ? "Muted" : "Mute"}</button>`
     : "";
   /* A person's known-for line, under the name, as the event's sheet says it
      (W42; DECISIONS #61, #74): the file's people block's, so only a reviewed
@@ -357,7 +384,8 @@ function renderExplorePage() {
     <h2 class="eh-name" tabindex="-1">${esc(labelFor(kind, key))}</h2>
     ${known ? `<p class="eh-known">${esc(known)}</p>` : ""}
     <div class="eh-count">${all.length} event${all.length === 1 ? "" : "s"}${past.length ? ` &middot; ${upcoming.length} still to come` : ""}</div>
-    ${button}
+    ${follow || mute ? `<div class="eh-acts">${follow}${mute}</div>` : ""}
+    ${muted ? `<p class="eh-muted">Not suggested to you. Still in Search, and here.</p>` : ""}
   </div>`;
 
   const dayGroups = (list, name = "explore") => {
@@ -383,8 +411,8 @@ function renderExplorePage() {
   }
   if (cast.length) {
     const open = !!state.explore.showCast;
-    const quiet = cast.filter(e => CAST_QUIET.includes(tagsOf(e).kind));
-    const shown = state.explore.castNoise ? cast : cast.filter(e => !CAST_QUIET.includes(tagsOf(e).kind));
+    const quiet = cast.filter(isQuiet);
+    const shown = state.explore.castNoise ? cast : cast.filter(e => !isQuiet(e));
     html += `<div class="divider fold"><button data-act="explore-cast" aria-expanded="${open}">With the cast (${cast.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
     if (open) {
       if (shown.length) html += `<ul class="list">${dayGroups(shown, "explore-cast")}</ul>`;
@@ -413,6 +441,25 @@ function followChipsHTML() {
   </div></div>`;
 }
 
+/* A followed fandom's block ends with its cast (DECISIONS #85): the events
+   castEvents() gives that are still to come, behind a fold, shut until
+   tapped. Open, its rows with the day on each, less the photo ops and
+   signings, and the page's button for those, in the page's words. Open or
+   shut, and the photo ops shown, are kept by follow. No fold where nothing
+   is left to come; only a fandom has a cast. */
+function followingCastHTML(id, key, now) {
+  const cast = castEvents(key).filter(e => !isPast(e, now));
+  if (!cast.length) return "";
+  const open = !!state.following.showCast[id], all = !!state.following.castNoise[id];
+  const quiet = cast.filter(isQuiet), shown = all ? cast : cast.filter(e => !isQuiet(e));
+  let html = `<div class="divider fold"><button data-act="fol-cast" data-follow="${esc(id)}" aria-expanded="${open}">With the cast (${cast.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
+  if (open) {
+    if (shown.length) html += `<ul class="list">${shown.map(ev => rowHTML(ev, {list: `folc:${id}`, showDay: true})).join("")}</ul>`;
+    if (quiet.length && !all) html += `<button class="btn quiet more" data-act="fol-cast-noise" data-follow="${esc(id)}">show photo ops and signings (${quiet.length})</button>`;
+  }
+  return html;
+}
+
 function followingByInterest(now) {
   let html = "";
   follows.forEach(f => {
@@ -435,6 +482,7 @@ function followingByInterest(now) {
       html += `<div class="divider fold"><button data-act="fol-past" data-follow="${esc(id)}" aria-expanded="${open}">Already happened (${past.length}) <span aria-hidden="true">${open ? "▾" : "▸"}</span></button></div>`;
       if (open) html += `<ul class="list">${past.map(ev => rowHTML(ev, {list: `folp:${id}`, showDay: true})).join("")}</ul>`;
     }
+    if (f.kind === "work") html += followingCastHTML(id, f.key, now);
   });
   return html;
 }

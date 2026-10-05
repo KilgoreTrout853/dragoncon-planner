@@ -18,14 +18,19 @@ const state = {
      (map.js; DECISIONS #75). */
   map: {day: null, focus: null},
   plans: {crew: null, day: null},         /* the crew shown, null the oldest; the crew's day, null the clock's */
-  explore: {q: "", page: null, scroll: 0, showPast: false, showCast: false, castNoise: false, expanded: {}, active: null},
-  following: {layout: loadJSON(storageKey("followingLayout"), "interest"), expanded: {}, showPast: {}, open: loadJSON(storageKey("followingOpen"), true)},
+  /* Explore's: mutedOpen is the grid's Muted fold, shut on every load (#84). */
+  explore: {q: "", page: null, scroll: 0, showPast: false, showCast: false, castNoise: false, mutedOpen: false, expanded: {}, active: null},
+  /* The Following feed's: by follow id, a block's Show more, its Already
+     happened, and a fandom's cast - open, and its photo ops shown (#85). */
+  following: {layout: loadJSON(storageKey("followingLayout"), "interest"), expanded: {}, showPast: {}, showCast: {}, castNoise: {},
+    open: loadJSON(storageKey("followingOpen"), true)},
   /* Search's: the query, the day, and the filter sheet's thirteen, the four
-     topic axes (W8, #70) and the four of Getting in (W7, #77) among them. */
+     topic axes (W8, #70) and the four of Getting in (W7, #77) among them;
+     castOpen is the cast group's fold, open until tapped shut (#85). */
   browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All",
     medium: "All", genre: "All", craft: "All", subject: "All",
     cost: "All", signup: "All", audience: "All", soldOut: "All",
-    showHidden: false, showPast: false, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
+    showHidden: false, showPast: false, castOpen: true, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},
 };
 
 export { settings, state };

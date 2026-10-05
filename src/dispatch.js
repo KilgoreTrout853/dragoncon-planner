@@ -14,7 +14,7 @@ import { state } from "./state.js";
 import { CON, now } from "./time.js";
 import { byId } from "./data.js";
 import { clearNews, picks, replacePicks, savePickNews, savePicks } from "./picks.js";
-import { toggleFollow } from "./follows.js";
+import { isMuted, toggleFollow, toggleMute } from "./follows.js";
 import { exportEventICS, exportICS } from "./ics.js";
 import { dropPhrase, index } from "./search.js";
 import { cssEsc, pageScrollTo, revealChip } from "./scroll.js";
@@ -109,6 +109,7 @@ function onMainClick(e) {
       return;
     }
     if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
+    if (a === "browse-cast") { state.browse.castOpen = !state.browse.castOpen; render(); return; }
     if (a === "dismiss-news") { clearNews(); savePickNews(); render(); return; }
     if (a === "dismiss-archive") { saveJSON(ARCHIVE_NOTICE_KEY, CON.year); render(); return; }
     if (a === "nudge-later") { saveJSON(storageKey("nudgeSnoozedUntil"), now().getTime() + NUDGE_SNOOZE_MS); render(); return; }
@@ -136,6 +137,13 @@ function onMainClick(e) {
       if (i > 0) { toggleFollow(raw.slice(0, i), raw.slice(i + 1)); render(); }
       return;
     }
+    /* The Muted fold, and a muted chip's x, which only ever unmutes (#84). */
+    if (a === "explore-muted") { state.explore.mutedOpen = !state.explore.mutedOpen; render(); return; }
+    if (a === "unmute") {
+      const raw = act.dataset.follow || "", i = raw.indexOf(":");
+      if (i > 0 && isMuted(raw.slice(0, i), raw.slice(i + 1))) { toggleMute(raw.slice(0, i), raw.slice(i + 1)); render(); }
+      return;
+    }
     if (a === "fol-interest" || a === "fol-time") {
       state.following.layout = a === "fol-time" ? "time" : "interest";
       saveJSON(storageKey("followingLayout"), state.following.layout);
@@ -149,12 +157,28 @@ function onMainClick(e) {
       render();
       return;
     }
+    /* A followed fandom's cast, in By interest: its fold, and its photo ops
+       and signings shown, each by follow (#85). */
+    if (a === "fol-cast") {
+      const k = act.dataset.follow;
+      state.following.showCast[k] = !state.following.showCast[k];
+      render();
+      return;
+    }
+    if (a === "fol-cast-noise") { state.following.castNoise[act.dataset.follow] = true; render(); return; }
     if (a === "explore-past") { state.explore.showPast = !state.explore.showPast; render(); return; }
     if (a === "explore-cast") { state.explore.showCast = !state.explore.showCast; render(); return; }
     if (a === "explore-cast-noise") { state.explore.castNoise = true; render(); return; }
     if (a === "toggle-follow") {
       const pg = state.explore.page;
       if (pg) { toggleFollow(pg.kind, pg.key); render(); }
+      return;
+    }
+    /* Mute, beside Follow on a page: it mutes, and unfollows what was
+       followed; on Muted, it unmutes (#84). */
+    if (a === "toggle-mute") {
+      const pg = state.explore.page;
+      if (pg) { toggleMute(pg.kind, pg.key); render(); }
       return;
     }
     if (a === "show-hidden") { state.browse.showHidden = true; state.browse.page = 1; render(); return; }
