@@ -3022,3 +3022,28 @@ already holds back what the page's button does.
 **Cost:** Two rules for photo ops: a button on a page and in the feed, a
 filter in Search. A word that ranks loses the group. The feed's fold
 counts what is to come, where the page's counts every one.
+
+### 86. What is tapped stays where it stood — Standing (2026-10-05)
+**Decided:** A control that is tapped, and is still there after the draw,
+stands where it stood, to 1 px, wherever the page is scrolled; where the
+tap takes the control away - Show more, a photo ops' button, a chip's x -
+what stood just above it stays (PR #104; `docs/screens/contract.md`,
+section 0). It is `togglePick()`'s rule for the star, made every tap's.
+- **The page's scroller does not anchor:** `overflow-anchor: none` on
+  `main`, one declaration, and no script.
+- **The browser tests hold it** (#81), the star's row too: [53] and
+  [1240], which could not fail, are deleted.
+- **No rule helps one case:** a fold shut at the foot of the page, where
+  the page becomes too short to hold it.
+
+**Why:** Since #80 a draw of Explore's grid keeps the filter block, and a
+browser that anchors its scroll holds a kept node still, by scrolling,
+when what stands above it changes height. With the block on screen under
+a fold, the list the fold opened stood where the fold had been: Already
+happened went 321 px up and off the screen, in both of the browser
+tests' engines. For you puts a Show more in the same place.
+**Cost:** A draw nobody tapped for - a pull that brings the reader's own
+picks or follows, a return to the page after events have passed - no
+longer leaves Explore's grid held where what stands above it changes
+height. The grid moves by the difference, as it did before #80 and as it
+does in a browser that never anchored; our own code does not hold it.

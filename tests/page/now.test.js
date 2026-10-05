@@ -40,30 +40,20 @@ describe("the Now tab", () => {
 
     /* The first pick inserts the hero card above the list, which used to shove
        the rows down by 200px; togglePick measures the tapped row and puts it
-       back. */
-    describe("the tapped row stays under the finger", () => {
-      let drift, picked;
+       back. That the row stays is a browser test's, where there is layout
+       (tests/browser/tap-place.spec.js; DECISIONS #86): every rect in jsdom
+       is 0. Here, the star by that road, its row handed over. */
+    describe("a star through togglePick(), with the row it was tapped on", () => {
+      let picked;
       beforeAll(() => {
         setPicks([]);
-        const rows = view().querySelectorAll('.row[data-list="around"]');
-        const tapped = rows[2], neighbourId = rows[4].dataset.id;
-        const before = rows[4].getBoundingClientRect().top;
+        const tapped = view().querySelectorAll('.row[data-list="around"]')[2];
         app.togglePick(tapped.dataset.id, tapped);
-        const again = view().querySelector(`.row[data-list="around"][data-id="${CSS.escape(neighbourId)}"]`);
-        drift = again ? Math.round(again.getBoundingClientRect().top - before) : null;
         picked = handle.picks.get().size;
       });
 
       it("starring adds exactly one pick [52]", () => {
         expect(picked).toBe(1);
-      });
-      /* This cannot fail without layout: every rect in jsdom is 0, so the drift
-         is 0 by construction. It still runs the measure-and-restore path. The
-         rule that guards the fix is 1240 in tests/rules/source.test.js; both
-         retire when a browser test of the star's anchoring is written. */
-      it("starring does not shift neighbouring rows [53]", () => {
-        expect(drift).not.toBe(null);
-        expect(Math.abs(drift)).toBeLessThanOrEqual(2);
       });
     });
   });

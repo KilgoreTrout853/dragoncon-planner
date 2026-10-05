@@ -103,7 +103,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, and smokes that boot the built pages - the next site's, given a backend, signing in by email and syncing a star. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
-| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds; `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85). |
+| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds; `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86). |
 | `playwright.config.js` | The browser tests' configuration: a project for each engine at each size, a phone with touch on, the worker blocked, the zone the season file's, no retries. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record, frozen: never edited (DECISIONS #83). |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
@@ -1102,10 +1102,10 @@ seen to follow the files.
 
 **Rules** (`tests/rules/`) are regexes over the text of `src/styles.css` and
 of every module under `src/`, read one after another: declarations a page
-in jsdom cannot show, since jsdom computes no layout. Two source rules
-remain: [1240], the signature of `togglePick()`, which goes when a browser
-test of the star's anchoring is written (ROADMAP, Flags), and [1728], no inline pixel font size, which stays a rule; ESLint
-took the others. Two more hold the build's year (DECISIONS #49): no `dc26`
+in jsdom cannot show, since jsdom computes no layout. One source rule
+remains of the harness's: [1728], no inline pixel font size. ESLint took
+three, and [1240], the signature of `togglePick()`, went with [53] when
+the star's anchoring got a browser test (#86). Two more hold the build's year (DECISIONS #49): no `dc26`
 in `src/`, and no date written into a string under `src/`. `imports.test.js` reads the module graph instead: only
 `main.js` imports `boot.js`, a module imports only npm packages, the year's
 data file it owns and the modules before it in the order, every file under `src/` has a place in it,
@@ -1170,7 +1170,12 @@ the rule itself on a page of its own, where every box has its size
 written on it: that it still flags a control cut by an ancestor or by
 the screen, and still stops at a scroller. A layout fault gets a named
 test of its own: `chip.spec.js` is the first (#82), and
-`mute-cast.spec.js` holds what Mute and the cast folds added (#84, #85). It is not an
+`mute-cast.spec.js` holds what Mute and the cast folds added (#84, #85).
+`tap-place.spec.js` holds that what is tapped stays where it stood (#86):
+each control put at a height by scrolling `main`, touched there, and
+read again after the draw - the folds, what stood above a control the
+tap took away, and a star's row, which was `togglePick()`'s to keep and
+had no test that could fail. It is not an
 iPhone - no iOS keyboard, no safe-area insets, no home-screen app,
 `IS_IOS` false in both engines - and it tests nothing of the worker,
 offline or install.
