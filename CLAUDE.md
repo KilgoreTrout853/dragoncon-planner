@@ -29,3 +29,21 @@
     `tests/rules/imports.test.js`).
 11. A test written now is not a row of the port ledger: its title carries no
     bracket. Never import `src/main.js` in a test: it boots the page.
+12. A PR's docs are written once and short (DECISIONS #83).
+    - DECISIONS: one entry per decision - Decided, Why, Cost - 25 lines at
+      most, with no tables or censuses: at most the one number that decided
+      it. An older entry it changes gets "amended by #`<N>`" or "superseded
+      by #`<N>`" appended to its heading and nothing more.
+    - The contract files (under `docs/screens/`, `docs/sync/` and
+      `docs/pipeline/`): no new "as built" part and nothing added to one. A
+      section a PR builds gets one line, "Built: `<what>` - PR #`<n>`,
+      DECISIONS #`<N>`." Designed text the PR makes false is fixed in
+      place. An existing "as built" part the PR changes gets one line under
+      its heading, "Changed by PR #`<n>` (#`<N>`): `<one clause>`.", and is
+      otherwise left: it is a dated record. What a PR leaves open goes
+      under Open, a bullet each.
+    - The evidence - what was measured and at which sizes, what was seen
+      and what only measured, the suites' counts, a mutation pass - goes in
+      the PR description, once, and in no file.
+    - `tests/PORT-LEDGER.md` is frozen: never edit it; a bracket in a
+      test's title stays as it is.

@@ -58,6 +58,7 @@ the word kids leaves, where it read the audience tag, and that the
 fixture's Kids Track has an 18+ event to leave out, its title unchanged.
 The tables' counts are as of 4b-ii, and
 where a row names `src/app.js` it means the modules under `src/` that the file became.
+Frozen by PR #102 (DECISIONS #83): a record of the port, not amended after it.
 
 How the numbers were made: the harness was parsed, not grepped. Each call site's condition was traced back through the harness's
 own variables to what it reads (the page, a `window.eval`, the source text, the built files), and an instrumented copy of the harness

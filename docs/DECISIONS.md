@@ -2945,3 +2945,28 @@ text, by padding its margin takes back: a later rule on `.hdr-line` keeps
 both, or the chip's area is clipped. A chip tapped by keyboard goes with
 focus on it, and focus falls to the page: older than this, and step 11's
 sweep's (ROADMAP, Flags).
+
+### 83. A pull request's docs are written once — Standing (2026-10-04)
+**Decided:** A pull request's docs are written once and short; CLAUDE.md,
+rule 12, has the words.
+- **This log:** one entry a decision, 25 lines at most, with no tables or
+  censuses: at most the one number that decided it. An older entry it
+  changes gets "amended by" or "superseded by" on its heading, no more.
+- **The contracts** (`docs/screens/`, `docs/sync/`, `docs/pipeline/`): no
+  new "as built" part, nothing added to one; a section built gets one line.
+- **The evidence** - what was measured, the suites' counts, a mutation
+  pass - goes in the pull request's description, once, and in no file.
+- **`tests/PORT-LEDGER.md` is frozen;** a test's bracket stays as it is.
+
+It amends no entry by number: it ends a practice no entry asked for, the
+"as built" parts and the notes appended to headings.
+
+**Why:** Docs lines passed code lines: the 18 feature and fix pull requests
+of Where things live (#74 to #97) changed 4,501 lines of code and 5,004 of
+docs. An "as built" part repeats the entry, the pull request and the tests.
+And CLAUDE.md's rule 1 has every session read this log and ARCHITECTURE
+whole, so every later session pays for what a pull request adds.
+**Cost:** A pull request's measurements are on GitHub, in the pull request,
+and not in the repo, so a reader of the repo alone no longer finds them.
+An "as built" part can say something a later pull request changed, with
+only its "Changed by" line to say so, until the parts are moved out.
