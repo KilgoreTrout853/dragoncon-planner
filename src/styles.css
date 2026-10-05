@@ -230,8 +230,9 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
   letter-spacing: .03em;
 }
 .divider.fold { padding: 0; }
+/* A fold's button is 44px tall wherever the app draws one (#66). */
 .divider.fold button {
-  width: 100%; text-align: left; padding: 10px 14px 8px; background: none; border: 0;
+  width: 100%; min-height: 44px; text-align: left; padding: 10px 14px 8px; background: none; border: 0;
   font: inherit; font-weight: 700; color: var(--muted); cursor: pointer;
 }
 /* Explore ------------------------------------------------------------ */
@@ -259,6 +260,15 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
   color: var(--gold); opacity: .7; cursor: pointer;
 }
 .chip.fc-add { flex: none; }
+/* A muted chip (DECISIONS #84): the follow chip's shape and never gold, its
+   name and its x each 44px tall and the x 44px wide (#66). */
+.mute-chip { border-color: var(--line); }
+.mute-chip .fc-name { min-height: 44px; padding-left: 14px; color: var(--text); }
+.mute-chip .fc-x { min-width: 44px; min-height: 44px; color: var(--muted); opacity: 1; }
+/* The Muted fold, the last of what stands above the sticky block. The
+   section before it draws the line above it. */
+.muted .divider { border-top: 0; }
+.muted .controls { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .explore-jump .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: .75rem; }
 .explore-jump .chip[aria-pressed="true"] .n { color: inherit; opacity: .7; }
 /* Following sits above the tiles, behind a fold: a long feed would push the
@@ -286,7 +296,11 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .explore-head .eh-name:focus:not(:focus-visible) { outline: none; }
 .explore-head .eh-known { margin: 0; font-size: .9375rem; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; }
 .explore-head .eh-count { font-size: .875rem; color: var(--muted); }
-.follow-btn { margin-top: 6px; }
+/* Follow and Mute on one line (DECISIONS #84); the line under them a muted
+   page's alone. */
+.eh-acts { display: flex; gap: 8px; margin-top: 6px; }
+.eh-acts .btn { flex: none; white-space: nowrap; }
+.explore-head .eh-muted { margin: 0; font-size: .875rem; color: var(--muted); }
 .follow-btn.on { background: transparent; color: var(--gold); border: 1px solid var(--gold); }
 .no-exact {
   padding: 9px 14px; font-size: .8125rem; color: var(--muted);

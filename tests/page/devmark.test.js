@@ -8,17 +8,18 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
 
 /* Every key the app keeps in localStorage, each written the reader's own way:
-   a star, the nudge's Not now, the news dismissed, a follow, the Following
-   feed's layout and its fold, Plans' list view, the crowd factor, larger text,
-   and the archive notice once the con is over. sessionStorage holds one, the
+   a star, the nudge's Not now, the news dismissed, a follow, a mute, the
+   Following feed's layout and its fold, Plans' list view, the crowd factor,
+   larger text, and the archive notice once the con is over. sessionStorage holds one, the
    simulated clock's, which the page writes as it boots. */
-const LOCAL = ["archiveNoticeDismissed", "bigtext", "followingLayout", "followingOpen", "follows", "mineView",
+const LOCAL = ["archiveNoticeDismissed", "bigtext", "followingLayout", "followingOpen", "follows", "mineView", "mutes",
   "nudgeSnoozedUntil", "pickInfo", "pickNews", "picks", "settings"];
-function keepEverything({ handle }) {
+function keepEverything({ app, handle }) {
   document.querySelector("#view-now .row .star").click();
   document.querySelector('#view-now [data-act="nudge-later"]').click();
   handle.news.clear();
   handle.follows.set([{ kind: "track", key: "Science" }]);
+  app.toggleMute("track", "Skeptics");
   document.querySelector('.nav button[data-tab="explore"]').click();
   document.querySelector('#following [data-act="fol-time"]').click();
   document.querySelector('#following [data-act="fol-toggle"]').click();

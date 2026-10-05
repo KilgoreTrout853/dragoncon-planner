@@ -2,12 +2,12 @@
    button beside it, the day chips, the chips under them, the rows, and the
    debounce that keeps typing from redrawing 2,000 nodes a keystroke. What a
    query means and how it is ranked is search.js's; this is the drawing of
-   it. The filters themselves are the filter sheet's (filters.js, #70). */
+   it, the cast group after the list among it (#85). The filters themselves are the filter sheet's (filters.js, #70). */
 import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
-import { events, isNoise } from "./data.js";
-import { browseResults, index, processTerm, SEARCH_PLACEHOLDER, suggestDocs, suggestionsFor } from "./search.js";
+import { events, isNoise, worksById } from "./data.js";
+import { browseCast, browseResults, index, processTerm, SEARCH_PLACEHOLDER, suggestDocs, suggestionsFor } from "./search.js";
 import { chipHTML, rowHTML } from "./ui.js";
 import { inEffect } from "./filters.js";
 import { chipRowsRestore, chipRowsSnapshot } from "./scroll.js";
@@ -102,7 +102,7 @@ function renderBrowse() {
   const b = state.browse;
   if (b.day === null) { const d = conDayKey(now()); b.day = CON_DAYS.includes(d) ? d : FIRST_FULL_DAY; }
   const searching = !!b.q.trim();
-  const results = browseResults();
+  const results = browseResults(), cast = browseCast();
   const shown = results.slice(0, PAGE * b.page);
   const set = inEffect();
 
@@ -148,11 +148,22 @@ function renderBrowse() {
   html += `</ul>`;
   html += hiddenForQueryHTML(results);
   /* With a filter of the sheet's in effect, the first thing to try is to take
-     one off, and the chips to do it with are just above. */
+     one off, and the chips to do it with are just above. Over a cast group
+     the line says which list is empty: the fandom's own, by the name the
+     filter sheet has for it. */
+  const none = cast.length ? `No events about ${esc((worksById.get(b.work) || {}).name || b.work)}.` : "No matches.";
   if (!results.length) html += set.length
-    ? `<div class="empty"><b>No matches.</b> Remove a filter above, or try another day or fewer words.</div>`
-    : `<div class="empty"><b>No matches.</b> Try fewer or different words, another day, or turn off the photo/video filter.</div>`;
+    ? `<div class="empty"><b>${none}</b> Remove a filter above, or try another day or fewer words.</div>`
+    : `<div class="empty"><b>${none}</b> Try fewer or different words, another day, or turn off the photo/video filter.</div>`;
   if (results.length > shown.length) html += `<button class="btn quiet more" data-act="more-browse">Show ${Math.min(PAGE, results.length - shown.length)} more of ${results.length - shown.length}</button>`;
+  /* The cast group (DECISIONS #85), last: after the list, its empty line and
+     its Show more. A fold, open until tapped shut, its rows with the day on
+     each under a list name of their own. The title's count, the Filters
+     badge and the sheet's count are the list's alone. */
+  if (cast.length) {
+    html += `<div class="divider fold"><button data-act="browse-cast" aria-expanded="${b.castOpen}">With the cast (${cast.length}) <span aria-hidden="true">${b.castOpen ? "▾" : "▸"}</span></button></div>`;
+    if (b.castOpen) html += `<ul class="list">${cast.map(ev => rowHTML(ev, {list: "browse-cast", showDay: true})).join("")}</ul>`;
+  }
   /* The search box is never rebuilt once it exists. Replacing a focused
      input under an open iOS keyboard left the keyboard attached to a node
      that was gone, and dismissing it then landed in the Fandom select. Only

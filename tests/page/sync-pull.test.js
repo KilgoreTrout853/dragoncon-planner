@@ -327,3 +327,64 @@ describe("reconcilePicks(), with a session", () => {
     expect(document.getElementById("plansBadge").textContent).toBe("3");
   });
 });
+
+/* Mutes and sync (DECISIONS #84): a mute is on the device alone. Nothing of
+   one is sent or fetched; what reaches the server is the unfollow a mute
+   makes of something followed, as any unfollow; and a follow a pull brings
+   unmutes, where an unfollow it brings leaves a mute alone. */
+describe("mutes, with a session", () => {
+  let page, app, handle, fake, ada;
+  const trigger = async () => { document.dispatchEvent(new Event("visibilitychange")); await app.syncSettled(); };
+  const waiting = () => { const box = read("outbox"); return box ? [...Object.keys(box.ops.picks), ...Object.keys(box.ops.follows)] : []; };
+
+  beforeAll(async () => {
+    fake = fakeBackend();
+    ada = fake.held("ada@example.test");
+    signIn(fake, ada);
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("a mute puts nothing in the outbox and sends nothing", async () => {
+    const from = fake.requests.length;
+    expect(app.toggleMute("track", "Science")).toBe(true);
+    expect(waiting()).toEqual([]);
+    await app.syncSettled();
+    expect(fake.requests.length).toBe(from);
+    expect(read("mutes")).toEqual([{ kind: "track", key: "Science" }]);
+  });
+  it("a mute of something followed sends the unfollow, as any unfollow, and nothing else", async () => {
+    handle.follows.set([{ kind: "track", key: "Anime" }]);
+    await app.syncSettled();
+    const from = fake.requests.length;
+    expect(app.toggleMute("track", "Anime")).toBe(true);
+    expect(waiting()).toEqual(["track:Anime"]);
+    await app.syncSettled();
+    const sent = fake.requests.slice(from);
+    expect(sent.map(r => `${r.method} ${r.path.split("?")[0]}`)).toEqual(["POST /rest/v1/follows"]);
+    expect(sent[0].body).toEqual([{ year: YEAR, kind: "track", key: "Anime", followed: false, changed_at: expect.any(String) }]);
+    expect([handle.follows.get(), read("mutes")]).toEqual([[], [{ kind: "track", key: "Science" }, { kind: "track", key: "Anime" }]]);
+  });
+  it("a follow a pull brings unmutes", async () => {
+    fake.write(ada.id, "follows", { kind: "track", key: "Science", followed: true, changed_at: iso(Date.now()) });
+    await trigger();
+    expect(handle.follows.get()).toEqual([{ kind: "track", key: "Science" }]);
+    expect([app.isMuted("track", "Science"), read("mutes")]).toEqual([false, [{ kind: "track", key: "Anime" }]]);
+  });
+  it("an unfollow a pull brings leaves a mute alone", async () => {
+    fake.write(ada.id, "follows", { kind: "track", key: "Anime", followed: false, changed_at: iso(Date.now() + 1000) });
+    await trigger();
+    expect([app.isFollowing("track", "Anime"), app.isMuted("track", "Anime")]).toEqual([false, true]);
+    expect(read("mutes")).toEqual([{ kind: "track", key: "Anime" }]);
+  });
+  it("a pull reads the crews, the picks and the follows, and no request in any of this names a mute", async () => {
+    const from = fake.requests.length;
+    await trigger();
+    expect(fake.requests.slice(from).map(r => `${r.method} ${r.path.split("?")[0]}`)).toEqual(["GET /rest/v1/crews", "GET /rest/v1/picks", "GET /rest/v1/follows"]);
+    expect(fake.requests.filter(r => /mute/i.test(r.path) || /mute/i.test(JSON.stringify(r.body || "")))).toEqual([]);
+    expect(waiting()).toEqual([]);
+  });
+});

@@ -444,7 +444,9 @@ execution slot (#57), which can run before any of this.
    went first, since the rest puts more on Explore that redraws: the box
    built once, a draw of the grid writing around it, and a crew's change
    a redraw on any tab - built (PR #100, #80; contract, section 4, as
-   built). For you, the zero state, Mute and the cast group are not built.
+   built). Mute beside Follow, and the cast group in Search and in
+   Following - built (PR #103, #84, #85; contract, section 4). For you and
+   the zero state are not built.
    - 8b. W2, the alternatives in the time a cancelled or moved pick
      vacated, under the picks-changed notice on Now and Plans: its own
      small pull request (contract, section 2).
@@ -545,7 +547,10 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   "+ Follow more", By interest and By time, a Following row and its
   star, Show more, Already happened, a Because-you-starred tile, a jump
   chip, a tile and Show all. On a page: the way back, Follow, the folds,
-  a row and its star. PR #100 kept the filter box alone (#80). Now and the
+  a row and its star. PR #100 kept the filter box alone (#80). PR #103's
+  controls join them: Mute, the Muted fold, a muted chip and its x, and
+  the cast's fold and its photo ops' button in Following; Search's cast
+  fold loses focus at its own tap. Now and the
   Map give focus back after a draw (#66; `scroll.js` `focusIn()`,
   `giveFocusBack()`), and Plans to its own controls that carry an id -
   the picker, the segment, Manage; Search keeps its box and its Filters
@@ -563,6 +568,9 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   tapped by keyboard, goes with focus on it, and focus falls to the page:
   older than PR #101, which moved the chip and did not fix it (#82). Step
   11's sweep's (contract, sections 4 and 14).
+- The follow chips' taps are under #66's 44 px, a chip's name and its x
+  both. The muted chips, the same shape, were built at 44 (PR #103, #84).
+  Step 11's sweep's.
 - ~~A pull that changes the reader's own pick of an open event leaves the
   sheet's star stale until the sheet is reopened - a tap on it meanwhile
   does what the pick as kept calls for, not what the star shows:

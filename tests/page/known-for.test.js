@@ -28,9 +28,10 @@ describe("a person's Explore page", () => {
   }, 30000);
   afterAll(async () => { state.explore.page = null; app.setExploreHash(null); await page.cleanup(); });
 
-  it("says the person's known-for line under the name, before the count", () => {
+  it("says the person's known-for line under the name, before the count and the line that holds Follow and Mute", () => {
     const h = openPage("person", "kevin-bachelder");
-    expect([...h.children].map(c => c.className.split(" ")[0])).toEqual(["back", "eh-kind", "eh-name", "eh-known", "eh-count", "btn"]);
+    expect([...h.children].map(c => c.className.split(" ")[0])).toEqual(["back", "eh-kind", "eh-name", "eh-known", "eh-count", "eh-acts"]);
+    expect([...h.querySelector(".eh-acts").children].map(words)).toEqual(["Follow", "Mute"]);
     expect(words(h.querySelector(".eh-name"))).toBe("Kevin Bachelder");
     expect(words(h.querySelector(".eh-known"))).toBe(LINE);
   });
@@ -44,10 +45,10 @@ describe("a person's Explore page", () => {
     expect(words(lined.querySelector(".who-line"))).toBe(LINE);
     page.handle.closeSheet();
   });
-  it("has no line for a person the block does not hold, and the head is as it was", () => {
+  it("has no line for a person the block does not hold, and the head is the rest: the count, then the line that holds Follow and Mute", () => {
     const h = openPage("person", "anthony-liggins");
     expect(h.querySelector(".eh-known")).toBe(null);
-    expect([...h.children].map(c => c.className.split(" ")[0])).toEqual(["back", "eh-kind", "eh-name", "eh-count", "btn"]);
+    expect([...h.children].map(c => c.className.split(" ")[0])).toEqual(["back", "eh-kind", "eh-name", "eh-count", "eh-acts"]);
   });
   it("and none on a page that is not a person's, whatever its key", () => {
     expect(openPage("work", "star-wars").querySelector(".eh-known")).toBe(null);

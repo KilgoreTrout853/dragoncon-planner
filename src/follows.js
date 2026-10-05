@@ -35,12 +35,30 @@ function wellFormedFollow(f) {
 }
 let follows = (loadJSON(storageKey("follows"), []) || []).filter(wellFormedFollow);
 const followId = f => `${f.kind}:${f.key}`;
+const holds = (list, kind, key) => list.some(f => f.kind === kind && f.key === key);
+/* Mutes (DECISIONS #84): what the reader has said "not this" of - anything
+   that can be followed, by the same {kind, key} and the same shape test, in
+   the order they were made. A mute does one thing: the thing is no longer
+   suggested. It is kept on the device alone, under a key of its own: no
+   mute is handed to the outbox and none is read from a pull. Follow and
+   Mute are one or the other, so a stored mute of something also followed -
+   two tabs can leave one - is dropped as it is read, and the follow wins. */
+let mutes = (loadJSON(storageKey("mutes"), []) || []).filter(wellFormedFollow).filter(m => !holds(follows, m.kind, m.key));
+const keepMutes = () => saveJSON(storageKey("mutes"), mutes.map(m => ({kind: m.kind, key: m.key})));
 /* The follows as last saved, by id, which saveFollows() compares the list
    with: each follow gained or lost since is a change for the outbox
    (docs/sync/contract.md, section 5). Read after the shape filter, so a
    follow it drops - v1's, never synced - is no change. */
 let saved = new Set(follows.map(followId));
-const keepFollows = () => saveJSON(storageKey("follows"), follows.map(f => ({kind: f.kind, key: f.key})));
+/* The write of the follows, which is also where a follow unmutes: whatever
+   is followed now is taken out of the mutes. Every road that adds a follow
+   writes the list through here - a tap, a pull, the handle's set - so after
+   any of them nothing is both followed and muted (#84). */
+function keepFollows() {
+  saveJSON(storageKey("follows"), follows.map(f => ({kind: f.kind, key: f.key})));
+  const left = mutes.filter(m => !holds(follows, m.kind, m.key));
+  if (left.length !== mutes.length) { mutes = left; keepMutes(); }
+}
 /* The one door for a change to the follows, as savePicks() is for picks: it
    tells the outbox what changed since the last save, a follow an add and an
    unfollow a tombstone. */
@@ -55,7 +73,8 @@ function saveFollows() {
 /* The reader's own follows a pull read, applied as the server has them, a
    new one at the end of the list; one of a shape this client does not keep
    is passed over. The saved copy moves with them, so the next save does not
-   send them back. Returns whether the list changed. */
+   send them back. A follow it brings unmutes, in keepFollows(); an unfollow
+   it brings leaves a mute alone. Returns whether the list changed. */
 function applyPulledFollows(rows) {
   let changed = false;
   for (const {kind, key, followed} of rows) {
@@ -68,7 +87,8 @@ function applyPulledFollows(rows) {
   if (changed) keepFollows();
   return changed;
 }
-function isFollowing(kind, key) { return follows.some(f => f.kind === kind && f.key === key); }
+function isFollowing(kind, key) { return holds(follows, kind, key); }
+function isMuted(kind, key) { return holds(mutes, kind, key); }
 /* Whether the loaded schedule offers this to follow: a person it has, an axis
    value some event carries, a work it names that a person has reviewed. An
    unreviewed work is searchable, never followable (#34). A track is followed
@@ -91,6 +111,25 @@ function toggleFollow(kind, key) {
   return i < 0;                       // true when it is now followed
 }
 
+/* Mute, or unmute. A new mute is gated as a new follow is, by canFollow();
+   one already made can always be undone, and stays in the list when the
+   schedule no longer offers the thing, as a follow does. Muting what is
+   followed unfollows it through saveFollows(), so the unfollow syncs as any
+   other does; the mute itself goes to storage and nowhere else. Returns
+   whether it is now muted. */
+function toggleMute(kind, key) {
+  const i = mutes.findIndex(m => m.kind === kind && m.key === key);
+  if (i >= 0) mutes.splice(i, 1);
+  else if (canFollow(kind, key)) {
+    const j = follows.findIndex(f => f.kind === kind && f.key === key);
+    if (j >= 0) { follows.splice(j, 1); saveFollows(); }
+    mutes.push({kind, key});
+  }
+  else return false;
+  keepMutes();
+  return i < 0;
+}
+
 /* events is already in start order and filter preserves it, so these come
    back chronological without re-sorting. */
 function eventsFor(follow) {
@@ -98,8 +137,8 @@ function eventsFor(follow) {
   const key = follow.key;
   switch (follow.kind) {
     case "track":  return events.filter(e => (e.tracks || []).includes(key));
-    /* What the events are about, never the cast: a work's credit links are its
-       Explore page's own group. */
+    /* What the events are about, never the cast: a work's credit links are
+       castEvents()'s, data.js's, a group apart wherever it is drawn (#85). */
     case "work":   return events.filter(e => linksTo(e, key));
     case "axis": {
       const i = key.indexOf(":"), axis = key.slice(0, i), value = key.slice(i + 1);
@@ -121,5 +160,5 @@ function replaceFollows(list) { follows = [...list]; }
 
 export {
   FOLLOW_KINDS, KIND_NOUN, wellFormedFollow, follows, followId, saveFollows, applyPulledFollows, isFollowing, canFollow, toggleFollow,
-  eventsFor, replaceFollows,
+  mutes, isMuted, toggleMute, eventsFor, replaceFollows,
 };

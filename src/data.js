@@ -19,7 +19,8 @@ const isNoise = ev => NOISE_TRACKS.has(ev.track) || /^photo session/i.test(ev.ti
 const AXES = ["medium", "genre", "craft", "subject"];
 /* A link's via is about, track, or credit:<person>; a set of vias names the
    part before the colon. About and track are what an event is about; a
-   credit is the cast, and reaches only a work's "With the cast" group. */
+   credit is the cast, and reaches only a "With the cast" group: a work's
+   page's, its follow's in the Following feed, and Search's. */
 const ABOUT_TRACK = ["about", "track"];
 const CAST = ["credit"];
 const WORK_MIN = 3;           // a work needs this many events for a tile or a place in the Fandom select
@@ -141,6 +142,14 @@ function linksTo(ev, workId, vias = ABOUT_TRACK) {
   return (tagsOf(ev).works || []).some(w => under.has(w.id) && vias.includes(viaKind(w.via)));
 }
 
+/* The events with a work's cast: linked to it, or to anything under it, by
+   a credit, and not about it - so never one of eventsFor()'s. In start
+   order, as events is. The one answer for a work's page, its block in the
+   Following feed and Search (DECISIONS #85). */
+function castEvents(workId) {
+  return events.filter(e => linksTo(e, workId, CAST) && !linksTo(e, workId));
+}
+
 /* A person's name as the app shows it: the spelling the schedule uses most
    under the id, ties to the shortest, then to the first in code-unit order. */
 function personName(id) { return personNames.get(id) || ""; }
@@ -220,5 +229,5 @@ function replaceSchedule(data) {
 export {
   NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, tagsOf, isCeleb, isAdult, flagsOf, factsOf, sessionsOf, knownFor, DATA_URL,
   AXES, CAST, worksById, workCounts, axisKeys,
-  replaceSchedule, directWorks, linkedWorks, linksTo, personName, topWorks,
+  replaceSchedule, directWorks, linkedWorks, linksTo, castEvents, personName, topWorks,
 };

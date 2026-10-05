@@ -686,3 +686,247 @@ describe("Explore's filter box through a pull of the reader's own picks and foll
     expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["star", 1, 2]);
   });
 });
+
+/* Mute (DECISIONS #84): beside Follow on a page, out of the suggestions and
+   nothing else, and kept in a fold above the sticky block. The boot is
+   seeded with a follow and a mute the schedule does not offer, which no
+   tap can make. New tests, not rows of tests/PORT-LEDGER.md. */
+describe("Mute beside Follow, and the Muted fold", () => {
+  let page, app, handle, state;
+  const el = id => document.getElementById(id);
+  const view = () => el("view-explore");
+  const words = node => (node ? node.textContent.replace(/\s+/g, " ").trim() : "");
+  const head = () => view().querySelector(".explore-head");
+  const acts = () => [...(head().querySelector(".eh-acts") || { children: [] }).children].map(b => [words(b), b.getAttribute("aria-pressed")]);
+  const line = () => head().querySelector(".eh-muted");
+  const LINE = "Not suggested to you. Still in Search, and here.";
+  const stored = name => JSON.parse(window.localStorage.getItem(`dc${YY}.${name}`));
+  const muted = () => app.mutes.map(m => `${m.kind}:${m.key}`);
+  const followed = () => handle.follows.get().map(f => `${f.kind}:${f.key}`);
+  const unmuteAll = () => [...app.mutes].forEach(m => app.toggleMute(m.kind, m.key));
+  const grid = () => { state.tab = "explore"; state.explore.page = null; state.explore.q = ""; state.explore.expanded = {}; handle.render(); };
+  const fold = () => view().querySelector('[data-act="explore-muted"]');
+  const chips = () => [...view().querySelectorAll("#muted .mute-chip")];
+  const kinds = of => [...of.children].map(c => `${c.tagName.toLowerCase()}${c.id ? `#${c.id}` : ""}.${c.className.split(" ").join(".")}`);
+  const suggested = () => [...view().querySelectorAll("#suggested .tile")].map(t => t.dataset.explore);
+  /* nine picks, each of another track, so more is behind them than the strip holds */
+  const ninePicks = () => {
+    const seen = new Set(), ids = [];
+    for (const e of handle.events) {
+      const t = (e.tracks || []).find(x => !app.NOISE_TRACKS.has(x));
+      if (!t || seen.has(t) || e.removed) continue;
+      seen.add(t); ids.push(e.id);
+      if (ids.length === 9) break;
+    }
+    return ids;
+  };
+
+  beforeAll(async () => {
+    window.localStorage.setItem(`dc${YY}.follows`, JSON.stringify([{ kind: "work", key: "left-work" }]));
+    window.localStorage.setItem(`dc${YY}.mutes`, JSON.stringify([{ kind: "work", key: "gone-work" }]));
+    page = await bootPage();
+    ({ app, handle } = page);
+    state = handle.state;
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  describe("a page, in each state", () => {
+    afterAll(() => { state.explore.page = null; app.setExploreHash(null); });
+
+    it("Follow and Mute: on one line, Follow first, Mute the quiet button with an act of its own", () => {
+      app.openExplorePage("track", "Science");
+      expect(acts()).toEqual([["Follow", "false"], ["Mute", "false"]]);
+      const [follow, mute] = head().querySelector(".eh-acts").children;
+      expect([follow.className, follow.dataset.act]).toEqual(["btn follow-btn", "toggle-follow"]);
+      expect([mute.className, mute.dataset.act, mute.tagName]).toEqual(["btn quiet mute-btn", "toggle-mute", "BUTTON"]);
+      expect(line()).toBe(null);
+    });
+    it("Following and Mute: a tap on Follow", () => {
+      head().querySelector(".follow-btn").click();
+      expect(acts()).toEqual([["Following", "true"], ["Mute", "false"]]);
+      expect(line()).toBe(null);
+      expect([followed().includes("track:Science"), muted().includes("track:Science")]).toEqual([true, false]);
+    });
+    it("Follow and Muted, with the line: a tap on Mute mutes, and unfollows what was followed", () => {
+      head().querySelector(".mute-btn").click();
+      expect(acts()).toEqual([["Follow", "false"], ["Muted", "true"]]);
+      expect([followed().includes("track:Science"), muted().includes("track:Science")]).toEqual([false, true]);
+      expect(state.explore.page).toEqual({ kind: "track", key: "Science" });
+    });
+    it("the line is one line of text under the two, and no control", () => {
+      expect([line().tagName, words(line()), line().children.length]).toEqual(["P", LINE, 0]);
+      expect(line().previousElementSibling).toBe(head().querySelector(".eh-acts"));
+      expect(head().lastElementChild).toBe(line());
+    });
+    it("Muted keeps Mute's look, and is never gold: the word, aria-pressed and the line say it", () => {
+      expect(head().querySelector(".mute-btn").className).toBe("btn quiet mute-btn");
+      expect(css).not.toMatch(/\.mute-btn[^{]*\{/);
+      expect(css).toMatch(/\n\.btn\.quiet \{ background: var\(--raised\); color: var\(--text\); border: 1px solid var\(--line\); \}/);
+    });
+    it("a tap on Follow on a muted page follows and unmutes", () => {
+      head().querySelector(".follow-btn").click();
+      expect(acts()).toEqual([["Following", "true"], ["Mute", "false"]]);
+      expect(line()).toBe(null);
+      expect([followed().includes("track:Science"), muted().includes("track:Science")]).toEqual([true, false]);
+    });
+    it("a tap on Muted unmutes, and follows nothing", () => {
+      head().querySelector(".mute-btn").click();
+      head().querySelector(".mute-btn").click();
+      expect(acts()).toEqual([["Follow", "false"], ["Mute", "false"]]);
+      expect(line()).toBe(null);
+      expect([followed().includes("track:Science"), muted().includes("track:Science")]).toEqual([false, false]);
+    });
+    it("Following alone: a follow the schedule no longer offers", () => {
+      app.openExplorePage("work", "left-work");
+      expect(acts()).toEqual([["Following", "true"]]);
+      expect(line()).toBe(null);
+    });
+    it("Muted alone, with the line: a mute the schedule no longer offers, which its tap undoes and no tap makes again", () => {
+      app.openExplorePage("work", "gone-work");
+      expect(acts()).toEqual([["Muted", "true"]]);
+      expect(words(line())).toBe(LINE);
+      head().querySelector(".mute-btn").click();
+      expect(head().querySelector(".eh-acts")).toBe(null);
+      expect(muted()).toEqual([]);
+      expect(stored("mutes")).toEqual([]);
+    });
+    it("neither: what can be neither followed nor muted has no line of buttons", () => {
+      app.openExplorePage("work", "no-such-work");
+      expect(head().querySelector(".eh-acts")).toBe(null);
+      expect(head().querySelector("button:not(.back)")).toBe(null);
+      expect([...head().children].map(c => c.className.split(" ")[0])).toEqual(["back", "eh-kind", "eh-name", "eh-count"]);
+    });
+    it("the two stand on one line that does not wrap, in the stylesheet", () => {
+      expect(css).toMatch(/\n\.eh-acts \{ display: flex; gap: 8px; margin-top: 6px; \}/);
+      expect(css).toMatch(/\n\.eh-acts \.btn \{ flex: none; white-space: nowrap; \}/);
+      expect(css).not.toMatch(/\.eh-acts[^{]*\{[^}]*wrap: wrap/);
+    });
+  });
+
+  describe("a muted thing is not suggested", () => {
+    let before;
+    beforeAll(() => { unmuteAll(); handle.follows.set([]); handle.picks.set(ninePicks()); grid(); before = suggested(); });
+    afterAll(() => { unmuteAll(); handle.picks.set([]); grid(); });
+
+    it("the strip holds six, with more behind the picks than it holds", () => {
+      expect(before).toHaveLength(6);
+    });
+    it("muted, the first is gone from it and the next takes its place: still six", () => {
+      const [kind, key] = [before[0].slice(0, before[0].indexOf(":")), before[0].slice(before[0].indexOf(":") + 1)];
+      expect(app.toggleMute(kind, key)).toBe(true);
+      handle.render();
+      const after = suggested();
+      expect(after).toHaveLength(6);
+      expect(after).not.toContain(before[0]);
+      expect(after.slice(0, 5)).toEqual(before.slice(1));
+      expect(before).not.toContain(after[5]);
+    });
+    it("its tile in the grid is as it was: a mute hides nothing", () => {
+      state.explore.expanded = { track: true, fandom: true }; handle.render();
+      const tile = view().querySelector(`#exploreGrid [data-explore="${before[0]}"]`);
+      expect(tile.className).toBe("tile");
+      state.explore.expanded = {}; handle.render();
+    });
+    it("unmuted, it is suggested again, where it was", () => {
+      unmuteAll(); handle.render();
+      expect(suggested()).toEqual(before);
+    });
+  });
+
+  describe("the Muted fold", () => {
+    let node;
+    const box = () => el("exploreQ");
+    const reader = (follows, picks, mutes) => {
+      unmuteAll(); handle.follows.set(follows); handle.picks.set(picks);
+      mutes.forEach(([kind, key]) => app.toggleMute(kind, key));
+      Object.assign(state.following, { open: true, layout: "interest", expanded: {}, showPast: {} });
+      grid();
+    };
+    afterAll(() => { document.activeElement.blur(); state.explore.mutedOpen = false; reader([], [], []); });
+
+    it("is not there with nothing muted", () => {
+      reader([], [], []);
+      expect([el("muted"), fold()]).toEqual([null, null]);
+    });
+    it("stands alone above the sticky block when nothing is followed and nothing suggested", () => {
+      reader([], [], [["track", "Science"], ["work", "star-wars"]]);
+      expect(kinds(view())).toEqual(["section#muted.muted", "div.controls.controls-sticky", "div#exploreGrid."]);
+    });
+    it("is shut on a load, says how many it holds, and draws no chip", () => {
+      expect(state.explore.mutedOpen).toBe(false);
+      expect([fold().getAttribute("aria-expanded"), words(fold())]).toEqual(["false", "Muted (2) ▸"]);
+      expect(fold().parentElement.className).toBe("divider fold");
+      expect(chips()).toEqual([]);
+    });
+    it("after Because you starred, and the view's children in order: Following, Because you starred, Muted, the sticky block, the grid", () => {
+      reader([{ kind: "track", key: "Skeptics" }], ninePicks(), [["track", "Science"], ["work", "star-wars"]]);
+      expect(kinds(view())).toEqual(["section#following.following", "section#suggested.suggested", "section#muted.muted", "div.controls.controls-sticky", "div#exploreGrid."]);
+      handle.follows.set([]); handle.render();
+      expect(kinds(view())).toEqual(["section#suggested.suggested", "section#muted.muted", "div.controls.controls-sticky", "div#exploreGrid."]);
+    });
+    it("open, it is one row of chips, a chip a mute in the order made, by its name", () => {
+      fold().click();
+      expect([state.explore.mutedOpen, fold().getAttribute("aria-expanded"), words(fold())]).toEqual([true, "true", "Muted (2) ▾"]);
+      const rows = view().querySelectorAll("#muted .chips");
+      expect(rows).toHaveLength(1);
+      expect([rows[0].className, rows[0].dataset.row]).toEqual(["chips mute-chips", "mutes"]);
+      expect(chips().map(c => words(c.querySelector(".fc-name")))).toEqual(["Science", "Star Wars"]);
+      expect(chips().every(c => c.className === "follow-chip mute-chip")).toBe(true);
+    });
+    it("a chip's x is named Unmute and the thing's name", () => {
+      expect(chips().map(c => c.querySelector(".fc-x").getAttribute("aria-label"))).toEqual(["Unmute Science", "Unmute Star Wars"]);
+      expect(chips().every(c => c.querySelector(".fc-x").dataset.act === "unmute")).toBe(true);
+    });
+    it("a suggestion's tile has no x", () => {
+      expect(view().querySelectorAll("#suggested .tile").length).toBeGreaterThan(0);
+      expect(view().querySelector("#suggested .fc-x, #suggested [data-act='unmute'], #suggested [data-act='toggle-mute']")).toBe(null);
+    });
+    it("a chip is never gold, and its name and its x are 44px, in the stylesheet", () => {
+      const rules = css.split("\n").filter(l => l.startsWith(".mute-chip"));
+      expect(rules).toEqual([
+        ".mute-chip { border-color: var(--line); }",
+        ".mute-chip .fc-name { min-height: 44px; padding-left: 14px; color: var(--text); }",
+        ".mute-chip .fc-x { min-width: 44px; min-height: 44px; color: var(--muted); opacity: 1; }",
+      ]);
+      expect(css).toMatch(/\n\.divider\.fold button \{\n {2}width: 100%; min-height: 44px; /);
+    });
+    it("the filter box is kept through a tap on the fold: the same node, its text, its focus and its caret", () => {
+      node = box();
+      node.focus(); typeInto(node, "sta"); node.setSelectionRange(1, 2);
+      const was = fold();
+      was.click();
+      expect([was.isConnected, state.explore.mutedOpen]).toEqual([false, false]);
+      fold().click();
+      expect(state.explore.mutedOpen).toBe(true);
+      expect(box()).toBe(node);
+      expect(document.activeElement).toBe(node);
+      expect([node.value, node.selectionStart, node.selectionEnd]).toEqual(["sta", 1, 2]);
+    });
+    it("and through a tap on a chip's x, which unmutes and follows nothing: the count drops and the chip goes", () => {
+      const was = fold();
+      chips()[0].querySelector(".fc-x").click();
+      expect(was.isConnected).toBe(false);
+      expect(muted()).toEqual(["work:star-wars"]);
+      expect([followed(), stored("follows")]).toEqual([[], []]);
+      expect(stored("mutes")).toEqual([{ kind: "work", key: "star-wars" }]);
+      expect(words(fold())).toBe("Muted (1) ▾");
+      expect(chips().map(c => words(c.querySelector(".fc-name")))).toEqual(["Star Wars"]);
+      expect(box()).toBe(node);
+      expect(document.activeElement).toBe(node);
+      expect([node.value, node.selectionStart, node.selectionEnd]).toEqual(["sta", 1, 2]);
+    });
+    it("a chip's name opens the thing's page, and the way back finds the fold as it was left, open", () => {
+      const name = chips()[0].querySelector(".fc-name");
+      expect(name.dataset.explore).toBe("work:star-wars");
+      name.click();
+      expect(state.explore.page).toEqual({ kind: "work", key: "star-wars" });
+      expect(acts()).toEqual([["Follow", "false"], ["Muted", "true"]]);
+      document.querySelector('[data-act="explore-back"]').click();
+      expect(fold().getAttribute("aria-expanded")).toBe("true");
+    });
+    it("the last one unmuted, the fold goes", () => {
+      chips()[0].querySelector(".fc-x").click();
+      expect([muted(), followed(), el("muted")]).toEqual([[], [], null]);
+    });
+  });
+});

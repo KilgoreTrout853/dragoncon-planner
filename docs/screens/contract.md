@@ -347,6 +347,8 @@ panel's search (section 11). PR 6.
 
 ### Search and the filter sheet, as built
 
+Changed by PR #103 (#85): with the Fandom filter set and no word to rank by, the cast group stands after the list.
+
 PR #88, step 6 (W13, with W8), with #63, #66 and #70; the last one set
 wins, and the panel's order, by PR #90 (#71); Getting in, W7's four
 filters, by PR #96, step 7b (#77).
@@ -655,7 +657,8 @@ Explore.
      clashes with the plan.
   2. **Following,** complete and folded, as built.
   3. **Because you starred,** as built.
-  4. The sticky filter and jump chips, and the sections, as built.
+  4. **Muted,** a fold, when anything is muted (#84).
+  5. The sticky filter and jump chips, and the sections, as built.
 - **The zero state** (W16): for a stranger with nothing starred and
   nothing followed, one curated screen in place of the hint line. Before
   the con it is the first thing the app shows (#62). Its source - a
@@ -663,19 +666,30 @@ Explore.
   Explore PR's design call (Open).
 - **Pages,** as built, and also the target of the sheet's track and work
   chips (#64; section 11).
-- **Mute** (W5): beside Follow on a page; a mute is kept by id in the
-  profile beside the follows (#32).
+- **Mute** (W5): beside Follow on a page, and one or the other with it:
+  muting unfollows, following unmutes. A mute takes the thing out of the
+  suggestions and hides nothing. A muted page says so in one line; the
+  muted are listed in the grid's fold, each a chip whose x unmutes. Kept
+  by id on the device beside the follows (#32), and not synced (#84).
 - **With the cast** (W6): the cast group a work's page has (#32, #39),
-  also in Search's results for a work and in the Following feed.
+  also in Search's results - with the Fandom filter set and no word to
+  rank by, after the list - and in the Following feed's By interest, the
+  last of a followed fandom's block (#85).
+
+Built: Mute, and the cast group in Search and in Following - PR #103,
+DECISIONS #84, #85.
 
 **Home of:** W3; W16; W5; W6.
 
 Moves: `explore.js` `renderExploreGrid()`, `renderExplorePage()`,
-`followingHTML()`; `follows.js` (mutes); `search.js` `browseResults()`
-(the cast group). Tests: `explore.test.js`, `follows.test.js`,
-`spy.test.js`. PR 8.
+`followingHTML()`; `follows.js` (mutes); `data.js` `castEvents()`,
+`search.js` `browseResults()` and `browse.js` `renderBrowse()` (the cast
+group). Tests: `explore.test.js`, `follows.test.js`, `spy.test.js`,
+`real-data.test.js`. PR 8.
 
 ### The filter box, as built
+
+Changed by PR #103 (#84): a draw also writes the Muted fold above the sticky block, after Because you starred.
 
 PR #100, the first of step 8's, with #66 and #80: Explore's filter box is
 built once, which lifts the crew redraw's gate (section 5, as built;
@@ -2508,6 +2522,17 @@ As built: the recon, section 8, what crews' readers offer today.
 - The Now board's shape beyond one line per crewmate (W23).
 - W16's source: a hand-curated file the pipeline validates, or a computed
   list - the Explore PR's call.
+- No cast group in Search with a word typed that ranks: a typed word is a
+  text search, and whether "firefly" should set the Fandom is search
+  tuning's (#36, #85).
+- A mute and the fandoms under a fandom: Star Wars muted says nothing of
+  Andor. A mute is of one thing, by its id; For you decides (#84).
+- Mutes are on the device alone: a new phone, or a recovered plan, starts
+  with none (#84).
+- A mute made with no session. Its unfollow is recorded nowhere, so where
+  another device still follows the thing, the first pull after a sign-in
+  brings the follow back and the mute goes: the union rule's, and older
+  than Mute (#53, #84).
 - ~~Which day Share a day shares, and its link's shape (W25).~~ Settled
   by PR #85, step 5b: the con day the reader chooses, today's first where
   it holds a pick, and #69's link (section 5, Share a day, as built).

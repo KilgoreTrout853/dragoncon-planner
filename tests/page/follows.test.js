@@ -404,3 +404,55 @@ describe("a boot with junk among the stored follows", () => {
     expect(document.querySelector("#view-explore .empty").textContent).toMatch(/Nothing in the schedule matches this any more/);
   });
 });
+
+/* Mutes (DECISIONS #84), read as the module is imported, beside the follows:
+   by the same shape test, and never one of something also followed. Then
+   the roads that add a follow, each of which unmutes, and the one that
+   mutes, which unfollows. New tests, not rows of tests/PORT-LEDGER.md. */
+describe("a boot with stored mutes", () => {
+  let page, app, handle;
+  const stored = name => JSON.parse(window.localStorage.getItem(`dc26.${name}`));
+  const head = () => document.querySelector("#view-explore .explore-head");
+  beforeAll(async () => {
+    window.localStorage.setItem("dc26.follows", JSON.stringify([{ kind: "track", key: "Costuming" }]));
+    window.localStorage.setItem("dc26.mutes", JSON.stringify([{ kind: "bogus", key: "x" }, null, { kind: "track", key: "Science" },
+      { kind: "fandom", key: "Star Trek" }, { kind: "track", key: "Costuming" }, { kind: "work", key: "no-such-work" }, { kind: "axis", key: "horror" },
+      { kind: "track", key: "Skeptics" }]));
+    page = await bootPage();
+    ({ app, handle } = page);
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("a mute of another shape is dropped as it is read, and the rest keep their order", () => {
+    expect(app.mutes).toEqual([{ kind: "track", key: "Science" }, { kind: "work", key: "no-such-work" }, { kind: "track", key: "Skeptics" }]);
+  });
+  it("a stored mute of something also followed is dropped, and the follow wins", () => {
+    expect([app.isFollowing("track", "Costuming"), app.isMuted("track", "Costuming")]).toEqual([true, false]);
+    expect(handle.follows.get()).toEqual([{ kind: "track", key: "Costuming" }]);
+  });
+  it("a mute of something the schedule does not offer stays", () => {
+    expect([app.canFollow("work", "no-such-work"), app.isMuted("work", "no-such-work")]).toEqual([false, true]);
+  });
+  it("a follow by a tap unmutes: Follow on a muted page", () => {
+    app.openExplorePage("track", "Science");
+    head().querySelector(".follow-btn").click();
+    expect([app.isFollowing("track", "Science"), app.isMuted("track", "Science")]).toEqual([true, false]);
+    expect(stored("mutes")).toEqual([{ kind: "work", key: "no-such-work" }, { kind: "track", key: "Skeptics" }]);
+    expect(stored("follows")).toEqual([{ kind: "track", key: "Costuming" }, { kind: "track", key: "Science" }]);
+  });
+  it("a mute by a tap unfollows: Mute on a followed page", () => {
+    head().querySelector(".mute-btn").click();
+    expect([app.isFollowing("track", "Science"), app.isMuted("track", "Science")]).toEqual([false, true]);
+    expect(stored("follows")).toEqual([{ kind: "track", key: "Costuming" }]);
+    expect(stored("mutes")).toEqual([{ kind: "work", key: "no-such-work" }, { kind: "track", key: "Skeptics" }, { kind: "track", key: "Science" }]);
+  });
+  it("a follow by the handle's set unmutes", () => {
+    handle.follows.set([{ kind: "track", key: "Skeptics" }, { kind: "track", key: "Costuming" }]);
+    expect([app.isFollowing("track", "Skeptics"), app.isMuted("track", "Skeptics")]).toEqual([true, false]);
+    expect(stored("mutes")).toEqual([{ kind: "work", key: "no-such-work" }, { kind: "track", key: "Science" }]);
+  });
+  it("after each of them nothing is both followed and muted", () => {
+    expect(app.mutes.filter(m => app.isFollowing(m.kind, m.key))).toEqual([]);
+    expect(handle.follows.get().filter(f => app.isMuted(f.kind, f.key))).toEqual([]);
+  });
+});
