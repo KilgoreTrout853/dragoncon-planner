@@ -9,7 +9,10 @@ and #61), and section 8 with crews' client layer (PR #62). The evidence is
 entry has the detail, this note points at it rather than saying it twice.
 What the note does not settle is under Open, at the end. A change of
 meaning here is a decision: log it in DECISIONS.md and update this file in
-the same PR.
+the same PR. Since DECISIONS #83 a PR adds no "as built" part: it fixes the
+designed text, marks a section built in one line and puts its evidence in
+the PR; the "as built" parts below are dated records of the PRs that wrote
+them.
 
 ## 1. Identity
 
