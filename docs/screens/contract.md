@@ -1197,20 +1197,22 @@ As built: the recon, section 2, Map; section 5, the map card.
   event, which reopens the sheet (#63, #64; section 11).
 - **Reduced motion** (#66): the lift and the level swap show their end
   states with no animation.
-- **Before its screens** (#60's Cost): the map one persistent SVG, mutated
-  in place (#28's Cost) - today `renderMap()` rebuilds it by `innerHTML`
-  and `tickMap()` redraws it whole on a new signature - the Marriott's and
-  the Hyatt's levels drawn, and each hotel's levels in one frame (#58's
-  Cost).
+- **Before its screens** (#60's Cost), all three done: the map one
+  persistent SVG, built once and drawn in place (#28's Cost; PR #107,
+  #89), the Marriott's and the Hyatt's levels drawn, and each hotel's
+  levels in one frame (#58, #67).
 
 **Home of:** W38; W39; W40; W41.
 
 Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
-(PR 5), `mapSVG()` and a focus in `state.map` (PRs 7 and 10). Tests:
+(PR 5), `mapSVG()` - `mapBaseSVG()` since PR #107 - and a focus in
+`state.map` (PRs 7 and 10). Tests:
 `map.test.js`, its "late pair" and "streaming next" suites in PR 3;
 `style.test.js`'s map rules. PRs 3, 5, 7 and 10.
 
 ### Map, as built
+
+Changed by PR #107 (#89): the Map is drawn in place, at the tick too; the signatures are gone.
 
 PR #81, step 5a, with #62 and #66: the crew's count. PR #94, step 7's
 third, with #63, #66 and #75: the focused event. The building view (PR 10)

@@ -556,9 +556,10 @@ the document or `navigator` as they are imported: `platform`, `build`,
 rows a redraw has to put back, `cssEsc`, focus found again after a redraw -
 `focusKey()`, a control as a selector, which the sheet keeps its opener by
 and Now and the Map what had focus as they draw again (DECISIONS #66) -
-and the minute tick's redraw in place, `refill()` and `drawInPlace()`,
-which write the new words into the nodes already there, so a control with
-focus keeps it; and the header's measurement:
+and the draw in place, `refill()` and `drawInPlace()`, the minute tick's
+and every draw of the Map (#89), which write the new words into the nodes
+already there, so a control with focus keeps it; and the header's
+measurement:
 `syncHeaderHeight()`, which sets `--hdr-h`, what the sticky filters park
 under, and `fitHeaderLine()`; and the nav's, `syncNavHeight()`, which sets
 `--nav-h`, what the mini-bar, the end spacer, the update pill, the dev-build
@@ -632,10 +633,11 @@ listed (`crewPeople()`), for the crew panel too; each time it draws, it
 gives focus back, by id, to its own control that had it (DECISIONS #66).
 On a build with a backend `now` draws the crew's section, Your crew right
 now, and `map` the crew counted per hotel, from `mapCrewPicks()`, each
-crewmate's pick at each hotel on a day, which the hotel sheet lists too;
-both give focus back to the
-control that had it, as `scroll`'s `focusKey()` finds it, each time they
-draw and at the minute's tick.
+crewmate's pick at each hotel on a day, which the hotel sheet lists too.
+`now` gives focus back to the control that had it, as `scroll`'s
+`focusKey()` finds it, each time it draws and at the minute's tick; `map`,
+built once and drawn in place (#89), keeps its controls and their focus,
+and gives focus back only where the card under the map is drawn anew.
 
 **`sheet`** is the bottom sheet: its seven panels (Settings, an event,
 which `eventsheet` draws, a hotel, a crew, Share a day, a day shared with
@@ -842,10 +844,11 @@ the map. An event's sheet's place line opens the Map focused on that event
 (DECISIONS #75): on the event's con day, a third ring, not gold, on its
 hotel, and the card showing the event, "You were looking at", until the tab
 is left, a day chip is tapped or the clock is changed - the focus carries
-its own day, so the Map is then on the day it had. On the minute tick the
-map is redrawn when its signature has changed - the day, the pick that is
-on, the next pick, both counts, the focus - and otherwise only the card
-under it, when that has; focus stays on the control that had it.
+its own day, so the Map is then on the day it had. The view is built once,
+by its first draw, and every draw after it - `render()`'s and the minute
+tick's are one draw - writes in place only what changed: the day chips,
+each hotel's label, the rings, the focus's ring, the pills and the card
+under the map (DECISIONS #89); focus stays on the control that had it.
 
 **Search.** The first render happens with no index; the search index is
 built in idle time afterwards, then a suggestion index (people by their

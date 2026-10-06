@@ -462,8 +462,8 @@ execution slot (#57), which can run before any of this.
    PR #85 it sits under Export: the gear PR decides whether the strip's
    copy stays.
 10. The building view (#60): a short sequence of its own, the drawings a
-    side lane; the place line reaches the room's grain here (contract,
-    section 6).
+    side lane; the map is one persistent SVG (PR #107, #89); the place
+    line reaches the room's grain here (contract, section 6).
 11. An accessibility sweep (#66) of what the pull requests above left,
     which adds its checks to the browser tests. Their harness came
     forward from the execution slot - built (PR #101, #81): Playwright in

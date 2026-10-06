@@ -3099,3 +3099,28 @@ the con (#62). After one star For you usually has nothing yet - no row for
 hold is narrower because a sign-in's pull must still bring For you at once.
 **Cost:** One track's name is the rule, judged on 2027's schedule in August.
 A star in it that gives For you a row shows it only once the grid is left.
+
+### 89. The Map view is built once and drawn in place — Standing (2026-10-06)
+**Decided:** The Map's first draw builds its view, and every later draw,
+`render()`'s or the minute's, writes in place only what changed (PR #107;
+`docs/screens/contract.md`, section 6).
+- **Built once:** the sticky strip and its chip row, the wrap, the band
+  under the map, and in the SVG the ground, the streets, the bridges and
+  the seven blocks, then three empty groups: rings, focus, pills. The page
+  says what is built, as for Explore's box (#80), and no flag does.
+- **Written where it differs:** the day chips, each block's label, the
+  wrap's day, the three groups, and the card with the off-map line.
+- **`tickMap()` is that draw,** and says whether it wrote. Both signatures
+  are gone.
+- **Two things a reader can see.** The next ring's pulse no longer starts
+  again on a draw that leaves the rings alone: a star, a sheet closed, a
+  pull. And at the minute the con ends the tick takes the card away, as a
+  whole draw does; the old tick left it standing.
+- `scroll.js` `drawInPlace()` reads a part's markup in an element of the
+  part's own kind, so a part of an SVG is drawn as SVG.
+
+**Why:** Step 10 animates these elements, and an element that is replaced
+ends its animation. It is the last of #60's prerequisites (#28's Cost).
+**Cost:** A draw builds every part's markup to compare it. A part added
+later must be added to the draw. Five tests that assumed a rebuild now
+assert a kept node or read the SVG's whole order.
