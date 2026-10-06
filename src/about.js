@@ -1,13 +1,14 @@
-/* About this app (W32; DECISIONS #59, #92; docs/screens/contract.md,
+/* About this app (W32, W45; DECISIONS #59, #92, #93; docs/screens/contract.md,
    section 9): the sheet's eighth panel, #panel-about, behind Settings' row.
    That the app is unofficial, the one link to Dragon Con's own, and what we
    store: on this phone, on the server, what a crew sees, what the controls
-   do and who else is involved - or, on a build with no backend, the three
-   parts that are true of it. The words are a statement to the reader: one
-   that the code makes false is changed here, in the same pull request. The
-   panel's element is the sheet's, and so are its way in and its way back;
-   this draws it and nothing else. A leaf. */
-import { hasBackend } from "./backend.js";
+   do, who else is involved and, last, Delete - or, on a build with no
+   backend, the three parts that are true of it. The words are a statement
+   to the reader: one that the code makes false is changed here, in the same
+   pull request. The panel's element is the sheet's, and so are its way in,
+   its way back and the tap on Delete; this draws it and says its words, and
+   nothing else. A leaf. */
+import { hasBackend, storedSession } from "./backend.js";
 
 const OFFICIAL = "https://www.dragoncon.org/";
 const NO_MORE = "No ads, no analytics, no cookies, and the app never asks where you are.";
@@ -42,6 +43,46 @@ const STORED = hasBackend
     ${label("Who else is involved")}
     <p>GitHub serves the app and Google serves the typeface. ${SEEN_BY}. ${NO_MORE}</p>`;
 
+/* Delete (W45, #93), last in What we store on a build with a backend: what
+   the server keeps for the reader, removed by one tap and one confirm. The
+   part is worked out as it is drawn, from the session as it then is: with
+   one, what Delete removes and the button, named for a session with an email
+   or for an anonymous one; with none, that the reader signs in first. And
+   written again in place by the sheet: note, a failure's plain words under
+   the button, or under the sentence once the session is gone; done, the
+   delete made - the button gone and DELETED in its place. The note is a
+   status, so a screen reader says it, and takes focus when the sheet gives
+   it. */
+const REMOVES = "Removes what the server keeps for you: your picks and follows, your sign-in, with your email if you added one, and your place in every crew. A crew you started goes too if no one else is in it; otherwise it stays for its members, with no one to manage it - delete the crew first if you want it gone. Your plan stays on this phone; Remove all picks clears its picks. It cannot reach the logs the companies above keep.";
+const SIGN_IN_FIRST = "To delete what the server keeps for you, sign in first - Settings, Keep your plan - then come back here. If you never started or joined a crew and never entered an email, it keeps nothing.";
+const DELETED = "Deleted. Your picks, follows and sign-in are off the server. Your plan is still on this phone.";
+const said = words => `<div class="about-note" id="aboutDeleteNote" role="status" tabindex="-1">${words}</div>`;
+function deleteHTML({note = "", done = false} = {}) {
+  const session = storedSession();
+  if (done) return `${label("Delete")}<p>${REMOVES}</p>${said(DELETED)}`;
+  if (!session) return `${label("Delete")}<p>${SIGN_IN_FIRST}</p>${said(note)}`;
+  return `${label("Delete")}<p>${REMOVES}</p>
+    <div class="rowbtns"><button class="btn danger" type="button" id="aboutDeleteBtn">${session.user.is_anonymous ? "Delete my data from the server" : "Delete my account"}</button></div>
+    ${said(note)}`;
+}
+
+/* The confirm's question, by the session - null with none, and nothing is
+   asked. started: the names of the crews the reader made that hold someone
+   else, as the phone last knew them; each stays, so each is named. A crew
+   the reader is alone in goes with them, and is not. */
+function deleteQuestion(started = []) {
+  const session = storedSession();
+  if (!session) return null;
+  const question = session.user.is_anonymous
+    ? "Delete your data from the server? Your picks, follows and place in every crew are removed. This can't be undone. Your plan stays on this phone."
+    : "Delete your account? Your picks, follows, email and place in every crew are removed from the server. This can't be undone. Your plan stays on this phone.";
+  if (!started.length) return question;
+  const stays = started.length === 1
+    ? `You started ${started[0]}. It stays for its members, with no one to manage it. Delete the crew first if you want it gone.`
+    : `You started ${started.slice(0, -1).join(", ")} and ${started[started.length - 1]}. They stay for their members, with no one to manage them. Delete a crew first if you want it gone.`;
+  return [question, "", stays].join("\n");
+}
+
 /* The panel, drawn as it opens: the heading, a body that scrolls - one of the
    sheet's areas, as Settings' is - and a foot with the one way back. */
 function aboutHTML() {
@@ -54,8 +95,9 @@ function aboutHTML() {
       <a class="about-link" id="aboutLink" href="${OFFICIAL}" target="_blank" rel="noopener">Dragon Con's official site and app</a>
       <h3>What we store</h3>
       ${STORED}
+      ${hasBackend ? `<div class="about-delete" id="aboutDelete">${deleteHTML()}</div>` : ""}
     </div>
     <div class="sheet-foot"><button class="btn" type="button" id="aboutBack">Back to Settings</button></div>`;
 }
 
-export { aboutHTML };
+export { aboutHTML, deleteHTML, deleteQuestion };

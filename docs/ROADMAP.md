@@ -458,11 +458,11 @@ execution slot (#57), which can run before any of this.
      vacated, under the picks-changed notice on Now and Plans, and a
      cancelled pick no longer next - built (PR #108, #90; contract,
      section 2).
-9. The gear, in two pull requests (contract, section 9). The first is
-   built (PR #110, #92): Settings a heading, one body that scrolls and a
-   pinned Done, About this app behind its row, and Remove all picks in
-   Settings alone. What is left of step 9 is Delete my account (W45), with
-   its migration.
+9. The gear, in two pull requests (contract, section 9) - built whole.
+   The first (PR #110, #92): Settings a heading, one body that scrolls and
+   a pinned Done, About this app behind its row, and Remove all picks in
+   Settings alone. The second (PR #111, #93): Delete my account (W45),
+   with its migration. Step 10 is next.
 10. The building view (#60): a short sequence of its own, the drawings a
     side lane; the map is one persistent SVG (PR #107, #89); the place
     line reaches the room's grain here (contract, section 6).
@@ -531,6 +531,18 @@ confirmed on a phone, by PR #77's hand test and with the install flow
 
 ## Flags
 
+- Delete my account reaches a second phone signed in as the same user
+  only when its token next expires, within the hour: until then its reads
+  come back empty, so its crew goes, and a star it sends is turned away,
+  409 (#93). Left as built.
+- The cleanup of stale anonymous users, when it is built, skips anyone in
+  a crew (#52), so a crew member who never added an email and lost the
+  phone's session keeps rows nothing removes: they cannot sign in to
+  delete (#93). The operations track's.
+- `supabase/config.toml`'s Auth is not the dev project's: anonymous
+  sign-ins off, confirmations off, and a link where dev sends a code. A
+  probe of the app's sign-in on the local stack needs a scratch copy with
+  those set, as PR #111's had. The operations track's.
 - The freeze date is tied to the source's posting date for the 2027
   schedule.
 - The listing-only pre-check, held as a fallback against 403 pushback
@@ -731,6 +743,9 @@ Steps taken by hand, beside the PRs rather than in them:
   answers 401, with it `{off: true}`. No hand test: the local end-to-end
   run is the batch's (`docs/sync/contract.md`, section 7, The batch, as
   built).
+- For Delete my account on dev (#93), after its pull request merges, by
+  Claude Code: the seventh migration pushed, a dry run first; then
+  "Deploy next".
 - For the push job on production, in the operations track, before the
   freeze: its own VAPID pair, with `VAPID_SUBJECT` a `mailto:` - a push
   service that needs to reach the sender cannot use a page - and its own

@@ -18,8 +18,8 @@
    address the harness answers - {} for the sign-in service, [] for a table -
    and it answers that page alone. So a reader there is signed out, or has a
    code sent once the form is sent, or is signed in by a seeded session,
-   SIGNED_IN, with nothing kept on any server. It is not a test of sync, of
-   the sign-in or of a crew. The standing checks stay on the first page.
+   SIGNED_IN or ANONYMOUS, with nothing kept on any server. It is not a test
+   of sync, of the sign-in, of a crew or of what Delete removes. The standing checks stay on the first page.
 
    What it is not: an iPhone. No iOS keyboard, no safe-area insets, no
    home-screen app, and IS_IOS is false in both engines - WebKit here is the
@@ -51,6 +51,8 @@ const BACKEND = { url: "http://localhost:54321", key: "sb_publishable_made_up_fo
 /* A session as src/backend.js keeps one, for a reader signed in with an
    email: seeded under "session", it is never sent anywhere that checks it. */
 const SIGNED_IN = { access_token: "made-up", refresh_token: "made-up", user: { id: "00000000-0000-4000-8000-000000000001", email: "you@example.com", is_anonymous: false } };
+/* And for the anonymous user a crew's first tap mints, who has no email. */
+const ANONYMOUS = { access_token: "made-up", refresh_token: "made-up", user: { id: "00000000-0000-4000-8000-000000000002", email: "", is_anonymous: true } };
 
 /* ---- The states ---------------------------------------------------- */
 const ENGINES = ["chromium", "webkit"];
@@ -313,6 +315,6 @@ function chipArea() {
 }
 
 export {
-  ROOT, SEASON, PORT, ORIGIN, BACKEND_PORT, BACKEND_DIR, WITH_BACKEND, BACKEND, SIGNED_IN, ENGINES, SIZES, TABS, CLOCKS, READERS,
+  ROOT, SEASON, PORT, ORIGIN, BACKEND_PORT, BACKEND_DIR, WITH_BACKEND, BACKEND, SIGNED_IN, ANONYMOUS, ENGINES, SIZES, TABS, CLOCKS, READERS,
   seed, test, expect, open, settled, tab, check, answers, chipArea,
 };

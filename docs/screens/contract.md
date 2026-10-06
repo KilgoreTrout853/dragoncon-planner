@@ -2186,12 +2186,15 @@ in a sheet at most 86% of the screen (#92). In the body, in order:
    `#panel-about`, whose one way out is back to Settings - its button, the
    backdrop, a swipe down, Escape. In order: that the app is unofficial,
    the one link, to Dragon Con's official site and app, and what we store.
-   **Delete my account** (W45) is on it, and is the next pull request's: it
-   needs a server-side delete that does not exist, a `supabase/` migration
-   and RPC.
+   **Delete my account** (W45, #93) is its last part, on a build with a
+   backend: for anyone with a session a button - "Delete my account" with
+   an email, "Delete my data from the server" without - one confirm and
+   one request, `delete_my_account()`; with no session, a sentence and no
+   button. The toggle's pull request has Delete unsubscribe this browser
+   too.
 5. Remove all picks, last in the body, and the one place it is.
 
-Built: the gear's shape and About this app - PR #110, DECISIONS #92.
+Built: the gear's shape and About this app - PR #110, DECISIONS #92. Delete my account - PR #111, DECISIONS #93.
 
 The body is one of the sheet's areas: it fades at an edge with more past
 it, an arrow stands above Done while more is below, and a drag that starts
@@ -2201,8 +2204,8 @@ in it scrolls it while it has more than its room (#76, #78; section 7).
 
 Moves: `index.html` (the panels), `about.js`, `sheet.js` `openSheet()` and
 `closeSheet()`, `supabase/migrations/` and `supabase/tests/` (W45). Tests:
-`settings.test.js`, `about.test.js`, `tests/browser/gear.spec.js`; pgTAP
-for the delete. PR 9.
+`settings.test.js`, `about.test.js`, `delete.test.js`,
+`tests/browser/gear.spec.js`; pgTAP for the delete. PR 9.
 
 ## 10. The row and the gap line
 
@@ -2559,8 +2562,9 @@ As built: the recon, section 3, what the event panel does not carry.
 - ~~**W16:** the zero state's curated source (section 4; Open).~~
   Settled by PR #106 (#88): computed from the schedule, with no curated
   file to wait on.
-- **W45:** the server-side delete, a `supabase/` migration and RPC, with
-  the gear PR.
+- ~~**W45:** the server-side delete, a `supabase/` migration and RPC, with
+  the gear PR.~~ Settled by PR #111 (#93): `delete_my_account()`, a fourth
+  RPC.
 
 ## 14. Open
 

@@ -1,4 +1,5 @@
--- The three RPCs (contract, section 3): create_crew makes the crew and its
+-- The crews' three RPCs (contract, section 3; the fourth, delete_my_account,
+-- is 13_delete_my_account's): create_crew makes the crew and its
 -- creator's membership; join_crew takes a token, refuses an unknown one and a
 -- full crew, and is idempotent for a member; regenerate_invite is the
 -- creator's alone and retires the old token. Each refuses a caller who is not

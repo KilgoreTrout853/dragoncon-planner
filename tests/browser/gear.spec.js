@@ -5,8 +5,10 @@
    Advanced and Walk-time defaults shut and open - the heading and Done are
    whole on the screen. The backend's states are read on the harness's
    second page, whose backend is the harness (harness.js). One page a test,
-   its states walked, and every assertion soft and named for its state. */
-import { CLOCKS, ORIGIN, SIGNED_IN, WITH_BACKEND, check, expect, open, seed, settled, test } from "./harness.js";
+   its states walked, and every assertion soft and named for its state.
+   And Delete (DECISIONS #93), the about panel's last part on that second
+   page: whole with each button and with none, and once it is done. */
+import { ANONYMOUS, BACKEND, CLOCKS, ORIGIN, SIGNED_IN, WITH_BACKEND, check, expect, open, seed, settled, test } from "./harness.js";
 
 const SATURDAY = CLOCKS[0].now;
 const TEXT = { "": {}, ", with Larger text on": { bigtext: true } };
@@ -156,12 +158,14 @@ for (const [text, big] of Object.entries(TEXT)) {
         expect.soft(about.content, "the about panel: its words are more than its room").toBeGreaterThan(about.room + 20);
         expect.soft((await page.locator("#aboutLink").boundingBox()).height, "the link is 44 px or more where it is tapped").toBeGreaterThanOrEqual(44);
         await expect.soft(page.locator("#aboutLink")).toHaveAttribute("href", "https://www.dragoncon.org/");
-        /* Every word can be reached: at its end the last line is inside the body. */
+        /* Every word can be reached: at its end the last thing in it - a
+           paragraph, or with a backend Delete's button - is inside the body. */
         await toEnd(page, "aboutBody");
         expect.soft(await page.evaluate(() => {
-          const body = document.getElementById("aboutBody"), last = body.lastElementChild.getBoundingClientRect(), box = body.getBoundingClientRect();
+          const body = document.getElementById("aboutBody"), part = document.getElementById("aboutDelete");
+          const last = (part ? [...part.children].filter(el => el.getClientRects().length).pop() : body.lastElementChild).getBoundingClientRect(), box = body.getBoundingClientRect();
           return last.bottom <= box.bottom + 0.5 && last.top >= box.top;
-        }), "the about panel: its last paragraph is whole at its end").toBe(true);
+        }), "the about panel: the last thing in it is whole at its end").toBe(true);
 
         /* Back to Settings: Settings again, where it was, focus on the row. */
         const back = async how => {
@@ -191,6 +195,128 @@ for (const [text, big] of Object.entries(TEXT)) {
       });
     });
   }
+}
+
+/* Delete, as the about panel's body stands scrolled to its end: what the
+   part holds, where, and whether each piece lies inside the body. Run in
+   the page. */
+function deleteState() {
+  const body = document.getElementById("aboutBody"), part = document.getElementById("aboutDelete"), box = body.getBoundingClientRect();
+  const pieces = [...part.querySelectorAll("h4, p, button, .about-note")].filter(el => el.getClientRects().length);
+  const rect = el => el.getBoundingClientRect();
+  const button = document.getElementById("aboutDeleteBtn"), last = pieces[pieces.length - 1];
+  return {
+    last: body.lastElementChild === part,
+    words: pieces.map(el => [el.tagName, el.textContent.replace(/\s+/g, " ").trim()]),
+    across: pieces.filter(el => rect(el).left < box.left - 0.5 || rect(el).right > box.right + 0.5).map(el => el.tagName),
+    lastWhole: rect(last).bottom <= box.bottom + 0.5 && rect(last).top >= box.top - 0.5,
+    sideways: body.scrollWidth - body.clientWidth,
+    button: button && { height: rect(button).height, whole: rect(button).top >= box.top - 0.5 && rect(button).bottom <= box.bottom + 0.5,
+      inked: button.scrollWidth <= button.clientWidth && button.scrollHeight <= button.clientHeight,
+      alone: pieces.filter(el => el !== button && rect(el).bottom > rect(button).top + 0.5 && rect(el).top < rect(button).bottom - 0.5).map(el => el.tagName) },
+  };
+}
+const REMOVES = "Removes what the server keeps for you: your picks and follows, your sign-in, with your email if you added one, and your place in every crew. A crew you started goes too if no one else is in it; otherwise it stays for its members, with no one to manage it - delete the crew first if you want it gone. Your plan stays on this phone; Remove all picks clears its picks. It cannot reach the logs the companies above keep.";
+const SIGN_IN_FIRST = "To delete what the server keeps for you, sign in first - Settings, Keep your plan - then come back here. If you never started or joined a crew and never entered an email, it keeps nothing.";
+const DELETED = "Deleted. Your picks, follows and sign-in are off the server. Your plan is still on this phone.";
+const DELETES = [
+  { name: "signed in with an email", storage: { session: SIGNED_IN }, button: "Delete my account", asks: /^Delete your account\? / },
+  { name: "an anonymous user", storage: { session: ANONYMOUS }, button: "Delete my data from the server", asks: /^Delete your data from the server\? / },
+  { name: "no session", storage: {}, button: null },
+];
+
+for (const [text, big] of Object.entries(TEXT)) {
+  for (const state of DELETES) {
+    test.describe(`Delete, ${state.name}${text}`, () => {
+      test.use({ storageState: seed({ ...state.storage, ...big }, WITH_BACKEND) });
+
+      test(`stands last in the about panel, whole, nothing cut and nothing sideways: ${state.name}${text}`, async ({ page }) => {
+        await open(page, SATURDAY, "", WITH_BACKEND);
+        await page.locator("#settingsBtn").tap();
+        await page.locator("#aboutRow").scrollIntoViewIfNeeded();
+        await page.locator("#aboutRow").tap();
+        await expect(page.locator("#panel-about")).toBeVisible();
+        await settled(page);
+
+        /* Its label can be brought into the body, and its end is the body's. */
+        await page.locator("#aboutDelete h4").scrollIntoViewIfNeeded();
+        await expect(page.locator("#aboutDelete h4")).toBeInViewport({ ratio: 1 });
+        await toEnd(page, "aboutBody");
+        const s = await page.evaluate(deleteState);
+        expect.soft(s.last, "Delete is the last thing in the body").toBe(true);
+        expect.soft(s.words, "its words").toEqual(state.button
+          ? [["H4", "Delete"], ["P", REMOVES], ["BUTTON", state.button]] : [["H4", "Delete"], ["P", SIGN_IN_FIRST]]);
+        expect.soft(s.across, "nothing of it is wider than the body").toEqual([]);
+        expect.soft(s.sideways, "the body does not scroll sideways").toBe(0);
+        expect.soft(s.lastWhole, "at the body's end its last piece is whole").toBe(true);
+        const found = await check(page, CONTROLS);
+        expect.soft(found.sideways, "nothing scrolls sideways").toEqual([]);
+        expect.soft(found.cut, "no control is cut off").toEqual([]);
+        if (!state.button) {
+          await expect(page.locator("#aboutDeleteBtn")).toHaveCount(0);
+          return;
+        }
+        expect.soft(s.button.height, "the button is 44 px or more").toBeGreaterThanOrEqual(44);
+        expect.soft(s.button.whole, "the button is whole in the body").toBe(true);
+        expect.soft(s.button.inked, "the button's words fit inside it").toBe(true);
+        expect.soft(s.button.alone, "the button is on a row of its own").toEqual([]);
+
+        /* The tap, a yes, and the harness's answer: the note in the button's
+           place, whole, with focus, and the session gone. */
+        const asked = [];
+        page.once("dialog", dialog => { asked.push(dialog.message()); dialog.accept(); });
+        await page.locator("#aboutDeleteBtn").tap();
+        await expect(page.locator("#aboutDeleteNote")).toHaveText(DELETED);
+        await expect(page.locator("#aboutDeleteBtn")).toHaveCount(0);
+        await expect(page.locator("#aboutDeleteNote")).toBeFocused();
+        expect.soft(asked.length, "one confirm").toBe(1);
+        expect.soft(asked[0], "the confirm's question").toMatch(state.asks);
+        const done = await page.evaluate(deleteState);
+        expect.soft(done.words, "done: the words, and the note where the button was").toEqual([["H4", "Delete"], ["P", REMOVES], ["DIV", DELETED]]);
+        expect.soft(done.lastWhole, "done: the note is whole in the body").toBe(true);
+        expect.soft(done.across, "done: nothing is wider than the body").toEqual([]);
+        expect.soft(done.sideways, "done: the body does not scroll sideways").toBe(0);
+        expect.soft(await page.evaluate(() => Object.keys(localStorage).filter(k => /\.(session|outbox|syncStamp|crew|crewPicks)$/.test(k))), "done: the session and sync's keys are gone").toEqual([]);
+        await stands(page, "panel-about", "aboutBody", "done: the about panel");
+
+        /* Back to Settings: the email form, not Signed in as. */
+        await page.locator("#aboutBack").tap();
+        await expect(page.locator("#keepEmailForm")).toBeVisible();
+        await expect(page.locator("#keepIn")).toBeHidden();
+      });
+    });
+  }
+
+  /* A failure, by the keyboard: the harness answers every request but this
+     one, which the server fails. A browser takes focus from a button while
+     it is busy, and the words come in under a body already at its end. */
+  test.describe(`Delete, when the server fails${text}`, () => {
+    test.use({ storageState: seed({ session: SIGNED_IN, ...big }, WITH_BACKEND) });
+
+    test(`says so where it can be read, the button ready again with focus back on it${text}`, async ({ page }) => {
+      await page.route(url => url.origin === BACKEND.url && url.pathname.endsWith("/rpc/delete_my_account"), route => (route.request().method() === "OPTIONS" ? route.fallback()
+        : route.fulfill({ status: 500, headers: { "access-control-allow-origin": WITH_BACKEND }, contentType: "application/json", body: JSON.stringify({ code: "XX000", message: "the server failed" }) })));
+      await open(page, SATURDAY, "", WITH_BACKEND);
+      await page.locator("#settingsBtn").tap();
+      await page.locator("#aboutRow").scrollIntoViewIfNeeded();
+      await page.locator("#aboutRow").tap();
+      await expect(page.locator("#panel-about")).toBeVisible();
+      await toEnd(page, "aboutBody");
+      await page.locator("#aboutDeleteBtn").focus();
+      page.once("dialog", dialog => dialog.accept());
+      await page.keyboard.press("Enter");
+      await expect(page.locator("#aboutDeleteNote")).toHaveText("Something went wrong. Please try again.");
+      await expect(page.locator("#aboutDeleteBtn")).toBeEnabled();
+      await expect(page.locator("#aboutDeleteBtn")).toBeFocused();
+      const s = await page.evaluate(deleteState);
+      expect.soft(s.words, "the part, with the failure's words under the button").toEqual([["H4", "Delete"], ["P", REMOVES], ["BUTTON", "Delete my account"], ["DIV", "Something went wrong. Please try again."]]);
+      expect.soft(s.lastWhole, "the failure's words are whole in the body").toBe(true);
+      expect.soft(s.button.whole, "the button is whole in the body").toBe(true);
+      expect.soft(s.across, "nothing is wider than the body").toEqual([]);
+      expect.soft(await page.evaluate(() => Object.keys(localStorage).filter(k => /\.session$/.test(k)).length), "the session is kept").toBe(1);
+      await stands(page, "panel-about", "aboutBody", "after a failure: the about panel");
+    });
+  });
 }
 
 test.describe("Plans' strip", () => {

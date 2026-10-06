@@ -1,4 +1,5 @@
--- What the cleanup of stale anonymous users will rely on (contract, section 2):
+-- What delete_my_account() relies on (#93; 13_delete_my_account), and the
+-- cleanup of stale anonymous users will (contract, section 2):
 -- deleting a user takes their picks, follows, memberships, subscriptions and
 -- push ledger with them; a crew outlives its creator, set null, whose actions
 -- then lapse, and its members can still leave.

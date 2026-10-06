@@ -44,8 +44,8 @@ select results_eq(
      where p.pronamespace = 'public'::regnamespace
        and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
        and has_function_privilege('authenticated', p.oid, 'execute') order by 1 $$,
-  $$ values ('create_crew'), ('is_crew_member'), ('join_crew'), ('regenerate_invite'), ('shares_crew_with') $$,
-  'authenticated executes the two helpers and the three RPCs, and nothing else in public');
+  $$ values ('create_crew'), ('delete_my_account'), ('is_crew_member'), ('join_crew'), ('regenerate_invite'), ('shares_crew_with') $$,
+  'authenticated executes the two helpers and the four RPCs, and nothing else in public');
 select results_eq(
   $$ select t.tgname::text collate "default" from pg_trigger t
      where t.tgrelid in ('public.picks'::regclass, 'public.follows'::regclass) and not t.tgisinternal order by 1 $$,
