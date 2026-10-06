@@ -208,9 +208,13 @@ As built: the recon, section 2, Now; section 5; section 7, the nudge.
   private; recon section 8), and `tickNow()`'s signature takes the section.
 - **The install nudge** (#65): where it is, as it is, only while
   `picks.size > 0`. The install flow's mechanics are Delivery's.
-- **Alternatives** (W2, #40): under the picks-changed notice, for a pick
-  cancelled or moved, the events in the time it vacated. The notice is
-  `picks.js` `pickNewsHTML()`, drawn on Now and on Plans' My day.
+- **Alternatives** (W2, #40, #90): under the picks-changed notice, a fold
+  for each pick cancelled, removed, gone or moved to a new start, shut
+  until tapped: the events that start in the time it vacated. The notice
+  is `picks.js` `pickNewsHTML()` and the folds `inplace.js`
+  `inPlaceHTML()`, drawn on Now and on Plans' My day.
+
+Built: W2, the alternatives under the picks-changed notice - PR #108, DECISIONS #90.
 
 **Home of:** W23; W36, its trigger, W37 folded in; W2.
 
@@ -221,6 +225,8 @@ hero suite. PRs 3 (the hero and the nudge's gate), 5 (the crew section)
 and 8b (W2).
 
 ### Now, as built
+
+Changed by PR #108 (#90): a cancelled pick is no hero, no "then", no row of the rest and no crewmate's line, and the folds of what is on in place of a pick stand under the notice.
 
 PR #76, with #40 and #65: the hero and the nudge's gate. PR #81, step 5a,
 with #10, #62 and #66: Your crew right now, worded as picks by PR #83, step
@@ -847,6 +853,8 @@ per-person reader, W28's action), `sync.js` `pull()`, `state.js`,
 
 ### Plans, as built
 
+Changed by PR #108 (#90): a cancelled pick has no gap line and no walk link and is not exported, its timeline block says Cancelled, and the folds stand under the notice on My day.
+
 PR #77, with #56, #62, #63 and #66: the crew header, the crew panel, the
 join step, My day | Crew and the crew's day, and the sync that redraws
 them. PR #80, PR 4b, with #56 and #66: W28, the reader's own name in a
@@ -1213,6 +1221,8 @@ Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
 ### Map, as built
 
 Changed by PR #107 (#89): the Map is drawn in place, at the tick too; the signatures are gone.
+
+Changed by PR #108 (#90): a cancelled pick, the reader's or a crewmate's, is in no pill, count, label, ring or card.
 
 PR #81, step 5a, with #62 and #66: the crew's count. PR #94, step 7's
 third, with #63, #66 and #75: the focused event. The building view (PR 10)
@@ -2034,6 +2044,8 @@ lists the crew's picks at the hotel under the reader's own (below).
 
 ### The hotel sheet, as built
 
+Changed by PR #108 (#90): a cancelled pick, the reader's or a crewmate's, is not listed and not counted.
+
 PR #82, step 5c, with #62, #63 and #66: Your crew here, worded as picks
 by PR #83, step 5d, with #68.
 
@@ -2445,6 +2457,8 @@ pair" and "streaming next"; `style.test.js` [1581] and [1774];
 
 ### Removals, as built
 
+Changed by PR #108 (#90): the mini-bar, the Map's card and the walk estimate's pick before pass over a cancelled pick.
+
 PR #76, with #40.
 
 - **The leave-by is gone** from its three sites, and from `map.js`
@@ -2691,11 +2705,17 @@ As built: the recon, section 8, what crews' readers offer today.
   parse stage prefers a missed flag to a false one, so a row or a sheet
   without the flag is not a promise, and nor is the Not sold out filter,
   which keeps it (#77). The pipeline's.
-- A cancelled pick. The hero and the gap line still band it - "then
+- ~~A cancelled pick. The hero and the gap line still band it - "then
   `<place>` at 3:00 PM: overlaps by 30 min", a walk band between rows -
   while a row's overlap flag counts a cancelled pick in no other pick's,
   and gives it none (#73; section 10, as built). Step 8b's to settle, with
-  the alternatives it offers for a cancelled pick (ROADMAP, tentpole 5).
+  the alternatives it offers for a cancelled pick (ROADMAP, tentpole 5).~~
+  Settled by PR #108 (#90): a cancelled pick is not happening - no hero,
+  no band, no walk, no count at a place - and stays, marked, where the
+  plan is listed.
+- The event's sheet still offers "Add this to calendar" on a cancelled
+  event, where My day's Export leaves a cancelled pick out (#90); a
+  removed event's sheet offers none (#49).
 - The hotel sheet's rows name the hotel its title already names - "Hilton
   · 306 · 3rd Floor" under the heading "Hilton" - on the narrowest lines a
   row is drawn on, 271 px of text at 375 (section 10, as built).
