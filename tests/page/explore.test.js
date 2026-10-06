@@ -857,9 +857,9 @@ describe("Mute beside Follow, and the Muted fold", () => {
       reader([], [], []);
       expect([el("muted"), fold()]).toEqual([null, null]);
     });
-    it("stands alone above the sticky block when nothing is followed and nothing suggested", () => {
+    it("stands above the sticky block, after Start here, when nothing is followed and nothing suggested: a mute alone leaves a stranger a stranger (DECISIONS #88)", () => {
       reader([], [], [["track", "Science"], ["work", "star-wars"]]);
-      expect(kinds(view())).toEqual(["section#muted.muted", "div.controls.controls-sticky", "div#exploreGrid."]);
+      expect(kinds(view())).toEqual(["section#zero.foryou.zero", "section#muted.muted", "div.controls.controls-sticky", "div#exploreGrid."]);
     });
     it("is shut on a load, says how many it holds, and draws no chip", () => {
       expect(state.explore.mutedOpen).toBe(false);

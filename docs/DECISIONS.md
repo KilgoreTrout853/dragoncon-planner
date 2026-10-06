@@ -3073,3 +3073,29 @@ saying why each row is there, from the profile alone (#22, #32), and by
 not moving under a finger (#86).
 **Cost:** A starred row, an unfollowed thing's rows and one whose event
 has started stay until the grid is left. Weights are by hand, untuned.
+
+### 88. The zero state: Start here and the big ones, computed — Standing (2026-10-06)
+**Decided:** Where For you has no row, the zero state stands in its place
+(W16; PR #106; `docs/screens/contract.md`, section 4).
+- **Computed, not curated:** no file kept by hand, nothing to validate.
+- **Start here,** a heading and one line on how the app works, is a
+  stranger's alone - no pick and no follow, whatever is muted - and the
+  grid's hint line goes while it stands.
+- **The big ones** stand in for an empty For you, for anyone: Main
+  Programming's celebrity events still to start, soonest first and then
+  by id, four shown and Show all for the rest. None cancelled, a photo op
+  or a signing, or carrying a muted thing (#84); one session of anything,
+  and a pick is a session already had.
+- **It holds still with For you,** by a narrower rule: kept while the
+  follows are as they were and every pick added or taken since is one of
+  its own rows. A follow, or a pick from anywhere else, works the top of
+  the grid out again, as an empty For you always was (#87).
+- **With nothing to list** - after the con, or no such track - Start here
+  stands alone.
+
+**Why:** A stranger got one hint line on the tab the app opens on before
+the con (#62). After one star For you usually has nothing yet - no row for
+16 of the 23 big ones before the con - so the list stays to star from. The
+hold is narrower because a sign-in's pull must still bring For you at once.
+**Cost:** One track's name is the rule, judged on 2027's schedule in August.
+A star in it that gives For you a row shows it only once the grid is left.

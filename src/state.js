@@ -21,7 +21,8 @@ const state = {
   /* Explore's: mutedOpen is the grid's Muted fold, shut on every load (#84);
      forYou is For you's list while the reader stays on the grid - its rows
      and whether Show more was tapped - null when it is to be worked out
-     (explore.js; #87). */
+     (explore.js; #87); and under it, as zero, the zero state that stands
+     in its place while it has no row (#88). */
   explore: {q: "", page: null, scroll: 0, showPast: false, showCast: false, castNoise: false, mutedOpen: false, forYou: null, expanded: {}, active: null},
   /* The Following feed's: by follow id, a block's Show more, its Already
      happened, and a fandom's cast - open, and its photo ops shown (#85).

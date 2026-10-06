@@ -1,4 +1,5 @@
-/* For you: what scores and what is chosen (DECISIONS #87), on schedules made
+/* For you: what scores and what is chosen (DECISIONS #87), and the big ones
+   that stand where it has no row (#88), on schedules made
    here, each small enough to work out by hand. No page: the reader is set
    through the owners' functions - picks, follows, mutes - and the moment is
    handed in. An event with no start given takes the next free hour, so
@@ -8,7 +9,7 @@ import { byId, replaceSchedule } from "../../src/data.js";
 import { replacePicks } from "../../src/picks.js";
 import { eventsFor, mutes, replaceFollows, toggleMute } from "../../src/follows.js";
 import { clashesOf } from "../../src/walk.js";
-import { FOR_YOU_MAX, forYou, profile, rarity, SIGNALS } from "../../src/foryou.js";
+import { BIG_TRACK, bigOnes, FOR_YOU_MAX, forYou, profile, rarity, SIGNALS } from "../../src/foryou.js";
 
 const WORKS = [
   { id: "star-wars", name: "Star Wars", aliases: [], terms: [], reviewed: true },
@@ -387,5 +388,100 @@ describe("mutes", () => {
     galaxy();
     reader({ picks: ["pick-sw", "pick-t"], follows: [PERSON("kay")], muted: [["work", "star-wars"]] });
     expect(said()).toEqual(["plain: Like your picks: T", "kay-on-andor: You follow kay"]);
+  });
+});
+
+/* The big ones (W16; DECISIONS #88): what stands where For you has no row.
+   One function of the moment, on schedules made here. */
+describe("the big ones", () => {
+  /* A celebrity event on Main Programming, but where o says otherwise. */
+  const big = (id, o = {}) => {
+    const e = ev(id, { tracks: [BIG_TRACK], ...o });
+    if (o.guests !== false) e.tags.guests = o.guests || "celebrity";
+    return e;
+  };
+  const got = (at = BEFORE) => bigOnes(at);
+
+  it("the track has one name, Main Programming", () => {
+    expect(BIG_TRACK).toBe("Main Programming");
+  });
+  it("the celebrity events on Main Programming: not the track's other events, nor another track's celebrities; a second track beside it changes nothing", () => {
+    schedule([big("a"), big("untold", { guests: false }), big("creator", { guests: "creator" }), big("elsewhere", { tracks: ["Other"] }),
+      big("two-tracks", { tracks: ["Other", BIG_TRACK] }), ...fill(3)]);
+    expect(got()).toEqual(["a", "two-tracks"]);
+  });
+  it("soonest first, and two that start together by id, whatever order the schedule lists them in", () => {
+    schedule([big("late", { start: "2026-09-05T10:00" }), big("b", { start: "2026-09-04T13:00" }), big("a", { start: "2026-09-04T13:00" }),
+      big("first", { start: "2026-09-04T09:00" })]);
+    expect(got()).toEqual(["first", "a", "b", "late"]);
+    schedule([big("a", { start: "2026-09-04T13:00" }), big("b", { start: "2026-09-04T13:00" })]);
+    expect(got()).toEqual(["a", "b"]);
+  });
+  it("as ids, for anyone: what is followed changes nothing", () => {
+    schedule([big("a", { people: ["kay"] }), big("b"), ...fill(3)]);
+    reader({ follows: [PERSON("kay"), TRACK(BIG_TRACK)] });
+    expect(got()).toEqual(["a", "b"]);
+  });
+  it("not a cancelled one", () => {
+    schedule([big("off", { cancelled: true }), big("on")]);
+    expect(got()).toEqual(["on"]);
+  });
+  it("not one that has started: at its start it has, a minute before it has not", () => {
+    schedule([big("gone", { start: "2026-09-04T09:00" }), big("ten", { start: "2026-09-04T10:00" }), big("later", { start: "2026-09-04T12:00" })]);
+    expect(got(new Date("2026-09-04T09:59"))).toEqual(["ten", "later"]);
+    expect(got(new Date("2026-09-04T10:00"))).toEqual(["later"]);
+    expect(got(new Date("2026-09-04T10:30"))).toEqual(["later"]);
+  });
+  it("not a pick", () => {
+    schedule([big("mine"), big("free")]);
+    reader({ picks: ["mine"] });
+    expect(got()).toEqual(["free"]);
+  });
+  it("not a photo op, nor a signing", () => {
+    schedule([big("photo", { kind: "photo" }), big("signing", { kind: "signing" }), big("panel"), big("qa", { kind: "qa" })]);
+    expect(got()).toEqual(["panel", "qa"]);
+  });
+  it("not one that carries a muted thing: a track beside its own, a topic, a person, a fandom, and the fandom above its own", () => {
+    const list = () => schedule([big("free"), big("on-track", { tracks: [BIG_TRACK, "M"] }), big("on-topic", { subject: ["space"] }), big("with-person", { people: ["kay"] }),
+      big("on-firefly", { works: ["firefly"] }), big("on-andor", { works: ["andor"] })]);
+    const all = ["free", "on-track", "on-topic", "with-person", "on-firefly", "on-andor"];
+    list(); reader();
+    expect(got()).toEqual(all);
+    for (const [mute, gone] of [[["track", "M"], "on-track"], [["axis", "subject:space"], "on-topic"], [["person", "kay"], "with-person"],
+      [["work", "firefly"], "on-firefly"], [["work", "star-wars"], "on-andor"]]) {
+      list(); reader({ muted: [mute] });
+      expect(got(), mute.join(":")).toEqual(all.filter(id => id !== gone));
+    }
+  });
+  it("and none at all with Main Programming itself muted", () => {
+    schedule([big("a"), big("b")]);
+    reader({ muted: [["track", BIG_TRACK]] });
+    expect(got()).toEqual([]);
+  });
+  it("one session of anything, the soonest: by its repeat key, or by its title where it has none", () => {
+    schedule([big("keyed-2", { repeat: "show", start: "2026-09-05T10:00" }), big("keyed-1", { repeat: "show", start: "2026-09-04T10:00" }),
+      big("titled-1", { title: "Twice", start: "2026-09-04T11:00" }), big("titled-2", { title: "Twice", start: "2026-09-05T11:00" }),
+      big("other-key", { title: "Twice", repeat: "apart", start: "2026-09-05T12:00" })]);
+    expect(got()).toEqual(["keyed-1", "titled-1", "other-key"]);
+  });
+  it("a session that has started, or is cancelled, does not stand for the one still to come", () => {
+    schedule([big("first", { repeat: "show", start: "2026-09-04T10:00" }), big("second", { repeat: "show", start: "2026-09-05T10:00" }),
+      big("off", { repeat: "talk", start: "2026-09-04T11:00", cancelled: true }), big("on", { repeat: "talk", start: "2026-09-05T11:00" })]);
+    expect(got()).toEqual(["first", "on"]);
+    expect(got(new Date("2026-09-04T10:00"))).toEqual(["second", "on"]);
+  });
+  it("a pick is a session already had: its other session is out with it", () => {
+    schedule([big("first", { repeat: "show", start: "2026-09-04T10:00" }), big("second", { repeat: "show", start: "2026-09-05T10:00" }), big("free")]);
+    reader({ picks: ["first"] });
+    expect(got()).toEqual(["free"]);
+    reader({ picks: ["second"] });
+    expect(got()).toEqual(["free"]);
+  });
+  it("none on a schedule with no Main Programming track, and none once everything has started", () => {
+    schedule([big("elsewhere", { tracks: ["Other"] }), ...fill(3)]);
+    expect(got()).toEqual([]);
+    schedule([big("a"), big("b")]);
+    expect(got()).toEqual(["a", "b"]);
+    expect(got(new Date("2026-09-08T12:00"))).toEqual([]);
   });
 });

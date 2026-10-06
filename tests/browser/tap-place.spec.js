@@ -203,6 +203,33 @@ for (const [text, storage] of Object.entries(TEXT)) {
     });
   });
 
+  /* The zero state (DECISIONS #88), a stranger's: Show all puts the rest of
+     the big ones between itself and the filter block; and a star changes
+     nothing above its row - the zero state is held - so the row and the
+     star stay, with Because you starred arriving below. */
+  test.describe(`a tap in the zero state${text}`, () => {
+    test.use({ storageState: seed(storage) });
+
+    test(`stays under the finger: what stood above Show all, and a big one's star${text}`, async ({ page }) => {
+      await open(page, SATURDAY);
+      await tab(page, "explore");
+      const all = '#zero [data-act="zero-all"]', rows = page.locator('main .row[data-list="big"]');
+      await expect(rows).toHaveCount(4);
+      await holds(page, "the big ones' Show all, by the last row above it", {
+        control: all, watch: await rowAt(page, "big", 3), down: 200, drawn: gone(page, all), stage: t => [["the page is scrolled", t.scrolled > 0]],
+      });
+      await expect(rows).toHaveCount(12);
+
+      const row = await rowAt(page, "big", 5), star = `${row} .star`;
+      await holds(page, "a star on a big one", {
+        control: star, watch: row, down: 120, drawn: () => expect(page.locator(star)).toHaveAttribute("aria-pressed", "true"),
+        stage: t => [["the page is scrolled", t.scrolled > 0]],
+      });
+      await expect.soft(rows, "the starred row is still one of the twelve").toHaveCount(12);
+      await expect.soft(page.locator("#zero .fy-head").first(), "and Start here still stands above them").toHaveText("Start here");
+    });
+  });
+
   test.describe(`a tap on a fandom's page and in Search${text}`, () => {
     test.use({ storageState: seed(storage) });
 

@@ -450,7 +450,9 @@ execution slot (#57), which can run before any of this.
    more where the folds are - built (PR #104, #86; contract, section 0).
    For you, a short list with its reasons, first on the grid, and
    Following folded under it - built (PR #105, #87; contract, section 4).
-   The zero state is not built.
+   The zero state, "Start here" and the big ones in For you's place where
+   it has no row - built (PR #106, #88; contract, section 4). 8b is what is
+   left of step 8.
    - 8b. W2, the alternatives in the time a cancelled or moved pick
      vacated, under the picks-changed notice on Now and Plans: its own
      small pull request (contract, section 2).
@@ -631,6 +633,11 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   Closed by PR #104 (#86): `tests/browser/tap-place.spec.js` holds the
   star's row where it stood, in both engines, and [53] and [1240] are
   deleted.
+- The zero state's big ones are one track's celebrity events, Main
+  Programming's, by a constant in `foryou.js` (#88): whether that is the
+  right list is judged on the real 2027 schedule in August. And a held
+  zero state waits for the grid to be left: an unmute on the grid, like a
+  star that gives For you a row, shows nothing new until then.
 - Three places rewrite the address, each its own way: `time.js`
   `setOverride()`, the `?now=`; `crews.js` `readJoinLink()`, the `?join=`;
   and since PR #85 `sheet.js` `takeDayLink()`, the `?day=`. One helper for

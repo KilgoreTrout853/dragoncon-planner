@@ -1048,6 +1048,60 @@ describe("against the real schedule", () => {
     });
   });
 
+  /* The big ones (W16; DECISIONS #88) on the real schedule: Main
+     Programming's celebrity events still to start, asked of foryou.js at a
+     moment handed in, for a reader with nothing starred or followed. */
+  describe("The big ones, on 2026's schedule", () => {
+    const BEFORE = new Date("2026-08-28T10:00"), SATURDAY = new Date("2026-09-05T13:05"), AFTER = new Date("2026-09-09T12:00");
+    const sessionOf = e => (e.facets || {}).repeat_key || `title:${e.title}`;
+    const big = at => app.bigOnes(at).map(id => app.byId.get(id));
+    const stranger = () => { app.mutes.slice().forEach(m => app.toggleMute(m.kind, m.key)); handle.picks.set([]); handle.follows.set([]); };
+    beforeAll(stranger);
+    afterAll(stranger);
+
+    it("23 before the con, soonest first and then by id, and the first four", () => {
+      const list = big(BEFORE);
+      expect(list.length).toBe(23);
+      expect(list.slice(0, 4).map(e => e.title)).toEqual(["WABE: Imagined Worlds, Real Nation \u2013 40 Years of Fandom & America at 250",
+        "Dragon Con Wrestling", "The Rookie Cast", "The Life and Times of Sean Astin"]);
+      expect(list.every((e, i) => i === 0 || +list[i - 1]._s < +e._s || (+list[i - 1]._s === +e._s && list[i - 1].id < e.id))).toBe(true);
+    });
+    it("12 at Saturday 1:05 PM, every one still to start, and the first two", () => {
+      const list = big(SATURDAY);
+      expect(list.length).toBe(12);
+      expect(list.slice(0, 2).map(e => e.title)).toEqual(["The Rookie Guests", "Gina Torres - Big Damn Hero!"]);
+      expect(list.every(e => e._s > SATURDAY)).toBe(true);
+    });
+    it("none once the con is over", () => {
+      expect(big(AFTER)).toEqual([]);
+    });
+    it("each a celebrity event on Main Programming, none cancelled, none a photo op or a signing, and one session each", () => {
+      for (const at of [BEFORE, SATURDAY]) {
+        const list = big(at);
+        list.forEach(e => {
+          expect([e.tracks.includes("Main Programming"), app.isCeleb(e), !!e.cancelled], e.title).toEqual([true, true, false]);
+          expect(["photo", "signing"]).not.toContain(app.tagsOf(e).kind);
+        });
+        expect(new Set(list.map(sessionOf)).size).toBe(list.length);
+      }
+    });
+    it("the one event of the 24 left out before the con is a second session of one that is in", () => {
+      const all = handle.events.filter(e => (e.tracks || []).includes("Main Programming") && app.isCeleb(e));
+      const list = big(BEFORE), out = all.filter(e => !list.includes(e));
+      expect([all.length, out.length]).toEqual([24, 1]);
+      expect(list.map(sessionOf)).toContain(sessionOf(out[0]));
+    });
+    it("with one of them starred and nothing else, For you has no row for 16 of the 23, and for 9 of the 12", () => {
+      const empty = at => {
+        handle.picks.set([]);
+        const none = big(at).filter(e => { handle.picks.set([e.id]); return app.forYou(at).length === 0; }).length;
+        handle.picks.set([]);
+        return none;
+      };
+      expect([empty(BEFORE), empty(SATURDAY)]).toEqual([16, 9]);
+    });
+  });
+
   describe("Getting in, on 2026's schedule", () => {
     const el = id => document.getElementById(id);
     const texts = id => [...el(id).options].map(o => o.textContent);
