@@ -101,6 +101,9 @@ button { cursor: pointer; }
 .notice.warn { border-color: var(--warn); color: var(--text); }
 .pick-news ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
 .pick-news .btn { margin-top: 12px; height: 44px; }
+/* What is on in place of a pick (DECISIONS #90): the first fold stands clear
+   of the notice's box, by the notices' own gap. */
+.pick-news + .in-place { margin-top: 12px; }
 .nudge .btns, .notice.archive .btns { display: flex; gap: 8px; margin-top: 12px; }
 .nudge .btn, .notice.archive .btn { height: 38px; }
 

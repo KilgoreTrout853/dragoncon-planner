@@ -35,6 +35,19 @@ const SKETCH = {
   ],
   follows: [TREK, { kind: "person", key: "sean-astin" }],
 };
+/* In place of a pick's (DECISIONS #90): that reader with a tenth pick, 2026's
+   cancelled Temporal Formal, under a snapshot from before one said
+   cancelled, and a snapshot of Is NASA Still 'NASA'? that says Sunday
+   1:00 PM where the schedule says 4:00 PM - so the page boots to two lines
+   of news and a fold under each, as tests/browser/in-place.spec.js has it. */
+const NASA = "c32d19e7750818e0eb903f152ad84b6f", FORMAL = "c32d19e7750818e0eb903f152aced30a";
+const CHANGED = {
+  ...SKETCH, picks: [...SKETCH.picks, FORMAL],
+  pickInfo: {
+    [NASA]: { title: "Is NASA Still 'NASA'?", start: "2026-09-06T13:00", location: "Hilton 212-214", end: "2026-09-06T14:00", hotel: "Hilton" },
+    [FORMAL]: { title: "CANCELLED - The Temporal Formal: Silver Screens and Golden Dreams", start: "2026-09-06T22:00", location: "Courtland Grand CG-Grand Ballroom A-F" },
+  },
+};
 
 const HDR = ".hdr", BOX = "#view-explore .controls-sticky";
 const fold = (act, follow) => `#view-explore [data-act="${act}"]` + (follow ? `[data-follow="${follow}"]` : "");
@@ -294,6 +307,33 @@ for (const [text, storage] of Object.entries(TEXT)) {
       await tab(page, "browse");
       const found = await rowAt(page, "browse", 3);
       await holds(page, "a star in Search", { control: `${found} .star`, watch: found, down: 100, under: "#view-browse .controls-sticky", drawn: pressed(`${found} .star`, true) });
+    });
+  });
+
+  /* In place of a pick (DECISIONS #90): a fold under the picks-changed
+     notice opens downward, so it stays where it stood; and a star in it
+     changes nothing above its row - what the folds hold is held - so the
+     row stays. On Now, and then on My day, where Now's markup, hidden, still
+     holds the same folds: a row is found by its own tab's list. */
+  test.describe(`a tap under the picks-changed notice${text}`, () => {
+    test.use({ storageState: seed({ ...CHANGED, ...storage }) });
+
+    test(`stays under the finger: a fold opened and shut, and a star in it, on Now and on My day${text}`, async ({ page }) => {
+      const scrolled = t => [["the page is scrolled", t.scrolled > 0]];
+      await open(page, SATURDAY);
+      for (const [name, entry] of [["now", 0], ["plans", 1]]) {
+        await tab(page, name);
+        const fold = `#inPlace-${name}-${entry}`, list = `in-place:${name}:${entry}`;
+        await holds(page, `${name}: a fold in place of a pick, opened`, { control: fold, drawn: expanded(page, fold, true), stage: scrolled });
+        await holds(page, `${name}: the same fold, shut`, { control: fold, drawn: expanded(page, fold, false), stage: scrolled });
+        await page.locator(fold).tap();
+        await expanded(page, fold, true)();
+        const row = await rowAt(page, list, 1), star = `${row} .star`;
+        await holds(page, `${name}: a star in the fold`, {
+          control: star, watch: row, down: 120, drawn: () => expect(page.locator(star)).toHaveAttribute("aria-pressed", "true"), stage: scrolled,
+        });
+        await expect.soft(page.locator(`main .row[data-list="${list}"]`), `${name}: the starred row is still one of the three`).toHaveCount(3);
+      }
     });
   });
 }
