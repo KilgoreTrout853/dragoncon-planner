@@ -177,21 +177,21 @@ function weigh(ev, p, found) {
   for (const f of found) if (counts(f, found)) score += f.weight;
   return score;
 }
-/* And the same as a list of its own, only what counts, heaviest first: the
-   first is the reason. */
+/* And the same as a list of its own, heaviest first: the first is the
+   reason. */
 function foundOn(ev, p) {
   const found = [];
   weigh(ev, p, found);
-  return found.filter(f => counts(f, found)).sort((a, b) => heavier(a, b) ? -1 : 1);
+  return found.sort((a, b) => heavier(a, b) ? -1 : 1);
 }
 
 /* Not a candidate, whatever it scores: a cancelled event; a photo op or a
-   signing; one whose every track is a noise track; another session of a
-   pick; one that carries a muted thing, unless a follow brings it - a
-   follow wins over a mute, and the fandoms under a muted fandom are muted
-   with it, since an Andor event carries Star Wars; and one that overlaps a
-   pick, where the pick is not a long one. A pick and an event that has
-   started are passed over before they are scored.
+   signing; one whose every track is a noise track; a session of a pick,
+   and so a pick, which is one of its own; one that carries a muted thing,
+   unless a follow brings it - a follow wins over a mute, and the fandoms
+   under a muted fandom are muted with it, since an Andor event carries
+   Star Wars; and one that overlaps a pick, where the pick is not a long
+   one. An event that has started is passed over before it is scored.
    The overlap is walk.js connection()'s, the one computation of one (#64),
    asked as clashesOf() asks it - the earlier first, the longer where two
    start together - but only of the picks whose hours touch the event's:
@@ -242,7 +242,7 @@ function forYou(at) {
   const p = profile(), ranked = [], found = [], moment = at.getTime();
   for (const ev of events) {
     const start = ev._s.getTime();
-    if (start <= moment || picks.has(ev.id)) continue;
+    if (start <= moment) continue;
     const score = weigh(ev, p, found);
     if (score > 0) ranked.push({ev, score, start});
   }

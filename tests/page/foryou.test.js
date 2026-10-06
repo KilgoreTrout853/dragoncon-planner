@@ -215,6 +215,12 @@ describe("For you, at the top of Explore", () => {
       expect([!!state.explore.page, state.explore.forYou]).toEqual([true, null]);
       document.querySelector('[data-act="explore-back"]').click(); anew();
     });
+    it("a draw of another tab by any road - the mini-bar's tap, to Now - and a way back that is no tap on the bar", () => {
+      hold();
+      el("minibar").click();
+      expect([state.tab, state.explore.forYou]).toEqual(["now", null]);
+      state.tab = "explore"; handle.render(); anew();
+    });
     it("the Explore tab tapped again", () => { hold(); nav("explore"); anew(); });
     it("a return to the app", () => { hold(); app.onVisibleRender(); anew(); });
     it("a new moment on the clock: what has started by then is not offered", () => {
