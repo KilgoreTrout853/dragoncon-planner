@@ -1703,6 +1703,10 @@ PR #62, with #56.
 - A push's acks chunked, and its `event_ids` bounded, so that a push of
   more than some 70 to 100 events can be sent and acked (section 7, The
   batch, as built, Known limits): a follow-up, not built.
+- A push names a place by hotel and room, so at a venue whose `display` is
+  `location` the building is said twice - "AmericasMart Building 3 Mart
+  Building 3, Floor 1" - as the Mart was before its split (#91). It should
+  say the room alone there, as the client does (#73): not built.
 - ~~The Auth project's two limits. The built-in mailer sends only to the
   organisation's own addresses, a few an hour; custom email is not the
   operations track's but the six-digit code's prerequisite (#25's note;

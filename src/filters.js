@@ -23,7 +23,7 @@
    handlers are dispatch.js's. A leaf. */
 import { esc } from "./util.js";
 import { settings, state } from "./state.js";
-import { hotelShort } from "./venues.js";
+import { hotelGroup, hotelShort } from "./venues.js";
 import { AXES, events, hotelChips, isNoise, tagsOf, topWorks, tracks, worksById } from "./data.js";
 import { axisLabel, browseResults, dropPhrase, GETTING_IN, KIND_LABELS, parseQuery, passesGettingIn } from "./search.js";
 import { chipHTML } from "./ui.js";
@@ -144,11 +144,19 @@ function filtersHTML() {
   const kinds = tagged ? Object.keys(KIND_LABELS).filter(k => events.some(e => tagsOf(e).kind === k)) : [];
   const noiseCount = events.filter(e => isNoise(e) && (b.day === "All" || e._cd === b.day)).length;
   const trackList = held.track !== undefined && !tracks.includes(held.track) ? [held.track, ...tracks] : tracks;
+  /* The Hotel row: All, then a chip a group. While the hotel in effect is one
+     venue of a group, which no chip's value is - a building of the Mart, set
+     by its hotel sheet's Search (DECISIONS #91) - that venue has a chip of its
+     own straight after its group's, pressed, as the Track select has a held
+     track's option; like that option it stays, unpressed, until the panel is
+     drawn again, so no chip moves under a tap. */
+  const venue = at("hotel");
+  const hotelList = [["All", "All"], ...hotelChips.flatMap(g => [[hotelShort(g), g], ...(!hotelChips.includes(venue) && hotelGroup(venue) === g ? [[hotelShort(venue), venue]] : [])])];
   const select = (id, dim, name, first, list) => `<select class="track" id="${id}" data-filter="${dim}" aria-label="${name}">${option("All", first, at(dim) === "All")}${list.map(o => option(o.value, o.label, at(dim) === o.value)).join("")}</select>`;
   const groups = [
     `<div class="filter-group" data-group="hotel" role="group" aria-labelledby="filterHotelLabel">
       <span class="filter-label" id="filterHotelLabel">Hotel</span>
-      <div class="filter-chips">${chips("hotel", [["All", "All"], ...hotelChips.map(h => [hotelShort(h), h])])}</div></div>`,
+      <div class="filter-chips">${chips("hotel", hotelList)}</div></div>`,
     `<div class="filter-group" data-group="pick"><div class="filter-pair">${tagged
       ? select("fandom", "work", "Fandom", "Any fandom", topWorks().map(w => ({value: w.id, label: `${w.name} (${w.count})`}))) : ""}${
       select("track", "track", "Track", "All tracks", trackList.map(t => ({value: t, label: t})))}</div></div>`,

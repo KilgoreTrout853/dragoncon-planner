@@ -17,8 +17,12 @@ import { nowModel } from "./now.js";
    Hyatt's centre at (150, 250) - so the distances mean something: the
    Hyatt and the Marriott nearly touch, the Hilton is a real walk, the
    Westin sits south-east of the Mart just west of Peachtree, and the
-   Marriott-Hilton bridge crosses Courtland St, as it does in life. Keys
-   are the walk table's names, so counts, rings and routes join up by
+   Marriott-Hilton bridge crosses Courtland St, as it does in life. The
+   Mart is its two buildings, two venues (DECISIONS #91): Building 3 level
+   with the Hyatt across Peachtree, Building 2 south of it, each 50 tall -
+   45 px on a 375 px screen - and 16 apart, so that Building 3's crew pill
+   and Building 2's gold one, each 7 past its block's edge, stay clear.
+   Keys are the walk table's names, so counts, rings and routes join up by
    hotel. Streams and offsite venues have no place here. */
 const MAP_W = 380;
 /* The frame: the viewBox is cropped to the drawing, with the same inset
@@ -28,7 +32,8 @@ const MAP_W = 380;
 const MAP_VIEW = {x: -3, y: 111, w: 385, h: 305};
 const MAP_STREETS = {Peachtree: 110, Courtland: 296};
 const MAP_HOTELS = {
-  "AmericasMart":    {x: 12,  y: 216, w: 72, h: 64},
+  "AmericasMart Building 3": {x: 12, y: 204, w: 72, h: 50},
+  "AmericasMart Building 2": {x: 12, y: 270, w: 72, h: 50},
   "Westin":          {x: 48,  y: 332, w: 60, h: 56},
   "Hyatt":           {x: 120, y: 222, w: 60, h: 56},
   "Marriott":        {x: 190, y: 222, w: 60, h: 56},
@@ -36,8 +41,11 @@ const MAP_HOTELS = {
   "Courtland Grand": {x: 300, y: 347, w: 60, h: 56},
   "Hardy Ivy Park":  {x: 117, y: 124, w: 60, h: 24, park: true},
 };
-/* Each pair is left-to-right or top-to-bottom. None crosses Peachtree. */
-const MAP_BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
+/* Each pair is left-to-right or top-to-bottom. None crosses Peachtree. The
+   Mart's two are the way between its buildings, on their 2nd floors, and
+   Building 2's bridge to the Westin. */
+const MAP_BRIDGES = [["AmericasMart Building 3", "AmericasMart Building 2"], ["AmericasMart Building 2", "Westin"],
+  ["Hyatt", "Marriott"], ["Marriott", "Hilton"]];
 
 /* The Map's focus (DECISIONS #63, #75): one event, by id, in `state.map.focus`
    and in memory alone - the event whose sheet's place line sent the reader
@@ -51,7 +59,7 @@ const MAP_BRIDGES = [["AmericasMart", "Westin"], ["Hyatt", "Marriott"], ["Marrio
    schedule no longer holds the event - it is gone, or kept as removed - which
    no page reaches today, since a new schedule comes by a reload. A sheet
    opened and closed over the Map, and a star, leave it. */
-/* Whether an event can be shown on the Map: it is at one of the seven
+/* Whether an event can be shown on the Map: it is at one of the eight
    places the Map draws, and is neither cancelled nor removed. An event's
    sheet makes its place a tap exactly where this holds. */
 const onTheMap = ev => !!ev && !!MAP_HOTELS[ev.hotel] && !ev.cancelled && !ev.removed;
@@ -161,7 +169,7 @@ function mapRingsSVG(st) {
    third ring, outside the other two so that all three can stand on one
    hotel - the next ring's pulse reaches 9 from the block at its widest, and
    this one's stroke runs from 10 to 12 - and the largest that stays inside
-   the frame for all seven: 1 to spare above the park and under the
+   the frame for all eight: 1 to spare above the park and under the
    Courtland. A class of its own, not a gold ring: gold is the reader's own
    picks. It does not pulse. Decorative, as the other rings are: the card
    says what is focused. */
@@ -226,7 +234,7 @@ function mapLabel(hotel, day, counts, crew) {
 const mapPillsSVG = (counts, crew) => Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h]) + mapCrewSVG(h, b, crew[h])).join("");
 
 /* The drawing that is built once (DECISIONS #89): the ground, the two
-   streets and their labels, the three bridges and the seven blocks; then
+   streets and their labels, the four bridges and the eight blocks; then
    three empty groups, in the order they are painted, which every draw
    writes into - the gold rings, the focus's ring, the pills. A block's
    label is the one thing on it that changes: it is built as `label` says

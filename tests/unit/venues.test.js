@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { samePlace } from "../../src/picks.js";
-import { cleanRoom, hotelMatches, hotelPhrase, placeHTML, placeText } from "../../src/venues.js";
+import { cleanRoom, hotelGroup, hotelMatches, hotelPhrase, hotelShort, hotelVar, placeHTML, placeText } from "../../src/venues.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
@@ -19,7 +19,31 @@ describe("venues", () => {
   });
   it("the park takes no article; the Mart is the Mart [1519]", () => {
     expect(hotelPhrase("Hardy Ivy Park")).toBe("Hardy Ivy Park");
-    expect(hotelPhrase("AmericasMart")).toBe("the Mart");
+    expect(hotelPhrase("AmericasMart Building 2")).toBe("Mart 2");
+    expect(hotelPhrase("AmericasMart Building 3")).toBe("Mart 3");
+  });
+});
+
+/* The Mart's two buildings and their group (DECISIONS #91): new tests, not
+   rows of tests/PORT-LEDGER.md. */
+describe("the Mart: two venues, one group", () => {
+  const B2 = "AmericasMart Building 2", B3 = "AmericasMart Building 3";
+  it("a chip's value is a venue or a group: Mart is both buildings, a building itself alone", () => {
+    expect([hotelGroup(B2), hotelGroup(B3)]).toEqual(["Mart", "Mart"]);
+    expect([hotelMatches({ hotel: B2 }, "Mart"), hotelMatches({ hotel: B3 }, "Mart"), hotelMatches({ hotel: "Westin" }, "Mart")]).toEqual([true, true, false]);
+    expect([hotelMatches({ hotel: B2 }, B2), hotelMatches({ hotel: B3 }, B2)]).toEqual([true, false]);
+  });
+  it("the group's colour is its first hotel's - the Mart's, not Other's grey - and its label Mart", () => {
+    expect(hotelVar("Mart")).toBe("--h-Mart");
+    expect([hotelVar(B2), hotelVar(B3)]).toEqual(["--h-Mart", "--h-Mart"]);
+    expect([hotelShort("Mart"), hotelShort(B2), hotelShort(B3)]).toEqual(["Mart", "Mart 2", "Mart 3"]);
+  });
+  it("a hotel's own colour comes before its group's, and a name that is neither is Other's", () => {
+    expect([hotelVar("Other"), hotelVar("Streaming"), hotelVar("Courtland Grand"), hotelVar("Nowhere")]).toEqual(["--h-Other", "--h-Streaming", "--h-Courtland", "--h-Other"]);
+  });
+  it("hotelPhrase(): a building takes no article, as the park takes none, and a hotel takes the", () => {
+    expect([hotelPhrase(B2), hotelPhrase(B3)]).toEqual(["Mart 2", "Mart 3"]);
+    expect([hotelPhrase("Hyatt"), hotelPhrase("Courtland Grand"), hotelPhrase("Hardy Ivy Park")]).toEqual(["the Hyatt", "the Courtland", "Hardy Ivy Park"]);
   });
 });
 
@@ -45,13 +69,13 @@ describe("a place as words", () => {
     expect(placeText({hotel: "Courtland Grand", room: "Atlanta 1-2"})).toBe("Courtland · Atlanta 1-2");
   });
   it("the Mart's room alone, a stream as Streaming, an offsite venue as itself, and a hotel alone where the room is blank", () => {
-    expect(placeText({hotel: "AmericasMart", room: "Mart Building 3, Floor 1"})).toBe("Mart Building 3, Floor 1");
+    expect(placeText({hotel: "AmericasMart Building 3", room: "Mart Building 3, Floor 1"})).toBe("Mart Building 3, Floor 1");
     expect(placeText({hotel: "Streaming", room: "Channel 2"})).toBe("Streaming");
     expect(placeText({hotel: "Other", room: "Joystick Gamebar"})).toBe("Joystick Gamebar");
     expect(placeText({hotel: "Other", room: "Other", location: "O Walton Spring Park"})).toBe("Walton Spring Park");
     expect(placeText({hotel: "Other", room: "Other", location: "Other"})).toBe("Offsite");
     expect(placeText({hotel: "Hyatt", room: "  "})).toBe("Hyatt");
-    expect(placeText({hotel: "AmericasMart", room: ""})).toBe("Mart");
+    expect(placeText({hotel: "AmericasMart Building 2", room: ""})).toBe("Mart 2");
     expect(placeText({hotel: "Unknown", room: "", location: ""})).toBe("Location TBA");
   });
   it("is text, not markup: what a room holds is as the listing wrote it, for the caller to escape", () => {

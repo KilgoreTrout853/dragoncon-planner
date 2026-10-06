@@ -14,13 +14,17 @@ const HOTEL_ORDER = HOTELS.map(h => h.hotel);
 const HOTEL_VAR = Object.fromEntries(HOTELS.map(h => [h.hotel, h.var]));
 const HOTEL_SHORT = Object.fromEntries(HOTELS.map(h => [h.hotel, h.short]));
 /* Whether a hotel's room is the rest of the location or the whole of it: the
-   Mart's is the whole, "Mart Building 3, Floor 1" (#45). */
+   Mart's two buildings' is the whole, "Mart Building 3, Floor 1" (#45, #91). */
 const HOTEL_DISPLAY = Object.fromEntries(HOTELS.map(h => [h.hotel, h.display]));
 /* Streaming and the offsite venues share one chip, their group Other. Neither
    is a con hotel, both wear the same grey, and together they are under 3% of
    the schedule. The data keeps them apart: a stream has no walk, an offsite
    venue does. */
 const HOTEL_GROUP = Object.fromEntries(HOTELS.map(h => [h.hotel, h.group]));
+/* A group's colour is its first hotel's, in the file's order: the Mart is a
+   group of two buildings and no hotel of that name, and its chip wears
+   their hue (#91). */
+const GROUP_VAR = Object.fromEntries([...HOTELS].reverse().map(h => [h.group, h.var]));
 /* Rough walking minutes between venues at con pace, keyed either way round;
    the same venue (room changes, elevators) and a pair the walk lacks have
    minutes of their own. */
@@ -42,8 +46,8 @@ function cleanRoom(hotel, room) {
 }
 /* "Hilton · 313-314": the hotel first, so a line reads where before which
    room. A hotel whose room is the whole location - its display "location",
-   the Mart - is its room alone, "Mart Building 3, Floor 1", which names the
-   hotel already (DECISIONS #73). A stream is "Streaming"; an offsite venue
+   the Mart's buildings - is its room alone, "Mart Building 3, Floor 1",
+   which names the hotel already (DECISIONS #73). A stream is "Streaming"; an offsite venue
    is itself - the cleaned room, else the location without its O marker,
    else "Offsite"; a blank room leaves the hotel alone. Its two parts, the
    hotel and the room, either of which may be "": placeHTML() and
@@ -101,13 +105,16 @@ const hotelShort = h => HOTEL_SHORT[h] || h;
    Text, not markup: the caller escapes it. Your crew's picks right now and
    the hero's next pick name a place the same way (DECISIONS #73). */
 const placeShort = ev => (ev.hotel === "Other" ? ev.room || "offsite" : hotelShort(ev.hotel));
-const hotelVar = h => `--h-${HOTEL_VAR[h] || "Other"}`;
+/* A hotel's colour variable, or a group's - a chip's value is either. */
+const hotelVar = h => `--h-${HOTEL_VAR[h] || GROUP_VAR[h] || "Other"}`;
 const hotelGroup = h => HOTEL_GROUP[h] || h;
 /* A chip value is a venue or a group of them; "All" is everything. */
 const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hotel) === v;
 
-/* "Search the Hyatt on Saturday": hotels take "the", the park does not. */
-const hotelPhrase = h => h === "Hardy Ivy Park" ? h : `the ${hotelShort(h)}`;
+/* "Search the Hyatt on Saturday": hotels take "the", the park does not, and
+   neither do the Mart's buildings - "Search Mart 2 on Saturday", "~8 min
+   from Mart 2" - which it knows by their group, Mart (#91). */
+const hotelPhrase = h => (h === "Hardy Ivy Park" ? h : hotelGroup(h) === "Mart" ? hotelShort(h) : `the ${hotelShort(h)}`);
 
 export {
   HOTEL_ORDER, WALK, SLACK_MIN, cleanRoom, placeHTML, placeText, placeShort, levelShort, levelName, walkMin, hotelShort, hotelVar,

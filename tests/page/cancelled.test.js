@@ -13,7 +13,7 @@
      s0321 Courtland Grand 2:30-4:00 PM - cancelled
      s0221 Streaming 2:30-3:30 PM - cancelled
      s0349 Westin 4:00-6:00 PM
-     s0439 the Mart, Sunday 10:00 AM - cancelled
+     s0439 the Mart's Building 3, Sunday 10:00 AM - cancelled
    Counted, s0321 stands between the two Westin picks with a walk band on
    either side of it; passed over, the two are in one building, two hours
    apart, and nothing is said between them. */
@@ -146,8 +146,8 @@ describe("a cancelled pick is passed over by what says what is next, where to wa
     });
     it("another day: Sunday's only pick is cancelled, and the Mart has none", () => {
       view("map").querySelector('[data-chip="map-day"][data-value="2026-09-06"]').click();
-      expect(pill("AmericasMart")).toBe(null);
-      expect(label("AmericasMart")).toBe("AmericasMart: no picks on Sunday");
+      expect(pill("AmericasMart Building 3")).toBe(null);
+      expect(label("AmericasMart Building 3")).toBe("AmericasMart Building 3: no picks on Sunday");
       view("map").querySelector('[data-chip="map-day"][data-value="2026-09-05"]').click();
     });
     it("the hotel sheet lists and counts the picks that are happening: none at the Courtland Grand, and the search is offered", () => {

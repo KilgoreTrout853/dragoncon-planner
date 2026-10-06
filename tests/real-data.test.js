@@ -886,14 +886,14 @@ describe("against the real schedule", () => {
     });
     afterAll(() => { handle.closeSheet(); state.explore.page = null; app.setExploreHash(null); state.tab = "now"; handle.render(); });
 
-    it("3,372 sheets make the place a tap: the 3,374 at the Map's seven places, less the two cancelled", () => {
+    it("3,372 sheets make the place a tap: the 3,374 at the Map's eight places, less the two cancelled", () => {
       expect(all).toHaveLength(3459);
       expect(all.filter(e => app.MAP_HOTELS[e.hotel])).toHaveLength(3374);
       expect(tally(all.filter(e => !app.MAP_HOTELS[e.hotel]), e => e.hotel)).toEqual({ Streaming: 62, Other: 23 });
       expect(all.filter(e => e.cancelled).map(e => e.hotel)).toEqual(["Courtland Grand", "Courtland Grand"]);
       expect(all.filter(e => e.removed)).toEqual([]);
       expect(all.filter(e => app.onTheMap(e))).toHaveLength(3372);
-      expect(tally(all.filter(e => app.onTheMap(e)), e => e.hotel)).toEqual({ AmericasMart: 1033, Hilton: 739, Marriott: 607, Hyatt: 499, Westin: 309, "Courtland Grand": 149, "Hardy Ivy Park": 36 });
+      expect(tally(all.filter(e => app.onTheMap(e)), e => e.hotel)).toEqual({ "AmericasMart Building 3": 845, "AmericasMart Building 2": 188, Hilton: 739, Marriott: 607, Hyatt: 499, Westin: 309, "Courtland Grand": 149, "Hardy Ivy Park": 36 });
     });
     it("four of them name no room, so the tap is the hotel's name alone", () => {
       expect(all.filter(e => app.onTheMap(e) && !String(e.room || "").trim()).map(e => app.placeText(e)).sort()).toEqual(["Hyatt", "Hyatt", "Hyatt", "Westin"]);

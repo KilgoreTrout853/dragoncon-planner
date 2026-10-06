@@ -18,14 +18,19 @@ const noon = day => new Date(`${day}T12:00`);
 
 /* What src/venues.js held as constants until the client read the file. The
    file is the truth now; these are here so the move is seen to change
-   nothing for the year under test. */
+   nothing for the year under test - but for the Mart's pairs, which
+   DECISIONS #91 gave to each of its two buildings, with the five minutes
+   between them. */
 const BEFORE = {
   walk: {
     "Marriott|Hyatt": 8, "Marriott|Hilton": 7, "Hyatt|Hilton": 12,
     "Marriott|Courtland Grand": 10, "Hilton|Courtland Grand": 8, "Hyatt|Courtland Grand": 15,
     "Westin|Hyatt": 8, "Westin|Marriott": 12, "Westin|Hilton": 15, "Westin|Courtland Grand": 18,
-    "AmericasMart|Hyatt": 7, "AmericasMart|Marriott": 12, "AmericasMart|Westin": 8, "AmericasMart|Hilton": 15, "AmericasMart|Courtland Grand": 18,
-    "Hardy Ivy Park|Marriott": 5, "Hardy Ivy Park|Hilton": 4, "Hardy Ivy Park|Hyatt": 10, "Hardy Ivy Park|Courtland Grand": 8, "Hardy Ivy Park|Westin": 12, "Hardy Ivy Park|AmericasMart": 12,
+    "AmericasMart Building 2|Hyatt": 7, "AmericasMart Building 2|Marriott": 12, "AmericasMart Building 2|Westin": 8, "AmericasMart Building 2|Hilton": 15, "AmericasMart Building 2|Courtland Grand": 18,
+    "AmericasMart Building 3|Hyatt": 7, "AmericasMart Building 3|Marriott": 12, "AmericasMart Building 3|Westin": 8, "AmericasMart Building 3|Hilton": 15, "AmericasMart Building 3|Courtland Grand": 18,
+    "AmericasMart Building 2|AmericasMart Building 3": 5,
+    "Hardy Ivy Park|Marriott": 5, "Hardy Ivy Park|Hilton": 4, "Hardy Ivy Park|Hyatt": 10, "Hardy Ivy Park|Courtland Grand": 8, "Hardy Ivy Park|Westin": 12,
+    "Hardy Ivy Park|AmericasMart Building 2": 12, "Hardy Ivy Park|AmericasMart Building 3": 12,
   },
   sameVenue: 5, unknownPair: 12, slack: 10,
 };

@@ -44,13 +44,14 @@ VENUES = {"walk": {}, "same_venue_min": 5, "unknown_pair_min": 12, "slack_min": 
     hotel("Westin", 2, [level("f7", "Seventh Floor", 0, ["Augusta I", "Augusta II", "Augusta III"]),
                         level("f14", "Fourteenth Floor", 1, ["1401"])], ["Westin"], full="The Westin Peachtree Plaza"),
     hotel("Courtland Grand", 3, [level("unknown", "levels unknown", 0, ["Athens"])], ["Courtland Grand", "Courtland"]),
-    hotel("AmericasMart", 4, [level("b3f2", "Building 3, Floor 2", 0, []),
-                              level("b2-rooms", "Building 2, meeting rooms", 1, ["203A"], short="Building 2")],
-          ["AmericasMart", "Mart2", "Mart"], display="location"),
-    hotel("Hardy Ivy Park", 5, [], ["Hardy"]),
-    hotel("Streaming", 6, [], ["Streaming"], placeless=True),
-    hotel("Other", 7, [], ["O", "Other"], placeless=True),
-    hotel("Unknown", 8, [], [], placeless=True),
+    hotel("AmericasMart Building 2", 4, [level("f3", "3rd Floor", 0, ["203A"], short="Floor 3")],
+          ["AmericasMart Building 2", "Mart Building 2", "Mart2"], display="location"),
+    hotel("AmericasMart Building 3", 5, [level("f2", "2nd Floor", 0, [], short="Floor 2")],
+          ["AmericasMart Building 3", "Mart Building 3"], display="location"),
+    hotel("Hardy Ivy Park", 6, [], ["Hardy"]),
+    hotel("Streaming", 7, [], ["Streaming"], placeless=True),
+    hotel("Other", 8, [], ["O", "Other"], placeless=True),
+    hotel("Unknown", 9, [], [], placeless=True),
 ]}
 V = venues_file.check(VENUES)
 
@@ -71,7 +72,7 @@ def schedule():
 def test_the_report_holds_the_facts_of_a_small_schedule():
     text = rc.render(schedule(), V)
     assert text.startswith("# Room census - the 2026 schedule read by the venues stage\n")
-    assert "1. Events: 25, at 8 hotels; distinct readings of a room string: 23." in text
+    assert "1. Events: 25, at 9 hotels; distinct readings of a room string: 23." in text
     assert ("2. By place: `exact` 4 (16.0%), 3 strings; `alias` 1 (4.0%), 1 string; `rule` 5 (20.0%), 5 strings; "
             "`level` 2 (8.0%), 2 strings; `hotel` 9 (36.0%), 8 strings; `none` 4 (16.0%), 4 strings.") in text
     assert ("3. The run's venue counters on this schedule: rooms unresolved 7 - the strings read at the hotel alone "
@@ -91,7 +92,7 @@ def test_the_report_holds_the_facts_of_a_small_schedule():
     assert "| `Steps B` | 2 | hotel | - | - | unplaced |" in text
     assert "| `Salon` | 1 | hotel | - | - | no reading |" in text           # partitions are lettered or numbered
     assert "| `Conference  Piedmont` | 1 | alias | acc | `Piedmont` | - |" in text
-    assert "| `Building 3, Floor 2` | 1 | level | b3f2 | - | mart building |" in text
+    assert "| `Floor 2` | 1 | level | f2 | - | floor only |" in text         # the Mart's Building 3, by its key
     # the worklist
     assert "### Read at the hotel alone - rooms unresolved, 7" in text
     assert "| Hyatt | (hotel only) | 1 | hotel only |" in text
