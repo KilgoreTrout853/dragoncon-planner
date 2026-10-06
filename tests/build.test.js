@@ -1,10 +1,13 @@
 // @vitest-environment node
-/* The build's contract (DECISIONS #15, #23, #49): what `vite build` leaves in
+/* The build's contract (DECISIONS #15, #23, #49, #94): what `vite build` leaves in
    the output folder, stamped and unstamped. Cases 1-4 are build.py's old
    tests; 5-6 pin the shape the deploy and the build smoke depend on; the
    year's cases follow, and a build for a year whose schedule the repo does
    not hold yet, in a temporary copy. Each case runs the real CLI into a temp
    folder, so this is slow by unit-test standards - a second or so a build.
+   The level drawings' module is asked of the plugin itself (DECISIONS #94):
+   nothing in the page imports it yet, so no built page shows what it holds,
+   and one real build shows a borrow refused.
 
    Below them, the checks of the build output that came from the old smoke
    harness, one for one (the number in brackets is its line;
@@ -19,7 +22,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { dcYear, drawingsYear } from "../build/vite-dc.js";
 import { CODE, fakeBackend } from "./helpers/backend.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -259,6 +263,186 @@ describe("vite build", () => {
         it("no uncaught error fired", () => {
           expect(errors).toEqual([]);
         });
+      });
+    });
+  });
+
+  /* The level drawings, the third data module (DECISIONS #94), which dcYear()
+     makes of a folder of files: what it holds, and the year it is taken
+     from. Nothing in the page imports it yet, so the plugin's own hooks are
+     called as Vite calls them, on data folders staged in the temp folder:
+     the repo's 2027 venues file under each year unless a test gives its
+     own, a season file naming the year, and a drawings folder - its README,
+     and each drawing under its file name - where a test gives one. The
+     year's rule is asked on the cases of tests/drawings-year-cases.json,
+     which tests/test_drawings.py asks of its own copy of the rule: one
+     table, so that the two copies cannot be held to different cases. */
+  describe("the level drawings, a data module", () => {
+    const VENUES = JSON.parse(read(ROOT, "data", "2027", "venues.json")), SEASON = JSON.parse(read(ROOT, "data", "2027", "season.json"));
+    const GEOMETRY = ["hotel", "level", "extent", "rooms", "composites", "groups", "open", "landmarks", "streets"];
+    const rect = { cx: 100, cy: 100, w: 20, h: 20, rot: 0 };
+    /* A drawing of the Hilton's 4th floor, with one of its rooms and every key a file has. */
+    const drawing = (over = {}) => ({ hotel: "Hilton", level: "l4", units: "ft", north: "up", extent: { w: 460, h: 520 }, anchors: [{ name: "core", x: 1, y: 2 }],
+      rooms: [{ id: "401", ...rect }], composites: [], groups: [], open: [], landmarks: [], streets: [], sources: ["a hotel's table"], notes: ["a guess, said so"], ...over });
+    function staged(years) {
+      const root = path.join(TMP, `data-${++n}`);
+      for (const [year, { venues = VENUES, drawings }] of Object.entries(years)) {
+        const dir = path.join(root, "data", year);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, "venues.json"), JSON.stringify(venues));
+        fs.writeFileSync(path.join(dir, "season.json"), JSON.stringify({ ...SEASON, year: Number(year) }));
+        if (!drawings) continue;
+        fs.mkdirSync(path.join(dir, "drawings"));
+        fs.writeFileSync(path.join(dir, "drawings", "README.md"), "# drawings\n");
+        for (const [file, d] of Object.entries(drawings)) fs.writeFileSync(path.join(dir, "drawings", file), JSON.stringify(d));
+      }
+      return root;
+    }
+    /* What src/ is given for virtual:drawings by a build of `root` for `year`: the hooks, in Vite's order. */
+    function moduleFor(root, year) {
+      vi.stubEnv("DC_YEAR", year);
+      try {
+        const plugin = dcYear();
+        plugin.config();
+        plugin.configResolved({ root });
+        const code = plugin.load(plugin.resolveId("virtual:drawings")), list = JSON.parse(code.slice(15, -1));
+        expect(code).toBe(`export default ${JSON.stringify(list)};`);
+        return list;
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    }
+    /* And only as far as the config resolving: where a refusal has to come from, with nothing asking for the module. */
+    function resolved(root, year) {
+      vi.stubEnv("DC_YEAR", year);
+      try {
+        const plugin = dcYear();
+        plugin.config();
+        plugin.configResolved({ root });
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    }
+    const without = (hotel, level, room) => ({ ...VENUES, hotels: VENUES.hotels.map(h => (h.hotel !== hotel ? h
+      : { ...h, levels: h.levels.map(lv => (lv.id !== level ? lv : { ...lv, rooms: lv.rooms.filter(r => r !== room) })) })) });
+
+    describe("the year it is taken from", () => {
+      const CASES = JSON.parse(read(ROOT, "tests", "drawings-year-cases.json"));
+      /* A case's tree: a folder a name under data/ and, where files are named, its drawings folder - its README, and a file a name. */
+      function tree(folders) {
+        const root = path.join(TMP, `tree-${++n}`);
+        for (const [name, files] of Object.entries(folders)) {
+          fs.mkdirSync(path.join(root, "data", name), { recursive: true });
+          if (!files) continue;
+          fs.mkdirSync(path.join(root, "data", name, "drawings"));
+          for (const file of ["README.md", ...files]) fs.writeFileSync(path.join(root, "data", name, "drawings", file), "{}");
+        }
+        return root;
+      }
+      it("the table holds the four cases: the year's own, a later year's, only an earlier year's, a README alone", () => {
+        expect(CASES.map(c => c.name).filter(name => /^the year's own drawings|^none of its own, and a later year's|only an earlier year's: none$|README alone/.test(name))).toHaveLength(8);
+      });
+      it.each(CASES)("$name", ({ year, from, tree: folders }) => {
+        expect(drawingsYear(tree(folders), year)).toBe(from);
+      });
+      it("and the module follows the year: its own, a later year's, and an empty list where there is none", () => {
+        const root = staged({ 2026: {}, 2027: { drawings: { "b.json": drawing(), "c.json": drawing() } }, 2028: { drawings: { "d.json": drawing() } }, 2029: {} });
+        expect(["2026", "2027", "2028", "2029"].map(year => moduleFor(root, year).length)).toEqual([2, 2, 1, 0]);
+        expect(moduleFor(staged({ 2026: {} }), "2026")).toEqual([]);
+        expect(moduleFor(staged({ 2026: { drawings: {} }, 2027: { drawings: { "b.json": drawing() } } }), "2026")).toHaveLength(1);
+      });
+      it("in this repository: 2027's own for 2027, and 2027's for 2026, which has none", () => {
+        expect([drawingsYear(ROOT, "2026"), drawingsYear(ROOT, "2027")]).toEqual(["2027", "2027"]);
+        const borrowed = moduleFor(ROOT, "2026");
+        expect(borrowed).toHaveLength(20);
+        expect(borrowed).toEqual(moduleFor(ROOT, "2027"));
+      });
+    });
+
+    describe("what it holds", () => {
+      it("every drawing of the year, in the order of the files' names, and no file that does not end .json", () => {
+        const root = staged({ 2027: { drawings: { "hilton-l4.json": drawing(), "hilton-l1.json": drawing({ level: "l1", rooms: [{ id: "Crystal A", ...rect }] }) } } });
+        for (const other of ["hilton-l4.json.bak", "ids.jsonl", "notes.txt"]) fs.writeFileSync(path.join(root, "data", "2027", "drawings", other), "{");
+        expect(fs.readdirSync(path.join(root, "data", "2027", "drawings"))).toHaveLength(6);
+        expect(moduleFor(root, "2027").map(d => d.level)).toEqual(["l1", "l4"]);
+        /* by code unit, as sort() has it, whatever order the file system lists in: a capital comes first */
+        const mixed = staged({ 2027: { drawings: { "a.json": drawing({ level: "l1", rooms: [{ id: "Crystal A", ...rect }] }), "B.json": drawing() } } });
+        expect(moduleFor(mixed, "2027").map(d => d.level)).toEqual(["l4", "l1"]);
+      });
+      it("a drawing's geometry and nothing else: no sources, notes, units, north or anchors", () => {
+        const root = staged({ 2027: { drawings: { "hilton-l4.json": drawing({ landmarks: [{ kind: "elevator", name: "Lifts", x: 5, y: 6 }], streets: [{ name: "Baker Street NE", side: "N" }] }) } } });
+        const [held] = moduleFor(root, "2027");
+        expect(Object.keys(held)).toEqual(GEOMETRY);
+        expect(held).toEqual({ hotel: "Hilton", level: "l4", extent: { w: 460, h: 520 }, rooms: [{ id: "401", ...rect }], composites: [], groups: [], open: [],
+          landmarks: [{ kind: "elevator", name: "Lifts", x: 5, y: 6 }], streets: [{ name: "Baker Street NE", side: "N" }] });
+      });
+      it("the repository's twenty: none carries a key that is not geometry, and each file's geometry is whole", () => {
+        const held = moduleFor(ROOT, "2026"), folder = path.join(ROOT, "data", "2027", "drawings");
+        const files = fs.readdirSync(folder).filter(f => f.endsWith(".json")).sort().map(f => JSON.parse(read(folder, f)));
+        expect(held.map(d => Object.keys(d))).toEqual(files.map(() => GEOMETRY));
+        expect(held).toEqual(files.map(d => Object.fromEntries(GEOMETRY.map(key => [key, d[key]]))));
+        expect(files.every(d => d.sources.length && Array.isArray(d.notes) && d.units === "ft" && d.north === "up" && Array.isArray(d.anchors))).toBe(true);
+      });
+      it("a file that is no JSON is refused by its name, a year's own or borrowed", () => {
+        const cut = root => fs.writeFileSync(path.join(root, "data", "2027", "drawings", "hilton-l4.json"), JSON.stringify(drawing()).slice(0, 200));
+        const own = staged({ 2027: { drawings: { "hilton-l4.json": drawing() } } }), lent = staged({ 2026: {}, 2027: { drawings: { "hilton-l4.json": drawing() } } });
+        cut(own); cut(lent);
+        expect(() => moduleFor(own, "2027")).toThrow(/^build: data\/2027\/drawings\/hilton-l4\.json is not a drawing: /);
+        expect(() => moduleFor(lent, "2026")).toThrow(/^build: data\/2027\/drawings\/hilton-l4\.json is not a drawing: /);
+      });
+      it("any other id is not the plugin's to answer for", () => {
+        const plugin = dcYear();
+        expect([plugin.resolveId("virtual:drawing"), plugin.resolveId("./drawings.js"), plugin.load("virtual:drawings"), plugin.load("\0virtual:venues")]).toEqual([null, null, null, null]);
+      });
+    });
+
+    describe("a borrowed drawing is held to the building year's venues file", () => {
+      const borrow = (venues, d) => staged({ 2026: { venues }, 2027: { drawings: { "hilton-l4.json": d } } });
+      it("and is given where every id it names is there", () => {
+        expect(moduleFor(borrow(VENUES, drawing({ open: [{ name: "Deck", ...rect }] })), "2026")).toHaveLength(1);
+      });
+      it.each([
+        ["a room", drawing(), without("Hilton", "l4", "401"), /the room "401" of Hilton's level "l4"/],
+        ["a composite", drawing({ composites: [{ id: "Fourth East", of: ["401"] }] }), VENUES, /the room "Fourth East" of Hilton's level "l4"/],
+        ["a composite's leaf", drawing({ composites: [{ id: "402", of: ["401", "498"] }] }), VENUES, /the room "498" of Hilton's level "l4"/],
+        ["a group's member", drawing({ groups: [{ name: "401-497", kind: "run", rooms: ["401", "497"], outline: rect }] }), VENUES, /the room "497" of Hilton's level "l4"/],
+        ["an open area's id", drawing({ open: [{ name: "Deck", id: "Deck", ...rect }] }), VENUES, /the room "Deck" of Hilton's level "l4"/],
+        ["a room of another level of the hotel", drawing({ rooms: [{ id: "Crystal A", ...rect }] }), VENUES, /the room "Crystal A" of Hilton's level "l4"/],
+        ["its level", drawing({ level: "l9" }), VENUES, /names what data\/2026\/venues\.json lacks: Hilton's level "l9"$/],
+        ["its hotel", drawing({ hotel: "Hilton Garden" }), VENUES, /names what data\/2026\/venues\.json lacks: the hotel "Hilton Garden"$/],
+      ])("refused where the year's venues file lacks %s", (_, d, venues, said) => {
+        const root = borrow(venues, d);
+        expect(() => moduleFor(root, "2026")).toThrow(said);
+        expect(() => moduleFor(root, "2026")).toThrow(/^build: data\/2027\/drawings\/hilton-l4\.json, borrowed for 2026, names what data\/2026\/venues\.json lacks: /);
+      });
+      it("as the config resolves, before anything asks for the module: nothing in the page does yet", () => {
+        expect(() => resolved(borrow(without("Hilton", "l4", "401"), drawing()), "2026")).toThrow(/borrowed for 2026, names what data\/2026\/venues\.json lacks: the room "401"/);
+        expect(() => resolved(borrow(VENUES, drawing()), "2026")).not.toThrow();
+      });
+      it("a year with no season file is refused for that, whatever is drawn", () => {
+        expect(() => resolved(staged({ 2027: { drawings: { "hilton-l4.json": drawing() } } }), "2025")).toThrow(/no data\/2025\/season\.json/);
+      });
+      it("every stranger is named, each once", () => {
+        const d = drawing({ rooms: [{ id: "498", ...rect }, { id: "499", ...rect }], groups: [{ name: "498-499", kind: "run", rooms: ["498", "499"], outline: rect }] });
+        expect(() => moduleFor(borrow(VENUES, d), "2026")).toThrow(/lacks: the room "498" of Hilton's level "l4"; the room "499" of Hilton's level "l4"$/);
+      });
+      it("by the building year's file, not the lending year's", () => {
+        const root = staged({ 2026: {}, 2027: { venues: without("Hilton", "l4", "401"), drawings: { "hilton-l4.json": drawing() } } });
+        expect(moduleFor(root, "2026")).toHaveLength(1);
+      });
+      it("a year's own drawings are not the build's to hold: tests/test_drawings.py holds them", () => {
+        const root = staged({ 2027: { drawings: { "hilton-l4.json": drawing({ rooms: [{ id: "499", ...rect }] }) } } });
+        expect(moduleFor(root, "2027")).toHaveLength(1);
+      });
+      it("a real build is refused before it writes anything: 2026's venues file without the Concourse", SLOW, () => {
+        /* a schedule too, so that nothing but the borrow is there to refuse */
+        const root = stage("2026", { "season.json": read(ROOT, "data", "2026", "season.json"), "venues.json": JSON.stringify(without("Hyatt", "exhibit", "Concourse")),
+          "events.v2.json": read(ROOT, "tests", "sample-events.json") });
+        fs.cpSync(path.join(ROOT, "data", "2027", "drawings"), path.join(root, "data", "2027", "drawings"), { recursive: true });
+        const r = build({}, root);
+        expect(r.ok).toBe(false);
+        expect(r.stderr + r.stdout).toMatch(/data\/2027\/drawings\/hyatt-exhibit\.json, borrowed for 2026, names what data\/2026\/venues\.json lacks: the room "Concourse" of Hyatt's level "exhibit"/);
+        expect(exists(r.out, "index.html")).toBe(false);
       });
     });
   });

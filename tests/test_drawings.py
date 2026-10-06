@@ -1,5 +1,6 @@
-"""Tests for the level drawings, data/<year>/drawings/ (DECISIONS #58, #67): one failing fixture per rule; every
-committed drawing held to its year's venues.json, and each hotel's drawings of a year to one frame.
+"""Tests for the level drawings, data/<year>/drawings/ (DECISIONS #58, #67, #94): one failing fixture per rule; every
+committed drawing held to its year's venues.json, and each hotel's drawings of a year to one frame; and a year with
+no drawing of its own held to the drawings a build for it borrows.
 
 A drawing is geometry keyed by the venues file's ids; data/2027/drawings/README.md is the format. Its hotel and its
 level are the venues file's, and its file is named for them; every room it names is a room of that level, drawn once
@@ -10,7 +11,13 @@ group a run or a ballroom, a street on one of four sides - and a landmark's kind
 Across one year's drawings of a hotel, the levels share one frame: one extent, and one position for an anchor name, to
 within 0.5 ft.
 
-The fixtures are inline; the last test reads data/*/drawings/*.json and each year's venues.json.
+A build for a year with no drawing of its own reads the earliest later year's that has one (DECISIONS #94), and
+refuses a borrowed drawing that names what its own venues file lacks. drawings_year() is that rule's copy here - the
+build's is drawingsYear() in build/vite-dc.js - and both are asked the cases of tests/drawings-year-cases.json, one
+table, so that a year that borrows is held to what it borrows by this file too, with every problem told.
+
+The fixtures are inline, but for the year's cases, which are folders made under tmp_path; the last two tests read
+data/*/drawings/*.json and each year's venues.json.
 
 Run:  python -m pytest tests/
 """
@@ -19,8 +26,11 @@ import glob
 import json
 import math
 import os
+import re
 import sys
 from collections import defaultdict
+
+import pytest
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -125,6 +135,37 @@ def frame_problems(files):
                     out.append(f"anchor {a['name']!r}: {name} has ({a['x']:g}, {a['y']:g}), {apart:.1f} ft from "
                                f"{there}'s ({x0:g}, {y0:g})")
             seen[a["name"]].append((name, a["x"], a["y"]))
+    return out
+
+
+def drawings_year(data, year):
+    """The year whose drawings a build for `year` reads, `data` the data folder: its own where data/<year>/drawings/
+    holds a drawing, else the earliest later year's that does, else None - never an earlier year's. A folder that holds
+    its README alone holds no drawing."""
+    def has_one(y):   # as the build lists a folder: any name that ends .json
+        folder = os.path.join(data, y, "drawings")
+        return os.path.isdir(folder) and any(name.endswith(".json") for name in os.listdir(folder))
+    years = sorted(y for y in os.listdir(data) if re.fullmatch(r"[0-9]{4}", y) and y >= year)
+    return next((y for y in years if has_one(y)), None)
+
+
+def borrowed(data):
+    """What each year of the data folder `data` borrows: {year: (the year it borrows from, how many drawings that is, their
+    problems against the borrowing year's own venues file, each told with its file)}, for every year that has a venues
+    file and no drawing of its own, and a later year to borrow from."""
+    out = {}
+    for year in sorted(y for y in os.listdir(data) if os.path.exists(os.path.join(data, y, "venues.json"))):
+        lender = drawings_year(data, year)
+        if lender in (None, year):
+            continue
+        with open(os.path.join(data, year, "venues.json"), encoding="utf-8") as f:
+            venues = json.load(f)
+        folder, found = os.path.join(data, lender, "drawings"), []
+        names = sorted(name for name in os.listdir(folder) if name.endswith(".json"))
+        for name in names:
+            with open(os.path.join(folder, name), encoding="utf-8") as f:
+                found += [f"{name}: {p}" for p in problems(json.load(f), venues, name)]
+        out[year] = (lender, len(names), found)
     return out
 
 
@@ -423,6 +464,54 @@ def test_landmark_group_and_street_kinds_are_the_formats():
     assert set(render_drawings.GLYPH) == {"escalator", "elevator", "entrance", "bridge", "info"}   # the format's five
 
 
+# --- the year a build's drawings are taken from -----------------------------------
+
+with open(os.path.join(os.path.dirname(__file__), "drawings-year-cases.json"), encoding="utf-8") as _f:
+    YEAR_CASES = json.load(_f)
+
+
+def staged(tmp_path, tree):
+    """A case's tree under `tmp_path`: a folder a name under data/ and, where files are named, its drawings folder - its
+    README, and a file a name."""
+    for name, files in tree.items():
+        folder = tmp_path / "data" / name
+        folder.mkdir(parents=True)
+        if files is None:
+            continue
+        (folder / "drawings").mkdir()
+        for file in ["README.md"] + files:
+            (folder / "drawings" / file).write_text("{}", encoding="utf-8")
+    return str(tmp_path / "data")
+
+
+def test_the_table_holds_the_four_cases_its_own_a_later_years_only_an_earlier_years_a_readme_alone():
+    four = ("the year's own drawings", "none of its own, and a later year's", "only an earlier year's: none", "README alone")
+    assert [sum(1 for c in YEAR_CASES if part in c["name"]) for part in four] == [2, 2, 1, 3]
+
+
+@pytest.mark.parametrize("case", YEAR_CASES, ids=[c["name"] for c in YEAR_CASES])
+def test_the_year_a_builds_drawings_are_taken_from(case, tmp_path):
+    assert (drawings_year(staged(tmp_path, case["tree"]), case["year"]) or "") == case["from"]
+
+
+def test_a_year_that_borrows_is_held_by_its_own_venues_file_not_the_lenders(tmp_path):
+    # 2026's venues file without a room 2027's drawing draws, and 2027's with it: as the build refuses it
+    lacking = copy.deepcopy(VENUES)
+    lacking["hotels"][0]["levels"][1]["rooms"].remove("202")
+    data = tmp_path / "data"
+    for year, venues in (("2026", lacking), ("2027", VENUES)):
+        (data / year).mkdir(parents=True)
+        (data / year / "venues.json").write_text(json.dumps(venues), encoding="utf-8")
+    (data / "2027" / "drawings").mkdir()
+    (data / "2027" / "drawings" / NAME).write_text(json.dumps(GOOD), encoding="utf-8")
+    assert borrowed(str(data)) == {"2026": ("2027", 1, [f"{NAME}: '202' is not a room of Hilton's level 'l2'"])}
+    (data / "2026" / "venues.json").write_text(json.dumps(VENUES), encoding="utf-8")
+    assert borrowed(str(data)) == {"2026": ("2027", 1, [])}
+    (data / "2026" / "drawings").mkdir()
+    (data / "2026" / "drawings" / NAME).write_text(json.dumps(GOOD), encoding="utf-8")
+    assert borrowed(str(data)) == {}                      # with a drawing of its own it borrows none
+
+
 # --- the committed drawings ------------------------------------------------------
 
 def test_every_committed_drawing_holds_to_its_years_venues_file_and_its_hotels_frame():
@@ -439,3 +528,10 @@ def test_every_committed_drawing_holds_to_its_years_venues_file_and_its_hotels_f
         frames[(year, d["hotel"])][os.path.basename(path)] = d
     for (year, hotel), files in frames.items():
         assert frame_problems(files) == [], (year, hotel)
+
+
+def test_a_year_that_borrows_its_drawings_is_held_to_the_drawings_it_borrows():
+    held = borrowed(os.path.join(ROOT, "data"))
+    # 2026 has no drawing and reads 2027's. A year that starts or stops borrowing changes this line on purpose.
+    assert {year: (lender, found) for year, (lender, _, found) in held.items()} == {"2026": ("2027", [])}
+    assert held["2026"][1] == len(glob.glob(os.path.join(ROOT, "data", "2027", "drawings", "*.json"))) > 0

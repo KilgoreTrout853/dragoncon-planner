@@ -3,8 +3,10 @@ import { dcBackend, dcYear } from "./build/vite-dc.js";
 
 export default defineConfig({
   /* The year under test is DC_YEAR's, 2026 where it is unset, as it is for
-     the build: its season.json and venues.json are the modules src/ imports,
-     and __DC_YEAR__ is defined (DECISIONS #49). The backend's two constants
+     the build: __DC_YEAR__ is defined, its season.json and venues.json are
+     two of the modules src/ imports (DECISIONS #49), and the third is made
+     of its level drawings, or of a later year's where it has none (#94).
+     The backend's two constants
      are defined as the build defines them (#53), and Vitest makes a define a
      global: tests/helpers/page.js sets both on every boot, empty unless the
      test hands it a fake backend, so no shell's DC_SUPABASE_URL reaches a
