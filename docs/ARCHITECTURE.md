@@ -62,9 +62,10 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the seven crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks, the reader's own row in a crew, and each crewmate's pick on now or next. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel, who's going and the hotel sheet's crew `sheet.js`'s, the crew on Now `now.js`'s and on the Map `map.js`'s. A leaf. |
 | `src/shareday.js` | Share a day (DECISIONS #69; `docs/screens/contract.md`, section 5, Share a day, as built): which picks a day shares, the days that hold one and the day the panel opens on, the link and the message, and a link read back against a schedule the caller hands it. Pure: no DOM, no storage, no clock; the share panel and the shared day are `sheet.js`'s. A leaf. |
 | `src/filters.js` | The filter sheet (DECISIONS #70, #71, #77; `docs/screens/contract.md`, section 3, as built): Search's filters in a sheet panel - its markup, drawn as it opens, Getting in's four selects and their options' counts among it, and what a tap writes into it in place, the count on its main button among it; what the sheet set that is in effect, which the Filters button's badge counts and the chips under the box name; Clear's reach; one filter set, the last one set winning - a tap taking a word that holds its dimension out of the query - and the step a word typed takes once the box is left, the sheet's value for its dimension to All. The panel's element is `sheet.js`'s and its handlers `dispatch.js`'s. A leaf. |
+| `src/about.js` | About this app (DECISIONS #59, #92; `docs/screens/contract.md`, section 9): the words of the sheet's eighth panel - that the app is unofficial, the one link to Dragon Con's own, and what we store, by whether the build has a backend - and the panel's markup, a heading, a body that scrolls and a foot. The panel's element, its way in and its way back are `sheet.js`'s. A leaf. |
 | `src/foryou.js` | For you (DECISIONS #87; `docs/screens/contract.md`, section 4): what scores - the signals, each a function of an event and the reader's profile that gives back a thing, its weight and whether it is a follow - and what is chosen, from an index of the schedule built once a schedule; and `labelFor()`, what a follow is called on screen; and `bigOnes()`, the zero state's list where For you has no row - Main Programming's celebrity events still to start, the track's name one constant (#88); and `inPlace()`, what is offered in place of a pick that changed (#90): the events that start in the time it vacated, by the same bars and scores. No markup, no storage and no clock: the moment is a parameter, and what is drawn is `explore.js`'s, and `inplace.js`'s. A leaf. |
 | `src/inplace.js` | In place of a pick (DECISIONS #90; `docs/screens/contract.md`, section 2): under the picks-changed notice on Now and on Plans' My day, a fold for each change that vacated time and, open, the rows `foryou.js` `inPlace()` offers for it; and the hold, `state.inPlace`, that keeps them still while the reader stays on the tab. The news and the time each entry vacated are `picks.js`'s, the choice `foryou.js`'s and the row `ui.js`'s. A leaf. |
-| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `shareday.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `foryou.js`, `ui.js`, `inplace.js`, `filters.js` | The twenty-three leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
+| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `about.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `shareday.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `foryou.js`, `ui.js`, `inplace.js`, `filters.js` | The twenty-four leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own three plugins: `dcYear`, the year `DC_YEAR` names - its define and its two data modules, in the dev server, the build and Vitest alike (DECISIONS #49); `dcBackend`, the backend `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name, or none - its two defines, in the same three places, and the guard on them (#53); and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy. |
@@ -105,7 +106,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`; and, by a boot of its own against a copy of it that has moved on, what is offered in place of a pick (DECISIONS #90). |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, and smokes that boot the built pages - the next site's, given a backend, signing in by email and syncing a star. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
-| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds; `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star, the zero state's Show all and star, and a fold in place of a pick and a star in it among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88); `in-place.spec.js` holds the picks-changed notice and the folds under it whole on Now and on My day, each fold's button and the notice's OK 44 px tall or more (#90). |
+| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds, and a second page, `dist-backend/`, a build told of a backend whose requests the harness answers (#92); `gear.spec.js` holds Settings' heading and Done on the screen in every state it has, and About this app behind its row (#92); `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star, the zero state's Show all and star, and a fold in place of a pick and a star in it among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88); `in-place.spec.js` holds the picks-changed notice and the folds under it whole on Now and on My day, each fold's button and the notice's OK 44 px tall or more (#90). |
 | `playwright.config.js` | The browser tests' configuration: a project for each engine at each size, a phone with touch on, the worker blocked, the zone the season file's, no retries. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record, frozen: never edited (DECISIONS #83). |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
@@ -412,16 +413,16 @@ a reviewer, and each review's decisions are committed as a record in
 
 ## The client: modules and their order
 
-One program in thirty-seven modules under `src/`, and `main.js`, the entry.
+One program in thirty-eight modules under `src/`, and `main.js`, the entry.
 The markup it drives is in `index.html` and the CSS in `src/styles.css`.
 
 The modules stand in one order, which is the array `ORDER` in
 `tests/rules/imports.test.js`, with `boot.js` as the root above it:
 
 ```
-season  util  storage  platform  build  backend  identity  crews  state
-time  outbox  venues  shareday  data  picks  follows  ics  walk  search
-foryou  ui  inplace  filters                           the twenty-three leaves
+season  util  storage  platform  build  backend  about  identity  crews
+state  time  outbox  venues  shareday  data  picks  follows  ics  walk
+search  foryou  ui  inplace  filters                   the twenty-four leaves
 scroll  eventsheet  bus  sync
 now  browse  explore  map  plans                       the five views
 sheet  loading  shell  dispatch
@@ -445,7 +446,9 @@ and the channel after it on a stamped build; the dev-build mark; the device
 readout. `backend`: the backend the build names, or none - `hasBackend` -
 every request to it, by `fetch`, and the session it keeps under
 `storageKey("session")`, refreshed only when the server refuses its token
-(DECISIONS #53). `identity`: `ensureUser()`, which mints the anonymous user
+(DECISIONS #53). `about`: `aboutHTML()`, About this app's panel and its
+words, by whether the build has a backend (DECISIONS #92). `identity`:
+`ensureUser()`, which mints the anonymous user
 at the first tap that needs one, the email step - add and recover by one
 code - and sign out (#51). `crews`: the reader's crews and their
 crewmates' picks as the last pull kept them, under `storageKey("crew")`
@@ -585,8 +588,8 @@ under, and `fitHeaderLine()`; and the nav's, `syncNavHeight()`, which sets
 `--nav-h`, what the mini-bar, the end spacer, the update pill, the dev-build
 mark and the Map are laid out from. `loading`, the `shell` and `boot()` all
 need the measurement, so it sits below all three. And the mark on an area
-of the sheet that scrolls on its own (DECISIONS #76; `MORE_AREAS`, four
-selectors for six areas): `moreHidden()`, a pure function of an element's
+of the sheet that scrolls on its own (DECISIONS #76, #92; `MORE_AREAS`, four
+selectors for seven areas): `moreHidden()`, a pure function of an element's
 scrollTop, clientHeight and scrollHeight to the px hidden above and below
 it, which `markMore()` writes onto the element as `--more-above` and
 `--more-below`, with `data-more` while either is above 0, only where a
@@ -659,9 +662,10 @@ crewmate's pick at each hotel on a day, which the hotel sheet lists too.
 built once and drawn in place (#89), keeps its controls and their focus,
 and gives focus back only where the card under the map is drawn anew.
 
-**`sheet`** is the bottom sheet: its seven panels (Settings, an event,
+**`sheet`** is the bottom sheet: its eight panels (Settings, an event,
 which `eventsheet` draws, a hotel, a crew, Share a day, a day shared with
-the reader and Search's filters, which `filters` draws) and what fills
+the reader, Search's filters, which `filters` draws, and About this app,
+which `about` draws) and what fills
 them, `openSheet()` and `closeSheet()`, the
 swipe and the Escape that dismiss it, focus into it and back to what
 opened it (DECISIONS #66), and the handlers for the drag and the Settings
@@ -848,7 +852,8 @@ the tab is the record of the reader's picks.
 which say the same thing themselves, and not once the con is over.
 
 **Plans.** Timeline view by default (con day ends 5 AM), list view as an
-option. Export to `.ics`, remove all. A pick on an event the source
+option. The action strip is Export to `.ics` and Share a day; Remove all
+picks is Settings' alone (DECISIONS #92). A pick on an event the source
 dropped is drawn here and nowhere else, where its time puts it, struck and
 marked "Removed from the schedule", with no gap line or walk link to or
 from it; the export leaves it out, and its sheet offers no calendar
@@ -922,13 +927,16 @@ the grid writes around it - what stands above the block, the jump chips
 and the tiles - so a redraw never takes the box from a reader typing in
 it (DECISIONS #80; `docs/screens/contract.md`, section 4, as built).
 
-**The sheet.** One bottom sheet, seven panels: Settings, an event's detail, a
+**The sheet.** One bottom sheet, eight panels: Settings, an event's detail, a
 hotel's picks for the day - on a build with a backend the crew's there
 under them (`docs/screens/contract.md`, section 8, as built) - on a
 build with a backend a crew - create,
 join and manage (`docs/screens/contract.md`, section 5, as built) - Share
 a day and a day shared with the reader (section 5, Share a day, as
-built), and Search's filters (section 3, as built). An event's detail is
+built), Search's filters (section 3, as built), and About this app, which
+Settings' row opens and which goes back to Settings (DECISIONS #92;
+section 9). Settings and About this app are each a heading, one body that
+scrolls and a foot with the panel's main button. An event's detail is
 a head, a body that scrolls and a foot (DECISIONS #74, #75; section 7, as
 built): the place, a tap to the Map where the Map can show the event;
 under it the level in full, the facts in a row's words, its other
@@ -938,9 +946,10 @@ its own, and in the foot every pick it overlaps - or would, before the
 star; on a build with a backend it says who in the reader's crews starred
 it. A star's tap and a pull write the star, the overlap line and that line
 in place. The sheet is at most 86% of the
-screen, and past that an event's panel scrolls with its foot pinned. Six
+screen, and past that an event's panel scrolls with its foot pinned. Seven
 areas of the sheet scroll on their own - an event's body, the hotel's list,
-a shared day's, the filters' body, Settings' Advanced and the crew panel -
+a shared day's, the filters' body, Settings' body, About's and the crew
+panel -
 and each fades at an edge with more past it, as deep as what is hidden
 there (DECISIONS #76; section 7, More past an edge, as built); where one
 hides 20 px or more below and something follows it in its panel, a small
@@ -1205,7 +1214,12 @@ project for each engine at each size, as a phone with touch on. Its
 default year, no channel, no backend, whatever the shell says - and
 serves it with Vite's preview on port 4173 for the run; a port already
 taken stops the run and says so, so a preview left running is never what
-is tested. `tests/browser/harness.js` holds the states in one place - the
+is tested. It builds a second page too, `dist-backend/`, served on 4174
+(DECISIONS #92): the same build told of a backend - an address on this
+machine where nothing listens, and a made-up key - for what only such a
+build draws, Keep your plan first. The harness answers that page's
+requests to its backend, empty, and that page's alone; the standing checks
+stay on the first page. `tests/browser/harness.js` holds the states in one place - the
 engines, the sizes, the clocks, the readers - and what every test opens
 the page with: the service worker blocked, the clock `?now=`, the zone
 the season file's, a reader seeded through localStorage by the keys a

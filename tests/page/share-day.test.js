@@ -75,7 +75,7 @@ describe("Share a day: the button and the share panel", () => {
   it("beside Export in My day's strip, disabled with no pick", () => {
     setPicks([]);
     const strip = [...document.querySelectorAll("#view-plans .plans-actions .btn")].map(b => b.textContent.trim());
-    expect(strip).toEqual(["Export to calendar", "Share a day", "Remove all"]);
+    expect(strip).toEqual(["Export to calendar", "Share a day"]);
     expect(shareButton().disabled).toBe(true);
   });
   it("disabled with only a cancelled pick, or only a removed one: there is nothing to share", () => {
@@ -284,6 +284,24 @@ describe("Share a day: a ?day= link opened", () => {
     escape();
     expect(el("sheetWrap").hidden).toBe(true);
     expect(el("panel-shared").innerHTML).toBe("");
+  });
+  /* Until the gear PR (DECISIONS #92) a swipe closed twice where the
+     transition ended - once at its end, once by the timer behind it - and
+     the second close shut the shared day the first had gone back to. */
+  it("and by a swipe down, where the transition ends and the timer follows it: the shared day stays, its list with it", async () => {
+    await arrive(dayQuery("sat", LONG));
+    press(rowOf(LONG[9]).querySelector(".row-main"));
+    const head = el("sheetTitleEvent"), drag = (type, y) => { const e = new Event(type, { bubbles: true, cancelable: true }); e.touches = y === null ? [] : [{ clientX: 0, clientY: y }]; head.dispatchEvent(e); };
+    drag("touchstart", 100);
+    drag("touchmove", 300);
+    drag("touchend", null);
+    el("sheet").dispatchEvent(new Event("transitionend"));
+    expect(shown(el("panel-shared"))).toBe(true);
+    await new Promise(resolve => setTimeout(resolve, 400));
+    expect(el("sheetWrap").hidden).toBe(false);
+    expect(shown(el("panel-shared"))).toBe(true);
+    expect(sharedRows()).toHaveLength(15);
+    expect(document.activeElement).toBe(rowOf(LONG[9]).querySelector(".row-main"));
   });
   it("a star there puts the overlap flag on both rows of a clash at once, written in place, and either star takes it off", async () => {
     const [a, b] = CLASH;

@@ -833,9 +833,10 @@ As built: the recon, section 2, Mine; section 8, crews' seam.
   saved: Crew on a con day when the reader is in a crew, else My day.
 - **My day** is Mine as built, every day: the picks-changed notice and
   W2's alternatives under it (section 2); the action strip, Export and
-  Remove all, and Share a day beside Export (W25) - it shares the reader's
-  day, not the crew's, by a link that needs no backend (#10, #50); the
-  Timeline | List toggle; the timeline and the list.
+  Share a day beside it (W25) - it shares the reader's day, not the
+  crew's, by a link that needs no backend (#10, #50) - with Remove all
+  picks in Settings alone (#92); the Timeline | List toggle; the timeline
+  and the list.
 - **Crew** has day chips - today by default, `map.js` `mapDay()`'s
   convention - and shows one day: per crewmate, the reader first, their
   picks that day as compact rows (`list: "crew:<user>"`). In 2027 this is
@@ -1051,6 +1052,8 @@ built, Share a day among it, and the 2026 app knows no crews.
   of them - its line was removed.
 
 ### Share a day, as built
+
+Changed by PR #110 (#92): Remove all left the strip, which is Export and Share a day on one row.
 
 PR #85, PR 5b (W25), with #10, #50, #63, #66 and #69: a day of the
 reader's picks as a message and a link that needs no backend, so on every
@@ -1718,6 +1721,8 @@ panel (The sheet's edges, as built, below). Still to come: W44's.
 
 ### More past an edge, as built
 
+Changed by PR #110 (#92): Settings' body and About's are areas, each a `.sheet-body`, and Advanced is none - seven areas, four selectors.
+
 PR #95, step 7's fourth, with #66 and #76. Six areas of the sheet scroll
 on their own, and where one has more past an edge, that edge fades to
 nothing. Its home is here, with the event's body; the screens that own
@@ -1867,6 +1872,8 @@ the other five point at it (sections 3, 5, 8 and 9).
   observer by the first draw alone, not as `boot()` registers it.
 
 ### The sheet's edges, as built
+
+Changed by PR #110 (#92): the arrow stands above Settings' foot and About's, and a `.sheet-body` has the ring's room at its top and foot too.
 
 PR #97, a follow-up to PR #95, with #66 and #78. Two faults at the edges
 of the sheet's scrolling areas, found on the next site on 2026-10-03 after
@@ -2164,34 +2171,38 @@ by PR #83, step 5d, with #68.
 
 As built: the recon, section 3, Settings.
 
-In order:
+Settings is a heading, one body that scrolls and Done pinned at its foot,
+in a sheet at most 86% of the screen (#92). In the body, in order:
 
 1. Settings as built: the crowd factor, the noise default, Larger text,
-   Advanced.
+   Advanced - a fold in the body, with no scroller of its own.
 2. Keep your plan as built, on a build with a backend.
-3. **The notifications toggle** (W34): its slot here; its wiring - the
-   subscription and the worker's handler - Delivery's.
+3. **The notifications toggle** (W34): Delivery's, built there with its
+   wiring - the subscription and the worker's handler. Its place is here,
+   and no slot is kept for it. Its pull request adds notifications to "On
+   our server"'s first sentence in `src/about.js`, and what it stores to
+   the list under it.
 4. **About this app** (W32, #59): a row that opens a sheet panel,
-   `#panel-about`, whose back returns to Settings. Three parts: what we
-   store, about this app, and the links - one to Dragon Con's official
-   site and app. **Delete my account** (W45) is on it, and needs a
-   server-side delete that does not exist: a `supabase/` migration and RPC,
-   sequenced with the gear PR.
-5. Done.
-6. Remove all picks, last.
+   `#panel-about`, whose one way out is back to Settings - its button, the
+   backdrop, a swipe down, Escape. In order: that the app is unofficial,
+   the one link, to Dragon Con's official site and app, and what we store.
+   **Delete my account** (W45) is on it, and is the next pull request's: it
+   needs a server-side delete that does not exist, a `supabase/` migration
+   and RPC.
+5. Remove all picks, last in the body, and the one place it is.
 
-Since PR #95 Advanced fades at an edge with more past it, and a drag that
-starts in it scrolls it and no longer drags the sheet (#76; section 7,
-More past an edge, as built). At the normal size it holds 231 px and never
-scrolls until Walk-time defaults is opened, 741 px; with Larger text it
-hides 10 px at 375x667 and 11 at 390x664, and its band is as deep.
+Built: the gear's shape and About this app - PR #110, DECISIONS #92.
+
+The body is one of the sheet's areas: it fades at an edge with more past
+it, an arrow stands above Done while more is below, and a drag that starts
+in it scrolls it while it has more than its room (#76, #78; section 7).
 
 **Home of:** W32; W34; W45.
 
-Moves: `index.html` (the panel, the toggle's slot), `sheet.js`
-`fillSettings()` and `openSheet()`, `supabase/migrations/` and
-`supabase/tests/` (W45). Tests: `settings.test.js`, `keep.test.js`,
-`sheet.test.js`; pgTAP for the delete. PR 9.
+Moves: `index.html` (the panels), `about.js`, `sheet.js` `openSheet()` and
+`closeSheet()`, `supabase/migrations/` and `supabase/tests/` (W45). Tests:
+`settings.test.js`, `about.test.js`, `tests/browser/gear.spec.js`; pgTAP
+for the delete. PR 9.
 
 ## 10. The row and the gap line
 
@@ -2411,7 +2422,7 @@ the hash and the address.
 |---|---|---|---|---|
 | Any row, the hero, the map card and its On now line, a timeline block | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape (#66): the screen as it was | built |
 | The gear | The Settings panel | the panel shown | Done, the backdrop, a swipe, Escape | built |
-| Settings' About row | `#panel-about` | the panel shown | its back: Settings | PR 9 |
+| Settings' About row | `#panel-about` | the panel shown | Back to Settings, the backdrop, a swipe, Escape: Settings, its body where it was, focus on the row | built, PR #110 |
 | The mini-bar | Now | `state.tab` | the tab bar | built |
 | A Map hotel block or its gold pill, a hotel without level data | The hotel sheet | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built |
 | The Map's crew pill | The hotel sheet, Your crew's picks here brought to the top of its body (#63) | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built, PR #82 |
@@ -2659,31 +2670,39 @@ As built: the recon, section 8, what crews' readers offer today.
   jumps back to its top under the thumb that tapped: older than PR #95,
   which left it - the new body is marked afresh, so its fade is right, at
   the top (#76; sections 7 and 8, as built; ROADMAP, Flags).
-- Settings is taller than a short screen once Advanced is open. At
+- ~~Settings is taller than a short screen once Advanced is open. At
   375x667 the sheet is 691 px with Advanced open, its top 24 px above the
   screen; 760 with Walk-time defaults open, and 801 with Larger text, the
   heading and the crowd factor above the screen and out of reach, since
   the sheet itself does not scroll. Older than PR #95, which changed no
-  height; the gear's pull request (step 9) is where it goes.
+  height; the gear's pull request (step 9) is where it goes.~~
+  Settled by PR #110 (#92): one body scrolls, in a sheet at most 86% of
+  the screen.
 - An event's body at its 72 px floor keeps 43.2 px clear between its two
   bands, 0.8 short of a 44 px tap. In 2026 the one control in such a body
   is its last chip, at the end, where there is no band (#76; section 7,
   More past an edge, as built).
-- Advanced and the crew panel with the fade alone. Nothing follows either
+- ~~Advanced and the crew panel with the fade alone. Nothing follows either
   in its panel - Advanced is the last thing in its `<details>`, and the
   crew panel is its own scroller - so neither has the arrow (#78), and
   where the fold lands in a gap there the fade says nothing, as the filter
   sheet's did. At 375x667 Advanced with Walk-time defaults open hides 463
   px, and the crew panel's manage step for a crew of six 155 (section 7,
   The sheet's edges, as built). Advanced is the gear's pull request's
-  (step 9).
+  (step 9).~~
+  Settled by PR #110 (#92): Advanced is a fold in Settings' body, which
+  has the arrow above Done.
+- The crew panel with the fade alone: it is its own scroller, nothing
+  follows it, so it has no arrow (#78), and where the fold lands in a gap
+  the fade says nothing.
 - A focus ring cut at an area's top or foot. #78 gave a ring room at an
   area's sides alone: block padding would change heights. Where an area's
   first or last thing is a control and the area is at that end, the area
   still cuts its ring: the hotel's list and the shared day's at both ends,
   the first and the last row; an event's body at its foot, its last chip;
-  the crew panel at both, its heading and Done. Not the filters' body nor
-  Advanced. And an event's panel, which scrolls too, cuts the bottom of
+  the crew panel at both, its heading and Done. Not the filters' body, nor
+  Settings' body or About's, which have the room there (#92). And an
+  event's panel, which scrolls too, cuts the bottom of
   the ring on the star, Add this to calendar and Done on every event's
   sheet, and the top of its heading's. Older than PR #97, which measured
   it (section 7, The sheet's edges, as built; ROADMAP, Flags). For step

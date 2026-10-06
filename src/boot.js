@@ -15,9 +15,9 @@ import { onSyncTrigger, onSyncWorkerMessage } from "./sync.js";
 import { onAppInstalled, onBeforeInstallPrompt } from "./now.js";
 import { onScrollSpy } from "./explore.js";
 import {
-  closeSheet, onCrewClick, onCrewInput, onCrewSubmit, onCrowdInput, onKeepClick, onKeepSubmit, onNoiseDefaultChange, onResetPicks,
-  onSettingsClick, onShareClick, onSheetKeydown, onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart, openKeptJoin,
-  openSharedDay, openSheet, panelCrew, panelEvent, panelFilters, panelHotel, panelShare, panelShared, sheetEl, takeDayLink,
+  closeSheet, onAboutClick, onAboutRowClick, onCrewClick, onCrewInput, onCrewSubmit, onCrowdInput, onKeepClick, onKeepSubmit, onNoiseDefaultChange,
+  onResetPicks, onSettingsClick, onShareClick, onSheetKeydown, onSheetTouchCancel, onSheetTouchEnd, onSheetTouchMove, onSheetTouchStart, openKeptJoin,
+  openSharedDay, openSheet, panelAbout, panelCrew, panelEvent, panelFilters, panelHotel, panelShare, panelShared, sheetEl, takeDayLink,
 } from "./sheet.js";
 import {
   BOOT, load, markScheduleChecked, onLoadRegisterWorker, onPageShow, onPillClick, onPillTouchEnd,
@@ -96,6 +96,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   panelShared.addEventListener("click", onSharedPanelClick);
   panelFilters.addEventListener("click", onFiltersPanelClick);
   panelFilters.addEventListener("change", onFiltersPanelChange);
+  panelAbout.addEventListener("click", onAboutClick);
 
   document.getElementById("minibar").addEventListener("click", onMiniBarClick);
   document.getElementById("settingsBtn").addEventListener("click", onSettingsClick);
@@ -108,6 +109,7 @@ export function boot({events: data, reload: reloadWith} = {}) {
   document.getElementById("clearPreview").addEventListener("click", onClearPreview);
   document.getElementById("simChip").addEventListener("click", onSimChipClick);
   document.getElementById("resetPicks").addEventListener("click", onResetPicks);
+  document.getElementById("aboutRow").addEventListener("click", onAboutRowClick);
   document.getElementById("keep").addEventListener("submit", onKeepSubmit);
   document.getElementById("keep").addEventListener("click", onKeepClick);
 

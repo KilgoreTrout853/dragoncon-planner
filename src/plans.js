@@ -208,7 +208,8 @@ function renderPlans() {
    (DECISIONS #49). A cancelled pick stays the same way, marked (#90). The
    calendar export takes the picks that are happening, neither removed nor
    cancelled, and under the picks-changed notice stands what is on in place
-   of a pick that changed (inplace.js). */
+   of a pick that changed (inplace.js). The strip is Export and Share a day:
+   Remove all picks is Settings' alone (DECISIONS #92). */
 function myDayHTML() {
   const mine = [...byId.values()].filter(e => picks.has(e.id));
   const onSchedule = mine.filter(happening).length;
@@ -219,7 +220,6 @@ function myDayHTML() {
   let html = pickNewsHTML() + inPlaceHTML("plans") + `<div class="plans-actions">
     <button class="btn" data-act="ics" ${onSchedule ? "" : "disabled"}>Export to calendar</button>
     <button class="btn quiet" data-act="share-day" ${shareable ? "" : "disabled"}>Share a day</button>
-    <button class="btn quiet" data-act="clear" ${mine.length ? "" : "disabled"}>Remove all</button>
   </div>`;
   if (mine.length) html += `<div class="view-toggle" role="group" aria-label="View">
     <button data-act="view-timeline" aria-pressed="${state.mineView === "timeline"}">Timeline</button>

@@ -221,9 +221,13 @@ describe("src/styles.css", () => {
   });
 
   describe("polish 6: Settings, the everyday two up top and the rest under Advanced", () => {
-    it("Advanced scrolls inside the sheet when it is long [1705]", () => {
-      expect(css).toMatch(/\.advanced-body \{[^}]*overflow-y: auto/);
-      expect(css).toMatch(/\.advanced-body \{[^}]*touch-action: pan-y/);
+    /* Until DECISIONS #92 Advanced scrolled on its own; now the body it is
+       in does, and the row keeps its bracket. */
+    it("Advanced is a fold in a body that scrolls: no scroller and no cap of its own [1705]", () => {
+      const fold = /\n\.advanced-body \{([^}]*)\}/.exec(css)[1];
+      expect(fold).not.toMatch(/overflow|max-height|touch-action|overscroll/);
+      expect(css).toMatch(/\n\.sheet-body \{[^}]*overflow-y: auto/);
+      expect(css).toMatch(/\n\.sheet-body \{[^}]*touch-action: pan-y/);
     });
   });
 
@@ -451,7 +455,7 @@ describe("src/styles.css", () => {
   describe("more past an edge: a mask as deep as what is hidden, up to its cap", () => {
     const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
     const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim() }));
-    const AREAS = [".ev-body", ".filters-body", ".advanced-body", "#panel-crew"];
+    const AREAS = [".ev-body", ".filters-body", ".sheet-body", "#panel-crew"];
     const masks = rules.filter(r => /mask/.test(r.body));
     const names = r => r.selector.split(",").map(s => s.trim());
 
@@ -476,7 +480,7 @@ describe("src/styles.css", () => {
       const moving = rules.filter(r => /(^|[\s;])(transition|animation)(-[a-z-]+)?:/.test(r.body) && names(r).some(s => s === "[data-more]" || AREAS.includes(s)));
       expect(moving.map(r => r.selector)).toEqual([]);
     });
-    it("the same cap is each area's scroll padding, always - on the four selectors the six areas are, never on the mark", () => {
+    it("the same cap is each area's scroll padding, always - on the four selectors the seven areas are, never on the mark", () => {
       const padded = rules.filter(r => /scroll-padding/.test(r.body));
       expect(padded.map(r => r.selector)).toEqual([AREAS.join(", ")]);
       expect(padded[0].body).toBe("scroll-padding-block: min(1.75rem, 20%);");
@@ -507,7 +511,7 @@ describe("src/styles.css", () => {
     const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
     const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim().replace(/\s+/g, " ") }));
     const names = r => r.selector.split(",").map(s => s.trim());
-    const AREAS = [".ev-body", ".filters-body", ".advanced-body", "#panel-crew"];
+    const AREAS = [".ev-body", ".filters-body", ".sheet-body", "#panel-crew"];
     const SCROLLERS = [...AREAS, "#panel-event"];
     const scroll = fs.readFileSync(path.join(ROOT, "src", "scroll.js"), "utf8");
     const one = (body, re) => Number((re.exec(body) || [])[1]);
@@ -546,7 +550,7 @@ describe("src/styles.css", () => {
     describe("the arrow", () => {
       const reads = rules.filter(r => /data-more/.test(r.selector));
       const arrow = rules.filter(r => /::before/.test(r.selector) && /data-more/.test(r.selector));
-      const FOLLOWERS = [".ev-foot", ".ev-actions", ".filters-foot"];
+      const FOLLOWERS = [".ev-foot", ".ev-actions", ".filters-foot", ".sheet-foot"];
       const rem = (body, name) => one(body, new RegExp(`(?:^|[; ])${name}: (\\d*\\.?\\d+)rem;`));
       /* Two borders of a square turned 45 degrees: its point is half its
          diagonal under its centre, and its arms end level with the centre. */
@@ -559,7 +563,7 @@ describe("src/styles.css", () => {
         expect(reads.map(r => r.selector)).toEqual(["[data-more]", arrow[0].selector]);
         expect(arrow.length).toBe(1);
       });
-      it("it is the ::before of what follows an area that says below: an event's foot, a Done row, the filters' foot", () => {
+      it("it is the ::before of what follows an area that says below: an event's foot, a Done row, the filters' foot, Settings' foot and About's", () => {
         expect(names(arrow[0])).toEqual(FOLLOWERS.map(f => `[data-more~="below"] + ${f}::before`));
       });
       it("the word is the one scroll.js writes, at a threshold that stands under its ceiling", () => {
@@ -570,7 +574,7 @@ describe("src/styles.css", () => {
       });
       it("it is outside the flow, so it moves nothing: absolute, in an element that is positioned", () => {
         expect(arrow[0].body).toMatch(/(^|; )position: absolute;/);
-        expect(rules.filter(r => r.selector === ".ev-body + .ev-actions, .filters-foot").map(r => r.body)).toEqual(["position: relative;"]);
+        expect(rules.filter(r => r.selector === ".ev-body + .ev-actions, .filters-foot, .sheet-foot").map(r => r.body)).toEqual(["position: relative;"]);
         expect(rules.filter(r => r.selector === "#panel-event > .ev-foot" && /position: sticky;/.test(r.body)).length).toBe(1);
       });
       it("it is no control: no content, so nothing a screen reader meets, and no tap", () => {
@@ -614,6 +618,56 @@ describe("src/styles.css", () => {
       it("it does not animate as it comes and goes", () => {
         expect(arrow[0].body).not.toMatch(/(transition|animation)/);
       });
+    });
+  });
+
+  /* The gear (DECISIONS #92): Settings and About this app are a heading,
+     one body that scrolls and a pinned foot, in a sheet capped as an event's
+     is; a checkbox in the sheet stands beside its words. Where things stand
+     on a phone is the browser tests' (tests/browser/gear.spec.js); the
+     declarations are pinned here. New tests, not rows of
+     tests/PORT-LEDGER.md. */
+  describe("the gear: a heading, one body and a pinned foot, in a sheet no taller than an event's", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim().replace(/\s+/g, " ") }));
+    const body = selector => (rules.find(r => r.selector === selector) || { body: "" }).body;
+    const cap = text => (/max-height: calc\((\d+)dvh - (\d+)px - var\(--safe-bottom\)\);/.exec(text) || []).slice(1).map(Number);
+
+    it("the two panels are capped as an event's panel is: the sheet at most 86% of the screen, by the one number", () => {
+      expect(cap(body("#panel-settings, #panel-about"))).toEqual([86, 53]);
+      expect(cap(body("#panel-settings, #panel-about"))).toEqual(cap(body("#panel-event")));
+      expect(body("#panel-settings, #panel-about")).toMatch(/max-height: calc\(86vh - 53px - var\(--safe-bottom\)\); max-height: calc\(86dvh/);
+    });
+    it("each is a column whose heading and foot keep their height, and whose body takes what is left", () => {
+      expect(body("#panel-settings, #panel-about")).toMatch(/(^|; )display: flex; flex-direction: column;/);
+      expect(body("#panel-settings > *, #panel-about > *")).toBe("flex: none;");
+      expect(body("#panel-settings > .sheet-body, #panel-about > .sheet-body")).toBe("flex: 0 1 auto; min-height: 0;");
+    });
+    it("the panel itself does not scroll: the body is the one scroller, and no body has a cap of its own", () => {
+      expect(body("#panel-settings, #panel-about")).not.toMatch(/overflow/);
+      expect(rules.filter(r => /\.sheet-body/.test(r.selector) && /max-height/.test(r.body))).toEqual([]);
+    });
+    it("the body has the ring's room at its top and foot too, given back as margin, so the panel's gaps stand", () => {
+      const ring = body(":focus-visible"), reach = Number(/outline: (\d+)px/.exec(ring)[1]) + Number(/outline-offset: (\d+)px/.exec(ring)[1]);
+      expect(body(".sheet-body")).toMatch(new RegExp(`(^|; )padding-block: ${reach}px; margin-block: -${reach}px;`));
+    });
+    it("a grid item of a body has a floor of 0 under its width, so a long line cannot widen the column", () => {
+      expect(body(".sheet-body > *")).toBe("min-width: 0;");
+    });
+    it("the foot's button is as wide as the sheet", () => {
+      expect(body(".sheet-foot")).toBe("display: flex;");
+      expect(body(".sheet-foot .btn")).toBe("flex: 1 1 auto;");
+    });
+    it("one rule for a toggle in the sheet: beside its words, 44px or more, the box never squeezed - and it outranks the sheet's label rule", () => {
+      expect(body(".sheet .toggle")).toBe("display: flex; min-height: 44px;");
+      expect(body(".sheet label")).toMatch(/(^|; )display: grid;/);
+      expect(rules.filter(r => /\.toggle/.test(r.selector)).map(r => r.selector)).toEqual([".toggle", ".toggle input", ".sheet .toggle"]);
+      expect(body(".toggle input")).toMatch(/(^|; )flex: none; width: 22px; height: 22px;/);
+    });
+    it("the About row and the about panel's link are 44px or more where they are tapped", () => {
+      expect(Number(/min-height: (\d+)px;/.exec(body(".about-row"))[1])).toBeGreaterThanOrEqual(44);
+      expect(body(".about-row")).toMatch(/(^|; )width: 100%;/);
+      expect(body(".about-link")).toMatch(/min-height: 44px; min-width: 44px;/);
     });
   });
 

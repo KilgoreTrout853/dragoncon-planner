@@ -1135,7 +1135,7 @@ describe("the filter sheet", () => {
       expect(rule("#panel-filters .chip")).toMatch(/height: 44px/);
       expect(rule("#panel-filters .seg button")).toMatch(/height: 44px/);
       expect(rule("#panel-filters select.track")).toMatch(/height: 44px/);
-      expect(rule("#panel-filters .toggle")).toMatch(/min-height: 44px/);
+      expect(rule(".sheet .toggle")).toMatch(/min-height: 44px/);
       expect(css).toMatch(/\n\.btn \{[^}]*height: 46px/);
     });
     it("the Filters button is the box's height, 48px", () => {

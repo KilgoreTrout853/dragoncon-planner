@@ -12,6 +12,15 @@
    waits for Barlow's four weights and fails where one did not load, so no
    width is ever a fallback face's.
 
+   And a second page, for what only a build with a backend draws (DECISIONS
+   #92): dist-backend/, the same build told of BACKEND, served at
+   WITH_BACKEND. No backend is there: what that page asks of BACKEND's
+   address the harness answers - {} for the sign-in service, [] for a table -
+   and it answers that page alone. So a reader there is signed out, or has a
+   code sent once the form is sent, or is signed in by a seeded session,
+   SIGNED_IN, with nothing kept on any server. It is not a test of sync, of
+   the sign-in or of a crew. The standing checks stay on the first page.
+
    What it is not: an iPhone. No iOS keyboard, no safe-area insets, no
    home-screen app, and IS_IOS is false in both engines - WebKit here is the
    engine on this machine, under its own name, not Safari on a phone. Those
@@ -32,6 +41,16 @@ const YEAR = 2026;
 const SEASON = JSON.parse(fs.readFileSync(path.join(ROOT, "data", String(YEAR), "season.json"), "utf8"));
 const PORT = 4173;
 const ORIGIN = `http://localhost:${PORT}`;
+/* The page with a backend: where it is built and served, and the backend it
+   is told of - an address on this machine where nothing listens, and a key
+   that is plainly made up, of the public kind the build takes. */
+const BACKEND_PORT = 4174;
+const BACKEND_DIR = "dist-backend";
+const WITH_BACKEND = `http://localhost:${BACKEND_PORT}`;
+const BACKEND = { url: "http://localhost:54321", key: "sb_publishable_made_up_for_the_browser_tests" };
+/* A session as src/backend.js keeps one, for a reader signed in with an
+   email: seeded under "session", it is never sent anywhere that checks it. */
+const SIGNED_IN = { access_token: "made-up", refresh_token: "made-up", user: { id: "00000000-0000-4000-8000-000000000001", email: "you@example.com", is_anonymous: false } };
 
 /* ---- The states ---------------------------------------------------- */
 const ENGINES = ["chromium", "webkit"];
@@ -68,10 +87,11 @@ const READERS = {
 };
 
 /* What a context starts with in localStorage, for test.use({storageState}):
-   {name: value}, each under the key a build with no channel reads. */
-function seed(storage) {
+   {name: value}, each under the key a build with no channel reads, at the
+   page it is for - the first, unless told the second. */
+function seed(storage, origin = ORIGIN) {
   const localStorage = Object.entries(storage).map(([name, value]) => ({ name: `dc${String(YEAR).slice(2)}.${name}`, value: JSON.stringify(value) }));
-  return { cookies: [], origins: localStorage.length ? [{ origin: ORIGIN, localStorage }] : [] };
+  return { cookies: [], origins: localStorage.length ? [{ origin, localStorage }] : [] };
 }
 
 /* ---- Barlow, from this repo ---------------------------------------- */
@@ -84,15 +104,21 @@ const FONT_CSS = WEIGHTS.map(weight => `@font-face { font-family: '${FAMILY}'; f
 
 const test = base.extend({
   /* Every test's, unasked: the stylesheet and the four files answered from
-     the package, and anything else that is not the harness's own server
-     refused, remembered and failed on. */
+     the package; what the page with a backend asks of its backend answered
+     empty, to that page alone; and anything else that is not one of the
+     harness's own two servers refused, remembered and failed on. */
   alone: [async ({ context }, use) => {
     const asked = [];
-    await context.route(url => url.origin !== ORIGIN, route => {
+    await context.route(url => url.origin !== ORIGIN && url.origin !== WITH_BACKEND, route => {
       const url = new URL(route.request().url());
       if (url.hostname === "fonts.googleapis.com") return route.fulfill({ contentType: "text/css", body: FONT_CSS });
       if (url.hostname === "fonts.gstatic.com") {
         return route.fulfill({ contentType: "font/woff2", body: fs.readFileSync(path.join(FONT_DIR, path.basename(url.pathname))) });
+      }
+      if (url.origin === BACKEND.url && route.request().headers().origin === WITH_BACKEND) {
+        const headers = { "access-control-allow-origin": WITH_BACKEND, "access-control-allow-headers": "apikey, authorization, content-type, prefer", "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE" };
+        if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers });
+        return route.fulfill({ status: 200, headers, contentType: "application/json", body: url.pathname.startsWith("/auth/") ? "{}" : "[]" });
       }
       asked.push(url.href);
       return route.abort();
@@ -134,9 +160,10 @@ const settled = page => page.evaluate(() => new Promise(done => requestAnimation
 
 /* The page, at a simulated moment - null for the real clock - once the
    schedule is in and Barlow is the face. hash: what follows the address,
-   an Explore page's "#explore=kind:key". */
-async function open(page, now, hash = "") {
-  await page.goto((now ? `./?now=${now}` : "./") + hash);
+   an Explore page's "#explore=kind:key". at: which of the two pages, the
+   first unless told. */
+async function open(page, now, hash = "", at = ORIGIN) {
+  await page.goto(`${at}/` + (now ? `?now=${now}` : "") + hash);
   await expect(page.locator("#fresh")).not.toBeEmpty();
   await barlow(page);
   await settled(page);
@@ -285,4 +312,7 @@ function chipArea() {
   };
 }
 
-export { ROOT, SEASON, PORT, ORIGIN, ENGINES, SIZES, TABS, CLOCKS, READERS, seed, test, expect, open, tab, check, answers, chipArea };
+export {
+  ROOT, SEASON, PORT, ORIGIN, BACKEND_PORT, BACKEND_DIR, WITH_BACKEND, BACKEND, SIGNED_IN, ENGINES, SIZES, TABS, CLOCKS, READERS,
+  seed, test, expect, open, settled, tab, check, answers, chipArea,
+};

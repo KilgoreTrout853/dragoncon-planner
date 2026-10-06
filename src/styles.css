@@ -346,7 +346,7 @@ select.track {
   background: var(--surface); border: 1px solid var(--line); color: var(--text);
 }
 .toggle { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .9375rem; min-height: 40px; }
-.toggle input { width: 22px; height: 22px; accent-color: var(--gold); margin: 0; }
+.toggle input { flex: none; width: 22px; height: 22px; accent-color: var(--gold); margin: 0; }
 
 /* Rows (DECISIONS #64, #73): the title, then one line of when and where, the
    place in its hotel's hue, then one line of what else is true of the event. */
@@ -443,8 +443,8 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 /* Two rows of two on one grid: the actions take the view toggle's footprint,
    so the top of Plans reads as one control strip rather than a stack of odd
    shapes. Export keeps its gold fill; it is the one you came here for. Share
-   a day sits beside it and Remove all under it; the strip and the toggle are
-   44px since Share a day joined them (#66). */
+   a day sits beside it - Remove all is Settings' alone (#92); the strip and
+   the toggle are 44px since Share a day joined them (#66). */
 .plans-actions { padding: 12px 14px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .plans-actions .btn { height: 44px; padding: 0 12px; border-radius: 10px; font-size: .9375rem; font-weight: 700; }
 .btn[disabled] { opacity: .45; }
@@ -510,6 +510,10 @@ select.crew-pick {
 }
 .sheet h2 { margin: 0; font-size: 1.25rem; }
 .sheet label { display: grid; gap: 6px; color: var(--muted); font-size: .9375rem; }
+/* A checkbox in the sheet stands beside its words, the box first, in a row
+   44px tall or more (#66, #92): the one rule for a toggle in the sheet,
+   Settings' two and the filters' one. */
+.sheet .toggle { display: flex; min-height: 44px; }
 /* A field takes its label's size, and an iPhone zooms the page when a field
    under 16px takes focus (#66): every field in the sheet is 1rem, by the
    sheet's id, so no later field rule's font: inherit takes it back. */
@@ -517,15 +521,58 @@ select.crew-pick {
 .sheet input[type="range"] { width: 100%; accent-color: var(--gold); }
 .sheet input[type="datetime-local"] { height: 44px; padding: 0 10px; border-radius: 10px; background: var(--ink); border: 1px solid var(--line); color: var(--text); }
 .sheet .rowbtns { display: flex; gap: 8px; flex-wrap: wrap; }
-/* Settings: the two everyday controls up top; the rest folds under
-   Advanced, which scrolls on its own inside the sheet. Remove all picks
-   is last and on its own, away from Done. */
+/* Settings and About this app (DECISIONS #92): a heading, one body that
+   scrolls and a foot that does not, holding the panel's main button as wide
+   as the sheet. The SHEET is at most 86% of the screen, an event's rule and
+   number (#74; the 53px is the sheet's own, as there): the heading and the
+   foot keep their height and the body takes what is left, so no state of
+   either panel is taller than the screen. A drag that starts in a body with
+   more than its room scrolls it; in one that fits, and on the heading or
+   the foot, it moves the sheet (sheet.js onSheetTouchStart()). The body is
+   new, so it has room for a focus ring at its top and its foot as well as
+   at its sides (#78): 4px of padding, given back as margin, so the gaps to
+   the heading and to the foot are the panel's own. */
+#panel-settings, #panel-about {
+  display: flex; flex-direction: column;
+  max-height: calc(86vh - 53px - var(--safe-bottom)); max-height: calc(86dvh - 53px - var(--safe-bottom));
+}
+#panel-settings > *, #panel-about > * { flex: none; }
+#panel-settings > .sheet-body, #panel-about > .sheet-body { flex: 0 1 auto; min-height: 0; }
+.sheet-body { display: grid; gap: 16px; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding-block: 4px; margin-block: -4px; }
+.sheet-body > * { min-width: 0; }
+.sheet-foot { display: flex; }
+.sheet-foot .btn { flex: 1 1 auto; }
+/* Settings: the everyday controls up top; the rest folds under Advanced, a
+   fold in the body with no scroller of its own. Then Keep your plan, on a
+   build with a backend, the row that opens About this app, and Remove all
+   picks, last in the body and on its own, away from Done. */
 .advanced > summary { color: var(--muted); cursor: pointer; font-size: .9375rem; font-weight: 600; padding: 4px 0; }
-.advanced-body { display: grid; gap: 16px; padding-top: 12px; max-height: 45vh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+.advanced-body { display: grid; gap: 16px; padding-top: 12px; }
+/* The row: a button as wide as the body, 46px tall as the sheet's buttons
+   are, between two rules, its mark at the right end. */
+.about-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 46px; padding: 0 2px;
+  background: none; border: solid var(--line); border-width: 1px 0; color: var(--text); font-weight: 600; text-align: left;
+}
+.about-row span { color: var(--muted); font-size: 1.25rem; line-height: 1; }
+/* About this app's words: paragraphs and lists in the sheet's muted text,
+   two headings, and a small label over each part of What we store. The one
+   link is 44px tall where it is tapped (#66), underlined as the sheet's
+   other taps are. */
+.about { gap: 12px; }
+.about p, .about ul { margin: 0; color: var(--muted); font-size: .9375rem; line-height: 1.4; }
+.about ul { padding-left: 1.25rem; display: grid; gap: 4px; }
+.about b { color: var(--text); font-weight: 600; }
+.about h3 { margin: 8px 0 0; font-size: 1rem; }
+.about-label { margin: 4px 0 -6px; font-size: .75rem; font-weight: 400; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.about-link {
+  justify-self: start; display: inline-flex; align-items: center; min-height: 44px; min-width: 44px;
+  color: var(--text); font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
+}
 .walk-table { font-size: .875rem; color: var(--muted); }
 .walk-table td { padding: 2px 6px 2px 0; }
-/* Keep your plan, the email step: after Advanced and before Done, and only
-   on a build with a backend (DECISIONS #53). */
+/* Keep your plan, the email step: after Advanced and before the About row,
+   and only on a build with a backend (DECISIONS #53). */
 .keep, .keep > div { display: grid; gap: 12px; }
 .keep { padding-top: 16px; border-top: 1px solid var(--line); }
 .keep h3 { margin: 0; font-size: 1rem; }
@@ -599,14 +646,13 @@ select.crew-pick {
 .filter-pair select { flex: 1 1 0; }
 .filter-topics { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 #panel-filters select.track { height: 44px; width: 100%; min-width: 0; }
-#panel-filters .toggle { display: flex; min-height: 44px; }
 .filters-foot { display: flex; gap: 8px; }
 .filters-foot #filtersShow { flex: 1 1 auto; }
 /* Focus lands on a panel's heading as the sheet opens (#66): a ring for a
    keyboard's arrival, none for a tap's. */
 .sheet-panel h2:focus:not(:focus-visible) { outline: none; }
 
-/* Bottom sheet: one wrapper, four panels (settings, event, hotel, crew) */
+/* Bottom sheet: one wrapper, eight panels */
 .sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: -4px auto 0; flex: none; }
 .sheet-panel { display: grid; gap: 16px; }
 .sheet-panel[hidden] { display: none; }
@@ -694,9 +740,10 @@ select.crew-pick {
 .ev-clash .ov-title { font-weight: 600; color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
 .ev-overlap.is .ov-title { color: inherit; }
 .ev-clash .ov-when { display: block; font-variant-numeric: tabular-nums; }
-/* More past an edge (DECISIONS #76). Six areas of the sheet scroll on their
-   own - an event's body, the hotel's list and the shared day's, which are
-   .ev-body too, the filters' body, Settings' Advanced and the crew panel -
+/* More past an edge (DECISIONS #76). Seven areas of the sheet scroll on
+   their own - an event's body, the hotel's list and the shared day's, which
+   are .ev-body too, the filters' body, Settings' body and About's, each a
+   .sheet-body (#92), and the crew panel -
    and the last line of one is cut mid-letter, with nothing to say whether
    the list goes on. Where it does, that edge fades to nothing: a mask on
    the scrolling element itself, so what fades is the content and what shows
@@ -709,7 +756,7 @@ select.crew-pick {
    eases out as a thumb nears an end. Nothing here moves, so reduced motion
    needs no rule. The cap is each area's scroll padding too, always, so a
    control that takes focus is scrolled clear of both bands (#66). */
-.ev-body, .filters-body, .advanced-body, #panel-crew { scroll-padding-block: min(1.75rem, 20%); }
+.ev-body, .filters-body, .sheet-body, #panel-crew { scroll-padding-block: min(1.75rem, 20%); }
 [data-more] {
   mask-image: linear-gradient(to bottom, transparent, #000 min(1.75rem, 20%, var(--more-above, 0px)), #000 calc(100% - min(1.75rem, 20%, var(--more-below, 0px))), transparent);
 }
@@ -719,23 +766,24 @@ select.crew-pick {
    its ring. The five scrollers of the sheet - the four above and an event's
    panel - take the ring's reach as inline padding and give it back as a
    negative margin of the same size: the ring is whole and nothing moves. */
-.ev-body, .filters-body, .advanced-body, #panel-crew, #panel-event { margin-inline: -4px; padding-inline: 4px; }
+.ev-body, .filters-body, .sheet-body, #panel-crew, #panel-event { margin-inline: -4px; padding-inline: 4px; }
 /* And an arrow where more is below. A fade can only dim what is there to be
    cut: where the fold lands in a gap it says nothing. So where an area
    hides enough below - scroll.js says so with the word "below" in
    data-more - a small down chevron stands in the gap above what follows
    the area in its panel: an event's foot, the hotel's and the shared day's
-   Done row, the filters' foot. It is that element's ::before, so it is
+   Done row, the filters' foot, Settings' foot and About's. It is that element's ::before, so it is
    outside the area and outside its mask; it is out of the flow, so nothing
    moves; and it is no control - no content, no tap. Two borders of a
    square turned 45 degrees, sized in rem so Larger text scales it, 4px
    above the element: its point then stands 1.7px over it and its top 9.5,
    1.4 and 10.3 with Larger text, inside the filters' 12px gap, the
-   smallest. In --muted, 6.3:1 on the sheet (#66). It does not animate.
-   Advanced and the crew panel have nothing after them, and keep the fade
-   alone. */
-.ev-body + .ev-actions, .filters-foot { position: relative; }
-[data-more~="below"] + .ev-foot::before, [data-more~="below"] + .ev-actions::before, [data-more~="below"] + .filters-foot::before {
+   smallest - a .sheet-body leaves the same 12px, its ring's room taken from
+   the panel's 16. In --muted, 6.3:1 on the sheet (#66). It does not animate.
+   The crew panel has nothing after it, and keeps the fade alone. */
+.ev-body + .ev-actions, .filters-foot, .sheet-foot { position: relative; }
+[data-more~="below"] + .ev-foot::before, [data-more~="below"] + .ev-actions::before, [data-more~="below"] + .filters-foot::before,
+[data-more~="below"] + .sheet-foot::before {
   content: ""; position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); margin: 0 auto; box-sizing: border-box;
   width: .6875rem; height: .6875rem; border: solid var(--muted); border-width: 0 .125rem .125rem 0;
   transform: rotate(45deg); pointer-events: none;
