@@ -1202,7 +1202,9 @@ As built: the recon, section 2, Map; section 5, the map card.
   (W40); the Westin, the Courtland Grand and the Mart's two buildings
   (#91) as sources allow (W41). A hotel without level data keeps the hotel sheet (#28; section
   8). Data per #58: `data/<year>/drawings/`, keyed by the venues file's
-  level and room ids.
+  level and room ids; the client reads it as `virtual:drawings`, the
+  year's own or the earliest later year's, through `building.js`, the
+  building's model (PR #112, #94).
 - **Focused:** the event sheet's place line lands here on its hotel - on
   its room once the building view exists - with the card showing that
   event, which reopens the sheet (#63, #64; section 11).
@@ -2804,5 +2806,9 @@ As built: the recon, section 8, what crews' readers offer today.
   checked while a Photo op or Screening kind, from the sheet or a word,
   overrides it (`search.js` `activeFilters()`): the list then holds them
   (section 3).
+- The twelve rooms of drawn levels that have no shape - the Hilton's 201
+  and 215 to 224, the Marriott's International Hall North - which no 2026
+  event names: when 2027's schedule posts, list its events at depth "a
+  level" (#94).
 
 **Home of:** W24.

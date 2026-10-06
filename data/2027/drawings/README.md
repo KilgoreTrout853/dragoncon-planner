@@ -2,8 +2,8 @@
 
 One file per hotel level, `<hotel>-<level>.json`, where `<hotel>` is the hotel's `hotel` key in `venues.json` folded
 to lower case with its spaces as hyphens (`courtland-grand`), and `<level>` is the level's `id` there. The file holds geometry only: what to draw, in feet, north up.
-Names, aliases and notes stay in `venues.json`; `tools/render_drawings.py` looks a level's name up there, and the app
-will, from W38 (DECISIONS #60). Every drawn room is a room id of that level, so a schedule reading that lands on a room
+Names, aliases and notes stay in `venues.json`; `tools/render_drawings.py` looks a level's name up there, and so does
+the app's model of a building, `src/building.js` (DECISIONS #94). Every drawn room is a room id of that level, so a schedule reading that lands on a room
 can light its shape.
 
 The drawings are ours (DECISIONS #28, #67). Placement, order and orientation come from the hotel's own floor plan where
@@ -52,5 +52,8 @@ named once and on the extent. Across one year's files of a hotel it holds one `e
 `python tools/render_drawings.py [--png]` draws every file here to `docs/venues/drawings/<hotel>-<level>.svg` at
 2 px per foot with sizes printed, for checking by eye, each anchor marked by a small cross and its name. A hotel's
 levels render at one scale, with the frame at one offset, so two renders laid over each other show whether the levels
-line up. That renderer documents the data; the app's stage builder will be
-its own code and will read the same files, from W38 (DECISIONS #60).
+line up. That renderer documents the data. The app reads the same files at its build, as one module, `virtual:drawings`:
+the geometry alone - no `units`, `north`, `anchors`, `sources` or `notes` - of which `src/building.js` is the model
+(DECISIONS #94). A year with no drawing of its own is built with the earliest later year's, so a build for 2026 reads
+these, and is refused where one names a hotel, a level or a room 2026's `venues.json` lacks. What draws them is the
+building view's own code, from W38 (DECISIONS #60).

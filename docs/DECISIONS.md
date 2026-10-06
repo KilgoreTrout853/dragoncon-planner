@@ -1216,7 +1216,7 @@ take pull requests only.
 costs nothing, since it commits nothing (#44). About a minute of CI a run.
 A token to rotate every year.
 
-### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12); renamed by PR #76; since PR #77 a removed event can be unstarred, never starred anew - its star hidden and disabled, on a row and in its sheet, for a reader who has not picked it - and a crewmate's removed pick is drawn, marked, in Plans' crew's day (`docs/screens/contract.md`, section 5, as built)
+### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12); renamed by PR #76; since PR #77 a removed event can be unstarred, never starred anew - its star hidden and disabled, on a row and in its sheet, for a reader who has not picked it - and a crewmate's removed pick is drawn, marked, in Plans' crew's day (`docs/screens/contract.md`, section 5, as built); amended by #94
 **Decided:** The client is built for one year, `DC_YEAR`'s (#42), and
 reads that year's contract: its `events.v2.json`, and at build its
 `season.json` and `venues.json`. Plumbing and parity, as #39 was;
@@ -1757,7 +1757,7 @@ request - gates nothing (#50).
 from Actions (#26) land last, nearest the freeze, and the freeze date is
 still unset (#30): that is the risk.
 
-### 58. Level drawings are data, one file per level — Standing (2026-09-28) — its placement source and "each level is its own frame" superseded by #67, which also refines its sizes
+### 58. Level drawings are data, one file per level — Standing (2026-09-28) — its placement source and "each level is its own frame" superseded by #67, which also refines its sizes; amended by #94
 **Decided:** Level drawings are data:
 `data/<year>/drawings/<hotel>-<level>.json`, one file per level, geometry
 only (feet, north up), every drawn room a room id of that level in
@@ -3228,3 +3228,28 @@ them: another year's, or one started on another phone since, is not named,
 though the function treats every crew alike. An anonymous user whose
 session is gone cannot sign in to delete. A second phone learns within the
 hour, when its token expires, not at once.
+
+### 94. The level drawings are a data module, and a building has a model — Standing (2026-10-06)
+**Decided:** Step 10's first pull request (PR #112), with no screen. Amends #49, #58.
+- **A third data module,** `virtual:drawings`, which the build makes of a
+  folder: a year's drawings, geometry only - no sources, notes, units,
+  north or anchors, which nothing in the app reads.
+- **A year with no drawing borrows** the earliest later year's, never an
+  earlier one's: a build for 2026 reads 2027's. A borrowed drawing that
+  names a hotel, level or room the year's own venues file lacks is refused.
+- **The model,** `src/building.js`, pure, the picks handed in: a venue
+  with levels has a building. A plate is a storey, levels of one storey
+  sharing it; drawn where any has a drawing, inert where none has and no
+  event, cancelled or not, is on any (round 7's first rule).
+- **The hull:** every corner of every room and open area on a venue's
+  drawn levels, padded 10 ft, convex; none with no drawing (its third).
+- **A composite is its leaves,** listed and lit. Five depths of a place: a
+  room, a level, a floor - a level with no drawing - the venue, nothing.
+
+**Why:** Each later pull request of the building view asks the same things
+of a venue; one model answers, tested on the real files before anything is
+drawn. 2027 holds the only drawings, and the next site builds 2026.
+**Cost:** The default year is 2026, so the first 2027 drawing naming a
+hotel, level or room 2026's venues file lacks refuses every default build,
+dev server and Vitest run, and fails `tests/test_drawings.py`, in its own
+pull request: the fix is the id in 2026's file too, or the default moved.

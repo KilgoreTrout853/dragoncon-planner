@@ -31,7 +31,7 @@ client build; there is no pointer file.
 | `events.v2.json` | the orchestrator, after the diff: build's file, with the diff's `changed_at` | the client; the diff; census v2, on demand; the mirror job (Identity and sync) | The v2 file, below. |
 | `changes.jsonl` | the orchestrator, after the diff: the diff's lines | the mirror job, whose table the push job reads (Identity and sync); a windowed copy for the client (Delivery) | The change log, below. |
 | `last-run.json` | the orchestrator, with each commit | the next run, for its stamps, SHA and `fetch_code_hash`; build's live front door, for the stamps; CI, for the stamps and `changes_logged`; the mirror job (Identity and sync), for `stamp` and `fetch_code_changed` | The stamps and the summary of the last run that committed, below. |
-| `drawings/` | a person | the building view (#28); never the resolver | One file per hotel level, keyed by level and room ids (#45). |
+| `drawings/` | a person | the client, imported at its build as `virtual:drawings`, its own year's or the earliest later year's (#94); never the resolver | One file per hotel level, keyed by level and room ids (#45). |
 
 `data/registry/` is unchanged (#42): cross-year, edited by people, and
 added to by the tag stage's mint, whose rows now carry
