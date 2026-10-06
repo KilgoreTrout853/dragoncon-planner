@@ -1041,7 +1041,7 @@ describe("against the real schedule", () => {
         const some = things.slice(i, i + 20);
         handle.follows.set(some);
         const p = app.profile(), found = new Map(some.map(f => [`${f.kind}:${f.key}`, []]));
-        handle.events.forEach(e => app.SIGNALS.follows(e, p).forEach(f => found.get(f.thing).push(e.id)));
+        handle.events.forEach(e => { const got = []; app.SIGNALS.follows(e, p, got); got.forEach(f => found.get(f.thing).push(e.id)); });
         some.forEach(f => expect(found.get(`${f.kind}:${f.key}`), `${f.kind}:${f.key}`).toEqual(app.eventsFor(f).map(e => e.id)));
       }
       handle.follows.set([]);

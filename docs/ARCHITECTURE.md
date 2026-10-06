@@ -532,8 +532,8 @@ each with the one thing that weighed most - over an index of the schedule,
 each event's things and how rare each is, built once a schedule; and
 `labelFor()`, what a follow is called on screen, which the cap of two rows
 a reason counts by and `explore` draws. It stands after `walk`, whose
-`clashesOf()` is its clash with the plan, and `search`, whose label a
-topic's name is. `ui`:
+`connection()` says whether an event overlaps a pick, and `search`, whose
+label a topic's name is. `ui`:
 markup every view shares, `rowHTML()` - an event's row: the title, then
 the time, the place and the level, then Celebrity, the overlap flag, the
 caller's context, the flags and the track (DECISIONS #64, #73) -

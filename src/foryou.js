@@ -5,19 +5,21 @@
    reads the page, storage or the clock. The moment is a parameter, at.
 
    What scores is the signals, each its own small function: it takes an
-   event and the reader's profile and gives back what it found - a thing,
-   its weight, and whether it is a follow. A later way of guessing is one
-   more of them. A thing is a follow's id, "kind:key": a track, a work, an
-   axis value or a person.
+   event and the reader's profile and adds what it found to the list it is
+   handed - a thing, its weight, and whether it is a follow. A later way of
+   guessing is one more of them. A thing is a follow's id, "kind:key": a
+   track, a work, an axis value or a person.
 
    The index of the schedule - each event's things, and for each thing how
-   many events carry it, how rare that makes it and what the page calls it -
-   is built once a schedule: it remembers the events it was made from, and
-   replaceSchedule() makes new ones. */
+   rare it is and what the page calls it - is built once a schedule: it
+   remembers the events it was made from, and replaceSchedule() makes new
+   ones. A run makes little: a finding is made once a thing and shared by
+   every event that carries it, and an event is weighed in one list used
+   over again, since a phone runs this as the grid is drawn (#22). */
 import { AXES, byId, events, linkedWorks, NOISE_TRACKS, personName, tagsOf, worksById } from "./data.js";
 import { picks } from "./picks.js";
 import { followId, follows, mutes } from "./follows.js";
-import { clashesOf } from "./walk.js";
+import { connection } from "./walk.js";
 import { axisLabel } from "./search.js";
 
 const FOR_YOU_MAX = 8;        // rows at most
@@ -77,8 +79,6 @@ function indexed() {
   return index;
 }
 const rarity = thing => indexed().rare.get(thing) || 0;
-/* A pick the source dropped is in byId and not in events, so not in the index. */
-const carried = ev => indexed().things.get(ev.id) || thingsOf(ev);
 
 /* An event's other sessions, for For you: its repeat key, or its title
    where it has none. Wider than sessionsOf(), which a sheet asks for the
@@ -90,15 +90,24 @@ const sessionKey = ev => (ev.facets || {}).repeat_key || `title:${ev.title}`;
    three at most. Never by stars: a person; a noise track; a work nobody has
    reviewed; an audience but Kids, the one that is a topic; a muted thing,
    which is never a reason; and a followed one, which the follow already
-   says. */
+   says. With them, what a run reads of the index - each event's things,
+   each thing's rarity and name - the findings made so far, a follow's and
+   a pick's apart, and twins: what two of the things that weigh would both
+   be called by a row, the track Space and the topic Space. And the picks
+   that block: those happening, and not long ones, each with its two ends
+   as numbers. */
 function profile() {
+  const {things, rare, name} = indexed();
   const followed = new Set(follows.map(followId)), muted = new Set(mutes.map(followId));
-  const tally = new Map(), sessions = new Set();
+  const tally = new Map(), sessions = new Set(), blocking = [];
   picks.forEach(id => {
     const ev = byId.get(id);
     if (!ev) return;
     sessions.add(sessionKey(ev));
-    for (const thing of carried(ev)) tally.set(thing, (tally.get(thing) || 0) + 1);
+    const from = ev._s.getTime(), to = ev._e.getTime();
+    if (!ev.cancelled && !ev.removed && to - from <= LONG_PICK_MIN * 60000) blocking.push({ev, from, to});
+    /* A pick the source dropped is in byId and not in events, so not in the index. */
+    for (const thing of things.get(id) || thingsOf(ev)) tally.set(thing, (tally.get(thing) || 0) + 1);
   });
   const starred = new Map();
   for (const [thing, n] of tally) {
@@ -109,57 +118,71 @@ function profile() {
     if (kind === "axis" && key.startsWith("audience:") && key !== "audience:kids") continue;
     starred.set(thing, Math.min(n, STAR_CAP));
   }
-  return {followed, muted, starred, sessions};
+  const p = {things, rare, name, followed, muted, starred, sessions, blocking, made: [new Map(), new Map()], twins: new Set()};
+  const said = new Set();
+  for (const [follow, weighing] of [[true, followed], [false, starred.keys()]]) {
+    for (const thing of weighing) { const says = saysOf(p, thing, follow); if (said.has(says)) p.twins.add(says); else said.add(says); }
+  }
+  return p;
 }
 
-/* The signals. NONE is what a signal gives back for most events, so that
-   scoring the schedule makes a list only where something was found. */
-const NONE = Object.freeze([]);
+/* What a row would say for a thing, less the name's markup: explore.js puts
+   "You follow" or "Like your picks:" before the name. Two findings with
+   one answer here read as one reason. */
+const saysOf = (p, thing, follow) => `${follow ? "follow" : "stars"}:${p.name.get(thing) || keyOf(thing)}`;
+/* A finding: a thing, a number of times its rarity, and whether it is a
+   follow - with what a row would say for it, and whether another thing
+   that weighs would be said the same. Made once a thing in a run, and
+   shared by every event that carries the thing. */
+function finding(p, thing, times, follow) {
+  const says = saysOf(p, thing, follow), f = {thing, weight: times * (p.rare.get(thing) || 0), follow, says, twin: p.twins.has(says)};
+  p.made[+follow].set(thing, f);
+  return f;
+}
+
+/* The signals. Each adds what it found on an event to found. */
 const SIGNALS = {
   /* A follow brings what Following lists for it, at three times its rarity. */
-  follows(ev, p) {
-    let out = NONE;
-    for (const thing of carried(ev)) {
-      if (!p.followed.has(thing)) continue;
-      if (out === NONE) out = [];
-      out.push({thing, weight: FOLLOW_WEIGHT * rarity(thing), follow: true});
+  follows(ev, p, found) {
+    for (const thing of p.things.get(ev.id)) {
+      if (p.followed.has(thing)) found.push(p.made[1].get(thing) || finding(p, thing, FOLLOW_WEIGHT, true));
     }
-    return out;
   },
   /* What the picks share: as many times its rarity as picks carry it. */
-  stars(ev, p) {
-    let out = NONE;
-    for (const thing of carried(ev)) {
+  stars(ev, p, found) {
+    for (const thing of p.things.get(ev.id)) {
       const n = p.starred.get(thing);
-      if (!n) continue;
-      if (out === NONE) out = [];
-      out.push({thing, weight: n * rarity(thing), follow: false});
+      if (n) found.push(p.made[0].get(thing) || finding(p, thing, n, false));
     }
-    return out;
   },
 };
 const SIGNAL_LIST = Object.values(SIGNALS);
 
-/* What a row would say for a finding, less the name's markup: explore.js
-   puts "You follow" or "Like your picks:" before the name. Two findings
-   with one answer here read as one reason. */
-const saysOf = f => `${f.follow ? "follow" : "stars"}:${indexed().name.get(f.thing) || keyOf(f.thing)}`;
+/* Of two findings, the heavier: by weight, then a follow, then the id. */
 const heavier = (a, b) => a.weight > b.weight || (a.weight === b.weight && (a.follow > b.follow || (a.follow === b.follow && a.thing < b.thing)));
+/* Of the things a row would name in the same words - the track Space and
+   the topic Space - only the heavier counts: what reads as one reason
+   weighs as one. */
+const counts = (f, found) => !found.some(g => g !== f && g.says === f.says && heavier(g, f));
 
-/* What all the signals found on an event, heaviest first, and of the
-   things a row would name in the same words - the track Space and the
-   topic Space - only the heavier: what reads as one reason weighs as one.
-   The score is their sum and the reason the first. */
+/* What all the signals found on an event, into the list handed in, and
+   what it comes to: the sum of what counts. */
+function weigh(ev, p, found) {
+  found.length = 0;
+  for (const signal of SIGNAL_LIST) signal(ev, p, found);
+  let score = 0, twin = false;
+  for (const f of found) { score += f.weight; twin = twin || f.twin; }
+  if (!twin) return score;
+  score = 0;
+  for (const f of found) if (counts(f, found)) score += f.weight;
+  return score;
+}
+/* And the same as a list of its own, only what counts, heaviest first: the
+   first is the reason. */
 function foundOn(ev, p) {
-  let found = NONE;
-  for (const signal of SIGNAL_LIST) {
-    const got = signal(ev, p);
-    if (got !== NONE) found = found === NONE ? got : found.concat(got);
-  }
-  if (found.length < 2) return found;
-  found.sort((a, b) => heavier(a, b) ? -1 : 1);
-  const said = new Set();
-  return found.filter(f => { const says = saysOf(f); return said.has(says) ? false : !!said.add(says); });
+  const found = [];
+  weigh(ev, p, found);
+  return found.filter(f => counts(f, found)).sort((a, b) => heavier(a, b) ? -1 : 1);
 }
 
 /* Not a candidate, whatever it scores: a cancelled event; a photo op or a
@@ -168,31 +191,44 @@ function foundOn(ev, p) {
    follow wins over a mute, and the fandoms under a muted fandom are muted
    with it, since an Andor event carries Star Wars; and one that overlaps a
    pick, where the pick is not a long one. A pick and an event that has
-   started are passed over before they are scored. */
+   started are passed over before they are scored.
+   The overlap is walk.js connection()'s, the one computation of one (#64),
+   asked as clashesOf() asks it - the earlier first, the longer where two
+   start together - but only of the picks whose hours touch the event's:
+   a reader with sixty picks is not asked sixty times a row. */
 function barred(ev, found, p) {
   if (ev.cancelled || QUIET_KINDS.includes(tagsOf(ev).kind)) return true;
   const tracks = ev.tracks || [];
   if (tracks.length && tracks.every(t => NOISE_TRACKS.has(t))) return true;
   if (p.sessions.has(sessionKey(ev))) return true;
-  if (p.muted.size && !found.some(f => f.follow) && carried(ev).some(thing => p.muted.has(thing))) return true;
-  return clashesOf(ev).some(pick => pick._e - pick._s <= LONG_PICK_MIN * 60000);
+  if (p.muted.size && !found.some(f => f.follow) && p.things.get(ev.id).some(thing => p.muted.has(thing))) return true;
+  const from = ev._s.getTime(), to = ev._e.getTime();
+  for (const pick of p.blocking) {
+    if (from > pick.to || pick.from > to) continue;
+    const first = pick.from < from || (pick.from === from && pick.to > to);
+    const c = first ? connection(pick.ev, ev) : connection(ev, pick.ev);
+    if (c && c.band === "overlap") return true;
+  }
+  return false;
 }
 
 /* What is chosen, from the events that scored: best first, ties by start
    and then by id; at most two rows that say one reason; one session of
-   anything; eight at most. Whether an event is barred is asked in this
-   order and only until the list is full, so the plan is asked about the few
-   at the top and not the schedule. */
+   anything; eight at most. Whether an event is barred, and what its reason
+   is, are asked in this order and only until the list is full, so the plan
+   is asked about the few at the top and not the schedule. */
 function choose(ranked, p) {
-  ranked.sort((a, b) => b.score - a.score || a.ev._s - b.ev._s || (a.ev.id < b.ev.id ? -1 : a.ev.id > b.ev.id ? 1 : 0));
+  ranked.sort((a, b) => b.score - a.score || a.start - b.start || (a.ev.id < b.ev.id ? -1 : a.ev.id > b.ev.id ? 1 : 0));
   const chosen = [], said = new Map(), sessions = new Set();
-  for (const r of ranked) {
+  for (const {ev, score, start} of ranked) {
     if (chosen.length >= FOR_YOU_MAX) break;
-    const says = saysOf(r.found[0]), session = sessionKey(r.ev);
-    if ((said.get(says) || 0) >= PER_REASON || sessions.has(session) || barred(r.ev, r.found, p)) continue;
+    const session = sessionKey(ev);
+    if (sessions.has(session)) continue;
+    const found = foundOn(ev, p), says = found[0].says;
+    if ((said.get(says) || 0) >= PER_REASON || barred(ev, found, p)) continue;
     said.set(says, (said.get(says) || 0) + 1);
     sessions.add(session);
-    chosen.push(r);
+    chosen.push({ev, score, start, reason: found[0]});
   }
   return chosen;
 }
@@ -203,18 +239,16 @@ function choose(ranked, p) {
    start. */
 function forYou(at) {
   if (!picks.size && !follows.length) return [];
-  const p = profile(), ranked = [];
+  const p = profile(), ranked = [], found = [], moment = at.getTime();
   for (const ev of events) {
-    if (ev._s <= at || picks.has(ev.id)) continue;
-    const found = foundOn(ev, p);
-    if (!found.length) continue;
-    let score = 0;
-    for (const f of found) score += f.weight;
-    if (score > 0) ranked.push({ev, score, found});
+    const start = ev._s.getTime();
+    if (start <= moment || picks.has(ev.id)) continue;
+    const score = weigh(ev, p, found);
+    if (score > 0) ranked.push({ev, score, start});
   }
   return choose(ranked, p)
-    .sort((a, b) => a.ev._s - b.ev._s || (a.ev.id < b.ev.id ? -1 : 1))
-    .map(({ev, score, found: [f]}) => ({id: ev.id, score, reason: {kind: kindOf(f.thing), key: keyOf(f.thing), name: indexed().name.get(f.thing), follow: f.follow}}));
+    .sort((a, b) => a.start - b.start || (a.ev.id < b.ev.id ? -1 : 1))
+    .map(({ev, score, reason: f}) => ({id: ev.id, score, reason: {kind: kindOf(f.thing), key: keyOf(f.thing), name: p.name.get(f.thing), follow: f.follow}}));
 }
 
 export { FOR_YOU_MAX, labelFor, rarity, profile, SIGNALS, forYou };

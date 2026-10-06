@@ -4,9 +4,10 @@
    handed in. An event with no start given takes the next free hour, so
    nothing overlaps unless a test says so. */
 import { beforeEach, describe, expect, it } from "vitest";
-import { replaceSchedule } from "../../src/data.js";
+import { byId, replaceSchedule } from "../../src/data.js";
 import { replacePicks } from "../../src/picks.js";
 import { eventsFor, mutes, replaceFollows, toggleMute } from "../../src/follows.js";
+import { clashesOf } from "../../src/walk.js";
 import { FOR_YOU_MAX, forYou, profile, rarity, SIGNALS } from "../../src/foryou.js";
 
 const WORKS = [
@@ -44,6 +45,8 @@ const ids = (at = BEFORE) => rows(at).map(r => r.id);
 const said = (at = BEFORE) => rows(at).map(r => `${r.id}: ${r.reason.follow ? "You follow" : "Like your picks:"} ${r.reason.name}`);
 const TRACK = key => ({ kind: "track", key }), WORK = key => ({ kind: "work", key }), PERSON = key => ({ kind: "person", key });
 const LN = Math.log;
+/* What one signal finds on an event: the thing, its weight and whether it is a follow. */
+const finds = (signal, event) => { const found = []; SIGNALS[signal](event, profile(), found); return found.map(({ thing, weight, follow }) => ({ thing, weight, follow })); };
 
 beforeEach(() => reader());
 
@@ -81,25 +84,25 @@ describe("the signals, each alone", () => {
   it("follows: an event a follow brings scores for that follow, three times its rarity, and is marked a follow", () => {
     const e = twelve();
     reader({ follows: [TRACK("A")] });
-    expect(SIGNALS.follows(e.a1, profile())).toEqual([{ thing: "track:A", weight: 3 * LN(6), follow: true }]);
-    expect(SIGNALS.follows(e.b1, profile())).toEqual([]);
-    expect(SIGNALS.stars(e.a1, profile())).toEqual([]);
+    expect(finds("follows", e.a1)).toEqual([{ thing: "track:A", weight: 3 * LN(6), follow: true }]);
+    expect(finds("follows", e.b1)).toEqual([]);
+    expect(finds("stars", e.a1)).toEqual([]);
   });
   it("stars: a thing the picks share scores as many times its rarity as picks carry it, three at most", () => {
     const e = twelve();
     reader({ picks: ["b1", "b2"] });
-    expect(SIGNALS.stars(e.b3, profile())).toEqual([{ thing: "track:B", weight: 2 * LN(2), follow: false }]);
-    expect(SIGNALS.follows(e.b3, profile())).toEqual([]);
+    expect(finds("stars", e.b3)).toEqual([{ thing: "track:B", weight: 2 * LN(2), follow: false }]);
+    expect(finds("follows", e.b3)).toEqual([]);
     reader({ picks: ["b1", "b2", "b3"] });
-    expect(SIGNALS.stars(e.b6, profile())[0].weight).toBe(3 * LN(2));
+    expect(finds("stars", e.b6)[0].weight).toBe(3 * LN(2));
     reader({ picks: ["b1", "b2", "b3", "b4", "b5"] });
-    expect(SIGNALS.stars(e.b6, profile())[0].weight).toBe(3 * LN(2));
+    expect(finds("stars", e.b6)[0].weight).toBe(3 * LN(2));
   });
   it("a followed thing is the follow's alone: the picks that carry it add nothing by stars", () => {
     const e = twelve();
     reader({ picks: ["b1", "b2"], follows: [TRACK("B")] });
-    expect(SIGNALS.stars(e.b3, profile())).toEqual([]);
-    expect(SIGNALS.follows(e.b3, profile())).toEqual([{ thing: "track:B", weight: 3 * LN(2), follow: true }]);
+    expect(finds("stars", e.b3)).toEqual([]);
+    expect(finds("follows", e.b3)).toEqual([{ thing: "track:B", weight: 3 * LN(2), follow: true }]);
   });
   it("what the follows signal finds for a follow is exactly what eventsFor() lists for it, each kind", () => {
     const list = [ev("t", { tracks: ["A"] }), ev("w", { works: ["star-wars"] }), ev("under", { works: ["andor"] }), ev("x", { subject: ["space"] }),
@@ -107,7 +110,7 @@ describe("the signals, each alone", () => {
     schedule(list);
     for (const follow of [TRACK("A"), WORK("star-wars"), WORK("andor"), { kind: "axis", key: "subject:space" }, { kind: "axis", key: "audience:kids" }, PERSON("kay")]) {
       reader({ follows: [follow] });
-      const found = list.filter(e => SIGNALS.follows(e, profile()).length).map(e => e.id);
+      const found = list.filter(e => finds("follows", e).length).map(e => e.id);
       expect(found, `${follow.kind}:${follow.key}`).toEqual(eventsFor(follow).map(e => e.id));
       expect(found.length).toBeGreaterThan(0);
     }
@@ -200,6 +203,34 @@ describe("what is not a candidate", () => {
     expect(offered(kay("clash", { start: "2026-09-05T10:59", end: "2026-09-05T12:00" }), { others: [pick], picks: ["plan"] })).toBe(false);
     expect(offered(kay("inside", { start: "2026-09-05T10:15", end: "2026-09-05T10:45" }), { others: [pick], picks: ["plan"] })).toBe(false);
     expect(offered(kay("after", { start: "2026-09-05T11:00", end: "2026-09-05T12:00" }), { others: [pick], picks: ["plan"] })).toBe(true);
+    expect(offered(kay("before", { start: "2026-09-05T09:00", end: "2026-09-05T10:00" }), { others: [pick], picks: ["plan"] })).toBe(true);
+    expect(offered(kay("into", { start: "2026-09-05T09:30", end: "2026-09-05T10:01" }), { others: [pick], picks: ["plan"] })).toBe(false);
+  });
+  it("one that starts with a pick, the shorter or the longer of the two, or the same hour", () => {
+    const pick = ev("plan", { start: "2026-09-05T10:00", end: "2026-09-05T11:00" });
+    for (const end of ["2026-09-05T10:30", "2026-09-05T11:00", "2026-09-05T12:30"]) {
+      expect(offered(kay("with", { start: "2026-09-05T10:00", end }), { others: [pick], picks: ["plan"] }), end).toBe(false);
+    }
+  });
+  it("and what bars it is what clashesOf() says of the plan, for every event of a busy day", () => {
+    const day = [];
+    for (let h = 8; h < 20; h++) for (const [m, len] of [[0, 60], [30, 90], [15, 20]]) {
+      const start = new Date(`2026-09-05T${pad(h)}:${pad(m)}`), end = new Date(start.getTime() + len * 60000), hm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      day.push(ev(`e-${h}-${m}`, { people: ["kay"], repeat: `r-${h}-${m}`, start: `2026-09-05T${hm(start)}`, end: `2026-09-05T${hm(end)}` }));
+    }
+    const plan = [ev("p-a", { start: "2026-09-05T09:00", end: "2026-09-05T10:00" }), ev("p-b", { start: "2026-09-05T12:15", end: "2026-09-05T12:35" }),
+      ev("p-c", { start: "2026-09-05T15:30", end: "2026-09-05T17:00" }), ev("p-long", { start: "2026-09-05T08:00", end: "2026-09-05T19:00" })];
+    const short = new Set(["p-a", "p-b", "p-c"]), seen = { barred: 0, offered: 0 };
+    for (const e of day) {
+      /* one event a schedule, so the cap of two rows a reason bars nothing */
+      schedule([e, ...plan, ...fill(3)]);
+      reader({ picks: plan.map(p => p.id), follows: [PERSON("kay")] });
+      const clash = clashesOf(byId.get(e.id)).some(p => short.has(p.id));
+      expect(ids().includes(e.id), e.id).toBe(!clash);
+      seen[clash ? "barred" : "offered"]++;
+    }
+    expect(seen.barred).toBeGreaterThan(5);
+    expect(seen.offered).toBeGreaterThan(5);
   });
   it("but a pick of more than four hours blocks nothing, and one of four hours does", () => {
     const during = () => kay("during", { start: "2026-09-05T12:00", end: "2026-09-05T13:00" });
