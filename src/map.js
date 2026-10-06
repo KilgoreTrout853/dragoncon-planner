@@ -4,7 +4,7 @@ import { crewmatesByEvent } from "./crews.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, conEnded, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
 import { hotelShort, hotelVar, levelShort, placeHTML, placeShort } from "./venues.js";
-import { byId, events } from "./data.js";
+import { byId, events, happening } from "./data.js";
 import { picks } from "./picks.js";
 import { walkEstimate } from "./walk.js";
 import { chipHTML } from "./ui.js";
@@ -80,9 +80,11 @@ function showOnMap(id) {
   if (card) card.focus({preventScroll: true});
 }
 
+/* The reader's picks at each hotel that day: those that are happening
+   (DECISIONS #90). */
 function mapCounts(day) {
   const counts = {};
-  events.forEach(e => { if (picks.has(e.id) && e._cd === day && MAP_HOTELS[e.hotel]) counts[e.hotel] = (counts[e.hotel] || 0) + 1; });
+  events.forEach(e => { if (picks.has(e.id) && happening(e) && e._cd === day && MAP_HOTELS[e.hotel]) counts[e.hotel] = (counts[e.hotel] || 0) + 1; });
   return counts;
 }
 /* A gold pill on the block's top-right corner; none at all when zero. A
@@ -100,13 +102,14 @@ function mapPillSVG(hotel, b, n) {
    order, start then title, and by name within one event, so one event's
    lines stay together; a crewmate with two picks there has two. Nothing on
    a build with no backend or out of a crew; a removed event, or one this
-   schedule does not hold, is no one's, since only events are walked. The
-   hotel sheet lists them (sheet.js). */
+   schedule does not hold, is no one's, since only events are walked, and a
+   cancelled one is no one's either: it is not happening (#90). The hotel
+   sheet lists them (sheet.js). */
 function mapCrewPicks(day) {
   if (!hasBackend) return {};
   const going = crewmatesByEvent(), at = {};
   events.forEach(e => {
-    const who = e._cd === day && MAP_HOTELS[e.hotel] ? going.get(e.id) : null;
+    const who = e._cd === day && MAP_HOTELS[e.hotel] && happening(e) ? going.get(e.id) : null;
     if (who) who.forEach(p => (at[e.hotel] || (at[e.hotel] = [])).push({...p, ev: e}));
   });
   return at;
@@ -184,7 +187,7 @@ function mapFocusSVG(ev) {
 function mapCardState() {
   const at = now(), model = nowModel(at), today = conDayKey(at);
   const next = model.upcoming[0] || null;
-  const later = next ? null : (events.find(e => picks.has(e.id) && e._s > at && conDayKey(e._s) > today) || null);
+  const later = next ? null : (events.find(e => picks.has(e.id) && happening(e) && e._s > at && conDayKey(e._s) > today) || null);
   return {now: at, onNow: model.onNowEv, next, later, estimate: next ? walkEstimate(next) : null, focus: mapFocus()};
 }
 function focusCardHTML(ev) {
@@ -211,7 +214,7 @@ function mapCardHTML(cs) {
 }
 const offLineHTML = off => off ? `<div class="map-offmap">${off} pick${off === 1 ? "" : "s"} streaming or offsite</div>` : "";
 /* Picks that day at venues the map does not draw: streams and offsite. */
-const mapOffMapCount = day => events.filter(e => picks.has(e.id) && e._cd === day && !MAP_HOTELS[e.hotel]).length;
+const mapOffMapCount = day => events.filter(e => picks.has(e.id) && happening(e) && e._cd === day && !MAP_HOTELS[e.hotel]).length;
 
 /* What a hotel's block says of itself: its picks on the Map's day and, where
    there are any, how many of the crew. */

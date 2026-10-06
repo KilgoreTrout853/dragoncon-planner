@@ -616,4 +616,14 @@ describe("src/styles.css", () => {
       });
     });
   });
+
+  describe("in place of a pick: the notice's OK, and a cancelled block on the timeline (DECISIONS #90)", () => {
+    it("the picks-changed notice's OK is 44px tall (#66)", () => {
+      expect(css).toMatch(/\.pick-news \.btn \{[^}]*height: 44px;/);
+    });
+    it("a cancelled pick's block is drawn as a removed one's is: dimmed, its title struck", () => {
+      expect(css).toMatch(/\.tl-block\.removed, \.tl-block\.cancelled \{ opacity: \.55; \}/);
+      expect(css).toMatch(/\.tl-block\.removed \.tb-title, \.tl-block\.cancelled \.tb-title \{ text-decoration: line-through; \}/);
+    });
+  });
 });

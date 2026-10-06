@@ -120,7 +120,9 @@ function myMembership(crew) {
    counted in it, the rule Now's own hero keeps. The schedule is the
    caller's, data.js `events`, in start order and with no removed event,
    since this module comes before the schedule and the clock: a pick it
-   does not hold is no one's. What is left of a crewmate's day is in start
+   does not hold is no one's. A cancelled pick is passed over, as Now's own
+   hero passes over one (#90) - by its flag, asked here, since data.js's
+   happening() stands after this module. What is left of a crewmate's day is in start
    order, so its first is the one on now where one is - of two, the earlier
    start - and else the next. [{user_id, display_name, ev, on}], by start -
    which puts every pick on now before every next one - and then as
@@ -131,7 +133,7 @@ function crewRightNow(schedule, at, today) {
   for (const p of crewmates()) {
     const going = theirs[p.user_id];
     if (!going) continue;
-    const ev = schedule.find(e => going[e.id] === true && e._e > at && (e._cd === today || e._s <= at));
+    const ev = schedule.find(e => going[e.id] === true && !e.cancelled && e._e > at && (e._cd === today || e._s <= at));
     if (ev) lines.push({...p, ev, on: ev._s <= at});
   }
   return lines.sort((a, b) => a.ev._s - b.ev._s);

@@ -10,15 +10,16 @@
 import { minutesBetween } from "./util.js";
 import { conDayKey } from "./time.js";
 import { hotelPhrase, hotelShort, SLACK_MIN, walkMin } from "./venues.js";
-import { byId, events } from "./data.js";
+import { byId, events, happening } from "./data.js";
 import { picks } from "./picks.js";
 
-/* The pick before this one in the same con day, if any. */
+/* The pick before this one in the same con day, if any: nobody walks from
+   a cancelled one (DECISIONS #90). */
 function previousPick(next) {
   let prev = null;
   for (const e of events) {
     if (e._s >= next._s) break;
-    if (picks.has(e.id) && e._cd === next._cd) prev = e;
+    if (picks.has(e.id) && happening(e) && e._cd === next._cd) prev = e;
   }
   return prev;
 }
@@ -95,9 +96,10 @@ function gapHTML(prev, next) {
   return `<div class="gap">${c.gap} min gap, ${move} about ${c.walk} min. Tight but doable</div>`;
 }
 
+/* The next pick today that is happening: the mini-bar's. */
 function nextPickInConDay(now) {
   const key = conDayKey(now);
-  return events.find(e => picks.has(e.id) && e._s > now && conDayKey(e._s) === key) || null;
+  return events.find(e => picks.has(e.id) && happening(e) && e._s > now && conDayKey(e._s) === key) || null;
 }
 
 export { walkEstimate, connection, overlapsOf, clashesOf, gapHTML, nextPickInConDay };

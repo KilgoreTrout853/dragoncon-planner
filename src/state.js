@@ -18,6 +18,11 @@ const state = {
      (map.js; DECISIONS #75). */
   map: {day: null, focus: null},
   plans: {crew: null, day: null},         /* the crew shown, null the oldest; the crew's day, null the clock's */
+  /* What stands in place of the picks that changed, under the notice on Now
+     and on My day, while the reader stays on the tab - the tab, the news it
+     was worked out from, and each fold's rows and whether it is open - null
+     when it is to be worked out (inplace.js; DECISIONS #90). */
+  inPlace: null,
   /* Explore's: mutedOpen is the grid's Muted fold, shut on every load (#84);
      forYou is For you's list while the reader stays on the grid - its rows
      and whether Show more was tapped - null when it is to be worked out

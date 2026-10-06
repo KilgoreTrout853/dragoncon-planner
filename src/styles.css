@@ -100,7 +100,7 @@ button { cursor: pointer; }
 .device { font-size: .75rem; color: var(--dim); line-height: 1.4; }
 .notice.warn { border-color: var(--warn); color: var(--text); }
 .pick-news ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
-.pick-news .btn { margin-top: 12px; height: 38px; }
+.pick-news .btn { margin-top: 12px; height: 44px; }
 .nudge .btns, .notice.archive .btns { display: flex; gap: 8px; margin-top: 12px; }
 .nudge .btn, .notice.archive .btn { height: 38px; }
 
@@ -847,8 +847,8 @@ body.has-minibar .devmark { bottom: calc(var(--nav-h) + 5px + var(--minibar-h));
 .tl-block.tight .tb-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .tl-block.tighter .tb-room { display: none; }
 /* A removed pick keeps its place in the timeline, faded and struck. */
-.tl-block.removed { opacity: .55; }
-.tl-block.removed .tb-title { text-decoration: line-through; }
+.tl-block.removed, .tl-block.cancelled { opacity: .55; }
+.tl-block.removed .tb-title, .tl-block.cancelled .tb-title { text-decoration: line-through; }
 /* A six-hour block is 360px of flat colour. Keep its true position and
    height - the geometry is the point - but let the body fade toward the
    page so shorter picks still read as the foreground. */

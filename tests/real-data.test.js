@@ -3,7 +3,11 @@
    actually narrow this" means nothing there. The number in brackets is the
    harness line the assertion came from (tests/PORT-LEDGER.md). One boot, and a
    long wait for it: the index over the real schedule takes seconds in jsdom. */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { YEAR, YY } from "../src/season.js";
 import { bootPage } from "./helpers/page.js";
 
 describe("against the real schedule", () => {
@@ -1156,5 +1160,79 @@ describe("against the real schedule", () => {
       expect(aged.map(e => [e.title, app.flagsOf(e).map(f => f.label).join(", ")]).sort()).toEqual([
         ["Modded Kids Among Us in Real Life (Ages 13+)", "13+, Kids"], ["Troika: Slate & Chalcedony", "16+"]]);
     });
+  });
+});
+
+/* In place of a pick (W2; DECISIONS #90) on the real schedule, by a boot of
+   its own: the design sketch's reader - nine picks, Star Trek and Sean Astin
+   followed - at Saturday 5:05 PM, against a copy of the schedule, made here
+   in memory and never in data/, in which the source has cancelled Star Trek
+   Science and moved Is NASA Still 'NASA'? to Monday at 11:00 AM. The
+   snapshots are the events as starred. New tests: no harness line. */
+describe("in place of a pick, on 2026's schedule: the sketch's reader at Saturday 5:05 PM", () => {
+  const SKETCH = ["6ecc75745a676d39f2300556239d62d0", "c32d19e7750818e0eb903f152ac43c0e", "c32d19e7750818e0eb903f152ad81594",
+    "c32d19e7750818e0eb903f152ad84b6f", "1e3995157984a4c0e6515a2ed631ee27", "c32d19e7750818e0eb903f152ac06f6f",
+    "c32d19e7750818e0eb903f152ac72ab7", "c32d19e7750818e0eb903f152ac14835", "6ecc75745a676d39f230055623a7291a"];
+  const SCIENCE = "c32d19e7750818e0eb903f152ac43c0e", NASA = "c32d19e7750818e0eb903f152ad84b6f", MASQUERADE = "c32d19e7750818e0eb903f152ac72ab7";
+  const words = node => (node ? node.textContent.replace(/\s+/g, " ").trim() : null);
+  const now = () => document.getElementById("view-now");
+  const folds = () => [...now().querySelectorAll(".divider.fold.in-place button")];
+  const rowsUnder = button => [...button.parentElement.nextElementSibling.querySelectorAll(".row")]
+    .map(r => [words(r.querySelector(".title")), words(r.querySelector(".status")), words(r.querySelector(".track"))]);
+  let page, app;
+
+  beforeAll(async () => {
+    const raw = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", String(YEAR), "events.v2.json"), "utf8"));
+    const seed = (key, value) => window.localStorage.setItem(`dc${YY}.${key}`, JSON.stringify(value));
+    seed("picks", SKETCH);
+    seed("follows", [{ kind: "work", key: "star-trek" }, { kind: "person", key: "sean-astin" }]);
+    seed("pickInfo", Object.fromEntries(raw.events.filter(e => SKETCH.includes(e.id)).map(e => [e.id, { title: e.title, start: e.start, location: e.location || "", end: e.end, hotel: e.hotel }])));
+    const data = { ...raw, events: raw.events.map(e => (e.id === SCIENCE ? { ...e, cancelled: true, title: "CANCELLED: Star Trek Science" }
+      : e.id === NASA ? { ...e, day: "2026-09-07", start: "2026-09-07T11:00", end: "2026-09-07T12:00" } : e)) };
+    page = await bootPage({ data, now: "2026-09-05T17:05" });
+    ({ app } = page);
+    await page.until(() => app.BOOT.suggested > 0, 110000, "the index over the real schedule");
+  }, 120000);
+  afterAll(() => page.cleanup(), 60000);
+
+  it("the notice says the two changes, the cancellation under the title it had", () => {
+    expect([...now().querySelectorAll(".pick-news li")].map(words)).toEqual([
+      "Star Trek Science was cancelled. It was Sat 5:30 PM, Hilton Galleria 2-3. It stays in Plans, marked.",
+      "Is NASA Still 'NASA'? moved to Mon 11:00 AM, Hilton 212-214. It was Sun 4:00 PM, Hilton 212-214.",
+    ]);
+  });
+  it("two folds, shut, each counting three", () => {
+    expect(folds().map(b => [words(b), b.getAttribute("aria-expanded")])).toEqual([
+      ["In place of Star Trek Science, Sat 5:30 PM (3) ▸", "false"],
+      ["In place of Is NASA Still 'NASA'?, Sun 4:00 PM (3) ▸", "false"],
+    ]);
+  });
+  it("in place of Star Trek Science: the Enterprise Q&A by the follow, then two of Main Programming's - a track and a topic of one name weigh as one reason, so Moon & Space Sustainability is not the third", () => {
+    folds()[0].click();
+    expect(rowsUnder(folds()[0])).toEqual([
+      ["Star Trek Enterprise Q&A", "You follow Star Trek", "Trek Track"],
+      ["Gina Torres - Big Damn Hero!", "Like your picks: Main Programming", null],
+      ["Cosplay Photography 101", "Like your picks: Main Programming", null],
+    ]);
+    expect(app.inPlace({ start: "2026-09-05T17:30", end: "2026-09-05T18:30", hotel: "Hilton" }, app.now()).map(r => app.byId.get(r.id).title))
+      .not.toContain("Moon & Space Sustainability");
+  });
+  it("in place of Is NASA Still 'NASA'?, moved: two by the follow and one like the picks, none of them over its new time on Monday", () => {
+    folds()[1].click();
+    expect(rowsUnder(folds()[1])).toEqual([
+      ["Infinite Riker Games", "You follow Star Trek", "Trek Track"],
+      ["A Golden Cage: Are We Already Part of the Borg?", "You follow Star Trek", "Trek Track"],
+      ["Classic TV Table Read: Manimal", "Like your picks: TV", "American Sci-fi Classics"],
+    ]);
+  });
+  it("every row starts in the hour its pick vacated", () => {
+    const starts = button => [...button.parentElement.nextElementSibling.querySelectorAll(".row")].map(r => app.byId.get(r.dataset.id).start);
+    expect(starts(folds()[0])).toEqual(Array(3).fill("2026-09-05T17:30"));
+    expect(starts(folds()[1])).toEqual(Array(3).fill("2026-09-06T16:00"));
+  });
+  it("and Star Trek Science is no hero: nothing is picked for later today, and the next pick is Sunday's", () => {
+    expect(document.getElementById("nowHero")).toBe(null);
+    expect(words(now().querySelector(".empty"))).toBe("Nothing picked for later today. Your next pick is on Sunday.");
+    expect(now().querySelector('.row[data-list="next"]').dataset.id).toBe(MASQUERADE);
   });
 });

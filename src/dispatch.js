@@ -26,6 +26,7 @@ import {
   renderExploreSections, scrollToExploreSection, scrollToGrid,
 } from "./explore.js";
 import { showOnMap, tickMap } from "./map.js";
+import { toggleInPlace } from "./inplace.js";
 import { refreshEventSheet } from "./eventsheet.js";
 import {
   closeSheet, closeWholeSheet, drawHotelSheet, openSheet, panelFilters, sheetWrap, showHotelCrew,
@@ -111,6 +112,9 @@ function onMainClick(e) {
     if (a === "toggle-past") { state.browse.showPast = !state.browse.showPast; render(); return; }
     if (a === "browse-cast") { state.browse.castOpen = !state.browse.castOpen; render(); return; }
     if (a === "dismiss-news") { clearNews(); savePickNews(); render(); return; }
+    /* A fold under the notice, what is on in place of a pick: opened or
+       shut, its rows held as they were (#90). */
+    if (a === "in-place") { toggleInPlace(Number(act.dataset.fold)); render(); return; }
     if (a === "dismiss-archive") { saveJSON(ARCHIVE_NOTICE_KEY, CON.year); render(); return; }
     if (a === "nudge-later") { saveJSON(storageKey("nudgeSnoozedUntil"), now().getTime() + NUDGE_SNOOZE_MS); render(); return; }
     if (a === "nudge-install") {

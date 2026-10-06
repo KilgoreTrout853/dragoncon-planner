@@ -42,6 +42,14 @@ const tagsOf = e => e.tags || NO_TAGS;
    evidence, so they drop out when the toggle is on. */
 const isCeleb = e => tagsOf(e).guests === "celebrity";
 
+/* An event to go to: on the schedule, and not cancelled. A cancelled pick is
+   not happening (DECISIONS #90), as a removed one is not (#49): whatever
+   says what is next, where to walk, or how many picks are at a place asks
+   this of a pick, the reader's or a crewmate's. Where the plan is listed -
+   My day, the crew's day, the record - it is not asked: the pick stays,
+   marked. */
+const happening = e => !e.cancelled && !e.removed;
+
 /* 18+ is one thing (DECISIONS #77), to the word in the box, to the filter
    sheet's Audience and to a row's flag: a mature audience, or a stated
    minimum age of 17 or more, or the listing's own Mature Audience marker.
@@ -227,7 +235,7 @@ function replaceSchedule(data) {
 }
 
 export {
-  NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, tagsOf, isCeleb, isAdult, flagsOf, factsOf, sessionsOf, knownFor, DATA_URL,
+  NOISE_TRACKS, isNoise, events, byId, tracks, hotelChips, meta, tagsOf, isCeleb, happening, isAdult, flagsOf, factsOf, sessionsOf, knownFor, DATA_URL,
   AXES, CAST, worksById, workCounts, axisKeys,
   replaceSchedule, directWorks, linkedWorks, linksTo, castEvents, personName, topWorks,
 };

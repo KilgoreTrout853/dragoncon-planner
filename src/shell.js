@@ -48,6 +48,9 @@ function render() {
      Explore's grid - another tab, a page - and the next draw of the grid
      works it out again. */
   if (state.tab !== "explore" || state.explore.page) state.explore.forYou = null;
+  /* And what stands in place of a pick (#90), worked out on Now or on Plans:
+     a draw of any other tab lets it go. */
+  if (state.inPlace && state.inPlace.tab !== state.tab) state.inPlace = null;
   cancelQueuedBrowseRender();
   updateClock();
   renderNotice();
@@ -136,6 +139,7 @@ function setTimeOverride(value) {
   state.map.focus = null;
   state.plans.day = null;
   state.explore.forYou = null;               // a new moment: For you is worked out again (#87)
+  state.inPlace = null;                      // and what stands in place of a pick (#90)
   render();
   updateFresh();                             // "refreshed 2 h ago" is relative to the clock too
 }
@@ -178,6 +182,7 @@ function onNavClick(e) {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
   state.tab = b.dataset.tab;
   state.explore.forYou = null;               // Explore's own tab tapped again works For you out too (#87)
+  state.inPlace = null;                      // as a tap on the nav does what stands in place of a pick (#90)
   render(); pageScrollTo(0);
   if (state.tab === "plans") runSync();
 }
@@ -191,8 +196,8 @@ function onBigTextChange(e) {
   render();                    // the timeline re-measures its blocks at the new size
 }
 /* A return to the app is a draw from somewhere else: For you is worked out
-   again (#87). */
-function onVisibleRender() { if (!document.hidden) { state.explore.forYou = null; render(); } }
+   again (#87), and what stands in place of a pick (#90). */
+function onVisibleRender() { if (!document.hidden) { state.explore.forYou = null; state.inPlace = null; render(); } }
 
 /* main scrolls and bounces on its own; the page around it never scrolls,
    yet iOS will still rubber-band it when a drag lands on the header or the

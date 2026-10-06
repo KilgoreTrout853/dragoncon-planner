@@ -1,5 +1,6 @@
-/* Markup the views share: an event's row, a crewmate's pick as a line, a
-   chip, the celebrity badge. Builders and their constants only - this module
+/* Markup the views share: an event's row, a reason as a row says it, a
+   crewmate's pick as a line, a chip, the celebrity badge. Builders and their
+   constants only - this module
    holds no DOM handle, scrolls nothing and draws nothing; it returns strings,
    and whoever asked puts them on the page. rowHTML reads state.sheetId and
    picks to mark the open and the starred row, and the plan's overlaps,
@@ -75,6 +76,14 @@ function rowHTML(ev, opts = {}) {
   </li>`;
 }
 
+/* A reason as a row says it (DECISIONS #87): what rowHTML() takes for one -
+   "You follow" or "Like your picks:" and the thing's name as the row's
+   context, and the track left unsaid where the reason names it. For you's
+   rows and the rows in place of a pick (#90) say a reason this one way.
+   Nothing for a row with no reason. */
+const reasonSaid = (ev, reason) => (reason
+  ? {noTrack: reason.name === ev.track, status: `${reason.follow ? "You follow" : "Like your picks:"} ${reason.name}`} : {});
+
 function highlighter(terms) {
   const words = [...new Set(terms)].filter(t => t.length > 1).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
   if (!words.length) return x => esc(x);
@@ -120,4 +129,4 @@ function chipHTML(label, on, kind, value, style) {
   return `<button class="${cls}" data-chip="${kind}" data-value="${esc(v)}" aria-pressed="${on}"${st}>${esc(label)}</button>`;
 }
 
-export { CELEB_BADGE, rowHTML, crewLineHTML, chipHTML };
+export { CELEB_BADGE, rowHTML, reasonSaid, crewLineHTML, chipHTML };
