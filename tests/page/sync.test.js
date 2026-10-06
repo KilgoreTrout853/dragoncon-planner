@@ -97,11 +97,13 @@ describe("the doors: one op per changed key, one upsert per table", () => {
     await app.syncSettled();
     expect(posts(fake, "picks").slice(from).map(r => r.body)).toEqual([[{ year: YEAR, event_id: ids[3], picked: false, changed_at: expect.any(String) }]]);
   });
-  it("Remove all is a tombstone for every pick, in one upsert", async () => {
+  it("Remove all picks, Settings' button, is a tombstone for every pick, in one upsert", async () => {
     handle.picks.set([ids[4], ids[5]]);
     await app.syncSettled();
     const from = posts(fake, "picks").length;
-    handle.picks.set([]);
+    handle.openSheet("settings");
+    document.getElementById("resetPicks").click();      // the helper answers the confirm
+    expect(handle.picks.get().size).toBe(0);
     await app.syncSettled();
     expect(posts(fake, "picks").slice(from).map(r => r.body.map(b => [b.event_id, b.picked]))).toEqual([[[ids[4], false], [ids[5], false]].sort()]);
   });

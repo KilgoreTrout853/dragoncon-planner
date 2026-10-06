@@ -1,6 +1,7 @@
-/* The bottom sheet: one wrapper and seven panels - Settings, an event,
+/* The bottom sheet: one wrapper and eight panels - Settings, an event,
    which eventsheet.js draws, a hotel, a crew, Share a day, a day shared with
-   the reader and Search's filters, which filters.js draws - with what fills
+   the reader, Search's filters, which filters.js draws, and About this app,
+   which about.js draws and Settings' row alone opens - with what fills
    each, what opens and closes it, the swipe and the Escape that dismiss it,
    focus into it and back (#66), and the handlers boot()
    registers on it, on the Settings controls - the email step's among them -
@@ -11,7 +12,7 @@
    The clicks inside the event, hotel, shared-day and filter panels are
    dispatch's: they reach further than the sheet. closeSheet() asks for its
    redraw over the bus, because render() is the shell's, above this module.
-   The eleven elements are looked up as the module is imported, so the
+   The thirteen elements are looked up as the module is imported, so the
    markup has to be there first. */
 import { esc, fmtShort } from "./util.js";
 import { YEAR } from "./season.js";
@@ -37,9 +38,10 @@ import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter } fro
 import { MAP_HOTELS, mapCrewCounts, mapCrewPicks, mapDay, onTheMap } from "./map.js";
 import { chosenCrew, crewPeople } from "./plans.js";
 import { filtersChanged, filtersHTML, settleWords } from "./filters.js";
+import { aboutHTML } from "./about.js";
 
-/* Bottom sheet: one wrapper, seven panels (settings, event, hotel, crew,
-   share, shared, filters) */
+/* Bottom sheet: one wrapper, eight panels (settings, event, hotel, crew,
+   share, shared, filters, about) */
 const sheetWrap = document.getElementById("sheetWrap");
 const sheetEl = document.getElementById("sheet");
 const panelSettings = document.getElementById("panel-settings");
@@ -49,6 +51,8 @@ const panelCrew = document.getElementById("panel-crew");
 const panelShare = document.getElementById("panel-share");
 const panelShared = document.getElementById("panel-shared");
 const panelFilters = document.getElementById("panel-filters");
+const panelAbout = document.getElementById("panel-about");
+const settingsBody = document.getElementById("settingsBody");
 let sheetScrollY = 0;
 let opener = null;      // what opened the sheet, as a selector that finds it again
 
@@ -64,7 +68,7 @@ function fillSettings() {
 }
 
 /* Keep your plan: the email step (DECISIONS #51, #53), between Advanced and
-   Done, and there only when the build has a backend - with none, the panel
+   the About row, and there only when the build has a backend - with none, the panel
    is the 2026 app's. One screen for add and recover: the address and Send
    code, then the code and Confirm; once the session has an email, who it
    is and Sign out. Under the heading, with a session alone, sync's lines
@@ -774,11 +778,7 @@ function backToShared() {
   const back = sharedBack;
   sharedBack = null;
   state.sheetId = null;
-  sheetEl.classList.remove("settling");
-  sheetEl.style.transform = "";
-  sheetBackEl.style.opacity = "";
-  sheetBackEl.classList.remove("dragging");
-  dragY = null;
+  undrag();
   panelEvent.hidden = true;
   panelShared.hidden = false;
   sheetEl.setAttribute("aria-labelledby", TITLES.shared);
@@ -789,14 +789,35 @@ function backToShared() {
   if (again) again.focus({preventScroll: true});
 }
 
-const TITLES = {event: "sheetTitleEvent", hotel: "sheetTitleHotel", crew: "sheetTitleCrew", share: "sheetTitleShare", shared: "sheetTitleShared",
-  filters: "sheetTitleFilters"};
+/* About this app (DECISIONS #92): the panel behind Settings' row, and its
+   one way out, which is back - its button, the backdrop, a swipe down and
+   Escape each show Settings again, the panel shown, not drawn again, its
+   body scrolled where it was and focus on the row; Done then closes the
+   sheet. The rule an event opened from the shared day keeps (#63, #74). The
+   record is the body's scroll, which a hidden panel loses; it is there
+   while the about panel is up, and any other panel opening takes it. */
+let aboutBack = null;     // {scroll}: Settings' body, while the about panel is over it
+function backToSettings() {
+  const back = aboutBack;
+  aboutBack = null;
+  undrag();
+  panelAbout.hidden = true;
+  panelSettings.hidden = false;
+  sheetEl.setAttribute("aria-labelledby", "sheetTitle");
+  settingsBody.scrollTop = back.scroll;
+  document.getElementById("aboutRow").focus({preventScroll: true});
+}
 
-/* kind: settings, event, hotel, crew, share, shared or filters; id: the
+const TITLES = {event: "sheetTitleEvent", hotel: "sheetTitleHotel", crew: "sheetTitleCrew", share: "sheetTitleShare", shared: "sheetTitleShared",
+  filters: "sheetTitleFilters", about: "sheetTitleAbout"};
+
+/* kind: settings, event, hotel, crew, share, shared, filters or about; id: the
    event's, the hotel's, or the crew panel's step - create, join or manage.
    The crew panel needs a backend: with none there are no crews. Share needs
-   a day to share, shared a day read from a link, and filters - Search's
-   filter sheet (#70) - a schedule. Focus goes to the panel's
+   a day to share, shared a day read from a link, filters - Search's
+   filter sheet (#70) - a schedule, and about Settings under it: its row is
+   the one way in. Settings opens with its body at its top. Focus goes to
+   the panel's
    heading, and closing puts it back on what opened the sheet (#66), kept
    as scroll.js focusKey() puts it, since the redraw that closing asks for
    replaces it. An event opened from the shared day keeps the way back to
@@ -809,10 +830,12 @@ function openSheet(kind = "settings", id = null) {
   if (kind === "share" && !shareableDays(yearSchedule(), picks).length) return;
   if (kind === "shared" && !sharedDay) return;
   if (kind === "filters" && !events.length) return;
+  if (kind === "about" && (sheetWrap.hidden || panelSettings.hidden)) return;
   const fromShared = kind === "event" && !sheetWrap.hidden && !panelShared.hidden && !!sharedDay && !sharedDay.error;
   const fromEvent = kind === "event" && !sheetWrap.hidden && !panelEvent.hidden;     // an event over an event: the way back, if any, stays
   if (fromShared) sharedBack = {scroll: (document.getElementById("sharedBody") || {}).scrollTop || 0, focus: focusKey(document.activeElement)};
   else if (kind !== "shared" && !fromEvent) dropShared();     // any other panel: the shared day and its way back go
+  aboutBack = kind === "about" ? {scroll: settingsBody.scrollTop || 0} : null;
   if (sheetWrap.hidden) opener = focusKey(document.activeElement);
   sheetScrollY = pageScrollTop();
   state.sheetId = kind === "event" ? id : null;
@@ -823,6 +846,7 @@ function openSheet(kind = "settings", id = null) {
   else if (kind === "share") openShare();
   else if (kind === "shared") panelShared.innerHTML = sharedHTML(sharedDay);
   else if (kind === "filters") { settleWords(); panelFilters.innerHTML = filtersHTML(); }   // the box left by the tap on Filters (#71)
+  else if (kind === "about") panelAbout.innerHTML = aboutHTML();
   else fillSettings();
   panelSettings.hidden = kind !== "settings";
   panelEvent.hidden = kind !== "event";
@@ -831,10 +855,12 @@ function openSheet(kind = "settings", id = null) {
   panelShare.hidden = kind !== "share";
   panelShared.hidden = kind !== "shared";
   panelFilters.hidden = kind !== "filters";
+  panelAbout.hidden = kind !== "about";
   sheetEl.setAttribute("aria-labelledby", TITLES[kind] || "sheetTitle");
   sheetEl.style.transform = "";
   sheetWrap.hidden = false;
   if (kind === "share") fitShareText();
+  if (kind === "settings") settingsBody.scrollTop = 0;
   focusTitle(TITLES[kind] || "sheetTitle");
 }
 function focusTitle(id) {
@@ -863,9 +889,11 @@ function closeWholeSheet() {
    whose opener the redraw took away - a first crew made, the last one
    left - gives it to what Plans' header now holds. The filter sheet closed
    with anything changed brings the list back to its top: the old place in
-   it is no place in the new one. */
+   it is no place in the new one. The about panel does not close: it goes
+   back to Settings (#92). */
 function closeSheet() {
   if (sharedBack && !sheetWrap.hidden && !panelEvent.hidden) { backToShared(); return; }
+  if (aboutBack && !sheetWrap.hidden && !panelAbout.hidden) { backToSettings(); return; }
   dropShared();
   if (!sheetWrap.hidden && !panelFilters.hidden && filtersChanged()) sheetScrollY = 0;
   const crewShown = !sheetWrap.hidden && !panelCrew.hidden;
@@ -876,18 +904,15 @@ function closeSheet() {
   sheetWrap.hidden = true;
   state.sheetId = null;
   state.sheetHotel = null;
-  sheetEl.classList.remove("settling");
-  sheetEl.style.transform = "";
-  sheetBackEl.style.opacity = "";
-  sheetBackEl.classList.remove("dragging");
-  dragY = null;
+  undrag();
   requestRender();
   pageScrollTo(sheetScrollY);
   const back = (opener && shownMatch(opener)) || (crewShown ? shownMatch("#crewPick, #crewManageBtn, #crewStartBtn") : null);
   opener = null;
   if (back) back.focus({preventScroll: true});
 }
-/* Escape closes the sheet, whatever it shows (#66); a key an input method
+/* Escape closes the sheet, whatever it shows (#66) - or goes back, where
+   closeSheet() does; a key an input method
    is still composing with is left to it - WebKit sends the key that ends a
    composition after it, as keyCode 229. */
 function onSheetKeydown(e) {
@@ -902,6 +927,14 @@ function onSheetKeydown(e) {
 const sheetBackEl = document.getElementById("sheetBack");
 let dragY = null, dragT = 0, dragDy = 0;
 
+/* The sheet at rest again, whatever a drag or a settle left on it. */
+function undrag() {
+  sheetEl.classList.remove("settling");
+  sheetEl.style.transform = "";
+  sheetBackEl.style.opacity = "";
+  sheetBackEl.classList.remove("dragging");
+  dragY = null;
+}
 function setDrag(dy) {
   dragDy = dy;
   sheetEl.style.transform = dy ? `translateY(${dy}px)` : "";
@@ -914,7 +947,10 @@ function settle(toClosed) {
   if (toClosed) {
     sheetEl.style.transform = `translateY(${sheetEl.offsetHeight}px)`;
     sheetBackEl.style.opacity = "0";
-    const done = () => { sheetEl.removeEventListener("transitionend", done); closeSheet(); };
+    /* Once: where the transition does end, the timer still comes, and a
+       second close would shut what the first went back to. */
+    let closed = false;
+    const done = () => { if (closed) return; closed = true; sheetEl.removeEventListener("transitionend", done); closeSheet(); };
     sheetEl.addEventListener("transitionend", done);
     setTimeout(done, 320);            // belt and braces if the transition never fires
   } else {
@@ -925,9 +961,9 @@ function settle(toClosed) {
 
 /* What boot() registers on the sheet itself: the drag. */
 function onSheetTouchStart(e) {
-  if (e.target.closest(".ev-body, textarea, .filters-body, .advanced-body")) return;   // let the description scroll, the message to share, the filters, and Advanced
-  const tall = e.target.closest("#panel-crew, #panel-event");
-  if (tall && tall.scrollHeight > tall.clientHeight) return;   // and the crew panel or an event's, when it is taller than its room and scrolls
+  if (e.target.closest(".ev-body, textarea, .filters-body")) return;   // let the description scroll, the message to share, and the filters
+  const tall = e.target.closest("#panel-crew, #panel-event, .sheet-body");
+  if (tall && tall.scrollHeight > tall.clientHeight) return;   // and the crew panel, an event's, or Settings' body or About's, when it is taller than its room and scrolls
   dragY = e.touches[0].clientY;
   dragT = performance.now();
   dragDy = 0;
@@ -954,8 +990,12 @@ function onSheetTouchEnd() {
 
 function onSheetTouchCancel() { if (dragY !== null) { dragY = null; settle(false); } }
 
-/* And on the header's Settings button and the Settings panel's controls. */
+/* And on the header's Settings button and the Settings panel's controls -
+   its About row among them - and on the about panel, whose one button goes
+   back as every other way out of it does. */
 function onSettingsClick() { openSheet("settings"); }
+function onAboutRowClick() { openSheet("about"); }
+function onAboutClick(e) { if (e.target.closest("#aboutBack")) closeSheet(); }
 function onCrowdInput(e) { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON(storageKey("settings"), settings); }
 function onNoiseDefaultChange(e) { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON(storageKey("settings"), settings); }
 function onResetPicks() { if (confirm("Remove everything from my schedule?")) { replacePicks([]); savePicks(); closeSheet(); } }
@@ -1020,8 +1060,8 @@ async function onKeepClick(e) {
 }
 
 export {
-  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, panelShare, panelShared, panelFilters, hotelSheetHTML, drawHotelSheet, showHotelCrew,
+  sheetWrap, sheetEl, panelEvent, panelHotel, panelCrew, panelShare, panelShared, panelFilters, panelAbout, hotelSheetHTML, drawHotelSheet, showHotelCrew,
   openSheet, closeSheet, closeWholeSheet, onSheetKeydown, onShareClick, takeDayLink, openSharedDay, refreshSharedDay, setDrag, onSheetTouchStart, onSheetTouchMove, onSheetTouchEnd, onSheetTouchCancel,
-  onSettingsClick, onCrowdInput, onNoiseDefaultChange, onResetPicks, onKeepSubmit, onKeepClick,
+  onSettingsClick, onAboutRowClick, onAboutClick, onCrowdInput, onNoiseDefaultChange, onResetPicks, onKeepSubmit, onKeepClick,
   refreshCrewPanel, refreshHotelSheet, onCrewSubmit, onCrewClick, onCrewInput, openKeptJoin,
 };

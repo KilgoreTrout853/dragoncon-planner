@@ -278,7 +278,8 @@ Checklist, below, keeps the history:
 - A domain verified at Resend for production's custom SMTP, without which
   the email templates cannot be edited, so production's six-digit code
   needs it; the dev project sends through Resend's test sender (#25's
-  note; Checklist).
+  note; Checklist). The about panel names Resend (`src/about.js`, #92), so
+  another sender changes its words.
 - Production's Auth, by hand, before it serves the email step: custom
   SMTP through that domain, the Magic Link and Change Email Address
   templates sending `{{ .Token }}`, an OTP length of 6, anonymous sign-ins
@@ -457,11 +458,11 @@ execution slot (#57), which can run before any of this.
      vacated, under the picks-changed notice on Now and Plans, and a
      cancelled pick no longer next - built (PR #108, #90; contract,
      section 2).
-9. The gear: the about page, Delete my account with its migration, the
-   notifications toggle's slot (contract, section 9). Remove all is in the
-   gear, as Remove all picks, and in My day's action strip, where since
-   PR #85 it sits under Export: the gear PR decides whether the strip's
-   copy stays.
+9. The gear, in two pull requests (contract, section 9). The first is
+   built (PR #110, #92): Settings a heading, one body that scrolls and a
+   pinned Done, About this app behind its row, and Remove all picks in
+   Settings alone. What is left of step 9 is Delete my account (W45), with
+   its migration.
 10. The building view (#60): a short sequence of its own, the drawings a
     side lane; the map is one persistent SVG (PR #107, #89); the place
     line reaches the room's grain here (contract, section 6).
@@ -492,6 +493,10 @@ How the app reaches a phone and stays current: `sw.js` and its cache version
 edge (ARCHITECTURE.md), Playwright's tests of the worker, of offline and
 of install (#24; its harness is built, #81), the install flow, the client side
 of a push subscription, and Pages from Actions (#26).
+
+The notifications toggle (W34) is Delivery's whole, built with its wiring:
+its place is in Settings' body, between Keep your plan and About this app,
+and no slot is kept for it (#92; `docs/screens/contract.md`, section 9).
 
 The install flow is W36 (`docs/scope-2027.md`), 2027, W37 folded in: its
 mechanics are Delivery's; what it says and when it shows are the install
@@ -600,20 +605,27 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   fade is right, at the top (#76; contract, sections 8 and 14). Writing
   the star in place, as an event's sheet does since PR #93, is where the
   fix goes.
-- Settings is taller than a short screen once Advanced is open: at
+- ~~Settings is taller than a short screen once Advanced is open: at
   375x667 its top stands 24 px above the screen, 93 with Walk-time
   defaults open and 134 with Larger text too, and the sheet does not
   scroll, so the heading and the crowd factor are out of reach. Found by
   PR #95's browser run, older than it, and the gear's pull request's to
-  fix (step 9; contract, section 14).
+  fix (step 9; contract, section 14).~~ Fixed by PR #110 (#92).
+- A swipe down on Settings or on About this app is a real touch's, and the
+  browser tests can send one in neither engine: a drag in a body that fits
+  moving the sheet, and one in a body that does not scrolling it, are a
+  page test's and a phone's to check (#92). WebKit does not focus a tapped
+  button, so there Done gives focus back to nothing: step 11's sweep's.
 - A focus ring is still cut at the top and the foot of a scrolling area
   of the sheet, where its first or last thing is a control and the area
   is at that end - a hotel's list and a shared day's at both ends, an
   event's body at its foot, the crew panel at both - and at the foot of
   an event's panel on every sheet, where the star, Add this to calendar
   and Done lose the bottom of their ring. PR #97 gave a ring room at the
-  sides alone (#78): block padding would change heights. Older than it,
-  and step 11's sweep's (contract, sections 7 and 14).
+  sides alone (#78): block padding would change heights. Settings' body
+  and About's, new with PR #110, have the room at their top and foot too
+  (#92). Older than PR #97, and step 11's sweep's (contract, sections 7
+  and 14).
 - The filter sheet's Type control shows no focus ring above or below a
   focused button, nor at its two ends: `.seg` clips at its box and has
   no ring drawn inside, as Plans' segment has (`.plans-seg`). Found by

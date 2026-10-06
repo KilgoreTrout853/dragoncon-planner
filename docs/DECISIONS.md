@@ -1778,7 +1778,7 @@ guard. Each level is its own frame, so the levels do not stack until a
 hotel's elevator cores line up. The renders are a record, redrawn by
 hand, not held fresh by CI.
 
-### 59. Reference content: attached, or about the app — Standing (2026-09-29) — the Cost's gap in the data closed by #61: `known_for` is a reviewed field of `people.json`, and `events.v2.json` carries it in a `people` block; the line's screen is Where things live's; the gear page's shape is `docs/screens/contract.md`'s section 9
+### 59. Reference content: attached, or about the app — Standing (2026-09-29) — the Cost's gap in the data closed by #61: `known_for` is a reviewed field of `people.json`, and `events.v2.json` carries it in a `people` block; the line's screen is Where things live's; the gear page's shape is `docs/screens/contract.md`'s section 9; amended by #92
 **Decided:** Reference content is anything a person reads rather than acts
 on: hours, policies, links, bios, documents. It is in the app in two forms,
 and no other.
@@ -2527,7 +2527,7 @@ the screen by the notice, as it was, and the focused card is cut at the
 page's top: by 82 px after the con at 375x667, where the Map had no card
 to cut. "← Explore" still drops keyboard focus to the page.
 
-### 76. A fade where a scrolling area has more past its edge — Standing (2026-10-03) — its fade cannot show where the fold lands in a gap: an arrow beside it where an area hides enough below, and `data-more` a word, not a bare hook, by #78, PR #97
+### 76. A fade where a scrolling area has more past its edge — Standing (2026-10-03) — its fade cannot show where the fold lands in a gap: an arrow beside it where an area hides enough below, and `data-more` a word, not a bare hook, by #78, PR #97; amended by #92
 **Decided:** Six areas of the bottom sheet scroll on their own - an
 event's body, the hotel sheet's list, the shared day's, the filter sheet's
 body, Settings' Advanced and the crew panel - and where one has more past
@@ -2697,7 +2697,7 @@ as well - "young adult" reads as 18+ and "young" - which is older than
 this entry and now shows in the Audience select (`contract.md`, section
 14). A schedule with no tags shows three selects, the fourth cell empty.
 
-### 78. An arrow where more is below, and room for the focus ring — Standing (2026-10-03)
+### 78. An arrow where more is below, and room for the focus ring — Standing (2026-10-03) — amended by #92
 **Decided:** Two rules at the edges of the sheet's scrolling areas, both
 follow-ups to #76 (`docs/screens/contract.md`, section 7, The sheet's
 edges, as built; PR #97).
@@ -2868,7 +2868,7 @@ mini-bar and the nav, where a key typed in a box scrolled away already
 put it. What an iPhone's keyboard does through each of these is a
 phone's to check.
 
-### 81. Browser tests: Playwright, thin, in two engines at three sizes — Standing (2026-10-04)
+### 81. Browser tests: Playwright, thin, in two engines at three sizes — Standing (2026-10-04) — amended by #92
 **Decided:** A second kind of test runs the built page in real browsers
 (`npm run test:browser`; `tests/browser/`; PR #101). It amends #24's
 trigger - Playwright came with a layout fault, not with a change to
@@ -3176,3 +3176,29 @@ say. The Map had always stood the two buildings in one block.
 string that names no building is Other. Every Mart event's `hotel` changes.
 "Vendor Hall Floor `<n>`" now reads as that floor at any venue that has one,
 where only the Mart had such a level; 2026 has it only after "Mart2".
+
+### 92. The gear: Settings fits its screen, and About this app is behind it — Standing (2026-10-06)
+**Decided:** Step 9's first pull request (PR #110). Amends #59, #76, #78, #81.
+- **Settings is a heading, one body that scrolls and Done pinned at its
+  foot,** in a sheet at most 86% of the screen, an event's rule (#74).
+  Advanced is a fold in the body, no longer an area; the body is one, with
+  the arrow and a ring's room at its top and foot too. A checkbox in the
+  sheet stands beside its words.
+- **About this app,** the sheet's eighth panel, behind a row in Settings:
+  that the app is unofficial, the one link to Dragon Con's own, what we
+  store - no link to the code and no contact. Its one way out is back to
+  Settings: its button, the backdrop, a swipe, Escape (#63). A change to
+  what is kept or to a control changes its words in the same pull request.
+- **The notifications toggle** is Delivery's whole, between Keep your plan
+  and About; no slot is kept for it.
+- **Remove all picks is Settings' alone;** Plans' strip is Export and Share
+  a day.
+- **The browser tests' second page:** a build told of a backend, which the
+  harness answers, for what only such a build draws.
+
+**Why:** Signed out on a build with a backend, Settings stood 706 px tall
+on a 667 px screen at the normal size, its heading out of reach with
+nothing opened. And one page answers what the app keeps (#59).
+**Cost:** The about panel's words can fall behind the code; a page test
+pins them, and nothing checks them against the server. The second page
+adds a build to every browser run.

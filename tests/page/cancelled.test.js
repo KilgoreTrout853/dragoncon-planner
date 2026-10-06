@@ -206,12 +206,16 @@ describe("a cancelled pick is passed over by what says what is next, where to wa
       const ids = [...(await exported).matchAll(/UID:dc\d\d-([^@]+)@/g)].map(m => m[1]);
       expect(ids).toEqual([ON, LATER]);
     });
-    it("with only cancelled picks left, Export is off and Remove all is on", () => {
+    it("with only cancelled picks left, Export is off, and Settings' Remove all picks takes them out", () => {
       handle.picks.set(CANCELLED);
       show("plans", { mineView: "list" });
       expect(view("plans").querySelector('[data-act="ics"]').disabled).toBe(true);
       expect(view("plans").querySelector('[data-act="share-day"]').disabled).toBe(true);
-      expect(view("plans").querySelector('[data-act="clear"]').disabled).toBe(false);
+      handle.openSheet("settings");
+      expect(document.getElementById("resetPicks").disabled).toBe(false);
+      document.getElementById("resetPicks").click();
+      expect(handle.picks.get().size).toBe(0);
+      expect(view("plans").textContent).toContain("Nothing picked yet");
       handle.picks.set([...CANCELLED, ON]);
       handle.render();
       expect(view("plans").querySelector('[data-act="ics"]').disabled).toBe(false);

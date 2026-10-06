@@ -13,7 +13,7 @@ import { storageKey } from "./build.js";
 import { state } from "./state.js";
 import { CON, now } from "./time.js";
 import { byId } from "./data.js";
-import { clearNews, picks, replacePicks, savePickNews, savePicks } from "./picks.js";
+import { clearNews, picks, savePickNews, savePicks } from "./picks.js";
 import { isMuted, toggleFollow, toggleMute } from "./follows.js";
 import { exportEventICS, exportICS } from "./ics.js";
 import { dropPhrase, index } from "./search.js";
@@ -94,7 +94,6 @@ function onMainClick(e) {
     if (a === "more-now") { state.now.limit += 100; render(); }
     if (a === "more-browse") { state.browse.page++; render(); }
     if (a === "ics") exportICS();
-    if (a === "clear" && confirm("Remove everything from my schedule?")) { replacePicks([]); savePicks(); render(); }
     if (a === "suggest") {
       state.browse.q = `"${act.dataset.name}"`;
       state.browse.page = 1;

@@ -209,11 +209,15 @@ describe("a schedule that dropped one pick and merged two", () => {
   });
 
   describe("with only the removed pick left", () => {
-    it("Export to calendar is off, and Remove all is on", () => {
+    it("Export to calendar is off, and Settings' Remove all picks takes the removed pick out", () => {
       handle.picks.set([removed.id]);
       show("plans", { mineView: "list" });
       expect(document.querySelector('#view-plans [data-act="ics"]').disabled).toBe(true);
-      expect(document.querySelector('#view-plans [data-act="clear"]').disabled).toBe(false);
+      handle.openSheet("settings");
+      expect(document.getElementById("resetPicks").disabled).toBe(false);
+      document.getElementById("resetPicks").click();
+      expect(handle.picks.get().size).toBe(0);
+      expect(document.getElementById("view-plans").textContent).toContain("Nothing picked yet");
     });
   });
 });

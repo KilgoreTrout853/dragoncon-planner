@@ -1,5 +1,6 @@
-/* Plans: the control strip, the timeline, the list, Remove all. The number in
-   brackets is the harness line the assertion came from (tests/PORT-LEDGER.md). */
+/* Plans: the control strip, the timeline, the list, and Remove all picks,
+   which is Settings' alone since DECISIONS #92. The number in brackets is
+   the harness line the assertion came from (tests/PORT-LEDGER.md). */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
 
@@ -21,9 +22,9 @@ describe("Plans", () => {
   afterAll(() => page.cleanup());
 
   describe("the control strip: the actions on two columns, the toggle under them", () => {
-    it("five controls in order [433]", () => {
+    it("four controls in order [433]", () => {
       const strip = [...plans().querySelectorAll(".plans-actions .btn, .view-toggle button")].map(b => b.textContent.trim());
-      expect(strip.join(" | ")).toBe("Export to calendar | Share a day | Remove all | Timeline | List");
+      expect(strip.join(" | ")).toBe("Export to calendar | Share a day | Timeline | List");
     });
     it("actions above the view toggle [434]", () => {
       const order = plans().querySelector(".plans-actions").compareDocumentPosition(plans().querySelector(".view-toggle"));
@@ -145,14 +146,34 @@ describe("Plans", () => {
     it.skip("walk warning shown for tight transfer: the sample fixture has no event starting within five minutes of the first pick's end in another hotel, so no tight pair is starred [499]", () => {});
   });
 
+  /* The strip's Remove all is gone (DECISIONS #92): the rows it had are
+     read through Settings' Remove all picks, the one place left. */
   describe("Remove all", () => {
-    beforeAll(() => plans().querySelector('[data-act="clear"]').click());      // the helper answers the confirm
+    const reset = () => { handle.openSheet("settings"); document.getElementById("resetPicks").click(); };
 
+    it("the strip has none, and nothing in Plans empties the plan", () => {
+      expect(plans().querySelector('[data-act="clear"]')).toBe(null);
+      expect([...plans().querySelectorAll("button")].filter(b => /remove all/i.test(b.textContent))).toEqual([]);
+    });
+    it("Settings' Remove all picks asks first, and a no leaves every pick and the sheet as they were", () => {
+      const asked = [], had = window.confirm, before = [...handle.picks.get()];
+      window.confirm = words => { asked.push(words); return false; };
+      try { reset(); } finally { window.confirm = had; }
+      expect(asked).toEqual(["Remove everything from my schedule?"]);
+      expect([...handle.picks.get()]).toEqual(before);
+      expect(before.length).toBeGreaterThan(0);
+      expect(document.getElementById("sheetWrap").hidden).toBe(false);
+      handle.closeSheet();
+    });
     it("clear all works [509]", () => {
+      reset();      // the helper answers the confirm
+      expect(handle.picks.get().size).toBe(0);
+      expect(document.getElementById("sheetWrap").hidden).toBe(true);
       expect(plans().textContent).toContain("Nothing picked yet");
     });
-    it("with nothing picked, the three actions are disabled [510]", () => {
-      expect(plans().querySelectorAll(".plans-actions .btn[disabled]")).toHaveLength(3);
+    it("with nothing picked, the two actions are disabled [510]", () => {
+      expect(plans().querySelectorAll(".plans-actions .btn")).toHaveLength(2);
+      expect(plans().querySelectorAll(".plans-actions .btn[disabled]")).toHaveLength(2);
     });
     it("and there is no view toggle to switch [511]", () => {
       expect(plans().querySelector(".view-toggle")).toBe(null);

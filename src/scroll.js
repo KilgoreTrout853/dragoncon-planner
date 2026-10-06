@@ -167,12 +167,13 @@ function moreHidden(scrollTop, clientHeight, scrollHeight) {
    threshold stands under the ceiling, or the word would never be said. */
 const MORE_ARROW = 20;
 const moreWord = hidden => (hidden.below >= MORE_ARROW ? "below" : "");
-/* The six areas, by four selectors: an event's body, the hotel's list and
-   the shared day's are each an .ev-body. Not the share panel's message,
-   which is a field; not an event's panel scrolling as one, whose body has
-   the cue and whose foot is pinned; and not main. The stylesheet gives the
-   same four their scroll padding. */
-const MORE_AREAS = ".ev-body, .filters-body, .advanced-body, #panel-crew";
+/* The seven areas, by four selectors: an event's body, the hotel's list and
+   the shared day's are each an .ev-body, and Settings' body and About's each
+   a .sheet-body (#92). Not the share panel's message, which is a field; not
+   an event's panel scrolling as one, whose body has the cue and whose foot
+   is pinned; and not main. The stylesheet gives the same four their scroll
+   padding. */
+const MORE_AREAS = ".ev-body, .filters-body, .sheet-body, #panel-crew";
 /* An area's mark, from its own three numbers, written only where it
    changed: the two properties, each gone at 0, and data-more, the hook the
    stylesheet's mask hangs on, there while either is above 0 - so an area
@@ -206,7 +207,7 @@ function onMoreScroll(e) {
    sheet's child lists - never its attributes, so the mark's own write cannot
    wake it - finds an area a draw has just replaced, and a child put into one
    at its cap, which changes no box. The ResizeObserver hears the rest: a
-   panel shown, Larger text, Advanced opened, the window resized or turned,
+   panel shown, Larger text, a fold of Settings opened, the window resized or turned,
    and content that grows inside an area whose own box stays as it was. No
    node is ever unobserved: one a draw replaced goes with its panel. */
 let moreSizes = null;

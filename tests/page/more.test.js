@@ -1,6 +1,7 @@
 /* More past an edge (ROADMAP tentpole 5, step 7; DECISIONS #66, #76;
-   docs/screens/contract.md, section 7, as built): six areas of the sheet
-   scroll on their own, and each says what it hides past its top and past
+   docs/screens/contract.md, section 7, as built): seven areas of the sheet
+   scroll on their own - six until DECISIONS #92, which made Settings' body
+   and About's two of them and Advanced none - and each says what it hides past its top and past
    its bottom - `--more-above` and `--more-below`, in px, and `data-more`
    while either is above 0 - which the stylesheet fades. The mark is kept by
    three things boot() registers on the sheet and by no call at any draw: a
@@ -100,7 +101,7 @@ describe("more past an edge", () => {
   }, 30000);
   afterAll(async () => { await page.cleanup(); observers.restore(); });
 
-  /* Each of the six, opened as a reader opens it, and the element that
+  /* Each of the seven, opened as a reader opens it, and the element that
      scrolls. The shared day comes first: the link opened it as the page
      loaded, and any other panel takes it away. */
   const AREAS = [
@@ -108,23 +109,24 @@ describe("more past an edge", () => {
     ["an event's body", () => handle.openSheet("event", OTHER), () => el("panel-event").querySelector(".ev-body")],
     ["the hotel sheet's list", () => { setPicks(HYATT); handle.openSheet("hotel", "Hyatt"); }, () => el("panel-hotel").querySelector(".ev-body")],
     ["the filter sheet's body", () => handle.openSheet("filters"), () => el("filtersBody")],
-    ["Settings' Advanced", () => { handle.openSheet("settings"); el("advanced").open = true; }, () => el("advanced").querySelector(".advanced-body")],
+    ["Settings' body", () => handle.openSheet("settings"), () => el("settingsBody")],
+    ["About this app's body", () => { handle.openSheet("settings"); el("aboutRow").click(); }, () => el("aboutBody")],
     ["the crew panel", () => handle.openSheet("crew", "create"), () => el("panel-crew")],
   ];
   /* What follows each area in its panel, which the arrow is drawn on
      (DECISIONS #78): an event's foot, the hotel's and the shared day's Done
-     row, the filters' foot. Nothing follows Advanced in its <details>, and
-     the crew panel is its own scroller: both keep the fade alone. */
+     row, the filters' foot, Settings' foot and About's (#92). The crew panel
+     is its own scroller, and keeps the fade alone. */
   const FOLLOWS = {
     "the shared day's list": ".ev-actions", "an event's body": ".ev-foot", "the hotel sheet's list": ".ev-actions",
-    "the filter sheet's body": ".filters-foot", "Settings' Advanced": null, "the crew panel": null,
+    "the filter sheet's body": ".filters-foot", "Settings' body": ".sheet-foot", "About this app's body": ".sheet-foot", "the crew panel": null,
   };
   /* The element the stylesheet's arrow rule finds after an area, by the
      rule's own selectors less their ::before - jsdom draws no pseudo-element,
      but it matches a selector - or null where the rule finds none. */
   const arrowOn = area => ARROW.flatMap(s => [...document.querySelectorAll(s)]).find(next => next.previousElementSibling === area) || null;
 
-  describe("each of the six areas says what it hides, as it is scrolled", () => {
+  describe("each of the seven areas says what it hides, as it is scrolled", () => {
     for (const [name, open, find] of AREAS) {
       describe(name, () => {
         let area;
@@ -308,8 +310,19 @@ describe("more past an edge", () => {
     });
   });
 
-  describe("what is not one of the six carries no mark, whatever it scrolls", () => {
+  describe("what is not one of the seven carries no mark, whatever it scrolls", () => {
     const untouched = node => [node.hasAttribute("data-more"), node.style.getPropertyValue("--more-above"), node.style.getPropertyValue("--more-below")];
+
+    it("Advanced, a fold in Settings' body since #92: the body has the cue", () => {
+      handle.openSheet("settings");
+      el("advanced").open = true;
+      const fold = el("advanced").querySelector(".advanced-body");
+      sized(fold, 20, 300, 600);
+      scrolled(fold);
+      expect(untouched(fold)).toEqual(NONE);
+      for (const name of ["scrollTop", "clientHeight", "scrollHeight"]) delete fold[name];
+      el("advanced").open = false;
+    });
 
     it("an event's panel scrolling as one: its body has the cue, and its foot is pinned", () => {
       handle.openSheet("event", OTHER);
@@ -407,8 +420,8 @@ describe("more past an edge", () => {
   });
 
   describe("the ResizeObserver: each area and each child of it, handed over once", () => {
-    it("boot() makes one for the areas, and hands it those already in the page: the crew panel, and Advanced with its children", () => {
-      const body = el("advanced").querySelector(".advanced-body");
+    it("boot() makes one for the areas, and hands it those already in the page: the crew panel, and Settings' body with its children", () => {
+      const body = el("settingsBody");
       expect(sizes()).toBeDefined();
       expect(body.children.length).toBeGreaterThan(2);
       for (const node of [el("panel-crew"), body, ...body.children]) expect(sizes().handed.filter(n => n === node).length).toBe(1);
@@ -434,14 +447,14 @@ describe("more past an edge", () => {
       late.remove();
       await tick();
     });
-    it("nothing outside the six is handed to it: not the event's panel, its head or its foot, nor the sheet", () => {
+    it("nothing outside the seven is handed to it: not the event's panel, its head or its foot, nor Advanced's fold, nor the sheet", () => {
       const panel = el("panel-event");
-      for (const node of [panel, panel.querySelector(".ev-head"), panel.querySelector(".ev-foot"), el("sheet"), document.querySelector("main")]) expect(sizes().handed.includes(node)).toBe(false);
+      for (const node of [panel, panel.querySelector(".ev-head"), panel.querySelector(".ev-foot"), el("advanced").querySelector(".advanced-body"), el("sheet"), document.querySelector("main")]) expect(sizes().handed.includes(node)).toBe(false);
     });
     it("when it fires - Larger text, Advanced opened, the window resized or turned, a box that grew - every area says again what it hides", () => {
       handle.openSheet("settings");
       el("advanced").open = true;
-      const body = el("advanced").querySelector(".advanced-body");
+      const body = el("settingsBody");
       sized(body, 0, 300, 300);
       sizes().callback([]);
       expect(mark(body)).toEqual(NONE);
@@ -482,8 +495,8 @@ describe("more past an edge, on a page where nothing has been opened yet", () =>
   }, 30000);
   afterAll(async () => { await page.cleanup(); observers.restore(); });
 
-  it("boot() hands the observer the areas already in the page, before any draw: the crew panel, and Advanced with its children", () => {
-    const body = el("advanced").querySelector(".advanced-body"), sizes = observers.made.find(o => o.handed.includes(body));
+  it("boot() hands the observer the areas already in the page, before any draw: the crew panel, and Settings' body with its children", () => {
+    const body = el("settingsBody"), sizes = observers.made.find(o => o.handed.includes(body));
     expect(el("sheetWrap").hidden).toBe(true);
     expect(sizes).toBeDefined();
     expect(body.children.length).toBeGreaterThan(2);
