@@ -59,6 +59,12 @@ them.
   so it is per year and per channel like every key the app stores: an
   email user types one code a year, and the next site's session is its
   own.
+- **Delete my account** (#93). Anyone with a session, an anonymous user
+  too, removes what the server keeps for them by one call,
+  `delete_my_account()` (section 3), from About this app. The session
+  goes and sync's keys with it; the phone's plan stays, as at sign out.
+  Another phone signed in as the same user loses its session when its
+  token next expires.
 - **Two rules every later screen inherits:**
   - a star or a follow never waits on the network;
   - a crew or notification action that needs the network fails visibly and
@@ -67,6 +73,8 @@ them.
 ### Identity, as built
 
 PR #55, with #53.
+
+Changed by PR #111 (#93): `identity.js` gains `deleteAccount()`, Delete my account's one request, after which the session is dropped.
 
 - **Two modules,** after `build` in #29's order - `build`, `backend`,
   `identity`, `state`, `time`; since PR #62 `crews` stands between
@@ -270,7 +278,8 @@ year, and a dead one is pruned when a send to it fails.
   `follows`, `crews` and `push_sent`; `crew_members` takes its year
   through `crews`.
 - Every foreign key to a user cascades on delete, but `crews.creator`,
-  which is `on delete set null`: a crew outlives its creator. If the
+  which is `on delete set null`: a crew outlives its creator, unless
+  Delete my account finds no one else in it and takes it (#93). If the
   creator is ever gone, the creator-only actions - regenerating the
   invite, removing a member - lapse; members can still leave.
 - **The cleanup.** A scheduled job deletes stale anonymous users (#25,
@@ -372,13 +381,16 @@ wrong rows come back, and nothing errors (#25).
 - **Reads by policy, not by function.** The client's overlay is one query,
   the picks it may see that changed since its watermark, and row-level
   security narrows it to its own and its crewmates'.
-- **Three RPCs,** because a plain write cannot do what they do:
+- **Four RPCs,** because a plain write cannot do what they do:
   - `create_crew(year, name, display_name)`: the crew and its creator's
     membership, in one transaction.
   - `join_crew(token, display_name)`: the caller holds a token, not an id;
     the cap is read from `flags`.
   - `regenerate_invite(crew_id)`: the creator alone; the server picks the
     new secret.
+  - `delete_my_account()`: the caller's own user, by `auth.uid()` and no
+    argument; with it a crew the caller made that holds no one else, and
+    the Auth server's audit rows that name the caller as their actor (#93).
 
   Everything else is a plain write the policies judge: a star, a follow,
   leaving, removing - the creator, any member of the crew - renaming or
@@ -394,9 +406,13 @@ wrong rows come back, and nothing errors (#25).
   (#24, #26), which becomes a required check on `next` after its first
   green run (ROADMAP, Checklist). They exist before any crew screen.
 
+Built: `delete_my_account()` - PR #111, DECISIONS #93.
+
 ### Security, as built
 
 The same migration (PR #54).
+
+Changed by PR #111 (#93): a fourth RPC, `delete_my_account()`, in a seventh migration, and a fourteenth test file, `13_delete_my_account`.
 
 - **Privileges.** Before creating anything, the migration alters the
   default privileges of what `postgres` creates in `public`, so that no
@@ -567,6 +583,8 @@ PR #54.
 ### Sync rules, as built
 
 PR #56, with #53.
+
+Changed by PR #111 (#93): `whileSyncWaits()` holds every run and drain while Delete my account's request is out, and a deleted account forgets sync's keys as a sign-out does.
 
 - **Two modules,** in #29's order: `src/outbox.js`, an eighteenth leaf
   after `time`, and `src/sync.js`, after the bus. The doors hand the
@@ -1514,6 +1532,8 @@ PR #82 the hotel sheet lists the crew's picks at the hotel
 ### Crews, the client, as built
 
 PR #62, with #56.
+
+Changed by PR #111 (#93): the fake answers a fourth RPC, `delete_my_account`, and a deleted user's tokens as the local stack does.
 
 - **The module,** `src/crews.js`, a nineteenth leaf after `identity`, the
   lowest place its imports allow (#29). It owns `storageKey("crew")` and

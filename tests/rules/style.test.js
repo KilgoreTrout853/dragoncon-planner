@@ -669,6 +669,12 @@ describe("src/styles.css", () => {
       expect(body(".about-row")).toMatch(/(^|; )width: 100%;/);
       expect(body(".about-link")).toMatch(/min-height: 44px; min-width: 44px;/);
     });
+    it("Delete's part keeps the about body's rhythm, and its note takes no room while it says nothing (#93)", () => {
+      expect(body(".about")).toBe("gap: 12px;");
+      expect(body(".about-delete")).toBe("display: grid; gap: 12px;");
+      expect(body(".about-note:empty")).toBe("display: none;");
+      expect(body(".about-note")).toMatch(/(^|; )color: var\(--text\);/);
+    });
   });
 
   describe("in place of a pick: the notice's OK, and a cancelled block on the timeline (DECISIONS #90)", () => {

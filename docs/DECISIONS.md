@@ -1332,7 +1332,7 @@ seconds apart land in stamp order. Crew presence, pings and realtime wait
 for spring, and the mirror trails a scrape by its merge. The crowd factor
 is set again on each device.
 
-### 51. Identity: lazy, anonymous, recovered by email — Decided, not built (2026-09-25) — built by PR #55 but for recover's union, which is sync's (#53): `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the widget amended by #53, a plain message until the project turns the captcha on; recover's union built by PR #56, as sync's change of owner (`contract.md`, section 5, as built)
+### 51. Identity: lazy, anonymous, recovered by email — Decided, not built (2026-09-25) — built by PR #55 but for recover's union, which is sync's (#53): `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the widget amended by #53, a plain message until the project turns the captcha on; recover's union built by PR #56, as sync's change of owner (`contract.md`, section 5, as built); amended by #93
 **Decided:** #8 as #25 and #50 amend it; `docs/sync/contract.md`,
 section 1, has the detail.
 - No server user until the first tap that needs one: joining or creating
@@ -1370,7 +1370,7 @@ plan (#8). A recovering phone's crew membership stays behind until the
 person rejoins. A stamp ignores the simulated clock, so a test under
 `?now=` stamps the real time.
 
-### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built); the mirror job's migration (#54) makes `schedule_events.start` and `end` nullable, as the file's may be, and grants `service_role` the mirror's three tables by name; and a line's `fetch_code_changed` is its run's from `last-run.json`, or `true` for an earlier run the mirror had not yet written (`contract.md`, section 6); the push job's migration (#55) makes `push_sent` a queue - `sent_at` nullable with no default, a row without it a claim, and `claimed_at` - and grants `service_role` select, insert, update and delete on `push_sent`, select and delete on `push_subscriptions`, select on `flags`, and `push_due()`'s execution, by name (`contract.md`, section 7); pick-changed's migration (#55) replaces `push_due()`, its grants made again as they were, and changes no table (`contract.md`, section 7, Pick-changed, as built); the batch's migration (#55) replaces it in place, by `create or replace`, which keeps its grants, and changes no table (`contract.md`, section 7, The batch, as built); the RPCs' errors reach the client as PostgREST answers them - `P0002` and `53400` 500, `42501` 403, `22023` and `23514` 400 - and a delete that row-level security turns away answers 204, as one that deletes does; the policies let a creator delete their own membership, and `creator` stays set, so a creator who left could still regenerate the invite from outside, though not remove anyone or delete the crew, and the client refuses the creator's leave (#56; `contract.md`, section 8, as built); "a star means going" amended by #68: a star is a pick, and the crew screens say what a crewmate starred, never that they are going or where they are
+### 52. The data model and security — Decided, not built (2026-09-25) — built by PR #54: `supabase/migrations/20260925154849_sync_schema.sql`, the seed, nine pgTAP files and the `database` CI job (`docs/sync/contract.md`, sections 2-4, as built); PR #56's migration adds `synced_at`, the caller as a row's user by default, and an update of the key columns, which PostgREST's upsert needs, with a trigger that keeps every key as it is (`contract.md`, sections 2 and 3, as built); the mirror job's migration (#54) makes `schedule_events.start` and `end` nullable, as the file's may be, and grants `service_role` the mirror's three tables by name; and a line's `fetch_code_changed` is its run's from `last-run.json`, or `true` for an earlier run the mirror had not yet written (`contract.md`, section 6); the push job's migration (#55) makes `push_sent` a queue - `sent_at` nullable with no default, a row without it a claim, and `claimed_at` - and grants `service_role` select, insert, update and delete on `push_sent`, select and delete on `push_subscriptions`, select on `flags`, and `push_due()`'s execution, by name (`contract.md`, section 7); pick-changed's migration (#55) replaces `push_due()`, its grants made again as they were, and changes no table (`contract.md`, section 7, Pick-changed, as built); the batch's migration (#55) replaces it in place, by `create or replace`, which keeps its grants, and changes no table (`contract.md`, section 7, The batch, as built); the RPCs' errors reach the client as PostgREST answers them - `P0002` and `53400` 500, `42501` 403, `22023` and `23514` 400 - and a delete that row-level security turns away answers 204, as one that deletes does; the policies let a creator delete their own membership, and `creator` stays set, so a creator who left could still regenerate the invite from outside, though not remove anyone or delete the crew, and the client refuses the creator's leave (#56; `contract.md`, section 8, as built); "a star means going" amended by #68: a star is a pick, and the crew screens say what a crewmate starred, never that they are going or where they are; amended by #93
 **Decided:** Ten tables in Supabase's Postgres, row-level security on
 every one, and three RPCs; `docs/sync/contract.md`, sections 2-4, has the
 columns, the policies and the tests.
@@ -1778,7 +1778,7 @@ guard. Each level is its own frame, so the levels do not stack until a
 hotel's elevator cores line up. The renders are a record, redrawn by
 hand, not held fresh by CI.
 
-### 59. Reference content: attached, or about the app — Standing (2026-09-29) — the Cost's gap in the data closed by #61: `known_for` is a reviewed field of `people.json`, and `events.v2.json` carries it in a `people` block; the line's screen is Where things live's; the gear page's shape is `docs/screens/contract.md`'s section 9; amended by #92
+### 59. Reference content: attached, or about the app — Standing (2026-09-29) — the Cost's gap in the data closed by #61: `known_for` is a reviewed field of `people.json`, and `events.v2.json` carries it in a `people` block; the line's screen is Where things live's; the gear page's shape is `docs/screens/contract.md`'s section 9; amended by #92; amended by #93
 **Decided:** Reference content is anything a person reads rather than acts
 on: hours, policies, links, bios, documents. It is in the app in two forms,
 and no other.
@@ -3202,3 +3202,29 @@ nothing opened. And one page answers what the app keeps (#59).
 **Cost:** The about panel's words can fall behind the code; a page test
 pins them, and nothing checks them against the server. The second page
 adds a build to every browser run.
+
+### 93. Delete my account: a fourth RPC, last on About this app — Standing (2026-10-06)
+**Decided:** Step 9's second pull request (PR #111). Amends #51, #52, #59.
+- **A fourth RPC,** `delete_my_account()`, with no argument: the caller's
+  own user and no one else's. In one transaction: a crew the caller made
+  that holds no one else, any year; the Auth server's audit rows that name
+  the caller as their actor; then the row of `auth.users`, whose foreign
+  keys take the rest. A crew with anyone else in it stays, its creator
+  null (#52). A user already gone gets the same answer.
+- **Who sees it:** anyone with a session, an anonymous user too, last on
+  About this app: "Delete my account" with an email, "Delete my data from
+  the server" without; with no session, a sentence and no button. One
+  native confirm, naming each crew that will stay, and one request, which
+  no sync run or drain crosses.
+- **What stays:** the phone's plan, as at Sign out; a crew with anyone
+  else in it; the companies' own logs.
+
+**Why:** A page that says what the server keeps owes the way to remove it
+(#59), and an anonymous crew member has rows too. On the local stack the
+foreign keys alone left the user's id and email in the Auth server's
+audit table, and a crew of one would be a name no one could read or remove.
+**Cost:** The confirm names this year's crews as the phone last pulled
+them: another year's, or one started on another phone since, is not named,
+though the function treats every crew alike. An anonymous user whose
+session is gone cannot sign in to delete. A second phone learns within the
+hour, when its token expires, not at once.

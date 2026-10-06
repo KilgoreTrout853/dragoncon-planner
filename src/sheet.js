@@ -5,6 +5,7 @@
    each, what opens and closes it, the swipe and the Escape that dismiss it,
    focus into it and back (#66), and the handlers boot()
    registers on it, on the Settings controls - the email step's among them -
+   on the about panel - Delete my account's (#93) -
    in the crew panel and in the share panel, whose state is this module's,
    as the shared day is. A pull's redraw refills the open crew panel, the
    open hotel's crew and the shared day's stars, in place; the open event's
@@ -19,7 +20,7 @@ import { YEAR } from "./season.js";
 import { saveJSON } from "./storage.js";
 import { deviceLine, storageKey } from "./build.js";
 import { hasBackend } from "./backend.js";
-import { codeSentTo, confirmCode, plainMessage, sendCode, signedInAs, signOut } from "./identity.js";
+import { codeSentTo, confirmCode, deleteAccount, plainMessage, sendCode, signedInAs, signOut } from "./identity.js";
 import {
   createCrew, crewMessage, deleteCrew, inviteLink, isCreator, joinCrew, leaveCrew, myCrews, myMembership, newInvite,
   pendingJoin, readInvite, removeMember, setMyName, takePendingJoin,
@@ -34,11 +35,11 @@ import { chipHTML, crewLineHTML, rowHTML } from "./ui.js";
 import { focusIn, focusKey, moreCap, pageScrollTo, pageScrollTop, refill, shownMatch } from "./scroll.js";
 import { eventSheetHTML } from "./eventsheet.js";
 import { requestRender } from "./bus.js";
-import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter } from "./sync.js";
+import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter, whileSyncWaits } from "./sync.js";
 import { MAP_HOTELS, mapCrewCounts, mapCrewPicks, mapDay, onTheMap } from "./map.js";
 import { chosenCrew, crewPeople } from "./plans.js";
 import { filtersChanged, filtersHTML, settleWords } from "./filters.js";
-import { aboutHTML } from "./about.js";
+import { aboutHTML, deleteHTML, deleteQuestion } from "./about.js";
 
 /* Bottom sheet: one wrapper, eight panels (settings, event, hotel, crew,
    share, shared, filters, about) */
@@ -991,11 +992,15 @@ function onSheetTouchEnd() {
 function onSheetTouchCancel() { if (dragY !== null) { dragY = null; settle(false); } }
 
 /* And on the header's Settings button and the Settings panel's controls -
-   its About row among them - and on the about panel, whose one button goes
-   back as every other way out of it does. */
+   its About row among them - and on the about panel, whose button at the
+   foot goes back as every other way out of it does, and whose Delete, on a
+   build with a backend, is onDeleteClick()'s. */
 function onSettingsClick() { openSheet("settings"); }
 function onAboutRowClick() { openSheet("about"); }
-function onAboutClick(e) { if (e.target.closest("#aboutBack")) closeSheet(); }
+function onAboutClick(e) {
+  if (e.target.closest("#aboutBack")) closeSheet();
+  else if (e.target.closest("#aboutDeleteBtn")) onDeleteClick();
+}
 function onCrowdInput(e) { settings.crowd = parseFloat(e.target.value); document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`; saveJSON(storageKey("settings"), settings); }
 function onNoiseDefaultChange(e) { settings.hideNoise = e.target.checked; state.browse.hideNoise = settings.hideNoise; saveJSON(storageKey("settings"), settings); }
 function onResetPicks() { if (confirm("Remove everything from my schedule?")) { replacePicks([]); savePicks(); closeSheet(); } }
@@ -1056,6 +1061,68 @@ async function onKeepClick(e) {
   } finally {
     keepBusy = false;
     fillKeep();
+  }
+}
+
+/* Delete my account (W45, DECISIONS #93), the about panel's last part and
+   its one action: a confirm, about.js's words, which names each crew the
+   reader started that holds someone else, since it stays - one they are
+   alone in goes with them - and then one request, alone: no sync run and no
+   drain crosses it (sync.js whileSyncWaits()), and a second tap meanwhile
+   does nothing. Made, the session is gone and sync's keys with it, as Sign
+   out leaves them; picks, follows, mutes and settings are untouched. The
+   part is written again in place - the button gone, the note there and
+   focus on it, the body scrolled where it was but for a note that would
+   end under its edge - and Keep your plan is
+   filled again though it is hidden, so Back to Settings shows the email
+   form; Plans follows by the redraw forgetSync() asks for. A failure says
+   so under the button and changes nothing (#51): the button is ready again,
+   with the focus it had, which a browser takes from a button while it is
+   busy. A session the server no longer knows is Sign out's case: sync's
+   keys forgotten, and the part says to sign in. */
+let deleteBusy = false;
+/* The note's words where the reader can see them: the body scrolled by what
+   the note ends under its edge, and no more. */
+function noteInView(note) {
+  const body = note.closest(".sheet-body"), below = note.getBoundingClientRect().bottom - body.getBoundingClientRect().bottom;
+  if (below > 0) body.scrollTop += Math.ceil(below);
+}
+function drawDelete(state) {
+  const part = document.getElementById("aboutDelete");
+  if (!part) return;
+  part.innerHTML = deleteHTML(state);
+  const note = document.getElementById("aboutDeleteNote");
+  note.focus({preventScroll: true});
+  noteInView(note);
+}
+async function onDeleteClick() {
+  if (deleteBusy) return;
+  const question = deleteQuestion(myCrews().filter(c => isCreator(c) && (c.members || []).some(m => m.user_id !== c.creator)).map(c => c.name));
+  if (!question || !confirm(question)) return;
+  const button = document.getElementById("aboutDeleteBtn"), note = document.getElementById("aboutDeleteNote");
+  const focused = document.activeElement === button;
+  deleteBusy = true;
+  button.disabled = true;
+  note.textContent = "";
+  try {
+    await whileSyncWaits(async () => { await deleteAccount(); forgetSync(); });
+    keepNote = "";
+    fillKeep();
+    drawDelete({done: true});
+  } catch (err) {
+    if (err.code === "session_lost") {
+      forgetSync();
+      keepNote = plainMessage(err);
+      fillKeep();
+      drawDelete({note: plainMessage(err)});
+    } else if (button.isConnected) {
+      button.disabled = false;
+      note.textContent = plainMessage(err);
+      if (focused && document.activeElement === document.body) button.focus({preventScroll: true});
+      noteInView(note);
+    }
+  } finally {
+    deleteBusy = false;
   }
 }
 

@@ -569,6 +569,14 @@ select.crew-pick {
   justify-self: start; display: inline-flex; align-items: center; min-height: 44px; min-width: 44px;
   color: var(--text); font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
 }
+/* Delete (#93), the last part of What we store on a build with a backend:
+   the body's own rhythm inside it, the danger button on a row of its own,
+   and under it the note - a failure's words, or that it is done - which
+   takes no room while it is empty. */
+.about-delete { display: grid; gap: 12px; }
+.about-note { color: var(--text); font-size: .9375rem; line-height: 1.4; }
+.about-note:empty { display: none; }
+.about-note:focus:not(:focus-visible) { outline: none; }
 .walk-table { font-size: .875rem; color: var(--muted); }
 .walk-table td { padding: 2px 6px 2px 0; }
 /* Keep your plan, the email step: after Advanced and before the About row,

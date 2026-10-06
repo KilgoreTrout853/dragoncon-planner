@@ -61,11 +61,13 @@ let running = null;      // the run in flight
 let again = false;       // a trigger during it
 let lastRun = null;      // {ok: true} or {error}: how the last run ended
 let refusedAt = null;    // Sign out refused: the outbox's emptied count then, until a drain empties it
+let waiting = null;      // Delete's request out (whileSyncWaits()): until it is back, no run starts
 
 /* Every trigger's one call, and the email step's after it sends a code and
    after it confirms one. */
 function runSync() {
   if (!hasBackend) return Promise.resolve();
+  if (waiting) { again = true; return waiting; }
   if (running) { again = true; return running; }
   running = syncOnce().finally(() => {
     running = null;
@@ -217,6 +219,28 @@ async function sendBeforeSignOut() {
   return count;
 }
 
+/* Delete my account's condition (#93): nothing of sync's crosses its one
+   request. The run under way finishes and none starts - a trigger meanwhile
+   is kept for afterwards - then the drain under way finishes and none
+   starts, a tap's change waiting in the outbox; work() goes alone. Nothing
+   is sent first, as Sign out sends it: what waits is the user's, and goes
+   with them. The kept run and the next drain find what work() left - no
+   session, once the delete is made and work() has forgotten sync's keys. */
+async function whileSyncWaits(work) {
+  let back;
+  waiting = new Promise(resolve => { back = resolve; });
+  try {
+    while (running) await running;
+    await holdDrains();
+    try { return await work(); }
+    finally { releaseDrains(); }
+  } finally {
+    waiting = null;
+    back();
+    if (again) { again = false; runSync(); }
+  }
+}
+
 /* A screen's run after an action - a crew's, in the crew panel: one that
    begins after the call, since a run already out may have read before the
    action landed, and how it ended, {ok: true} or {error}; a run that found
@@ -228,12 +252,12 @@ async function syncAfter() {
   return lastRun || {error: new BackendError("session_lost")};
 }
 
-/* For a test: when no run and no drain is under way. */
+/* For a test: when no run and no drain is under way, and none is kept. */
 async function syncSettled() {
   do {
-    while (running) await running;
+    while (waiting || running) await (waiting || running);
     await drainsSettled();
-  } while (running);
+  } while (waiting || running);
 }
 
-export { runSync, syncAfter, forgetSync, sendBeforeSignOut, fillSyncStatus, onSyncTrigger, onSyncWorkerMessage, syncSettled };
+export { runSync, syncAfter, forgetSync, sendBeforeSignOut, whileSyncWaits, fillSyncStatus, onSyncTrigger, onSyncWorkerMessage, syncSettled };

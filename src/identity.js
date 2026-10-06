@@ -1,8 +1,9 @@
 import { BackendError, callBackend, callBackendAsUser, dropSession, keepSession, storedSession } from "./backend.js";
 
 /* ==================================================================
-   Identity (DECISIONS #51, #53; docs/sync/contract.md, section 1): who the
-   phone is to the backend, and the email step that keeps a plan. No user
+   Identity (DECISIONS #51, #53, #93; docs/sync/contract.md, section 1): who
+   the phone is to the backend, the email step that keeps a plan, and the
+   user's end, Delete my account. No user
    until the first tap that needs one; that tap mints an anonymous user,
    who is the device. The email step is one screen, one field and a
    six-digit code, for add and recover alike. ensureUser()'s callers are
@@ -88,6 +89,19 @@ function signOut() {
   callBackend("/auth/v1/logout?scope=local", {token: session.access_token}).catch(() => {});
 }
 
+/* Delete my account (#93), for anyone with a session, an anonymous user
+   too: one request as the user, the fourth RPC, which removes what the
+   server keeps for them; then the session goes, and nothing else on the
+   phone. A failure throws with the session as it was - but for a session
+   the server no longer knows, which backend.js has dropped by then. A user
+   already gone is answered as the first call was, so a request whose answer
+   was lost can be made again. */
+async function deleteAccount() {
+  await callBackendAsUser("/rest/v1/rpc/delete_my_account", {body: {}});
+  dropSession();
+  codeFor = null;
+}
+
 /* Who the phone is signed in as: an email, or "" for no one and for an
    anonymous user. And where the last code went, while it waits. */
 function signedInAs() { const s = storedSession(); return s && !s.user.is_anonymous ? s.user.email : ""; }
@@ -112,4 +126,4 @@ const PLAIN = {
 };
 function plainMessage(error) { return PLAIN[error && error.code] || "Something went wrong. Please try again."; }
 
-export { ensureUser, sendCode, confirmCode, signOut, signedInAs, codeSentTo, plainMessage };
+export { ensureUser, sendCode, confirmCode, signOut, deleteAccount, signedInAs, codeSentTo, plainMessage };

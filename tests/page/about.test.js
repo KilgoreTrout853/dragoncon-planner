@@ -4,7 +4,8 @@
    were ruled - a sentence changed in src/about.js fails here until it is
    changed here too. And its one way out, which is back: the button, the
    backdrop, a swipe down and Escape each show Settings again, as it was.
-   New tests, not rows of tests/PORT-LEDGER.md, so their titles carry no
+   Delete, the last part on a build with a backend, is delete.test.js's, but
+   for its words with no session, which are the panel's as it opens. New tests, not rows of tests/PORT-LEDGER.md, so their titles carry no
    harness line. */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bootPage } from "../helpers/page.js";
@@ -44,6 +45,8 @@ const WITH_A_BACKEND = [
   ["LI", "Leave a crew, or delete one you started, and its members stop seeing your picks once their phones next sync."],
   ["H4", "Who else is involved"],
   ["P", "GitHub serves the app, Google serves the typeface and Supabase runs the server. Each sees your phone's internet address when it answers, as any website does, and may log it; Supabase keeps it, and what browser you used, with your sign-in. Resend sends the sign-in code, so it sees your email address. No ads, no analytics, no cookies, and the app never asks where you are."],
+  ["H4", "Delete"],
+  ["P", "To delete what the server keeps for you, sign in first - Settings, Keep your plan - then come back here. If you never started or joined a crew and never entered an email, it keeps nothing."],
 ];
 const WITH_NONE = [
   ...TOP,
@@ -55,8 +58,10 @@ const WITH_NONE = [
   ["P", "GitHub serves the app and Google serves the typeface. Each sees your phone's internet address when it answers, as any website does, and may log it. No ads, no analytics, no cookies, and the app never asks where you are."],
 ];
 
-/* What neither build's panel holds: a Delete, which is the next pull
-   request's, a link to the code, a contact, a version, a second link. */
+/* What neither build's panel holds: a link to the code, a contact, a
+   version, a second link, a button but the way back - a build with no
+   backend no Delete at all, and one with a backend and no session no Delete
+   to tap (#93). */
 function nothingElse() {
   const body = el("aboutBody"), said = text(el("panel-about"));
   expect(said).not.toMatch(/delete my|github\.com|the code|contact|version|@/i);
@@ -109,7 +114,11 @@ describe("About this app, on a build with no backend", () => {
       expect(link.getAttribute("target")).toBe("_blank");
       expect(link.getAttribute("rel")).toBe("noopener");
     });
-    it("and nothing else: no Delete, no link to the code, no contact, no second link", () => nothingElse());
+    it("and nothing else: no Delete, no link to the code, no contact, no second link", () => {
+      nothingElse();
+      expect(el("aboutDelete")).toBe(null);
+      expect(text(el("panel-about"))).not.toMatch(/delete/i);
+    });
   });
 
   describe("each way out is back to Settings, as it was", () => {
@@ -275,7 +284,7 @@ describe("About this app, on a build with a backend", () => {
   }, 30000);
   afterAll(() => { page.handle.closeSheet(); page.handle.closeSheet(); return page.cleanup(); });
 
-  it("the words, whole: What we store is five parts, the server's among them", () => {
+  it("the words, whole: What we store is six parts, the server's among them, and Delete the last - with no session, to sign in first", () => {
     expect(page.app.hasBackend).toBe(true);
     expect(words()).toEqual(WITH_A_BACKEND);
     expect(text(el("aboutBody"))).not.toContain("has no server");
@@ -287,7 +296,7 @@ describe("About this app, on a build with a backend", () => {
     const link = el("aboutLink");
     expect([link.getAttribute("href"), link.getAttribute("target"), link.getAttribute("rel")]).toEqual(["https://www.dragoncon.org/", "_blank", "noopener"]);
   });
-  it("and nothing else: no Delete, no link to the code, no contact, no second link", () => nothingElse());
+  it("and nothing else: no button but the way back, no link to the code, no contact, no second link", () => nothingElse());
   it("opening it asked the server for nothing", async () => {
     await page.app.syncSettled();
     expect(fake.requests).toEqual([]);
