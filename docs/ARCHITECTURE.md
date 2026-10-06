@@ -62,7 +62,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/crews.js` | Crews, the client's layer (DECISIONS #56; `docs/sync/contract.md`, section 8, as built): the reader's crews and their crewmates' picks as the pull kept them, the seven crew actions - each one request as the user, writing nothing on the phone - the invite link, read at boot and kept for the tab's session, and the readers the crew screens draw from: who's going and the overlay's map, one crewmate's picks, the reader's own row in a crew, and each crewmate's pick on now or next. No screen: the crew header and the crew's day are `plans.js`'s, the crew panel, who's going and the hotel sheet's crew `sheet.js`'s, the crew on Now `now.js`'s and on the Map `map.js`'s. A leaf. |
 | `src/shareday.js` | Share a day (DECISIONS #69; `docs/screens/contract.md`, section 5, Share a day, as built): which picks a day shares, the days that hold one and the day the panel opens on, the link and the message, and a link read back against a schedule the caller hands it. Pure: no DOM, no storage, no clock; the share panel and the shared day are `sheet.js`'s. A leaf. |
 | `src/filters.js` | The filter sheet (DECISIONS #70, #71, #77; `docs/screens/contract.md`, section 3, as built): Search's filters in a sheet panel - its markup, drawn as it opens, Getting in's four selects and their options' counts among it, and what a tap writes into it in place, the count on its main button among it; what the sheet set that is in effect, which the Filters button's badge counts and the chips under the box name; Clear's reach; one filter set, the last one set winning - a tap taking a word that holds its dimension out of the query - and the step a word typed takes once the box is left, the sheet's value for its dimension to All. The panel's element is `sheet.js`'s and its handlers `dispatch.js`'s. A leaf. |
-| `src/foryou.js` | For you (DECISIONS #87; `docs/screens/contract.md`, section 4): what scores - the signals, each a function of an event and the reader's profile that gives back a thing, its weight and whether it is a follow - and what is chosen, from an index of the schedule built once a schedule; and `labelFor()`, what a follow is called on screen. No markup, no storage and no clock: the moment is a parameter, and what is drawn is `explore.js`'s. A leaf. |
+| `src/foryou.js` | For you (DECISIONS #87; `docs/screens/contract.md`, section 4): what scores - the signals, each a function of an event and the reader's profile that gives back a thing, its weight and whether it is a follow - and what is chosen, from an index of the schedule built once a schedule; and `labelFor()`, what a follow is called on screen; and `bigOnes()`, the zero state's list where For you has no row - Main Programming's celebrity events still to start, the track's name one constant (#88). No markup, no storage and no clock: the moment is a parameter, and what is drawn is `explore.js`'s. A leaf. |
 | `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `shareday.js`, `data.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `foryou.js`, `ui.js`, `filters.js` | The twenty-two leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
@@ -104,7 +104,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, and smokes that boot the built pages - the next site's, given a backend, signing in by email and syncing a star. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
-| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds; `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87). |
+| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds; `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star and the zero state's Show all and star among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88). |
 | `playwright.config.js` | The browser tests' configuration: a project for each engine at each size, a phone with touch on, the worker blocked, the zone the season file's, no retries. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record, frozen: never edited (DECISIONS #83). |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
@@ -461,7 +461,8 @@ never as it is imported. `state`: `settings` and `state`, Plans' crew
 and day and the Map's day and focus among it, and the folds kept in memory:
 `explore.mutedOpen`, `following.showCast` and `following.castNoise` by
 follow, and `browse.castOpen` (#84, #85); `explore.forYou`, For you's list
-while the reader stays on the grid; and `following.open`, Following's fold
+while the reader stays on the grid, with the zero state under it where it
+has no row (#88); and `following.open`, Following's fold
 as the reader stored it, null while never stored (#87).
 `time`: `now()`, the override, `CON` - the season file's days - and the
 days' names, `conPhase()`, `conDayKey()`, `effectiveNow()`. `outbox`: what
@@ -531,7 +532,9 @@ profile; and what is chosen, `forYou()`, the rows at a moment handed in,
 each with the one thing that weighed most - over an index of the schedule,
 each event's things and how rare each is, built once a schedule; and
 `labelFor()`, what a follow is called on screen, which the cap of two rows
-a reason counts by and `explore` draws. It stands after `walk`, whose
+a reason counts by and `explore` draws; and `bigOnes()`, the big ones at a
+moment handed in - Main Programming's celebrity events still to start, one
+session each - for the zero state (#88). It stands after `walk`, whose
 `connection()` says whether an event overlaps a pick, and `search`, whose
 label a topic's name is. `ui`:
 markup every view shares, `rowHTML()` - an event's row: the title, then
@@ -871,7 +874,11 @@ cast, apart and collapsed; above the grid, first, For you (DECISIONS #87) -
 for a reader with a pick or a follow, eight events at most that they have
 not starred and that fit the gaps in their plan, four shown, each with its
 reason on line 3, the list worked out when the grid is drawn from
-somewhere else and held while the reader stays on it; then a Following
+somewhere else and held while the reader stays on it, and in its place
+where it has no row the zero state (#88) - "Start here" and a line for a
+reader with no pick and no follow, then the big ones, four shown - kept
+through a star in it and worked out again by a follow or a pick from
+anywhere else; then a Following
 feed - a followed
 work's block ending with its cast too, by interest (#85) - folded under a
 For you that has a row until the reader taps its heading; suggestions

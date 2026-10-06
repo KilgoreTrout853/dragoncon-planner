@@ -660,17 +660,20 @@ Explore.
      follows, mutes and the weights computed from stars, recomputed from
      picks and follows, which sync (#50) - each row saying why on line 3
      ("You follow Star Trek", "Like your picks: Space"), less what
-     clashes with the plan. Not there with no row (#87).
+     clashes with the plan. Not there with no row (#87): the zero state
+     stands in its place (#88).
   2. **Following,** complete, and folded under a For you that has a row
      until the reader taps its heading (#87).
   3. **Because you starred,** as built.
   4. **Muted,** a fold, when anything is muted (#84).
   5. The sticky filter and jump chips, and the sections, as built.
-- **The zero state** (W16): for a stranger with nothing starred and
-  nothing followed, one curated screen in place of the hint line. Before
-  the con it is the first thing the app shows (#62). Its source - a
-  hand-curated file the pipeline validates, or a computed list - is the
-  Explore PR's design call (Open).
+- **The zero state** (W16), in For you's place where For you has no row
+  (#88): for a stranger with nothing starred and nothing followed, "Start
+  here" and one line on how the app works, in place of the hint line;
+  then, for anyone whose For you is empty, "The big ones" - Main
+  Programming's celebrity events still to start, four shown and the rest
+  behind Show all. Before the con it is the first thing the app shows
+  (#62). Its source is computed: no curated file.
 - **Pages,** as built, and also the target of the sheet's track and work
   chips (#64; section 11).
 - **Mute** (W5): beside Follow on a page, and one or the other with it:
@@ -688,6 +691,8 @@ DECISIONS #84, #85.
 
 Built: For you - PR #105, DECISIONS #87.
 
+Built: the zero state - PR #106, DECISIONS #88.
+
 **Home of:** W3; W16; W5; W6.
 
 Moves: `explore.js` `renderExploreGrid()`, `renderExplorePage()`,
@@ -701,6 +706,8 @@ group). Tests: `explore.test.js`, `follows.test.js`, `spy.test.js`,
 Changed by PR #103 (#84): a draw also writes the Muted fold above the sticky block, after Because you starred.
 
 Changed by PR #105 (#87): a draw also writes For you above the sticky block, first.
+
+Changed by PR #106 (#88): a draw also writes the zero state above the sticky block, in For you's place.
 
 PR #100, the first of step 8's, with #66 and #80: Explore's filter box is
 built once, which lifts the crew redraw's gate (section 5, as built;
@@ -2518,7 +2525,9 @@ As built: the recon, section 3, what the event panel does not carry.
   name since PR #92 (section 10, as built), and the event's sheet by its
   full name since PR #93 (section 7, as built). The one-line "how to get
   there" is not built: the line exists nowhere yet, in no file.
-- **W16:** the zero state's curated source (section 4; Open).
+- ~~**W16:** the zero state's curated source (section 4; Open).~~
+  Settled by PR #106 (#88): computed from the schedule, with no curated
+  file to wait on.
 - **W45:** the server-side delete, a `supabase/` migration and RPC, with
   the gear PR.
 
@@ -2531,8 +2540,15 @@ As built: the recon, section 8, what crews' readers offer today.
 - **Status pings** (W24), a checkpoint candidate, rank 2: the build order
   stays picks → presence → pings (#10).
 - The Now board's shape beyond one line per crewmate (W23).
-- W16's source: a hand-curated file the pipeline validates, or a computed
-  list - the Explore PR's call.
+- ~~W16's source: a hand-curated file the pipeline validates, or a computed
+  list - the Explore PR's call.~~
+  Settled by PR #106 (#88): a computed list, Main Programming's celebrity
+  events still to start.
+- Whether the big ones are the right list - one track's celebrity events -
+  is judged on 2027's schedule in August (#88).
+- A held zero state waits for the grid to be left: a star in it that gives
+  For you a row, and an unmute on the grid, show nothing new until then
+  (#88).
 - No cast group in Search with a word typed that ranks: a typed word is a
   text search, and whether "firefly" should set the Fandom is search
   tuning's (#36, #85).

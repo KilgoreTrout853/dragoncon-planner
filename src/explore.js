@@ -5,7 +5,7 @@ import { AXES, byId, castEvents, events, isCeleb, knownFor, linkedWorks, NOISE_T
 import { picks } from "./picks.js";
 import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing, isMuted, KIND_NOUN, mutes } from "./follows.js";
 import { axisLabel } from "./search.js";
-import { forYou, labelFor } from "./foryou.js";
+import { bigOnes, forYou, labelFor } from "./foryou.js";
 import { rowHTML } from "./ui.js";
 import { pageScrollTo, pageScrollTop, revealChip, scroller } from "./scroll.js";
 import { requestRender } from "./bus.js";
@@ -143,8 +143,9 @@ function exploreSectionsHTML() {
     const open = !!q || !!state.explore.expanded[sec.id];
     const shown = open ? items : items.slice(0, EXPLORE_HEAD);
     html += `<div class="section-title" id="explore-${sec.id}">${sec.label} <span class="count">${items.length}</span></div>`;
-    /* Nothing followed yet, so no Following section to point at: say where it will appear. */
-    if (!any && !follows.length) html += `<div class="hint">Follow a track, fandom or person and it'll show up here.</div>`;
+    /* Nothing followed yet, so no Following section to point at: say where
+       it will appear - but under "Start here", whose line says it (#88). */
+    if (!any && !follows.length && !startShown()) html += `<div class="hint">Follow a track, fandom or person and it'll show up here.</div>`;
     any = true;
     html += `<div class="tiles">${shown.map(i => tileHTML(sec.kind, i)).join("")}</div>`;
     if (shown.length < items.length) {
@@ -244,8 +245,60 @@ function mutedHTML() {
 const FOR_YOU_HEAD = 4;
 function forYouList() {
   const held = state.explore.forYou;
-  if (held && held.rows.length) return held;
-  return state.explore.forYou = {rows: forYou(now()), more: false};
+  if (held && (held.rows.length || zeroKept(held.zero))) return held;
+  const rows = forYou(now());
+  return state.explore.forYou = {rows, more: false, zero: rows.length ? null : zeroState(held && held.zero)};
+}
+
+/* The zero state (W16; DECISIONS #88), in For you's place where For you has
+   no row, worked out with it and held with it in state.explore.forYou, as
+   zero. Two parts. "Start here" and its line are a stranger's alone - no
+   pick and no follow, whatever is muted. "The big ones" are anyone's whose
+   For you is empty: foryou.js's bigOnes(), four shown and the rest behind
+   Show all. null with neither: a reader with a pick or a follow and nothing
+   left to list.
+
+   Its hold is narrower than For you's. It is kept while the follows are as
+   they were when it was worked out and every pick added or taken since is
+   one of its own rows: a star in it leaves what is on screen as it was, the
+   row starred in its place and "Start here" still above it (#86). A follow,
+   or a pick from anywhere else - a pull's, another row's - works the top of
+   the grid out again, as an empty For you always was: a phone that has just
+   signed in still gets For you at the pull's redraw. Worked out again on
+   the grid, Show all stays as it was; from somewhere else it is shut. */
+const BIG_HEAD = 4;
+const followsKey = () => follows.map(followId).join("\n");
+function zeroState(was) {
+  const start = !picks.size && !follows.length, big = bigOnes(now());
+  if (!start && !big.length) return null;
+  return {start, big, all: !!(was && was.all), follows: followsKey(), picks: new Set(picks)};
+}
+function zeroKept(zero) {
+  if (!zero || zero.follows !== followsKey()) return false;
+  let had = 0;
+  for (const id of picks) {
+    if (zero.big.includes(id)) continue;
+    if (!zero.picks.has(id)) return false;
+    had++;
+  }
+  return had === zero.picks.size;
+}
+/* Whether "Start here" is on the grid as it was last drawn. */
+function startShown() {
+  const top = state.explore.forYou;
+  return !!(top && top.zero && top.zero.start);
+}
+function zeroHTML(zero) {
+  if (!zero) return "";
+  const {start, big, all} = zero, shown = all ? big : big.slice(0, BIG_HEAD);
+  const row = id => { const ev = byId.get(id); return ev ? rowHTML(ev, {list: "big", showDay: true}) : ""; };
+  return `<section class="foryou zero" id="zero">
+    ${start ? `<h2 class="fy-head">Start here</h2>
+    <p class="fy-line">Tap a star and the event goes on your plan. Follow a track, a fandom or a guest below, and its events show up here.</p>` : ""}
+    ${big.length ? `<h2 class="fy-head">The big ones <span class="count">(${big.length})</span></h2>
+    <ul class="list">${shown.map(row).join("")}</ul>
+    ${shown.length < big.length ? `<button class="btn quiet more" data-act="zero-all">Show all ${big.length}</button>` : ""}` : ""}
+  </section>`;
 }
 function forYouHTML() {
   const {rows, more} = forYouList();
@@ -265,13 +318,14 @@ function forYouHTML() {
   </section>`;
 }
 
-/* What stands above the sticky block: For you, when it has a row;
-   Following, when anything is followed; Because you starred; and the Muted
-   fold, when anything is muted. For you is worked out first: Following's
-   fold asks whether it has a row. */
+/* What stands above the sticky block: For you, when it has a row, and the
+   zero state in its place when it has none; Following, when anything is
+   followed; Because you starred; and the Muted fold, when anything is
+   muted. For you is worked out first: Following's fold asks whether it has
+   a row, and the zero state is worked out with it. */
 function exploreTopHTML() {
   const forYouTop = forYouHTML();
-  return forYouTop + followingHTML(!!forYouTop) + suggestedHTML() + mutedHTML();
+  return (forYouTop || zeroHTML(state.explore.forYou.zero)) + followingHTML(!!forYouTop) + suggestedHTML() + mutedHTML();
 }
 
 /* The filter box is built once (DECISIONS #80), as Search's is: the first
@@ -560,7 +614,7 @@ function followingByTime(now) {
 }
 
 /* Only there when there is something to show; with no follows the grid
-   carries a one-line hint instead. Closed, the feed is not built at all.
+   carries a one-line hint instead, or "Start here" does (#88). Closed, the feed is not built at all.
    The fold: what the reader stored by a tap on the heading is what is shown;
    while nothing was ever stored, Following is folded under a For you that
    has a row - For you is the sampler, this the complete list - and open

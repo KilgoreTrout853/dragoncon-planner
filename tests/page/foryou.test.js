@@ -44,11 +44,13 @@ describe("For you, at the top of Explore", () => {
   afterAll(() => page.cleanup());
 
   describe("who gets one", () => {
-    it("a reader with no pick and no follow gets none: the grid's top is as it was, the hint line and all", () => {
+    it("a reader with no pick and no follow gets none: Start here stands in its place, alone on a schedule with no Main Programming track (DECISIONS #88)", () => {
       reader([]);
       expect(el("foryou")).toBe(null);
-      expect(kinds(view())).toEqual(["div.controls.controls-sticky", "div#exploreGrid."]);
-      expect(words(view().querySelector(".hint"))).toBe("Follow a track, fandom or person and it'll show up here.");
+      expect(kinds(view())).toEqual(["section#zero.foryou.zero", "div.controls.controls-sticky", "div#exploreGrid."]);
+      expect(kinds(el("zero"))).toEqual(["h2.fy-head", "p.fy-line"]);
+      expect(words(el("zero").firstElementChild)).toBe("Start here");
+      expect(view().querySelector(".hint")).toBe(null);
     });
     it("a reader with a follow that brings nothing gets none - never a heading over nothing - and Following stands first", () => {
       reader([{ kind: "work", key: "no-such-work" }]);

@@ -16,7 +16,7 @@
    ones. A run makes little: a finding is made once a thing and shared by
    every event that carries it, and an event is weighed in one list used
    over again, since a phone runs this as the grid is drawn (#22). */
-import { AXES, byId, events, linkedWorks, NOISE_TRACKS, personName, tagsOf, worksById } from "./data.js";
+import { AXES, byId, events, isCeleb, linkedWorks, NOISE_TRACKS, personName, tagsOf, worksById } from "./data.js";
 import { picks } from "./picks.js";
 import { followId, follows, mutes } from "./follows.js";
 import { connection } from "./walk.js";
@@ -32,6 +32,7 @@ const STAR_CAP = 3;           // and a thing the picks share at most this many
 const STAR_MIN = {work: 1, track: 2, axis: 2};
 const LONG_PICK_MIN = 240;    // a pick longer than this blocks nothing: nobody sits a whole one
 const QUIET_KINDS = ["photo", "signing"];
+const BIG_TRACK = "Main Programming";   // the track whose celebrity events are the big ones
 
 /* What a follow is called on screen: its key is an id. */
 function labelFor(kind, key) {
@@ -251,4 +252,29 @@ function forYou(at) {
     .map(({ev, score, reason: f}) => ({id: ev.id, score, reason: {kind: kindOf(f.thing), key: keyOf(f.thing), name: p.name.get(f.thing), follow: f.follow}}));
 }
 
-export { FOR_YOU_MAX, labelFor, rarity, profile, SIGNALS, forYou };
+/* The big ones (W16; DECISIONS #88), which stand where For you has no row:
+   the celebrity events on Main Programming still to start at a moment,
+   soonest first and then by id, as ids. Computed, never a list kept by
+   hand. Out: a cancelled one; a photo op or a signing; one that carries a
+   muted thing, as For you counts carrying - the fandoms under a muted
+   fandom with it; and a second session of anything, by sessionKey() - a
+   pick is a session already had, so a pick and its other sessions are out
+   too. [] once nothing is left to start, and on a schedule with no such
+   track. */
+function bigOnes(at) {
+  const moment = at.getTime(), {things} = indexed();
+  const muted = new Set(mutes.map(followId)), sessions = new Set(), out = [];
+  picks.forEach(id => { const ev = byId.get(id); if (ev) sessions.add(sessionKey(ev)); });
+  const left = events.filter(ev => ev._s.getTime() > moment && !ev.cancelled && (ev.tracks || []).includes(BIG_TRACK) && isCeleb(ev)
+    && !QUIET_KINDS.includes(tagsOf(ev).kind) && !things.get(ev.id).some(thing => muted.has(thing)));
+  left.sort((a, b) => a._s - b._s || (a.id < b.id ? -1 : 1));
+  for (const ev of left) {
+    const session = sessionKey(ev);
+    if (sessions.has(session)) continue;
+    sessions.add(session);
+    out.push(ev.id);
+  }
+  return out;
+}
+
+export { FOR_YOU_MAX, labelFor, rarity, profile, SIGNALS, forYou, BIG_TRACK, bigOnes };

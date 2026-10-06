@@ -128,6 +128,8 @@ function onMainClick(e) {
     if (a === "explore-all") { state.explore.expanded[act.dataset.section] = true; renderExploreSections(); return; }
     /* For you's Show more: the rest of the list held, in place (#87). */
     if (a === "foryou-more") { if (state.explore.forYou) state.explore.forYou.more = true; render(); return; }
+    /* The big ones' Show all: the rest of the list held, in place (#88). */
+    if (a === "zero-all") { if (state.explore.forYou && state.explore.forYou.zero) state.explore.forYou.zero.all = true; render(); return; }
     /* The heading folds or opens what is shown - which, never stored, For
        you decided - and from here on what is stored is what is shown (#87). */
     if (a === "fol-toggle") {

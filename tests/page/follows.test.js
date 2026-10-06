@@ -140,11 +140,25 @@ describe("follows", () => {
       it("Explore is just the grid [1135]", () => {
         expect(ex().querySelectorAll(".tile").length).toBeGreaterThan(0);
       });
-      it("with a one-line hint [1137]", () => {
-        expect(ex().querySelector(".hint").textContent.trim()).toBe("Follow a track, fandom or person and it'll show up here.");
-      });
-      it("sitting under the first section header [1139]", () => {
-        expect(ex().querySelector(".section-title").nextElementSibling).toBe(ex().querySelector(".hint"));
+      /* The hint is a reader's with a pick and no follow: a stranger has
+         "Start here", whose line says it (DECISIONS #88). The pick is one
+         that suggests nothing, so the grid's hint is the view's only one. */
+      describe("and something starred", () => {
+        beforeAll(() => {
+          const guests = new Set(app.getCatalogue().guest.map(t => t.key));
+          const quiet = handle.events.find(e => (e.tracks || []).length && e.tracks.every(t => app.NOISE_TRACKS.has(t))
+            && !app.linkedWorks(e).size && !(e.people || []).some(p => guests.has(p.id)));
+          handle.picks.set([quiet.id]); handle.render();
+          expect([el("zero"), el("suggested"), el("foryou")]).toEqual([null, null, null]);
+        });
+        afterAll(() => { handle.picks.set([]); handle.render(); });
+
+        it("with a one-line hint [1137]", () => {
+          expect(ex().querySelector(".hint").textContent.trim()).toBe("Follow a track, fandom or person and it'll show up here.");
+        });
+        it("sitting under the first section header [1139]", () => {
+          expect(ex().querySelector(".section-title").nextElementSibling).toBe(ex().querySelector(".hint"));
+        });
       });
     });
 
