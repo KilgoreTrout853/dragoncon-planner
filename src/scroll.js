@@ -86,13 +86,18 @@ function giveFocusBack(key) {
   const again = key ? shownMatch(key) : null;
   if (again && document.activeElement !== again) again.focus({preventScroll: true});
 }
-/* What the minute tick redraws, redrawn in place: an element written into
-   from its fresh copy - its attributes and what it holds - keeps its node,
-   and with it any focus on it, so focus never moves and a screen reader is
-   not made to read it again. And a part of a view, the same way, each of its
-   elements into the one of the same kind; where the kinds differ, or their
-   number, the part is drawn anew and focus put back. Nothing at all when
-   the words have not changed. */
+/* What is drawn in place - at the minute's tick, and the Map at every draw
+   (DECISIONS #89): an element written into from its fresh copy - its
+   attributes and what it holds - keeps its node, and with it any focus on
+   it, so focus never moves and a screen reader is not made to read it
+   again. And a part of a view, the same way, each of its elements into the
+   one of the same kind; where the kinds differ, or their number, the part
+   is drawn anew and focus put back. Nothing at all when the words have not
+   changed, and drawInPlace() says which: false where it wrote nothing, true
+   otherwise. The fresh copy is parsed in an element of the part's own kind,
+   so a part of an SVG is read as SVG - in a div its self-closed shapes
+   would nest - and a kind is its tag and its class attribute: an SVG
+   element's className is an object, never equal to another's. */
 function refill(el, fresh) {
   if (el.outerHTML === fresh.outerHTML) return;
   for (const a of [...el.attributes]) if (!fresh.hasAttribute(a.name)) el.removeAttribute(a.name);
@@ -100,16 +105,17 @@ function refill(el, fresh) {
   if (el.innerHTML !== fresh.innerHTML) el.innerHTML = fresh.innerHTML;
 }
 function drawInPlace(part, html) {
-  const holder = document.createElement("div");
+  const holder = document.createElementNS(part.namespaceURI, part.localName);
   holder.innerHTML = html;
-  if (holder.innerHTML === part.innerHTML) return;
-  const was = [...part.children], fresh = [...holder.children];
+  if (holder.innerHTML === part.innerHTML) return false;
+  const was = [...part.children], fresh = [...holder.children], cls = el => el.getAttribute("class") || "";
   const alike = part.childNodes.length === was.length && holder.childNodes.length === fresh.length && was.length === fresh.length
-    && was.every((el, i) => el.tagName === fresh[i].tagName && el.className === fresh[i].className);
-  if (alike) { was.forEach((el, i) => refill(el, fresh[i])); return; }
+    && was.every((el, i) => el.tagName === fresh[i].tagName && cls(el) === cls(fresh[i]));
+  if (alike) { was.forEach((el, i) => refill(el, fresh[i])); return true; }
   const back = focusIn(part);
   part.innerHTML = html;
   giveFocusBack(back);
+  return true;
 }
 
 /* The header line must not clip: if it would, hide the word "refreshed"
