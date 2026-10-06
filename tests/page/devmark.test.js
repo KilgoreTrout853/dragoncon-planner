@@ -21,6 +21,9 @@ function keepEverything({ app, handle }) {
   handle.follows.set([{ kind: "track", key: "Science" }]);
   app.toggleMute("track", "Skeptics");
   document.querySelector('.nav button[data-tab="explore"]').click();
+  /* Never stored, Following is folded under For you (DECISIONS #87): the
+     first tap opens it, and stores that; the last folds it again. */
+  document.querySelector('#following [data-act="fol-toggle"]').click();
   document.querySelector('#following [data-act="fol-time"]').click();
   document.querySelector('#following [data-act="fol-toggle"]').click();
   document.querySelector('.nav button[data-tab="plans"]').click();

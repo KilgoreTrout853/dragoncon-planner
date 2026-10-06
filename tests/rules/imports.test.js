@@ -2,9 +2,9 @@
 /* The shape of the module graph under src/ (DECISIONS #29; how it came
    about is docs/SPLIT-MANIFEST.md). src/boot.js is the root: it imports the
    others, and only main.js imports it. ORDER is the order the others may
-   depend on one another in - the twenty-one leaves, the backend, identity
-   and the outbox among them (DECISIONS #53), crews (#56), shareday (#69)
-   and filters (#70), then scroll, eventsheet - the sheet's event panel -
+   depend on one another in - the twenty-two leaves, the backend, identity
+   and the outbox among them (DECISIONS #53), crews (#56), shareday (#69),
+   foryou (#87) and filters (#70), then scroll, eventsheet - the sheet's event panel -
    the bus, sync and the five views, then the sheet, loading, the shell and
    dispatch - each only on npm packages and on the modules before it, so
    there is no cycle to find; and each of the year's two data files, which
@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
 import { parseAst } from "vite";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const ORDER = ["season", "util", "storage", "platform", "build", "backend", "identity", "crews", "state", "time", "outbox", "venues", "shareday", "data", "picks", "follows", "ics", "walk", "search", "ui",
+const ORDER = ["season", "util", "storage", "platform", "build", "backend", "identity", "crews", "state", "time", "outbox", "venues", "shareday", "data", "picks", "follows", "ics", "walk", "search", "foryou", "ui",
   "filters", "scroll", "eventsheet", "bus", "sync", "now", "browse", "explore", "map", "plans",
   "sheet", "loading", "shell", "dispatch"];
 const PACKAGES = Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).dependencies || {});

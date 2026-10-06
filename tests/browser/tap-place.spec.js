@@ -17,11 +17,24 @@ const TOLERANCE = 1;
 const MUTES = [{ kind: "track", key: "Main Programming" }, { kind: "track", key: "Live Performances - Hyatt Concourse" }];
 const FIREFLY = { kind: "work", key: "firefly" }, TREK = { kind: "work", key: "star-trek" };
 /* Nothing starred, one fandom followed, two things muted: only the folds
-   stand between Firefly's Already happened and the filter block. */
-const NEAR = { follows: [FIREFLY], mutes: MUTES };
+   stand between Firefly's Already happened and the filter block. Each of
+   these two opened Following's fold, which is shut under For you while
+   never stored (DECISIONS #87). */
+const NEAR = { follows: [FIREFLY], mutes: MUTES, followingOpen: true };
 /* A second fandom after it, with more than a page still to come: a
    screenful and more between Firefly's folds and the filter block. */
-const FAR = { follows: [FIREFLY, TREK], mutes: MUTES };
+const FAR = { follows: [FIREFLY, TREK], mutes: MUTES, followingOpen: true };
+/* For you's: the design sketch's reader - nine picks, Star Trek and Sean
+   Astin followed - who gets eight rows on the Saturday, four behind Show
+   more, and never tapped Following's heading. */
+const SKETCH = {
+  picks: [
+    "6ecc75745a676d39f2300556239d62d0", "c32d19e7750818e0eb903f152ac43c0e", "c32d19e7750818e0eb903f152ad81594",
+    "c32d19e7750818e0eb903f152ad84b6f", "1e3995157984a4c0e6515a2ed631ee27", "c32d19e7750818e0eb903f152ac06f6f",
+    "c32d19e7750818e0eb903f152ac72ab7", "c32d19e7750818e0eb903f152ac14835", "6ecc75745a676d39f230055623a7291a",
+  ],
+  follows: [TREK, { kind: "person", key: "sean-astin" }],
+};
 
 const HDR = ".hdr", BOX = "#view-explore .controls-sticky";
 const fold = (act, follow) => `#view-explore [data-act="${act}"]` + (follow ? `[data-follow="${follow}"]` : "");
@@ -161,6 +174,32 @@ for (const [text, storage] of Object.entries(TEXT)) {
       await holds(page, "a star on a Following row", {
         control: `${row} .star`, watch: row, down: 120, drawn: () => expect(page.locator(`${row} .star`)).toHaveAttribute("aria-pressed", "true"),
       });
+    });
+  });
+
+  /* For you (DECISIONS #87): Show more puts four rows between itself and
+     the filter block, which is on screen below it at the taller sizes and
+     past the foot at the shorter; and a star changes nothing above its row
+     - the list is held - so the row and the star stay. */
+  test.describe(`a tap in For you${text}`, () => {
+    test.use({ storageState: seed({ ...SKETCH, ...storage }) });
+
+    test(`stays under the finger: what stood above Show more, and a row's star${text}`, async ({ page }) => {
+      await open(page, SATURDAY);
+      await tab(page, "explore");
+      const more = '#foryou [data-act="foryou-more"]';
+      await expect(page.locator('main .row[data-list="foryou"]')).toHaveCount(4);
+      await holds(page, "For you's Show more, by the last row above it", {
+        control: more, watch: await rowAt(page, "foryou", 3), down: 200, drawn: gone(page, more), stage: t => [["the page is scrolled", t.scrolled > 0]],
+      });
+      await expect(page.locator('main .row[data-list="foryou"]')).toHaveCount(8);
+
+      const row = await rowAt(page, "foryou", 5), star = `${row} .star`;
+      await holds(page, "a star on a For you row", {
+        control: star, watch: row, down: 120, drawn: () => expect(page.locator(star)).toHaveAttribute("aria-pressed", "true"),
+        stage: t => [["the page is scrolled", t.scrolled > 0]],
+      });
+      await expect.soft(page.locator('main .row[data-list="foryou"]'), "the starred row is still one of the eight").toHaveCount(8);
     });
   });
 

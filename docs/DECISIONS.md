@@ -3047,3 +3047,29 @@ picks or follows, a return to the page after events have passed - no
 longer leaves Explore's grid held where what stands above it changes
 height. The grid moves by the difference, as it did before #80 and as it
 does in a browser that never anchored; our own code does not hold it.
+
+### 87. For you: a short list with its reasons, at the top of Explore — Standing (2026-10-06)
+**Decided:** A reader with a pick or a follow finds For you first on
+Explore's grid: events not starred that fit the gaps in the plan, each
+saying why (W3; PR #105; `docs/screens/contract.md`, section 4).
+- **Three parts:** what scores and what is chosen are `src/foryou.js`'s,
+  what is drawn `explore.js`'s; a later way of guessing is one more signal.
+- **What scores:** a follow, what Following lists for it, at three times
+  its rarity; the picks, what they share - a fandom from one pick, a
+  track or a topic from two, never a person - by the picks that carry
+  it, three at most. What reads as one reason weighs as one.
+- **What is chosen:** nothing started, cancelled, picked or overlapping a
+  pick of four hours or less; no photo op, signing or second session.
+  Best first, two rows a reason by its words, eight rows, four shown.
+- **Mutes:** an event carrying a muted thing is out unless a follow
+  brings it; a muted fandom mutes the fandoms under it.
+- **It holds still:** worked out when the grid is drawn from somewhere
+  else, kept while the reader stays on it; an empty list is never kept.
+- **Following** is folded under a For you that has a row, until the
+  reader taps its heading; then what is stored is what is shown.
+
+**Why:** Nobody reads Following whole. A sampler earns its place by
+saying why each row is there, from the profile alone (#22, #32), and by
+not moving under a finger (#86).
+**Cost:** A starred row, an unfollowed thing's rows and one whose event
+has started stay until the grid is left. Weights are by hand, untuned.

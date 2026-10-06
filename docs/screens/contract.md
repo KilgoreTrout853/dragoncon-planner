@@ -655,12 +655,14 @@ As built: the recon, section 2, Explore; section 7, the stranger's
 Explore.
 
 - **The grid's top, in order:**
-  1. **For you** (W3): about eight rows, ranked from the on-device
-     profile (#32) - follows, mutes and the weights computed from stars,
-     recomputed from picks and follows, which sync (#50) - each row saying
-     why ("because you follow Star Trek", "like your picks"), less what
-     clashes with the plan.
-  2. **Following,** complete and folded, as built.
+  1. **For you** (W3): eight rows at most, four shown and the rest behind
+     Show more, in time order, ranked from the on-device profile (#32) -
+     follows, mutes and the weights computed from stars, recomputed from
+     picks and follows, which sync (#50) - each row saying why on line 3
+     ("You follow Star Trek", "Like your picks: Space"), less what
+     clashes with the plan. Not there with no row (#87).
+  2. **Following,** complete, and folded under a For you that has a row
+     until the reader taps its heading (#87).
   3. **Because you starred,** as built.
   4. **Muted,** a fold, when anything is muted (#84).
   5. The sticky filter and jump chips, and the sections, as built.
@@ -684,6 +686,8 @@ Explore.
 Built: Mute, and the cast group in Search and in Following - PR #103,
 DECISIONS #84, #85.
 
+Built: For you - PR #105, DECISIONS #87.
+
 **Home of:** W3; W16; W5; W6.
 
 Moves: `explore.js` `renderExploreGrid()`, `renderExplorePage()`,
@@ -695,6 +699,8 @@ group). Tests: `explore.test.js`, `follows.test.js`, `spy.test.js`,
 ### The filter box, as built
 
 Changed by PR #103 (#84): a draw also writes the Muted fold above the sticky block, after Because you starred.
+
+Changed by PR #105 (#87): a draw also writes For you above the sticky block, first.
 
 PR #100, the first of step 8's, with #66 and #80: Explore's filter box is
 built once, which lifts the crew redraw's gate (section 5, as built;
@@ -2530,8 +2536,17 @@ As built: the recon, section 8, what crews' readers offer today.
 - No cast group in Search with a word typed that ranks: a typed word is a
   text search, and whether "firefly" should set the Fandom is search
   tuning's (#36, #85).
-- A mute and the fandoms under a fandom: Star Wars muted says nothing of
-  Andor. A mute is of one thing, by its id; For you decides (#84).
+- ~~A mute and the fandoms under a fandom: Star Wars muted says nothing of
+  Andor. A mute is of one thing, by its id; For you decides (#84).~~
+  Settled by PR #105 (#87): in For you a muted fandom mutes the fandoms
+  under it - an Andor event carries Star Wars - and Andor muted leaves
+  Star Wars offered.
+- For you's weights are set by hand and untuned - three for a follow,
+  three picks at most; W4's neighbours would join as one more signal (#87).
+- For you's list, held, keeps a row whose event has started, and a row
+  starred or unfollowed, until the grid is left (#87).
+- For you's reason is a part of line 3: a name the line cannot hold takes
+  the ellipsis (#87).
 - Mutes are on the device alone: a new phone, or a recovered plan, starts
   with none (#84).
 - A mute made with no session. Its unfollow is recorded nowhere, so where

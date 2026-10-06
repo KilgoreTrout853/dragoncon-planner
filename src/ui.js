@@ -26,8 +26,10 @@ const CELEB_BADGE = `<span class="celeb" title="Celebrity guest">Celebrity</span
      level is a part of its own, so it drops whole where the line cannot hold
      it, before the room is cut (styles.css).
    - Line 3, one line, only when anything is there: Celebrity; the overlap
-     flag; the caller's context - Now's status, the Following feed's
-     labels; the event's flags; the track, or "Gaming". Each part drops
+     flag; the caller's context - Now's status, For you's reason, the
+     Following feed's labels; the event's flags; the track, or "Gaming",
+     left unsaid where the caller's reason already names it (opts.noTrack;
+     DECISIONS #87). Each part drops
      whole from the end where the line cannot hold it; the overlap's title
      shortens first, and Celebrity and the overlap never drop.
    - The overlap flag (W1): a picked row that overlaps another pick says so
@@ -51,7 +53,7 @@ function rowHTML(ev, opts = {}) {
   const day = opts.showDay ? `<span class="day">${DAY_LABEL[ev._cd] || ""}</span> ` : "";
   const clash = overlapsOf(ev);
   const overlap = clash.length === 1 ? `Overlaps ${clash[0].title}` : clash.length ? `Overlaps ${clash.length} picks` : "";
-  const track = overlap ? "" : ev.track || (ev.type === "gaming" ? "Gaming" : "");
+  const track = overlap || opts.noTrack ? "" : ev.track || (ev.type === "gaming" ? "Gaming" : "");
   const line3 = [
     isCeleb(ev) ? CELEB_BADGE : "",
     overlap ? `<span class="overlap">${esc(overlap)}</span>` : "",

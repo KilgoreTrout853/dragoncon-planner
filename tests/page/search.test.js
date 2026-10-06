@@ -448,6 +448,7 @@ describe("Search", () => {
     /* the harness looked for the three data-row names in the source */
     it("the Now, Explore and Following rows are named too [808]", () => {
       handle.follows.set([{ kind: "track", key: handle.events[0].tracks[0] }]);
+      state.following.open = true;                        // a reader who opened the fold: never stored, it is shut under For you (#87)
       const rowsOn = name => { state.tab = name; state.explore.page = null; handle.render(); return [...document.querySelectorAll(`#view-${name} .chips[data-row]`)].map(r => r.dataset.row); };
       expect(rowsOn("now")).toContain("now-hotel");
       expect(rowsOn("explore")).toEqual(expect.arrayContaining(["explore-jump", "follows"]));

@@ -49,7 +49,10 @@ const CLOCKS = [
    nine picks - two of Friday's, six of Saturday's, two of them at 1:00 PM,
    one of Sunday's - a work and a person followed, and two tracks muted, one
    of them the picks would have suggested and one with a long name, so the
-   standing checks walk Explore with the Muted fold. */
+   standing checks walk Explore with the Muted fold. Following's fold is
+   stored open, as a reader who tapped its heading has it: never stored, it
+   is shut under For you (DECISIONS #87), and the tests through this reader
+   look inside it. For you's own readers are tests/browser/foryou.spec.js's. */
 const READERS = {
   "a stranger": {},
   "a reader with picks and follows": {
@@ -60,6 +63,7 @@ const READERS = {
     ],
     follows: [{ kind: "work", key: "star-trek" }, { kind: "person", key: "alan-tudyk" }],
     mutes: [{ kind: "track", key: "Main Programming" }, { kind: "track", key: "Live Performances - Hyatt Concourse" }],
+    followingOpen: true,
   },
 };
 

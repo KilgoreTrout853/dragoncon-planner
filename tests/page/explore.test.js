@@ -18,7 +18,10 @@ describe("Explore", () => {
   const view = () => el("view-explore");
   const grid = () => { handle.follows.set([]); state.tab = "explore"; state.explore.page = null; state.explore.q = ""; handle.render(); };
 
-  beforeAll(async () => { page = await bootPage(); ({ app, handle } = page); state = handle.state; }, 30000);
+  /* This file's reader opened Following's fold, as state.following.open true
+     says: never stored, it is shut under a For you that has a row (DECISIONS
+     #87), which tests/page/foryou.test.js holds. */
+  beforeAll(async () => { page = await bootPage(); ({ app, handle } = page); state = handle.state; state.following.open = true; }, 30000);
   afterAll(() => page.cleanup());
 
   describe("because you starred: suggestions drawn from the reader's own picks", () => {
@@ -470,9 +473,10 @@ describe("Explore", () => {
        which typing's own draw leaves alone. */
     const drawn = during => { const chip = jump(); during(); return !chip.isConnected && jump() !== null && jump() !== chip; };
     const plain = () => Object.assign(state.following, { open: true, layout: "interest", expanded: {}, showPast: {} });
+    /* Another reader: For you's list, which a draw of the grid keeps, is let go. */
     const reader = (follows, picks) => {
       handle.closeSheet(); handle.picks.set(picks); handle.follows.set(follows); plain();
-      state.tab = "explore"; state.explore.page = null; state.explore.q = ""; state.explore.expanded = {};
+      state.tab = "explore"; state.explore.page = null; state.explore.q = ""; state.explore.expanded = {}; state.explore.forYou = null;
       handle.render();
     };
 
@@ -532,13 +536,13 @@ describe("Explore", () => {
       expect(drawn(() => star.click())).toBe(true);
       expect(handle.picks.get().has(id)).toBe(true);
       expect(view().querySelector(`#following .row[data-id="${id}"] .star`).getAttribute("aria-pressed")).toBe("true");
-      expect(kinds(view())).toEqual(["section#following.following", "div.controls.controls-sticky", "div#exploreGrid."]);
+      expect(kinds(view())).toEqual(["section#foryou.foryou", "section#following.following", "div.controls.controls-sticky", "div#exploreGrid."]);
       kept("star", 1, 2);
     });
-    it("and an unfollow, which takes Following from above it and puts Because you starred there", () => {
+    it("and an unfollow, which takes Following from above it and puts Because you starred there, For you held as it was", () => {
       expect(drawn(() => view().querySelector('#following [data-act="unfollow"]').click())).toBe(true);
       expect([handle.follows.get().length, el("following")]).toEqual([0, null]);
-      expect(kinds(view())).toEqual(["section#suggested.suggested", "div.controls.controls-sticky", "div#exploreGrid."]);
+      expect(kinds(view())).toEqual(["section#foryou.foryou", "section#suggested.suggested", "div.controls.controls-sticky", "div#exploreGrid."]);
       kept("star", 1, 2);
     });
     it("the box's value follows the filter when something else sets it, and a draw writes to the box only then", () => {
@@ -568,14 +572,14 @@ describe("Explore", () => {
       expect(drawn(() => handle.render())).toBe(true);
       kept("cos", 1, 2);
     });
-    it("the view's children are the same kinds in the same order after a draw as before it, Following first, and the jump chips the sticky block's own child", () => {
+    it("the view's children are the same kinds in the same order after a draw as before it, For you first, and the jump chips the sticky block's own child", () => {
       reader([{ kind: "track", key: track }], [handle.events.find(e => (e.tracks || []).some(t => !app.NOISE_TRACKS.has(t) && t !== track)).id]);
       node = box();
       const before = kinds(view());
-      expect(before).toEqual(["section#following.following", "section#suggested.suggested", "div.controls.controls-sticky", "div#exploreGrid."]);
+      expect(before).toEqual(["section#foryou.foryou", "section#following.following", "section#suggested.suggested", "div.controls.controls-sticky", "div#exploreGrid."]);
       expect(drawn(() => handle.render())).toBe(true);
       expect(kinds(view())).toEqual(before);
-      expect(view().firstElementChild).toBe(el("following"));
+      expect(view().firstElementChild).toBe(el("foryou"));
       expect(kinds(node.parentElement)).toEqual(["input#exploreQ.search", "div.chips.explore-jump"]);
       expect(box()).toBe(node);
     });
@@ -674,13 +678,17 @@ describe("Explore's filter box through a pull of the reader's own picks and foll
     expect(document.activeElement).toBe(box);
     expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["star", 1, 2]);
   });
-  it("and a follow: Following stands first in the view, the box as it was", async () => {
+  /* The list held was empty - one pick makes no row here - so the pull's
+     redraw works For you out (DECISIONS #87), and Following, never stored,
+     is folded under it. */
+  it("and a follow: For you stands first in the view and Following under it, folded, the box as it was", async () => {
     const box = el("exploreQ"), chip = jump();
     fake.write(ada.id, "follows", { kind: "track", key: track, followed: true, changed_at: iso(Date.now()) });
     await run();
     expect(handle.follows.get()).toEqual([{ kind: "track", key: track }]);
     expect([chip.isConnected, jump() !== null]).toEqual([false, true]);
-    expect(el("view-explore").firstElementChild).toBe(el("following"));
+    expect([el("view-explore").firstElementChild, el("foryou").nextElementSibling]).toEqual([el("foryou"), el("following")]);
+    expect(el("folBody").hidden).toBe(true);
     expect(el("exploreQ")).toBe(box);
     expect(document.activeElement).toBe(box);
     expect([box.value, box.selectionStart, box.selectionEnd]).toEqual(["star", 1, 2]);
@@ -840,6 +848,7 @@ describe("Mute beside Follow, and the Muted fold", () => {
       unmuteAll(); handle.follows.set(follows); handle.picks.set(picks);
       mutes.forEach(([kind, key]) => app.toggleMute(kind, key));
       Object.assign(state.following, { open: true, layout: "interest", expanded: {}, showPast: {} });
+      state.explore.forYou = null;                        // another reader: For you is worked out for them
       grid();
     };
     afterAll(() => { document.activeElement.blur(); state.explore.mutedOpen = false; reader([], [], []); });
@@ -858,11 +867,11 @@ describe("Mute beside Follow, and the Muted fold", () => {
       expect(fold().parentElement.className).toBe("divider fold");
       expect(chips()).toEqual([]);
     });
-    it("after Because you starred, and the view's children in order: Following, Because you starred, Muted, the sticky block, the grid", () => {
+    it("after Because you starred, and the view's children in order: For you, Following, Because you starred, Muted, the sticky block, the grid", () => {
       reader([{ kind: "track", key: "Skeptics" }], ninePicks(), [["track", "Science"], ["work", "star-wars"]]);
-      expect(kinds(view())).toEqual(["section#following.following", "section#suggested.suggested", "section#muted.muted", "div.controls.controls-sticky", "div#exploreGrid."]);
+      expect(kinds(view())).toEqual(["section#foryou.foryou", "section#following.following", "section#suggested.suggested", "section#muted.muted", "div.controls.controls-sticky", "div#exploreGrid."]);
       handle.follows.set([]); handle.render();
-      expect(kinds(view())).toEqual(["section#suggested.suggested", "section#muted.muted", "div.controls.controls-sticky", "div#exploreGrid."]);
+      expect(kinds(view())).toEqual(["section#foryou.foryou", "section#suggested.suggested", "section#muted.muted", "div.controls.controls-sticky", "div#exploreGrid."]);
     });
     it("open, it is one row of chips, a chip a mute in the order made, by its name", () => {
       fold().click();

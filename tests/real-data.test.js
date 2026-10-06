@@ -940,6 +940,114 @@ describe("against the real schedule", () => {
 
   /* Getting in (DECISIONS #77): the counts its design was settled on, from
      the committed schedule. New tests, not rows of tests/PORT-LEDGER.md. */
+  /* For you (W3; DECISIONS #87) on the real schedule: what scores and what
+     is chosen, asked of foryou.js at a moment handed in. The reader is the
+     design sketch's: nine picks, Star Trek and Sean Astin followed. */
+  describe("For you, on 2026's schedule", () => {
+    const SKETCH = ["6ecc75745a676d39f2300556239d62d0", "c32d19e7750818e0eb903f152ac43c0e", "c32d19e7750818e0eb903f152ad81594",
+      "c32d19e7750818e0eb903f152ad84b6f", "1e3995157984a4c0e6515a2ed631ee27", "c32d19e7750818e0eb903f152ac06f6f",
+      "c32d19e7750818e0eb903f152ac72ab7", "c32d19e7750818e0eb903f152ac14835", "6ecc75745a676d39f230055623a7291a"];
+    const BEFORE = new Date("2026-08-28T10:00");
+    const unmute = () => app.mutes.slice().forEach(m => app.toggleMute(m.kind, m.key));
+    const says = r => `${r.reason.follow ? "You follow" : "Like your picks:"} ${r.reason.name}`;
+    const sessionOf = e => (e.facets || {}).repeat_key || `title:${e.title}`;
+    afterAll(() => { unmute(); handle.picks.set([]); handle.follows.set([]); });
+
+    describe("the sketch's reader, before the con", () => {
+      let rows, events, picked;
+      beforeAll(() => {
+        unmute(); handle.picks.set(SKETCH); handle.follows.set([{ kind: "work", key: "star-trek" }, { kind: "person", key: "sean-astin" }]);
+        rows = app.forYou(BEFORE); events = rows.map(r => app.byId.get(r.id)); picked = SKETCH.map(id => app.byId.get(id));
+      });
+
+      it("the nine picks are the schedule's, and Dot R Steverson is on two of them", () => {
+        expect(picked.every(Boolean)).toBe(true);
+        expect(picked.filter(e => (e.people || []).some(p => p.id === "dot-r-steverson")).length).toBe(2);
+      });
+      it("eight rows, in time order, each with a reason that has a name", () => {
+        expect(rows.length).toBe(8);
+        expect(chronological(events)).toBe(true);
+        rows.forEach(r => { expect(r.reason.name).toBeTruthy(); expect(r.score).toBeGreaterThan(0); });
+      });
+      it("by both ways of guessing: some by a follow, some by the picks", () => {
+        expect([rows.some(r => r.reason.follow), rows.some(r => !r.reason.follow)]).toEqual([true, true]);
+      });
+      it("none a pick, and none another session of one", () => {
+        const sessions = new Set(picked.map(sessionOf));
+        events.forEach(e => { expect(SKETCH).not.toContain(e.id); expect(sessions.has(sessionOf(e)), e.title).toBe(false); });
+      });
+      it("none overlapping a pick, but a pick of more than four hours", () => {
+        const blocking = picked.filter(p => p._e - p._s <= 240 * 60000);
+        events.forEach(e => blocking.forEach(p => expect(e._s < p._e && p._s < e._e, `${e.title} / ${p.title}`).toBe(false)));
+      });
+      it("at most two rows say one reason, and no two are sessions of one thing", () => {
+        const count = new Map();
+        rows.forEach(r => count.set(says(r), (count.get(says(r)) || 0) + 1));
+        expect(Math.max(...count.values())).toBeLessThanOrEqual(2);
+        expect(new Set(events.map(sessionOf)).size).toBe(8);
+      });
+      it("no person is a reason by stars - no Dot R Steverson - and a person is one only by a follow", () => {
+        rows.forEach(r => { if (r.reason.kind === "person") expect([r.reason.follow, r.reason.key]).toEqual([true, "sean-astin"]); });
+        expect(rows.map(r => r.reason.key)).not.toContain("dot-r-steverson");
+      });
+      it("no photo op, no signing, nothing cancelled, nothing on the noise tracks alone", () => {
+        events.forEach(e => {
+          expect(["photo", "signing"]).not.toContain(app.tagsOf(e).kind);
+          expect(!!e.cancelled).toBe(false);
+          expect((e.tracks || []).length > 0 && e.tracks.every(t => app.NOISE_TRACKS.has(t))).toBe(false);
+        });
+      });
+    });
+
+    /* One Star Wars pick, nothing followed, at the minute before the one
+       Andor event starts: it is then the first of Star Wars' events left. */
+    describe("a muted fandom mutes the fandoms under it", () => {
+      let andor, at;
+      const starWars = e => app.linkedWorks(e).has("star-wars");
+      const offered = () => app.forYou(at).map(r => app.byId.get(r.id));
+      beforeAll(() => {
+        andor = handle.events.find(e => app.linkedWorks(e).has("andor"));
+        at = new Date(andor._s.getTime() - 60000);
+        const pick = handle.events.find(e => starWars(e) && !app.linkedWorks(e).has("andor") && e._e <= at && !["photo", "signing"].includes(app.tagsOf(e).kind));
+        handle.picks.set([pick.id]); handle.follows.set([]);
+      });
+
+      it("nothing muted: the Andor event is offered, for Star Wars, which it carries", () => {
+        unmute();
+        const rows = app.forYou(at);
+        expect(rows.map(r => r.id)).toContain(andor.id);
+        expect(rows.find(r => r.id === andor.id).reason).toEqual({ kind: "work", key: "star-wars", name: "Star Wars", follow: false });
+      });
+      it("Star Wars muted: no Andor event, and no Star Wars event", () => {
+        unmute(); app.toggleMute("work", "star-wars");
+        expect(offered().filter(starWars)).toEqual([]);
+      });
+      it("Andor muted: no Andor event, and Star Wars is still offered", () => {
+        unmute(); app.toggleMute("work", "andor");
+        const got = offered();
+        expect(got.map(e => e.id)).not.toContain(andor.id);
+        expect(got.filter(starWars).length).toBe(2);
+      });
+    });
+
+    it("what the follows signal finds for a follow is what eventsFor() lists for it: every track, fandom, topic and person of the schedule", () => {
+      unmute(); handle.picks.set([]);
+      const cat = app.getCatalogue();
+      const things = [...cat.track.map(t => ({ kind: "track", key: t.key })), ...cat.fandom.map(t => ({ kind: "work", key: t.key })),
+        ...cat.topic.map(t => ({ kind: "axis", key: t.key })), ...cat.person.map(t => ({ kind: "person", key: t.key }))];
+      expect(things.length).toBeGreaterThan(600);
+      /* Twenty follows a profile: an event is found for a follow where the signal names that follow on it. */
+      for (let i = 0; i < things.length; i += 20) {
+        const some = things.slice(i, i + 20);
+        handle.follows.set(some);
+        const p = app.profile(), found = new Map(some.map(f => [`${f.kind}:${f.key}`, []]));
+        handle.events.forEach(e => { const got = []; app.SIGNALS.follows(e, p, got); got.forEach(f => found.get(f.thing).push(e.id)); });
+        some.forEach(f => expect(found.get(`${f.kind}:${f.key}`), `${f.kind}:${f.key}`).toEqual(app.eventsFor(f).map(e => e.id)));
+      }
+      handle.follows.set([]);
+    });
+  });
+
   describe("Getting in, on 2026's schedule", () => {
     const el = id => document.getElementById(id);
     const texts = id => [...el(id).options].map(o => o.textContent);

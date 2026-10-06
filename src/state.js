@@ -18,12 +18,17 @@ const state = {
      (map.js; DECISIONS #75). */
   map: {day: null, focus: null},
   plans: {crew: null, day: null},         /* the crew shown, null the oldest; the crew's day, null the clock's */
-  /* Explore's: mutedOpen is the grid's Muted fold, shut on every load (#84). */
-  explore: {q: "", page: null, scroll: 0, showPast: false, showCast: false, castNoise: false, mutedOpen: false, expanded: {}, active: null},
+  /* Explore's: mutedOpen is the grid's Muted fold, shut on every load (#84);
+     forYou is For you's list while the reader stays on the grid - its rows
+     and whether Show more was tapped - null when it is to be worked out
+     (explore.js; #87). */
+  explore: {q: "", page: null, scroll: 0, showPast: false, showCast: false, castNoise: false, mutedOpen: false, forYou: null, expanded: {}, active: null},
   /* The Following feed's: by follow id, a block's Show more, its Already
-     happened, and a fandom's cast - open, and its photo ops shown (#85). */
+     happened, and a fandom's cast - open, and its photo ops shown (#85).
+     open is the fold as the reader stored it by a tap on the heading, true
+     or false, and null while never stored, when For you decides it (#87). */
   following: {layout: loadJSON(storageKey("followingLayout"), "interest"), expanded: {}, showPast: {}, showCast: {}, castNoise: {},
-    open: loadJSON(storageKey("followingOpen"), true)},
+    open: loadJSON(storageKey("followingOpen"), null)},
   /* Search's: the query, the day, and the filter sheet's thirteen, the four
      topic axes (W8, #70) and the four of Getting in (W7, #77) among them;
      castOpen is the cast group's fold, open until tapped shut (#85). */
