@@ -2,11 +2,12 @@
    the now and next rings, the card under the map, and the minute tick. The
    number in brackets is the harness line the assertion came from
    (tests/PORT-LEDGER.md). The clock is Saturday 1:05 PM. The Map's focus
-   (DECISIONS #75) is new, and its tests carry no bracket. */
+   (DECISIONS #75) is new, and its tests carry no bracket; nor do those of
+   the view built once and drawn in place (#89). */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { bootPage } from "../helpers/page.js";
 import { mutationsDuring, tap } from "../helpers/act.js";
 
@@ -484,8 +485,8 @@ describe("the Map tab", () => {
       });
     });
 
-    /* The harness counted calls to a replaced renderMap. A redraw restarts the
-       pulse on the next ring, so what matters is whether anything under the tab
+    /* The harness counted calls to a replaced renderMap. A ring drawn anew
+       starts its pulse again, so what matters is whether anything under the tab
        was touched: watch it. */
     describe("the minute tick leaves an unchanged map alone", () => {
       it("two ticks with nothing new draw nothing [1612]", () => {
@@ -497,9 +498,11 @@ describe("the Map tab", () => {
       it("a change in the counts draws once, and the next quiet tick draws nothing [1614]", () => {
         const before = svg();
         const extra = handle.events.find(e => e._cd === "2026-09-05" && e.hotel === "Hyatt" && !handle.picks.get().has(e.id));
+        expect(pillsOf().Hyatt).toBeUndefined();
         handle.picks.set([...handle.picks.get(), extra.id]);
         expect(app.tickMap()).toBe(true);
-        expect(svg()).not.toBe(before);                             // redrawn
+        expect(svg()).toBe(before);                                 // drawn in place: the same SVG,
+        expect(pillsOf().Hyatt).toBe("1");                          // the pill changed
         const redrawn = svg();
         let quiet;
         expect(mutationsDuring(map(), () => { quiet = app.tickMap(); })).toHaveLength(0);
@@ -703,7 +706,7 @@ describe("the Map tab", () => {
       });
       it("is not one of the gold rings, and is drawn after them and before the pills", () => {
         expect(focusRing().classList.contains("map-ring")).toBe(false);
-        const order = [...svg().children].map(n => n.getAttribute("class") || "");
+        const order = [...svg().querySelectorAll("*")].map(n => n.getAttribute("class") || "");   // document order, across the whole SVG
         expect(order.lastIndexOf("map-ring next")).toBeGreaterThan(-1);
         expect(order.lastIndexOf("map-ring next")).toBeLessThan(order.indexOf("map-focus"));
         expect(order.indexOf("map-focus")).toBeLessThan(order.indexOf("map-pill"));
@@ -794,7 +797,7 @@ describe("the Map tab", () => {
         const before = card();
         before.focus();
         handle.render();
-        expect(card()).not.toBe(before);
+        expect(card()).toBe(before);                         // the same card, focus still on it
         expect(document.activeElement).toBe(card());
         expect(app.focusKey(card())).toBe("#mapNext");
       });
@@ -831,7 +834,7 @@ describe("the Map tab", () => {
         app.setOverride("2026-09-05T13:05");
         handle.render();
       });
-      it("and its ring is in the map's signature: a focus set or ended with no draw is drawn at the tick", () => {
+      it("and its ring is drawn at the tick: a focus set or ended with no draw is drawn at the next one", () => {
         expect([state.map.focus, focusRing()]).toEqual([null, null]);
         expect(app.tickMap()).toBe(false);
         state.map.focus = sat.id;
@@ -935,6 +938,135 @@ describe("the Map tab", () => {
         expect([state.map.focus, dayShown()]).toEqual([null, SAT]);
       });
     });
+  });
+
+  /* The view built once and drawn in place (DECISIONS #89): the first draw
+     builds it, and every later one - render()'s or the minute's - writes only
+     what changed, so what a draw leaves alone keeps its node, its focus and,
+     a ring, its place in its pulse. New tests, not rows of the ledger. */
+  describe("the view is built once, and drawn in place", () => {
+    let on, next, later;
+    const chipRow = () => map().querySelector('.chips[data-row="map-day"]');
+    const blockOf = hotel => map().querySelector(`.map-hotel[data-hotel="${hotel}"]`);
+    const dayChip = day => map().querySelector(`[data-chip="map-day"][data-value="${day}"]`);
+    const nextRing = () => map().querySelector(".map-ring.next");
+    const layer = name => svg().querySelector(`.map-layer-${name}`);
+    const navTo = tab => document.querySelector(`.nav button[data-tab="${tab}"]`).click();
+    const stamp = d => { const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+    /* The clock too, so that a test that fails leaves the next one its start. */
+    const plain = () => { handle.closeSheet(); app.setOverride("2026-09-05T13:05"); state.tab = "map"; state.map.focus = null; setPicks([on.id, next.id]); };
+
+    beforeAll(() => {
+      /* A pick on now, the next one in another hotel, and an event later
+         today in a third: a pill of its own, or the next pick in its place. */
+      on = handle.events.find(e => e._s <= at && at < e._e && onMap(e));
+      next = handle.events.find(e => e._s > at && app.conDayKey(e._s) === today && onMap(e) && e.hotel !== on.hotel);
+      later = handle.events.find(e => e._s > next._s && app.conDayKey(e._s) === today && onMap(e) && e.hotel !== on.hotel && e.hotel !== next.hotel);
+    });
+    beforeEach(() => plain());
+    afterAll(() => { handle.closeSheet(); handle.setTimeOverride("2026-09-05T13:05"); state.tab = "map"; state.map.focus = null; setPicks([]); });
+
+    it("found the events the tests stand on", () => {
+      expect([on, next, later].every(Boolean)).toBe(true);
+      expect(rings()).toBe([`next:${next.hotel}`, `now:${on.hotel}`].sort().join(" "));
+    });
+    it("the strip, the chip row and its chips, the SVG, the band under it and a hotel's block are the same nodes through every draw, and the block keeps focus: render(), a star from the hotel sheet, the sheet closed, a day chip, a focus set and ended, the tab left and come back to", () => {
+      const kept = { strip: map().firstElementChild, row: chipRow(), chips: [...chipRow().children], svg: svg(), under: el("mapUnder"), block: blockOf(on.hotel) };
+      const same = () => [map().firstElementChild === kept.strip, chipRow() === kept.row, [...chipRow().children].every((chip, i) => chip === kept.chips[i]),
+        svg() === kept.svg, el("mapUnder") === kept.under, blockOf(on.hotel) === kept.block, kept.block.isConnected];
+      const ALL = [true, true, true, true, true, true, true], focused = () => document.activeElement === kept.block;
+      kept.block.focus();
+      expect(focused()).toBe(true);
+
+      handle.render();
+      expect([same(), focused()], "render()").toEqual([ALL, true]);
+
+      tap(kept.block.querySelector("rect"));                 // its sheet, over the Map: focus goes into it
+      expect(el("panel-hotel").hidden).toBe(false);
+      el("panel-hotel").querySelector(".row .star").click();  // the pick on now, unstarred there: the Map behind follows
+      expect([handle.picks.get().has(on.id), pillsOf()[on.hotel], rings()]).toEqual([false, undefined, `next:${next.hotel}`]);
+      expect(same(), "a star from the hotel sheet").toEqual(ALL);
+      el("closeSheetHotel").click();                          // and closed: focus is back on the block that opened it
+      expect([el("sheetWrap").hidden, same(), focused()], "the sheet closed").toEqual([true, ALL, true]);
+
+      dayChip("2026-09-06").click();
+      expect([pressedDay(), map().querySelector(".map-wrap").dataset.day, same(), focused()], "a day chip").toEqual(["2026-09-06", "2026-09-06", ALL, true]);
+      state.map.day = null; handle.render();
+
+      app.showOnMap(later.id);                                // a focus set: keyboard focus goes to the card, as it is meant to (#75)
+      expect([state.map.focus, same(), document.activeElement === el("mapNext")], "a focus set").toEqual([later.id, ALL, true]);
+      kept.block.focus();
+      dayChip(later._cd).click();                             // and ended, at a day chip's tap
+      expect([state.map.focus, map().querySelector(".map-focus"), same(), focused()], "a focus ended").toEqual([null, null, ALL, true]);
+      state.map.day = null; handle.render();
+
+      navTo("now"); navTo("map");
+      expect([map().hidden, same()], "the tab left and come back to").toEqual([false, ALL]);
+    });
+    it("a draw that changes only a pill leaves the rings alone: nothing under their group is written, and the next ring is the same node", () => {
+      const ring = nextRing(), group = layer("rings");
+      expect(ring.dataset.hotel).toBe(next.hotel);
+      let ticked;
+      handle.picks.set([on.id, next.id, later.id]);          // no draw: the tick's
+      const atTick = mutationsDuring(group, () => { ticked = app.tickMap(); });
+      expect([ticked, pillsOf()[later.hotel], atTick.length, nextRing() === ring, layer("rings") === group]).toEqual([true, "1", 0, true, true]);
+      const atDraw = mutationsDuring(group, () => { handle.picks.set([on.id, next.id]); handle.render(); });   // and a whole draw's
+      expect([pillsOf()[later.hotel], atDraw.length, nextRing() === ring]).toEqual([undefined, 0, true]);
+    });
+    it("a next ring that moves to another hotel is the same node, written in place", () => {
+      const ring = nextRing(), b = app.MAP_HOTELS[later.hotel];
+      expect(ring.dataset.hotel).toBe(next.hotel);
+      setPicks([on.id, later.id]);
+      expect(nextRing()).toBe(ring);
+      expect([ring.dataset.hotel, num(ring, "x"), num(ring, "y"), ring.namespaceURI]).toEqual([later.hotel, b.x - 7, b.y - 7, "http://www.w3.org/2000/svg"]);
+      expect(rings()).toBe([`next:${later.hotel}`, `now:${on.hotel}`].sort().join(" "));
+    });
+    it("a focus set and ended leaves the gold rings alone: its ring has a group of its own", () => {
+      const ring = nextRing(), group = layer("rings");
+      const set = mutationsDuring(group, () => app.showOnMap(later.id));          // today's event: the gold rings stay
+      expect([map().querySelector(".map-focus").parentNode === layer("focus"), set.length, nextRing() === ring, rings()]).toEqual([true, 0, true, [`next:${next.hotel}`, `now:${on.hotel}`].sort().join(" ")]);
+      const ended = mutationsDuring(group, () => { state.map.focus = null; handle.render(); });
+      expect([layer("focus").children.length, ended.length, nextRing() === ring]).toEqual([0, 0, true]);
+    });
+    it("the tick says whether it wrote: a minute that moves no word on the tab writes nothing, and says false", () => {
+      const sun = handle.events.find(e => app.conDayKey(e._s) === "2026-09-06" && onMap(e));
+      setPicks([sun.id]);                                    // the card is tomorrow's first pick: a time, and no "in 47 min"
+      expect(cardWhen()).toBe(app.fmtShort(sun._s));
+      app.setOverride("2026-09-05T13:06");
+      let ticked;
+      expect(mutationsDuring(map(), () => { ticked = app.tickMap(); })).toHaveLength(0);
+      expect(ticked).toBe(false);
+      app.setOverride("2026-09-05T13:05");
+    });
+    it("at the minute the con ends, with no pick left, the tick takes the card that says how to get one away, as a whole draw does", () => {
+      setPicks([]);
+      handle.setTimeOverride(stamp(new Date(app.CON.end.getTime() - 60000)));
+      expect([state.tab, app.conPhase(), !!map().querySelector(".next-card.empty")]).toEqual(["map", "live", true]);
+      const drawing = svg();
+      app.setOverride(stamp(new Date(app.CON.end.getTime() + 60000)));     // the clock alone: only the tick can draw it
+      expect(app.tickMap()).toBe(true);
+      expect([app.conPhase(), map().querySelector(".next-card"), el("mapUnder").children.length, svg() === drawing]).toEqual(["ended", null, 0, true]);
+      expect(app.tickMap()).toBe(false);
+      handle.setTimeOverride("2026-09-05T13:05");
+    });
+    it("the page says what is built, and no flag in the module: a view emptied is built again by the next draw, and a fresh page builds a fresh view", async () => {
+      const whole = () => [map().querySelectorAll("svg").length, svg().querySelectorAll(".map-hotel").length, [...svg().children].slice(-3).map(g => g.getAttribute("class")), chipRow().children.length, rings()];
+      const WHOLE = [1, 7, ["map-layer-rings", "map-layer-focus", "map-layer-pills"], 6, [`next:${next.hotel}`, `now:${on.hotel}`].sort().join(" ")];
+      const first = svg();
+      map().innerHTML = "";
+      handle.render();
+      expect([svg() !== first, first.isConnected, whole()]).toEqual([true, false, WHOLE]);
+
+      const second = svg();
+      await page.cleanup();
+      page = await bootPage();
+      ({ app, handle } = page);
+      state = handle.state;
+      expect(map().innerHTML).toBe("");                      // a fresh page: no view until the Map's first draw
+      navTo("map");
+      plain();
+      expect([svg() !== second, second.isConnected, whole()]).toEqual([true, false, WHOLE]);
+    }, 30000);
   });
 
   /* The harness matched `state.tab === "map" && sheetWrap.hidden) { tickMap()`

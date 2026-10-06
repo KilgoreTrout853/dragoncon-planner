@@ -8,7 +8,7 @@ import { byId, events } from "./data.js";
 import { picks } from "./picks.js";
 import { walkEstimate } from "./walk.js";
 import { chipHTML } from "./ui.js";
-import { chipRowsRestore, chipRowsSnapshot, drawInPlace, focusIn, giveFocusBack, pageScrollTo } from "./scroll.js";
+import { drawInPlace, pageScrollTo } from "./scroll.js";
 import { requestRender } from "./bus.js";
 import { nowModel } from "./now.js";
 
@@ -213,7 +213,22 @@ const offLineHTML = off => off ? `<div class="map-offmap">${off} pick${off === 1
 /* Picks that day at venues the map does not draw: streams and offsite. */
 const mapOffMapCount = day => events.filter(e => picks.has(e.id) && e._cd === day && !MAP_HOTELS[e.hotel]).length;
 
-function mapSVG(day, st = mapNowState(day), counts = mapCounts(day), crew = mapCrewCounts(day), focus = mapFocus()) {
+/* What a hotel's block says of itself: its picks on the Map's day and, where
+   there are any, how many of the crew. */
+function mapLabel(hotel, day, counts, crew) {
+  const n = counts[hotel] || 0, c = crew[hotel] || 0;
+  return `${hotel}: ${n ? `${n} pick${n === 1 ? "" : "s"}` : "no picks"} on ${DAY_LONG[day] || day}${c ? `, ${c} of your crew` : ""}`;
+}
+/* The pills' layer: each hotel's gold pill, then its crew's. */
+const mapPillsSVG = (counts, crew) => Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h]) + mapCrewSVG(h, b, crew[h])).join("");
+
+/* The drawing that is built once (DECISIONS #89): the ground, the two
+   streets and their labels, the three bridges and the seven blocks; then
+   three empty groups, in the order they are painted, which every draw
+   writes into - the gold rings, the focus's ring, the pills. A block's
+   label is the one thing on it that changes: it is built as `label` says
+   it, and a later draw writes it where it differs. */
+function mapBaseSVG(label) {
   const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="${MAP_VIEW.y}" x2="${x}" y2="${MAP_VIEW.y + MAP_VIEW.h}"/>
     <text class="map-street-label" transform="translate(${x - 7} 212) rotate(-90)">${name} St</text>`;
   const bridges = MAP_BRIDGES.map(([a, b]) => {
@@ -221,15 +236,13 @@ function mapSVG(day, st = mapNowState(day), counts = mapCounts(day), crew = mapC
     const [x1, y1, x2, y2] = beside ? [A.x + A.w, A.y + A.h / 2, B.x, B.y + B.h / 2] : [A.x + A.w / 2, A.y + A.h, B.x + B.w / 2, B.y];
     return `<line class="map-bridge" data-bridge="${esc(a)}|${esc(b)}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
   }).join("");
-  const blocks = Object.entries(MAP_HOTELS).map(([h, b]) => { const n = counts[h] || 0, c = crew[h] || 0, label = hotelShort(h).toUpperCase(); return `<g class="map-hotel${b.park ? " map-park" : ""}" data-hotel="${esc(h)}" role="button" tabindex="0" aria-label="${esc(h)}: ${n ? `${n} pick${n === 1 ? "" : "s"}` : "no picks"} on ${esc(DAY_LONG[day] || day)}${c ? `, ${c} of your crew` : ""}" style="--h:var(${b.park ? "--park" : hotelVar(h)})">
+  const blocks = Object.entries(MAP_HOTELS).map(([h, b]) => { const name = hotelShort(h).toUpperCase(); return `<g class="map-hotel${b.park ? " map-park" : ""}" data-hotel="${esc(h)}" role="button" tabindex="0" aria-label="${esc(label(h))}" style="--h:var(${b.park ? "--park" : hotelVar(h)})">
     <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.park ? 6 : 10}"/>
-    <text${label.length > 8 ? ' class="long"' : ""} x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(label)}</text></g>`; }).join("");
-  const pills = Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h]) + mapCrewSVG(h, b, crew[h])).join("");
-  const rings = mapRingsSVG(st);
+    <text${name.length > 8 ? ' class="long"' : ""} x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(name)}</text></g>`; }).join("");
   return `<svg class="map" viewBox="${MAP_VIEW.x} ${MAP_VIEW.y} ${MAP_VIEW.w} ${MAP_VIEW.h}" role="group" aria-label="Schematic map of the con hotels, not to scale">
     <rect class="map-ground" x="${MAP_VIEW.x}" y="${MAP_VIEW.y}" width="${MAP_VIEW.w}" height="${MAP_VIEW.h}" rx="14"/>
     ${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
-    ${bridges}${blocks}${rings}${mapFocusSVG(focus)}${pills}</svg>`;
+    ${bridges}${blocks}<g class="map-layer-rings"></g><g class="map-layer-focus"></g><g class="map-layer-pills"></g></svg>`;
 }
 
 /* The day the map shows: the focused event's con day while there is a
@@ -244,52 +257,54 @@ function mapDay() {
   return CON_DAYS.includes(d) ? d : FIRST_FULL_DAY;
 }
 
-/* Drawn whole, and what had focus on the tab - a hotel, a day's chip, the
-   card - has it again (#66). */
-function renderMap() {
+/* The view is built once and drawn in place (DECISIONS #89). The first draw
+   builds it - the sticky strip and its empty chip row, the wrap, the
+   drawing above and the empty band under it - and what says it is built is
+   the page, not a flag here: a draw that finds no `#mapUnder` builds, so a
+   fresh page is a fresh view. Then every draw, render()'s or the minute's,
+   writes only what changed: the day on the wrap and each hotel's label,
+   where they differ; and five parts through scroll.js drawInPlace() - the
+   day chips, the gold rings, the focus's ring, the pills, and the card with
+   the off-map line. Each part's markup has no space between its elements,
+   or drawInPlace() would never find old and new alike.
+   So nothing a draw leaves alone is touched. A hotel, a day's chip and the
+   card keep their nodes, and their focus with them (#66); where the card's
+   part must be drawn anew, drawInPlace() puts focus back. A ring that moves
+   to another hotel is the same element, still in its pulse: the pulse
+   starts again only when the rings are drawn anew - one comes or goes. And
+   a quiet minute writes nothing. It says whether it wrote. */
+function drawMap() {
   const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), crew = mapCrewCounts(day), off = mapOffMapCount(day), cs = mapCardState();
-  const chips = CON_DAYS.map(d => chipHTML(DAY_LABEL[d], day === d, "map-day", d)).join("");
-  const view = document.getElementById("view-map"), back = focusIn(view);
-  view.innerHTML = `<div class="controls controls-sticky"><div class="chips" data-row="map-day">${chips}</div></div>
-    <div class="map-wrap" data-day="${day}">${mapSVG(day, st, counts, crew, cs.focus)}<div class="map-under" id="mapUnder">${mapCardHTML(cs)}${offLineHTML(off)}</div></div>`;
-  giveFocusBack(back);
-  lastMapSig = mapSignature(day, st, counts, crew, cs.focus);
-  lastCardSig = mapCardSignature(cs, off);
-}
-
-/* The minute tick redraws only what changed. The SVG is redrawn when a ring
-   or a pill would move - the crew's among them, and the focus's ring -
-   since a redraw restarts the pulse on the next ring, so a quiet minute
-   must leave it alone. The card is refreshed on its own when its words
-   change, which "in 47 min" does every minute; a focused card says nothing
-   of the minute, so its signature holds neither the minutes nor the walk,
-   and a minute changes nothing on it. */
-let lastMapSig = null, lastCardSig = null;
-function mapSignature(day, st, counts, crew, focus) {
-  return JSON.stringify([day, st && st.onNow && st.onNow.id, st && st.next && st.next.id, counts, crew, focus ? focus.id : null]);
-}
-function mapCardSignature(cs, off) {
-  if (cs.focus) return JSON.stringify([cs.onNow && cs.onNow.id, "focus", cs.focus.id, off]);
-  const ev = cs.next || cs.later;
-  return JSON.stringify([cs.onNow && cs.onNow.id, cs.next && cs.next.id, cs.later && cs.later.id,
-    ev ? minutesBetween(cs.now, ev._s) : null, cs.estimate ? cs.estimate.label : null, off]);
-}
-function tickMap() {
-  const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), off = mapOffMapCount(day), cs = mapCardState();
-  if (mapSignature(day, st, counts, mapCrewCounts(day), cs.focus) !== lastMapSig) {
-    const rows = chipRowsSnapshot();
-    renderMap();
-    chipRowsRestore(rows);
-    return true;
+  const view = document.getElementById("view-map"), label = hotel => mapLabel(hotel, day, counts, crew);
+  let wrote = false;
+  if (!document.getElementById("mapUnder")) {
+    view.innerHTML = `<div class="controls controls-sticky"><div class="chips" data-row="map-day"></div></div>
+    <div class="map-wrap" data-day="${day}">${mapBaseSVG(label)}<div class="map-under" id="mapUnder"></div></div>`;
+    wrote = true;
   }
-  const csig = mapCardSignature(cs, off);
-  if (csig === lastCardSig) return false;
-  /* In place: the card that has focus keeps it, and is not read out again
-     for a minute that changed nothing on it. */
-  const under = document.getElementById("mapUnder");
-  if (under) drawInPlace(under, mapCardHTML(cs) + offLineHTML(off));
-  lastCardSig = csig;
-  return true;
+  const wrap = view.querySelector(".map-wrap");
+  if (wrap.dataset.day !== day) { wrap.dataset.day = day; wrote = true; }
+  for (const block of view.querySelectorAll(".map-hotel")) {
+    const said = label(block.dataset.hotel);
+    if (block.getAttribute("aria-label") !== said) { block.setAttribute("aria-label", said); wrote = true; }
+  }
+  const parts = [
+    [".chips", CON_DAYS.map(d => chipHTML(DAY_LABEL[d], day === d, "map-day", d)).join("")],
+    [".map-layer-rings", mapRingsSVG(st)],
+    [".map-layer-focus", mapFocusSVG(cs.focus)],
+    [".map-layer-pills", mapPillsSVG(counts, crew)],
+    ["#mapUnder", mapCardHTML(cs) + offLineHTML(off)],
+  ];
+  for (const [selector, html] of parts) if (drawInPlace(view.querySelector(selector), html)) wrote = true;
+  return wrote;
 }
+function renderMap() { drawMap(); }
+
+/* The minute's tick is that draw, and says whether it wrote anything. There
+   is no signature to ask first: the draw compares what it would write with
+   what stands, so a minute that changes no word writes none - "in 47 min"
+   changes every minute, and a focused card, which says nothing of the
+   minute, does not. */
+function tickMap() { return drawMap(); }
 
 export { MAP_HOTELS, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, onTheMap, renderMap, showOnMap, tickMap };

@@ -6,8 +6,9 @@
    crew's change pulled is a redraw on any tab (DECISIONS #80) - Now, the
    Map and Plans, the crew panel and an open event's who's-going line, in
    place - and Search and Explore are drawn again, each with its box
-   kept. Now and the Map give focus back to what had it through every
-   redraw and every minute's tick. And step 5c (contract, section 8): the
+   kept. Now gives focus back to what had it through every redraw and every
+   minute's tick, and the Map, drawn in place (#89), keeps it. And step 5c
+   (contract, section 8): the
    hotel sheet's crew, Your crew's picks here, its lines Now's, refilled in place
    by a pull, on the day the sheet was drawn for.
    Against the fake backend, tests/helpers/backend.js, at the harness's
@@ -721,7 +722,8 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
     expect(num(park, "y")).toBe(num(lawn, "y") + num(lawn, "height") - 2);
     pick(s.fake, s.dee, "s0234", false);
     await s.run();
-    const order = [...document.querySelectorAll("#view-map svg.map > *")].map(n => n.getAttribute("class") || "");
+    const order = [...document.querySelectorAll("#view-map svg.map *")].map(n => n.getAttribute("class") || "");   // document order, across the whole SVG
+    expect(order.findIndex(c => c.startsWith("map-ring"))).toBeGreaterThan(-1);
     expect(order.findIndex(c => c.startsWith("map-ring"))).toBeLessThan(order.findIndex(c => c === "map-crew"));
   });
   it("another day's chip: that day's crew", () => {
@@ -742,7 +744,7 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
     pick(s.fake, s.dee, "s0376");
     await s.run();
     expect(words(crewPill("Hyatt"))).toBe("3");
-    expect(blockOf("Hyatt")).not.toBe(hyatt);
+    expect(blockOf("Hyatt")).toBe(hyatt);                    // the same block, focus still on it
     expect(document.activeElement).toBe(blockOf("Hyatt"));
   });
   it("the minute tick: a redraw when the pick on now ends keeps focus on the hotel; the card's own refresh is written into it in place", () => {
@@ -771,7 +773,7 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
     expect(changes).toEqual([]);
     s.handle.setTimeOverride(SATURDAY);
   });
-  it("its signature takes the crew's counts: a count changed under it draws the map again at the tick, and a quiet tick nothing", () => {
+  it("the crew's counts are drawn at the tick: a count changed under it draws the map again, and a quiet tick nothing", () => {
     expect(s.app.tickMap()).toBe(false);
     const kept = read("crewPicks");
     seed("crewPicks", { ...kept, [s.dee.id]: { ...kept[s.dee.id], s0253: true } });
