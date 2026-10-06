@@ -1196,8 +1196,8 @@ As built: the recon, section 2, Map; section 5, the map card.
   its levels, the reader's picks lit (W38); tap a level and it drops to a
   top-down view, rooms in place, landmarks marked, lit where the picks are,
   a tap on a room for what is on there (W39); the motion between them last
-  (W40); the Westin, the Courtland Grand and the Mart as sources allow
-  (W41). A hotel without level data keeps the hotel sheet (#28; section
+  (W40); the Westin, the Courtland Grand and the Mart's two buildings
+  (#91) as sources allow (W41). A hotel without level data keeps the hotel sheet (#28; section
   8). Data per #58: `data/<year>/drawings/`, keyed by the venues file's
   level and room ids.
 - **Focused:** the event sheet's place line lands here on its hotel - on
@@ -1219,6 +1219,8 @@ Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
 `style.test.js`'s map rules. PRs 3, 5, 7 and 10.
 
 ### Map, as built
+
+Changed by PR #109 (#91): the Mart is two blocks, one a building, so the Map's places are eight and its bridges four.
 
 Changed by PR #107 (#89): the Map is drawn in place, at the tick too; the signatures are gone.
 
@@ -1390,6 +1392,8 @@ through to a person", `ics.test.js`. PRs 5 (who's going) and 7; W44
 standalone.
 
 ### The event sheet, as built
+
+Changed by PR #109 (#91): the Map's places are eight, the Mart's two buildings each one.
 
 PR #81, step 5a, with #62, #64 and #66: who's going, worded as who starred
 it by PR #83, step 5d, with #68. Focus and Escape were built by PR #77
@@ -2419,7 +2423,7 @@ the hash and the address.
 | An Explore tile, a Following chip, a Because-you-starred tile | Its page, keyboard focus on its heading since PR #94 | `state.explore.page`, the hash | "← Explore", the grid's scroll put back | built |
 | A `#explore=` link | Its page | the same, at load | "← Explore", to the grid | built |
 | The event sheet's track chip, or the chip of a work a person has reviewed | Its Explore page, keyboard focus on its heading | `state.explore.page`, the hash | "← Explore", to the grid, as a person's name | built, PR #94 |
-| The event sheet's place line, where the Map can show the event: at one of its seven places, neither cancelled nor removed | The Map at its top, on the event's con day, focused on the event: its hotel ringed, the event on the card, keyboard focus on the card - on the room once the building view exists | `state.tab`, `state.map.focus` | the Map's focused card, which reopens the sheet | built, PR #94 |
+| The event sheet's place line, where the Map can show the event: at one of its eight places, neither cancelled nor removed | The Map at its top, on the event's con day, focused on the event: its hotel ringed, the event on the card, keyboard focus on the card - on the room once the building view exists | `state.tab`, `state.map.focus` | the Map's focused card, which reopens the sheet | built, PR #94 |
 | The Map's focused card | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the Map, the focus still held, keyboard focus on the card | built, PR #94 |
 | Search's Filters | `#panel-filters` | the panel shown | no Apply (#70): Show `<n>` events, the backdrop, a swipe, Escape: Search, focus on Filters, the list from its top if anything changed | built, PR #88 |
 | A kept `?join=`, in any phase | Plans' join step | `state.tab`, the step open | the step closed: Plans as it opens | built |
@@ -2533,9 +2537,9 @@ As built: the recon, section 3, what the event panel does not carry.
 - **W42:** the `people` block is `[]` in 2026's file until the line
   review lands (#61); the sheet's line, and the Explore page's, built by
   PR #93 (section 7, as built), show only once it has rows.
-- **W18:** the levels are in `venues.json` for six hotels - the Marriott,
-  the Hyatt, the Hilton, the Westin, the Courtland Grand and the Mart
-  (#45; the Westin's as the con names them, and the Courtland Grand's,
+- **W18:** the levels are in `venues.json` for seven venues - the
+  Marriott, the Hyatt, the Hilton, the Westin, the Courtland Grand and the
+  Mart's two buildings (#45, #91; the Westin's as the con names them, and the Courtland Grand's,
   since PR #78) - each with a
   short name and a storey (#72); a row names an event's level by its short
   name since PR #92 (section 10, as built), and the event's sheet by its

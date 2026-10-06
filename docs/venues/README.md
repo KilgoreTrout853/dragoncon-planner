@@ -42,12 +42,12 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
 | Westin | 8th Floor | have · [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 6 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03 | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-8.png` | image only · rooms labelled on the image | `data/2027/drawings/westin-f8.json` · sizes from the chart, placement from the plan |
 | Westin | 7th Floor | have · [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 7 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03 | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-7.png` | image only · rooms labelled on the image | `data/2027/drawings/westin-f7.json` · sizes from the chart, placement from the plan; Augusta H drawn at the chart's 27 ft |
 | Westin | 6th Floor | have · [Hotel's own floor plan from before its renovation, vector](https://www.cs.hmc.edu/aaairoboted/floor6_page8.pdf), p. 8 | yes · the hotel's [capacity chart](https://www.marriott.com/en-us/hotels/atlpl-the-westin-peachtree-plaza-atlanta/events/) on its events page, read 2026-10-03 | `reference/plans/westin-floorplans-old.pdf` · `reference/plans/westin-site-2026-floor-6.png` | image only · rooms labelled on the image | `data/2027/drawings/westin-f6.json` · sizes from the chart, placement from the plan; Chastain E drawn as the chart's rectangle, the bounding box of an L |
-| AmericasMart | Building 2, Vendor Hall Floor 3 | unknown | no | — | image only | none |
-| AmericasMart | Building 2, Vendor Hall Floor 2 | unknown | no | — | image only | none |
-| AmericasMart | Building 2, Vendor Hall Floor 1 | unknown | no | — | image only | none |
-| AmericasMart | Building 2, meeting rooms | unknown | no | — | image only | none |
-| AmericasMart | Building 3, Floor 2 | unknown | no | — | image only | none |
-| AmericasMart | Building 3, Floor 1 | unknown | no | — | image only | none |
+| AmericasMart Building 2 | 4th Floor | unknown | no | — | image only | none |
+| AmericasMart Building 2 | 3rd Floor | unknown | no | — | image only | none |
+| AmericasMart Building 2 | 2nd Floor | unknown | no | — | image only | none |
+| AmericasMart Building 2 | 1st Floor | unknown | no | — | image only | none |
+| AmericasMart Building 3 | 2nd Floor | unknown | no | — | image only | none |
+| AmericasMart Building 3 | 1st Floor | unknown | no | — | image only | none |
 | Hardy Ivy Park | — | n/a | — | — | on the convention footprint map | — |
 
 ## The plans
@@ -138,8 +138,10 @@ the level's rooms the con's map outlines, "image only" means the map has the flo
   them just north of it. On the plan and not in the venues file: the Capitol's Center section, Valdosta, the Savannah
   rooms, GA 1, Georgia 13 to 15 and the conference rooms. The plan is a picture, so positions are good to about 5 ft
   against it until walked.
-- **AmericasMart** — several buildings, each with floors; Dragon Con's map of each building is under
-  `reference/dragoncon/`, a picture with no room outlines; its exhibitor maps were not captured. The Mart's drawing is
+- **AmericasMart** — two venues, Building 2 and Building 3, each with its own floors (DECISIONS #91): Building 2 the
+  vendor hall on its 1st, 2nd and 3rd floors, rooms 203A-F off the 3rd floor's lobby, and the Comic and Pop Artist
+  Alley, with 204J, on its 4th; Building 3 two floors of gaming. Dragon Con's map of each building is under
+  `reference/dragoncon/`, a picture with no room outlines; its exhibitor maps were not captured. Their drawings are
   W41's, as sources allow (DECISIONS #60).
 - **Hardy Ivy Park** — outdoor; no levels, no plan needed
 

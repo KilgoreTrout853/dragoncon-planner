@@ -6,7 +6,7 @@ A record, not held fresh by CI: an edit to the venues file leaves it stale until
 
 ## 0. Headline
 
-1. Events: 3,459, at 9 hotels; distinct readings of a room string: 177.
+1. Events: 3,459, at 10 hotels; distinct readings of a room string: 177.
 2. By place: `exact` 1,208 (34.9%), 51 strings; `alias` 68 (2.0%), 4 strings; `rule` 919 (26.6%), 65 strings; `level` 981 (28.4%), 20 strings; `hotel` 198 (5.7%), 25 strings; `none` 85 (2.5%), 12 strings.
 3. The run's venue counters on this schedule: rooms unresolved 30 - the strings read at the hotel alone (section 4); hotels unknown 5 - the locations no key begins. Not counted: 168 events at an unplaced room of the venues file, read at its hotel, and the 981 events placed at a level, by design.
 4. Split again: 2 events of a placeless hotel, read at a placed one (section 4).
@@ -24,7 +24,8 @@ Events by place, per hotel as the stage reads it: `exact`, a room of the venues 
 | Hilton | 5 | 68 | 739 | 36 | 334 | 51 | 210 | 0 | 144 | 0 |
 | Courtland Grand | 3 | 17 | 151 | 9 | 88 | 17 | 44 | 0 | 2 | 0 |
 | Westin | 5 | 40 | 309 | 19 | 99 | 0 | 188 | 20 | 2 | 0 |
-| AmericasMart | 6 | 6 | 1,033 | 43 | 32 | 0 | 40 | 961 | 0 | 0 |
+| AmericasMart Building 2 | 4 | 6 | 188 | 41 | 32 | 0 | 40 | 116 | 0 | 0 |
+| AmericasMart Building 3 | 2 | 0 | 845 | 2 | 0 | 0 | 0 | 845 | 0 | 0 |
 | Hardy Ivy Park | 0 | 0 | 36 | 2 | 0 | 0 | 0 | 0 | 36 | 0 |
 | Streaming | 0 | 0 | 62 | 4 | 0 | 0 | 0 | 0 | 0 | 62 |
 | Other | 0 | 0 | 23 | 8 | 0 | 0 | 0 | 0 | 0 | 23 |
@@ -38,15 +39,14 @@ Each rule of the grammar, in the order the stage tries it, with the strings and 
 | rule | example | strings | events |
 | --- | --- | ---: | ---: |
 | re-split | `Lobby` (Hyatt) | 2 | 2 |
-| mart building | `Building 3, Floor 2` (AmericasMart) | 2 | 845 |
-| mart vendor hall | `Vendor Hall Floor 1 The Missing Volume booth 1300` (AmericasMart) | 16 | 116 |
-| mart room | `203E BERNINA/Atlanta Sewing Center - 3300` (AmericasMart) | 21 | 22 |
+| mart vendor hall | `Vendor Hall Floor 1 The Missing Volume booth 1300` (AmericasMart Building 2) | 16 | 116 |
+| mart room | `203E BERNINA/Atlanta Sewing Center - 3300` (AmericasMart Building 2) | 21 | 22 |
 | numeric run | `212-214` (Hilton) | 11 | 291 |
 | roman run | `Centennial II-IV` (Hyatt) | 3 | 57 |
 | letter run | `Augusta E-H` (Westin) | 7 | 110 |
 | number run | `Galleria 2-3` (Hilton) | 6 | 143 |
 | letters together | `Hanover AB` (Hyatt) | 6 | 169 |
-| number and letters | `203BC` (AmericasMart) | 1 | 18 |
+| number and letters | `203BC` (AmericasMart Building 2) | 1 | 18 |
 | slash list | - | 0 | 0 |
 | word pair | `International North-South` (Hyatt) | 1 | 5 |
 | doubled | `Hanover C-E Hanover C-E` (Hyatt) | 2 | 3 |
@@ -54,7 +54,7 @@ Each rule of the grammar, in the order the stage tries it, with the strings and 
 | hotel initials | `H-Piedmont` (Hyatt) | 2 | 39 |
 | partitions | `Atrium Ballroom` (Marriott) | 2 | 55 |
 | hotel only | (hotel only) (Hyatt) | 2 | 4 |
-| floor only | `14th Floor` (Westin) | 2 | 20 |
+| floor only | `Floor 2` (AmericasMart Building 3) | 4 | 865 |
 | trailing note | `Grand Hall C Black Phoenix Alchemy - Vendors - Booth 1419` (Hyatt) | 4 | 4 |
 
 ## 3. Room strings, hotel by hotel
@@ -206,53 +206,58 @@ The room string the stage read - the location less its hotel's key - with its pl
 | (hotel only) | 1 | hotel | - | - | hotel only |
 | `Savannah Ballroom B/C` | 1 | hotel | - | - | no reading |
 
-### AmericasMart - 1,033 events, 43 strings
+### AmericasMart Building 2 - 188 events, 41 strings
 
 | string | events | place | level | rooms | rules |
 | --- | ---: | --- | --- | --- | --- |
-| `Building 3, Floor 2` | 463 | level | b3f2 | - | mart building |
-| `Building 3, Floor 1` | 382 | level | b3f1 | - | mart building |
-| `Vendor Hall Floor 1 The Missing Volume booth 1300` | 62 | level | b2-vendor-f1 | - | mart vendor hall |
-| `203BC` | 18 | rule | b2-rooms | `203B`, `203C` | number and letters |
-| `204J` | 18 | exact | b2-rooms | `204J` | - |
-| `Vendor Hall Floor 3 Sidestreet Book Market - booth 3201` | 18 | level | b2-vendor-f3 | - | mart vendor hall |
-| `203A` | 13 | exact | b2-rooms | `203A` | - |
-| `Vendor Hall Floor 3 Aethon Books booth 3500` | 12 | level | b2-vendor-f3 | - | mart vendor hall |
-| `Vendor Hall Floor 2 The Marigolden Bookshelf - booth 2506` | 10 | level | b2-vendor-f2 | - | mart vendor hall |
-| `Vendor Hall Floor 2 Scorched Design - booth 2105` | 3 | level | b2-vendor-f2 | - | mart vendor hall |
-| `203E BERNINA/Atlanta Sewing Center - 3300` | 2 | rule | b2-rooms | `203E` | mart room |
-| `203D` | 1 | exact | b2-rooms | `203D` | - |
-| `203D AllTru2U - booth #2626` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203D ArtCarp - James Farmer - booth # 1718` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203D ArtCarp - booth # 1718` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203D Bats in the Belfry Goods/ Nightwing Brooms Table-E` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203D Black Phoenix Alchemy Lab - booth 1417/1419` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203D By Quiltoni booth #3230` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203D Cut/Sew booth # 2720` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203D Maddy with Cut/Sew - booth # 2720` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203D Paperbones - Table # B75` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203D The Evergreen Burrow - booth # 2627` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203D by STL Ocarina - booth #2404` | 1 | rule | b2-rooms | `203D` | mart room |
-| `203E By BERNINA-booth 3300, Oliso-booth 3307` | 1 | rule | b2-rooms | `203E` | mart room |
-| `203E By Bernina booth-3300/Atlanta Sewing Center` | 1 | rule | b2-rooms | `203E` | mart room |
-| `203E Room By BERNINA - 3300 & Oliso-3307` | 1 | rule | b2-rooms | `203E` | mart room |
-| `203E Room by BERNINA/Atlanta Sewing Center- 3300` | 1 | rule | b2-rooms | `203E` | mart room |
-| `203E Room by Bernina booth 3300/ Oliso-3307` | 1 | rule | b2-rooms | `203E` | mart room |
-| `203E Room by Bernina booth 3300/Atlanta Sewing Center` | 1 | rule | b2-rooms | `203E` | mart room |
-| `203E Room by Bernina booth 3300/Oliso-booth 3307` | 1 | rule | b2-rooms | `203E` | mart room |
-| `203E Room by: BERNINA/Atlanta Sewing Center - 3300` | 1 | rule | b2-rooms | `203E` | mart room |
-| `203E Room by:BERNINA/Atlanta Sewing Center -Booth: 3300` | 1 | rule | b2-rooms | `203E` | mart room |
-| `Vendor Hall Floor 1 The MIssing Volume booth 1300` | 1 | level | b2-vendor-f1 | - | mart vendor hall |
-| `Vendor Hall Floor 1 The Missing Volume - booth 1300` | 1 | level | b2-vendor-f1 | - | mart vendor hall |
-| `Vendor Hall Floor 1 The Missing Volume Booth 1300` | 1 | level | b2-vendor-f1 | - | mart vendor hall |
-| `Vendor Hall Floor 1 The Missing Voume booth 1300` | 1 | level | b2-vendor-f1 | - | mart vendor hall |
-| `Vendor Hall Floor 2 J&J Collectables - Booth #2529` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
-| `Vendor Hall Floor 2 J&J Collectables - booth # 2529` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
-| `Vendor Hall Floor 2 J&J Collectibles - booth #2529` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
-| `Vendor Hall Floor 2 J&J Collectibles booth 2529` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
-| `Vendor Hall Floor 2 Scorched Design - Booth 2105` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
-| `Vendor Hall Floor 2 The Marigolden Bookshelf - Booth 2506` | 1 | level | b2-vendor-f2 | - | mart vendor hall |
-| `Vendor Hall Floor 3 Sidestreet Book Market - book 3201` | 1 | level | b2-vendor-f3 | - | mart vendor hall |
+| `Vendor Hall Floor 1 The Missing Volume booth 1300` | 62 | level | f1 | - | mart vendor hall |
+| `203BC` | 18 | rule | f3 | `203B`, `203C` | number and letters |
+| `204J` | 18 | exact | f4 | `204J` | - |
+| `Vendor Hall Floor 3 Sidestreet Book Market - booth 3201` | 18 | level | f3 | - | mart vendor hall |
+| `203A` | 13 | exact | f3 | `203A` | - |
+| `Vendor Hall Floor 3 Aethon Books booth 3500` | 12 | level | f3 | - | mart vendor hall |
+| `Vendor Hall Floor 2 The Marigolden Bookshelf - booth 2506` | 10 | level | f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 Scorched Design - booth 2105` | 3 | level | f2 | - | mart vendor hall |
+| `203E BERNINA/Atlanta Sewing Center - 3300` | 2 | rule | f3 | `203E` | mart room |
+| `203D` | 1 | exact | f3 | `203D` | - |
+| `203D AllTru2U - booth #2626` | 1 | rule | f3 | `203D` | mart room |
+| `203D ArtCarp - James Farmer - booth # 1718` | 1 | rule | f3 | `203D` | mart room |
+| `203D ArtCarp - booth # 1718` | 1 | rule | f3 | `203D` | mart room |
+| `203D Bats in the Belfry Goods/ Nightwing Brooms Table-E` | 1 | rule | f3 | `203D` | mart room |
+| `203D Black Phoenix Alchemy Lab - booth 1417/1419` | 1 | rule | f3 | `203D` | mart room |
+| `203D By Quiltoni booth #3230` | 1 | rule | f3 | `203D` | mart room |
+| `203D Cut/Sew booth # 2720` | 1 | rule | f3 | `203D` | mart room |
+| `203D Maddy with Cut/Sew - booth # 2720` | 1 | rule | f3 | `203D` | mart room |
+| `203D Paperbones - Table # B75` | 1 | rule | f3 | `203D` | mart room |
+| `203D The Evergreen Burrow - booth # 2627` | 1 | rule | f3 | `203D` | mart room |
+| `203D by STL Ocarina - booth #2404` | 1 | rule | f3 | `203D` | mart room |
+| `203E By BERNINA-booth 3300, Oliso-booth 3307` | 1 | rule | f3 | `203E` | mart room |
+| `203E By Bernina booth-3300/Atlanta Sewing Center` | 1 | rule | f3 | `203E` | mart room |
+| `203E Room By BERNINA - 3300 & Oliso-3307` | 1 | rule | f3 | `203E` | mart room |
+| `203E Room by BERNINA/Atlanta Sewing Center- 3300` | 1 | rule | f3 | `203E` | mart room |
+| `203E Room by Bernina booth 3300/ Oliso-3307` | 1 | rule | f3 | `203E` | mart room |
+| `203E Room by Bernina booth 3300/Atlanta Sewing Center` | 1 | rule | f3 | `203E` | mart room |
+| `203E Room by Bernina booth 3300/Oliso-booth 3307` | 1 | rule | f3 | `203E` | mart room |
+| `203E Room by: BERNINA/Atlanta Sewing Center - 3300` | 1 | rule | f3 | `203E` | mart room |
+| `203E Room by:BERNINA/Atlanta Sewing Center -Booth: 3300` | 1 | rule | f3 | `203E` | mart room |
+| `Vendor Hall Floor 1 The MIssing Volume booth 1300` | 1 | level | f1 | - | mart vendor hall |
+| `Vendor Hall Floor 1 The Missing Volume - booth 1300` | 1 | level | f1 | - | mart vendor hall |
+| `Vendor Hall Floor 1 The Missing Volume Booth 1300` | 1 | level | f1 | - | mart vendor hall |
+| `Vendor Hall Floor 1 The Missing Voume booth 1300` | 1 | level | f1 | - | mart vendor hall |
+| `Vendor Hall Floor 2 J&J Collectables - Booth #2529` | 1 | level | f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 J&J Collectables - booth # 2529` | 1 | level | f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 J&J Collectibles - booth #2529` | 1 | level | f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 J&J Collectibles booth 2529` | 1 | level | f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 Scorched Design - Booth 2105` | 1 | level | f2 | - | mart vendor hall |
+| `Vendor Hall Floor 2 The Marigolden Bookshelf - Booth 2506` | 1 | level | f2 | - | mart vendor hall |
+| `Vendor Hall Floor 3 Sidestreet Book Market - book 3201` | 1 | level | f3 | - | mart vendor hall |
+
+### AmericasMart Building 3 - 845 events, 2 strings
+
+| string | events | place | level | rooms | rules |
+| --- | ---: | --- | --- | --- | --- |
+| `Floor 2` | 463 | level | f2 | - | floor only |
+| `Floor 1` | 382 | level | f1 | - | floor only |
 
 ### Hardy Ivy Park - 36 events, 2 strings
 
@@ -370,7 +375,8 @@ Per level, the rooms a reading names - exactly, by an alias or by a rule - and t
 | Westin | 8th Floor (`f8`) | 3 | 3 | - |
 | Westin | 12th Floor (`f12`) | 8 | 0 | `Piedmont 1`, `Piedmont 2`, `Piedmont 3`, `Piedmont 4`, `Piedmont 5`, `Piedmont 6`, `Piedmont 7`, `Piedmont 8` |
 | Westin | 14th Floor (`f14`) | 8 | 0 | `Ansley 1`, `Ansley 2`, `Ansley 3`, `Ansley 4`, `Ansley 5`, `Ansley 6`, `Ansley 7`, `Ansley 8` |
-| AmericasMart | Building 2, meeting rooms (`b2-rooms`) | 6 | 6 | - |
+| AmericasMart Building 2 | 3rd Floor (`f3`) | 5 | 5 | - |
+| AmericasMart Building 2 | 4th Floor (`f4`) | 1 | 1 | - |
 
 Notes on the levels:
 
@@ -396,6 +402,10 @@ Notes on the levels:
 - Westin, 8th Floor (`f8`): `the con's names, from its 2026 map`
 - Westin, 12th Floor (`f12`): `the con's names, from its 2026 map`
 - Westin, 14th Floor (`f14`): `the con's names, from its 2026 map`
+- AmericasMart Building 2, 1st Floor (`f1`): `the vendor hall's first floor`
+- AmericasMart Building 2, 2nd Floor (`f2`): `the vendor hall's second floor`
+- AmericasMart Building 2, 3rd Floor (`f3`): `the vendor hall's third floor; also on the level, no 2026 programming: 203F`
+- AmericasMart Building 2, 4th Floor (`f4`): `the Comic and Pop Artist Alley`
 
 Unplaced rooms:
 

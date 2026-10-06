@@ -1042,7 +1042,7 @@ it.
 build tolerant, the test that holds 2026's counters at zero is the
 off-season guard.
 
-### 45. Venue resolution (builds #21, #27, #28) — Decided, not built (2026-09-22) — built by PR 5: `venues_stage.py`, the split, the grammar and the report as `contract.md` has them; its drawings built by #58: `data/<year>/drawings/<hotel>-<level>.json`, geometry only, keyed by level and room ids; a level gains `storey` and `short` by #72
+### 45. Venue resolution (builds #21, #27, #28) — Decided, not built (2026-09-22) — built by PR 5: `venues_stage.py`, the split, the grammar and the report as `contract.md` has them; its drawings built by #58: `data/<year>/drawings/<hotel>-<level>.json`, geometry only, keyed by level and room ids; a level gains `storey` and `short` by #72; amended by #91
 **Decided:** `data/2027/venues.json` holds runtime data only, curated by
 hand, one copy a year (#27):
 - Per hotel: its keys (the prefixes the source writes), `short`, `group`,
@@ -2235,7 +2235,7 @@ taken out by the sheet rewrites the query in lower case with one space
 between words, as a chip's x always has. Kind, second in #70's order, is
 now near the panel's foot, below the fold on a phone.
 
-### 72. A level has a storey and a short name — Standing (2026-10-02) — its `short` read by the row since PR #92 (#73)
+### 72. A level has a storey and a short name — Standing (2026-10-02) — its `short` read by the row since PR #92 (#73); amended by #91
 **Decided:** Every level of the venues file (#45) gains two keys, required
 like every other, which nothing reads yet:
 - **`storey`**, written after `order`: the storey the level is on, a whole
@@ -3150,3 +3150,29 @@ however the pick left, and a cancellation found at 5:35 still wants the
 **Cost:** A snapshot from before this has no end, so its event's length
 stands in. The event's sheet still sends a cancelled event to the calendar.
 The 15 minutes and the three are by hand, for August's tuning with #87's.
+
+### 91. The Mart's two buildings are two venues — Standing (2026-10-06)
+**Decided:** AmericasMart's two buildings are two venues of the venues file,
+as Dragon Con's maps draw them (PR #109). Amends #45 and #72.
+- **AmericasMart Building 2:** keys `AmericasMart Building 2`, `Mart
+  Building 2` and `Mart2`, short "Mart 2"; four floors, storeys 0 to 3,
+  rooms 203A-E on the 3rd and 204J on the 4th. **AmericasMart Building 3:**
+  keys `AmericasMart Building 3` and `Mart Building 3`, short "Mart 3"; two
+  floors. A floor is "1st Floor", its short "Floor 1", as the source has it.
+- **No bare key:** a location that names no building is Other.
+- **The group is "Mart":** one chip for both, in their colour, a group that
+  is no hotel taking its first hotel's; a word in the box names the group.
+- **The walk:** each building takes the Mart's minutes to every other
+  venue, and 5 between the two.
+- **The Map:** two blocks, 16 apart, and four bridges - one between the
+  buildings, and Building 2's to the Westin.
+- **The resolver:** the "mart building" rule goes, a building's floor being
+  a floor alone after its key; "mart vendor hall" names that floor's level.
+
+**Why:** The building view stacks a venue's storeys (#72), and Building 2's
+rooms are on two of its floors, which one "meeting rooms" level could not
+say. The Map had always stood the two buildings in one block.
+**Cost:** The walk minutes are guesses until the grounds are walked. A
+string that names no building is Other. Every Mart event's `hotel` changes.
+"Vendor Hall Floor `<n>`" now reads as that floor at any venue that has one,
+where only the Mart had such a level; 2026 has it only after "Mart2".

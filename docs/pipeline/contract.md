@@ -365,7 +365,7 @@ stage could not answer has no `tags` key. Each from its owner:
 |---|---|---|
 | `id` | the ids stage (#43) | Ours. |
 | `source_id` | the merge (#44) | The supplying row's: the source's id, which the client uses for any link out to the source. |
-| `hotel`, `room` | the venues step (#45) | The hotel, and the room shown: the location less its hotel's key, or the whole location at a hotel whose `display` is `location` (the Mart). |
+| `hotel`, `room` | the venues step (#45) | The hotel, and the room shown: the location less its hotel's key, or the whole location at a hotel whose `display` is `location` (the Mart's two buildings, #91). |
 | `level` | the venues step (#45) | The level's id, where one is known; else `null`. |
 | `rooms` | the venues step (#45) | Room ids: the room strings as `venues.json` writes them, scoped to the hotel. |
 | `place` | the venues step (#45) | How the place was found: `exact` \| `rule` \| `alias` \| `level` \| `hotel` \| `none`. |
@@ -597,9 +597,9 @@ their `order`; a hotel's fields and a level's, in the order below.
   `name`; its `keys`, below; `short`, `group`, `var` and `order`, which the
   client reads, imported at its build (#49); `placeless` (Streaming,
   Other and Unknown); `display`, whether the room shown is the rest of
-  the location or the whole of it (`location` for AmericasMart, else
-  `rest`), which the client reads too since PR #92, to name the Mart by
-  its room alone (#73); its `levels`, whose `short` a row reads (#73); and
+  the location or the whole of it (`location` for the Mart's two
+  buildings, #91, else `rest`), which the client reads too since PR #92, to
+  name a Mart event by its room alone (#73); its `levels`, whose `short` a row reads (#73); and
   `unplaced`, each room with no known level and its note.
 - **Keys:** the prefixes the source writes, matched longest first.
   Hardy Ivy Park's one key is `Hardy`: the source writes
@@ -617,7 +617,8 @@ their `order`; a hotel's fields and a level's, in the order below.
   room ids on its level. A numeral style is an alias, never a rule, and an
   alias beats the grammar.
 - **The walk:** the matrix, migrated verbatim from `src/venues.js`, whose
-  constants the client read until #49;
+  constants the client read until #49 - but for the Mart's pairs, which
+  each of its two buildings takes, with 5 minutes between the two (#91);
   `same_venue_min` 5; `unknown_pair_min` 12; and `slack_min`, the
   tight-connection slack (#40), which starts at 10, data, tuned later.
 
@@ -655,8 +656,9 @@ rows and on a frozen year's rows alike; it is pure.
   - c. `rule` - a rule of the grammar names rooms that all exist on one
     level. A rule whose rooms are missing, or span two levels, fails, and
     the next is tried.
-  - d. `level` - a rule names a level and no room: the Mart's building
-    floors and vendor halls, a floor alone. Or, once every rule has failed,
+  - d. `level` - a rule names a level and no room: a floor alone - a Mart
+    building's, after the building's key, among them (#91) - or a vendor
+    hall's floor. Or, once every rule has failed,
     the rooms the first failed rule did find all sit on one level.
   - e. `hotel` - no reading, or the hotel alone: a bare key, or the hotel's
     own name again. Counted as rooms unresolved, and listed.
@@ -666,9 +668,9 @@ rows and on a frozen year's rows alike; it is pure.
     placed hotels' keys, and a match is read at that hotel, as the rule
     `re-split`.
 - **The grammar**, in the order it is tried:
-  - the three Mart rules: `Building <n>, Floor <m>`, that level;
-    `Vendor Hall Floor <n> …`, that vendor-hall level; `20xY …`, that
-    Building 2 room, the rest a note;
+  - the two Mart rules (#91): `Vendor Hall Floor <n> …`, the level of that
+    floor, by the names a floor alone has; `20xY …`, that Building 2 room,
+    the rest a note;
   - the census's eight combined-string rules: numeric run, roman run, letter
     run, number run, letters together, number and letters, slash list, word
     pair;
