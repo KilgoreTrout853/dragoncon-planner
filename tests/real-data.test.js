@@ -2,11 +2,14 @@
    real events can say. The sample fixture is 558 synthetic ones; "does AND
    actually narrow this" means nothing there. The number in brackets is the
    harness line the assertion came from (tests/PORT-LEDGER.md). One boot, and a
-   long wait for it: the index over the real schedule takes seconds in jsdom. */
+   long wait for it: the index over the real schedule takes seconds in jsdom.
+   The building's model is asked here too (DECISIONS #94), of this schedule
+   and the level drawings a build for 2026 is given, 2027's. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import DRAWINGS from "virtual:drawings";
 import { YEAR, YY } from "../src/season.js";
 import { bootPage } from "./helpers/page.js";
 
@@ -1159,6 +1162,114 @@ describe("against the real schedule", () => {
       const aged = handle.events.filter(e => app.flagsOf(e).some(f => f.key === "age") && !app.isAdult(e));
       expect(aged.map(e => [e.title, app.flagsOf(e).map(f => f.label).join(", ")]).sort()).toEqual([
         ["Modded Kids Among Us in Real Life (Ages 13+)", "13+, Kids"], ["Troika: Slate & Chalcedony", "16+"]]);
+    });
+  });
+
+  /* The building's model (DECISIONS #94) on the real files: 2027's level
+     drawings, which a build for 2026 borrows, and 2026's schedule. The
+     counts are the committed files': a level drawn or a room added moves
+     them, and the pull request that does it says so here. New tests, not
+     rows of tests/PORT-LEDGER.md. */
+  describe("the building's model, on 2027's drawings and 2026's schedule", () => {
+    const SAT = "2026-09-05";
+    const DRAWN = ["Marriott", "Hyatt", "Hilton", "Courtland Grand", "Westin"], MART = ["AmericasMart Building 2", "AmericasMart Building 3"];
+    const folder = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "2027", "drawings");
+    const tally = (list, key) => list.reduce((by, x) => ({ ...by, [key(x)]: (by[key(x)] || 0) + 1 }), {});
+    const states = hotel => app.building(hotel).plates.map(p => (p.drawn ? "drawn" : p.inert ? "inert" : "not drawn"));
+
+    it("a build for 2026 is given 2027's twenty drawings, each file's geometry and nothing else: 191 rooms and the Concourse", () => {
+      const geometry = ["hotel", "level", "extent", "rooms", "composites", "groups", "open", "landmarks", "streets"];
+      const files = fs.readdirSync(folder).filter(f => f.endsWith(".json")).sort().map(f => JSON.parse(fs.readFileSync(path.join(folder, f), "utf8")));
+      expect([YEAR, fs.existsSync(path.join(folder, "..", "..", "2026", "drawings")), files.length]).toEqual([2026, false, 20]);
+      expect(DRAWINGS.map(d => Object.keys(d))).toEqual(files.map(() => geometry));
+      expect(DRAWINGS).toEqual(files.map(d => Object.fromEntries(geometry.map(key => [key, d[key]]))));
+      expect(files.every(d => ["sources", "notes", "units", "north", "anchors"].every(key => key in d))).toBe(true);
+      expect(DRAWINGS.flatMap(d => d.rooms)).toHaveLength(191);
+      expect(DRAWINGS.flatMap(d => d.open.filter(a => "id" in a).map(a => [d.hotel, d.level, a.id]))).toEqual([["Hyatt", "exhibit", "Concourse"]]);
+    });
+    it("seven venues have a building, in the hotels' order; the park, the streams and the offsite venues have none", () => {
+      expect(app.BUILDINGS).toEqual([...DRAWN, ...MART]);
+      expect(["Hardy Ivy Park", "Streaming", "Other", "Unknown"].map(hotel => app.building(hotel))).toEqual([null, null, null, null]);
+    });
+    it("the plates, one a storey: the Marriott's 4, the Hyatt's 4, the Hilton's 5, the Courtland Grand's 3, the Westin's 5, and the Mart's 4 and 2, none of them drawn", () => {
+      expect(Object.fromEntries(app.BUILDINGS.map(hotel => [hotel, states(hotel)]))).toEqual({
+        Marriott: ["drawn", "drawn", "drawn", "drawn"],
+        Hyatt: ["drawn", "drawn", "drawn", "inert"],
+        Hilton: ["drawn", "drawn", "drawn", "drawn", "drawn"],
+        "Courtland Grand": ["drawn", "drawn", "drawn"],
+        Westin: ["drawn", "drawn", "drawn", "not drawn", "not drawn"],
+        "AmericasMart Building 2": ["not drawn", "not drawn", "not drawn", "not drawn"],
+        "AmericasMart Building 3": ["not drawn", "not drawn"],
+      });
+      expect(app.building("Westin").plates.slice(3).map(p => p.name)).toEqual(["12th Floor", "14th Floor"]);
+      expect(app.BUILDINGS.flatMap(hotel => app.building(hotel).plates.flatMap(p => p.levels.map(level => level.id))).filter(id => id.includes("+"))).toEqual([]);
+    });
+    it("the Hyatt's Exhibit and Ballroom Levels each share a plate with a level of the International Tower, and its Lobby Level is inert", () => {
+      const plates = app.building("Hyatt").plates;
+      expect(plates.map(p => [p.key, p.short])).toEqual([["acc", "Conference Center"], ["exhibit+tower-ll2", "Exhibit Level + Intl Tower LL2"],
+        ["ballroom+tower-ll1", "Ballroom Level + Intl Tower LL1"], ["lobby", "Lobby Level"]]);
+      expect(plates.map(p => p.name).slice(1, 3)).toEqual(["Exhibit Level (LL2) + International Tower · LL2", "Ballroom Level (LL1) + International Tower · LL1"]);
+      expect(plates.slice(1, 3).map(p => [...new Set(p.rooms.map(r => r.level))])).toEqual([["exhibit", "tower-ll2"], ["ballroom", "tower-ll1"]]);
+      expect([plates[3].inert, plates[3].levels[0].rooms, app.levelEvents("Hyatt", "lobby")]).toEqual([true, [], []]);
+    });
+    it("each drawn venue's hull holds every room and open area, inside the venue's frame and the pad; the Mart's two buildings have none", () => {
+      const inside = (hull, [x, y]) => {
+        const side = hull.map((a, i) => { const b = hull[(i + 1) % hull.length]; return Math.sign((b[0] - a[0]) * (y - a[1]) - (b[1] - a[1]) * (x - a[0])); });
+        return side.every(s => s === side[0] && s !== 0);
+      };
+      for (const hotel of DRAWN) {
+        const { hull, plates } = app.building(hotel), { w, h } = DRAWINGS.find(d => d.hotel === hotel).extent;
+        const shapes = plates.flatMap(p => [...p.rooms, ...p.open]);
+        expect(shapes.filter(r => !inside(hull, [r.cx, r.cy])).map(r => r.id || r.name), hotel).toEqual([]);
+        expect(hull.filter(([x, y]) => x < -10.05 || x > w + 10.05 || y < -10.05 || y > h + 10.05), hotel).toEqual([]);
+        /* and no point of it lies on a side: two walls on one line, a rounding apart, are one side */
+        const turn = i => { const [o, a, b] = [hull[i], hull[(i + 1) % hull.length], hull[(i + 2) % hull.length]]; return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); };
+        expect(hull.map((_, i) => Math.abs(turn(i))).filter(t => t < 1e-6), hotel).toEqual([]);
+      }
+      expect(MART.map(hotel => app.building(hotel).hull)).toEqual([null, null]);
+    });
+    it("2,123 of the 3,459 events reach a room; 1,053 stop at a floor, 162 at the venue and 121 have no building; none stops at a level", () => {
+      expect(handle.events).toHaveLength(3459);
+      expect(tally(handle.events, e => app.depthOf(e).depth)).toEqual({ room: 2123, floor: 1053, venue: 162, nothing: 121 });
+      expect(tally(handle.events.filter(e => app.depthOf(e).depth === "floor"), e => e.hotel)).toEqual({ "AmericasMart Building 3": 845, "AmericasMart Building 2": 188, Westin: 20 });
+      expect(tally(handle.events.filter(e => app.depthOf(e).depth === "nothing"), e => e.hotel)).toEqual({ "Hardy Ivy Park": 36, Streaming: 62, Other: 23 });
+    });
+    it("a pick in International Hall South lights International 4 to 10, and each of the seven lists the hall's 318 events, booked as the hall", () => {
+      const pick = handle.events.find(e => e.rooms.includes("International Hall South") && e._cd === SAT);
+      const leaves = [10, 9, 8, 7, 6, 5, 4].map(n => `International ${n}`);
+      expect(app.depthOf(pick)).toEqual({ depth: "room", plate: "international", level: "international", rooms: leaves });
+      const row = app.dayLights("Marriott", SAT, new Set([pick.id]))[0];
+      expect([row.key, row.picks, row.lit]).toEqual(["international", 1, leaves.map(id => ({ level: "international", id }))]);
+      expect(leaves.map(id => tally(app.roomEvents("Marriott", "international", id), x => x.as))).toEqual(leaves.map(() => ({ "International Hall South": 318 })));
+      expect(app.roomEvents("Marriott", "international", "International Hall South")).toEqual([]);
+    });
+    it("the Concourse is lit as a place: an open area with an id, on the Hyatt's Exhibit Level", () => {
+      const pick = handle.events.find(e => e.rooms.includes("Concourse"));
+      expect(app.depthOf(pick)).toEqual({ depth: "room", plate: "exhibit+tower-ll2", level: "exhibit", rooms: ["Concourse"] });
+      const row = app.dayLights("Hyatt", pick._cd, new Set([pick.id]))[1];
+      expect([row.key, row.picks, row.lit]).toEqual(["exhibit+tower-ll2", 1, [{ level: "exhibit", id: "Concourse" }]]);
+      expect(app.roomEvents("Hyatt", "exhibit", "Concourse")).toHaveLength(30);
+    });
+    it("2026's two cancelled events are in their level's list, and are neither lit nor counted", () => {
+      const off = handle.events.filter(e => e.cancelled);
+      expect(off.map(e => [e.hotel, e.level, e._cd, app.depthOf(e).depth])).toEqual([["Courtland Grand", "f3", SAT, "room"], ["Courtland Grand", "f3", "2026-09-06", "room"]]);
+      for (const e of off) {
+        const listed = app.levelEvents(e.hotel, e.level), row = app.dayLights(e.hotel, e._cd, new Set([e.id]))[2];
+        expect(listed).toContain(e);
+        expect([row.key, row.picks, row.lit]).toEqual(["f3", 0, []]);
+        expect(row.events).toBe(listed.filter(x => x._cd === e._cd).length - 1);
+      }
+    });
+    it("a plate with no drawing has its day's count: on Saturday, 107 and 118 on the two floors of the Mart's Building 3", () => {
+      expect(app.dayLights("AmericasMart Building 3", SAT, new Set()).map(row => [row.key, row.picks, row.lit, row.events])).toEqual([["f1", 0, [], 107], ["f2", 0, [], 118]]);
+    });
+    it("the lists hold the schedule: every event at a venue, and on each level every event that names it", () => {
+      for (const hotel of app.BUILDINGS) {
+        const at = handle.events.filter(e => e.hotel === hotel);
+        expect(app.venueEvents(hotel), hotel).toEqual(at);
+        for (const level of app.building(hotel).plates.flatMap(p => p.levels)) expect(app.levelEvents(hotel, level.id), `${hotel} ${level.id}`).toEqual(at.filter(e => e.level === level.id));
+      }
+      expect(app.venueEvents("Hardy Ivy Park")).toHaveLength(36);
     });
   });
 });

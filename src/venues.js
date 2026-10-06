@@ -4,7 +4,8 @@
    data/<year>/venues.json (DECISIONS #27, #45, #49), which the build resolves
    as virtual:venues and inlines like any import. The helpers beside it answer
    in the same terms: a room as it should read, a level by its short name or
-   its full one, a walk in minutes at the reader's crowd factor. */
+   its full one, a hotel's levels, a walk in minutes at the reader's crowd
+   factor. */
 import VENUES from "virtual:venues";
 import { esc } from "./util.js";
 import { settings } from "./state.js";
@@ -38,6 +39,10 @@ const SLACK_MIN = VENUES.slack_min;
 const LEVEL_SHORT = new Map(HOTELS.map(h => [h.hotel, new Map((h.levels || []).map(lv => [lv.id, lv.short]))]));
 /* And to their full names, which an event's sheet says (#74). */
 const LEVEL_NAME = new Map(HOTELS.map(h => [h.hotel, new Map((h.levels || []).map(lv => [lv.id, lv.name]))]));
+/* And a hotel's levels themselves, as the file has them, in its order, each
+   with its storey (#72): what the building's model stacks (building.js,
+   #94). None for a hotel the file lacks. */
+const hotelLevels = hotel => [...((HOTELS.find(h => h.hotel === hotel) || {}).levels || [])].sort((a, b) => a.order - b.order);
 
 /* The source marks offsite venues with a leading "O ": "O Joystick Gamebar".
    The scraper now drops it; this covers data scraped before it did. */
@@ -118,5 +123,5 @@ const hotelPhrase = h => (h === "Hardy Ivy Park" ? h : hotelGroup(h) === "Mart" 
 
 export {
   HOTEL_ORDER, WALK, SLACK_MIN, cleanRoom, placeHTML, placeText, placeShort, levelShort, levelName, walkMin, hotelShort, hotelVar,
-  hotelGroup, hotelMatches, hotelPhrase,
+  hotelGroup, hotelMatches, hotelPhrase, hotelLevels,
 };
