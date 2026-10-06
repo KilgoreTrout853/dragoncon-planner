@@ -5,10 +5,11 @@ import { state } from "./state.js";
 import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
 import { hotelVar, walkMin } from "./venues.js";
 import { shareableDays } from "./shareday.js";
-import { byId } from "./data.js";
+import { byId, happening } from "./data.js";
 import { pickNewsHTML, picks } from "./picks.js";
 import { gapHTML } from "./walk.js";
 import { chipHTML, rowHTML } from "./ui.js";
+import { inPlaceHTML } from "./inplace.js";
 
 /* ---- Plans -------------------------------------------------------- */
 /* Side-by-side columns for anything that overlaps in time. Events are
@@ -59,20 +60,22 @@ function timelineDayHTML(dayKey, list, now) {
   }
 
   /* A removed pick keeps its place in time, marked, and says so where its
-     room would be. */
+     room would be; a cancelled one too, drawn the same (DECISIONS #90). */
   const blocks = items.map(({ev, col, cols}) => {
     const h = Math.max(24, top(ev._e.getTime()) - top(ev._s.getTime()) - 2);
     const w = 100 / cols;
     const long = h >= 150;
-    return `<button class="tl-block${long ? " long" : ""}${ev.removed ? " removed" : ""}" data-hero="${esc(ev.id)}" style="top:${top(ev._s.getTime()).toFixed(1)}px;height:${h.toFixed(1)}px;left:${(col * w).toFixed(2)}%;width:calc(${w.toFixed(2)}% - 3px);--h:var(${hotelVar(ev.hotel)})">
+    const off = ev.removed ? "removed" : ev.cancelled ? "cancelled" : "";
+    return `<button class="tl-block${long ? " long" : ""}${off ? ` ${off}` : ""}" data-hero="${esc(ev.id)}" style="top:${top(ev._s.getTime()).toFixed(1)}px;height:${h.toFixed(1)}px;left:${(col * w).toFixed(2)}%;width:calc(${w.toFixed(2)}% - 3px);--h:var(${hotelVar(ev.hotel)})">
       <span class="tb-title">${esc(ev.title)}</span>
-      <span class="tb-room">${ev.removed ? "Removed from the schedule" : esc(ev.room || ev.location || "")}</span>
+      <span class="tb-room">${ev.removed ? "Removed from the schedule" : ev.cancelled ? "Cancelled" : esc(ev.room || ev.location || "")}</span>
       ${long ? `<span class="tb-runs">runs to ${fmtShort(ev._e)}</span>` : ""}
     </button>`;
   }).join("");
 
-  /* A removed pick is not happening: no walk runs to it or from it. */
-  const live = sorted.filter(e => !e.removed);
+  /* A removed or a cancelled pick is not happening: no walk runs to it or
+     from it. */
+  const live = sorted.filter(happening);
   let links = "";
   for (let i = 1; i < live.length; i++) {
     const prev = live[i - 1], next = live[i];
@@ -202,16 +205,18 @@ function renderPlans() {
 /* My day, Mine as built: every pick, the removed among them - byId holds
    every event in start order. A pick on an event the source dropped stays
    in the plan until the reader takes it out, marked, and is on no other tab
-   (DECISIONS #49). The calendar export takes the picks still on the
-   schedule. */
+   (DECISIONS #49). A cancelled pick stays the same way, marked (#90). The
+   calendar export takes the picks that are happening, neither removed nor
+   cancelled, and under the picks-changed notice stands what is on in place
+   of a pick that changed (inplace.js). */
 function myDayHTML() {
   const mine = [...byId.values()].filter(e => picks.has(e.id));
-  const onSchedule = mine.filter(e => !e.removed).length;
+  const onSchedule = mine.filter(happening).length;
   /* Share a day (W25), beside Export: a day of picks as a link that needs no
      backend, so on every build, and only while a pick is neither removed nor
      cancelled - the panel's chips are the days that hold one. */
   const shareable = shareableDays(mine, picks).length;
-  let html = pickNewsHTML() + `<div class="plans-actions">
+  let html = pickNewsHTML() + inPlaceHTML("plans") + `<div class="plans-actions">
     <button class="btn" data-act="ics" ${onSchedule ? "" : "disabled"}>Export to calendar</button>
     <button class="btn quiet" data-act="share-day" ${shareable ? "" : "disabled"}>Share a day</button>
     <button class="btn quiet" data-act="clear" ${mine.length ? "" : "disabled"}>Remove all</button>
@@ -229,9 +234,9 @@ function myDayHTML() {
     let lastDay = "", prev = null;
     mine.forEach(ev => {
       if (ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd} <span class="count" style="font-size:.875rem;color:var(--dim);font-weight:400">${mine.filter(x => x._cd === ev._cd).length}</span></li>`; lastDay = ev._cd; prev = null; }
-      /* A removed pick has no gap line on either side: the next one's is
-         measured from the pick before it. */
-      if (ev.removed) { html += rowHTML(ev, {list: "mine"}); return; }
+      /* A removed or a cancelled pick has no gap line on either side: the
+         next one's is measured from the pick before it. */
+      if (!happening(ev)) { html += rowHTML(ev, {list: "mine"}); return; }
       html += gapHTML(prev, ev) + rowHTML(ev, {list: "mine"});
       prev = ev;
     });

@@ -15,10 +15,11 @@ import { crewRightNow } from "./crews.js";
 import { state } from "./state.js";
 import { CON, conDayKey, conEnded, conPhase, DAY_LONG, effectiveNow, now } from "./time.js";
 import { hotelMatches, hotelShort, hotelVar, placeHTML, placeShort } from "./venues.js";
-import { events, hotelChips, isNoise } from "./data.js";
+import { events, happening, hotelChips, isNoise } from "./data.js";
 import { pickNews, pickNewsHTML, picks } from "./picks.js";
 import { connection, gapHTML, walkEstimate } from "./walk.js";
 import { chipHTML, crewLineHTML, rowHTML } from "./ui.js";
+import { inPlaceHTML } from "./inplace.js";
 import { cssEsc, focusIn, giveFocusBack, refill } from "./scroll.js";
 import { requestRender } from "./bus.js";
 
@@ -111,11 +112,13 @@ function archiveHTML() {
    seen from Thursday was being announced as starting at 2:30 PM with no day
    on it. Anything still running past 5am counts as today too. A pick on a
    later day gets one line naming the day, so the tab never looks empty when
-   the plan is not. */
+   the plan is not. A cancelled pick is not happening (DECISIONS #90): it is
+   no hero, no "then", no row of the rest and no later pick. What is on and
+   coming up is the schedule's, not the plan's, and keeps its row. */
 function nowModel(now) {
   const horizon = new Date(now.getTime() + 60 * 60000);
   const today = conDayKey(now);
-  const future = events.filter(e => picks.has(e.id) && e._e > now);
+  const future = events.filter(e => picks.has(e.id) && happening(e) && e._e > now);
   const minePlan = future.filter(e => conDayKey(e._s) === today || e._s <= now);
   const later = minePlan.length ? null : (future.find(e => conDayKey(e._s) > today) || null);
   const onNowEv = minePlan.find(e => e._s <= now && now < e._e) || null;
@@ -185,7 +188,8 @@ function renderNow() {
   const model = nowModel(now), crew = nowCrew(now);
   lastNowSig = nowSignature(model, now, banner, crew);
   const minePlan = model.minePlan;
-  let mineHTML = nudgeHTML() + pickNewsHTML();
+  /* Under the notice, what is on in place of a pick that changed (#90). */
+  let mineHTML = nudgeHTML() + pickNewsHTML() + inPlaceHTML("now");
   /* The crew's section sits between the hero and Rest of your day; with no
      hero, after the line that says so. */
   if (minePlan.length) {

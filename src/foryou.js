@@ -15,7 +15,13 @@
    remembers the events it was made from, and replaceSchedule() makes new
    ones. A run makes little: a finding is made once a thing and shared by
    every event that carries it, and an event is weighed in one list used
-   over again, since a phone runs this as the grid is drawn (#22). */
+   over again, since a phone runs this as the grid is drawn (#22).
+
+   And what is offered in place of a pick that was cancelled, removed, gone
+   or moved (W2; DECISIONS #90), inPlace(): the same profile, the same bars
+   and the same scores, over the events that start in the time the pick
+   vacated. */
+import { toDate } from "./util.js";
 import { AXES, byId, events, isCeleb, linkedWorks, NOISE_TRACKS, personName, tagsOf, worksById } from "./data.js";
 import { picks } from "./picks.js";
 import { followId, follows, mutes } from "./follows.js";
@@ -33,6 +39,8 @@ const STAR_MIN = {work: 1, track: 2, axis: 2};
 const LONG_PICK_MIN = 240;    // a pick longer than this blocks nothing: nobody sits a whole one
 const QUIET_KINDS = ["photo", "signing"];
 const BIG_TRACK = "Main Programming";   // the track whose celebrity events are the big ones
+const IN_PLACE_MAX = 3;       // rows in place of a pick, at most
+const IN_PLACE_GRACE_MIN = 15;   // an event is offered in place until this long after its start
 
 /* What a follow is called on screen: its key is an id. */
 function labelFor(kind, key) {
@@ -252,6 +260,47 @@ function forYou(at) {
     .map(({ev, score, reason: f}) => ({id: ev.id, score, reason: {kind: kindOf(f.thing), key: keyOf(f.thing), name: p.name.get(f.thing), follow: f.follow}}));
 }
 
+/* In place of a pick (W2; DECISIONS #90): what is on in the time a change
+   vacated - `vacated` its old start, its old end and its old building, as
+   picks.js recorded them - at a moment: at most three rows, best first,
+   each {id, score, reason}, the reason For you's {kind, key, name, follow}
+   and null where nothing scored.
+   - Candidates: the events that start at or after the vacated start and
+     before its end, less any that started fifteen minutes ago or more - a
+     cancellation found at 5:35 still wants the 5:30s, where For you passes
+     over whatever has started (#87).
+   - Out: what barred() bars. A moved pick blocks at its new time, as any
+     pick does, and a cancelled or removed one blocks nothing.
+   - Order: weigh()'s score, highest first; then those in the vacated
+     building; then by start; then by id. One session of anything, and two
+     rows at most that say one reason, as For you. A row that scores nothing
+     still fills the hole, after every one that scores: it has no reason,
+     and no cap by reason.
+   Whether an event is barred is asked in that order and only until the
+   list is full, as choose() asks. [] once nothing is left to offer. */
+function inPlace(vacated, at) {
+  const p = profile(), found = [], ranked = [];
+  const from = toDate(vacated.start).getTime(), to = toDate(vacated.end).getTime(), late = at.getTime() - IN_PLACE_GRACE_MIN * 60000;
+  for (const ev of events) {
+    const start = ev._s.getTime();
+    if (start < from || start >= to || start <= late) continue;
+    ranked.push({ev, score: weigh(ev, p, found), start, here: !!vacated.hotel && ev.hotel === vacated.hotel});
+  }
+  ranked.sort((a, b) => b.score - a.score || b.here - a.here || a.start - b.start || (a.ev.id < b.ev.id ? -1 : a.ev.id > b.ev.id ? 1 : 0));
+  const chosen = [], said = new Map(), sessions = new Set();
+  for (const {ev, score} of ranked) {
+    if (chosen.length >= IN_PLACE_MAX) break;
+    const session = sessionKey(ev);
+    if (sessions.has(session)) continue;
+    const all = foundOn(ev, p), f = score > 0 ? all[0] : null;
+    if ((f && (said.get(f.says) || 0) >= PER_REASON) || barred(ev, all, p)) continue;
+    if (f) said.set(f.says, (said.get(f.says) || 0) + 1);
+    sessions.add(session);
+    chosen.push({id: ev.id, score, reason: f ? {kind: kindOf(f.thing), key: keyOf(f.thing), name: p.name.get(f.thing), follow: f.follow} : null});
+  }
+  return chosen;
+}
+
 /* The big ones (W16; DECISIONS #88), which stand where For you has no row:
    the celebrity events on Main Programming still to start at a moment,
    soonest first and then by id, as ids. Computed, never a list kept by
@@ -277,4 +326,4 @@ function bigOnes(at) {
   return out;
 }
 
-export { FOR_YOU_MAX, labelFor, rarity, profile, SIGNALS, forYou, BIG_TRACK, bigOnes };
+export { FOR_YOU_MAX, labelFor, rarity, profile, SIGNALS, forYou, IN_PLACE_MAX, IN_PLACE_GRACE_MIN, inPlace, BIG_TRACK, bigOnes };

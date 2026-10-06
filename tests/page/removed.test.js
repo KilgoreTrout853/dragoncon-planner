@@ -202,7 +202,7 @@ describe("a schedule that dropped one pick and merged two", () => {
     });
     it("the survivor snapshotted in their place", () => {
       const info = stored(`dc${YY}.pickInfo`);
-      expect(info[survivor.id]).toEqual(snapshot(survivor));
+      expect(info[survivor.id]).toEqual({ ...snapshot(survivor), end: survivor.end, hotel: survivor.hotel });
       expect(info["old-a"]).toBeUndefined();
       expect(info["old-b"]).toBeUndefined();
     });

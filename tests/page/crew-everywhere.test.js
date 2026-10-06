@@ -634,10 +634,9 @@ describe("your crew's picks right now: removed and unknown picks skipped, offsit
   }, 30000);
   afterAll(() => s.page.cleanup());
 
-  it("a removed pick and one this schedule does not hold give no line; an offsite one is named by its room, else offsite; a cancelled one stays, as the reader's own hero keeps one", () => {
+  it("a removed pick and one this schedule does not hold give no line; an offsite one is named by its room, else offsite; a cancelled one gives no line, as the reader's own hero passes over one", () => {
     expect(lines()).toEqual([
       "Dee · on now Fan Panel: Cosplay Armor 101 · Joystick Gamebar",
-      "Fay · on now Q&A: Pathfinder 2026 · Hilton",
       "Eve · 2:30 PM Q&A: Cyberpunk · offsite",
       "Zo <i>&\"' · 4:00 PM <i>Artemis</i> & \"friends\" · Westin",
     ]);
@@ -646,8 +645,16 @@ describe("your crew's picks right now: removed and unknown picks skipped, offsit
     expect(lineOf(s.zo).querySelector("i")).toBe(null);
     expect(lineOf(s.zo).querySelector(".cn-who").textContent).toBe("Zo <i>&\"'");
   });
-  it("and each line's markup as before, byte for byte - offsite, escaped, cancelled", () => {
-    expect(nowLinesAsBefore(s)).toBe(4);
+  it("and each line's markup as before, byte for byte - offsite, escaped", () => {
+    expect(nowLinesAsBefore(s)).toBe(3);
+  });
+  it("a crewmate whose pick on now is cancelled has their next pick today for a line, as the reader's own hero has", async () => {
+    pick(s.fake, s.fay, "s0590");
+    await s.run();
+    expect(words(lineOf(s.fay))).toBe("Fay · 2:30 PM Ask a NASA Scientist: The Road to Mars · Hilton");
+    pick(s.fake, s.fay, "s0590", false);
+    await s.run();
+    expect(lineOf(s.fay)).toBe(null);
   });
   it("the Map's On now line names it the same way", () => {
     s.handle.picks.set(["s0305"]);
@@ -700,13 +707,13 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
   }, 30000);
   afterAll(() => s.page.cleanup());
 
-  it("one count a hotel of the crewmates with a pick there that day: two picks are one person, a stream is on no hotel, a removed event is no one's, a cancelled one counts, and none at zero", () => {
-    expect(crewPills()).toEqual({ Hyatt: "2", Hilton: "2" });
+  it("one count a hotel of the crewmates with a pick there that day: two picks are one person, a stream is on no hotel, a removed event is no one's, a cancelled one is no one's, and none at zero", () => {
+    expect(crewPills()).toEqual({ Hyatt: "2", Hilton: "1" });
     expect(words(document.querySelector('#view-map .map-pill[data-hotel="Westin"]'))).toBe("2");
   });
   it("the hotel's label says how many of the crew; one with none says nothing of the crew - and the pill itself is hidden from screen readers", () => {
     expect(blockOf("Hyatt").getAttribute("aria-label")).toBe("Hyatt: no picks on Saturday, 2 of your crew");
-    expect(blockOf("Hilton").getAttribute("aria-label")).toBe("Hilton: no picks on Saturday, 2 of your crew");
+    expect(blockOf("Hilton").getAttribute("aria-label")).toBe("Hilton: no picks on Saturday, 1 of your crew");
     expect(blockOf("Westin").getAttribute("aria-label")).toBe("Westin: 2 picks on Saturday");
     expect(crewPill("Hyatt").getAttribute("aria-hidden")).toBe("true");
   });
@@ -730,7 +737,7 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
     document.querySelector('#view-map [data-chip="map-day"][data-value="2026-09-04"]').click();
     expect(crewPills()).toEqual({ Hyatt: "1" });
     document.querySelector('#view-map [data-chip="map-day"][data-value="2026-09-05"]').click();
-    expect(crewPills()).toEqual({ Hyatt: "2", Hilton: "2" });
+    expect(crewPills()).toEqual({ Hyatt: "2", Hilton: "1" });
   });
   it("a tap on it opens the hotel's sheet, as the gold pill's does", () => {
     crewPill("Hilton").querySelector("rect").dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -784,7 +791,8 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
     s.handle.render();
   });
   it("ten of the crew at the Hilton: a wider count, nine and ten apart, still inside the map", async () => {
-    const more = Array.from({ length: 8 }, (_, i) => s.fake.held(`mate${i}@example.test`));
+    /* Nine more beside Dee: Cy's pick there is cancelled, and is no one's. */
+    const more = Array.from({ length: 9 }, (_, i) => s.fake.held(`mate${i}@example.test`));
     for (const [i, mate] of more.entries()) { s.fake.join(s.crew, mate.id, `Mate ${i}`); pick(s.fake, mate, "s0590"); }
     await s.run();
     const rect = () => crewPill("Hilton").querySelector("rect");
@@ -863,15 +871,14 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     if (e.id === "s0347") e.title = "Q&A: <i>Pathfinder</i> & \"friends\"";
   }
   /* The Hyatt on Saturday: by start, then title - the schedule's order - and
-     by name within one event, so at 4:00 PM Bo and Dee's Dune before Cy and
-     Eve's Warhammer, the names interleaved and each event's lines together. */
+     by name within one event, so at 4:00 PM Bo and Dee's Dune before Zo's
+     Pathfinder, each event's lines together. Cy and Eve's Warhammer, between
+     the two, is cancelled: it has no line, and neither is counted for it. */
   const HYATT = [
     "Fay · 10:00 AM Severance Retrospective",
     "Bo · 2:30 PM · yours too Writing Villains Readers Love to Hate · Centennial II-IV",
     "Bo · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C",
     "Dee · 4:00 PM Deep Dive: Dune Roundtable · Grand Hall C",
-    "Cy · 4:00 PM Deep Dive: Warhammer 40K · Grand Hall C",
-    "Eve · 4:00 PM Deep Dive: Warhammer 40K · Grand Hall C",
     "Zo <i>&\"' · 4:00 PM Q&A: <i>Pathfinder</i> & \"friends\" · Centennial I",
   ];
   beforeAll(async () => {
@@ -899,17 +906,17 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     expect([hereOf(s.bo, "s0376"), hereOf(s.bo, "s0263")].every(Boolean)).toBe(true);
   });
   it("the head: the day, the reader's own count, then how many of the crew - people, not picks", () => {
-    expect(hotelHead()).toBe("Saturday · 1 pick · 6 of your crew");
-    expect(words(crewPill("Hyatt"))).toBe("6");
+    expect(hotelHead()).toBe("Saturday · 1 pick · 4 of your crew");
+    expect(words(crewPill("Hyatt"))).toBe("4");
   });
-  it("yours too as on Now; the room, not the hotel, and the title alone with no room; a cancelled pick unmarked; names and titles escaped", () => {
+  it("yours too as on Now; the room, not the hotel, and the title alone with no room; a cancelled pick has no line; names and titles escaped", () => {
     expect(hereOf(s.bo, "s0376").querySelector(".cn-with").textContent).toBe("yours too");
     expect(hereOf(s.bo, "s0263").querySelector(".cn-with")).toBe(null);
     const fay = hereOf(s.fay, "s0228");
     expect(fay.querySelector(".cn-where")).toBe(null);
     expect(words(fay.querySelector(".cn-what"))).toBe("Severance Retrospective");
-    expect(hereOf(s.cy, "s0332").querySelector(".cancelled-tag")).toBe(null);
-    expect(words(hereOf(s.cy, "s0332"))).not.toMatch(/Cancelled/);
+    expect([hereOf(s.cy, "s0332"), hereOf(s.eve, "s0332")]).toEqual([null, null]);
+    expect(hereLines().join(" ")).not.toMatch(/Warhammer|Cancelled/);
     const zo = hereOf(s.zo, "s0347");
     expect(zo.querySelector("i")).toBe(null);
     expect([zo.querySelector(".cn-who").textContent, zo.querySelector(".cn-title").textContent]).toEqual(["Zo <i>&\"'", "Q&A: <i>Pathfinder</i> & \"friends\""]);
@@ -918,7 +925,7 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     expect(hereOf(s.bo, "s0281")).toBe(null);
     expect(hereOf(s.hal, "s0281")).toBe(null);
     expect(hereButtons().some(b => b.id.startsWith(`crewHere-${s.hal.id}`))).toBe(false);
-    expect(hotelHead()).toMatch(/ 6 of your crew$/);
+    expect(hotelHead()).toMatch(/ 4 of your crew$/);
   });
   it("no pick of the reader's here: None of your own picks here, above the Search button, which stays; then the crew - and never on now: the sheet does not tick", () => {
     escape();
@@ -992,7 +999,7 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     expect(hotelPanel().querySelector(".ev-body")).toBe(body);
     expect(body.scrollTop).toBe(40);
     expect(el("sheetTitleHotel")).toBe(title);
-    expect(hotelHead()).toBe("Saturday · 1 pick · 7 of your crew");
+    expect(hotelHead()).toBe("Saturday · 1 pick · 5 of your crew");
   });
   it("a line taken away while it has focus gives focus to the sheet's heading", async () => {
     hereOf(s.gus, "s0376").focus();
@@ -1000,7 +1007,7 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     await s.run();
     expect(hereOf(s.gus, "s0376")).toBe(null);
     expect(document.activeElement).toBe(el("sheetTitleHotel"));
-    expect(hotelHead()).toBe("Saturday · 1 pick · 6 of your crew");
+    expect(hotelHead()).toBe("Saturday · 1 pick · 4 of your crew");
   });
   it("a crewmate renamed: their lines say the new name in place, and a line the new order moves keeps its node and has focus again", async () => {
     const dee = hereOf(s.dee, "s0263"), bo = hereOf(s.bo, "s0376");
@@ -1020,11 +1027,11 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     expect(hereLines()).toEqual(HYATT);
   });
   it("a pull that changes nothing here draws nothing in the sheet - though it draws the Map behind it", async () => {
-    hereOf(s.cy, "s0332").focus();
+    hereOf(s.dee, "s0263").focus();
     const changes = await mutationsAcross(hotelPanel(), async () => { pick(s.fake, s.bo, "s0253"); await s.run(); });
     expect(words(crewPill("Marriott"))).toBe("1");
     expect(changes).toEqual([]);
-    expect(document.activeElement).toBe(hereOf(s.cy, "s0332"));
+    expect(document.activeElement).toBe(hereOf(s.dee, "s0263"));
     pick(s.fake, s.bo, "s0253", false);
     await s.run();
   });
@@ -1034,7 +1041,7 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     expect(s.handle.picks.get().has("s0376")).toBe(false);
     expect(words(hereOf(s.bo, "s0376"))).toBe("Bo · 2:30 PM Writing Villains Readers Love to Hate · Centennial II-IV");
     expect(hotelPanel().querySelector('.ev-body .list .row[data-id="s0376"]')).not.toBe(null);
-    expect(hotelHead()).toBe("Saturday · 1 pick · 6 of your crew");
+    expect(hotelHead()).toBe("Saturday · 1 pick · 4 of your crew");
     s.fake.write(s.ada.id, "picks", { event_id: "s0376", picked: true, changed_at: iso(Date.now() + 10000) });
     await s.run();
     expect(s.handle.picks.get().has("s0376")).toBe(true);
@@ -1173,7 +1180,7 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     escape();
     seed("crewPicks", kept);
     s.handle.render();
-    expect(words(crewPill("Hyatt"))).toBe("6");
+    expect(words(crewPill("Hyatt"))).toBe("4");
   });
 });
 

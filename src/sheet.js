@@ -27,7 +27,7 @@ import { settings, state } from "./state.js";
 import { conDayKey, DAY_LABEL, DAY_LONG, localInputValue, now, timeOverride } from "./time.js";
 import { hotelPhrase, WALK } from "./venues.js";
 import { dayLink, dayMessage, defaultShareDay, readSharedDay, shareableDays, sharedPicks } from "./shareday.js";
-import { byId, events } from "./data.js";
+import { byId, events, happening } from "./data.js";
 import { picks, replacePicks, savePicks } from "./picks.js";
 import { chipHTML, crewLineHTML, rowHTML } from "./ui.js";
 import { focusIn, focusKey, moreCap, pageScrollTo, pageScrollTop, refill, shownMatch } from "./scroll.js";
@@ -112,8 +112,9 @@ function fillKeep() {
 }
 
 /* ---- The hotel sheet (docs/screens/contract.md, section 8) -------- */
-/* The user's picks in one hotel on one con day, in time order (events is). */
-const mapPicksAt = (hotel, day) => events.filter(e => picks.has(e.id) && e.hotel === hotel && e._cd === day);
+/* The user's picks in one hotel on one con day, in time order (events is):
+   those that are happening, the gold pill's count (DECISIONS #90). */
+const mapPicksAt = (hotel, day) => events.filter(e => picks.has(e.id) && happening(e) && e.hotel === hotel && e._cd === day);
 /* And under them the crew's there, Your crew's picks here (DECISIONS #62,
    #68): a line a pick, from the Map's own reader (map.js mapCrewPicks()), so
    on a build with a backend and for a reader in a crew alone. Now's line

@@ -451,11 +451,12 @@ execution slot (#57), which can run before any of this.
    For you, a short list with its reasons, first on the grid, and
    Following folded under it - built (PR #105, #87; contract, section 4).
    The zero state, "Start here" and the big ones in For you's place where
-   it has no row - built (PR #106, #88; contract, section 4). 8b is what is
-   left of step 8.
+   it has no row - built (PR #106, #88; contract, section 4). 8b, the last
+   of step 8, is built: nothing is left of it.
    - 8b. W2, the alternatives in the time a cancelled or moved pick
-     vacated, under the picks-changed notice on Now and Plans: its own
-     small pull request (contract, section 2).
+     vacated, under the picks-changed notice on Now and Plans, and a
+     cancelled pick no longer next - built (PR #108, #90; contract,
+     section 2).
 9. The gear: the about page, Delete my account with its migration, the
    notifications toggle's slot (contract, section 9). Remove all is in the
    gear, as Remove all picks, and in My day's action strip, where since
@@ -638,6 +639,10 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   right list is judged on the real 2027 schedule in August. And a held
   zero state waits for the grid to be left: an unmute on the grid, like a
   star that gives For you a row, shows nothing new until then.
+- In place of a pick (#90): the 15 minutes an event is still offered
+  after its start, and the three rows, are set by hand - for August's
+  tuning pass, with For you's weights (#87). Found and left: two shut
+  folds side by side share a doubled line, as two folds do anywhere.
 - Three places rewrite the address, each its own way: `time.js`
   `setOverride()`, the `?now=`; `crews.js` `readJoinLink()`, the `?join=`;
   and since PR #85 `sheet.js` `takeDayLink()`, the `?day=`. One helper for

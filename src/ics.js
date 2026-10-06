@@ -1,7 +1,7 @@
 import { YY } from "./season.js";
 import { pad } from "./util.js";
 import { CON, now } from "./time.js";
-import { events } from "./data.js";
+import { events, happening } from "./data.js";
 import { picks } from "./picks.js";
 
 /* ==================================================================
@@ -10,7 +10,9 @@ import { picks } from "./picks.js";
 function icsEscape(s) { return String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
 function fold(line) { const out = []; while (line.length > 74) { out.push(line.slice(0, 74)); line = " " + line.slice(74); } out.push(line); return out.join("\r\n"); }
 function icsDate(d) { return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`; }
-function exportICS() { downloadICS(events.filter(e => picks.has(e.id)), `dragoncon-${CON.year}-my-schedule.ics`); }
+/* The plan's export takes the picks that are happening: a cancelled one is
+   left out, as a removed one is (DECISIONS #49, #90). */
+function exportICS() { downloadICS(events.filter(e => picks.has(e.id) && happening(e)), `dragoncon-${CON.year}-my-schedule.ics`); }
 function exportEventICS(ev) {
   downloadICS([ev], `dragoncon-${CON.year}-${(ev.title || "event").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "event"}.ics`);
 }

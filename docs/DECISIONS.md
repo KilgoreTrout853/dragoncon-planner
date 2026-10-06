@@ -825,7 +825,7 @@ live site drops `next`'s work and axis follows. The worker's update notice
 keys on `generated_at`, which every rebuild of `events.v2.json` keeps
 (ROADMAP, Held).
 
-### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55); its client half - no leave-by on the hero, the mini-bar or the map card, the slack renamed `SLACK_MIN`, `leave.js` renamed `walk.js` and `currentLocation()` deleted, so that the app no longer says where the reader is - to be built by PR 3 of Where things live's sequence (ROADMAP, tentpole 5; `docs/screens/contract.md`, section 12); when the install nudge shows decided by #65; its client half built by PR #76: no leave-by on the hero, the mini-bar or the map card - the hero says the walk to the next pick and the band `walk.js` `connection()` gives the pair, as the gap line between their rows does - `SLACK_MIN`, `walk.js`, and `currentLocation()` deleted, so the app no longer says where the reader is (`docs/screens/contract.md`, sections 2 and 12, as built); the gap line no longer says an overlap, the two rows' flags do (#73)
+### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55); its client half - no leave-by on the hero, the mini-bar or the map card, the slack renamed `SLACK_MIN`, `leave.js` renamed `walk.js` and `currentLocation()` deleted, so that the app no longer says where the reader is - to be built by PR 3 of Where things live's sequence (ROADMAP, tentpole 5; `docs/screens/contract.md`, section 12); when the install nudge shows decided by #65; its client half built by PR #76: no leave-by on the hero, the mini-bar or the map card - the hero says the walk to the next pick and the band `walk.js` `connection()` gives the pair, as the gap line between their rows does - `SLACK_MIN`, `walk.js`, and `currentLocation()` deleted, so the app no longer says where the reader is (`docs/screens/contract.md`, sections 2 and 12, as built); the gap line no longer says an overlap, the two rows' flags do (#73); amended by #90
 **Decided:** Leave-by is retired: no `leave by <time>` countdown on any
 screen, and no leave-by push.
 - The plan keeps what is true of the plan rather than the person: a walk
@@ -3124,3 +3124,29 @@ ends its animation. It is the last of #60's prerequisites (#28's Cost).
 **Cost:** A draw builds every part's markup to compare it. A part added
 later must be added to the draw. Five tests that assumed a rebuild now
 assert a kept node or read the SVG's whole order.
+
+### 90. In place of a pick: a cancellation is news, and what is on in its time — Standing (2026-10-06)
+**Decided:** When a refresh takes a pick away the app says so, and offers
+what is on in its place (W2; PR #108; `docs/screens/contract.md`, section 2).
+- **News:** a cancellation, once, under the title the pick had; and a
+  cancelled or removed pick that is back. One line an event a refresh.
+- **Not happening:** whatever says what is next, where to walk or how many
+  picks are at a place passes over a cancelled pick, the reader's or a
+  crewmate's, as over a removed one (#49). Where the plan is listed it
+  stays, marked and counted: My day, the crew's day, the record, the badge.
+- **In place:** for a pick cancelled, removed, gone, or moved to a new
+  start - a room alone vacates no time - the events that start in the time
+  it vacated, by For you's bars and scores (#87): best first, then the
+  vacated building, then by start; three, two a reason; one that scores
+  nothing still fills the hole. Unlike #87's, each is offered until 15
+  minutes after it starts.
+- **Where:** a fold a change, shut, under the notice on Now and on My day,
+  held still by #87's rule until the tab is left or OK. The OK is 44 px.
+- Amends #40: a removed and a gone pick get alternatives, and the 15 minutes.
+
+**Why:** Now's hero counted down to a cancelled pick. The hole is the same
+however the pick left, and a cancellation found at 5:35 still wants the
+5:30s: 88 events the reader could go to start in that one hour.
+**Cost:** A snapshot from before this has no end, so its event's length
+stands in. The event's sheet still sends a cancelled event to the calendar.
+The 15 minutes and the three are by hand, for August's tuning with #87's.

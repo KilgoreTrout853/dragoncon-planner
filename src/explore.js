@@ -6,7 +6,7 @@ import { picks } from "./picks.js";
 import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing, isMuted, KIND_NOUN, mutes } from "./follows.js";
 import { axisLabel } from "./search.js";
 import { bigOnes, forYou, labelFor } from "./foryou.js";
-import { rowHTML } from "./ui.js";
+import { reasonSaid, rowHTML } from "./ui.js";
 import { pageScrollTo, pageScrollTop, revealChip, scroller } from "./scroll.js";
 import { requestRender } from "./bus.js";
 
@@ -304,11 +304,10 @@ function forYouHTML() {
   const {rows, more} = forYouList();
   if (!rows.length) return "";
   const shown = more ? rows : rows.slice(0, FOR_YOU_HEAD);
-  /* A reason that names the row's own track leaves the track unsaid. */
+  /* The reason as a row says it is ui.js's, reasonSaid(). */
   const row = ({id, reason}) => {
     const ev = byId.get(id);
-    return ev ? rowHTML(ev, {list: "foryou", showDay: true, noTrack: reason.name === ev.track,
-      status: `${reason.follow ? "You follow" : "Like your picks:"} ${reason.name}`}) : "";
+    return ev ? rowHTML(ev, {list: "foryou", showDay: true, ...reasonSaid(ev, reason)}) : "";
   };
   return `<section class="foryou" id="foryou">
     <h2 class="fy-head">For you <span class="count">(${rows.length})</span></h2>

@@ -1,5 +1,6 @@
-/* For you: what scores and what is chosen (DECISIONS #87), and the big ones
-   that stand where it has no row (#88), on schedules made
+/* For you: what scores and what is chosen (DECISIONS #87), the big ones
+   that stand where it has no row (#88), and what is offered in place of a
+   pick that changed (#90), on schedules made
    here, each small enough to work out by hand. No page: the reader is set
    through the owners' functions - picks, follows, mutes - and the moment is
    handed in. An event with no start given takes the next free hour, so
@@ -9,7 +10,7 @@ import { byId, replaceSchedule } from "../../src/data.js";
 import { replacePicks } from "../../src/picks.js";
 import { eventsFor, mutes, replaceFollows, toggleMute } from "../../src/follows.js";
 import { clashesOf } from "../../src/walk.js";
-import { BIG_TRACK, bigOnes, FOR_YOU_MAX, forYou, profile, rarity, SIGNALS } from "../../src/foryou.js";
+import { BIG_TRACK, bigOnes, FOR_YOU_MAX, forYou, IN_PLACE_GRACE_MIN, IN_PLACE_MAX, inPlace, profile, rarity, SIGNALS } from "../../src/foryou.js";
 
 const WORKS = [
   { id: "star-wars", name: "Star Wars", aliases: [], terms: [], reviewed: true },
@@ -21,7 +22,7 @@ const pad = n => String(n).padStart(2, "0");
 const BEFORE = new Date("2026-09-01T12:00");
 const ev = (id, o = {}) => ({ id, title: o.title || id, start: o.start, end: o.end, tracks: o.tracks || [], speakers: [],
   people: (o.people || []).map(p => ({ id: p, name: p, role: "Speaker", src: "speakers" })),
-  facets: o.repeat ? { repeat_key: o.repeat } : {}, ...(o.cancelled ? { cancelled: true } : {}),
+  facets: o.repeat ? { repeat_key: o.repeat } : {}, ...(o.cancelled ? { cancelled: true } : {}), ...(o.hotel ? { hotel: o.hotel } : {}),
   tags: { kind: o.kind || "panel", works: (o.works || []).map(w => ({ id: w, via: "about" })), medium: o.medium || [], genre: [], craft: [],
     subject: o.subject || [], audience: o.audience || "all" } });
 /* Load a schedule: fifty minutes each, on the hour, one after another from
@@ -483,5 +484,106 @@ describe("the big ones", () => {
     schedule([big("a"), big("b")]);
     expect(got()).toEqual(["a", "b"]);
     expect(got(new Date("2026-09-08T12:00"))).toEqual([]);
+  });
+});
+
+describe("in place of a pick: what is on in the time it vacated", () => {
+  /* The pick was Saturday's 10:00 to 11:00 at the Hilton, and it is 9:00. */
+  const HOUR = { start: "2026-09-05T10:00", end: "2026-09-05T11:00", hotel: "Hilton" };
+  const AT = new Date("2026-09-05T09:00");
+  const sat = (id, hm, o = {}) => ev(id, { start: `2026-09-05T${hm}`, ...o, ...(o.end ? { end: `2026-09-05T${o.end}` } : {}) });
+  const offered = (at = AT, vacated = HOUR) => inPlace(vacated, at);
+  const got = (at, vacated) => offered(at, vacated).map(r => r.id);
+
+  it("an event that starts at the vacated start is in, and one inside it; one that starts at its end is out, and one that starts before it and runs into it", () => {
+    schedule([sat("at-start", "10:00"), sat("inside", "10:30"), sat("at-end", "11:00"), sat("into", "09:30", { end: "10:30" }), ...fill(3)]);
+    expect(got()).toEqual(["at-start", "inside"]);
+  });
+  it("for anyone: a reader with no pick and no follow is offered what is on, each row with no reason and a score of 0", () => {
+    schedule([sat("a", "10:00"), ...fill(3)]);
+    expect(offered()).toEqual([{ id: "a", score: 0, reason: null }]);
+  });
+  it("still offered 14 minutes after it starts, and not at 15 - where For you passes over whatever has started", () => {
+    schedule([sat("a", "10:00"), ...fill(3)]);
+    expect(IN_PLACE_GRACE_MIN).toBe(15);
+    expect(got(new Date("2026-09-05T10:00"))).toEqual(["a"]);
+    expect(got(new Date("2026-09-05T10:14"))).toEqual(["a"]);
+    expect(got(new Date("2026-09-05T10:15"))).toEqual([]);
+    expect(got(new Date("2026-09-05T12:00"))).toEqual([]);
+  });
+  it("what For you bars is barred: a cancelled event, a photo op and a signing, a noise track's, another session of a pick, and so a pick", () => {
+    schedule([sat("ok", "10:00"), sat("off", "10:00", { cancelled: true }), sat("photo", "10:00", { kind: "photo" }), sat("signing", "10:00", { kind: "signing" }),
+      sat("noise", "10:00", { tracks: ["Epic Photos"] }), sat("again", "10:00", { repeat: "the show" }), ev("first", { repeat: "the show" }),
+      sat("mine", "10:00", { end: "15:00" }), ...fill(3)]);
+    reader({ picks: ["first", "mine"] });                       // mine, five hours, blocks nothing
+    expect(got()).toEqual(["ok"]);
+  });
+  it("one that carries a muted thing is out, unless a follow brings it", () => {
+    schedule([sat("muted", "10:00", { tracks: ["M"] }), sat("both", "10:00", { tracks: ["M"], people: ["kay"] }), sat("plain", "10:00"), ...fill(3)]);
+    reader({ follows: [PERSON("kay")], muted: [["track", "M"]] });
+    expect(got()).toEqual(["both", "plain"]);
+  });
+  it("one that overlaps a pick is out: a moved pick blocks at its new time, as any pick does", () => {
+    schedule([sat("moved", "10:30", { end: "11:30" }), sat("clash", "10:00"), sat("clear", "10:00", { end: "10:30" }), ...fill(3)]);
+    reader({ picks: ["moved"] });
+    expect(got()).toEqual(["clear"]);
+  });
+  it("a cancelled pick blocks nothing, nor one of more than four hours; one of four hours does", () => {
+    schedule([sat("gone", "10:00", { cancelled: true }), sat("free", "10:00"), ...fill(3)]);
+    reader({ picks: ["gone"] });
+    expect(got()).toEqual(["free"]);
+    schedule([sat("all-day", "08:00", { end: "12:01" }), sat("free", "10:00"), ...fill(3)]);
+    reader({ picks: ["all-day"] });
+    expect(got()).toEqual(["free"]);
+    schedule([sat("four", "08:00", { end: "12:00" }), sat("free", "10:00"), ...fill(3)]);
+    reader({ picks: ["four"] });
+    expect(got()).toEqual([]);
+  });
+  it("the order: the score, highest first, whenever it starts; then those in the vacated building; then the start; then the id", () => {
+    schedule([sat("away-early", "10:00", { hotel: "Westin" }), sat("here-late", "10:30", { hotel: "Hilton" }), sat("scored-late", "10:45", { tracks: ["A"], hotel: "Westin", end: "11:30" }), ...fill(4)]);
+    reader({ follows: [TRACK("A")] });
+    expect(got()).toEqual(["scored-late", "here-late", "away-early"]);
+    /* Of two that score, the heavier: kay, on one event, over A, on two. */
+    schedule([sat("a", "10:00", { tracks: ["A"] }), sat("k", "10:30", { people: ["kay"] }), ev("a-other", { tracks: ["A"] }), ...fill(4)]);
+    reader({ follows: [TRACK("A"), PERSON("kay")] });
+    expect(got()).toEqual(["k", "a"]);
+    schedule([sat("late", "10:30", { hotel: "Hilton" }), sat("early", "10:00", { hotel: "Hilton" }), ...fill(3)]);
+    reader();
+    expect(got()).toEqual(["early", "late"]);
+    schedule([sat("zed", "10:00"), sat("abe", "10:00"), ...fill(3)]);
+    expect(got()).toEqual(["abe", "zed"]);
+  });
+  it("two rows at most that say one reason, as For you; a row that scores nothing comes after those that score", () => {
+    schedule([sat("plain", "10:00"), sat("a1", "10:05", { tracks: ["A"] }), sat("a2", "10:10", { tracks: ["A"] }), sat("a3", "10:20", { tracks: ["A"] }), ...fill(4)]);
+    reader({ follows: [TRACK("A")] });
+    expect(offered().map(r => [r.id, r.reason && r.reason.name])).toEqual([["a1", "A"], ["a2", "A"], ["plain", null]]);
+  });
+  it(`${IN_PLACE_MAX} rows at most, and rows with no reason are not capped at two`, () => {
+    schedule([sat("u1", "10:00"), sat("u2", "10:10"), sat("u3", "10:20"), sat("u4", "10:30"), ...fill(3)]);
+    expect(IN_PLACE_MAX).toBe(3);
+    expect(offered()).toEqual([{ id: "u1", score: 0, reason: null }, { id: "u2", score: 0, reason: null }, { id: "u3", score: 0, reason: null }]);
+    schedule([sat("a", "10:00", { tracks: ["A"] }), sat("b", "10:10", { tracks: ["B"] }), sat("c", "10:20", { tracks: ["C"] }), sat("d", "10:30", { tracks: ["D"] }), ...fill(4)]);
+    reader({ follows: ["A", "B", "C", "D"].map(TRACK) });
+    expect(got()).toEqual(["a", "b", "c"]);
+  });
+  it("one session of anything: of two with one repeat key the first is offered", () => {
+    schedule([sat("s1", "10:00", { repeat: "the show" }), sat("s2", "10:30", { repeat: "the show" }), sat("other", "10:40"), ...fill(3)]);
+    expect(got()).toEqual(["s1", "other"]);
+  });
+  it("a row is its id, weigh()'s score and For you's reason, the one thing that weighed most", () => {
+    schedule([sat("k", "10:00", { people: ["kay"], tracks: ["A"] }), ev("a-other", { tracks: ["A"] }), ...fill(3)]);
+    reader({ follows: [TRACK("A"), PERSON("kay")] });
+    expect(offered()).toEqual([{ id: "k", score: 3 * LN(5 / 1) + 3 * LN(5 / 2), reason: { kind: "person", key: "kay", name: "kay", follow: true } }]);
+    expect(offered()[0].score).toBe(forYou(AT).find(r => r.id === "k").score);
+  });
+  it("a row that scores nothing has no reason, though a follow finds it: a track every event is on weighs nothing", () => {
+    schedule([sat("a", "10:00", { tracks: ["All"] }), ...fill(3, { tracks: ["All"] })]);
+    reader({ follows: [TRACK("All")] });
+    expect(rarity("track:All")).toBe(0);
+    expect(offered()).toEqual([{ id: "a", score: 0, reason: null }]);
+  });
+  it("a time of one minute - a pick that is gone, its snapshot with no end - holds what starts in that minute", () => {
+    schedule([sat("then", "10:00"), sat("after", "10:01"), ...fill(3)]);
+    expect(got(AT, { start: "2026-09-05T10:00", end: "2026-09-05T10:01", hotel: "" })).toEqual(["then"]);
   });
 });
