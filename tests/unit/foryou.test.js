@@ -576,6 +576,12 @@ describe("in place of a pick: what is on in the time it vacated", () => {
     expect(offered()).toEqual([{ id: "k", score: 3 * LN(5 / 1) + 3 * LN(5 / 2), reason: { kind: "person", key: "kay", name: "kay", follow: true } }]);
     expect(offered()[0].score).toBe(forYou(AT).find(r => r.id === "k").score);
   });
+  it("a row that scores nothing has no reason, though a follow finds it: a track every event is on weighs nothing", () => {
+    schedule([sat("a", "10:00", { tracks: ["All"] }), ...fill(3, { tracks: ["All"] })]);
+    reader({ follows: [TRACK("All")] });
+    expect(rarity("track:All")).toBe(0);
+    expect(offered()).toEqual([{ id: "a", score: 0, reason: null }]);
+  });
   it("a time of one minute - a pick that is gone, its snapshot with no end - holds what starts in that minute", () => {
     schedule([sat("then", "10:00"), sat("after", "10:01"), ...fill(3)]);
     expect(got(AT, { start: "2026-09-05T10:00", end: "2026-09-05T10:01", hotel: "" })).toEqual(["then"]);
