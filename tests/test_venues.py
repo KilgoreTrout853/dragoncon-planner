@@ -2,16 +2,19 @@
 
 The fixtures are inline. The last two tests load both committed years, data/2026/venues.json and
 data/2027/venues.json, so that CI checks every later edit to them. The last also reads real 2026 strings through the
-resolver, venues_stage.py - the one test of it that reads data/: the resolver reads a floor alone, and the Mart's
-building floors and vendor halls, by a level's name, so a level renamed in the file would otherwise move those events
-to the hotel alone, and nothing else in CI would say so.
+resolver, venues_stage.py - the tests of it that read data/: the resolver reads a floor alone, the Mart's building
+floors among them, and its vendor halls, by a level's name, so a level renamed in the file would otherwise move those
+events to the hotel alone, and nothing else in CI would say so; and every 2026 Mart event lands on its building and
+floor (DECISIONS #91).
 
 Run:  python -m pytest tests/
 """
 import copy
 import json
 import os
+import re
 import sys
+from collections import Counter
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, ROOT)
@@ -294,14 +297,16 @@ def test_load_reads_a_file_and_lists_every_problem_sorted(tmp_path):
 # --- the committed files ---------------------------------------------------------
 
 def test_the_committed_venues_files_are_valid():
-    """Both years, so that CI checks every later edit; 2026's holds every hotel value the frozen schedule does."""
+    """Both years, so that CI checks every later edit; 2026's holds every hotel value the frozen schedule does but
+    one, "AmericasMart": the frozen file (#13) keeps the scraper's old split, which #91 replaced with the two
+    buildings, and the venues stage reads every 2026 event from its location. Any other value the file lacks fails."""
     with open(os.path.join(ROOT, "data", "2026", "events.json"), "rb") as f:
         schedule = json.loads(f.read().decode("utf-8"))["events"]
     for year in ("2026", "2027"):
         v = venues.load(os.path.join(ROOT, "data", year, "venues.json"))
         held = {h["hotel"] for h in v.hotels()}
         if year == "2026":
-            assert {e["hotel"] for e in schedule} <= held
+            assert {e["hotel"] for e in schedule} - held == {"AmericasMart"}
         assert {"Streaming", "Other", "Unknown"} <= {h["hotel"] for h in v.hotels() if h["placeless"]}
 
 
@@ -311,20 +316,21 @@ BY_NAME = {
     "Westin, 14th Floor": ("Westin", "f14", "floor only"),
     "Westin 12th Floor": ("Westin", "f12", "floor only"),
     "Westin, 12th Floor": ("Westin", "f12", "floor only"),
-    "Mart Building 3, Floor 1": ("AmericasMart", "b3f1", "mart building"),
-    "Mart Building 3, Floor 2": ("AmericasMart", "b3f2", "mart building"),
-    "Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300": ("AmericasMart", "b2-vendor-f1", "mart vendor hall"),
+    "Mart Building 3, Floor 1": ("AmericasMart Building 3", "f1", "floor only"),
+    "Mart Building 3, Floor 2": ("AmericasMart Building 3", "f2", "floor only"),
+    "Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300": ("AmericasMart Building 2", "f1", "mart vendor hall"),
     "Mart2 Vendor Hall Floor 2 The Marigolden Bookshelf - booth 2506":
-        ("AmericasMart", "b2-vendor-f2", "mart vendor hall"),
+        ("AmericasMart Building 2", "f2", "mart vendor hall"),
     "Mart2 Vendor Hall Floor 3 Sidestreet Book Market - booth 3201":
-        ("AmericasMart", "b2-vendor-f3", "mart vendor hall"),
+        ("AmericasMart Building 2", "f3", "mart vendor hall"),
 }
 
 
 def test_the_committed_venues_files_name_their_levels_as_the_resolver_reads_them():
-    """A floor alone and the Mart's building floors and vendor halls are read by a level's name (DECISIONS #45), so
-    each of these real strings reaches its level in both years' files: a level renamed past what the resolver reads
-    would drop its events to the hotel alone. The strings are the source's, checked against the frozen schedule."""
+    """A floor alone - the Mart's building floors among them (#91) - and its vendor halls are read by a level's
+    name (DECISIONS #45), so each of these real strings reaches its level in both years' files: a level renamed past
+    what the resolver reads would drop its events to the hotel alone. The strings are the source's, checked against
+    the frozen schedule."""
     with open(os.path.join(ROOT, "data", "2026", "events.json"), "rb") as f:
         written = {e["location"] for e in json.loads(f.read().decode("utf-8"))["events"]}
     assert set(BY_NAME) <= written
@@ -334,3 +340,39 @@ def test_the_committed_venues_files_name_their_levels_as_the_resolver_reads_them
             p = venues_stage.place(location, v)
             assert (p.hotel, p.level, p.rooms, p.place, p.rules) == (hotel, level, (), "level", (rule,)), \
                 (year, location)
+
+
+# The shapes 2026 writes a Mart location in (DECISIONS #91), each with the building and the floor it names - read here
+# from the string by a pattern of this file's own, never by the resolver.
+MART_SHAPES = [
+    (r"Mart Building 3, Floor ([12])", "AmericasMart Building 3"),
+    (r"Mart2 Vendor Hall Floor ([123]) \S.*", "AmericasMart Building 2"),
+    (r"Mart2 20(3)(?:A|BC|D|E)(?: \S.*)?", "AmericasMart Building 2"),
+    (r"Mart2 20(4)J", "AmericasMart Building 2"),
+]
+
+
+def test_every_2026_mart_event_lands_on_its_building_and_its_floor():
+    """The Mart is two venues (DECISIONS #91). Every 2026 location that begins "Mart" is one of the shapes above, and
+    the venues stage reads it at that building, on that floor, in both years' files; none is left at Other."""
+    with open(os.path.join(ROOT, "data", "2026", "events.json"), "rb") as f:
+        locations = [e["location"] for e in json.loads(f.read().decode("utf-8"))["events"]]
+    mart = [x for x in locations if x.lower().startswith(("mart", "americasmart"))]
+    for year in ("2026", "2027"):
+        v = venues.load(os.path.join(ROOT, "data", year, "venues.json"))
+        resolver, floors = venues_stage.Resolver(v), Counter()
+        for location in mart:
+            named = [(hotel, f"f{m.group(1)}") for shape, hotel in MART_SHAPES
+                     if (m := re.fullmatch(shape, location))]
+            assert len(named) == 1, location
+            p = resolver.place(location)
+            assert (p.hotel, p.level) == named[0] and p.place in ("exact", "rule", "level"), (year, location)
+            assert p.room == location                       # the whole location is the room shown
+            floors[named[0]] += 1
+        assert floors == {("AmericasMart Building 3", "f1"): 382, ("AmericasMart Building 3", "f2"): 463,
+                          ("AmericasMart Building 2", "f1"): 66, ("AmericasMart Building 2", "f2"): 19,
+                          ("AmericasMart Building 2", "f3"): 85, ("AmericasMart Building 2", "f4"): 18}
+        assert {e for e in locations if resolver.place(e).hotel.startswith("AmericasMart")} == set(mart)
+        for bare in ("Mart Vendor Hall Floor 1", "AmericasMart 203A", "Mart Building 4, Floor 1"):
+            p = resolver.place(bare)
+            assert (p.hotel, p.level, p.place, p.key) == ("Other", None, "none", None), (year, bare)

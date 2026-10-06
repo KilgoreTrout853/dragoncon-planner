@@ -12,7 +12,7 @@ carry `location`; tools/room_census.py calls it to report its coverage of the 20
 The split. A location's leading tokens are matched against every hotel's keys, longest key first, whole tokens only
 and without regard to case, and the rest after a space, a comma or a hyphen is the room string. No key: Other, the
 whole location the room string, counted as "hotels unknown". Empty: Unknown. The room shown is the room string, or
-the whole location for a hotel whose `display` is "location" (the Mart).
+the whole location for a hotel whose `display` is "location" (the Mart's two buildings).
 
 The reading, the first that holds winning:
     a. alias  - the room string, folded, is an alias of one of the hotel's levels: its rooms.
@@ -20,19 +20,19 @@ The reading, the first that holds winning:
                 reads "hotel": the file knows it, but not where it is; listed apart, not counted as unresolved.)
     c. rule   - a rule of the grammar names rooms that all exist on one level. A rule whose rooms are missing, or
                 span two levels, fails, and the next is tried.
-    d. level  - a rule names a level and no room (the Mart's building floors and vendor halls, a floor alone), or
-                the rooms a failed rule did find all sit on one level.
+    d. level  - a rule names a level and no room (a floor alone, a vendor hall's floor), or the rooms a failed rule
+                did find all sit on one level.
     e. hotel  - no reading, or the hotel alone: counted as "rooms unresolved" and listed.
     f. none   - a placeless hotel (Streaming, Other, Unknown). First its room string, less a repeat of its own key
                 ("O Other Marriott, Imperial Ballroom"), is split once more against the placed hotels' keys; a match
                 is read at that hotel, as the rule "re-split".
 
-The grammar, in the order it is tried: the three Mart rules (a building's floor, a vendor hall's floor, a Building 2
-room with a note); the census's eight combined-string rules; three rewrites, each read again - doubled, a leading
-"The", and the hotel's own initials and a hyphen; partitions; the hotel alone; a floor alone; and a trailing note,
-the longest leading room. A numeral style is an alias, never a rule (#45). Every rule is a function of the string
-alone but partitions, which reads the level's rooms; the resolver checks every other rule's rooms and levels against
-the file.
+The grammar, in the order it is tried: the two Mart rules (a vendor hall's floor, a Building 2 room with a note);
+the census's eight combined-string rules; three rewrites, each read again - doubled, a leading "The", and the hotel's
+own initials and a hyphen; partitions; the hotel alone; a floor alone; and a trailing note, the longest leading room.
+"Mart Building 3, Floor 1" is a floor alone after its key (#91). A numeral style is an alias, never a rule (#45).
+Every rule is a function of the string alone but partitions, which reads the level's rooms; the resolver checks every
+other rule's rooms and levels against the file.
 """
 
 import re
@@ -57,17 +57,11 @@ NAME = r"([A-Za-z][\w'&.]*(?:\s[A-Za-z][\w'&.]*){0,2})"
 # The rules: each a function of the string alone - but partitions - giving a candidate for the resolver to check
 # ---------------------------------------------------------------------------
 
-def building_floor(s):
-    """"Building 3, Floor 2": that building's floor, a level with no rooms (#45's Mart). -> the level's names."""
-    m = re.fullmatch(r"Building\s+(\d+),?\s+Floor\s+(\d+)", s, re.I)
-    return [f"building {int(m.group(1))}, floor {int(m.group(2))}"] if m else None
-
-
 def vendor_hall(s):
-    """"Vendor Hall Floor 1 The Missing Volume booth 1300": that floor of Building 2's vendor hall, a level; the
-    vendor and the booth stay in the room shown (#45's Mart2). -> the level's names."""
+    """"Vendor Hall Floor 1 The Missing Volume booth 1300": the floor the vendor hall is on, a level; the vendor and
+    the booth stay in the room shown (#45's Mart2, #91). -> the names floor_only() gives that floor's level."""
     m = re.match(r"Vendor\s+Hall\s+Floor\s+(\d+)(?=$|[\s,-])", s, re.I)
-    return [f"building 2, vendor hall floor {int(m.group(1))}"] if m else None
+    return floor_only(f"Floor {int(m.group(1))}") if m else None
 
 
 def mart_room(s):
@@ -214,7 +208,6 @@ def trailing_note(s):
 # (name, what the rule gives, the rule): "level" names levels, "rooms" rooms, "rewrite" a string to read again,
 # "partitions" rooms read from the file, "hotel" the hotel alone, "heads" room strings to try, longest first.
 GRAMMAR = [
-    ("mart building", "level", building_floor),
     ("mart vendor hall", "level", vendor_hall),
     ("mart room", "rooms", mart_room),
     ("numeric run", "rooms", numeric_run),

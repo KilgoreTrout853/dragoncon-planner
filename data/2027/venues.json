@@ -10,17 +10,24 @@
     "Westin|Marriott": 12,
     "Westin|Hilton": 15,
     "Westin|Courtland Grand": 18,
-    "AmericasMart|Hyatt": 7,
-    "AmericasMart|Marriott": 12,
-    "AmericasMart|Westin": 8,
-    "AmericasMart|Hilton": 15,
-    "AmericasMart|Courtland Grand": 18,
+    "AmericasMart Building 2|Hyatt": 7,
+    "AmericasMart Building 2|Marriott": 12,
+    "AmericasMart Building 2|Westin": 8,
+    "AmericasMart Building 2|Hilton": 15,
+    "AmericasMart Building 2|Courtland Grand": 18,
+    "AmericasMart Building 3|Hyatt": 7,
+    "AmericasMart Building 3|Marriott": 12,
+    "AmericasMart Building 3|Westin": 8,
+    "AmericasMart Building 3|Hilton": 15,
+    "AmericasMart Building 3|Courtland Grand": 18,
+    "AmericasMart Building 2|AmericasMart Building 3": 5,
     "Hardy Ivy Park|Marriott": 5,
     "Hardy Ivy Park|Hilton": 4,
     "Hardy Ivy Park|Hyatt": 10,
     "Hardy Ivy Park|Courtland Grand": 8,
     "Hardy Ivy Park|Westin": 12,
-    "Hardy Ivy Park|AmericasMart": 12
+    "Hardy Ivy Park|AmericasMart Building 2": 12,
+    "Hardy Ivy Park|AmericasMart Building 3": 12
   },
   "same_venue_min": 5,
   "unknown_pair_min": 12,
@@ -647,44 +654,48 @@
       "unplaced": {}
     },
     {
-      "hotel": "AmericasMart",
-      "name": "AmericasMart",
+      "hotel": "AmericasMart Building 2",
+      "name": "AmericasMart Building 2",
       "keys": [
-        "AmericasMart",
-        "Mart2",
-        "Mart"
+        "AmericasMart Building 2",
+        "Mart Building 2",
+        "Mart2"
       ],
-      "short": "Mart",
-      "group": "AmericasMart",
+      "short": "Mart 2",
+      "group": "Mart",
       "var": "Mart",
       "order": 5,
       "placeless": false,
       "display": "location",
       "levels": [
         {
-          "id": "b3f1",
-          "name": "Building 3, Floor 1",
-          "short": "Building 3, Floor 1",
+          "id": "f1",
+          "name": "1st Floor",
+          "short": "Floor 1",
           "order": 0,
           "storey": 0,
           "rooms": [],
           "aliases": {},
-          "notes": []
+          "notes": [
+            "the vendor hall's first floor"
+          ]
         },
         {
-          "id": "b3f2",
-          "name": "Building 3, Floor 2",
-          "short": "Building 3, Floor 2",
+          "id": "f2",
+          "name": "2nd Floor",
+          "short": "Floor 2",
           "order": 1,
           "storey": 1,
           "rooms": [],
           "aliases": {},
-          "notes": []
+          "notes": [
+            "the vendor hall's second floor"
+          ]
         },
         {
-          "id": "b2-rooms",
-          "name": "Building 2, meeting rooms",
-          "short": "Building 2",
+          "id": "f3",
+          "name": "3rd Floor",
+          "short": "Floor 3",
           "order": 2,
           "storey": 2,
           "rooms": [
@@ -692,38 +703,60 @@
             "203B",
             "203C",
             "203D",
-            "203E",
+            "203E"
+          ],
+          "aliases": {},
+          "notes": [
+            "the vendor hall's third floor; also on the level, no 2026 programming: 203F"
+          ]
+        },
+        {
+          "id": "f4",
+          "name": "4th Floor",
+          "short": "Floor 4",
+          "order": 3,
+          "storey": 3,
+          "rooms": [
             "204J"
           ],
           "aliases": {},
-          "notes": []
-        },
+          "notes": [
+            "the Comic and Pop Artist Alley"
+          ]
+        }
+      ],
+      "unplaced": {}
+    },
+    {
+      "hotel": "AmericasMart Building 3",
+      "name": "AmericasMart Building 3",
+      "keys": [
+        "AmericasMart Building 3",
+        "Mart Building 3"
+      ],
+      "short": "Mart 3",
+      "group": "Mart",
+      "var": "Mart",
+      "order": 6,
+      "placeless": false,
+      "display": "location",
+      "levels": [
         {
-          "id": "b2-vendor-f1",
-          "name": "Building 2, Vendor Hall Floor 1",
-          "short": "Vendor Hall Floor 1",
-          "order": 3,
-          "storey": 3,
+          "id": "f1",
+          "name": "1st Floor",
+          "short": "Floor 1",
+          "order": 0,
+          "storey": 0,
           "rooms": [],
           "aliases": {},
           "notes": []
         },
         {
-          "id": "b2-vendor-f2",
-          "name": "Building 2, Vendor Hall Floor 2",
-          "short": "Vendor Hall Floor 2",
-          "order": 4,
-          "storey": 4,
-          "rooms": [],
-          "aliases": {},
-          "notes": []
-        },
-        {
-          "id": "b2-vendor-f3",
-          "name": "Building 2, Vendor Hall Floor 3",
-          "short": "Vendor Hall Floor 3",
-          "order": 5,
-          "storey": 5,
+          "id": "f2",
+          "name": "2nd Floor",
+          "short": "Floor 2",
+          "order": 1,
+          "storey": 1,
           "rooms": [],
           "aliases": {},
           "notes": []
@@ -740,7 +773,7 @@
       "short": "Hardy Ivy",
       "group": "Hardy Ivy Park",
       "var": "Hardy",
-      "order": 6,
+      "order": 7,
       "placeless": false,
       "display": "rest",
       "levels": [],
@@ -758,7 +791,7 @@
       "short": "Streaming",
       "group": "Other",
       "var": "Streaming",
-      "order": 7,
+      "order": 8,
       "placeless": true,
       "display": "rest",
       "levels": [],
@@ -774,7 +807,7 @@
       "short": "Other",
       "group": "Other",
       "var": "Other",
-      "order": 8,
+      "order": 9,
       "placeless": true,
       "display": "rest",
       "levels": [],
@@ -787,7 +820,7 @@
       "short": "Unknown",
       "group": "Other",
       "var": "Other",
-      "order": 9,
+      "order": 10,
       "placeless": true,
       "display": "rest",
       "levels": [],

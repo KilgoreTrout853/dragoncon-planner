@@ -1,10 +1,10 @@
 """Tests for the venues stage, venues_stage.py (DECISIONS #45; contract.md, `venues.json`): the split - every case
 tests/test_parse.py held for scraper.split_hotel, the Courtland and hyphenated strings it read wrong, no key, empty,
 the Mart's whole location - each rule of the grammar reading its rooms and failing when one is missing or they span
-two levels, the order of alias, exact and rule, the Mart, floors, partitions, the rewrites, the trailing note, the
-placeless hotels and the re-split, the report and its counters, and purity. All on an inline venues file; nothing here
-reads data/. The one test of the stage that does is tests/test_venues.py's last: 2026's own floor and Mart strings, read
-at their levels in both committed venues files.
+two levels, the order of alias, exact and rule, the Mart's two buildings, floors, partitions, the rewrites, the
+trailing note, the placeless hotels and the re-split, the report and its counters, and purity. All on an inline venues
+file; nothing here reads data/. The tests of the stage that do are tests/test_venues.py's last two: 2026's own floor and
+Mart strings, read at their levels in both committed venues files.
 
 Run:  python -m pytest tests/
 """
@@ -61,16 +61,17 @@ VENUES = {"walk": {}, "same_venue_min": 5, "unknown_pair_min": 12, "slack_min": 
         level("f10", "Tenth Floor", 3, ["Peachtree 1", "Peachtree 2"]),
         level("f12", "12th Floor", 4, ["1201"]),
         level("f14", "Fourteenth Floor", 5, ["1401"])]),
-    hotel("AmericasMart", 5, ["AmericasMart", "Mart2", "Mart"], [
-        level("b3f1", "Building 3, Floor 1", 0, []),
-        level("b3f2", "Building 3, Floor 2", 1, []),
-        level("b2-rooms", "Building 2, meeting rooms", 2, ["203A", "203B", "203C", "203D", "204J"], short="Building 2"),
-        level("b2-vendor-f1", "Building 2, Vendor Hall Floor 1", 3, [], short="Vendor Hall Floor 1")],
-          display="location"),
-    hotel("Hardy Ivy Park", 6, ["Hardy"]),
-    hotel("Streaming", 7, ["Streaming"], placeless=True),
-    hotel("Other", 8, ["O", "Other"], placeless=True),
-    hotel("Unknown", 9, [], placeless=True),
+    hotel("AmericasMart Building 2", 5, ["AmericasMart Building 2", "Mart Building 2", "Mart2"], [
+        level("f1", "1st Floor", 0, [], short="Floor 1"),                    # no 2nd Floor here: a floor the file lacks
+        level("f3", "3rd Floor", 1, ["203A", "203B", "203C", "203D"], short="Floor 3"),
+        level("f4", "4th Floor", 2, ["204J"], short="Floor 4")], display="location"),
+    hotel("AmericasMart Building 3", 6, ["AmericasMart Building 3", "Mart Building 3"], [
+        level("f1", "1st Floor", 0, [], short="Floor 1"),
+        level("f2", "2nd Floor", 1, [], short="Floor 2")], display="location"),
+    hotel("Hardy Ivy Park", 7, ["Hardy"]),
+    hotel("Streaming", 8, ["Streaming"], placeless=True),
+    hotel("Other", 9, ["O", "Other"], placeless=True),
+    hotel("Unknown", 10, [], placeless=True),
 ]}
 V = venues.check(VENUES)
 
@@ -92,12 +93,12 @@ def rules(location):
 @pytest.mark.parametrize("location, expected", [
     # what tests/test_parse.py held for scraper.split_hotel, which this replaces
     ("Marriott M302-M303", ("Marriott", "M302-M303")),
-    ("Mart Building 3, Floor 1", ("AmericasMart", "Mart Building 3, Floor 1")),
+    ("Mart Building 3, Floor 1", ("AmericasMart Building 3", "Mart Building 3, Floor 1")),
     ("Hilton 202", ("Hilton", "202")),
     ("Hyatt Grand Hall C", ("Hyatt", "Grand Hall C")),
     ("Courtland Grand Capitol Ballroom", ("Courtland Grand", "Capitol Ballroom")),   # was "Grand Capitol Ballroom"
     ("Westin Chastain F", ("Westin", "Chastain F")),
-    ("Mart2 Vendor Hall Floor 3", ("AmericasMart", "Mart2 Vendor Hall Floor 3")),
+    ("Mart2 Vendor Hall Floor 3", ("AmericasMart Building 2", "Mart2 Vendor Hall Floor 3")),
     ("Hardy Ivy Structure", ("Hardy Ivy Park", "Ivy Structure")),
     ("Streaming STRM_TWITCH https://twitch.tv/x", ("Streaming", "STRM_TWITCH https://twitch.tv/x")),
     ("", ("Unknown", "")),
@@ -120,8 +121,11 @@ def test_the_split_takes_the_longest_key_as_whole_tokens_and_cuts_after_a_space_
     assert vs.split("Hardy - Terraces", V) == ("Hardy Ivy Park", "Terraces", "Hardy")
     assert vs.split("Marriott, Imperial Ballroom", V) == ("Marriott", "Imperial Ballroom", "Marriott")
     assert vs.split("hilton  galleria 5 ", V) == ("Hilton", "galleria 5", "Hilton")      # case, and spacing
-    assert vs.split("Mart2 203A", V) == ("AmericasMart", "203A", "Mart2")
-    assert vs.split("Martian Room", V) == ("Other", "Martian Room", None)                 # "Mart" is not a token
+    assert vs.split("Mart2 203A", V) == ("AmericasMart Building 2", "203A", "Mart2")
+    assert vs.split("Mart Building 3, Floor 1", V) == ("AmericasMart Building 3", "Floor 1", "Mart Building 3")
+    assert vs.split("AmericasMart Building 2 204J", V) == ("AmericasMart Building 2", "204J", "AmericasMart Building 2")
+    assert vs.split("Mart 203A", V) == ("Other", "Mart 203A", None)                       # "Mart" alone is no key (#91)
+    assert vs.split("Martian Room", V) == ("Other", "Martian Room", None)
     assert vs.split("Walton Spring Park", V) == ("Other", "Walton Spring Park", None)
     assert vs.split("  ", V) == ("Unknown", "", None)
 
@@ -135,7 +139,7 @@ def test_a_bare_key_is_the_hotel_alone_with_an_empty_room():
 
 
 def test_the_mart_shows_its_whole_location_and_reads_the_rest():
-    assert at("Mart2 204J") == ("AmericasMart", "Mart2 204J", "b2-rooms", ["204J"], "exact")
+    assert at("Mart2 204J") == ("AmericasMart Building 2", "Mart2 204J", "f4", ["204J"], "exact")
     assert vs.place("Mart2 204J", V).string == "204J"
 
 
@@ -171,7 +175,7 @@ def test_each_combined_rule_on_its_own():
     ("Hyatt Hanover C-E", "exhibit", ["Hanover C", "Hanover D", "Hanover E"], "letter run"),
     ("Hilton Galleria 2-3", "galleria", ["Galleria 2", "Galleria 3"], "number run"),
     ("Hyatt Embassy AB", "tower-ll2", ["Embassy A", "Embassy B"], "letters together"),
-    ("Mart2 203BC", "b2-rooms", ["203B", "203C"], "number and letters"),
+    ("Mart2 203BC", "f3", ["203B", "203C"], "number and letters"),
     ("Westin Peachtree Ballroom B/C", "f8", ["Peachtree Ballroom B", "Peachtree Ballroom C"], "slash list"),
     ("Hyatt International North-South", "tower-ll1", ["International North", "International South"], "word pair"),
 ], ids=lambda x: x if isinstance(x, str) and " " in x else None)
@@ -186,7 +190,7 @@ def test_each_combined_rule_reads_rooms_that_are_all_on_one_level(location, leve
     ("Hyatt Hanover F-H", "level", "exhibit", ("letter run",)),
     ("Hyatt Embassy BC", "level", "tower-ll2", ("letters together",)),
     ("Westin Peachtree Ballroom C/D", "level", "f8", ("slash list",)),
-    ("Mart2 203DE", "level", "b2-rooms", ("number and letters",)),
+    ("Mart2 203DE", "level", "f3", ("number and letters",)),
     ("Hyatt Centennial IV-VI", "level", "ballroom", ("roman run",)),
     # every room missing: nothing
     ("Marriott M103-M105", "hotel", None, ()),
@@ -210,15 +214,31 @@ def test_an_alias_beats_an_exact_room_and_an_exact_room_beats_a_rule():
 
 
 def test_the_mart_rules():
-    assert at("Mart Building 3, Floor 2") == ("AmericasMart", "Mart Building 3, Floor 2", "b3f2", [], "level")
-    assert rules("Mart Building 3, Floor 2") == ("mart building",)
+    # a building's floor is a floor alone after the building's key, with no rule of its own (#91)
+    assert at("Mart Building 3, Floor 2") == ("AmericasMart Building 3", "Mart Building 3, Floor 2", "f2", [], "level")
+    assert rules("Mart Building 3, Floor 2") == ("floor only",)
+    # a vendor hall's floor is that floor's level, by the names a floor alone has
     assert at("Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300") == (
-        "AmericasMart", "Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300", "b2-vendor-f1", [], "level")
+        "AmericasMart Building 2", "Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300", "f1", [], "level")
     assert rules("Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300") == ("mart vendor hall",)
-    assert at("Mart2 203D ArtCarp - booth # 1718")[2:] == ("b2-rooms", ["203D"], "rule")
+    assert at("Mart2 Vendor Hall Floor 3 Aethon Books booth 3500")[2:] == ("f3", [], "level")   # the rooms' floor too
+    assert vs.vendor_hall("Vendor Hall Floor 3 Aethon Books booth 3500") == vs.floor_only("Floor 3")
+    assert vs.vendor_hall("Vendor Hall Floor 3rd") is None and vs.vendor_hall("Vendor Hall") is None
+    assert at("Mart2 203D ArtCarp - booth # 1718")[2:] == ("f3", ["203D"], "rule")
     assert rules("Mart2 203D ArtCarp - booth # 1718") == ("mart room",)
-    for nowhere in ("Mart Building 4, Floor 1", "Mart2 Vendor Hall Floor 2 Booth 7", "Mart2 205Q booth 9"):
+    for nowhere in ("Mart Building 3, Floor 4", "Mart2 Vendor Hall Floor 2 Booth 7", "Mart2 205Q booth 9"):
         assert at(nowhere)[2:] == (None, [], "hotel"), nowhere                   # no such level, no such room
+
+
+def test_a_mart_string_that_names_no_building_is_other():
+    """No bare "Mart" or "AmericasMart" key (#91): with no building a location cannot be placed, so it has no key,
+    is Other whole, and is counted as a hotel unknown."""
+    bare = ["Mart Building 4, Floor 1", "Mart 203A", "Mart Vendor Hall Floor 1", "AmericasMart, Floor 1", "Mart"]
+    for location in bare:
+        p = vs.place(location, V)
+        assert (p.hotel, p.room, p.level, p.place, p.key) == ("Other", location, None, "none", None), location
+    report = vs.resolve([{"location": x} for x in bare], V).report
+    assert report.hotels_unknown == len(bare) and report.rooms_unresolved == 0
 
 
 def test_a_floor_alone_reads_the_level_named_for_it():
@@ -305,7 +325,7 @@ def test_placeless_hotels_read_none_and_their_room_string_is_split_again_once():
     assert rules("Other Hilton 212") == ("re-split",)
     assert at("O Other Hyatt Lobby") == ("Hyatt", "Lobby", None, [], "hotel")
     assert rules("O Other Hyatt Lobby") == ("re-split",)
-    assert at("O Mart2 203A") == ("AmericasMart", "Mart2 203A", "b2-rooms", ["203A"], "rule")
+    assert at("O Mart2 203A") == ("AmericasMart Building 2", "Mart2 203A", "f3", ["203A"], "rule")
     # a string no key begins is not split again: every key was tried
     assert at("Walton Spring Park") == ("Other", "Walton Spring Park", None, [], "none")
     assert vs.place("Walton Spring Park", V).key is None and vs.place("O Parade", V).key == "O"
@@ -339,7 +359,8 @@ def test_the_report_counts_by_place_and_hotel_and_lists_the_worklist():
                         "Hyatt": {"exact": 0, "alias": 1, "rule": 1, "level": 0, "hotel": 2, "none": 0},
                         "Hilton": {"exact": 0, "alias": 0, "rule": 3, "level": 0, "hotel": 10, "none": 0},
                         "Westin": {"exact": 0, "alias": 0, "rule": 0, "level": 1, "hotel": 1, "none": 0},
-                        "AmericasMart": {"exact": 0, "alias": 0, "rule": 0, "level": 2, "hotel": 0, "none": 0},
+                        "AmericasMart Building 3": {"exact": 0, "alias": 0, "rule": 0, "level": 2, "hotel": 0,
+                                                    "none": 0},
                         "Streaming": {"exact": 0, "alias": 0, "rule": 0, "level": 0, "hotel": 0, "none": 1},
                         "Other": {"exact": 0, "alias": 0, "rule": 0, "level": 0, "hotel": 0, "none": 4},
                         "Unknown": {"exact": 0, "alias": 0, "rule": 0, "level": 0, "hotel": 0, "none": 1}}
@@ -353,10 +374,10 @@ def test_the_report_counts_by_place_and_hotel_and_lists_the_worklist():
     assert r.resplit == [{"location": "O Other Marriott, Imperial Ballroom", "hotel": "Marriott",
                           "string": "Imperial Ballroom", "events": 1}]
     assert r.aliases == [{"hotel": "Hyatt", "string": "Inman", "events": 1, "rooms": ["Piedmont"]}]
-    assert r.rules == {"re-split": {"strings": 1, "events": 1}, "mart building": {"strings": 1, "events": 2},
+    assert r.rules == {"re-split": {"strings": 1, "events": 1},
                        "numeric run": {"strings": 1, "events": 3}, "hotel initials": {"strings": 1, "events": 1},
                        "partitions": {"strings": 1, "events": 1}, "hotel only": {"strings": 1, "events": 2},
-                       "floor only": {"strings": 1, "events": 1}}
+                       "floor only": {"strings": 2, "events": 3}}
     # the run summary's venue counters: an unplaced room is not unresolved, and a level is placed by design
     assert (r.rooms_unresolved, r.hotels_unknown) == (9, 3)
 
