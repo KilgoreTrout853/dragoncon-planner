@@ -16,10 +16,17 @@ import { BUILDINGS, building, dayLights, depthOf, levelEvents, roomEvents, venue
    hall drawn and the tower not, the tower first in the file's order; an
    attic and a roof, neither drawn. The Annex has one level and no drawing;
    the Tilt one level and one room, turned; the Park and the stream have no
-   levels. The hotels are written out of their order too. */
+   levels. The hotels are written out of their order too. The Twin is
+   written top first, so its lowest order is its top storey: two drawn
+   levels share its lowest plate, each with streets of its own, and two
+   undrawn ones the next, of which only the south has an event. The Tall has
+   eleven storeys. The Pair's one level draws two rooms on one wall, the
+   south one first and neither with a rot, inside a group whose outline is
+   wider than both; its short name is not its key. The Half has a wing with
+   no drawing beside a main that has one, and one room id on both. */
 const { VENUES, DRAWINGS } = vi.hoisted(() => {
   const level = (id, name, short, order, storey, rooms) => ({ id, name, short, order, storey, rooms, aliases: {}, notes: [] });
-  const hotel = (name, order, levels, placeless = false) => ({ hotel: name, name, keys: [name], short: name, group: name, var: name, order, placeless, display: "rest", levels, unplaced: {} });
+  const hotel = (name, order, levels, placeless = false, short = name) => ({ hotel: name, name, keys: [name], short, group: name, var: name, order, placeless, display: "rest", levels, unplaced: {} });
   const rect = (cx, cy, w, h, rot = 0) => ({ cx, cy, w, h, rot });
   return {
     VENUES: { walk: {}, same_venue_min: 5, unknown_pair_min: 12, slack_min: 10, hotels: [
@@ -29,6 +36,11 @@ const { VENUES, DRAWINGS } = vi.hoisted(() => {
         level("attic", "Attic", "Attic", 3, 2, ["Loft"]), level("tower", "Tower · 1", "Tower 1", 1, 1, ["T1", "T2"]), level("base", "Basement", "Basement", 0, 0, ["Z"])]),
       hotel("Park", 3, []),
       hotel("Tilt", 2, [level("t", "Terrace Level", "Terrace", 0, 0, ["R"])]),
+      hotel("Twin", 5, [level("top", "Top", "Top", 0, 2, []), level("east", "East Wing", "East", 1, 0, ["E1", "E2"]), level("west", "West Wing", "West", 2, 0, ["W1", "W2"]),
+        level("north", "North Deck", "North", 3, 1, []), level("south", "South Deck", "South", 4, 1, [])]),
+      hotel("Tall", 6, Array.from({ length: 11 }, (_, i) => level(`t${i}`, `Floor ${i}`, `F${i}`, i, i, []))),
+      hotel("Pair", 7, [level("g", "Garden", "Garden", 0, 0, ["S", "N"])], false, "The Pair"),
+      hotel("Half", 8, [level("wing", "Wing", "Wing", 0, 0, ["A"]), level("main", "Main", "Main", 1, 0, ["A"])]),
     ] },
     DRAWINGS: [
       { hotel: "Grand", level: "hall", extent: { w: 300, h: 200 }, rooms: [{ id: "A", ...rect(60, 60, 40, 20) }, { id: "B", ...rect(100, 60, 40, 20) }],
@@ -38,6 +50,13 @@ const { VENUES, DRAWINGS } = vi.hoisted(() => {
       { hotel: "Tilt", level: "t", extent: { w: 200, h: 200 }, rooms: [{ id: "R", ...rect(100, 100, 40, 20, 30) }], composites: [], groups: [], open: [], landmarks: [], streets: [] },
       { hotel: "Grand", level: "base", extent: { w: 300, h: 200 }, rooms: [{ id: "Z", ...rect(200, 100, 40, 20, 90) }], composites: [], groups: [], open: [],
         landmarks: [], streets: [{ name: "Low St", side: "S" }] },
+      { hotel: "Twin", level: "west", extent: { w: 200, h: 200 }, rooms: [{ id: "W1", ...rect(40, 40, 20, 20) }, { id: "W2", ...rect(40, 80, 20, 20) }], composites: [], groups: [], open: [],
+        landmarks: [{ kind: "escalator", name: "West escalators", x: 30, y: 60 }], streets: [{ name: "West St", side: "W" }] },
+      { hotel: "Twin", level: "east", extent: { w: 200, h: 200 }, rooms: [{ id: "E1", ...rect(140, 40, 20, 20) }, { id: "E2", ...rect(140, 80, 20, 20) }], composites: [], groups: [], open: [],
+        landmarks: [{ kind: "elevator", name: "East lifts", x: 150, y: 60 }], streets: [{ name: "East St", side: "E" }] },
+      { hotel: "Pair", level: "g", extent: { w: 300, h: 200 }, rooms: [{ id: "S", cx: 50, cy: 150, w: 20, h: 20 }, { id: "N", cx: 50, cy: 50, w: 20, h: 20 }], composites: [],
+        groups: [{ name: "S-N", kind: "run", rooms: ["S", "N"], outline: rect(50, 100, 200, 120) }], open: [], landmarks: [], streets: [] },
+      { hotel: "Half", level: "main", extent: { w: 100, h: 100 }, rooms: [{ id: "A", ...rect(50, 50, 20, 20) }], composites: [], groups: [], open: [], landmarks: [], streets: [] },
     ],
   };
 });
@@ -50,6 +69,11 @@ const ev = (id, start, hotel, level, rooms, over = {}) => ({ id, title: id, star
 const SCHEDULE = { events: [
   ev("stream", `${SAT}T08:00`, "Streaming", null, []),
   ev("tilt", `${SAT}T09:00`, "Tilt", "t", ["R"]),
+  ev("twin-q", `${SAT}T09:10`, "Twin", "east", ["Q", "E1"]),                   // the room the drawing lacks, named first
+  ev("twin-w", `${SAT}T09:20`, "Twin", "west", ["W2"]),
+  ev("twin-south", `${SAT}T09:30`, "Twin", "south", []),
+  ev("wing-a", `${SAT}T09:40`, "Half", "wing", ["A"]),                         // a floor, whose room's id the level beside it draws
+  { id: "keyless", title: "keyless", start: `${SAT}T09:50`, end: `${SAT}T10:40`, hotel: "Pair", level: "g", room: "" },   // and no rooms at all
   ev("early", `${SAT}T10:00`, "Grand", "hall", ["AB"]),                        // booked into the composite
   ev("foyer", `${SAT}T11:00`, "Grand", "hall", ["Foyer"]),                     // an open area with an id
   ev("lost", `${SAT}T12:00`, "Grand", "hall", ["A", "C"]),                     // C is a room the drawing lacks
@@ -79,7 +103,10 @@ beforeEach(() => replaceSchedule(SCHEDULE));
 
 describe("which venues have a building", () => {
   it("every hotel of the venues file with levels, in the hotels' order", () => {
-    expect(BUILDINGS).toEqual(["Grand", "Annex", "Tilt"]);
+    expect(BUILDINGS).toEqual(["Grand", "Annex", "Tilt", "Twin", "Tall", "Pair", "Half"]);
+  });
+  it("a venue is asked for by its key, not its short name", () => {
+    expect([building("Pair").hotel, building("The Pair")]).toEqual(["Pair", null]);
   });
   it("the park and a stream have none, nor a hotel the file lacks", () => {
     expect([building("Park"), building("Streaming"), building("Nowhere"), building(undefined)]).toEqual([null, null, null, null]);
@@ -90,6 +117,10 @@ describe("a venue's plates", () => {
   it("one a storey, bottom to top", () => {
     expect(building("Grand").plates.map(p => [p.key, p.storey])).toEqual([["base", 0], ["tower+hall", 1], ["attic", 2], ["roof", 3]]);
     expect(building("Grand").hotel).toBe("Grand");
+  });
+  it("by the storey's number, whatever order the file's levels meet the storeys in, and past ten of them", () => {
+    expect(building("Twin").plates.map(p => [p.key, p.storey])).toEqual([["east+west", 0], ["north+south", 1], ["top", 2]]);
+    expect(building("Tall").plates.map(p => p.storey)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   });
   it("two levels on one storey are one plate, in the file's order, its key their ids and its two names both of theirs", () => {
     const shared = plate("Grand", "tower+hall");
@@ -107,6 +138,10 @@ describe("a venue's plates", () => {
     expect(byId.get("roof-gone").removed).toBe(true);
     expect(building("Annex").plates.map(p => p.inert)).toEqual([false]);
   });
+  it("an event on any one of a plate's levels keeps it open", () => {
+    expect([ids(levelEvents("Twin", "north")), ids(levelEvents("Twin", "south"))]).toEqual([[], ["twin-south"]]);
+    expect(building("Twin").plates.map(p => [p.key, p.drawn, p.inert])).toEqual([["east+west", true, false], ["north+south", false, false], ["top", false, true]]);
+  });
   it("a drawn plate holds every room, open area, group, landmark and composite of its levels, each saying its level", () => {
     const shared = plate("Grand", "tower+hall");
     expect(shared.rooms).toEqual([{ id: "A", cx: 60, cy: 60, w: 40, h: 20, rot: 0, level: "hall" }, { id: "B", cx: 100, cy: 60, w: 40, h: 20, rot: 0, level: "hall" }]);
@@ -119,6 +154,15 @@ describe("a venue's plates", () => {
   it("and the streets of its first drawn level, which need not be its first level", () => {
     expect(plate("Grand", "tower+hall").streets).toEqual([{ name: "Main St", side: "N" }]);
     expect(plate("Grand", "base").streets).toEqual([{ name: "Low St", side: "S" }]);
+  });
+  it("two drawn levels on one plate: the rooms and landmarks of both, in the levels' order, and the first one's streets alone", () => {
+    const twin = plate("Twin", "east+west");
+    expect(twin.rooms.map(r => [r.id, r.level])).toEqual([["E1", "east"], ["E2", "east"], ["W1", "west"], ["W2", "west"]]);
+    expect(twin.landmarks.map(m => [m.name, m.level])).toEqual([["East lifts", "east"], ["West escalators", "west"]]);
+    expect(twin.streets).toEqual([{ name: "East St", side: "E" }]);
+  });
+  it("a level is drawn by its own hotel's drawing: another hotel's level of the same id is not", () => {
+    expect([plate("Pair", "g").drawn, plate("Annex", "g").drawn, plate("Annex", "g").rooms]).toEqual([true, false, []]);
   });
   it("a plate with no drawing holds none of them", () => {
     const attic = plate("Grand", "attic");
@@ -141,6 +185,12 @@ describe("the hull", () => {
        with no id, 15 less the pad; south to Z, 120 and the pad. */
     expect([Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)].map(round)).toEqual([30, 220, 5, 130]);
   });
+  it("two rooms on one wall give one side, a group's outline is no part of it, and a rectangle with no rot is not turned", () => {
+    /* S and N are x 40 to 60, S y 140 to 160 and N y 40 to 60: padded, four
+       points, with none kept on the long sides. The group's outline, 200
+       wide, is not a shape of its own. */
+    expect(ring(building("Pair").hull)).toEqual([[30, 30], [30, 170], [70, 30], [70, 170]]);
+  });
   it("is convex, and keeps no point twice", () => {
     const hull = building("Grand").hull, n = hull.length;
     const turn = i => { const [o, a, b] = [hull[i], hull[(i + 1) % n], hull[(i + 2) % n]]; return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); };
@@ -159,6 +209,7 @@ describe("the schedule by place", () => {
     expect(roomEvents("Grand", "hall", "Foyer").map(x => x.ev.id)).toEqual(["foyer"]);
     expect(roomEvents("Grand", "hall", "Foyer")[0].ev).toBe(byId.get("foyer"));
     expect(ids(venueEvents("Park"))).toEqual(["park"]);
+    expect(ids(levelEvents("Grand", "mezz"))).toEqual(["drift"]);                 // a level the venues file lacks is listed under its own id
   });
   it("a composite's events are under each of its leaves, each remembering what it was booked as, and under no id of its own", () => {
     expect(roomEvents("Grand", "hall", "A").map(x => [x.ev.id, x.as])).toEqual([["early", "AB"], ["lost", ""], ["late", ""], ["sunday-off", ""]]);
@@ -181,6 +232,14 @@ describe("the schedule by place", () => {
     replaceSchedule({ events: [ev("both", `${SAT}T10:00`, "Grand", "hall", ["AB", "A"])] });
     expect(roomEvents("Grand", "hall", "A").map(x => [x.ev.id, x.as])).toEqual([["both", "AB"]]);
     expect(depthOf(byId.get("both")).rooms).toEqual(["A", "B"]);
+    /* the first naming is the one kept: the room itself, then the composite for the leaf it adds */
+    replaceSchedule({ events: [ev("both", `${SAT}T10:00`, "Grand", "hall", ["A", "AB"])] });
+    expect([roomEvents("Grand", "hall", "A").map(x => x.as), roomEvents("Grand", "hall", "B").map(x => x.as)]).toEqual([[""], ["AB"]]);
+  });
+  it("an event with no rooms at all is on its level, in no room", () => {
+    expect(ids(levelEvents("Pair", "g"))).toEqual(["keyless"]);
+    expect(depthOf(byId.get("keyless"))).toEqual({ depth: "level", plate: "g", level: "g", rooms: [] });
+    expect(dayLights("Pair", SAT, new Set(["keyless"]))).toEqual([{ key: "g", picks: 1, lit: [], events: 1 }]);
   });
   it("nothing for a place the schedule does not name", () => {
     expect([venueEvents("Tilted"), levelEvents("Grand", "cellar"), levelEvents("Tilted", "t"), roomEvents("Grand", "hall", "Q"), roomEvents("Grand", "cellar", "A"), roomEvents("Tilted", "t", "R")])
@@ -205,8 +264,21 @@ describe("what a day lights", () => {
     expect(dayLights("Grand", SAT, new Set(["foyer"]))[1].lit).toEqual([{ level: "hall", id: "Foyer" }]);
     expect(dayLights("Grand", SAT, new Set(["scenery"]))[1]).toEqual({ key: "tower+hall", picks: 1, lit: [], events: 7 });
   });
-  it("a pick that names a room the drawing lacks lights the room it has", () => {
+  it("a pick that names a room the drawing lacks lights the room it has, whichever it names first", () => {
     expect(dayLights("Grand", SAT, new Set(["lost"]))[1]).toEqual({ key: "tower+hall", picks: 1, lit: [{ level: "hall", id: "A" }], events: 7 });
+    expect(dayLights("Twin", SAT, new Set(["twin-q"]))[0]).toEqual({ key: "east+west", picks: 1, lit: [{ level: "east", id: "E1" }], events: 2 });
+  });
+  it("what is lit is in the plate's levels' order, and on a level in the order the picks light it, the schedule's", () => {
+    expect(dayLights("Grand", SAT, new Set(["foyer", "late"]))[1].lit).toEqual([{ level: "hall", id: "Foyer" }, { level: "hall", id: "A" }]);
+    expect(dayLights("Twin", SAT, new Set(["twin-w", "twin-q"]))[0].lit).toEqual([{ level: "east", id: "E1" }, { level: "west", id: "W2" }]);
+  });
+  it("a pick on a floor lights nothing on the level beside it, though that level draws a room of the same id", () => {
+    expect(dayLights("Half", SAT, new Set(["wing-a"]))).toEqual([{ key: "wing+main", picks: 1, lit: [], events: 1 }]);
+    expect(depthOf(byId.get("wing-a"))).toEqual({ depth: "floor", plate: "wing+main", level: "wing" });
+  });
+  it("a pick with no level, or on a level the venues file lacks, is on no plate: the venue's list has it", () => {
+    expect(dayLights("Grand", SAT, new Set(["lobby", "drift"])).map(row => [row.picks, row.lit])).toEqual([[0, []], [0, []], [0, []], [0, []]]);
+    expect(ids(venueEvents("Grand"))).toEqual(expect.arrayContaining(["lobby", "drift"]));
   });
   it("a pick on a floor is counted on its plate and lights nothing, and a pick with no room the same", () => {
     expect(dayLights("Grand", SAT, new Set(["tower", "bare"]))[1]).toEqual({ key: "tower+hall", picks: 2, lit: [], events: 7 });
@@ -244,6 +316,7 @@ describe("how deep an event's place goes", () => {
     expect(depth("bare")).toEqual({ depth: "level", plate: "tower+hall", level: "hall", rooms: [] });
     expect(depth("lost")).toEqual({ depth: "level", plate: "tower+hall", level: "hall", rooms: ["A"] });
     expect(depth("scenery")).toEqual({ depth: "level", plate: "tower+hall", level: "hall", rooms: [] });
+    expect(depth("twin-q")).toEqual({ depth: "level", plate: "east+west", level: "east", rooms: ["E1"] });      // the room it lacks named first
   });
   it("a floor: its level has no drawing, though the level beside it on its plate has", () => {
     expect(depth("tower")).toEqual({ depth: "floor", plate: "tower+hall", level: "tower" });
@@ -274,9 +347,10 @@ describe("with no drawing at all", () => {
     try {
       const data = await import("../../src/data.js"), bare = await import("../../src/building.js");
       data.replaceSchedule(SCHEDULE);
-      expect(bare.BUILDINGS).toEqual(["Grand", "Annex", "Tilt"]);
+      expect(bare.BUILDINGS).toEqual(["Grand", "Annex", "Tilt", "Twin", "Tall", "Pair", "Half"]);
       expect(bare.building("Grand").plates.map(p => [p.key, p.drawn, p.inert, p.rooms.length])).toEqual([["base", false, false, 0], ["tower+hall", false, false, 0], ["attic", false, false, 0], ["roof", false, true, 0]]);
-      expect(bare.BUILDINGS.map(hotel => bare.building(hotel).hull)).toEqual([null, null, null]);
+      expect(bare.BUILDINGS.map(hotel => bare.building(hotel).hull)).toEqual([null, null, null, null, null, null, null]);
+      expect(bare.BUILDINGS.flatMap(hotel => bare.building(hotel).plates).filter(p => p.drawn)).toEqual([]);
       expect(bare.dayLights("Grand", SAT, new Set(["early", "foyer"]))[1]).toEqual({ key: "tower+hall", picks: 2, lit: [], events: 7 });
       expect(bare.depthOf(data.byId.get("early"))).toEqual({ depth: "floor", plate: "tower+hall", level: "hall" });
       expect(bare.roomEvents("Grand", "hall", "AB").map(x => [x.ev.id, x.as])).toEqual([["early", ""]]);
