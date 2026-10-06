@@ -18,12 +18,12 @@
    The sample's Saturday, as the scenes below use it:
      s0294 Westin 1:00-3:00 PM, Artemis: Bridge Crew Open Play
      s0230 Hilton 1:00-2:30 PM, Q&A: Pathfinder 2026
-     s0243 Westin 1:00-2:00 PM;  s0305 the Mart 1:00-2:00 PM
+     s0243 Westin 1:00-2:00 PM;  s0305 the Mart's Building 3 1:00-2:00 PM
      s0590 Hilton 2:30 PM;  s0376 Hyatt 2:30 PM, Writing Villains Readers Love to Hate
-     s0221 Streaming 2:30 PM, Making a Living Off of Being Creative!;  s0298 the Mart 2:30 PM
+     s0221 Streaming 2:30 PM, Making a Living Off of Being Creative!;  s0298 the Mart's Building 2 2:30 PM
      s0263 Hyatt 4:00 PM;  s0349 Westin 4:00 PM;  s0253 Marriott 4:00 PM;  s0254, s0257 Hilton 4:00 PM
      s0260 Westin 7:00 PM;  s0228 Hyatt 10:00 AM, over;  s0304 Marriott 10:00 AM, over
-   and s0439, Sunday 10:00 AM at the Mart. */
+   and s0439, Sunday 10:00 AM at the Mart's Building 3. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -684,7 +684,7 @@ describe("your crew's picks right now and the clock: the minute tick on the crew
   });
   it("after midnight, still Saturday's con day: the next pick that night, not tomorrow morning's", () => {
     s.handle.setTimeOverride("2026-09-06T00:30");
-    expect(words(lineOf(s.bo))).toMatch(/^Bo · 1:00 AM .* · Mart$/);
+    expect(words(lineOf(s.bo))).toMatch(/^Bo · 1:00 AM .* · Mart 3$/);
   });
 });
 
@@ -959,7 +959,7 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
         escape();
       }
     }
-    expect(counted).toEqual(["Hyatt, 2026-09-05", "Hilton, 2026-09-05", "AmericasMart, 2026-09-06"]);
+    expect(counted).toEqual(["Hyatt, 2026-09-05", "Hilton, 2026-09-05", "AmericasMart Building 3, 2026-09-06"]);
     tapDay(SATURDAY_DAY);
   });
   it("a line opens its event's sheet in the hotel's place, and closing it lands on the Map, focus on the hotel that opened the sheet", () => {
@@ -1280,5 +1280,69 @@ describe("the crew's words (step 5d, #68): a star is a pick, not a whereabouts",
     screens.crewPanel = said(el("panel-crew"));
     s.app.closeSheet();
     for (const [screen, text] of Object.entries(screens)) expect(text, screen).not.toMatch(NEVER);
+  });
+});
+
+/* The Mart's two buildings (DECISIONS #91) stand 16 apart on the Map, and the
+   Westin 12 under Building 2: each can carry a gold pill and the crew's, and
+   none may touch another. A pill is measured as it is drawn - a bar with
+   round ends - not by its box: the box of the Westin's two-digit gold pill
+   crosses the box of Building 2's crew pill by 2 each way, where the pills
+   themselves are well apart. New tests, not rows of tests/PORT-LEDGER.md. */
+describe("the Mart's two buildings and the Westin, each with a gold pill and the crew's: no pill touches another", () => {
+  let s;
+  const B3 = "AmericasMart Building 3", B2 = "AmericasMart Building 2", PLACES = [B3, B2, "Westin"];
+  const saturday = e => e.start >= "2026-09-05T08:00" && e.start < "2026-09-06T00:00" && !e.cancelled;
+  const WESTIN = fixture.events.filter(e => e.hotel === "Westin" && saturday(e)).map(e => e.id).slice(0, 10);
+  const pills = () => [...document.querySelectorAll("#view-map .map-pill, #view-map .map-crew")].filter(g => PLACES.includes(g.dataset.hotel));
+  /* A pill as drawn: a line along its middle, and a radius - half its height, and half its stroke where it has one. */
+  const shape = g => {
+    const r = g.querySelector("rect"), x = num(r, "x"), y = num(r, "y"), w = num(r, "width"), h = num(r, "height");
+    const stroke = g.classList.contains("map-crew") ? parseFloat(/stroke-width: ([\d.]+)/.exec(cssRule(".map-crew rect"))[1]) / 2 : 0;
+    return { name: `${g.getAttribute("class")} ${g.dataset.hotel}`, x1: x + h / 2, x2: x + w - h / 2, y: y + h / 2, r: h / 2 + stroke };
+  };
+  const apart = (a, b) => Math.hypot(Math.max(0, a.x1 - b.x2, b.x1 - a.x2), a.y - b.y) - a.r - b.r;
+  const boxesCross = (a, b) => { const [p, q] = [a, b].map(g => g.querySelector("rect")), n = num; return n(p, "x") < n(q, "x") + n(q, "width") && n(q, "x") < n(p, "x") + n(p, "width") && n(p, "y") < n(q, "y") + n(q, "height") && n(q, "y") < n(p, "y") + n(p, "height"); };
+  function clear() {
+    const all = pills().map(shape);
+    for (const [i, a] of all.entries()) for (const b of all.slice(i + 1)) expect(apart(a, b), `${a.name} and ${b.name}`).toBeGreaterThan(0);
+    return all.length;
+  }
+
+  beforeAll(async () => {
+    s = await crewScene({
+      mates: [["bo", "Bo"]],
+      mine: ["s0305", "s0298", ...WESTIN],
+      theirs: { bo: ["s0305", "s0298", WESTIN[0]] },
+    });
+    tapTab("map");
+  }, 30000);
+  afterAll(() => s.page.cleanup());
+
+  it("six pills, the Westin's gold one of two digits: each building its own count of picks and of the crew", () => {
+    expect(WESTIN).toHaveLength(10);
+    expect(Object.fromEntries(pills().map(g => [`${g.classList.contains("map-crew") ? "crew" : "gold"} ${g.dataset.hotel}`, words(g)])))
+      .toEqual({ [`gold ${B3}`]: "1", [`crew ${B3}`]: "1", [`gold ${B2}`]: "1", [`crew ${B2}`]: "1", "gold Westin": "10", "crew Westin": "1" });
+    expect(blockOf(B3).getAttribute("aria-label")).toBe(`${B3}: 1 pick on Saturday, 1 of your crew`);
+    expect(blockOf(B2).getAttribute("aria-label")).toBe(`${B2}: 1 pick on Saturday, 1 of your crew`);
+  });
+  it("none touches another, though the boxes of Building 2's crew pill and the Westin's gold one cross", () => {
+    expect(clear()).toBe(6);
+    expect(boxesCross(crewPill(B2), document.querySelector('#view-map .map-pill[data-hotel="Westin"]'))).toBe(true);
+  });
+  it("nor with ten of the crew at each building, their pills the wider ones", async () => {
+    const more = Array.from({ length: 9 }, (_, i) => s.fake.held(`mate${i}@example.test`));
+    for (const [i, mate] of more.entries()) { s.fake.join(s.crew, mate.id, `Mate ${i}`); pick(s.fake, mate, "s0305"); pick(s.fake, mate, "s0298"); }
+    await s.run();
+    expect([B3, B2].map(h => [words(crewPill(h)), num(crewPill(h).querySelector("rect"), "width")])).toEqual([["10", 40], ["10", 40]]);
+    expect(clear()).toBe(6);
+  });
+  it("the hotel sheet of each lists its own crew's pick, and no other building's", () => {
+    for (const [hotel, id] of [[B3, "s0305"], [B2, "s0298"]]) {
+      openHotel(hotel);
+      expect(hotelHead()).toBe("Saturday · 1 pick · 10 of your crew");
+      expect(new Set(hereButtons().map(b => b.dataset.hero))).toEqual(new Set([id]));
+      escape();
+    }
   });
 });

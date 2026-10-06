@@ -153,7 +153,7 @@ describe("the level a sheet says", () => {
     expect(level("Hyatt", "acc", "Kennesaw")).toBe("Atlanta Conference Center (LL3)");
     expect(level("Hyatt", "exhibit", "Hanover AB")).toBe("Exhibit Level (LL2)");
     expect(level("Hyatt", "tower-ll1", "International North")).toBe("International Tower · LL1");
-    expect(level("AmericasMart", "b2-rooms", "Mart2 203E BERNINA - booth 3300")).toBe("Building 2, meeting rooms");
+    expect(level("AmericasMart Building 2", "f3", "Mart2 203E BERNINA - booth 3300")).toBe("3rd Floor");
   });
   it("and the same name where the two are one", () => {
     expect(level("Hilton", "l4", "404-405")).toBe("4th Floor");
@@ -163,7 +163,7 @@ describe("the level a sheet says", () => {
   it("is left off exactly where a row leaves it off: the room says it", () => {
     expect(level("Marriott", "atrium", "Atrium Ballroom")).toBe("");
     expect(level("Hyatt", "acc", "Atlanta Conference Center Inman")).toBe("");
-    expect(level("AmericasMart", "b3f1", "Mart Building 3, Floor 1")).toBe("");
+    expect(level("AmericasMart Building 3", "f1", "Mart Building 3, Floor 1")).toBe("");
     expect(level("Westin", "f14", "14th Fl. Ansley 1")).toBe("");
   });
   it("is nothing where the event has no level, or one the file does not hold", () => {

@@ -240,8 +240,10 @@ function passesFilters(e) { return passes(e, activeFilters()); }
 /* A day word names a weekday; the con day that falls on it is the season's. */
 const DAY_WORDS = {wed: "Wednesday", wednesday: "Wednesday", thu: "Thursday", thur: "Thursday", thurs: "Thursday", thursday: "Thursday",
   fri: "Friday", friday: "Friday", sat: "Saturday", saturday: "Saturday", sun: "Sunday", sunday: "Sunday", mon: "Monday", monday: "Monday"};
+/* A hotel word names a chip's value, a venue or a group of them: the Mart's
+   two words name its group, both buildings (DECISIONS #91). */
 const HOTEL_WORDS = {marriott: "Marriott", hyatt: "Hyatt", hilton: "Hilton", westin: "Westin",
-  courtland: "Courtland Grand", sheraton: "Courtland Grand", mart: "AmericasMart", americasmart: "AmericasMart"};
+  courtland: "Courtland Grand", sheraton: "Courtland Grand", mart: "Mart", americasmart: "Mart"};
 const TIME_BANDS = {morning: [0, 12], afternoon: [12, 17], evening: [17, 21], "late night": [21, 29], late: [21, 29]};
 
 /* Longest phrases first so "photo op" wins over "photo" and "late night"

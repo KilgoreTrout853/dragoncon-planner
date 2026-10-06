@@ -1274,3 +1274,88 @@ describe("Getting in on a schedule where no event has what its options name", ()
     expect(el("track").value).toBe("Kids Track");
   });
 });
+
+/* The Mart is two venues and one group (DECISIONS #91): one chip, "Mart", in
+   the Mart's colour, for both buildings; and while Search's hotel is one
+   building - its hotel sheet's Search sets that - the Hotel row has a chip
+   for that building too. New tests, not rows of tests/PORT-LEDGER.md. */
+describe("the Mart in the filters: one chip for its two buildings, and a building's own while Search holds it", () => {
+  const B3 = "AmericasMart Building 3", B2 = "AmericasMart Building 2", HUE = "--h:var(--h-Mart)";
+  let page, app, handle, state;
+  const el = id => document.getElementById(id);
+  const panel = () => el("panel-filters");
+  const open = () => el("filtersBtn").click();
+  const fchip = (kind, value) => panel().querySelector(`[data-chip="${kind}"][data-value="${value}"]`);
+  const row = () => [...panel().querySelectorAll('[data-chip="hotel"]')];
+  const pressed = () => row().filter(c => c.getAttribute("aria-pressed") === "true").map(c => c.dataset.value);
+  const reset = (over = {}) => { if (!el("sheetWrap").hidden) handle.closeSheet(); state.tab = "browse"; Object.assign(state.browse, FILTERS, over); handle.render(); };
+  const inMart = e => e.hotel === B3 || e.hotel === B2;
+  const under = () => [...el("view-browse").querySelectorAll(".parsed-chips .chip-label")].map(c => c.textContent);
+
+  beforeAll(async () => {
+    page = await bootPage({ data: sample });
+    ({ app, handle } = page);
+    state = handle.state;
+    await page.until(() => app.BOOT.indexed > 0, 20000, "the index");
+    reset();
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("one Mart chip, labelled Mart, in the Mart's colour - in the sheet and on Now - and none for a building", () => {
+    expect(app.hotelChips.filter(h => /Mart/.test(h))).toEqual(["Mart"]);
+    expect(css).toMatch(/\n\s*--h-Mart: #/);
+    open();
+    expect([fchip("hotel", "Mart").textContent, fchip("hotel", "Mart").getAttribute("style")]).toEqual(["Mart", HUE]);
+    expect([fchip("hotel", B3), fchip("hotel", B2)]).toEqual([null, null]);
+    handle.closeSheet();
+    state.tab = "now"; handle.render();
+    const onNow = [...document.querySelectorAll('#view-now [data-chip="now-hotel"]')].filter(c => /Mart/.test(c.dataset.value));
+    expect(onNow.map(c => [c.dataset.value, c.textContent, c.getAttribute("style")])).toEqual([["Mart", "Mart", HUE]]);
+  });
+  it("the Mart chip keeps both buildings' events, and so does the word mart, whose chip says Mart", () => {
+    const both = handle.events.filter(e => inMart(e) && !noise(e)).length;
+    expect(new Set(handle.events.filter(inMart).map(e => e.hotel))).toEqual(new Set([B3, B2]));
+    reset({ hotel: "Mart" });
+    expect([app.browseResults().length, app.browseResults().every(inMart), under()]).toEqual([both, true, ["Mart"]]);
+    for (const word of ["mart", "americasmart"]) {
+      reset({ q: word, noToday: true });
+      expect([app.browseResults().length, app.browseResults().every(inMart), under()], word).toEqual([both, true, ["Mart"]]);
+    }
+  });
+  it("Search's hotel one building: the Hotel row gains that building's chip, Mart 2, pressed, straight after the Mart chip", () => {
+    reset({ hotel: B2 });
+    expect([under(), el("filtersBtn").getAttribute("aria-label")]).toEqual([["Mart 2"], "Filters, 1 set"]);
+    open();
+    const groups = app.hotelChips, at = groups.indexOf("Mart");
+    expect(row().map(c => c.dataset.value)).toEqual(["All", ...groups.slice(0, at + 1), B2, ...groups.slice(at + 1)]);
+    expect(pressed()).toEqual([B2]);
+    expect([fchip("hotel", B2).textContent, fchip("hotel", B2).getAttribute("style")]).toEqual(["Mart 2", HUE]);
+    expect(el("filtersShow").textContent).toBe(showSays(handle.events.filter(e => e.hotel === B2 && !noise(e)).length));
+  });
+  it("a second tap on it is All, by the row's rule - the chip still under the tap - and a third sets the building again", () => {
+    const chip = fchip("hotel", B2);
+    chip.click();
+    expect([state.browse.hotel, pressed(), fchip("hotel", B2) === chip]).toEqual(["All", ["All"], true]);
+    chip.click();
+    expect([state.browse.hotel, pressed()]).toEqual([B2, [B2]]);
+  });
+  it("it goes when another value is set: unpressed at that tap, no chip moving under it, and gone from the row when the sheet is next drawn", () => {
+    const before = row().map(c => c.dataset.value);
+    fchip("hotel", "Mart").click();
+    expect([state.browse.hotel, pressed(), row().map(c => c.dataset.value)]).toEqual(["Mart", ["Mart"], before]);
+    el("filtersShow").click();
+    expect(under()).toEqual(["Mart"]);
+    open();
+    expect(row().map(c => c.dataset.value)).toEqual(["All", ...app.hotelChips]);
+    expect(pressed()).toEqual(["Mart"]);
+    reset();
+  });
+  it("a group's own value, and All, add no chip", () => {
+    for (const hotel of ["All", "Hilton", "Mart", "Other"]) {
+      reset({ hotel });
+      open();
+      expect(row().map(c => c.dataset.value), hotel).toEqual(["All", ...app.hotelChips]);
+    }
+    reset();
+  });
+});

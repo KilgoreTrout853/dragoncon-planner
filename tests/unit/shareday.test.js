@@ -176,7 +176,7 @@ describe("the message", () => {
       ev(hex(2), `${SAT}T14:30`, { title: "Writing Villains  Readers\nLove to Hate", hotel: "Hyatt" }),
       ev(hex(3), `${SAT}T16:00`, { title: "A stream", hotel: "Streaming", room: "" }),
       ev(hex(4), `${SAT}T17:00`, { title: "Offsite", hotel: "Other", room: "Joystick Gamebar" }),
-      ev(hex(5), `${SUN}T01:00`, { title: "Late", hotel: "AmericasMart" }),
+      ev(hex(5), `${SUN}T01:00`, { title: "Late", hotel: "AmericasMart Building 3" }),
     ];
     expect(dayMessage(SAT, list, link)).toBe([
       "My Saturday at Dragon Con:",
@@ -184,7 +184,7 @@ describe("the message", () => {
       "2:30 PM  Writing Villains Readers Love to Hate (Hyatt)",
       "4:00 PM  A stream (Streaming)",
       "5:00 PM  Offsite (Joystick Gamebar)",
-      "1:00 AM  Late (Mart)",
+      "1:00 AM  Late (Mart 3)",
       link,
     ].join("\n"));
   });

@@ -3,7 +3,9 @@
    number in brackets is the harness line the assertion came from
    (tests/PORT-LEDGER.md). The clock is Saturday 1:05 PM. The Map's focus
    (DECISIONS #75) is new, and its tests carry no bracket; nor do those of
-   the view built once and drawn in place (#89). */
+   the view built once and drawn in place (#89), nor those of the Mart's two
+   buildings (#91), which a bracketed test that says "the Mart" now reads as
+   well. */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,12 +40,13 @@ describe("the Map tab", () => {
   afterAll(() => page.cleanup());
 
   describe("step 1: the base map", () => {
-    let g, peachtree, courtlandX, vb;
+    let g, mart3, mart2, peachtree, courtlandX, vb;
     const geo = hotel => { const r = svg().querySelector(`.map-hotel[data-hotel="${hotel}"] rect`), x = num(r, "x"), y = num(r, "y"), w = num(r, "width"), h = num(r, "height");
       return { x, y, w, h, right: x + w, bottom: y + h, cx: x + w / 2, cy: y + h / 2 }; };
 
     beforeAll(() => {
-      g = Object.fromEntries(["Hyatt", "Marriott", "Hilton", "AmericasMart", "Westin", "Courtland Grand", "Hardy Ivy Park"].map(h => [h, geo(h)]));
+      g = Object.fromEntries(["Hyatt", "Marriott", "Hilton", "AmericasMart Building 3", "AmericasMart Building 2", "Westin", "Courtland Grand", "Hardy Ivy Park"].map(h => [h, geo(h)]));
+      mart3 = g["AmericasMart Building 3"]; mart2 = g["AmericasMart Building 2"];
       peachtree = num(svg().querySelector('[data-street="Peachtree"]'), "x1");
       courtlandX = num(svg().querySelector('[data-street="Courtland"]'), "x1");
       vb = svg().getAttribute("viewBox").split(" ").map(Number);
@@ -76,14 +79,19 @@ describe("the Map tab", () => {
       expect(Math.abs(g.Marriott.cy - g.Hilton.cy)).toBeLessThanOrEqual(10);
     });
     it("Peachtree runs between the Mart and the Hyatt, a quarter of the way across [1395]", () => {
-      expect(g.AmericasMart.cx).toBeLessThan(peachtree);
+      expect(mart3.right).toBeLessThan(peachtree);
+      expect(mart2.right).toBeLessThan(peachtree);
       expect(peachtree).toBeLessThan(g.Hyatt.cx);
       expect(Math.abs(peachtree - 95)).toBeLessThanOrEqual(20);
     });
     it("the Westin is south-east of the Mart, which is level with the Hyatt [1396]", () => {
-      expect(g.Westin.cy).toBeGreaterThan(g.AmericasMart.cy);
-      expect(g.Westin.cx).toBeGreaterThan(g.AmericasMart.cx);
-      expect(Math.abs(g.AmericasMart.cy - g.Hyatt.cy)).toBeLessThanOrEqual(10);
+      for (const mart of [mart3, mart2]) {
+        expect(g.Westin.cy).toBeGreaterThan(mart.cy);
+        expect(g.Westin.cx).toBeGreaterThan(mart.cx);
+      }
+      /* Level with the Hyatt: Building 3's rows overlap the Hyatt's (#91). */
+      expect(mart3.y).toBeLessThan(g.Hyatt.bottom);
+      expect(mart3.bottom).toBeGreaterThan(g.Hyatt.y);
     });
     it("the Courtland is below the Hilton, in its column [1397]", () => {
       expect(g["Courtland Grand"].cy).toBeGreaterThan(g.Hilton.cy);
@@ -100,7 +108,8 @@ describe("the Map tab", () => {
       expect(g.Hilton.x - g.Marriott.right).toBeGreaterThan(45);
     });
     it("the Westin is south-east of the Mart and still west of Peachtree [1405]", () => {
-      expect(g.Westin.cx).toBeGreaterThan(g.AmericasMart.cx);
+      expect(g.Westin.cx).toBeGreaterThan(mart3.cx);
+      expect(g.Westin.cx).toBeGreaterThan(mart2.cx);
       expect(g.Westin.right).toBeLessThanOrEqual(peachtree);
     });
     it("the Westin is about as far below the Hyatt as the park is above it [1407]", () => {
@@ -115,8 +124,8 @@ describe("the Map tab", () => {
       expect(courtlandX).toBeLessThan(Math.max(...xs));
     });
     it("the Mart-Westin bridge is a short diagonal from the Mart's bottom edge to the Westin's top [1413]", () => {
-      const bridge = svg().querySelector('[data-bridge="AmericasMart|Westin"]');
-      expect(num(bridge, "y1")).toBe(g.AmericasMart.bottom);
+      const bridge = svg().querySelector('[data-bridge="AmericasMart Building 2|Westin"]');
+      expect(num(bridge, "y1")).toBe(mart2.bottom);
       expect(num(bridge, "y2")).toBe(g.Westin.y);
       expect(num(bridge, "x1")).not.toBe(num(bridge, "x2"));
     });
@@ -128,7 +137,7 @@ describe("the Map tab", () => {
       for (const h of ["Hyatt", "Marriott", "Hilton", "Courtland Grand", "Westin"]) expect(g[h].w, h).toBe(60);
     });
     it("the frame is cropped to the drawing with a card's padding around it [1420]", () => {
-      const inset = { top: g["Hardy Ivy Park"].y - vb[1], bottom: vb[1] + vb[3] - Math.max(g["Courtland Grand"].bottom, g.Westin.bottom), left: g.AmericasMart.x - vb[0], right: vb[0] + vb[2] - g.Hilton.right };
+      const inset = { top: g["Hardy Ivy Park"].y - vb[1], bottom: vb[1] + vb[3] - Math.max(g["Courtland Grand"].bottom, g.Westin.bottom), left: Math.min(mart3.x, mart2.x) - vb[0], right: vb[0] + vb[2] - g.Hilton.right };
       expect(vb[3]).toBeLessThan(320);
       Object.entries(inset).forEach(([side, v]) => { expect(v, side).toBeGreaterThanOrEqual(10); expect(v, side).toBeLessThanOrEqual(18); });
     });
@@ -145,7 +154,11 @@ describe("the Map tab", () => {
       expect([num(ground, "x"), num(ground, "y"), num(ground, "width"), num(ground, "height")]).toEqual(vb);
     });
     it("three skybridges, none across Peachtree [1427]", () => {
-      expect([...svg().querySelectorAll("[data-bridge]")].map(l => l.dataset.bridge).sort().join(";")).toBe("AmericasMart|Westin;Hyatt|Marriott;Marriott|Hilton");
+      expect([...svg().querySelectorAll("[data-bridge]")].map(l => l.dataset.bridge).sort().join(";")).toBe("AmericasMart Building 2|Westin;AmericasMart Building 3|AmericasMart Building 2;Hyatt|Marriott;Marriott|Hilton");
+      for (const bridge of svg().querySelectorAll("[data-bridge]")) {
+        const xs = [num(bridge, "x1"), num(bridge, "x2")];
+        expect(Math.max(...xs) < peachtree || Math.min(...xs) > peachtree, bridge.dataset.bridge).toBe(true);
+      }
     });
     it("two streets and nothing else [1429]", () => {
       expect([...svg().querySelectorAll("[data-street]")].map(l => l.dataset.street).sort().join(",")).toBe("Courtland,Peachtree");
@@ -156,7 +169,7 @@ describe("the Map tab", () => {
     });
     it("labels are abbreviated and uppercase [1432]", () => {
       const labels = [...svg().querySelectorAll(".map-hotel text")].map(t => t.textContent);
-      for (const want of ["MART", "COURTLAND", "HARDY IVY"]) expect(labels).toContain(want);
+      for (const want of ["MART 3", "MART 2", "COURTLAND", "HARDY IVY"]) expect(labels).toContain(want);
       labels.forEach(l => expect(l).toBe(l.toUpperCase()));
     });
     it("a nine-letter label is marked long to fit a 60 px block; eight letters are not [1433, the page half]", () => {
@@ -651,7 +664,7 @@ describe("the Map tab", () => {
       on = here(hotel).find(e => e._s <= at && at < e._e);
       [next, sat] = here(hotel).filter(e => e._s > at);
       sun = handle.events.find(e => e._cd === SUN && e.hotel !== hotel && app.MAP_HOTELS[e.hotel] && !!app.levelShort(e));
-      mart = handle.events.find(e => e.hotel === "AmericasMart" && e.room === "Mart Building 3, Floor 1");
+      mart = handle.events.find(e => e.hotel === "AmericasMart Building 3" && e.room === "Mart Building 3, Floor 1");
       plain();
     });
     afterAll(() => { handle.closeSheet(); state.explore.page = null; app.setExploreHash(null); Object.assign(state.browse, { hotel: "All", day: null }); state.tab = "map"; state.map.focus = null; setPicks([]); });
@@ -687,8 +700,8 @@ describe("the Map tab", () => {
         for (const id of [stream.id, "no-such-event", undefined]) { app.showOnMap(id); expect([state.tab, state.map.focus], String(id)).toEqual(["browse", null]); }
         state.tab = "map"; handle.render();
       });
-      it("onTheMap(): at one of the seven places, and neither cancelled nor removed", () => {
-        expect(Object.keys(app.MAP_HOTELS).map(h => app.onTheMap({ hotel: h }))).toEqual([true, true, true, true, true, true, true]);
+      it("onTheMap(): at one of the eight places, and neither cancelled nor removed", () => {
+        expect(Object.keys(app.MAP_HOTELS).map(h => app.onTheMap({ hotel: h }))).toEqual([true, true, true, true, true, true, true, true]);
         expect([{ hotel: "Hilton", cancelled: true }, { hotel: "Hilton", removed: true }, { hotel: "Streaming" }, { hotel: "Other" }, { hotel: "Unknown" }, {}, null, undefined]
           .map(ev => app.onTheMap(ev))).toEqual([false, false, false, false, false, false, false, false]);
       });
@@ -715,7 +728,7 @@ describe("the Map tab", () => {
         expect(rings()).toBe(`next:${hotel} now:${hotel}`);
         expect([...map().querySelectorAll(".map-ring, .map-focus")].map(r => [r.dataset.hotel, b.x - num(r, "x")])).toEqual([[hotel, 4], [hotel, 7], [hotel, 11]]);
       });
-      it("on each of the seven it stays inside the frame, its stroke counted", () => {
+      it("on each of the eight it stays inside the frame, its stroke counted", () => {
         const [vx, vy, vw, vh] = svg().getAttribute("viewBox").split(" ").map(Number);
         for (const h of Object.keys(app.MAP_HOTELS)) {
           const ev = handle.events.find(e => e.hotel === h);
@@ -1051,7 +1064,7 @@ describe("the Map tab", () => {
     });
     it("the page says what is built, and no flag in the module: a view emptied is built again by the next draw, and a fresh page builds a fresh view", async () => {
       const whole = () => [map().querySelectorAll("svg").length, svg().querySelectorAll(".map-hotel").length, [...svg().children].slice(-3).map(g => g.getAttribute("class")), chipRow().children.length, rings()];
-      const WHOLE = [1, 7, ["map-layer-rings", "map-layer-focus", "map-layer-pills"], 6, [`next:${next.hotel}`, `now:${on.hotel}`].sort().join(" ")];
+      const WHOLE = [1, 8, ["map-layer-rings", "map-layer-focus", "map-layer-pills"], 6, [`next:${next.hotel}`, `now:${on.hotel}`].sort().join(" ")];
       const first = svg();
       map().innerHTML = "";
       handle.render();
@@ -1091,5 +1104,96 @@ describe("the Map tab", () => {
       vi.advanceTimersByTime(60000);
       expect(pillsOf()).toEqual({ Hyatt: "1" });
     });
+  });
+});
+
+/* The Mart's two buildings (DECISIONS #91): two venues, a block each on the
+   Map, with their own pills, rings, labels and hotel sheets. New tests, not
+   rows of tests/PORT-LEDGER.md. The pills of the two and of the Westin, with
+   the crew's, are tests/page/crew-everywhere.test.js's. */
+describe("the Mart's two buildings on the Map", () => {
+  const B3 = "AmericasMart Building 3", B2 = "AmericasMart Building 2", SAT = "2026-09-05";
+  let page, app, handle, state;
+  const map = () => document.getElementById("view-map");
+  const svg = () => map().querySelector("svg.map");
+  const words = node => node.textContent.replace(/\s+/g, " ").trim();
+  const block = hotel => svg().querySelector(`.map-hotel[data-hotel="${hotel}"]`);
+  const box = hotel => { const r = block(hotel).querySelector("rect"), n = a => +r.getAttribute(a); return { x: n("x"), y: n("y"), w: n("width"), h: n("height") }; };
+  const line = pair => { const l = svg().querySelector(`[data-bridge="${pair}"]`), n = a => +l.getAttribute(a); return [n("x1"), n("y1"), n("x2"), n("y2")]; };
+  const panel = () => document.getElementById("panel-hotel");
+  const here = hotel => handle.events.filter(e => e.hotel === hotel && e._cd === SAT && e._s > handle.now());
+
+  beforeAll(async () => {
+    page = await bootPage();
+    ({ app, handle } = page);
+    state = handle.state;
+    document.querySelector('.nav button[data-tab="map"]').click();
+  }, 30000);
+  afterAll(() => page.cleanup());
+
+  it("two blocks, MART 3 over MART 2, each in the Mart's colour, and none called AmericasMart", () => {
+    expect(Object.keys(app.MAP_HOTELS).filter(h => /Mart/.test(h))).toEqual([B3, B2]);
+    expect([B3, B2].map(h => words(block(h).querySelector("text")))).toEqual(["MART 3", "MART 2"]);
+    expect([B3, B2].map(h => block(h).getAttribute("style"))).toEqual(["--h:var(--h-Mart)", "--h:var(--h-Mart)"]);
+    expect([box(B3).x, box(B3).w]).toEqual([box(B2).x, box(B2).w]);
+    expect(box(B3).y).toBeLessThan(box(B2).y);
+    expect(svg().querySelector('[data-hotel="AmericasMart"]')).toBe(null);
+  });
+  it("each 44 px tall or more on a 375 px screen: the map is the screen less the wrap's padding", () => {
+    const pad = /\n\.map-wrap \{[^}]*padding: \d+px (\d+)px 0;/.exec(css);
+    expect(pad).not.toBe(null);
+    const px = (375 - 2 * pad[1]) / svg().getAttribute("viewBox").split(" ")[2];
+    for (const h of [B3, B2]) expect(box(h).h * px, h).toBeGreaterThanOrEqual(44);
+  });
+  it("16 apart or more, so that a pill 7 past each edge leaves the two clear; and Building 2's crew pill ends 5 or more over the Westin", () => {
+    expect(box(B2).y - (box(B3).y + box(B3).h)).toBeGreaterThanOrEqual(16);
+    expect(box("Westin").y - (box(B2).y + box(B2).h + 7)).toBeGreaterThanOrEqual(5);
+  });
+  it("four bridges: the way between the buildings, straight down from Building 3 to Building 2, and Building 2's to the Westin from its bottom edge", () => {
+    expect(svg().querySelectorAll("[data-bridge]")).toHaveLength(4);
+    const between = line(`${B3}|${B2}`), mid = box(B3).x + box(B3).w / 2;
+    expect(between).toEqual([mid, box(B3).y + box(B3).h, mid, box(B2).y]);
+    const westin = line(`${B2}|Westin`);
+    expect(westin.slice(0, 2)).toEqual([box(B2).x + box(B2).w / 2, box(B2).y + box(B2).h]);
+    expect(westin[3]).toBe(box("Westin").y);
+  });
+  it("a pick at each is its own building's: a gold pill and a label each, and a ring on the one the next pick is in", () => {
+    const [in3] = here(B3), [in2] = here(B2);
+    expect([in3, in2].every(Boolean)).toBe(true);
+    handle.picks.set([in3.id, in2.id]); state.map.day = null; handle.render();
+    const pills = Object.fromEntries([...map().querySelectorAll(".map-pill")].map(p => [p.dataset.hotel, words(p)]));
+    expect(pills).toEqual({ [B3]: "1", [B2]: "1" });
+    expect(block(B3).getAttribute("aria-label")).toBe(`${B3}: 1 pick on Saturday`);
+    expect(block(B2).getAttribute("aria-label")).toBe(`${B2}: 1 pick on Saturday`);
+    const first = in3._s <= in2._s ? in3 : in2;
+    expect([...map().querySelectorAll(".map-ring.next")].map(r => r.dataset.hotel)).toEqual([first.hotel]);
+  });
+  it("each has its own hotel sheet, by its name, with its own picks alone", () => {
+    for (const h of [B3, B2]) {
+      handle.openSheet("hotel", h);
+      expect(words(panel().querySelector("h2"))).toBe(h);
+      expect(words(panel().querySelector(".ev-when"))).toBe("Saturday · 1 pick");
+      expect([...panel().querySelectorAll(".row")].map(r => app.byId.get(r.dataset.id).hotel)).toEqual([h]);
+      handle.closeSheet();
+    }
+  });
+  it("with no pick there, the sheet offers the building's search with no article - Search Mart 2 on Saturday - and it sets Search's hotel to that one building", () => {
+    handle.picks.set([]); handle.render();
+    handle.openSheet("hotel", B2);
+    const search = panel().querySelector('[data-act="map-search"]');
+    expect(words(search)).toBe("Search Mart 2 on Saturday");
+    search.click();
+    expect([state.tab, state.browse.hotel, state.browse.day]).toEqual(["browse", B2, SAT]);
+    const listed = [...document.querySelectorAll("#view-browse .row")].map(r => app.byId.get(r.dataset.id).hotel);
+    expect(listed.length).toBeGreaterThan(0);
+    expect(new Set(listed)).toEqual(new Set([B2]));
+    expect([...document.querySelectorAll("#view-browse .parsed-chips .chip")].map(words).join(" ")).toMatch(/Mart 2/);
+    Object.assign(state.browse, { hotel: "All", day: null }); state.tab = "map"; handle.render();
+  });
+  it("a walk between the two is a walk between two venues: five minutes at con pace, said from Mart 3 or from Mart 2", () => {
+    expect(app.walkMin(B3, B2)).toBe(Math.round(5 * app.settings.crowd));
+    expect(app.walkMin(B2, B3)).toBe(app.walkMin(B3, B2));
+    expect([app.hotelPhrase(B3), app.hotelPhrase(B2)]).toEqual(["Mart 3", "Mart 2"]);
+    for (const other of ["Hyatt", "Marriott", "Westin", "Hilton", "Courtland Grand", "Hardy Ivy Park"]) expect(app.walkMin(B3, other), other).toBe(app.walkMin(B2, other));
   });
 });

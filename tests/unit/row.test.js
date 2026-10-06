@@ -38,7 +38,8 @@ describe("the level a row says", () => {
     expect(level("Hilton", "l2", "204-207")).toBe("2nd Floor");
     expect(level("Marriott", "atrium", "A706")).toBe("Atrium Level");
     expect(level("Hyatt", "tower-ll1", "International North")).toBe("Intl Tower LL1");
-    expect(level("AmericasMart", "b2-rooms", "Mart2 203E BERNINA - booth 3300")).toBe("Building 2");
+    expect(level("AmericasMart Building 2", "f3", "Mart2 203E BERNINA - booth 3300")).toBe("Floor 3");
+    expect(level("AmericasMart Building 2", "f4", "Mart2 204J")).toBe("Floor 4");
   });
   it("is left off where the room, case-folded, holds it less a trailing Level or Floor", () => {
     expect(level("Marriott", "atrium", "Atrium Ballroom")).toBe("");
@@ -47,8 +48,8 @@ describe("the level a row says", () => {
     expect(level("Hyatt", "acc", "Atlanta Conference Center Inman")).toBe("");    // a short name with no Level to drop
     expect(level("Westin", "f14", "14th Floor")).toBe("");
     expect(level("Westin", "f14", "14th Fl. Ansley 1")).toBe("");               // the short name less its Floor
-    expect(level("AmericasMart", "b3f1", "Mart Building 3, Floor 1")).toBe("");
-    expect(level("AmericasMart", "b2-vendor-f2", "Mart2 Vendor Hall Floor 2 Scorched Design - booth 2105")).toBe("");
+    expect(level("AmericasMart Building 3", "f1", "Mart Building 3, Floor 1")).toBe("");
+    expect(level("AmericasMart Building 2", "f2", "Mart2 Vendor Hall Floor 2 Scorched Design - booth 2105")).toBe("");
   });
   it("is nothing where the event has no level, or one the file does not hold", () => {
     expect(level("Hilton", null, "Steps B")).toBe("");
