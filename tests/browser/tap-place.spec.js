@@ -178,18 +178,19 @@ for (const [text, storage] of Object.entries(TEXT)) {
   });
 
   /* For you (DECISIONS #87): Show more puts four rows between itself and
-     the filter block, and a star changes nothing above its row - the list
-     is held - so the row and the star stay. */
+     the filter block, which is on screen below it at the taller sizes and
+     past the foot at the shorter; and a star changes nothing above its row
+     - the list is held - so the row and the star stay. */
   test.describe(`a tap in For you${text}`, () => {
     test.use({ storageState: seed({ ...SKETCH, ...storage }) });
 
-    test(`stays under the finger: what stood above Show more, with the filter block on screen below it, and a row's star${text}`, async ({ page }) => {
+    test(`stays under the finger: what stood above Show more, and a row's star${text}`, async ({ page }) => {
       await open(page, SATURDAY);
       await tab(page, "explore");
       const more = '#foryou [data-act="foryou-more"]';
       await expect(page.locator('main .row[data-list="foryou"]')).toHaveCount(4);
       await holds(page, "For you's Show more, by the last row above it", {
-        control: more, watch: await rowAt(page, "foryou", 3), down: 200, drawn: gone(page, more), stage: blockBelow,
+        control: more, watch: await rowAt(page, "foryou", 3), down: 200, drawn: gone(page, more), stage: t => [["the page is scrolled", t.scrolled > 0]],
       });
       await expect(page.locator('main .row[data-list="foryou"]')).toHaveCount(8);
 
