@@ -44,6 +44,10 @@ function render() {
      every road writes `state.tab` and then draws, so this one line is the
      rule, and no writer needs its own. */
   if (state.tab !== "map") state.map.focus = null;
+  /* For you's list is let go the same way (#87): a draw of anything but
+     Explore's grid - another tab, a page - and the next draw of the grid
+     works it out again. */
+  if (state.tab !== "explore" || state.explore.page) state.explore.forYou = null;
   cancelQueuedBrowseRender();
   updateClock();
   renderNotice();
@@ -131,6 +135,7 @@ function setTimeOverride(value) {
   state.map.day = null;
   state.map.focus = null;
   state.plans.day = null;
+  state.explore.forYou = null;               // a new moment: For you is worked out again (#87)
   render();
   updateFresh();                             // "refreshed 2 h ago" is relative to the clock too
 }
@@ -171,7 +176,9 @@ function setOpeningTab() { state.tab = hasBackend && pendingJoin() ? "plans" : c
    what the crew has done since (docs/sync/contract.md, section 5). */
 function onNavClick(e) {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
-  state.tab = b.dataset.tab; render(); pageScrollTo(0);
+  state.tab = b.dataset.tab;
+  state.explore.forYou = null;               // Explore's own tab tapped again works For you out too (#87)
+  render(); pageScrollTo(0);
   if (state.tab === "plans") runSync();
 }
 function onMiniBarClick() { state.tab = "now"; render(); pageScrollTo(0); }
@@ -183,7 +190,9 @@ function onBigTextChange(e) {
   syncHeaderHeight();
   render();                    // the timeline re-measures its blocks at the new size
 }
-function onVisibleRender() { if (!document.hidden) render(); }
+/* A return to the app is a draw from somewhere else: For you is worked out
+   again (#87). */
+function onVisibleRender() { if (!document.hidden) { state.explore.forYou = null; render(); } }
 
 /* main scrolls and bounces on its own; the page around it never scrolls,
    yet iOS will still rubber-band it when a drag lands on the header or the

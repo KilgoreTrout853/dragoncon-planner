@@ -168,8 +168,10 @@ describe("follows", () => {
       it("open to start [1154]", () => {
         expect(expanded()).toBe("true");
       });
+      /* Above everything but For you, which a reader with a follow has and
+         which stands first (DECISIONS #87). */
       it("pinned above everything else [1155]", () => {
-        expect(ex().firstElementChild).toBe(fol());
+        expect([ex().firstElementChild, el("foryou").nextElementSibling]).toEqual([el("foryou"), fol()]);
       });
       it("the tile filter box stays with the grid, below it [1158]", () => {
         expect(fol().compareDocumentPosition(el("exploreQ")) & FOLLOWING).toBeTruthy();
@@ -290,7 +292,7 @@ describe("follows", () => {
         expect(JSON.parse(window.localStorage.getItem("dc26.followingOpen"))).toBe(false);
       });
       it("and survives reloading the state [1212]", () => {
-        state.following.open = app.loadJSON("dc26.followingOpen", true); handle.render();
+        state.following.open = app.loadJSON("dc26.followingOpen", null); handle.render();
         expect(expanded()).toBe("false");
       });
       it("tapping again reopens it [1214]", () => {
@@ -388,6 +390,8 @@ describe("a boot with junk among the stored follows", () => {
   beforeAll(async () => {
     window.localStorage.setItem("dc26.follows", JSON.stringify([{ kind: "bogus", key: "x" }, { kind: "track" }, null, kept[0],
       { kind: "fandom", key: "Star Trek" }, { kind: "topic", key: "Space" }, { kind: "person", key: "Nathan Fillion" }, kept[1]]));
+    /* A reader who opened the fold: never stored, it is shut under For you (DECISIONS #87). */
+    window.localStorage.setItem("dc26.followingOpen", "true");
     page = await bootPage();
   }, 30000);
   afterAll(() => page.cleanup());

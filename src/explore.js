@@ -1,25 +1,16 @@
 import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
 import { conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
-import { AXES, byId, castEvents, events, isCeleb, knownFor, linkedWorks, NOISE_TRACKS, personName, tagsOf, topWorks, worksById } from "./data.js";
+import { AXES, byId, castEvents, events, isCeleb, knownFor, linkedWorks, NOISE_TRACKS, personName, tagsOf, topWorks } from "./data.js";
 import { picks } from "./picks.js";
 import { canFollow, eventsFor, FOLLOW_KINDS, followId, follows, isFollowing, isMuted, KIND_NOUN, mutes } from "./follows.js";
 import { axisLabel } from "./search.js";
+import { forYou, labelFor } from "./foryou.js";
 import { rowHTML } from "./ui.js";
 import { pageScrollTo, pageScrollTop, revealChip, scroller } from "./scroll.js";
 import { requestRender } from "./bus.js";
 
 /* ---- Explore ------------------------------------------------------- */
-
-/* What a follow is called on screen: its key is an id. */
-function labelFor(kind, key) {
-  switch (kind) {
-    case "work": return (worksById.get(key) || {}).name || key;
-    case "axis": return axisLabel(key);
-    case "person": return personName(key) || key;
-    default: return key;
-  }
-}
 
 /* Built once from the loaded schedule: everything you could follow, with how
    many events each carries. A work needs 3+ events, its own and those of the
@@ -234,9 +225,54 @@ function mutedHTML() {
   </section>`;
 }
 
-/* What stands above the sticky block: Following, when anything is followed,
-   Because you starred, and the Muted fold, when anything is muted. */
-const exploreTopHTML = () => followingHTML() + suggestedHTML() + mutedHTML();
+/* For you (W3; DECISIONS #87), the first thing on the grid: a few events the
+   reader has not starred, each with its reason on line 3, in time order with
+   the day on each - four, and the rest behind Show more. What scores and
+   what is chosen are foryou.js's; this is what is drawn. Not there with no
+   row: never a heading over nothing.
+
+   The list holds still while the reader looks at it. It is worked out when
+   the grid is drawn from somewhere else - a load, another tab, the way back
+   from a page, the Explore tab tapped again, a return to the app, a new
+   moment on the clock (shell.js lets it go at each) - and kept in
+   state.explore.forYou while the reader stays on the grid: a star, a fold,
+   a chip's x, a pull's redraw draw it as it was, the starred row starred in
+   its place, so nothing tapped in it leaves from under the finger (#86). An
+   empty list is never kept: with no row on screen there is nothing to hold
+   still, and a phone that has just signed in gets its rows at the pull's
+   redraw. */
+const FOR_YOU_HEAD = 4;
+function forYouList() {
+  const held = state.explore.forYou;
+  if (held && held.rows.length) return held;
+  return state.explore.forYou = {rows: forYou(now()), more: false};
+}
+function forYouHTML() {
+  const {rows, more} = forYouList();
+  if (!rows.length) return "";
+  const shown = more ? rows : rows.slice(0, FOR_YOU_HEAD);
+  /* A reason that names the row's own track leaves the track unsaid. */
+  const row = ({id, reason}) => {
+    const ev = byId.get(id);
+    return ev ? rowHTML(ev, {list: "foryou", showDay: true, noTrack: reason.name === ev.track,
+      status: `${reason.follow ? "You follow" : "Like your picks:"} ${reason.name}`}) : "";
+  };
+  return `<section class="foryou" id="foryou">
+    <h2 class="fy-head">For you <span class="count">(${rows.length})</span></h2>
+    <p class="fy-line">From your follows and stars. Fits the gaps in your plan.</p>
+    <ul class="list">${shown.map(row).join("")}</ul>
+    ${shown.length < rows.length ? `<button class="btn quiet more" data-act="foryou-more">Show ${rows.length - shown.length} more</button>` : ""}
+  </section>`;
+}
+
+/* What stands above the sticky block: For you, when it has a row;
+   Following, when anything is followed; Because you starred; and the Muted
+   fold, when anything is muted. For you is worked out first: Following's
+   fold asks whether it has a row. */
+function exploreTopHTML() {
+  const forYouTop = forYouHTML();
+  return forYouTop + followingHTML(!!forYouTop) + suggestedHTML() + mutedHTML();
+}
 
 /* The filter box is built once (DECISIONS #80), as Search's is: the first
    draw of the grid makes the view whole, and every later one writes around
@@ -524,10 +560,14 @@ function followingByTime(now) {
 }
 
 /* Only there when there is something to show; with no follows the grid
-   carries a one-line hint instead. Closed, the feed is not built at all. */
-function followingHTML() {
+   carries a one-line hint instead. Closed, the feed is not built at all.
+   The fold: what the reader stored by a tap on the heading is what is shown;
+   while nothing was ever stored, Following is folded under a For you that
+   has a row - For you is the sampler, this the complete list - and open
+   where there is none (DECISIONS #87). */
+function followingHTML(underForYou) {
   if (!follows.length) return "";
-  const open = state.following.open !== false;
+  const open = state.following.open ?? !underForYou;
   let body = "";
   if (open) {
     const l = state.following.layout;

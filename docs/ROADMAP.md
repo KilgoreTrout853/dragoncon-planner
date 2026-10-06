@@ -448,7 +448,9 @@ execution slot (#57), which can run before any of this.
    Following - built (PR #103, #84, #85; contract, section 4). What is
    tapped stays where it stood, a fix before For you, which puts a Show
    more where the folds are - built (PR #104, #86; contract, section 0).
-   For you and the zero state are not built.
+   For you, a short list with its reasons, first on the grid, and
+   Following folded under it - built (PR #105, #87; contract, section 4).
+   The zero state is not built.
    - 8b. W2, the alternatives in the time a cancelled or moved pick
      vacated, under the picks-changed notice on Now and Plans: its own
      small pull request (contract, section 2).
@@ -718,6 +720,10 @@ Steps taken by hand, beside the PRs rather than in them:
   for 2027. `public/icon.svg`, the `icon-*.png` files and `og-image.png`
   draw DC26 and Dragon Con 2026, which the build's stamp does not reach
   (`make_icons.py`; #49).
+- For you's weights are by hand and untuned; its reason takes the
+  ellipsis where line 3 cannot hold a long name; and a list held keeps a
+  row whose event has started until the grid is left (#87; contract,
+  section 14).
 - Before the freeze: `client` and `pipeline` required on the `main`
   ruleset (#48).
 - At the freeze: `next` merges to `main`, the default branch flips to

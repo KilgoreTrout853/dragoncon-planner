@@ -279,6 +279,16 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .explore-jump .chip[aria-pressed="true"] .n { color: inherit; opacity: .7; }
 /* Following sits above the tiles, behind a fold: a long feed would push the
    grid off screen for someone who came to wander. */
+/* For you, the first thing on the grid (DECISIONS #87): a heading in
+   Following's look that is no control, a line of words under it, the rows
+   and Show more. */
+.foryou { border-bottom: 1px solid var(--line); }
+.fy-head {
+  margin: 0; display: flex; align-items: baseline; gap: 6px; padding: 14px 14px 4px;
+  color: var(--text); font-size: 1.0625rem; font-weight: 700;
+}
+.fy-head .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+.fy-line { margin: 0; padding: 0 14px 8px; font-size: .875rem; color: var(--muted); }
 .following { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
 .suggested { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
 .fol-head {

@@ -126,8 +126,12 @@ function onMainClick(e) {
       return;
     }
     if (a === "explore-all") { state.explore.expanded[act.dataset.section] = true; renderExploreSections(); return; }
+    /* For you's Show more: the rest of the list held, in place (#87). */
+    if (a === "foryou-more") { if (state.explore.forYou) state.explore.forYou.more = true; render(); return; }
+    /* The heading folds or opens what is shown - which, never stored, For
+       you decided - and from here on what is stored is what is shown (#87). */
     if (a === "fol-toggle") {
-      state.following.open = state.following.open === false;
+      state.following.open = act.getAttribute("aria-expanded") !== "true";
       saveJSON(storageKey("followingOpen"), state.following.open);
       render();
       return;
