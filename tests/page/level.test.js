@@ -270,6 +270,19 @@ describe("the level: a drawn plate laid flat, its rooms in place", () => {
       city(); lift("AmericasMart Building 3");               // a venue with no drawing has no level's groups at all
       expect(shown()[0].querySelectorAll(".level-labels, .level-sel, .level-streets")).toHaveLength(0);
     });
+    it("lit by day: the rooms dayLights() gives for the Map's day and the reader's picks are gold, a composite as its rooms, as on the stack - and a day chip lights them again in place", () => {
+      const sunday = handle.events.find(e => e.hotel === "Hyatt" && e.level === "exhibit" && e._cd === SUN && e.rooms.length && !e.rooms.includes("Grand Hall C") && !e.cancelled);
+      level("Hyatt", EXHIBIT, [IN_EXHIBIT, sunday.id]);
+      const gold = () => shapes().filter(r => r.classList.contains("lit")).map(r => `${r.dataset.level}|${r.dataset.room}`).sort();
+      const want = day => app.dayLights("Hyatt", day, handle.picks.get()).flatMap(row => row.lit.map(at => `${at.level}|${at.id}`)).sort();
+      expect([gold(), gold()]).toEqual([want(SAT), ["exhibit|Grand Hall C"]]);
+      const kept = shapes();
+      dayChip(SUN).click();
+      expect([gold(), gold().length > 0, gold().includes("exhibit|Grand Hall C"), shapes().every((r, i) => r === kept[i]), state.map.level]).toEqual([want(SUN), true, false, true, EXHIBIT]);
+      expect(shape("Grand Hall C").getAttribute("aria-label")).toMatch(/, no picks on Sunday$/);
+      level("Marriott", "international", [AS_SOUTH]);        // booked as a composite: each of its rooms is lit
+      expect(gold()).toEqual(SOUTH.map(id => `international|${id}`).sort());
+    });
     it("a lit room's label, and a lit open area's, is in the gold's ink: the class the stylesheet colours, on what the day lights and no other", () => {
       level("Hyatt", "ballroom+tower-ll1", ["s0347"]);          // Centennial I at 4:00 PM
       const lit = () => [...labels().querySelectorAll(".lit")].map(words);

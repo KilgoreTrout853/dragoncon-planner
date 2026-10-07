@@ -89,9 +89,9 @@ function mapFocus() {
    rooms the drawing has of it selected - none, where it has none - and for
    an event in one room alone, a small one, the camera on it; a floor is its
    venue's stack with its plate selected; the venue alone, and the park, is
-   the city map, the focus's ring on its block. A caller with a sheet open closes it
-   first: the close's own redraw is of the tab underneath, and would end a
-   focus set before it. */
+   the city map, the focus's ring on its block. A caller with a sheet open
+   closes it first: the close's own redraw is of the tab underneath, and
+   would end a focus set before it. */
 function showOnMap(id) {
   const ev = byId.get(id);
   if (!onTheMap(ev)) return;
@@ -400,7 +400,8 @@ function pushedIn(hotel) {
    across at the level's fit brings the camera to it (level.js); a tap off
    every room clears the selection and goes nowhere. */
 /* The plate whose level is open, or null - and the level's three keys
-   cleared where the open venue has no such drawn plate. */
+   cleared where the open venue has no such drawn plate, or no venue is
+   open: openStack() and closeStack() leave them to this. */
 function levelPlate(hotel) {
   const m = state.map, plate = (hotel && m.level && building(hotel).plates.find(p => p.key === m.level && p.drawn)) || null;
   if (!plate && (m.level || m.rooms || m.zoom)) Object.assign(m, {level: null, rooms: null, zoom: null});
@@ -668,7 +669,7 @@ function stackCardHTML(hotel, selected, flat, day, cs, counts, crew) {
    with no building - the park - has none, and keeps its hotel sheet. */
 function openStack(hotel) {
   if (!building(hotel)) return false;
-  Object.assign(state.map, {stack: hotel, plate: null, level: null, rooms: null, zoom: null, focus: null});
+  Object.assign(state.map, {stack: hotel, plate: null, focus: null});
   requestRender();
   const back = document.getElementById("mapBack");
   if (back) back.focus({preventScroll: true});
@@ -680,7 +681,7 @@ function openStack(hotel) {
 function closeStack() {
   const hotel = state.map.stack;
   if (!hotel) return;
-  Object.assign(state.map, {stack: null, plate: null, level: null, rooms: null, zoom: null, focus: null});
+  Object.assign(state.map, {stack: null, plate: null, focus: null});
   requestRender();
   const block = document.querySelector(`#view-map .map-hotel[data-hotel="${cssEsc(hotel)}"]`);
   if (block) block.focus({preventScroll: true});
