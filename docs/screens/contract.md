@@ -2865,6 +2865,9 @@ As built: the recon, section 8, what crews' readers offer today.
   of the ground's edge (#95).
 - The level's frame does not grow: it is the Map's as it stands, and
   whether it should is decided once the level is seen on a phone (#96).
+- On a screen shorter than the three sizes the browser tests hold - a
+  small phone in a browser tab - a level's top can stand under the foot of
+  the way back, whose 44 px are the screen's and not the Map's units (#96).
 - Rooms under 44. Most rooms of a level are under 44 of the Map's units
   across at its fit, and a room that is zoomed on stands 62 across, which
   a short phone draws under #66's 44 px with Larger text on. For step 11's
