@@ -610,6 +610,9 @@ describe("the stack: a venue lifted into its floors", () => {
         expect([cardLines()[2], rows(), under().querySelector(".pc-none")]).toEqual(["Saturday · no events", [["The Room That Never Shuts", "On now · ends Mon 12:00 PM"]], null]);
         dayChip(SUN).click();                                  // another day's card is that day's own: the room began on Thursday
         expect(rows().map(r => r[0])).not.toContain("The Room That Never Shuts");
+        dayChip(WED).click();                                  // and a day with nothing of its own says so, whatever is running as the clock stands
+        const others = handle.events.filter(e => e.hotel === "Westin" && e.level === "f12").length;
+        expect([cardLines()[2], rows(), under().querySelector(".pc-rows"), words(under().querySelector(".pc-none"))]).toEqual(["Wednesday · no events", [], null, `Nothing here on Wednesday. ${others} events on other days.`]);
         app.replaceSchedule(SAMPLE);
       });
       it("a cancelled event is in no row and no count, lights nothing and edges nothing - though it is the reader's pick", () => {
