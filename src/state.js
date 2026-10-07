@@ -42,8 +42,13 @@ const state = {
     open: loadJSON(storageKey("followingOpen"), null)},
   /* Search's: the query, the day, and the filter sheet's thirteen, the four
      topic axes (W8, #70) and the four of Getting in (W7, #77) among them;
-     castOpen is the cast group's fold, open until tapped shut (#85). */
-  browse: {q: "", day: null, prevDay: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All",
+     castOpen is the cast group's fold, open until tapped shut (#85). And
+     place, the place a card of the Map's sent the reader here for (#98):
+     {hotel, levels, rooms} - a venue and, in it, the levels of one plate,
+     or with rooms the rooms selected on one level - null for none, in
+     memory alone. It holds the hotel, and search.js placeInEffect() clears
+     it where it is read once the hotel is another. */
+  browse: {q: "", day: null, prevDay: null, place: null, hotel: "All", type: "All", track: "All", work: "All", kind: "All",
     medium: "All", genre: "All", craft: "All", subject: "All",
     cost: "All", signup: "All", audience: "All", soldOut: "All",
     showHidden: false, showPast: false, castOpen: true, noToday: false, todayScoped: false, hideNoise: settings.hideNoise, page: 1},

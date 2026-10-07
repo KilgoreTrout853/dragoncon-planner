@@ -28,6 +28,9 @@ const SMALL = 44;         // a room under this across zooms when it is tapped
 const ZOOM_TO = 62;       // until its shorter side is this
 const ZOOM_CAP = 7;       // and never past this many units a foot
 const ZOOM_DROP = 12;     // a zoomed room stands this far below the frame's middle, clear of the way back
+const ZOOM_MARGIN = 20;   // and no closer than leaves this much of the frame clear all round it
+const BACK_W = 130;       // nor than keeps it out of the way back's corner of the frame: this wide,
+const BACK_H = LEVEL_MARGIN.t;   // and as deep as the room a level's fit leaves it
 const NAMES_FROM = 1.5;   // a landmark's name is shown from this many units a foot
 const KINDS = ["elevator", "escalator", "entrance", "bridge", "info"];   // a landmark's, and info for any other
 /* How wide a word is taken to be, a letter, as a share of its size: a
@@ -173,12 +176,25 @@ function nearest(places, point, reach) {
 
 /* The zoom (round 7's second rule). A room is small where its shorter side
    is under SMALL at a scale, units a foot. The scale a camera on it stands
-   at brings that side to ZOOM_TO, at most ZOOM_CAP a foot - and never
-   further out than the level's own fit, nor than `least`, the zoom the
-   camera is already at. And the camera on a room at a scale: the room's
+   at brings that side to ZOOM_TO, at most ZOOM_CAP a foot, and no further
+   out than `least`, the zoom the camera is already at - but never closer
+   than the room fits the frame, zoomFits(), so a large room tapped after a
+   small one eases out to where it is whole; and, last, never further out
+   than the level's own fit. And the camera on a room at a scale: the room's
    middle ZOOM_DROP below the frame's. */
 const isSmall = (room, scale) => Math.min(room.w, room.h) * scale < SMALL;
-const zoomScale = (room, fit, least = 0) => Math.max(fit, least, Math.min(ZOOM_TO / Math.min(room.w, room.h), ZOOM_CAP));
+/* The closest a room fits a frame {x, y, w, h}: the largest scale at which
+   its box, turned as it is and standing where cameraOn() puts it, is
+   inside the frame by ZOOM_MARGIN all round and out of the way back's
+   corner, the frame's top left, BACK_W by BACK_H - below it, or beside
+   it. */
+function zoomFits(room, frame) {
+  const box = bounds(corners(room));
+  const inside = Math.min((frame.w - 2 * ZOOM_MARGIN) / box.w, (frame.h - 2 * ZOOM_DROP - 2 * ZOOM_MARGIN) / box.h);
+  const clear = Math.max((frame.h + 2 * ZOOM_DROP - 2 * BACK_H) / box.h, (frame.w - 2 * BACK_W) / box.w);
+  return Math.min(inside, clear);
+}
+const zoomScale = (room, fit, frame, least = 0) => Math.max(fit, Math.min(Math.max(least, Math.min(ZOOM_TO / Math.min(room.w, room.h), ZOOM_CAP)), zoomFits(room, frame)));
 const cameraOn = (room, scale, frame) => ({scale, tx: frame.x + frame.w / 2 - scale * room.cx, ty: frame.y + frame.h / 2 + ZOOM_DROP - scale * room.cy});
 
 /* What rooms selected together are called - `rooms` a list of {level, id},
@@ -193,6 +209,6 @@ function namedTogether(rooms, plate) {
 }
 
 export {
-  LEVEL_MARGIN, FULL, LEAST, REACH, SMALL, ZOOM_TO, ZOOM_CAP, ZOOM_DROP, NAMES_FROM,
-  corners, placeKey, levelPlaces, levelFit, shortNames, roomLabel, levelLabels, nearest, isSmall, zoomScale, cameraOn, namedTogether,
+  LEVEL_MARGIN, FULL, LEAST, REACH, SMALL, ZOOM_TO, ZOOM_CAP, ZOOM_DROP, ZOOM_MARGIN, BACK_W, BACK_H, NAMES_FROM,
+  corners, placeKey, levelPlaces, levelFit, shortNames, roomLabel, levelLabels, nearest, isSmall, zoomFits, zoomScale, cameraOn, namedTogether,
 };

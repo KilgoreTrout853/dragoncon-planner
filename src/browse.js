@@ -7,7 +7,7 @@ import { esc, fmtShort } from "./util.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
 import { events, isNoise, worksById } from "./data.js";
-import { browseCast, browseResults, index, processTerm, SEARCH_PLACEHOLDER, suggestDocs, suggestionsFor } from "./search.js";
+import { activeFilters, browseCast, browseResults, index, processTerm, SEARCH_PLACEHOLDER, suggestDocs, suggestionsFor } from "./search.js";
 import { chipHTML, rowHTML } from "./ui.js";
 import { inEffect } from "./filters.js";
 import { chipRowsRestore, chipRowsSnapshot } from "./scroll.js";
@@ -51,10 +51,11 @@ function noExactMatchHTML(results) {
 
 /* Searching a person by name and quietly dropping their photo sessions is
    the wrong default when the name is the whole query - say what was held
-   back and offer it, rather than hiding it twice. */
+   back and offer it, rather than hiding it twice. Not under a place, which
+   hides none (#98). */
 function hiddenForQueryHTML(results) {
   const b = state.browse;
-  if (!b.q.trim() || b.showHidden || !b.hideNoise) return "";
+  if (!b.q.trim() || b.showHidden || !b.hideNoise || activeFilters().place) return "";
   const raw = (b.parsed && b.parsed.residual) || "";
   const name = /^".+"$/.test(raw) ? raw.slice(1, -1) : raw.trim();
   if (!name) return "";

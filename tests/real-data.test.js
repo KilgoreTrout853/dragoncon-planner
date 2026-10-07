@@ -1392,10 +1392,52 @@ describe("against the real schedule", () => {
         expect(Math.min(Math.abs(box.w - (f.w - m.l - m.r)), Math.abs(box.h - (f.h - m.t - m.b))), `${v.hotel} ${v.plate.key}`).toBeLessThan(1e-6);
       }
     });
-    it("the zoom brings each of the 178 small places to 62 across, between 0.76 and 5.39 units a foot: the cap of 7 is never met on these drawings", () => {
-      const zooms = views().flatMap(v => v.places.filter(r => app.isSmall(r, v.fit.scale)).map(r => ({ r, v, z: app.zoomScale(r, v.fit.scale) })));
+    it("the zoom brings 177 of the 178 small places to 62 across, between 0.76 and 5.39 units a foot - the cap of 7 is never met on these drawings - and the Marriott's Atrium Ballroom C, 23 ft by 110, to where it fits the frame, 50 across (#98)", () => {
+      const zooms = views().flatMap(v => v.places.filter(r => app.isSmall(r, v.fit.scale)).map(r => ({ r, v, z: app.zoomScale(r, v.fit.scale, frame()) })));
       expect([zooms.length, hundredth(Math.min(...zooms.map(x => x.z))), hundredth(Math.max(...zooms.map(x => x.z))), zooms.filter(x => x.z >= app.ZOOM_CAP).length]).toEqual([178, 0.76, 5.39, 0]);
-      for (const { r, v, z } of zooms) expect([Math.min(r.w, r.h) * z, z > v.fit.scale], `${v.plate.key} ${r.id}`).toEqual([expect.closeTo(62, 6), true]);
+      const short = zooms.filter(x => Math.abs(Math.min(x.r.w, x.r.h) * x.z - 62) > 1e-6);
+      expect(short.map(x => [x.v.plate.key, x.r.id, hundredth(Math.min(x.r.w, x.r.h) * x.z), hundredth(Math.max(x.r.w, x.r.h) * x.z), x.z === app.zoomFits(x.r, frame())])).toEqual([["atrium", "Atrium Ballroom C", 50.39, 241, true]]);
+      for (const { r, v, z } of zooms) expect(z > v.fit.scale, `${v.plate.key} ${r.id}`).toBe(true);
+    });
+    /* The zoom's one rule (#98), over every scale a level's camera can come
+       to - a room's own zoom from the fit, and every room tapped after it,
+       and after that, until no tap gives a new one - and every place at
+       each. As built before it, 6 places stood larger than the frame after
+       their level's smallest room: the Hyatt's Concourse, 733 across, its
+       Grand Halls A to D, 323 down, and the Courtland Grand's Georgia
+       Ballroom, 386 down. */
+    it("by any order of taps no place of the 192 stands closer than it fits: inside the frame by 20, and out of the way back's corner - and the level's fit never has to hold a room out past that", () => {
+      const f = frame(), EPS = 1e-6;
+      let states = 0, eased = 0;
+      for (const v of views()) {
+        const reach = new Set([0]);
+        for (let grew = true; grew;) {
+          grew = false;
+          for (const least of [...reach]) for (const r of v.places) {
+            if (!least && !app.isSmall(r, v.fit.scale)) continue;                // from the fit, only a small room zooms
+            const z = Number(app.zoomScale(r, v.fit.scale, f, least).toFixed(9));
+            if (!reach.has(z)) { reach.add(z); grew = true; }
+          }
+        }
+        const closest = Math.max(...reach);
+        for (const r of v.places) {
+          expect(app.zoomFits(r, f) >= v.fit.scale - EPS, `${v.plate.key} ${r.id}: the fit`).toBe(true);
+          if (app.zoomScale(r, v.fit.scale, f, closest) < closest - EPS) eased++;
+          for (const least of reach) {
+            if (!least && !app.isSmall(r, v.fit.scale)) continue;
+            const z = app.zoomScale(r, v.fit.scale, f, least), cam = app.cameraOn(r, z, f), box = app.bounds(app.corners(r).map(([x, y]) => [cam.tx + z * x, cam.ty + z * y]));
+            states++;
+            expect([box.x0 >= f.x + app.ZOOM_MARGIN - EPS, box.x1 <= f.x + f.w - app.ZOOM_MARGIN + EPS, box.y0 >= f.y + app.ZOOM_MARGIN - EPS, box.y1 <= f.y + f.h - app.ZOOM_MARGIN + EPS,
+              box.x0 >= f.x + app.BACK_W - EPS || box.y0 >= f.y + app.BACK_H - EPS], `${v.plate.key} ${r.id} at ${z}`).toEqual([true, true, true, true, true]);
+          }
+        }
+      }
+      expect([states, eased]).toEqual([2158, 27]);
+    });
+    it("the largest of them, tapped after their level's smallest room: the Concourse as wide as the frame's margin leaves, the Georgia Ballroom as tall", () => {
+      const f = frame(), closest = v => Math.max(...v.places.filter(r => app.isSmall(r, v.fit.scale)).map(r => app.zoomScale(r, v.fit.scale, f)));
+      const after = (hotel, key, id) => { const v = views().find(x => x.hotel === hotel && x.plate.key === key), r = v.places.find(p => p.id === id), z = app.zoomScale(r, v.fit.scale, f, closest(v)); return [hundredth(closest(v)), hundredth(z), Math.round(r.w * z), Math.round(r.h * z)]; };
+      expect([after("Hyatt", "exhibit+tower-ll2", "Concourse"), after("Hyatt", "exhibit+tower-ll2", "Grand Hall A"), after("Courtland Grand", "f1", "Georgia Ballroom")]).toEqual([[5.39, 2.54, 345, 127], [5.39, 4.02, 112, 241], [2.38, 1.49, 125, 241]]);
     });
     it("a place's own middle is its own: no room or identified open area of a level is painted over another's, so a tap on one selects it", () => {
       for (const v of views()) for (const r of v.places) expect(app.nearest(v.places, [r.cx, r.cy], 0), `${v.hotel} ${v.plate.key} ${r.id}`).toBe(r);
@@ -1433,6 +1475,74 @@ describe("against the real schedule", () => {
       }
       expect(tally).toEqual({ one: 867, small: 843, many: 1256, composite: 358 });
       expect(handle.events.filter(e => app.depthOf(e).depth === "level")).toHaveLength(0);
+    });
+  });
+
+  /* The place filter (DECISIONS #98) on the real schedule: every place the
+     Map can select - each room and identified open area of a drawn level,
+     each set of rooms an arrival leaves selected, each plate that takes a
+     tap - on each con day: what the card under the map counts there beside
+     the list Search draws for the place its head sends. The numbers are the
+     committed files': a schedule, a drawing or the venues file changed moves
+     them, and the pull request that does it says so here. New tests, not
+     rows of tests/PORT-LEDGER.md. */
+  describe("the place filter, on 2027's drawings and 2026's schedule", () => {
+    const places = () => {
+      const rooms = [], sets = new Map(), plates = [];
+      for (const hotel of app.BUILDINGS) for (const plate of app.building(hotel).plates) {
+        if (!plate.inert) plates.push({ hotel, levels: plate.levels.map(l => l.id), rooms: null });
+        if (plate.drawn) for (const r of app.levelPlaces(plate)) rooms.push({ hotel, levels: [r.level], rooms: [r.id] });
+      }
+      for (const ev of handle.events) {
+        const d = app.depthOf(ev);
+        if (d.rooms && d.rooms.length > 1) sets.set(`${ev.hotel}|${d.level}|${d.rooms.join("+")}`, { hotel: ev.hotel, levels: [d.level], rooms: d.rooms });
+      }
+      return { rooms, sets: [...sets.values()], plates };
+    };
+    /* A place's events as the Map's card lists them: building.js's own lists, each event once. */
+    const atCard = place => [...new Set(place.rooms ? place.rooms.flatMap(id => app.roomEvents(place.hotel, place.levels[0], id).map(at => at.ev)) : place.levels.flatMap(level => app.levelEvents(place.hotel, level)))];
+    const reset = () => { app.clearFilters(); Object.assign(state.browse, { q: "", day: null, prevDay: null, place: null, page: 1 }); };
+
+    it("259 places: 192 rooms and open areas, 41 sets of rooms an arrival leaves, 26 plates - and 41 of the rooms have nothing at all, so their head is no link", () => {
+      const all = places(), flat = [...all.rooms, ...all.sets, ...all.plates];
+      expect([all.rooms.length, all.sets.length, all.plates.length, flat.length]).toEqual([192, 41, 26, 259]);
+      const none = flat.filter(place => app.placeLink(place, "2026-09-05") === null);
+      expect([none.length, none.every(place => place.rooms && place.rooms.length === 1 && atCard(place).length === 0)]).toEqual([41, true]);
+    });
+    it("on each of the six con days Search's list for a place is the card's own list: its count of what is happening and, marked, what is cancelled - 16 of the 1,554 differ from the count, each by one cancelled event", () => {
+      const all = places(), flat = [...all.rooms, ...all.sets, ...all.plates], days = app.CON_DAYS;
+      const tally = { cells: 0, differ: 0, most: 0, everyDay: 0, longest: 0 }, where = new Set();
+      for (const place of flat) {
+        const card = atCard(place), happening = card.filter(app.happening);
+        for (const day of days) {
+          const count = happening.filter(e => e._cd === day).length, cancelled = card.filter(e => e._cd === day && !app.happening(e)).length, link = app.placeLink(place, day);
+          tally.cells++;
+          if (!happening.length) { expect(link, `${app.placeWords(place)} ${day}`).toBe(null); continue; }
+          expect(link.day, `${app.placeWords(place)} ${day}`).toBe(count ? day : "All");
+          if (!count) tally.everyDay++;
+          app.setPlace(place, day);
+          const list = app.browseResults();
+          expect([list.length, list.map(e => e.id).sort()], `${app.placeWords(place)} ${day}`).toEqual([count + cancelled, card.filter(e => e._cd === day).map(e => e.id).sort()]);
+          tally.longest = Math.max(tally.longest, list.length);
+          if (cancelled) { tally.differ++; tally.most = Math.max(tally.most, cancelled); where.add(`${place.hotel} ${place.levels.join("+")}`); }
+        }
+      }
+      reset();
+      expect(tally).toEqual({ cells: 1554, differ: 16, most: 1, everyDay: 350, longest: 145 });
+      expect([...where]).toEqual(["Courtland Grand f3"]);                       // two cancelled events of the Grand Ballroom's, Saturday's and Sunday's
+    }, 30000);
+    it("a photo room's list is all of it: the Marriott's International Hall South on Saturday, 119 photo sessions, where the hotel alone on that day hides every one", () => {
+      const south = places().sets.find(place => app.placeTitle(place) === "International Hall South");
+      app.setPlace(south, "2026-09-05");
+      const list = app.browseResults();
+      expect([app.placeWords(south), state.browse.hideNoise, list.length, list.every(app.isNoise), app.placeLink(south, "2026-09-05").name]).toEqual(["Marriott · International Hall South", true, 119, true, "All 119 events in International Hall South on Saturday, in Search"]);
+      state.browse.place = null;
+      expect(app.browseResults().filter(e => south.rooms.some(id => (e.rooms || []).includes(id) || (e.rooms || []).includes("International Hall South")))).toHaveLength(0);
+      reset();
+    });
+    it("the longest words a chip holds are a whole ballroom's rooms, one by one: 123 letters", () => {
+      const all = places(), longest = [...all.rooms, ...all.sets, ...all.plates].map(app.placeWords).sort((a, b) => b.length - a.length)[0];
+      expect([longest.length, longest.startsWith("Courtland · Grand Ballroom A + Grand Ballroom B"), longest.endsWith("Grand Ballroom F")]).toEqual([123, true, true]);
     });
   });
 });

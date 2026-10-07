@@ -11,6 +11,7 @@ import { byId, events, happening } from "./data.js";
 import { building, dayLights, depthOf, levelEvents, roomEvents } from "./building.js";
 import { picks } from "./picks.js";
 import { walkEstimate } from "./walk.js";
+import { placeLink } from "./search.js";
 import { chipHTML } from "./ui.js";
 import { cssEsc, drawInPlace, focusIn, giveFocusBack, pageScrollTo } from "./scroll.js";
 import { requestRender } from "./bus.js";
@@ -426,7 +427,8 @@ function atRest(hotel) {
    the plate laid flat; `rooms`, the rooms selected in it, a list of
    {level, id} - a shared plate holds two levels' rooms; and `zoom`, the room
    the camera is on, {level, id, scale}, the scale kept because a room tapped
-   while zoomed comes to the middle at the same zoom or closer. Each null for
+   while zoomed comes to the middle at the same zoom or closer - or further
+   out, where at that zoom it would not fit the frame. Each null for
    none, and with a level open no plate is selected. A reload shows the city
    map; leaving the tab, a day chip and a sheet keep all three. A view is its
    end state; the moves to it and from it are the motion's, below.
@@ -462,11 +464,13 @@ function levelCamera(hotel, plate) {
   return room ? cameraOn(room, zoom.scale, MAP_VIEW) : fitOf(hotel, plate);
 }
 /* The camera brought to a room: always while it is already in close - the
-   room comes to the middle at the same zoom or closer - and, from the fit,
-   only for a room that is small there. */
+   room comes to the middle at the same zoom or closer, and never closer
+   than it fits the frame, so from a small room to a large one the camera
+   eases out (level.js zoomScale(); DECISIONS #98) - and, from the fit, only
+   for a room that is small there. */
 function zoomIn(hotel, plate, at, always) {
   const room = placeOf(plate, at), fit = fitOf(hotel, plate).scale, zoom = state.map.zoom;
-  if (always || isSmall(room, fit)) state.map.zoom = {level: at.level, id: at.id, scale: zoomScale(room, fit, zoom ? zoom.scale : 0)};
+  if (always || isSmall(room, fit)) state.map.zoom = {level: at.level, id: at.id, scale: zoomScale(room, fit, MAP_VIEW, zoom ? zoom.scale : 0)};
 }
 /* What an open level says, as the labels' group holds it (level.js
    levelLabels() at the camera's scale): the open areas' names, the rooms'
@@ -646,7 +650,11 @@ function drawStack(view, open, selected, flat, day) {
    same rules, of building.js roomEvents(), an event in two of the rooms
    once. A row there says no room - the card is the room - and " · as
    International Hall South" where the event booked the room as part of a
-   composite, unless the card is that composite. */
+   composite, unless the card is that composite.
+   The head of a plate's card and of a room's - the small line, the name and
+   the day's line - is one button (DECISIONS #98): Search, on that place and
+   that day, where the rest of what the two rows begin is listed. Search is
+   the one home of a list (#63); the card gains a way to it and no row. */
 const inSchedule = (a, b) => a._s - b._s || a.title.localeCompare(b.title);
 const laterDay = (ev, day) => { const ends = conDayKey(new Date(ev._e.getTime() - 1)); return ends > day ? `${DAY_LABEL[ends] || ends} ` : ""; };
 const endSaid = (ev, day) => laterDay(ev, day) + fmtShort(ev._e);
@@ -667,10 +675,37 @@ function plateRowsHTML(all, day, at, where = roomWords) {
     + next.slice(0, on.length ? 1 : 2).map((e, i) => plateRowHTML(e, `<b>${i ? "Then" : "Next"}</b> · ${rangeSaid(e, day)}`, where(e))).join("");
   return rows ? `<ul class="pc-rows">${rows}</ul>` : `<p class="pc-none">Nothing more here today.</p>`;
 }
+/* A plate, and the rooms selected on a level, as the place Search takes
+   (state.browse.place): a venue and, in it, the levels of one plate, or the
+   rooms selected, which are of one level. */
+const plateAsPlace = (hotel, plate) => ({hotel, levels: plate.levels.map(level => level.id), rooms: null});
+const roomsAsPlace = (hotel, rooms) => ({hotel, levels: [rooms[0].level], rooms: rooms.map(room => room.id)});
+/* The head: the card's three lines as they were, in one button with a
+   chevron at its right, as the venue's line has. search.js placeLink() says
+   where it goes - the Map's day, or every day where the place has nothing
+   on that one - and its name; where the place has no event on any day it
+   is the same lines with no button and no chevron. It adds no row and no
+   height: the slot is the stylesheet's one rule. */
+function headHTML(place, day, small, title, said) {
+  const link = placeLink(place, day), words = `<span class="pc-words"><span class="nc-label">${esc(small)}</span><span class="nc-title">${esc(title)}</span><span class="nc-when">${said}</span></span>`;
+  return link ? `<button type="button" class="pc-head" id="mapAll" data-act="place-search" data-day="${link.day}" aria-label="${esc(link.name)}">${words}<span class="pc-chevron" aria-hidden="true">›</span></button>` : `<div class="pc-head">${words}</div>`;
+}
+/* The place the card under the map is about, which its head's tap sends to
+   Search (dispatch.js), chosen as stackCardHTML() chooses the card: the
+   rooms selected in an open level, else that level's plate, else the
+   selected plate. Null for the focused card, the venue's line and the city
+   map, which have no such head. */
+function cardPlace() {
+  const hotel = state.map.stack;
+  if (!hotel || mapFocus()) return null;
+  const flat = levelPlate(hotel), plate = flat || stackPlate(hotel);
+  if (!plate) return null;
+  return flat && state.map.rooms ? roomsAsPlace(hotel, state.map.rooms) : plateAsPlace(hotel, plate);
+}
 function plateCardHTML(hotel, plate, day, at) {
   const row = dayLights(hotel, day, picks).find(r => r.key === plate.key), dayName = DAY_LONG[day] || day;
   const all = plate.levels.length === 1 ? levelEvents(hotel, plate.levels[0].id) : plate.levels.flatMap(level => levelEvents(hotel, level.id)).sort(inSchedule);
-  return `<div class="next-card plate-card${row.picks ? " mine" : ""}" id="mapPlate" data-plate="${esc(plate.key)}" style="--h:var(${hotelVar(hotel)})"><div class="nc-label">${esc(hotelShort(hotel))}</div><div class="nc-title">${esc(plate.levels.length > 1 ? plate.short : plate.name)}</div><div class="nc-when">${esc(dayName)} · ${row.events ? plural(row.events, "event") : "no events"}${row.picks ? ` · ${plural(row.picks, "pick")}` : ""}</div>${plateRowsHTML(all, day, at)}</div>`;
+  return `<div class="next-card plate-card${row.picks ? " mine" : ""}" id="mapPlate" data-plate="${esc(plate.key)}" style="--h:var(${hotelVar(hotel)})">${headHTML(plateAsPlace(hotel, plate), day, hotelShort(hotel), plate.levels.length > 1 ? plate.short : plate.name, `${esc(dayName)} · ${row.events ? plural(row.events, "event") : "no events"}${row.picks ? ` · ${plural(row.picks, "pick")}` : ""}`)}${plateRowsHTML(all, day, at)}</div>`;
 }
 function roomCardHTML(hotel, plate, rooms, day, at) {
   const booked = new Map();
@@ -678,7 +713,7 @@ function roomCardHTML(hotel, plate, rooms, day, at) {
   const all = [...booked.keys()].sort(inSchedule), here = all.filter(ev => ev._cd === day && happening(ev)), mine = here.filter(ev => picks.has(ev.id)).length;
   const name = namedTogether(rooms, plate), level = plate.levels.find(l => l.id === rooms[0].level);
   const as = ev => (booked.get(ev) && booked.get(ev) !== name ? `as ${booked.get(ev)}` : "");
-  return `<div class="next-card plate-card room-card${mine ? " mine" : ""}" id="mapRoom" data-plate="${esc(plate.key)}" style="--h:var(${hotelVar(hotel)})"><div class="nc-label">${esc(hotelShort(hotel))} · ${esc(level.name)}</div><div class="nc-title">${esc(name)}</div><div class="nc-when">${esc(DAY_LONG[day] || day)} · ${here.length ? plural(here.length, "event") : "no events"}${mine ? ` · ${plural(mine, "pick")}` : ""}</div>${plateRowsHTML(all, day, at, as)}</div>`;
+  return `<div class="next-card plate-card room-card${mine ? " mine" : ""}" id="mapRoom" data-plate="${esc(plate.key)}" style="--h:var(${hotelVar(hotel)})">${headHTML(roomsAsPlace(hotel, rooms), day, `${hotelShort(hotel)} · ${level.name}`, name, `${esc(DAY_LONG[day] || day)} · ${here.length ? plural(here.length, "event") : "no events"}${mine ? ` · ${plural(mine, "pick")}` : ""}`)}${plateRowsHTML(all, day, at, as)}</div>`;
 }
 /* The venue's line, one button: the venue by its key, as its hotel sheet is
    headed; the day and the reader's picks at the venue - every one, the
@@ -1018,12 +1053,13 @@ function drawMap() {
   if (drawStack(view, open, selected, flat, day)) wrote = true;
   /* A control of the card that had focus and has left it - a row whose event
      is over, or has begun - hands focus on, and does not drop it to the page
-     (#66): to the card's first control, else to what the card is about - the
-     selected plate, a selected room of an open level - else, in a level, to
-     the way back. */
+     (#66): to the card's first row, or the venue's line - never to a card's
+     head, which is no row's neighbour (#98) - else to what the card is
+     about - the selected plate, a selected room of an open level - else, in
+     a level, to the way back. */
   if (held && !under.contains(document.activeElement)) {
     const shown = ".map-stack:not([hidden])";
-    const next = under.querySelector("button") || view.querySelector(`${shown} .plate.selected, ${shown} .plate.flat [aria-pressed="true"]`) || (flat ? view.querySelector("#mapBack") : null);
+    const next = under.querySelector("button:not(.pc-head)") || view.querySelector(`${shown} .plate.selected, ${shown} .plate.flat [aria-pressed="true"]`) || (flat ? view.querySelector("#mapBack") : null);
     if (next) next.focus({preventScroll: true});
   }
   return wrote;
@@ -1037,4 +1073,4 @@ function renderMap() { drawMap(); }
    minute, does not. */
 function tickMap() { return drawMap(); }
 
-export { MAP_HOTELS, closeStack, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, onTheMap, openLevel, openStack, renderMap, settleMotion, showOnMap, stepBack, tapLevel, tapPlate, tickMap };
+export { MAP_HOTELS, cardPlace, closeStack, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, onTheMap, openLevel, openStack, renderMap, settleMotion, showOnMap, stepBack, tapLevel, tapPlate, tickMap };

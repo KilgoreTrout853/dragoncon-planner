@@ -27,14 +27,14 @@ import {
   applyExploreHash, closeExplorePage, holdSpyUntil, markActiveSection, openExplorePage,
   renderExploreSections, scrollToExploreSection, scrollToGrid,
 } from "./explore.js";
-import { closeStack, openLevel, openStack, settleMotion, showOnMap, stepBack, tapLevel, tapPlate, tickMap } from "./map.js";
+import { cardPlace, closeStack, openLevel, openStack, settleMotion, showOnMap, stepBack, tapLevel, tapPlate, tickMap } from "./map.js";
 import { toggleInPlace } from "./inplace.js";
 import { refreshEventSheet } from "./eventsheet.js";
 import {
   closeSheet, closeWholeSheet, drawHotelSheet, openSheet, panelFilters, sheetWrap, showHotelCrew,
 } from "./sheet.js";
 import { holdQuery, updateFresh } from "./loading.js";
-import { clearFilters, fillFilters, setFilter, settleWords } from "./filters.js";
+import { clearFilters, fillFilters, setFilter, setPlace, settleWords, takeOffFilter } from "./filters.js";
 import {
   ARCHIVE_NOTICE_KEY, render, renderMiniBar, renderNotice, setTimeOverride, togglePick,
   updateClock,
@@ -121,6 +121,23 @@ function onMainClick(e) {
       const crew = document.getElementById("plansViewCrew");
       if (crew) crew.focus({preventScroll: true});
       runSync();
+      return;
+    }
+    /* The head of a plate's card or a room's, on the Map (#98): Search, on
+       that place and the day the head names - the Map's own, or all of them
+       - with no query and no other filter, at its top, and keyboard focus
+       on the place's chip, since the tab the head stood on is hidden now.
+       The Map is left as it stands - its level, its room, its zoom - and
+       the tab bar is the way back (#63). */
+    if (a === "place-search") {
+      const place = cardPlace();
+      if (!place) return;
+      setPlace(place, act.dataset.day);
+      state.tab = "browse";
+      render();
+      pageScrollTo(0);
+      const chip = document.querySelector('#view-browse .parsed-chips [data-dim="place"]');
+      if (chip) chip.focus({preventScroll: true});
       return;
     }
     if (a === "more-now") { state.now.limit += 100; render(); }
@@ -228,7 +245,7 @@ function onMainClick(e) {
       takeOff(act, () => { state.browse.q = dropPhrase(state.browse.q, act.dataset.src); });
       return;
     }
-    if (a === "unfilter") { takeOff(act, () => { state.browse[act.dataset.dim] = "All"; }); return; }
+    if (a === "unfilter") { takeOff(act, () => takeOffFilter(act.dataset.dim)); return; }
     if (a === "view-timeline" || a === "view-list") {
       state.mineView = a === "view-timeline" ? "timeline" : "list";
       saveJSON(storageKey("mineView"), state.mineView); render();
@@ -381,13 +398,14 @@ function onEventPanelClick(e) {
 }
 
 /* The hotel sheet: its rows work like rows anywhere, an empty hotel offers
-   the search that would fill it, and a line of the crew's opens its event's
-   sheet, as a row does. A star draws the sheet again on the day it shows. */
+   the search that would fill it - the hotel's whole, so a place Search held
+   goes (#98) - and a line of the crew's opens its event's sheet, as a row
+   does. A star draws the sheet again on the day it shows. */
 function onHotelPanelClick(e) {
   const search = e.target.closest('[data-act="map-search"]');
   if (search) {
     const {hotel, day} = search.dataset;
-    Object.assign(state.browse, {q: "", day, prevDay: null, hotel, page: 1, showHidden: false, showPast: false, noToday: false});
+    Object.assign(state.browse, {q: "", day, prevDay: null, place: null, hotel, page: 1, showHidden: false, showPast: false, noToday: false});
     state.tab = "browse";
     closeSheet();
     pageScrollTo(0);

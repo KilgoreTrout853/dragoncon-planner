@@ -273,6 +273,15 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .venue-line .vl-chevron { color: var(--muted); font-size: 1.375rem; line-height: 1; }
 .map-hint { margin: 10px 2px 0; font-size: .875rem; color: var(--muted); }
 .plate-card { cursor: default; }
+/* The head of a plate's card or a room's (DECISIONS #98): the card's three
+   lines, one button to Search, a chevron at its right as the venue's line
+   has. It reaches the card's top and sides - the card's padding its own,
+   taken back as margin - and adds no height, so the slot's one rule
+   stands. With no event at the place it is the same box, and no button. */
+.pc-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; width: calc(100% + 28px); margin: -12px -14px 0; padding: 12px 14px 0; border: 0; border-radius: 13px 13px 0 0; background: none; color: inherit; font: inherit; text-align: left; }
+button.pc-head { cursor: pointer; }
+.pc-head .pc-words, .pc-head .pc-words > span { display: block; min-width: 0; }
+.pc-head .pc-chevron { color: var(--muted); font-size: 1.375rem; line-height: 1; }
 .plate-card .nc-title { display: block; white-space: nowrap; text-overflow: ellipsis; }
 .plate-card.mine .nc-title::before, .pc-row.mine .pc-title::before { content: "★"; margin-right: .2em; color: var(--gold); }
 .pc-rows { list-style: none; margin: 8px -14px -12px; padding: 0; }
@@ -782,6 +791,9 @@ select.crew-pick {
 .filter-group { display: grid; gap: 6px; min-width: 0; }
 .filter-label { font-size: .75rem; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; }
 .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+/* The place Search holds, said under the Hotel chips (DECISIONS #98): words,
+   no control. */
+.filter-only { margin: 2px 2px 0; font-size: .875rem; color: var(--muted); }
 #panel-filters .chip { height: 44px; border-radius: 22px; }
 #panel-filters .chip[disabled], #panel-filters select[disabled] { opacity: .6; }
 #panel-filters .seg { justify-self: start; }
