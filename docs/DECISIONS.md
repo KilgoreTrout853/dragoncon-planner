@@ -2235,7 +2235,7 @@ taken out by the sheet rewrites the query in lower case with one space
 between words, as a chip's x always has. Kind, second in #70's order, is
 now near the panel's foot, below the fold on a phone.
 
-### 72. A level has a storey and a short name — Standing (2026-10-02) — its `short` read by the row since PR #92 (#73); amended by #91
+### 72. A level has a storey and a short name — Standing (2026-10-02) — its `short` read by the row since PR #92 (#73); amended by #91; amended by #95
 **Decided:** Every level of the venues file (#45) gains two keys, required
 like every other, which nothing reads yet:
 - **`storey`**, written after `order`: the storey the level is on, a whole
@@ -2432,7 +2432,7 @@ it exists. The known-for line is built before any line exists: 2026's
 block is empty until the review lands (#61). A live region cannot be heard
 in jsdom, nor a pinned foot seen: both are hand checks on a phone.
 
-### 75. The event sheet's entry points as built — Standing (2026-10-03)
+### 75. The event sheet's entry points as built — Standing (2026-10-03) — amended by #95
 **Decided:** Three taps leave an event's sheet, each to a home's own state
 (#63), and the Map can hold one event as its focus
 (`docs/screens/contract.md`, sections 6, 7 and 11, as built; PR #94).
@@ -3100,7 +3100,7 @@ hold is narrower because a sign-in's pull must still bring For you at once.
 **Cost:** One track's name is the rule, judged on 2027's schedule in August.
 A star in it that gives For you a row shows it only once the grid is left.
 
-### 89. The Map view is built once and drawn in place — Standing (2026-10-06)
+### 89. The Map view is built once and drawn in place — Standing (2026-10-06) — amended by #95
 **Decided:** The Map's first draw builds its view, and every later draw,
 `render()`'s or the minute's, writes in place only what changed (PR #107;
 `docs/screens/contract.md`, section 6).
@@ -3254,3 +3254,29 @@ drawn. 2027 holds the only drawings, and the next site builds 2026.
 hotel, level or room 2026's venues file lacks refuses every default build,
 dev server and Vitest run, and fails `tests/test_drawings.py`, in its own
 pull request: the fix is the id in 2026's file too, or the default moved.
+
+### 95. The stack: a venue lifted into its floors — Standing (2026-10-06)
+**Decided:** Step 10's second pull request (W38; PR #113;
+`docs/screens/contract.md`, section 6). Amends #72, #75, #89.
+- **What opens it:** a tap or Enter on the block of a venue with a building,
+  or a tap on its gold pill; the park, and the crew's pill, keep the hotel
+  sheet. Venue and plate are kept in memory, `state.map`, the tab left too.
+- **Where it stands:** in the Map's frame and units, a plate a storey, the
+  city pushed in behind, each venue's group built at its first open (#89).
+  A strip 40 deep shows under each plate, or 55% of the frame's width wins.
+- **Three kinds of plate:** drawn; a floor with no drawing, dashed, saying
+  its day's count; inert, a dotted outline that takes no touch. A venue with
+  no drawing takes its block's shape.
+- **Gold is the reader's:** the rooms their picks light, and the edge of a
+  plate that holds one. The crew is on the venue's line alone.
+- **The card** is about what is selected: the focused event; a plate, with
+  two rows of what is on; or the venue's line, which opens the hotel sheet.
+  Its slot keeps one height, so a plate that is tapped stands still (#86).
+- **The way back:** one control, a tap off the plates, Escape. A tap that
+  changes what the Map shows ends the focus, and the place line lands as
+  deep as a place goes: a plate selected, or the ring on its venue's block.
+
+**Why:** #60: the stack is how a reader finds the level. Units, not px: one
+layout in a test and at every width, with nothing measured from the page.
+**Cost:** A strip is 38 px or less on a phone, under #66's 44. While a stack
+is open the next pick is said nowhere. C opens a level; E links to Search.

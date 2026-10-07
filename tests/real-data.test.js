@@ -1281,6 +1281,56 @@ describe("against the real schedule", () => {
       expect(app.venueEvents("Hardy Ivy Park")).toHaveLength(36);
     });
   });
+
+  /* The stack (DECISIONS #95) on the real files: how each of the seven
+     venues stands in the Map's frame, in the Map's own units, and the words
+     a card's row says for a room on 2026's schedule. The numbers are the
+     committed files': a level drawn or a venue's floors changed moves them,
+     and the pull request that does it says so here. New tests, not rows of
+     tests/PORT-LEDGER.md. */
+  describe("the stack, on 2027's drawings and 2026's schedule", () => {
+    /* The frame is the Map's own, read from the drawing it draws in: a frame that grows moves these numbers with it. */
+    let drawn = null;
+    const frame = () => {
+      if (!drawn) { app.renderMap(); const [x, y, w, h] = document.querySelector("#view-map svg.map").getAttribute("viewBox").split(" ").map(Number); drawn = { x, y, w, h }; }
+      return drawn;
+    };
+    const tenth = v => Math.round(v * 10) / 10;
+    const laid = hotel => { const made = app.building(hotel); return app.stackLayout(made.hull || app.blockOutline(app.MAP_HOTELS[hotel]), made.plates.length, frame()); };
+    const tally = (list, key) => list.reduce((by, x) => ({ ...by, [key(x)]: (by[key(x)] || 0) + 1 }), {});
+
+    it("each venue's plates, their width and the strip under each: 40 everywhere but at the Hilton, whose five floors leave 31.7 at the least width a plate may have", () => {
+      expect(app.BUILDINGS.map(hotel => [hotel, app.building(hotel).plates.length, tenth(laid(hotel).wide), tenth(laid(hotel).strip)])).toEqual([
+        ["Marriott", 4, 312.7, 40], ["Hyatt", 4, 254.5, 40], ["Hilton", 5, 211.8, 31.7], ["Courtland Grand", 3, 300.2, 40], ["Westin", 5, 320.9, 40],
+        ["AmericasMart Building 2", 4, 300.7, 40], ["AmericasMart Building 3", 2, 300.7, 40]]);
+      expect(tenth(laid("Hilton").wide)).toBe(tenth(app.MIN_WIDE * frame().w));
+      expect(frame()).toEqual({ x: -3, y: 111, w: 385, h: 305 });
+    });
+    it("every plate of every venue stands inside the frame's margins, clear of the way back", () => {
+      const FRAME = frame();
+      for (const hotel of app.BUILDINGS) {
+        for (const box of laid(hotel).plates) {
+          expect([box.x0 >= FRAME.x + app.MARGIN.l - 1e-6, box.x1 <= FRAME.x + FRAME.w - app.MARGIN.r + 1e-6, box.y0 >= FRAME.y + app.MARGIN.t - 1e-6, box.y1 <= FRAME.y + FRAME.h - app.MARGIN.b + 1e-6], hotel)
+            .toEqual([true, true, true, true]);
+        }
+      }
+    });
+    it("the Mart's two buildings have no drawing: each plate is its block's own shape, 72 by 50 on the Map", () => {
+      for (const hotel of ["AmericasMart Building 2", "AmericasMart Building 3"]) {
+        expect([app.building(hotel).hull, app.blockOutline(app.MAP_HOTELS[hotel])]).toEqual([null, [[0, 0], [72, 0], [72, 50], [0, 50]]]);
+      }
+    });
+    it("the words a card's row says for a room: of the 3,176 events on a building's level, 2,195 name rooms; 116 are a booth in one of the Mart's vendor halls, every one with words after its floor; and the 865 others, whose room only repeats their floor, say nothing", () => {
+      const on = handle.events.filter(e => !!app.depthOf(e).plate), none = on.filter(e => !e.rooms.length), booths = none.filter(e => /Vendor Hall/.test(e.room));
+      expect([on.length, on.length - none.length, booths.length, none.length - booths.length]).toEqual([3176, 2195, 116, 865]);
+      expect(on.filter(e => e.rooms.length).every(e => app.roomWords(e) === e.rooms.join(" + "))).toBe(true);
+      expect(booths.every(e => /^Mart2 Vendor Hall Floor [123] \S/.test(e.room) && app.roomWords(e).length > 0 && e.room.endsWith(` ${app.roomWords(e)}`) && !/Vendor Hall|Mart2/.test(app.roomWords(e)))).toBe(true);
+      expect(tally(booths, e => e.level)).toEqual({ f1: 66, f2: 19, f3: 31 });
+      const others = none.filter(e => !booths.includes(e));
+      expect(others.every(e => app.roomWords(e) === "")).toBe(true);
+      expect(tally(others, e => e.room)).toEqual({ "Mart Building 3, Floor 2": 463, "Mart Building 3, Floor 1": 382, "14th Floor": 12, "12th Floor": 8 });
+    });
+  });
 });
 
 /* In place of a pick (W2; DECISIONS #90) on the real schedule, by a boot of

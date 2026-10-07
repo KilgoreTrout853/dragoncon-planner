@@ -121,7 +121,24 @@ const hotelMatches = (e, v) => v === "All" || e.hotel === v || hotelGroup(e.hote
    from Mart 2" - which it knows by their group, Mart (#91). */
 const hotelPhrase = h => (h === "Hardy Ivy Park" ? h : hotelGroup(h) === "Mart" ? hotelShort(h) : `the ${hotelShort(h)}`);
 
+/* The words a row says for an event's room under a floor that is already
+   named - the building view's card, whose heading is the floor (DECISIONS
+   #95). Its room ids, joined: "Concourse", "Hanover A + Hanover B", "203D".
+   Else, where its room is a booth in one of the Mart's vendor halls, what
+   follows the hall and its floor: "Sidestreet Book Market - booth 3201".
+   Else nothing, and the caller writes no middle dot before it: a room with
+   no id only repeats its floor - "12th Floor", "Mart Building 3, Floor 1".
+   The vendor hall's prefix is the source's own spelling, a pattern here
+   until the venues file can say it. Text, not markup: the caller escapes
+   it. */
+const VENDOR_HALL = /^Mart2 Vendor Hall Floor \d+\s+(\S.*)$/;
+function roomWords(ev) {
+  if (ev.rooms && ev.rooms.length) return ev.rooms.join(" + ");
+  const booth = VENDOR_HALL.exec(String(ev.room || ""));
+  return booth ? booth[1].trim() : "";
+}
+
 export {
   HOTEL_ORDER, WALK, SLACK_MIN, cleanRoom, placeHTML, placeText, placeShort, levelShort, levelName, walkMin, hotelShort, hotelVar,
-  hotelGroup, hotelMatches, hotelPhrase, hotelLevels,
+  hotelGroup, hotelMatches, hotelPhrase, hotelLevels, roomWords,
 };

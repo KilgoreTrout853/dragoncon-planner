@@ -104,7 +104,18 @@ const hereButtons = () => [...hotelPanel().querySelectorAll(".crew-now")];
 const hereLines = () => hereButtons().map(b => words(b));
 const hotelHead = () => words(hotelPanel().querySelector(".ev-when"));
 const hereOf = (user, id) => el(`crewHere-${user.id}-${id}`);
-const openHotel = hotel => blockOf(hotel).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+/* A venue's hotel sheet, as a reader reaches it since the building view
+   (DECISIONS #95): its block lifts the venue into its stack - where another
+   stack stands open, the way back first - and the venue's line under the
+   map, which then has focus, opens the sheet. The park has no building, and
+   its block opens its sheet as it did. */
+const stackOf = () => document.querySelector("#view-map svg.map").getAttribute("data-stack");
+const cityMap = () => { if (stackOf()) el("mapBack").click(); };
+function openHotel(hotel) {
+  if (stackOf() !== hotel) { cityMap(); blockOf(hotel).dispatchEvent(new MouseEvent("click", { bubbles: true })); }
+  const line = el("mapVenue");
+  if (line) { line.focus(); line.click(); }
+}
 const tapDay = day => document.querySelector(`#view-map [data-chip="map-day"][data-value="${day}"]`).click();
 /* What changes under a container while an awaited `during` runs. */
 async function mutationsAcross(container, during) {
@@ -739,11 +750,58 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
     document.querySelector('#view-map [data-chip="map-day"][data-value="2026-09-05"]').click();
     expect(crewPills()).toEqual({ Hyatt: "2", Hilton: "1" });
   });
-  it("a tap on it opens the hotel's sheet, as the gold pill's does", () => {
+  it("a tap on it opens the hotel's sheet, at a venue with a building too - where the block and the gold pill open the stack (#95) - and no stack", () => {
     crewPill("Hilton").querySelector("rect").dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(s.handle.state.sheetHotel).toBe("Hilton");
+    expect([s.handle.state.sheetHotel, s.handle.state.map.stack, stackOf()]).toEqual(["Hilton", null, null]);
     escape();
-    expect(s.handle.state.sheetHotel).toBe(null);
+    expect([s.handle.state.sheetHotel, s.handle.state.map.stack]).toEqual([null, null]);
+  });
+  /* The crew on a venue's stack (DECISIONS #95): on the venue's line, as
+     people, and nowhere on the plates - gold stays the reader's own. */
+  it("a venue's line, under its stack, says how many of the crew have a pick there that day; a venue with none says nothing of the crew", () => {
+    const line = hotel => { cityMap(); blockOf(hotel).dispatchEvent(new MouseEvent("click", { bubbles: true })); return words(el("mapVenue").querySelector(".nc-when")); };
+    expect([line("Hyatt"), line("Hilton"), line("Westin")]).toEqual(["Saturday · no picks · 2 of your crew", "Saturday · no picks · 1 of your crew", "Saturday · 2 picks"]);
+    cityMap(); blockOf("Hyatt").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    document.querySelector('#view-map [data-chip="map-day"][data-value="2026-09-04"]').click();
+    expect(words(el("mapVenue").querySelector(".nc-when"))).toBe("Friday · no picks · 1 of your crew");
+    document.querySelector('#view-map [data-chip="map-day"][data-value="2026-09-05"]').click();
+    cityMap();
+  });
+  it("the crew is on the venue's line and nowhere on the plates: no plate edged, no room lit, no label starred, no button and no card counting a crewmate's pick", () => {
+    blockOf("Hyatt").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const stack = document.querySelector("#view-map .map-stack:not([hidden])"), plates = [...stack.querySelectorAll(".plate")];
+    expect([s.app.byId.get("s0376").level, s.app.byId.get("s0263").level, s.app.byId.get("s0228").level]).toEqual(["ballroom", "exhibit", "acc"]);   // Bo's two and Cy's one, a plate each
+    expect([stack.querySelectorAll(".plate.mine").length, stack.querySelectorAll(".lit").length, stack.querySelectorAll(".pl-picks").length]).toEqual([0, 0, 0]);
+    expect(plates.filter(p => p.hasAttribute("aria-label")).map(p => /: (.*)$/.exec(p.getAttribute("aria-label"))[1])).toEqual(["no picks on Saturday", "no picks on Saturday", "no picks on Saturday"]);
+    expect(words(stack)).not.toMatch(/crew|Bo|Cy/);
+    plates[1].querySelector(".plate-hull").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect([el("mapPlate").className, words(el("mapPlate").querySelector(".nc-when")), el("mapPlate").querySelectorAll(".mine").length]).toEqual(["next-card plate-card", "Saturday · 9 events", 0]);
+    expect(words(el("mapPlate"))).not.toMatch(/crew/);
+    cityMap();
+  });
+  it("a crew's change pulled writes the line in place: the same button, keyboard focus kept on it", async () => {
+    blockOf("Hyatt").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const line = el("mapVenue");
+    line.focus();
+    pick(s.fake, s.dee, "s0347");                            // a third crewmate at the Hyatt that Saturday: an event no test below picks again
+    await s.run();
+    expect([el("mapVenue") === line, document.activeElement === line, words(line.querySelector(".nc-when"))]).toEqual([true, true, "Saturday · no picks · 3 of your crew"]);
+    pick(s.fake, s.dee, "s0347", false);
+    await s.run();
+    expect(words(el("mapVenue").querySelector(".nc-when"))).toBe("Saturday · no picks · 2 of your crew");
+    cityMap();
+  });
+  it("the crew's pill opens a sheet over the Map and leaves the Map's focus, as a sheet always has - where a block's tap, which changes what the Map shows, ends it", () => {
+    const flat = s.handle.events.find(e => e.hotel === "Hilton" && e._cd === "2026-09-05" && !e.level);
+    s.app.showOnMap(flat.id);
+    expect([s.handle.state.map.focus, s.handle.state.map.stack]).toEqual([flat.id, null]);
+    crewPill("Hyatt").querySelector("rect").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect([s.handle.state.sheetHotel, s.handle.state.map.focus]).toEqual(["Hyatt", flat.id]);
+    escape();
+    expect([s.handle.state.map.focus, s.handle.state.map.stack, el("mapNext").dataset.hero]).toEqual([flat.id, null, flat.id]);
+    blockOf("Hyatt").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect([s.handle.state.map.focus, s.handle.state.map.stack]).toEqual([null, "Hyatt"]);
+    cityMap();
   });
   it("a crew's change pulled draws it again, focus kept on the hotel that had it", async () => {
     const hyatt = blockOf("Hyatt");
@@ -962,8 +1020,7 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     expect(counted).toEqual(["Hyatt, 2026-09-05", "Hilton, 2026-09-05", "AmericasMart Building 3, 2026-09-06"]);
     tapDay(SATURDAY_DAY);
   });
-  it("a line opens its event's sheet in the hotel's place, and closing it lands on the Map, focus on the hotel that opened the sheet", () => {
-    blockOf("Hyatt").focus();
+  it("a line opens its event's sheet in the hotel's place, and closing it lands on the Map, focus on the venue's line that opened the sheet", () => {
     openHotel("Hyatt");
     press(hereOf(s.bo, "s0376"));
     expect(s.handle.state.sheetId).toBe("s0376");
@@ -971,11 +1028,13 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
     expect(document.activeElement).toBe(el("sheetTitleEvent"));
     escape();
     expect(el("sheetWrap").hidden).toBe(true);
-    expect(s.handle.state.tab).toBe("map");
+    expect([s.handle.state.tab, s.handle.state.map.stack]).toEqual(["map", "Hyatt"]);
+    expect(document.activeElement).toBe(el("mapVenue"));
+    cityMap();
     expect(document.activeElement).toBe(blockOf("Hyatt"));
   });
   it("each line's id is its crewmate's and its event's: unique, none of Now's, and what focus finds it by - never its event, which the Map's card behind shows too", () => {
-    openHotel("Hyatt");
+    crewPill("Hyatt").dispatchEvent(new MouseEvent("click", { bubbles: true }));   // the crew's pill: the sheet over the city map, whose card shows the reader's next pick
     const ids = [...document.querySelectorAll("[id]")].map(n => n.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(el("view-now").hidden).toBe(true);
@@ -1107,6 +1166,7 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
   const tapSVG = node => node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
   it("the crew's pill opens the hotel's sheet with Your crew's picks here brought to the top of its body (#63), focus on the heading", () => {
+    cityMap();                                               // the pills are the city map's: the Hyatt's stack, left open above, goes first
     laidOut(() => tapSVG(crewPill("Hyatt").querySelector("rect")));
     expect(s.handle.state.sheetHotel).toBe("Hyatt");
     expect(bodyScroll()).toBe(420);
@@ -1153,22 +1213,31 @@ describe("the hotel sheet's crew (step 5c): Your crew's picks here, under the re
       escape();
     }
   });
-  it("the gold pill opens it at its top, as before", () => {
-    laidOut(() => tapSVG(document.querySelector('#view-map .map-pill[data-hotel="Hyatt"] rect')));
+  it("the gold pill opens the venue's stack, and its line there the sheet at its top", () => {
+    tapSVG(document.querySelector('#view-map .map-pill[data-hotel="Hyatt"] rect'));
+    expect([s.handle.state.map.stack, s.handle.state.sheetHotel]).toEqual(["Hyatt", null]);
+    laidOut(() => el("mapVenue").click());
     expect(s.handle.state.sheetHotel).toBe("Hyatt");
     expect(bodyScroll()).toBe(0);
     escape();
+    cityMap();
   });
-  it("and the block at its top, tapped or by the keyboard's path", () => {
+  it("and by the block, tapped or by the keyboard's path: its stack, then the line, the sheet at its top", () => {
     laidOut(() => openHotel("Hyatt"));
     expect(s.handle.state.sheetHotel).toBe("Hyatt");
     expect(bodyScroll()).toBe(0);
     escape();
+    cityMap();
     blockOf("Hyatt").focus();
-    laidOut(() => blockOf("Hyatt").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })));
+    blockOf("Hyatt").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    expect([s.handle.state.map.stack, s.handle.state.sheetHotel, document.activeElement === el("mapBack")]).toEqual(["Hyatt", null, true]);
+    el("mapVenue").focus();
+    laidOut(() => el("mapVenue").click());                   // a button: Enter or Space on it is its click
     expect(s.handle.state.sheetHotel).toBe("Hyatt");
     expect(bodyScroll()).toBe(0);
     escape();
+    expect(document.activeElement).toBe(el("mapVenue"));
+    cityMap();
   });
   it("a crew pill left on the Map after another tab changed the crew's picks finds no section: the sheet opens at its top, and nothing throws", () => {
     const kept = read("crewPicks");

@@ -468,7 +468,8 @@ execution slot (#57), which can run before any of this.
     reaches the room's grain here (contract, section 6). A, the level
     drawings in the app and the building's model, with no screen - built
     (PR #112, #94). B, the stack (W38): a venue lifted into its floors, the
-    reader's picks lit, end states only. C, the level (W39): rooms in
+    reader's picks lit, end states only - built (PR #113, #95). C, the
+    level (W39): rooms in
     place, and a tap on a room for what is on there. D, the motion between
     them (W40). E, "All `<n>` on Saturday", a place filter in Search.
 11. An accessibility sweep (#66) of what the pull requests above left,

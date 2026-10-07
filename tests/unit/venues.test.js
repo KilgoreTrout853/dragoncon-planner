@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { samePlace } from "../../src/picks.js";
-import { cleanRoom, hotelGroup, hotelMatches, hotelPhrase, hotelShort, hotelVar, placeHTML, placeText } from "../../src/venues.js";
+import { cleanRoom, hotelGroup, hotelMatches, hotelPhrase, hotelShort, hotelVar, placeHTML, placeText, roomWords } from "../../src/venues.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
@@ -56,6 +56,35 @@ describe("rooms", () => {
   it("a respelled room is the same place; a different room is not [862]", () => {
     expect(samePlace("Hilton Salon", "Hilton-Salon")).toBe(true);
     expect(samePlace("Hilton Salon", "Hilton Galleria 5")).toBe(false);
+  });
+});
+
+/* The words a row says for a room under a floor already named - the
+   building view's card (DECISIONS #95). New tests, not rows of
+   tests/PORT-LEDGER.md. */
+describe("a room's words, under its floor", () => {
+  it("its room ids, joined: one room, a composite's rooms, a room of the Mart's", () => {
+    expect(roomWords({ rooms: ["Concourse"], room: "Concourse" })).toBe("Concourse");
+    expect(roomWords({ rooms: ["Hanover A", "Hanover B"], room: "Hanover AB" })).toBe("Hanover A + Hanover B");
+    expect(roomWords({ rooms: ["203D"], room: "Mart2 203D ArtCarp - booth # 1718" })).toBe("203D");
+  });
+  it("else, a booth in one of the Mart's vendor halls: the words after the hall and its floor", () => {
+    expect(roomWords({ rooms: [], room: "Mart2 Vendor Hall Floor 3 Sidestreet Book Market - booth 3201" })).toBe("Sidestreet Book Market - booth 3201");
+    expect(roomWords({ rooms: [], room: "Mart2 Vendor Hall Floor 1 The Missing Volume booth 1300" })).toBe("The Missing Volume booth 1300");
+    expect(roomWords({ room: "Mart2 Vendor Hall Floor 12   Booth 9  " })).toBe("Booth 9");
+  });
+  it("its ids come first: a room with ids says them, whatever its string", () => {
+    expect(roomWords({ rooms: ["A"], room: "Mart2 Vendor Hall Floor 2 The Booth" })).toBe("A");
+  });
+  it("else nothing: a room that only repeats its floor, a vendor hall with no words after its floor, a hall that is not the Mart's, and no room at all", () => {
+    for (const room of ["12th Floor", "Mart Building 3, Floor 1", "Mart2 Vendor Hall Floor 2", "Mart2 Vendor Hall Floor 2 ", "Vendor Hall Floor 2 The Booth", "Mart2 Vendor Hall The Booth", "Steps B", "", null, undefined]) {
+      expect(roomWords({ rooms: [], room }), String(room)).toBe("");
+    }
+    expect(roomWords({})).toBe("");
+  });
+  it("is text, not markup: for the caller to escape", () => {
+    expect(roomWords({ rooms: ["A <b>"] })).toBe("A <b>");
+    expect(roomWords({ room: "Mart2 Vendor Hall Floor 1 Fish & <i>Chips</i>" })).toBe("Fish & <i>Chips</i>");
   });
 });
 

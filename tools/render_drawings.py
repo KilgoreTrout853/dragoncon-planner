@@ -10,8 +10,8 @@ printed, so that a drawing can be checked against the hotel's tables by eye. Eac
 name, and every level is drawn at one scale with its frame at one offset, so that a hotel's renders laid over one
 another show whether its levels line up; the notes run below the drawing, which is why a canvas may be taller than
 another. The drawing files carry geometry only; the hotel's and the level's names come from the year's venues.json,
-beside its season file. The app's stage builder will be its own code and will read the same files, from W38
-(DECISIONS #60).
+beside its season file. The app's building view is its own code and reads the same files, as the build hands them
+to it (DECISIONS #60, #94).
 
 cairosvg is optional and not in requirements.txt: without it, --png says so and the SVGs are written alone. The
 standard library otherwise, and deterministic - two runs write the same bytes.

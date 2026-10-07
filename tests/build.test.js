@@ -5,9 +5,9 @@
    year's cases follow, and a build for a year whose schedule the repo does
    not hold yet, in a temporary copy. Each case runs the real CLI into a temp
    folder, so this is slow by unit-test standards - a second or so a build.
-   The level drawings' module is asked of the plugin itself (DECISIONS #94):
-   nothing in the page imports it yet, so no built page shows what it holds,
-   and one real build shows a borrow refused.
+   The level drawings' module is asked of the plugin itself (DECISIONS #94),
+   on staged folders no built page could show, and one real build shows a
+   borrow refused.
 
    Below them, the checks of the build output that came from the old smoke
    harness, one for one (the number in brackets is its line;
@@ -269,9 +269,9 @@ describe("vite build", () => {
 
   /* The level drawings, the third data module (DECISIONS #94), which dcYear()
      makes of a folder of files: what it holds, and the year it is taken
-     from. Nothing in the page imports it yet, so the plugin's own hooks are
-     called as Vite calls them, on data folders staged in the temp folder
-     and, in two tests, on the repository's own:
+     from. The cases are folders no built page could show, so the plugin's
+     own hooks are called as Vite calls them, on data folders staged in the
+     temp folder and, in two tests, on the repository's own:
      the repo's 2027 venues file under each year unless a test gives its
      own, a season file naming the year, and a drawings folder - its README,
      and each drawing under its file name - where a test gives one. The
