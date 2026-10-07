@@ -21,7 +21,7 @@ import { describe, expect, it } from "vitest";
 import { parseAst } from "vite";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const ORDER = ["season", "stack", "util", "storage", "platform", "build", "backend", "about", "identity", "crews", "state", "time", "outbox", "venues", "shareday", "data", "building", "picks", "follows", "ics", "walk", "search", "foryou", "ui",
+const ORDER = ["season", "stack", "level", "util", "storage", "platform", "build", "backend", "about", "identity", "crews", "state", "time", "outbox", "venues", "shareday", "data", "building", "picks", "follows", "ics", "walk", "search", "foryou", "ui",
   "inplace", "filters", "scroll", "eventsheet", "bus", "sync", "now", "browse", "explore", "map", "plans",
   "sheet", "loading", "shell", "dispatch"];
 const PACKAGES = Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).dependencies || {});

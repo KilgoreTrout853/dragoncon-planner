@@ -270,6 +270,39 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .pc-row .pc-when { font-size: .8125rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pc-row .pc-when b { color: var(--text); font-weight: 600; }
 .pc-none { margin: 8px 0 0; font-size: .9375rem; color: var(--muted); }
+/* The level (DECISIONS #96): a drawn plate laid flat, in the same frame. The
+   other plates, every plate's label and the city behind stay in the page
+   and are not shown, as the pills are not under a stack: the pull request
+   that animates will fade them. Its rooms are buttons, and one with
+   keyboard focus says so by its own edge, light and thicker - with more
+   weight than a lit room's rule, which is as heavy as a plain one's and
+   comes first. The selected rooms' outlines and the labels are drawn over
+   the rooms and take no pointer, so a tap on a name is its room's. A
+   label's size is the drawing's (map.js): Larger text leaves the map alone.
+   A lit room's words are in the gold's ink. Landmarks are not gold: gold is
+   the reader's own. */
+.map[data-level] .map-city { visibility: hidden; }
+.map-stack[data-level] .plate:not(.flat), .map-stack[data-level] .plate-label { visibility: hidden; }
+.plate.flat { cursor: default; }
+.plate.flat .plate-room, .plate.flat .plate-open.place { cursor: pointer; }
+.plate.flat .plate-room:focus, .plate.flat .plate-open.place:focus { outline: none; }
+.map-stack[data-level] .plate.flat .plate-room:focus-visible, .map-stack[data-level] .plate.flat .plate-open.place:focus-visible { stroke: var(--text); stroke-width: 4; }
+.level-sel-room { fill: none; stroke: var(--text); stroke-width: 2.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: none; }
+.level-labels { pointer-events: none; }
+.level-labels text { font-family: var(--font); }
+.lv-room, .lv-open { text-anchor: middle; dominant-baseline: central; }
+.lv-room { fill: var(--text); font-weight: 600; }
+.lv-open { fill: var(--muted); font-weight: 500; }
+.lv-room.lit, .lv-open.lit { fill: var(--gold-ink); font-weight: 700; }
+.lv-group { fill: var(--h); font-weight: 700; letter-spacing: .08em; }
+.lv-group.middle { text-anchor: middle; }
+.lv-mark path, .lv-mark rect, .lv-mark circle { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.lv-mark text { fill: var(--muted); font-weight: 600; text-anchor: middle; }
+.level-street[data-side="N"] { text-anchor: end; }
+.level-street[data-side="S"], .level-street[data-side="W"], .level-street[data-side="E"] { text-anchor: middle; }
+/* A room's card is a plate's, and its small line - the venue and the room's
+   level - is one line. */
+.room-card .nc-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Controls ----------------------------------------------------------- */
 .controls { padding: 12px 14px 0; display: grid; gap: 10px; }

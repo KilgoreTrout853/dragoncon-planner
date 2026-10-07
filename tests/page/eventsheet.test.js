@@ -535,9 +535,10 @@ describe("the event's sheet", () => {
       expect(document.querySelector("#view-map .map-wrap").dataset.day).toBe("2026-09-06");
       expect(app.pageScrollTop()).toBe(0);
     });
-    it("as deep as its place goes - here its level: its hotel's stack, its plate selected (#95) - and the card under the map showing that event", () => {
-      expect([state.map.stack, state.map.plate, app.depthOf(app.byId.get("x-sun")).depth]).toEqual(["Hyatt", "acc", "level"]);
-      expect([document.querySelector("#view-map svg.map").getAttribute("data-stack"), document.querySelector("#view-map .plate.selected").dataset.plate]).toEqual(["Hyatt", "acc"]);
+    it("as deep as its place goes - here its level, open in its hotel's stack with no room selected (#96) - and the card under the map showing that event", () => {
+      expect([state.map.stack, state.map.plate, state.map.level, state.map.rooms, app.depthOf(app.byId.get("x-sun")).depth]).toEqual(["Hyatt", null, "acc", null, "level"]);
+      const map = document.querySelector("#view-map svg.map");
+      expect([map.getAttribute("data-stack"), map.getAttribute("data-level"), document.querySelector("#view-map .plate.flat").dataset.plate, document.querySelector("#view-map .plate.selected")]).toEqual(["Hyatt", "acc", "acc", null]);
       expect(document.querySelector("#view-map .map-focus")).toBe(null);      // the ring is the city map's, for an event known only to its venue
       expect([...mapCard().children].map(words)).toEqual(["You were looking at", "Tai Chi with Erin Gray", "Hyatt · Inman · Conference Center", "Sunday 2:30–3:30 PM"]);
     });
@@ -566,7 +567,7 @@ describe("the event's sheet", () => {
       press(place());
       expect([el("sheetWrap").hidden, state.tab, state.map.focus]).toEqual([true, "map", "x-mon"]);
       expect(document.querySelector("#view-map .map-wrap").dataset.day).toBe("2026-09-07");
-      expect([state.map.stack, state.map.plate]).toEqual(["Hilton", app.depthOf(app.byId.get("x-mon")).plate]);
+      expect([state.map.stack, state.map.level, state.map.plate]).toEqual(["Hilton", app.depthOf(app.byId.get("x-mon")).plate, null]);
       expect(el("mapNext").dataset.hero).toBe("x-mon");
       state.tab = "now"; handle.render();
       expect(state.map.focus).toBe(null);

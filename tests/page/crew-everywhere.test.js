@@ -110,7 +110,7 @@ const hereOf = (user, id) => el(`crewHere-${user.id}-${id}`);
    map, which then has focus, opens the sheet. The park has no building, and
    its block opens its sheet as it did. */
 const stackOf = () => document.querySelector("#view-map svg.map").getAttribute("data-stack");
-const cityMap = () => { if (stackOf()) el("mapBack").click(); };
+const cityMap = () => { while (stackOf()) el("mapBack").click(); };          // a step at a time: from a level, then from its stack (DECISIONS #96)
 function openHotel(hotel) {
   if (stackOf() !== hotel) { cityMap(); blockOf(hotel).dispatchEvent(new MouseEvent("click", { bubbles: true })); }
   const line = el("mapVenue");

@@ -22,6 +22,7 @@
    with an id; a composite is a room that is a union of leaves; a floor is a
    level with no drawing. */
 import DRAWINGS from "virtual:drawings";
+import { corners } from "./level.js";
 import { HOTEL_ORDER, hotelLevels } from "./venues.js";
 import { events, happening } from "./data.js";
 
@@ -48,13 +49,6 @@ const drawnOf = (hotel, level) => { const levels = DRAWN.get(hotel); return (lev
    none. */
 const BUILDINGS = HOTEL_ORDER.filter(hotel => hotelLevels(hotel).length);
 
-/* The four corners of a rectangle {cx, cy, w, h, rot}, turned about its
-   centre: rot is degrees clockwise where y runs south (the drawings'
-   README), so a turned room's corners are its true ones. */
-function corners(r) {
-  const t = (r.rot || 0) * Math.PI / 180, c = Math.cos(t), s = Math.sin(t), hw = r.w / 2, hh = r.h / 2;
-  return [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([x, y]) => [r.cx + x * c - y * s, r.cy + x * s + y * c]);
-}
 /* Each point stood off by the pad on both axes: the corners of a square about it. */
 const padded = (points, pad) => points.flatMap(([x, y]) => [[x - pad, y - pad], [x + pad, y - pad], [x + pad, y + pad], [x - pad, y + pad]]);
 /* The convex outline of some points, as a ring of them: a monotone chain,
