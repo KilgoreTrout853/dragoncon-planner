@@ -65,8 +65,9 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/about.js` | About this app (DECISIONS #59, #92; `docs/screens/contract.md`, section 9): the words of the sheet's eighth panel - that the app is unofficial, the one link to Dragon Con's own, and what we store, by whether the build has a backend - and the panel's markup, a heading, a body that scrolls and a foot; and on a build with a backend its last part, Delete (#93), drawn from the session as the panel is drawn, with the confirm's words. The panel's element, its way in, its way back and the tap on Delete are `sheet.js`'s. A leaf. |
 | `src/foryou.js` | For you (DECISIONS #87; `docs/screens/contract.md`, section 4): what scores - the signals, each a function of an event and the reader's profile that gives back a thing, its weight and whether it is a follow - and what is chosen, from an index of the schedule built once a schedule; and `labelFor()`, what a follow is called on screen; and `bigOnes()`, the zero state's list where For you has no row - Main Programming's celebrity events still to start, the track's name one constant (#88); and `inPlace()`, what is offered in place of a pick that changed (#90): the events that start in the time it vacated, by the same bars and scores. No markup, no storage and no clock: the moment is a parameter, and what is drawn is `explore.js`'s, and `inplace.js`'s. A leaf. |
 | `src/inplace.js` | In place of a pick (DECISIONS #90; `docs/screens/contract.md`, section 2): under the picks-changed notice on Now and on Plans' My day, a fold for each change that vacated time and, open, the rows `foryou.js` `inPlace()` offers for it; and the hold, `state.inPlace`, that keeps them still while the reader stays on the tab. The news and the time each entry vacated are `picks.js`'s, the choice `foryou.js`'s and the row `ui.js`'s. A leaf. |
-| `src/building.js` | The building's model (DECISIONS #60, #94; `docs/screens/contract.md`, section 6): which venues have a building; a venue's plates, bottom to top, one a storey, and its hull; the schedule by place - the events at a venue, on a level and in a room; what a day lights, for the picks handed in; and how deep an event's place goes. It owns the level drawings, `virtual:drawings`. Pure: no DOM, no storage, no clock. Nothing in the page imports it yet: what draws a building is the building view's, still to come. A leaf. |
-| `src/season.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `about.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `shareday.js`, `data.js`, `building.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `foryou.js`, `ui.js`, `inplace.js`, `filters.js` | The twenty-five leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
+| `src/building.js` | The building's model (DECISIONS #60, #94; `docs/screens/contract.md`, section 6): which venues have a building; a venue's plates, bottom to top, one a storey, and its hull; the schedule by place - the events at a venue, on a level and in a room; what a day lights, for the picks handed in; and how deep an event's place goes. It owns the level drawings, `virtual:drawings`. Pure: no DOM, no storage, no clock. `map.js` draws a venue's stack from it (#95); the level view is still to come. A leaf. |
+| `src/stack.js` | The stack's layout (DECISIONS #95; `docs/screens/contract.md`, section 6): a point of a plate tilted and lifted; the outline of a venue with no drawing, its block's rectangle; and a venue's plates stood apart in a frame - a strip under each where the width allows, else the width - in the middle of the frame's room. Pure: no DOM, no storage, no clock, and no import; in the frame's own units, nothing measured from the page. What draws it is `map.js`'s. A leaf. |
+| `src/season.js`, `stack.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `about.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `shareday.js`, `data.js`, `building.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `foryou.js`, `ui.js`, `inplace.js`, `filters.js` | The twenty-six leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own three plugins: `dcYear`, the year `DC_YEAR` names - its define and its three data modules, the level drawings' made by the plugin itself, in the dev server, the build and Vitest alike (DECISIONS #49, #94); `dcBackend`, the backend `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name, or none - its two defines, in the same three places, and the guard on them (#53); and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy. |
@@ -104,10 +105,10 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
 | `tests/unit/` | Vitest: pure exports, imported by name from the module that holds them, with no page; and the push function's logic, `supabase/functions/push/push.js`, run in Node against a fake PostgREST, fake push services and a clock the test moves (`push.test.js`). |
 | `tests/rules/` | Vitest: rules over the text of `src/styles.css` and of every module under `src/`, and over the module graph (`imports.test.js`). |
-| `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`; and, by a boot of its own against a copy of it that has moved on, what is offered in place of a pick (DECISIONS #90); and the building's model (#94), on that schedule and the level drawings the build gives the year, 2027's. |
+| `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`; and, by a boot of its own against a copy of it that has moved on, what is offered in place of a pick (DECISIONS #90); and the building's model (#94), on that schedule and the level drawings the build gives the year, 2027's; and the stack (#95), each venue's plates as they stand in the Map's frame, and the words a card's row says for a room. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, the level drawings' module as the plugin makes it - the year it is taken from, what it holds and the borrowed drawing it refuses (DECISIONS #94) - and smokes that boot the built pages - the next site's, given a backend, signing in by email and syncing a star. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
-| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds, and a second page, `dist-backend/`, a build told of a backend whose requests the harness answers (#92); `gear.spec.js` holds Settings' heading and Done on the screen in every state it has, About this app behind its row (#92), and Delete whole at its end, with each button, with none and once done (#93); `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star, the zero state's Show all and star, and a fold in place of a pick and a star in it among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88); `in-place.spec.js` holds the picks-changed notice and the folds under it whole on Now and on My day, each fold's button and the notice's OK 44 px tall or more (#90). |
+| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds, and a second page, `dist-backend/`, a build told of a backend whose requests the harness answers (#92); `gear.spec.js` holds Settings' heading and Done on the screen in every state it has, About this app behind its row (#92), and Delete whole at its end, with each button, with none and once done (#93); `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star, the zero state's Show all and star, and a fold in place of a pick and a star in it among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88); `in-place.spec.js` holds the picks-changed notice and the folds under it whole on Now and on My day, each fold's button and the notice's OK 44 px tall or more (#90); `stack.spec.js` holds a venue's stack (#95): each of the seven opened by a touch, a strip's touch its plate's own and no shallower than measured, the way back's 44 px, a plate touched where it stood and the frame one size, the card whole, an inert plate see-through, and the keyboard's path. |
 | `playwright.config.js` | The browser tests' configuration: a project for each engine at each size, a phone with touch on, the worker blocked, the zone the season file's, no retries. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record, frozen: never edited (DECISIONS #83). |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
@@ -414,16 +415,16 @@ a reviewer, and each review's decisions are committed as a record in
 
 ## The client: modules and their order
 
-One program in thirty-nine modules under `src/`, and `main.js`, the entry.
+One program in forty modules under `src/`, and `main.js`, the entry.
 The markup it drives is in `index.html` and the CSS in `src/styles.css`.
 
 The modules stand in one order, which is the array `ORDER` in
 `tests/rules/imports.test.js`, with `boot.js` as the root above it:
 
 ```
-season  util  storage  platform  build  backend  about  identity  crews
-state  time  outbox  venues  shareday  data  building  picks  follows  ics
-walk  search  foryou  ui  inplace  filters             the twenty-five leaves
+season  stack  util  storage  platform  build  backend  about  identity
+crews  state  time  outbox  venues  shareday  data  building  picks  follows
+ics  walk  search  foryou  ui  inplace  filters        the twenty-six leaves
 scroll  eventsheet  bus  sync
 now  browse  explore  map  plans                       the five views
 sheet  loading  shell  dispatch
@@ -439,6 +440,9 @@ it.
 **The leaves** need nothing from the modules after them. `season`: the year
 the build is for, `YEAR`, the `YY` every storage key carries, and that
 year's season file, inlined at build as `virtual:season` (DECISIONS #49).
+`stack`: the stack's layout (#95) - a plate's tilt and lift, the spacing
+and the fit in a frame, in the frame's own units - which imports nothing,
+and stands this low so that the imports rule keeps it so.
 `util`: formatting
 and date helpers. `storage`: `loadJSON()`, `saveJSON()` and their session
 twins. `platform`: `IS_IOS`, `isStandalone()`. `build`: the stamp `BUILD`;
@@ -466,7 +470,8 @@ next today, from a schedule the caller hands it, since `crews` comes before
 the schedule and the clock. Writing and forgetting, it says whether anything a crew screen
 draws has changed, for the pull's redraw. It reads its keys when asked,
 never as it is imported. `state`: `settings` and `state`, Plans' crew
-and day and the Map's day and focus among it, and the folds kept in memory:
+and day and the Map's day, its focus and the building view's open stack
+and selected plate (#95) among it, and the folds kept in memory:
 `explore.mutedOpen`, `following.showCast` and `following.castNoise` by
 follow, and `browse.castOpen` (#84, #85); `explore.forYou`, For you's list
 while the reader stays on the grid, with the zero state under it where it
@@ -490,7 +495,10 @@ under the place (#74), `placeText()`, a place as words, exactly the text of
 line, Now's crew section and the hero's next pick name it, and
 `hotelLevels()`, a hotel's levels in the file's order, each with its storey
 (#72), all from
-the year's venues file, inlined at build as `virtual:venues`. `shareday`:
+the year's venues file, inlined at build as `virtual:venues`; and
+`roomWords()`, what a row says of a room under a floor already named - the
+building view's card's (#95) - a Mart vendor hall's booth read by a pattern
+here, not from the file. `shareday`:
 Share a day's link and message (#69) - the picks a day shares, the link,
 the message, and a link read back - pure, handed the schedule, so it
 stands before it. `data`:
@@ -514,7 +522,7 @@ event is about a work or anything under it, the rolled-up counts and
 that are not about it, which a work's page, the Following feed and Search
 all ask (#85), and a person's display name. `data` is the only
 module that walks a work's parent. `building`: the building's model (DECISIONS
-#94), which draws nothing, and which nothing in the page imports yet. It
+#94), which draws nothing: `map` draws a venue's stack from it (#95). It
 owns the level drawings, inlined at build as `virtual:drawings`: geometry
 alone, the year's own or a later year's borrowed. `BUILDINGS`, the venues
 with levels; `building()`, a venue's plates, bottom to top, one a storey -
@@ -671,7 +679,11 @@ puts keyboard focus on the page's heading (#75). `map` imports `nowModel`
 from `now`, the one edge between two views; it holds the Map's focus - one
 event, `state.map.focus`, which carries its own day - with `onTheMap()`,
 whether the Map can show an event, and `showOnMap()`, the event sheet's
-place line's way in (#75). `plans` also draws the crew header, the My day | Crew
+place line's way in (#75), which lands as deep as the event's place goes.
+And the stack (#95): a venue with a building lifted into its plates, drawn
+from `building` as `stack` lays them out, its group built at its first
+open; with `openStack()`, `closeStack()` and `tapPlate()`, the three taps
+`dispatch` calls. `plans` also draws the crew header, the My day | Crew
 segment and the crew's day on a build with a backend, and says which crew
 Plans shows (`chosenCrew()`) and in what order a crew's members are
 listed (`crewPeople()`), for the crew panel too; each time it draws, it
@@ -740,8 +752,10 @@ run - the mini-bar, the simulated-time chip, larger text, and the redraw on
 coming back to the tab. It imports the five views, `eventsheet`, the sheet
 and `loading`; nothing below it imports it.
 
-**`dispatch`** is the fourteen handlers whose bodies reach across modules: the
-five delegated listeners on `main` (click, input, keydown, change, focusout), the
+**`dispatch`** is the fifteen handlers whose bodies reach across modules: the
+five delegated listeners on `main` (click, input, keydown, change, focusout),
+Escape on the document - the way back from a stack on the Map while no
+sheet is open (#95) - the
 clicks inside the sheet's event, hotel and shared-day panels - the event's
 place, to the Map, and its names and chips, to Explore, among them - the clicks
 and changes inside its filter panel, which write `state.browse` and close
@@ -765,8 +779,7 @@ into `ORDER` at the lowest place that satisfies its imports.
 ## Boot
 
 `src/boot.js` exports `boot({events, reload})`. Importing it imports every
-other module first but `building`, which nothing in the page imports yet
-(DECISIONS #94), and runs nothing but declarations and the consts that
+other module first, and runs nothing but declarations and the consts that
 read `localStorage`, the DOM and `navigator`: in the leaves `IS_IOS`
 (`platform`), `BUILD` (`build`), `settings` and `state` (`state`), `picks`
 with its snapshots and news (`picks`) and `follows` (`follows`); in
@@ -897,15 +910,27 @@ each (#91), Peachtree and Courtland streets, and the four bridges. Per-hotel pil
 and on a build with a backend, in a crew, a second count, outlined, of the
 crewmates with a pick at the hotel that day - people, not picks
 (`docs/screens/contract.md`, section 6, as built); a "next pick" card under
-the map. An event's sheet's place line opens the Map focused on that event
-(DECISIONS #75): on the event's con day, a third ring, not gold, on its
-hotel, and the card showing the event, "You were looking at", until the tab
-is left, a day chip is tapped or the clock is changed - the focus carries
-its own day, so the Map is then on the day it had. The view is built once,
+the map. A tap, Enter or Space on the block of a venue with a building, or
+a tap on its gold pill, lifts it into its stack (DECISIONS #95): its
+plates, one a storey, in the same frame, the city pushed in behind them;
+the reader's picks lit, and a gold edge on a plate that holds one. A plate
+tapped is selected, and the card under the map is then that plate's - what
+is on there now and next - or, with none selected, the venue's line, which
+opens the hotel sheet. One control, a tap off the plates or Escape goes
+back; the park's block and the crew's pill open the hotel sheet; and the
+stack and the selection are kept, in memory, when the tab is left. An
+event's sheet's place line opens the Map focused on that event
+(DECISIONS #75): on the event's con day, as deep as its place goes - its
+venue's stack with its plate selected, or, for an event known only to its
+venue, a third ring, not gold, on its hotel - and the card showing the
+event, "You were looking at", until the tab is left, a day chip is tapped,
+the clock is changed or a tap changes what the Map shows - the focus
+carries its own day, so the Map is then on the day it had. The view is built once,
 by its first draw, and every draw after it - `render()`'s and the minute
 tick's are one draw - writes in place only what changed: the day chips,
-each hotel's label, the rings, the focus's ring, the pills and the card
-under the map (DECISIONS #89); focus stays on the control that had it.
+each hotel's label, the rings, the focus's ring, the pills, the card
+under the map (DECISIONS #89) and an open stack, whose group is built at
+its first open (#95); focus stays on the control that had it.
 
 **Search.** The first render happens with no index; the search index is
 built in idle time afterwards, then a suggestion index (people by their
@@ -1290,7 +1315,9 @@ read again after the draw - the folds, what stood above a control the
 tap took away, and a star's row, which was `togglePick()`'s to keep and
 had no test that could fail. `in-place.spec.js` holds the picks-changed
 notice and the folds under it whole, on Now and on My day (#90), the news
-staged from seeded snapshots on the real schedule. It is not an
+staged from seeded snapshots on the real schedule. `stack.spec.js` holds
+a venue's stack (#95): its strips to what was measured, a plate touched
+where it stood, the card whole and an inert plate see-through. It is not an
 iPhone - no iOS keyboard, no safe-area insets, no home-screen app,
 `IS_IOS` false in both engines - and it tests nothing of the worker,
 offline or install.

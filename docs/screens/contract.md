@@ -1200,14 +1200,18 @@ As built: the recon, section 2, Map; section 5, the map card.
   top-down view, rooms in place, landmarks marked, lit where the picks are,
   a tap on a room for what is on there (W39); the motion between them last
   (W40); the Westin, the Courtland Grand and the Mart's two buildings
-  (#91) as sources allow (W41). A hotel without level data keeps the hotel sheet (#28; section
-  8). Data per #58: `data/<year>/drawings/`, keyed by the venues file's
+  (#91) as sources allow (W41). A venue with no levels, the park, keeps the
+  hotel sheet; one with levels and no drawing lifts all the same, each
+  plate its block's shape, a floor with no drawing dashed (#28, #95;
+  section 8). Built: the stack (W38) - PR #113, DECISIONS #95. Data per #58: `data/<year>/drawings/`, keyed by the venues file's
   level and room ids; the client reads it as `virtual:drawings`, the
   year's own or the earliest later year's, through `building.js`, the
   building's model (PR #112, #94).
-- **Focused:** the event sheet's place line lands here on its hotel - on
-  its room once the building view exists - with the card showing that
-  event, which reopens the sheet (#63, #64; section 11).
+- **Focused:** the event sheet's place line lands here as deep as its
+  place goes (#95): its venue's stack with its plate selected for a room, a
+  level or a floor - on the room once the level view is built - and its
+  hotel's block, ringed, for an event known only to its venue; with the
+  card showing that event, which reopens the sheet (#63, #64; section 11).
 - **Reduced motion** (#66): the lift and the level swap show their end
   states with no animation.
 - **Before its screens** (#60's Cost), all three done: the map one
@@ -1224,6 +1228,8 @@ Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
 `style.test.js`'s map rules. PRs 3, 5, 7 and 10.
 
 ### Map, as built
+
+Changed by PR #113 (#95): a venue's block and its gold pill open its stack, the place line lands by depth, and a block's, a plate's and the way back's tap end the focus.
 
 Changed by PR #109 (#91): the Mart is two blocks, one a building, so the Map's places are eight and its bridges four.
 
@@ -1397,6 +1403,8 @@ through to a person", `ics.test.js`. PRs 5 (who's going) and 7; W44
 standalone.
 
 ### The event sheet, as built
+
+Changed by PR #113 (#95): the place's tap lands as deep as the place goes - for an event with a floor its venue's stack, its plate selected, and no ring.
 
 Changed by PR #109 (#91): the Map's places are eight, the Mart's two buildings each one.
 
@@ -2049,13 +2057,16 @@ screens that own the other areas point at it (sections 3, 5 and 8).
 
 As built: the recon, section 3, the hotel panel.
 
-As built. Once the building view exists it opens only for a hotel without
-level data (#28; section 6).
+As built. Since the stack (PR #113, #95) it opens from the venue's line
+under a venue's stack, from the park's block and gold pill, and from the
+crew's pill at every place (section 6).
 
 Since PR #81 the Map's crew count opens it too; since PR #82, step 5c, it
 lists the crew's picks at the hotel under the reader's own (below).
 
 ### The hotel sheet, as built
+
+Changed by PR #113 (#95): it opens from the venue's line under a stack, from the park's block and gold pill, and from the crew's pill.
 
 Changed by PR #108 (#90): a cancelled pick, the reader's or a crewmate's, is not listed and not counted.
 
@@ -2429,9 +2440,11 @@ the hash and the address.
 | The gear | The Settings panel | the panel shown | Done, the backdrop, a swipe, Escape | built |
 | Settings' About row | `#panel-about` | the panel shown | Back to Settings, the backdrop, a swipe, Escape: Settings, its body where it was, focus on the row | built, PR #110 |
 | The mini-bar | Now | `state.tab` | the tab bar | built |
-| A Map hotel block or its gold pill, a hotel without level data | The hotel sheet | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built |
+| The park's block or its gold pill - the one place with no building | The hotel sheet | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built |
 | The Map's crew pill | The hotel sheet, Your crew's picks here brought to the top of its body (#63) | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built, PR #82 |
-| A Map hotel block, a hotel with level data | The building view | the Map's drill-down | the view's own back, to the Map | PR 10 |
+| A Map block or its gold pill, a venue with a building | Its stack, keyboard focus on the way back | `state.map.stack` | "← Map", a tap in the frame off the plates, Escape with no sheet open: the city map, focus on the block | built, PR #113 |
+| The venue's line under a stack | The hotel sheet | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the stack, focus on the line | built, PR #113 |
+| A row of a plate's card | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the stack, the plate still selected, focus on the row | built, PR #113 |
 | The hotel sheet's "Search the Hyatt on Saturday" | Search | `state.browse`: the hotel, the day, no query - since PR #88 the hotel a chip under the box, counted on Filters | the tab bar to the Map, whose day `state.map.day` kept | built |
 | A person's name on the event sheet - "See all" beside it until PR #93 | That person's Explore page, keyboard focus on its heading since PR #94 | `state.explore.page`, the hash | "← Explore", to the grid, where it last was since PR #94 - its top, if it was never left: one tap from the event, accepted | built; the name since PR #93 |
 | Another session on the event sheet's Also runs line | That session's sheet, in this one's place | `state.sheetId` | Done, the backdrop, a swipe, Escape: the screen underneath, focus on what opened the first sheet - the shared day, where the first was opened from it; no way back to the first event (section 14) | built, PR #93 |
@@ -2439,7 +2452,7 @@ the hash and the address.
 | An Explore tile, a Following chip, a Because-you-starred tile | Its page, keyboard focus on its heading since PR #94 | `state.explore.page`, the hash | "← Explore", the grid's scroll put back | built |
 | A `#explore=` link | Its page | the same, at load | "← Explore", to the grid | built |
 | The event sheet's track chip, or the chip of a work a person has reviewed | Its Explore page, keyboard focus on its heading | `state.explore.page`, the hash | "← Explore", to the grid, as a person's name | built, PR #94 |
-| The event sheet's place line, where the Map can show the event: at one of its eight places, neither cancelled nor removed | The Map at its top, on the event's con day, focused on the event: its hotel ringed, the event on the card, keyboard focus on the card - on the room once the building view exists | `state.tab`, `state.map.focus` | the Map's focused card, which reopens the sheet | built, PR #94 |
+| The event sheet's place line, where the Map can show the event: at one of its eight places, neither cancelled nor removed | The Map at its top, on the event's con day, focused on the event, as deep as its place goes: its venue's stack with its plate selected for a room, a level or a floor, its hotel ringed for the venue alone and the park; the event on the card, keyboard focus on the card - on the room once the level view is built | `state.tab`, `state.map.focus`, `state.map.stack`, `state.map.plate` | the Map's focused card, which reopens the sheet; from a stack, its own way back | built, PR #94; by depth, PR #113 |
 | The Map's focused card | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the Map, the focus still held, keyboard focus on the card | built, PR #94 |
 | Search's Filters | `#panel-filters` | the panel shown | no Apply (#70): Show `<n>` events, the backdrop, a swipe, Escape: Search, focus on Filters, the list from its top if anything changed | built, PR #88 |
 | A kept `?join=`, in any phase | Plans' join step | `state.tab`, the step open | the step closed: Plans as it opens | built |
@@ -2810,5 +2823,25 @@ As built: the recon, section 8, what crews' readers offer today.
   and 215 to 224, the Marriott's International Hall North - which no 2026
   event names: when 2027's schedule posts, list its events at depth "a
   level" (#94).
+- The stack's strips. A plate shows 40 of the Map's units under the one
+  above, which a phone draws as 31 to 38 px, less with Larger text and at
+  the Hilton, whose five floors leave less: under #66's 44 px. The browser
+  tests hold each to what was measured. For step 11's sweep (#95).
+- The vendor hall's prefix. A card's row cuts "Mart2 Vendor Hall Floor
+  `<n>` " from a booth's room by a pattern in the client (`venues.js`
+  `roomWords()`); it belongs in the venues file (#95).
+- While a stack is open the next pick is said nowhere: the mini-bar is
+  not on the Map, whose card is then the stack's (#95).
+- A tap inside an inert plate's outline, where no plate shows through it,
+  lands on the map behind and goes back (#95).
+- An inert plate's name is the dim of a street's label, 3.2:1 on the
+  ground; and a gold edge beside a plate's own edge of a like lightness -
+  the Mart's, the Hilton's - is told by its width and the star on its
+  label. For step 11's sweep (#95).
+- Under a notice a stack's card is cut as the city map's is, and by more:
+  its slot is taller (#95; the notice's bullet above).
+- On a short screen the frame gives way in height and the drawing stands
+  in the middle of it, so the way back, at the frame's corner, stands left
+  of the ground's edge (#95).
 
 **Home of:** W24.
