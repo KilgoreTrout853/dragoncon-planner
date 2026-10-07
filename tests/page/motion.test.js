@@ -684,6 +684,15 @@ describe("the motion between the Map's views", () => {
       await finish(set);                                         // the old set, long over: nothing more
       expect([now > 0, laid().querySelector(".level-labels").childElementCount]).toEqual([true, now]);
     });
+    it("a set ended from outside - its animations cancelled, not by a tap - is over all the same: it holds nothing, and the next tap on the drawing acts", async () => {
+      await open(); tap(back());
+      const set = take();
+      set.forEach(anim => anim.cancel());
+      await flush();
+      expect(counts()).toEqual([0, 0, 0]);
+      tap(plate(F1).querySelector(".plate-hull"));               // no set is running: the tap is not spent
+      expect(state.map.level).toBe(F1);
+    });
     it("under Reduce Motion nothing is put back: the closing draw's page stands", async () => {
       reduce = true;
       await open();
