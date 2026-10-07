@@ -270,7 +270,8 @@ describe("vite build", () => {
   /* The level drawings, the third data module (DECISIONS #94), which dcYear()
      makes of a folder of files: what it holds, and the year it is taken
      from. Nothing in the page imports it yet, so the plugin's own hooks are
-     called as Vite calls them, on data folders staged in the temp folder:
+     called as Vite calls them, on data folders staged in the temp folder
+     and, in two tests, on the repository's own:
      the repo's 2027 venues file under each year unless a test gives its
      own, a season file naming the year, and a drawings folder - its README,
      and each drawing under its file name - where a test gives one. The
@@ -340,7 +341,20 @@ describe("vite build", () => {
         return root;
       }
       it("the table holds the four cases: the year's own, a later year's, only an earlier year's, a README alone", () => {
-        expect(CASES.map(c => c.name).filter(name => /^the year's own drawings|^none of its own, and a later year's|only an earlier year's: none$|README alone/.test(name))).toHaveLength(8);
+        const four = ["the year's own drawings", "none of its own, and a later year's", "only an earlier year's: none", "README alone"];
+        expect(four.map(part => CASES.filter(c => c.name.includes(part)).length)).toEqual([2, 2, 1, 3]);
+      });
+      it("the earliest later year, and the files by their names, whatever order the file system lists a folder in", () => {
+        const years = tree({ 2026: null, 2027: ["b.json"], 2028: ["d.json"] });
+        const files = staged({ 2027: { drawings: { "hilton-l1.json": drawing({ level: "l1", rooms: [{ id: "Crystal A", ...rect }] }), "hilton-l4.json": drawing() } } });
+        const list = fs.readdirSync, spy = vi.spyOn(fs, "readdirSync").mockImplementation((...args) => list(...args).reverse());
+        try {
+          expect(list(path.join(years, "data")).reverse()).toEqual(fs.readdirSync(path.join(years, "data")));
+          expect(drawingsYear(years, "2026")).toBe("2027");
+          expect(moduleFor(files, "2027").map(d => d.level)).toEqual(["l1", "l4"]);
+        } finally {
+          spy.mockRestore();
+        }
       });
       it.each(CASES)("$name", ({ year, from, tree: folders }) => {
         expect(drawingsYear(tree(folders), year)).toBe(from);
@@ -389,6 +403,19 @@ describe("vite build", () => {
         cut(own); cut(lent);
         expect(() => moduleFor(own, "2027")).toThrow(/^build: data\/2027\/drawings\/hilton-l4\.json is not a drawing: /);
         expect(() => moduleFor(lent, "2026")).toThrow(/^build: data\/2027\/drawings\/hilton-l4\.json is not a drawing: /);
+      });
+      it("and so is one that lacks a key of its geometry, or is no object at all", () => {
+        const { composites, streets, ...lacking } = drawing();
+        expect([composites, streets]).toEqual([[], []]);
+        expect(() => moduleFor(staged({ 2027: { drawings: { "hilton-l4.json": lacking } } }), "2027")).toThrow(/^build: data\/2027\/drawings\/hilton-l4\.json is not a drawing: it has no composites, streets$/);
+        expect(() => moduleFor(staged({ 2026: {}, 2027: { drawings: { "hilton-l4.json": lacking } } }), "2026")).toThrow(/hilton-l4\.json is not a drawing: it has no composites, streets$/);
+        expect(() => moduleFor(staged({ 2027: { drawings: { "hilton-l4.json": null } } }), "2027")).toThrow(/is not a drawing: it has no hotel, level, extent, rooms, composites, groups, open, landmarks, streets$/);
+      });
+      it("a drawings that is a file and no folder holds no drawing", () => {
+        const root = staged({ 2026: {}, 2027: { drawings: { "b.json": drawing() } } });
+        fs.writeFileSync(path.join(root, "data", "2026", "drawings"), "not a folder");
+        expect(drawingsYear(root, "2026")).toBe("2027");
+        expect(moduleFor(root, "2026")).toHaveLength(1);
       });
       it("any other id is not the plugin's to answer for", () => {
         const plugin = dcYear();

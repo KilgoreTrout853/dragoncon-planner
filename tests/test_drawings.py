@@ -494,19 +494,37 @@ def test_the_year_a_builds_drawings_are_taken_from(case, tmp_path):
     assert (drawings_year(staged(tmp_path, case["tree"]), case["year"]) or "") == case["from"]
 
 
+def test_the_earliest_later_year_whatever_order_the_folder_lists_the_years_in(tmp_path, monkeypatch):
+    data = staged(tmp_path, {"2026": None, "2027": ["b.json"], "2028": ["d.json"]})
+    listed = os.listdir
+    monkeypatch.setattr(os, "listdir", lambda folder: listed(folder)[::-1])
+    assert os.listdir(data) == listed(data)[::-1]
+    assert drawings_year(data, "2026") == "2027"
+
+
+def test_a_drawings_that_is_a_file_and_no_folder_holds_no_drawing(tmp_path):
+    data = staged(tmp_path, {"2026": None, "2027": ["b.json"]})
+    with open(os.path.join(data, "2026", "drawings"), "w", encoding="utf-8") as f:
+        f.write("not a folder")
+    assert drawings_year(data, "2026") == "2027"
+
+
 def test_a_year_that_borrows_is_held_by_its_own_venues_file_not_the_lenders(tmp_path):
-    # 2026's venues file without a room 2027's drawing draws, and 2027's with it: as the build refuses it
+    # 2026's venues file without a room of each floor 2027 draws, and 2027's with both: as the build refuses it
     lacking = copy.deepcopy(VENUES)
+    lacking["hotels"][0]["levels"][0]["rooms"].remove("Crystal A")
     lacking["hotels"][0]["levels"][1]["rooms"].remove("202")
     data = tmp_path / "data"
     for year, venues in (("2026", lacking), ("2027", VENUES)):
         (data / year).mkdir(parents=True)
         (data / year / "venues.json").write_text(json.dumps(venues), encoding="utf-8")
     (data / "2027" / "drawings").mkdir()
-    (data / "2027" / "drawings" / NAME).write_text(json.dumps(GOOD), encoding="utf-8")
-    assert borrowed(str(data)) == {"2026": ("2027", 1, [f"{NAME}: '202' is not a room of Hilton's level 'l2'"])}
+    for name, drawing in ((NAME, GOOD), (L1_NAME, L1)):   # two floors, each with a stranger: every borrowed file is held
+        (data / "2027" / "drawings" / name).write_text(json.dumps(drawing), encoding="utf-8")
+    assert borrowed(str(data)) == {"2026": ("2027", 2, [f"{L1_NAME}: 'Crystal A' is not a room of Hilton's level 'l1'",
+                                                       f"{NAME}: '202' is not a room of Hilton's level 'l2'"])}
     (data / "2026" / "venues.json").write_text(json.dumps(VENUES), encoding="utf-8")
-    assert borrowed(str(data)) == {"2026": ("2027", 1, [])}
+    assert borrowed(str(data)) == {"2026": ("2027", 2, [])}
     (data / "2026" / "drawings").mkdir()
     (data / "2026" / "drawings" / NAME).write_text(json.dumps(GOOD), encoding="utf-8")
     assert borrowed(str(data)) == {}                      # with a drawing of its own it borrows none

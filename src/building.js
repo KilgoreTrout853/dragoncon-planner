@@ -13,8 +13,9 @@
    made once a schedule: it remembers the events it was made from, and
    replaceSchedule() makes new ones, as foryou.js's index is kept. What it
    hands back - a building, its plates and their lists, the hull, the lists
-   by place - is what it keeps, and the files' own objects among it: to be
-   read, and never written on. A caller that sorts, sorts a copy.
+   by place - is what it keeps, so each is frozen where it is made: a caller
+   that sorts, sorts a copy. The levels and the streets among them are the
+   two files' own objects, to be read and never written on.
 
    The words: a plate is one storey of a venue, the levels that stand side by
    side on it; a leaf is a room a drawing draws as a shape, or an open area
@@ -26,6 +27,7 @@ import { events, happening } from "./data.js";
 
 const HULL_PAD = 10;          // ft: how far the hull stands off every corner, on each axis
 const FLAT = 1e-9;            // sq ft: a turn no sharper is a point on a side - two walls on one line, a rounding apart
+const NONE = Object.freeze([]);
 
 const put = (map, key, value) => { const list = map.get(key); if (list) list.push(value); else map.set(key, [value]); };
 
@@ -56,19 +58,32 @@ function corners(r) {
 /* Each point stood off by the pad on both axes: the corners of a square about it. */
 const padded = (points, pad) => points.flatMap(([x, y]) => [[x - pad, y - pad], [x + pad, y - pad], [x + pad, y + pad], [x - pad, y + pad]]);
 /* The convex outline of some points, as a ring of them: a monotone chain,
-   which keeps no point that lies on a side, to within FLAT. */
+   exact, and then the ring less each point that lies on a side, to within
+   FLAT. The tolerance is the ring's and never the chain's: two walls on one
+   line sort a rounding apart, and a flat turn let pass in the chain there
+   drops the wall's end for a point on it. */
 function convex(points) {
   const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
   const half = list => {
     const out = [];
     for (const p of list) {
-      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], p) <= FLAT) out.pop();
+      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], p) <= 0) out.pop();
       out.push(p);
     }
     return out.slice(0, -1);
   };
-  return [...half(sorted), ...half(sorted.reverse())];
+  const ring = [...half(sorted), ...half(sorted.reverse())];
+  for (let found = true; found && ring.length > 3;) {
+    found = false;
+    for (let i = 0; i < ring.length && ring.length > 3; i++) {
+      const n = ring.length;
+      if (Math.abs(cross(ring[(i + n - 1) % n], ring[i], ring[(i + 1) % n])) > FLAT) continue;
+      ring.splice(i--, 1);
+      found = true;
+    }
+  }
+  return ring;
 }
 
 /* What a venue is built of, made once and kept: its plates, bottom to top,
@@ -85,13 +100,13 @@ function stackOf(hotel) {
   for (const level of hotelLevels(hotel)) put(byStorey, level.storey, level);
   const plates = [...byStorey.keys()].sort((a, b) => a - b).map(storey => {
     const levels = byStorey.get(storey), drawn = levels.map(level => drawnOf(hotel, level.id)).filter(Boolean);
-    const all = part => drawn.flatMap(({drawing}) => drawing[part].map(item => ({...item, level: drawing.level})));
-    return {key: levels.map(level => level.id).join("+"), storey, levels, name: levels.map(level => level.name).join(" + "),
+    const all = part => Object.freeze(drawn.flatMap(({drawing}) => drawing[part].map(item => Object.freeze({...item, level: drawing.level}))));
+    return {key: levels.map(level => level.id).join("+"), storey, levels: Object.freeze(levels), name: levels.map(level => level.name).join(" + "),
       short: levels.map(level => level.short).join(" + "), drawn: drawn.length > 0, rooms: all("rooms"), open: all("open"), groups: all("groups"),
-      landmarks: all("landmarks"), composites: all("composites"), streets: drawn.length ? drawn[0].drawing.streets : []};
+      landmarks: all("landmarks"), composites: all("composites"), streets: drawn.length ? drawn[0].drawing.streets : NONE};
   });
   const points = plates.flatMap(plate => [...plate.rooms, ...plate.open].flatMap(corners));
-  const stack = plates.length ? {hotel, plates, hull: points.length ? convex(padded(points, HULL_PAD)) : null} : null;
+  const stack = plates.length ? {hotel, plates, hull: points.length ? Object.freeze(convex(padded(points, HULL_PAD)).map(Object.freeze)) : null} : null;
   STACKS.set(hotel, stack);
   return stack;
 }
@@ -123,24 +138,28 @@ function indexed() {
       for (const leaf of (drawn && drawn.leaves.get(id)) || [id]) {
         if (seen.has(leaf)) continue;
         seen.add(leaf);
-        put(level.rooms, leaf, {ev, as: leaf === id ? "" : id});
+        put(level.rooms, leaf, Object.freeze({ev, as: leaf === id ? "" : id}));
       }
     }
+  }
+  for (const venue of venues.values()) {
+    Object.freeze(venue.list);
+    for (const level of venue.levels.values()) [level.list, ...level.rooms.values()].forEach(Object.freeze);
   }
   index = {of: events, venues, buildings: new Map()};
   return index;
 }
 const placed = (hotel, level) => { const venue = indexed().venues.get(hotel); return (venue && venue.levels.get(level)) || null; };
-const venueEvents = hotel => { const venue = indexed().venues.get(hotel); return venue ? venue.list : []; };
-const levelEvents = (hotel, level) => { const at = placed(hotel, level); return at ? at.list : []; };
+const venueEvents = hotel => { const venue = indexed().venues.get(hotel); return venue ? venue.list : NONE; };
+const levelEvents = (hotel, level) => { const at = placed(hotel, level); return at ? at.list : NONE; };
 /* A room's are entries, {ev, as}, for the composite each was booked as. */
-const roomEvents = (hotel, level, room) => { const at = placed(hotel, level); return (at && at.rooms.get(room)) || []; };
+const roomEvents = (hotel, level, room) => { const at = placed(hotel, level); return (at && at.rooms.get(room)) || NONE; };
 
 /* A venue's building, or null for a venue with none: {hotel, plates, hull}.
    A plate is {key, storey, levels, name, short, drawn, inert, rooms, open,
    groups, landmarks, composites, streets}: its key its levels' ids, joined
    by a "+", which no level's id holds; its name and its short name both of
-   theirs, joined the same way; drawn where any of its levels has
+   theirs, each joined by " + "; drawn where any of its levels has
    a drawing; inert where none has and no event of the schedule, cancelled
    or not, is on any of them - a cancelled event is in the lists, so its
    plate has to open, and a removed one is in none. On a drawn plate, every
@@ -152,7 +171,8 @@ function building(hotel) {
   if (!stack) return null;
   const made = indexed().buildings;
   if (!made.has(hotel)) {
-    made.set(hotel, {...stack, plates: stack.plates.map(plate => ({...plate, inert: !plate.drawn && !plate.levels.some(level => levelEvents(hotel, level.id).length)}))});
+    const plates = stack.plates.map(plate => Object.freeze({...plate, inert: !plate.drawn && !plate.levels.some(level => levelEvents(hotel, level.id).length)}));
+    made.set(hotel, Object.freeze({...stack, plates: Object.freeze(plates)}));
   }
   return made.get(hotel);
 }

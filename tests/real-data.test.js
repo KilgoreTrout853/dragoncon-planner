@@ -1212,15 +1212,24 @@ describe("against the real schedule", () => {
       expect(plates.slice(1, 3).map(p => [...new Set(p.rooms.map(r => r.level))])).toEqual([["exhibit", "tower-ll2"], ["ballroom", "tower-ll1"]]);
       expect([plates[3].inert, plates[3].levels[0].rooms, app.levelEvents("Hyatt", "lobby")]).toEqual([true, [], []]);
     });
-    it("each drawn venue's hull holds every room and open area, inside the venue's frame and the pad; the Mart's two buildings have none", () => {
-      const inside = (hull, [x, y]) => {
-        const side = hull.map((a, i) => { const b = hull[(i + 1) % hull.length]; return Math.sign((b[0] - a[0]) * (y - a[1]) - (b[1] - a[1]) * (x - a[0])); });
-        return side.every(s => s === side[0] && s !== 0);
+    it("each drawn venue's hull holds every corner of every room and open area, padded 10 ft, inside the venue's frame and the pad; the Mart's two buildings have none", () => {
+      /* how far a point stands outside a ring, in feet: 0 where it is inside or on it. The ring's sense is its area's sign. */
+      const outside = (hull, [x, y]) => {
+        const next = i => hull[(i + 1) % hull.length], sense = Math.sign(hull.reduce((sum, a, i) => sum + a[0] * next(i)[1] - next(i)[0] * a[1], 0));
+        return Math.max(0, ...hull.map((a, i) => -sense * ((next(i)[0] - a[0]) * (y - a[1]) - (next(i)[1] - a[1]) * (x - a[0])) / Math.hypot(next(i)[0] - a[0], next(i)[1] - a[1])));
+      };
+      const padded = r => {
+        const t = r.rot * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+        return [[-1, -1], [1, -1], [1, 1], [-1, 1]].flatMap(([i, j]) => {
+          const x = r.cx + i * r.w / 2 * c - j * r.h / 2 * s, y = r.cy + i * r.w / 2 * s + j * r.h / 2 * c;
+          return [[x - 10, y - 10], [x + 10, y - 10], [x + 10, y + 10], [x - 10, y + 10]];
+        });
       };
       for (const hotel of DRAWN) {
         const { hull, plates } = app.building(hotel), { w, h } = DRAWINGS.find(d => d.hotel === hotel).extent;
         const shapes = plates.flatMap(p => [...p.rooms, ...p.open]);
-        expect(shapes.filter(r => !inside(hull, [r.cx, r.cy])).map(r => r.id || r.name), hotel).toEqual([]);
+        expect(shapes.filter(r => padded(r).some(point => outside(hull, point) > 1e-6)).map(r => r.id || r.name), hotel).toEqual([]);
+        expect(hull.filter(point => !shapes.some(r => padded(r).some(([x, y]) => Math.hypot(x - point[0], y - point[1]) < 1e-6))), hotel).toEqual([]);
         expect(hull.filter(([x, y]) => x < -10.05 || x > w + 10.05 || y < -10.05 || y > h + 10.05), hotel).toEqual([]);
         /* and no point of it lies on a side: two walls on one line, a rounding apart, are one side */
         const turn = i => { const [o, a, b] = [hull[i], hull[(i + 1) % hull.length], hull[(i + 2) % hull.length]]; return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); };

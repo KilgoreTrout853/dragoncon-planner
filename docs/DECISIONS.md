@@ -3230,7 +3230,8 @@ session is gone cannot sign in to delete. A second phone learns within the
 hour, when its token expires, not at once.
 
 ### 94. The level drawings are a data module, and a building has a model — Standing (2026-10-06)
-**Decided:** Step 10's first pull request (PR #112), with no screen. Amends #49, #58.
+**Decided:** Step 10's first pull request (PR #112), with no screen. Amends
+#49, #58.
 - **A third data module,** `virtual:drawings`, which the build makes of a
   folder: a year's drawings, geometry only - no sources, notes, units,
   north or anchors, which nothing in the app reads.
@@ -3240,9 +3241,9 @@ hour, when its token expires, not at once.
 - **The model,** `src/building.js`, pure, the picks handed in: a venue
   with levels has a building. A plate is a storey, levels of one storey
   sharing it; drawn where any has a drawing, inert where none has and no
-  event, cancelled or not, is on any (round 7's first rule).
+  event, cancelled or not, is on any (round 7's third rule).
 - **The hull:** every corner of every room and open area on a venue's
-  drawn levels, padded 10 ft, convex; none with no drawing (its third).
+  drawn levels, padded 10 ft, convex; none with no drawing (its first).
 - **A composite is its leaves,** listed and lit. Five depths of a place: a
   room, a level, a floor - a level with no drawing - the venue, nothing.
 

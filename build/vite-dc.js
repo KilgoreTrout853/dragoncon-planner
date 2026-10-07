@@ -91,7 +91,7 @@ export function dcYearFromEnv() {
    that holds its README alone. */
 function drawingFiles(root, year) {
   const dir = path.join(root, "data", year, "drawings");
-  return fs.existsSync(dir) ? fs.readdirSync(dir).filter(file => file.endsWith(".json")).sort() : [];
+  return fs.statSync(dir, {throwIfNoEntry: false})?.isDirectory() ? fs.readdirSync(dir).filter(file => file.endsWith(".json")).sort() : [];
 }
 
 /* The year whose drawings a build for `year` reads (DECISIONS #94): its own
@@ -119,9 +119,11 @@ function drawingStrangers(d, venues) {
 
 /* What virtual:drawings gives a build for `year`: every drawing of
    drawingsYear()'s year, geometry only, in file order; [] where no year has
-   one to give. A borrowed drawing is held to the building year's venues
-   file, and refused where it names what that file lacks. A year's own are
-   not checked here: tests/test_drawings.py holds them to their own year's. */
+   one to give. A file that is no JSON, or lacks a key of the geometry, is
+   refused by its name. A borrowed drawing is held to the building year's
+   venues file, and refused where it names what that file lacks. The ids of
+   a year's own are not checked here: tests/test_drawings.py holds them to
+   their own year's. */
 function drawingsFor(root, year) {
   const from = drawingsYear(root, year);
   if (!from) return [];
@@ -130,6 +132,8 @@ function drawingsFor(root, year) {
     let d = null;
     try { d = JSON.parse(fs.readFileSync(path.join(root, "data", from, "drawings", file), "utf8")); }
     catch (e) { throw new Error(`build: data/${from}/drawings/${file} is not a drawing: ${e.message}`); }
+    const lacks = d && typeof d === "object" ? DRAWING_KEYS.filter(key => !(key in d)) : DRAWING_KEYS;
+    if (lacks.length) throw new Error(`build: data/${from}/drawings/${file} is not a drawing: it has no ${lacks.join(", ")}`);
     const strangers = venues ? drawingStrangers(d, venues) : [];
     if (strangers.length) throw new Error(`build: data/${from}/drawings/${file}, borrowed for ${year}, names what data/${year}/venues.json lacks: ${strangers.join("; ")}`);
     return Object.fromEntries(DRAWING_KEYS.map(key => [key, d[key]]));

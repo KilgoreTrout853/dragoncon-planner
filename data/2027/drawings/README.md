@@ -53,7 +53,7 @@ named once and on the extent. Across one year's files of a hotel it holds one `e
 2 px per foot with sizes printed, for checking by eye, each anchor marked by a small cross and its name. A hotel's
 levels render at one scale, with the frame at one offset, so two renders laid over each other show whether the levels
 line up. That renderer documents the data. The app reads the same files at its build, as one module, `virtual:drawings`:
-the geometry alone - no `units`, `north`, `anchors`, `sources` or `notes` - of which `src/building.js` is the model
+the geometry alone — no `units`, `north`, `anchors`, `sources` or `notes` — of which `src/building.js` is the model
 (DECISIONS #94). A year with no drawing of its own is built with the earliest later year's, so a build for 2026 reads
 these, and is refused where one names a hotel, a level or a room 2026's `venues.json` lacks. What draws them is the
 building view's own code, from W38 (DECISIONS #60).
