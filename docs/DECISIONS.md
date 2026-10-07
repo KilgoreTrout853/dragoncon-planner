@@ -3100,7 +3100,7 @@ hold is narrower because a sign-in's pull must still bring For you at once.
 **Cost:** One track's name is the rule, judged on 2027's schedule in August.
 A star in it that gives For you a row shows it only once the grid is left.
 
-### 89. The Map view is built once and drawn in place — Standing (2026-10-06) — amended by #95
+### 89. The Map view is built once and drawn in place — Standing (2026-10-06) — amended by #95; amended by #97
 **Decided:** The Map's first draw builds its view, and every later draw,
 `render()`'s or the minute's, writes in place only what changed (PR #107;
 `docs/screens/contract.md`, section 6).
@@ -3255,7 +3255,7 @@ hotel, level or room 2026's venues file lacks refuses every default build,
 dev server and Vitest run, and fails `tests/test_drawings.py`, in its own
 pull request: the fix is the id in 2026's file too, or the default moved.
 
-### 95. The stack: a venue lifted into its floors — Standing (2026-10-06) — amended by #96
+### 95. The stack: a venue lifted into its floors — Standing (2026-10-06) — amended by #96; amended by #97
 **Decided:** Step 10's second pull request (W38; PR #113;
 `docs/screens/contract.md`, section 6). Amends #72, #75, #89.
 - **What opens it:** a tap or Enter on the block of a venue with a building,
@@ -3281,7 +3281,7 @@ layout in a test and at every width, with nothing measured from the page.
 **Cost:** A strip is 38 px or less on a phone, under #66's 44. While a stack
 is open the next pick is said nowhere. C opens a level; E links to Search.
 
-### 96. The level: a drawn plate laid flat, its rooms in place — Standing (2026-10-07)
+### 96. The level: a drawn plate laid flat, its rooms in place — Standing (2026-10-07) — amended by #97
 **Decided:** Step 10's third pull request (W39; PR #114;
 `docs/screens/contract.md`, section 6). Amends #86, #95.
 - **What opens it:** a tap or Enter on a drawn plate of an open stack; a
@@ -3306,3 +3306,29 @@ browser tab has no room for more once the card's slot is held (#95). 62,
 not round 7's 56, keeps a zoomed room 44 px across on a short phone.
 **Cost:** Most rooms are under 44 at the fit and many have no name there:
 the zoom is how a level is read. Units draw smaller on a short phone.
+
+### 97. The motion: a set played over a drawn end state — Standing (2026-10-07)
+**Decided:** Step 10's fourth pull request (W40; PR #115;
+`docs/screens/contract.md`, section 6). Amends #89, #95, #96.
+- **The principle:** a draw writes the end state, as before; then a set of
+  animations plays over the same nodes from the view before - transform,
+  opacity and visibility alone, its first and last values the two draws'
+  own - and when it ends nothing of it is left.
+- **The moves,** round 6's timings, constants in `src/motion.js`: the lift,
+  its camera 450 ms, its plates landed by 570 to 660; the drop-in, 550; the
+  zoom, 240; a way back its way in mirrored, in 65% of its span. The
+  drawing's box, which the slot changes at a lift's tap, goes by transform.
+- **The arrival** at a level: the drop-in to its fit, then for one small
+  room the zoom, one set; where the Map last showed the level, the zoom.
+- **What starts a set:** a tap or key that changes the view, and that
+  arrival. Never a day chip, a tick, a tab or a sheet, nor anything under
+  Reduce Motion (#66), read at each move.
+- **A tap while a set runs** finishes it: on the drawing it is then spent;
+  anywhere else, and a key, it acts.
+- **Amended:** a venue's group holds its block's face, shown by a set
+  alone, and put away is not shown, where it was not rendered (#95); a
+  level is reached by a move (#96); a set may hold what a draw has emptied,
+  a closing level's names, until it ends (#89).
+
+**Why:** #60 built the animation last, over end states tested whole.
+**Cost:** A venue's group, once opened, stays in the render tree.

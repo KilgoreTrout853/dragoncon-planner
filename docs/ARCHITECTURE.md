@@ -68,7 +68,8 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/building.js` | The building's model (DECISIONS #60, #94; `docs/screens/contract.md`, section 6): which venues have a building; a venue's plates, bottom to top, one a storey, and its hull; the schedule by place - the events at a venue, on a level and in a room; what a day lights, for the picks handed in; and how deep an event's place goes. It owns the level drawings, `virtual:drawings`. Pure: no DOM, no storage, no clock. `map.js` draws a venue's stack from it (#95), and a level of it (#96). A leaf. |
 | `src/stack.js` | The stack's layout (DECISIONS #95; `docs/screens/contract.md`, section 6): a point of a plate tilted and lifted; the outline of a venue with no drawing, its block's rectangle; and a venue's plates stood apart in a frame - a strip under each where the width allows, else the width - in the middle of the frame's room. Pure: no DOM, no storage, no clock, and no import; in the frame's own units, nothing measured from the page. What draws it is `map.js`'s. A leaf. |
 | `src/level.js` | The level's layout (DECISIONS #96; `docs/screens/contract.md`, section 6): a drawn plate laid flat in a frame, fitted to its rooms and open areas inside margins that clear the way back; what it says at a scale - a room's full name, its short name or none, sized from its shape and the count of its letters, the open areas' names, the groups' and the landmarks; the nearest room to a point within a reach; the zoom's scale and camera for a room too small to see; and what rooms selected together are called. And `corners()`, a turned rectangle's, which `building.js` makes a venue's hull of. Pure: no DOM, no storage, no clock, and one import, `stack.js`'s `bounds()`; in the frame's own units, nothing measured from the page. What draws it is `map.js`'s. A leaf. |
-| `src/season.js`, `stack.js`, `level.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `about.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `shareday.js`, `data.js`, `building.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `foryou.js`, `ui.js`, `inplace.js`, `filters.js` | The twenty-seven leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
+| `src/motion.js` | The motion between the Map's views (DECISIONS #97; `docs/screens/contract.md`, section 6): each move - the lift, the drop-in, the zoom, each way back, the arrival - as a list of steps, what moves, by transform, opacity or visibility, from and to which of the two draws' own values, when, for how long and on which curve; every timing a named constant in one place; a way back its way in mirrored in time; and a node's steps as the keyframes of one animation that runs the set's whole span. Pure: no DOM, no storage, no clock, and no import. What plays a list is `map.js`'s. A leaf. |
+| `src/season.js`, `stack.js`, `level.js`, `motion.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `about.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `shareday.js`, `data.js`, `building.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `foryou.js`, `ui.js`, `inplace.js`, `filters.js` | The twenty-eight leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
 | `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own three plugins: `dcYear`, the year `DC_YEAR` names - its define and its three data modules, the level drawings' made by the plugin itself, in the dev server, the build and Vitest alike (DECISIONS #49, #94); `dcBackend`, the backend `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name, or none - its two defines, in the same three places, and the guard on them (#53); and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy. |
@@ -109,7 +110,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`; and, by a boot of its own against a copy of it that has moved on, what is offered in place of a pick (DECISIONS #90); and the building's model (#94), on that schedule and the level drawings the build gives the year, 2027's; and the stack (#95), each venue's plates as they stand in the Map's frame, and the words a card's row says for a room; and the level (#96), the 18 level views - each one's scale, its rooms too small to see and what they are called at the fit - and every room the schedule reaches, selected by an arrival. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, the level drawings' module as the plugin makes it - the year it is taken from, what it holds and the borrowed drawing it refuses (DECISIONS #94) - and smokes that boot the built pages - the next site's, given a backend, signing in by email and syncing a star. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
-| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds, and a second page, `dist-backend/`, a build told of a backend whose requests the harness answers (#92); `gear.spec.js` holds Settings' heading and Done on the screen in every state it has, About this app behind its row (#92), and Delete whole at its end, with each button, with none and once done (#93); `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star, the zero state's Show all and star, and a fold in place of a pick and a star in it among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88); `in-place.spec.js` holds the picks-changed notice and the folds under it whole on Now and on My day, each fold's button and the notice's OK 44 px tall or more (#90); `stack.spec.js` holds a venue's stack (#95): each of the seven opened by a touch, a strip's touch its plate's own and no shallower than measured, the way back's 44 px, a plate touched where it stood and the frame one size, the card whole, an inert plate see-through, and the keyboard's path; `level.spec.js` holds a level (#96): each of the 18 inside the frame and clear of the way back, in a frame the stack's own size, a touch at a room's middle that room's, a small room brought to the middle, a touch beside a room the nearest's and one past reach none's, the way back's 44 px at each step, and the keyboard's path. |
+| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds, and a second page, `dist-backend/`, a build told of a backend whose requests the harness answers (#92); `gear.spec.js` holds Settings' heading and Done on the screen in every state it has, About this app behind its row (#92), and Delete whole at its end, with each button, with none and once done (#93); `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star, the zero state's Show all and star, and a fold in place of a pick and a star in it among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88); `in-place.spec.js` holds the picks-changed notice and the folds under it whole on Now and on My day, each fold's button and the notice's OK 44 px tall or more (#90); `stack.spec.js` holds a venue's stack (#95): each of the seven opened by a touch, a strip's touch its plate's own and no shallower than measured, the way back's 44 px, a plate touched where it stood and the frame one size, the card whole, an inert plate see-through, and the keyboard's path; `level.spec.js` holds a level (#96): each of the 18 inside the frame and clear of the way back, in a frame the stack's own size, a touch at a room's middle that room's, a small room brought to the middle, a touch beside a room the nearest's and one past reach none's, the way back's 44 px at each step, and the keyboard's path; `motion.spec.js` holds the motion (#97): each move played in its own time and the page after it the Reduce Motion page, nothing of a set left, a set's first frame, a tap while one runs, and a venue's group put away; and `harness.js` `settled()` finishes a set that is playing before any other spec reads the page. |
 | `playwright.config.js` | The browser tests' configuration: a project for each engine at each size, a phone with touch on, the worker blocked, the zone the season file's, no retries. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record, frozen: never edited (DECISIONS #83). |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
@@ -416,16 +417,16 @@ a reviewer, and each review's decisions are committed as a record in
 
 ## The client: modules and their order
 
-One program in forty-one modules under `src/`, and `main.js`, the entry.
+One program in forty-two modules under `src/`, and `main.js`, the entry.
 The markup it drives is in `index.html` and the CSS in `src/styles.css`.
 
 The modules stand in one order, which is the array `ORDER` in
 `tests/rules/imports.test.js`, with `boot.js` as the root above it:
 
 ```
-season  stack  level  util  storage  platform  build  backend  about
+season  stack  level  motion  util  storage  platform  build  backend  about
 identity  crews  state  time  outbox  venues  shareday  data  building  picks
-follows  ics  walk  search  foryou  ui  inplace  filters   the twenty-seven leaves
+follows  ics  walk  search  foryou  ui  inplace  filters   the twenty-eight leaves
 scroll  eventsheet  bus  sync
 now  browse  explore  map  plans                       the five views
 sheet  loading  shell  dispatch
@@ -448,6 +449,10 @@ and stands this low so that the imports rule keeps it so.
 rooms are called and how large, the nearest room to a point and the zoom's
 camera, in the frame's own units - which imports `stack`'s `bounds()` alone;
 and `corners()`, which `building` takes from it.
+`motion`: the moves between the Map's views as lists of steps (#97) - what
+moves, from and to which of the two draws' values, when and on which curve -
+with every timing in one place, and a node's steps as one animation's
+keyframes; it imports nothing, and stands this low so that it stays pure.
 `util`: formatting
 and date helpers. `storage`: `loadJSON()`, `saveJSON()` and their session
 twins. `platform`: `IS_IOS`, `isStandalone()`. `build`: the stamp `BUILD`;
@@ -696,7 +701,18 @@ flat on its own nodes - the tilt and the lift undone, the camera at
 and the selected rooms' outlines written for the camera's scale, and a
 room's card; with `openLevel()`, `tapLevel()` - which takes a tap that hit
 no room through the plate's own matrix to the nearest within reach - and
-`stepBack()`, the way back a step at a time. `plans` also draws the crew header, the My day | Crew
+`stepBack()`, the way back a step at a time. And the motion (#97): each of
+those handlers, after its draw has written the end state, plays its move -
+`motion`'s list as a set of animations over the same nodes, the one place
+the app calls `animate()` - held at its first frame until that frame is
+painted, with no fill, so that nothing of a set is left when it ends; the
+running set is `map`'s, and `settleMotion()` finishes it at once and says
+whether there was one. No set starts under `prefers-reduced-motion: reduce`,
+read at each move, nor where an element has no `animate()`. A venue's group
+holds its block's face, which a lift's set and its way back's alone show; a
+group put away is in the page and not shown, by the stylesheet, so that its
+way back can show it; and a closing level's names are held in the page by
+its way back's set, and taken out as the set ends. `plans` also draws the crew header, the My day | Crew
 segment and the crew's day on a build with a backend, and says which crew
 Plans shows (`chosenCrew()`) and in what order a crew's members are
 listed (`crewPeople()`), for the crew panel too; each time it draws, it
@@ -768,7 +784,8 @@ and `loading`; nothing below it imports it.
 **`dispatch`** is the fifteen handlers whose bodies reach across modules: the
 five delegated listeners on `main` (click, input, keydown, change, focusout),
 Escape on the document - the way back on the Map, a step at a time, while
-no sheet is open (#95, #96) - the
+no sheet is open (#95, #96) - a tap or a key on the Map first finishing a
+move that is playing, a tap on the drawing then spent (#97) - the
 clicks inside the sheet's event, hotel and shared-day panels - the event's
 place, to the Map, and its names and chips, to Explore, among them - the clicks
 and changes inside its filter panel, which write `state.browse` and close
@@ -938,7 +955,10 @@ floor with no drawing is selected by its tap, and the card is then that
 plate's; with nothing selected it is the venue's line, which opens the
 hotel sheet. One control goes back a step - from a zoom to the whole level,
 from a level to its stack, from the stack to the city - and Escape with it;
-a tap off the plates of a stack goes back too; the park's block and the
+a tap off the plates of a stack goes back too; each of these is a move
+(#97) - the lift, the drop-in, the zoom, each way back - played over the
+view the draw has already written, and under Reduce Motion each view
+simply stands; the park's block and the
 crew's pill open the hotel sheet; and the stack, the level and what is
 selected are kept, in memory, when the tab is left. The slot under the map keeps one
 height while a stack is open, and on a screen too short for it and the
@@ -1349,7 +1369,15 @@ the tab scrolling on a screen too short for it. `level.spec.js` holds a
 level (#96): the 18 inside the frame and clear of the way back, a touch on
 a room that room's, a room that does not zoom where it stood and one that
 does in the middle, a touch beside a room and one past reach, the way
-back's three steps, and Tab through the open level's rooms alone. It is not an
+back's three steps, and Tab through the open level's rooms alone.
+`motion.spec.js` holds the motion (#97): each move played in its own time,
+and after it the page the same view reached under Reduce Motion, with
+nothing of its set left; a set's first frame painted before it runs, and
+the tapped block where it stood; a tap on the drawing while a set runs
+spent, and any other acting; and a group put away showing nothing and
+taking no touch and no Tab stop. Every other spec measures end states:
+`harness.js` `settled()` finishes a set that is playing, through the Web
+Animations API, before it reads the page. It is not an
 iPhone - no iOS keyboard, no safe-area insets, no home-screen app,
 `IS_IOS` false in both engines - and it tests nothing of the worker,
 offline or install.

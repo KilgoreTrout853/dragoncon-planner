@@ -1213,8 +1213,9 @@ As built: the recon, section 2, Map; section 5, the map card.
   and its hotel's block, ringed, for an event known only to its venue; with
   the card showing that event, which reopens the sheet (#63, #64; section
   11).
-- **Reduced motion** (#66): the lift and the level swap show their end
-  states with no animation.
+- **Reduced motion** (#66): no move plays - the lift, the drop-in, the
+  zoom and each way back show their end states - read at each move, with
+  no switch of our own.
 - **Before its screens** (#60's Cost), all three done: the map one
   persistent SVG, built once and drawn in place (#28's Cost; PR #107,
   #89), the Marriott's and the Hyatt's levels drawn, and each hotel's
@@ -1223,6 +1224,8 @@ As built: the recon, section 2, Map; section 5, the map card.
 Built: the stack (W38) - PR #113, DECISIONS #95.
 
 Built: the level (W39) - PR #114, DECISIONS #96.
+
+Built: the motion (W40) - PR #115, DECISIONS #97.
 
 **Home of:** W38; W39; W40; W41.
 
@@ -1233,6 +1236,8 @@ Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
 `style.test.js`'s map rules. PRs 3, 5, 7 and 10.
 
 ### Map, as built
+
+Changed by PR #115 (#97): the Map's views are reached by moves - the lift, the drop-in, the zoom, each way back and the arrival - played over the end states, which stand as built.
 
 Changed by PR #114 (#96): a drawn plate's tap opens its level, the place line lands on the room, and the way back and Escape go a step at a time.
 
@@ -2863,8 +2868,10 @@ As built: the recon, section 8, what crews' readers offer today.
 - On a short screen the frame gives way in height and the drawing stands
   in the middle of it, so the way back, at the frame's corner, stands left
   of the ground's edge (#95).
-- The level's frame does not grow: it is the Map's as it stands, and
-  whether it should is decided once the level is seen on a phone (#96).
+- ~~The level's frame does not grow: it is the Map's as it stands, and
+  whether it should is decided once the level is seen on a phone (#96).~~
+  Settled by PR #114's phone check, 2026-10-07, in Safari and from the
+  home screen: the level's size was fine, and the frame stays the Map's.
 - On a screen shorter than the three sizes the browser tests hold - a
   small phone in a browser tab - a level's top can stand under the foot of
   the way back, whose 44 px are the screen's and not the Map's units (#96).
@@ -2872,11 +2879,13 @@ As built: the recon, section 8, what crews' readers offer today.
   across at its fit, and a room that is zoomed on stands 62 across, which
   a short phone draws under #66's 44 px with Larger text on. For step 11's
   sweep (#96).
-- The least label, 8 of the Map's units, is one constant (`level.js`
+- ~~The least label, 8 of the Map's units, is one constant (`level.js`
   `LEAST`): a short phone draws it too small to read, and raising it
-  leaves more rooms with no name at the fit (#96).
-- A tap's reach, 22, is of the Map's units: of the screen's px if a phone
-  shows near misses failing (#96).
+  leaves more rooms with no name at the fit (#96).~~ Settled by the same
+  check: room numbers were read at the least label, and 8 stays.
+- ~~A tap's reach, 22, is of the Map's units: of the screen's px if a phone
+  shows near misses failing (#96).~~ Settled by the same check: taps took
+  the room aimed at, and the reach stays 22 of the Map's units.
 - A level's words can land on one another: an open area's name stands at
   its middle, over a room that stands in it - the Hyatt's Grand Hall East
   - and a group's name can stand on the plate's own edge or on a landmark
@@ -2885,5 +2894,19 @@ As built: the recon, section 8, what crews' readers offer today.
   no composite's - are named one by one, the ellipsis their net (#96).
 - A room's keyboard focus is its own edge, which the room painted after
   it covers along the wall they share. For step 11's sweep (#96).
+- The drawing's box is carried through the lift and its way back alone:
+  an arrival at a level from the city map changes the frame at the tap, as
+  built, and its drop-in starts in the new one (#97).
+- A way back is its way in mirrored, so it starts slowly and ends fast,
+  and an arrival at a small room shows its level bare of names between
+  its two beats: whether either reads as a wait is a phone's to say (#97).
+- A zoom's old names go at once, and the names for the new scale come in
+  as it ends; a closing level's are held while they go, and a draw that
+  comes meanwhile - the minute's - takes them early (#97).
+- A tap spent on the drawing while a move plays can leave keyboard focus
+  on the plate it touched, by the browser's own hand, where the move
+  leaves it on the way back (#97).
+- The motion has run in the browser tests' two engines on a PC and not yet
+  on a phone: how it holds its frames there is the phone check's (#97).
 
 **Home of:** W24.
