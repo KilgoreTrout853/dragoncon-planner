@@ -3023,7 +3023,7 @@ already holds back what the page's button does.
 filter in Search. A word that ranks loses the group. The feed's fold
 counts what is to come, where the page's counts every one.
 
-### 86. What is tapped stays where it stood — Standing (2026-10-05)
+### 86. What is tapped stays where it stood — Standing (2026-10-05) — amended by #96
 **Decided:** A control that is tapped, and is still there after the draw,
 stands where it stood, to 1 px, wherever the page is scrolled; where the
 tap takes the control away - Show more, a photo ops' button, a chip's x -
@@ -3255,7 +3255,7 @@ hotel, level or room 2026's venues file lacks refuses every default build,
 dev server and Vitest run, and fails `tests/test_drawings.py`, in its own
 pull request: the fix is the id in 2026's file too, or the default moved.
 
-### 95. The stack: a venue lifted into its floors — Standing (2026-10-06)
+### 95. The stack: a venue lifted into its floors — Standing (2026-10-06) — amended by #96
 **Decided:** Step 10's second pull request (W38; PR #113;
 `docs/screens/contract.md`, section 6). Amends #72, #75, #89.
 - **What opens it:** a tap or Enter on the block of a venue with a building,
@@ -3280,3 +3280,29 @@ pull request: the fix is the id in 2026's file too, or the default moved.
 layout in a test and at every width, with nothing measured from the page.
 **Cost:** A strip is 38 px or less on a phone, under #66's 44. While a stack
 is open the next pick is said nowhere. C opens a level; E links to Search.
+
+### 96. The level: a drawn plate laid flat, its rooms in place — Standing (2026-10-07)
+**Decided:** Step 10's third pull request (W39; PR #114;
+`docs/screens/contract.md`, section 6). Amends #86, #95.
+- **What opens it:** a tap or Enter on a drawn plate of an open stack; a
+  floor with no drawing is still selected. An event's place line arrives
+  at its room: its level, the room selected, one small room alone zoomed.
+- **What it is:** its plate's own nodes - the tilt and the lift undone, the
+  camera moved - fitted to its rooms in the Map's frame, which does not
+  grow. The rest of the stack and the city are hidden, never removed.
+- **Gold** is the lit rooms' and their names': a flat plate's edge is plain.
+- **In the Map's units,** nothing measured from the page. A label: the full
+  name at 11 or more, else the short one under its group's, none under 8
+  (round 7). A tap: the nearest room within 22. A zoom: a room under 44
+  across, until it is 62, at most 7 a foot.
+- **The card** is the selected room's, " · as" a composite where the event
+  booked one, or the plate's; a composite's leaves together take its name.
+- **The way back:** one control and Escape, a step each: level, stack, city.
+- **#86's exception:** a tap whose answer is another view of the thing
+  tapped - a plate opened to its level, a room zoomed on - moves it.
+
+**Why:** #28: which end of the floor. The frame stays the Map's because a
+browser tab has no room for more once the card's slot is held (#95). 62,
+not round 7's 56, keeps a zoomed room 44 px across on a short phone.
+**Cost:** Most rooms are under 44 at the fit and many have no name there:
+the zoom is how a level is read. Units draw smaller on a short phone.

@@ -714,6 +714,9 @@ describe("src/styles.css", () => {
     it("the gold edge keeps a dashed plate's dashes: it sets the stroke's colour and width, and nothing of its pattern", () => {
       expect(body(".plate.mine .plate-hull")).toBe("stroke: var(--gold); stroke-width: 2.5;");
       expect(body(".plate.floor .plate-hull")).toMatch(/stroke-dasharray: 5 4;$/);
+      /* And a plate laid flat wears none (#96): the hull's own plain edge again, its colour and its width. */
+      expect(body(".plate.flat.mine .plate-hull")).toBe("stroke: var(--h); stroke-width: 1.4;");
+      expect(body(".plate-hull")).toMatch(/; stroke: var\(--h\); stroke-width: 1\.4; /);
     });
     it("an inert plate is see-through and takes no pointer: a dotted outline, no fill, and no rule gives it one", () => {
       expect(body(".plate.inert")).toBe("pointer-events: none;");
@@ -727,7 +730,7 @@ describe("src/styles.css", () => {
     it("a plate's keyboard focus is its own edge, thicker: no outline, which a tilted group draws as two lines across the frame", () => {
       expect(body(".plate:focus")).toBe("outline: none;");
       expect(body(".plate:focus-visible .plate-hull")).toBe("stroke-width: 4;");
-      expect(stack.filter(r => /outline/.test(r.body)).map(r => r.selector)).toEqual([".plate:focus"]);
+      expect(stack.filter(r => /outline/.test(r.body)).map(r => r.selector)).toEqual([".plate:focus", ".plate.flat .plate-room:focus, .plate.flat .plate-open.place:focus"]);    // and a room's, in its level (#96)
       expect(body(".plate.mine:focus-visible .plate-hull")).toBe("stroke-width: 5;");                 // on a gold edge thicker again: 2.5 to 4 is too small a step
     });
     it("what must win does by weight, whatever order the rules stand in: focus on a gold edge over the gold's own width, and a lit place over the tint a place has", () => {
@@ -736,6 +739,7 @@ describe("src/styles.css", () => {
       const over = (a, b) => { const [x, y] = [weight(a), weight(b)]; const at = x.findIndex((v, i) => v !== y[i]); return at >= 0 && x[at] > y[at]; };
       expect([weight(".plate.mine .plate-hull"), weight(".plate:focus-visible .plate-hull"), weight("#view-map .controls-sticky"), weight("main::after")]).toEqual([[0, 3, 0], [0, 3, 0], [1, 1, 0], [0, 0, 2]]);
       expect(over(".plate.mine:focus-visible .plate-hull", ".plate.mine .plate-hull")).toBe(true);
+      expect(over(".plate.flat.mine .plate-hull", ".plate.mine .plate-hull")).toBe(true);                // a level's plain edge over the gold one
       expect(over(".plate-open.place.lit", ".plate-open.place")).toBe(true);
       expect(over(".plate-room.lit", ".plate-room")).toBe(true);
       const width = selector => Number(/stroke-width: ([\d.]+);/.exec(body(selector))[1]);
@@ -797,6 +801,86 @@ describe("src/styles.css", () => {
       expect(contrast(gold, ground)).toBeGreaterThan(8);
       expect(contrast(rgb(token("text")), ground)).toBeGreaterThan(12);
       expect(contrast(rgb(token("dim")), ground)).toBeGreaterThanOrEqual(3);
+    });
+  });
+  /* The level (DECISIONS #96): a drawn plate laid flat. What is not shown is
+     hidden and never removed, the frame is one size, a room's focus is its
+     own edge and wins by weight, the labels take no pointer and no size from
+     the stylesheet, and gold stays the reader's. What a phone draws of it is
+     tests/browser/level.spec.js's. New tests, not rows of
+     tests/PORT-LEDGER.md. */
+  describe("the level: a drawn plate laid flat (DECISIONS #96)", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim().replace(/\s+/g, " ") }));
+    const body = selector => rules.filter(r => r.selector === selector).map(r => r.body).join(" | ");
+    /* Every rule the level brought: what it hides, its rooms, its outlines, its labels, its streets and its card. */
+    const LEVEL = /\.(level-|lv-|room-card)|\[data-level\]|\.plate\.flat/;
+    const level = rules.filter(r => LEVEL.test(r.selector));
+
+    it("what is not shown behind a level is hidden, never removed: the city, the other plates and every plate's label, by visibility - and no rule of the level's takes a thing out of the page, moves it or times it", () => {
+      expect(body(".map[data-level] .map-city")).toBe("visibility: hidden;");
+      expect(body(".map-stack[data-level] .plate:not(.flat), .map-stack[data-level] .plate-label")).toBe("visibility: hidden;");
+      expect(level.filter(r => /display: none|animation|transition|transform/.test(r.body)).map(r => r.selector)).toEqual([]);
+      expect(level.length).toBeGreaterThan(15);
+    });
+    it("the frame does not grow: no rule of the level's sets a size or a space - the map's lines and the slot's one height are the stack's", () => {
+      expect(level.filter(r => /(^|; )((min-|max-)?(height|width)|flex|padding|margin|inset|top|left)\b/.test(r.body)).map(r => r.selector)).toEqual([]);
+      expect(rules.filter(r => /\.map-under$/.test(r.selector) && /(^|; |\b)(min-|max-)?height:/.test(r.body)).map(r => r.selector)).toEqual([".map-wrap[data-stack] .map-under"]);
+    });
+    it("a room with keyboard focus says so by its own edge, light and thicker, with no outline - by more weight than a lit room's rule and a place's tint, whatever order the rules stand in", () => {
+      const focus = ".map-stack[data-level] .plate.flat .plate-room:focus-visible, .map-stack[data-level] .plate.flat .plate-open.place:focus-visible";
+      expect(body(focus)).toBe("stroke: var(--text); stroke-width: 4;");
+      expect(body(".plate.flat .plate-room:focus, .plate.flat .plate-open.place:focus")).toBe("outline: none;");
+      const weight = selector => { const w = selector.replace(/::[\w-]+/g, " el"); return [(w.match(/#[\w-]+/g) || []).length, (w.match(/\.[\w-]+|\[[^\]]*\]|:[\w-]+/g) || []).length, (w.match(/(^|[\s>+~])[a-z][\w-]*/gi) || []).length]; };
+      const over = (a, b) => { const [x, y] = [weight(a), weight(b)]; const at = x.findIndex((v, i) => v !== y[i]); return at >= 0 && x[at] > y[at]; };
+      for (const part of focus.split(", ")) {
+        for (const other of [".plate-room.lit", ".plate-open.place.lit", ".plate-open.place", ".plate-room", ".plate-open"]) expect(over(part, other), `${part} over ${other}`).toBe(true);
+      }
+      expect(Number(/stroke-width: ([\d.]+);/.exec(body(focus))[1])).toBeGreaterThanOrEqual(4 * Number(/stroke-width: ([\d.]+);/.exec(body(".plate-room"))[1]));
+    });
+    it("a room and an identified open area are what a tap lands on: their names, a selected room's outline and a ballroom's are drawn over them and take no pointer", () => {
+      expect(body(".level-labels")).toBe("pointer-events: none;");
+      expect(body(".level-sel-room")).toBe("fill: none; stroke: var(--text); stroke-width: 2.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: none;");
+      expect(body(".plate-group")).toMatch(/pointer-events: none;$/);
+      expect([body(".plate.flat"), body(".plate.flat .plate-room, .plate.flat .plate-open.place")]).toEqual(["cursor: default;", "cursor: pointer;"]);
+      expect(level.filter(r => /pointer-events/.test(r.body)).map(r => r.selector)).toEqual([".level-sel-room", ".level-labels"]);
+    });
+    it("a label's size is the drawing's, never the stylesheet's: Larger text leaves the map alone", () => {
+      expect(level.filter(r => /font-size|rem\b/.test(r.body)).map(r => r.selector)).toEqual([]);
+      expect(body(".level-labels text")).toBe("font-family: var(--font);");
+      expect(body(".lv-room, .lv-open")).toBe("text-anchor: middle; dominant-baseline: central;");
+    });
+    it("gold is the reader's own: a lit room's words are in the gold's ink, and no name, landmark, street or outline of the level's is gold", () => {
+      expect(body(".lv-room.lit, .lv-open.lit")).toBe("fill: var(--gold-ink); font-weight: 700;");
+      expect(level.filter(r => /--gold(?![-\w])/.test(r.body)).map(r => r.selector)).toEqual([]);
+      expect([body(".lv-mark path, .lv-mark rect, .lv-mark circle"), body(".lv-mark text")]).toEqual(["fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;", "fill: var(--muted); font-weight: 600; text-anchor: middle;"]);
+      expect([body(".lv-room"), body(".lv-open"), body(".lv-group"), body(".lv-group.middle")]).toEqual(["fill: var(--text); font-weight: 600;", "fill: var(--muted); font-weight: 500;", "fill: var(--h); font-weight: 700; letter-spacing: .08em;", "text-anchor: middle;"]);
+    });
+    it("a street's name is the city map's own label, on its edge of the frame, edged in the dark so the venue's outline does not strike it through: north from its right end, clear of the way back, the others about their middle", () => {
+      expect(body(".level-street")).toBe("paint-order: stroke; stroke: var(--ink); stroke-width: 3px; stroke-linejoin: round;");
+      expect([body('.level-street[data-side="N"]'), body('.level-street[data-side="S"], .level-street[data-side="W"], .level-street[data-side="E"]')]).toEqual(["text-anchor: end;", "text-anchor: middle;"]);
+      expect(body(".map-street-label")).toMatch(/font-size: 10px;.*text-transform: uppercase; fill: var\(--dim\);$/);
+    });
+    it("a room's card is a plate's, its small line one line with an ellipsis its net", () => {
+      expect(body(".room-card .nc-label")).toBe("white-space: nowrap; overflow: hidden; text-overflow: ellipsis;");
+    });
+    it("what a level says reads (#66): a room's name on its room, a lit one's on the gold, an open area's name and a landmark's on the plate and on a place's tint at 4.5:1 or more on every hue; a group's name and the selection at 3:1", () => {
+      const token = name => new RegExp(`--${name}: (#[0-9A-Fa-f]{6})`).exec(css)[1];
+      const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+      const lum = c => { const [r, g, bl] = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * bl; };
+      const contrast = (x, y) => { const [hi, lo] = [lum(x), lum(y)].sort((p, q) => q - p); return (hi + 0.05) / (lo + 0.05); };
+      const mix = (a, b, p) => a.map((v, i) => Math.round(v * p + b[i] * (1 - p)));
+      const ink = rgb(token("ink")), ground = rgb(token("surface")), text = rgb(token("text")), muted = rgb(token("muted"));
+      expect(body(".plate-room")).toMatch(/^fill: color-mix\(in srgb, var\(--h\) 18%, var\(--surface\)\);/);
+      expect(body(".plate-open.place")).toMatch(/^fill: color-mix\(in srgb, var\(--h\) 8%, var\(--surface\)\);/);
+      expect(contrast(rgb(token("gold-ink")), rgb(token("gold")))).toBeGreaterThanOrEqual(4.5);
+      for (const name of ["Marriott", "Hyatt", "Hilton", "Courtland", "Westin"]) {
+        const hue = rgb(token(`h-${name}`)), plate = mix(hue, ink, 0.11), room = mix(hue, ground, 0.18), tint = mix(hue, ground, 0.08);
+        for (const [what, a, b, least] of [["a room's name on its room", text, room, 4.5], ["an open area's name on the plate", muted, plate, 4.5], ["an open area's name on a place's tint", muted, tint, 4.5],
+          ["a landmark on the plate", muted, plate, 4.5], ["a group's name on the plate", hue, plate, 3], ["the selection round a room", text, room, 3], ["a room's focus on the plate", text, plate, 3]]) {
+          expect(contrast(a, b), `${name}: ${what}`).toBeGreaterThanOrEqual(least);
+        }
+      }
     });
   });
 });

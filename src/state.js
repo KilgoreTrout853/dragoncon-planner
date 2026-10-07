@@ -16,9 +16,12 @@ const state = {
      the id of the event an event's sheet sent the reader here to find, null
      for none - in memory alone, and it carries its own day (map.js;
      DECISIONS #75); and the building view's - the venue whose stack is
-     open, by its key, and the plate selected in it, by its key, each null
-     for none, in memory alone and kept when the tab is left (#95). */
-  map: {day: null, focus: null, stack: null, plate: null},
+     open, by its key, and the plate selected in it, by its key (#95); the
+     plate whose level is open, by its key, the rooms selected in it, a
+     list of {level, id}, and the room the camera is zoomed on, {level, id,
+     scale} (#96) - each null for none, in memory alone and kept when the
+     tab is left. A level open leaves no plate selected. */
+  map: {day: null, focus: null, stack: null, plate: null, level: null, rooms: null, zoom: null},
   plans: {crew: null, day: null},         /* the crew shown, null the oldest; the crew's day, null the clock's */
   /* What stands in place of the picks that changed, under the notice on Now
      and on My day, while the reader stays on the tab - the tab, the news it

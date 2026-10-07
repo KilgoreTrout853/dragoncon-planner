@@ -1208,10 +1208,11 @@ As built: the recon, section 2, Map; section 5, the map card.
   the year's own or the earliest later year's, through `building.js`, the
   building's model (PR #112, #94).
 - **Focused:** the event sheet's place line lands here as deep as its
-  place goes (#95): its venue's stack with its plate selected for a room, a
-  level or a floor - on the room once the level view is built - and its
-  hotel's block, ringed, for an event known only to its venue; with the
-  card showing that event, which reopens the sheet (#63, #64; section 11).
+  place goes (#95, #96): its level, open, with its rooms selected for a
+  room or a level, its venue's stack with its plate selected for a floor,
+  and its hotel's block, ringed, for an event known only to its venue; with
+  the card showing that event, which reopens the sheet (#63, #64; section
+  11).
 - **Reduced motion** (#66): the lift and the level swap show their end
   states with no animation.
 - **Before its screens** (#60's Cost), all three done: the map one
@@ -1220,6 +1221,8 @@ As built: the recon, section 2, Map; section 5, the map card.
   levels in one frame (#58, #67).
 
 Built: the stack (W38) - PR #113, DECISIONS #95.
+
+Built: the level (W39) - PR #114, DECISIONS #96.
 
 **Home of:** W38; W39; W40; W41.
 
@@ -1230,6 +1233,8 @@ Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
 `style.test.js`'s map rules. PRs 3, 5, 7 and 10.
 
 ### Map, as built
+
+Changed by PR #114 (#96): a drawn plate's tap opens its level, the place line lands on the room, and the way back and Escape go a step at a time.
 
 Changed by PR #113 (#95): a venue's block and its gold pill open its stack, the place line lands by depth, and a block's, a plate's and the way back's tap end the focus.
 
@@ -1405,6 +1410,8 @@ through to a person", `ics.test.js`. PRs 5 (who's going) and 7; W44
 standalone.
 
 ### The event sheet, as built
+
+Changed by PR #114 (#96): the place's tap lands on the room - its level, open, with its rooms selected.
 
 Changed by PR #113 (#95): the place's tap lands as deep as the place goes - for an event with a floor its venue's stack, its plate selected, and no ring.
 
@@ -2446,7 +2453,9 @@ the hash and the address.
 | The Map's crew pill | The hotel sheet, Your crew's picks here brought to the top of its body (#63) | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the Map | built, PR #82 |
 | A Map block or its gold pill, a venue with a building | Its stack, keyboard focus on the way back | `state.map.stack` | "← Map", a tap in the frame off the plates, Escape with no sheet open: the city map, focus on the block | built, PR #113 |
 | The venue's line under a stack | The hotel sheet | `state.sheetHotel` | Done, the backdrop, a swipe, Escape: the stack, focus on the line | built, PR #113 |
-| A row of a plate's card | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the stack, the plate still selected, focus on the row | built, PR #113 |
+| A drawn plate of an open stack, by a tap or a key | Its level, keyboard focus on the way back | `state.map.level` | "← Hyatt" - the venue's short name - or Escape with no sheet open: its stack, nothing selected, focus on that plate | built, PR #114 |
+| A room of an open level, by a tap or a key | That room selected, its card under the map; a small room brought close | `state.map.rooms`, `state.map.zoom` | a tap off the rooms clears it and goes nowhere; "← Whole level", or Escape, from the zoom: the level, the room still selected | built, PR #114 |
+| A row of a plate's card, or of a room's | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the stack or the level as it was - the plate, the room, the zoom - focus on the row | built, PR #113; a room's, PR #114 |
 | The hotel sheet's "Search the Hyatt on Saturday" | Search | `state.browse`: the hotel, the day, no query - since PR #88 the hotel a chip under the box, counted on Filters | the tab bar to the Map, whose day `state.map.day` kept | built |
 | A person's name on the event sheet - "See all" beside it until PR #93 | That person's Explore page, keyboard focus on its heading since PR #94 | `state.explore.page`, the hash | "← Explore", to the grid, where it last was since PR #94 - its top, if it was never left: one tap from the event, accepted | built; the name since PR #93 |
 | Another session on the event sheet's Also runs line | That session's sheet, in this one's place | `state.sheetId` | Done, the backdrop, a swipe, Escape: the screen underneath, focus on what opened the first sheet - the shared day, where the first was opened from it; no way back to the first event (section 14) | built, PR #93 |
@@ -2454,7 +2463,7 @@ the hash and the address.
 | An Explore tile, a Following chip, a Because-you-starred tile | Its page, keyboard focus on its heading since PR #94 | `state.explore.page`, the hash | "← Explore", the grid's scroll put back | built |
 | A `#explore=` link | Its page | the same, at load | "← Explore", to the grid | built |
 | The event sheet's track chip, or the chip of a work a person has reviewed | Its Explore page, keyboard focus on its heading | `state.explore.page`, the hash | "← Explore", to the grid, as a person's name | built, PR #94 |
-| The event sheet's place line, where the Map can show the event: at one of its eight places, neither cancelled nor removed | The Map at its top, on the event's con day, focused on the event, as deep as its place goes: its venue's stack with its plate selected for a room, a level or a floor, its hotel ringed for the venue alone and the park; the event on the card, keyboard focus on the card - on the room once the level view is built | `state.tab`, `state.map.focus`, `state.map.stack`, `state.map.plate` | the Map's focused card, which reopens the sheet; from a stack, its own way back | built, PR #94; by depth, PR #113 |
+| The event sheet's place line, where the Map can show the event: at one of its eight places, neither cancelled nor removed | The Map at its top, on the event's con day, focused on the event, as deep as its place goes: its level, open, with its rooms selected for a room or a level - one small room alone brought close - its venue's stack with its plate selected for a floor, its hotel ringed for the venue alone and the park; the event on the card, keyboard focus on the card | `state.tab`, `state.map.focus`, `state.map.stack`, `state.map.plate`, `state.map.level`, `state.map.rooms`, `state.map.zoom` | the Map's focused card, which reopens the sheet; from a level or a stack, its own way back | built, PR #94; by depth, PR #113; the room, PR #114 |
 | The Map's focused card | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the Map, the focus still held, keyboard focus on the card | built, PR #94 |
 | Search's Filters | `#panel-filters` | the panel shown | no Apply (#70): Show `<n>` events, the backdrop, a swipe, Escape: Search, focus on Filters, the list from its top if anything changed | built, PR #88 |
 | A kept `?join=`, in any phase | Plans' join step | `state.tab`, the step open | the step closed: Plans as it opens | built |
@@ -2854,5 +2863,27 @@ As built: the recon, section 8, what crews' readers offer today.
 - On a short screen the frame gives way in height and the drawing stands
   in the middle of it, so the way back, at the frame's corner, stands left
   of the ground's edge (#95).
+- The level's frame does not grow: it is the Map's as it stands, and
+  whether it should is decided once the level is seen on a phone (#96).
+- On a screen shorter than the three sizes the browser tests hold - a
+  small phone in a browser tab - a level's top can stand under the foot of
+  the way back, whose 44 px are the screen's and not the Map's units (#96).
+- Rooms under 44. Most rooms of a level are under 44 of the Map's units
+  across at its fit, and a room that is zoomed on stands 62 across, which
+  a short phone draws under #66's 44 px with Larger text on. For step 11's
+  sweep (#96).
+- The least label, 8 of the Map's units, is one constant (`level.js`
+  `LEAST`): a short phone draws it too small to read, and raising it
+  leaves more rooms with no name at the fit (#96).
+- A tap's reach, 22, is of the Map's units: of the screen's px if a phone
+  shows near misses failing (#96).
+- A level's words can land on one another: an open area's name stands at
+  its middle, over a room that stands in it - the Hyatt's Grand Hall East
+  - and a group's name can stand on the plate's own edge or on a landmark
+  (#96).
+- Rooms selected together that are a whole ballroom - a group's rooms, and
+  no composite's - are named one by one, the ellipsis their net (#96).
+- A room's keyboard focus is its own edge, which the room painted after
+  it covers along the wall they share. For step 11's sweep (#96).
 
 **Home of:** W24.

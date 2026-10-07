@@ -1,8 +1,8 @@
 /* Dispatch: the handlers whose bodies reach across modules, so that no one
    module below could hold them. The five delegated listeners on main - click,
    input, keydown, change, focusout - which are about whatever view is on
-   screen; Escape on the document, the way back from a stack on the Map
-   while no sheet is open (DECISIONS #95); the clicks inside the sheet's
+   screen; Escape on the document, the way back on the Map, a step at a
+   time, while no sheet is open (DECISIONS #95, #96); the clicks inside the sheet's
    event, hotel and shared-day panels,
    and the clicks and changes inside its filter panel; Apply and Clear for
    the preview clock; the hash; and the minute tick. boot() registers all
@@ -27,7 +27,7 @@ import {
   applyExploreHash, closeExplorePage, holdSpyUntil, markActiveSection, openExplorePage,
   renderExploreSections, scrollToExploreSection, scrollToGrid,
 } from "./explore.js";
-import { closeStack, openStack, showOnMap, tapPlate, tickMap } from "./map.js";
+import { closeStack, openLevel, openStack, showOnMap, stepBack, tapLevel, tapPlate, tickMap } from "./map.js";
 import { toggleInPlace } from "./inplace.js";
 import { refreshEventSheet } from "./eventsheet.js";
 import {
@@ -52,18 +52,26 @@ function onMainClick(e) {
     revealChip(document.querySelector(`.chips [data-chip="${kind}"][data-value="${cssEsc(value)}"]`));
     return;
   }
-  /* While a stack is open on the Map (#95): a plate that is a button is
-     selected, or cleared, by a tap on it or on its name - the label is in
-     its group, wherever on the stack its words stand; an inert one takes no
+  /* While a stack is open on the Map (#95): a plate that is a button answers
+     a tap on it or on its name - the label is in its group, wherever on the
+     stack its words stand - a drawn one by opening its level (#96), a floor
+     with no drawing by being selected, or cleared; an inert one takes no
      tap, and where the page honours its rule takes no pointer either. A tap
-     anywhere else in the frame, the control among it, is the way back. The
-     venue's line opens its hotel sheet, as built. */
+     anywhere else in the frame is the way back, and the control is the way
+     back a step. The venue's line opens its hotel sheet, as built.
+     While a level is open every tap in the frame is the level's: a room's,
+     or one that clears the selection, and none goes back but the control's. */
   if (state.tab === "map" && state.map.stack) {
-    const plate = e.target.closest(".plate");
-    if (plate) { if (plate.getAttribute("role") === "button") tapPlate(plate.dataset.plate); return; }
-    if (e.target.closest("#mapBack, svg.map")) { closeStack(); return; }
-    const venue = e.target.closest("[data-venue]");
-    if (venue) { openSheet("hotel", venue.dataset.venue); return; }
+    if (e.target.closest("#mapBack")) { stepBack(); return; }
+    if (state.map.level) {
+      if (e.target.closest("svg.map")) { tapLevel(e.target, e.clientX, e.clientY); return; }
+    } else {
+      const plate = e.target.closest(".plate");
+      if (plate) { if (plate.getAttribute("role") === "button" && !openLevel(plate.dataset.plate)) tapPlate(plate.dataset.plate); return; }
+      if (e.target.closest("svg.map")) { closeStack(); return; }
+      const venue = e.target.closest("[data-venue]");
+      if (venue) { openSheet("hotel", venue.dataset.venue); return; }
+    }
   }
   /* A venue on the Map, by its block or its gold pill: its stack, where it
      has a building; else - the park - its hotel sheet. The crew's pill is
@@ -270,19 +278,24 @@ function onMainInput(e) {
 }
 /* The keyboard's return key reads Search and puts the keyboard away. Enter
    or Space on a Map block is its tap - its stack, or the park's sheet - and
-   on a plate of an open stack that is a button, that plate's (#95). A key
-   held down repeats, and a repeat is no second press: an open puts focus on
-   the way back, which the same key works, so each repeat would close the
-   stack or open it again, and on a plate select it and clear it. */
+   on a plate of an open stack that is a button, that plate's (#95), and on
+   a room of an open level, that room's (#96). A key held down repeats, and
+   a repeat is no second press: an open puts focus on the way back, which
+   the same key works, so each repeat would step back or open it again, and
+   on a floor select it and clear it. */
 function onMainKeydown(e) {
   if (e.key === "Enter" && e.target && e.target.id === "q") { e.preventDefault(); e.target.blur(); }
   const pressed = (e.key === "Enter" || e.key === " ") && e.target && e.target.closest;
   if (pressed && e.repeat && e.target.closest(".map-hotel, .plate, #mapBack")) { e.preventDefault(); return; }
   const block = pressed && e.target.closest(".map-hotel"), plate = pressed && e.target.closest('.plate[role="button"]');
-  if (plate && state.tab === "map" && state.map.stack) { e.preventDefault(); tapPlate(plate.dataset.plate); }
+  const room = pressed && e.target.closest('.plate.flat [data-room][role="button"]');
+  if (room && state.tab === "map" && state.map.level) { e.preventDefault(); tapLevel(room); }
+  else if (plate && state.tab === "map" && state.map.stack) { e.preventDefault(); if (!openLevel(plate.dataset.plate)) tapPlate(plate.dataset.plate); }
   else if (block && !state.map.stack) { e.preventDefault(); if (!openStack(block.dataset.hotel)) openSheet("hotel", block.dataset.hotel); }
 }
-/* Escape, with no sheet open, is a way back from a stack on the Map (#95).
+/* Escape, with no sheet open, is the way back on the Map, a step at a time
+   as its control is (#95, #96): from a zoom to the whole level, from a
+   level to its stack, from a stack to the city map.
    boot() registers it before the sheet's own Escape, so a sheet that is
    open is still open when this hears the key, and it does nothing: the
    sheet's handler then closes the sheet, and the stack stands - through a
@@ -292,7 +305,7 @@ function onEscape(e) {
   if (e.key !== "Escape" || e.repeat || e.isComposing || e.keyCode === 229) return;
   if (!sheetWrap.hidden || state.tab !== "map" || !state.map.stack) return;
   e.preventDefault();
-  closeStack();
+  stepBack();
 }
 function onMainChange(e) {
   if (e.target.id === "crewPick") { state.plans.crew = e.target.value; render(); }
