@@ -3260,10 +3260,10 @@ pull request: the fix is the id in 2026's file too, or the default moved.
 `docs/screens/contract.md`, section 6). Amends #75, #89.
 - **What opens it:** a tap or Enter on the block of a venue with a building,
   or a tap on its gold pill; the park, and the crew's pill, keep the hotel
-  sheet. The venue and the plate selected are kept in memory, `state.map`.
-- **Where it stands:** in the Map's own frame and its units, a plate a
-  storey, the city pushed in behind. A strip 40 deep shows under each plate
-  while a plate stays 55% of the frame wide; else the width wins.
+  sheet. Venue and plate are kept in memory, `state.map`, the tab left too.
+- **Where it stands:** in the Map's frame and units, a plate a storey, the
+  city pushed in behind, each venue's group built at its first open (#89).
+  A strip 40 deep shows under each plate, or 55% of the frame's width wins.
 - **Three kinds of plate:** drawn; a floor with no drawing, dashed, saying
   its day's count; inert, a dotted outline that takes no touch. A venue with
   no drawing takes its block's shape.
@@ -3278,5 +3278,5 @@ pull request: the fix is the id in 2026's file too, or the default moved.
 
 **Why:** #60: the stack is how a reader finds the level. Units, not px: one
 layout in a test and at every width, with nothing measured from the page.
-**Cost:** A strip is 31 to 38 px on a phone, under #66's 44. While a stack
+**Cost:** A strip is 38 px or less on a phone, under #66's 44. While a stack
 is open the next pick is said nowhere. C opens a level; E links to Search.

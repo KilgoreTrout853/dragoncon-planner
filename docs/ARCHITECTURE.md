@@ -887,7 +887,8 @@ the tab is the record of the reader's picks.
 
 **Mini-bar.** The shell's: the next pick and how long until it starts, "in
 47 min", above the nav on Search, Explore and Plans. Not on Now or Map,
-which say the same thing themselves, and not once the con is over.
+which say the same thing themselves - the Map but while a stack is open
+(#95) - and not once the con is over.
 
 **Plans.** Timeline view by default (con day ends 5 AM), list view as an
 option. The action strip is Export to `.ics` and Share a day; Remove all
@@ -914,11 +915,14 @@ the map. A tap, Enter or Space on the block of a venue with a building, or
 a tap on its gold pill, lifts it into its stack (DECISIONS #95): its
 plates, one a storey, in the same frame, the city pushed in behind them;
 the reader's picks lit, and a gold edge on a plate that holds one. A plate
-tapped is selected, and the card under the map is then that plate's - what
-is on there now and next - or, with none selected, the venue's line, which
-opens the hotel sheet. One control, a tap off the plates or Escape goes
-back; the park's block and the crew's pill open the hotel sheet; and the
-stack and the selection are kept, in memory, when the tab is left. An
+tapped, by its name too - its label is in its group - is selected, and the
+card under the map is then that plate's - what is on there now and next -
+or, with none selected, the venue's line, which opens the hotel sheet. One
+control, a tap off the plates or Escape goes back; the park's block and
+the crew's pill open the hotel sheet; and the stack and the selection are
+kept, in memory, when the tab is left. The slot under the map keeps one
+height while a stack is open, and on a screen too short for it and the
+map's floor the tab scrolls. An
 event's sheet's place line opens the Map focused on that event
 (DECISIONS #75): on the event's con day, as deep as its place goes - its
 venue's stack with its plate selected, or, for an event known only to its
@@ -1317,7 +1321,9 @@ had no test that could fail. `in-place.spec.js` holds the picks-changed
 notice and the folds under it whole, on Now and on My day (#90), the news
 staged from seeded snapshots on the real schedule. `stack.spec.js` holds
 a venue's stack (#95): its strips to what was measured, a plate touched
-where it stood, the card whole and an inert plate see-through. It is not an
+where it stood, the card whole, an inert plate see-through, a floor's name
+its floor's touch, focus shown on every plate, a held key one press, and
+the tab scrolling on a screen too short for it. It is not an
 iPhone - no iOS keyboard, no safe-area insets, no home-screen app,
 `IS_IOS` false in both engines - and it tests nothing of the worker,
 offline or install.

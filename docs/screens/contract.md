@@ -1203,9 +1203,9 @@ As built: the recon, section 2, Map; section 5, the map card.
   (#91) as sources allow (W41). A venue with no levels, the park, keeps the
   hotel sheet; one with levels and no drawing lifts all the same, each
   plate its block's shape, a floor with no drawing dashed (#28, #95;
-  section 8). Built: the stack (W38) - PR #113, DECISIONS #95. Data per #58: `data/<year>/drawings/`, keyed by the venues file's
-  level and room ids; the client reads it as `virtual:drawings`, the
-  year's own or the earliest later year's, through `building.js`, the
+  section 8). Data per #58: `data/<year>/drawings/`, keyed by the venues
+  file's level and room ids; the client reads it as `virtual:drawings`,
+  the year's own or the earliest later year's, through `building.js`, the
   building's model (PR #112, #94).
 - **Focused:** the event sheet's place line lands here as deep as its
   place goes (#95): its venue's stack with its plate selected for a room, a
@@ -1218,6 +1218,8 @@ As built: the recon, section 2, Map; section 5, the map card.
   persistent SVG, built once and drawn in place (#28's Cost; PR #107,
   #89), the Marriott's and the Hyatt's levels drawn, and each hotel's
   levels in one frame (#58, #67).
+
+Built: the stack (W38) - PR #113, DECISIONS #95.
 
 **Home of:** W38; W39; W40; W41.
 
@@ -2834,10 +2836,19 @@ As built: the recon, section 8, what crews' readers offer today.
   not on the Map, whose card is then the stack's (#95).
 - A tap inside an inert plate's outline, where no plate shows through it,
   lands on the map behind and goes back (#95).
-- An inert plate's name is the dim of a street's label, 3.2:1 on the
-  ground; and a gold edge beside a plate's own edge of a like lightness -
-  the Mart's, the Hilton's - is told by its width and the star on its
-  label. For step 11's sweep (#95).
+- An inert plate's name is the dim of a street's label, low for words on
+  the ground; and a gold edge beside a plate's own edge of a like
+  lightness - the Mart's, the Hilton's - is told by its width and the star
+  on its label. For step 11's sweep (#95).
+- A plate's label stands at the corner of its outline's box. Where the
+  outline's near corner is cut - the Marriott's, the Hilton's - that is
+  under the plate's own edge: over the strip of the plate below, and the
+  lowest plate's over the ground. A touch on the words is their own
+  plate's all the same (#95).
+- A plate's card says what is on now whatever con day it began, while the
+  day's count on the card and the label, and the gold edge, are the day's
+  own (`building.js` `dayLights()`): a room open all weekend is on now and
+  in no day's count but its first (#95).
 - Under a notice a stack's card is cut as the city map's is, and by more:
   its slot is taller (#95; the notice's bullet above).
 - On a short screen the frame gives way in height and the drawing stands
