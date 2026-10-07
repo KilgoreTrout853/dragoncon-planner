@@ -323,6 +323,22 @@ describe("the motion between the Map's views", () => {
       expect(ends(find(set, "stack-cam"), "transform")).toEqual([css(close), css(cam())]);
       expect(ends(find(set, "level-streets"), "opacity")).toEqual([0, 1]);
     });
+    it("from a small room to one too large for that zoom the move played is the zoom's own, the camera easing out and the names for the new scale with it (#98); and back, in again", async () => {
+      await levelOf("Hyatt", EXHIBIT);
+      tap(shape("Embassy H")); await still();
+      const close = cam(), scale = state.map.zoom.scale;
+      tap(shape("Concourse"));
+      let set = take();
+      expect([of(set), span(set), state.map.zoom.id, state.map.zoom.scale < scale]).toEqual([["names opacity", "stack-cam transform"], 240, "Concourse", true]);
+      expect(ends(find(set, "stack-cam"), "transform")).toEqual([css(close), css(cam())]);
+      expect(find(set, "stack-cam").keyframes[0].easing).toBe(app.INOUT);
+      await finish(set);
+      const out = cam();
+      tap(shape("Embassy H"));
+      set = take();
+      expect([of(set), span(set), state.map.zoom.scale]).toEqual([["names opacity", "stack-cam transform"], 240, scale]);
+      expect(ends(find(set, "stack-cam"), "transform")).toEqual([css(out), css(close)]);
+    });
   });
 
   describe("each way back", () => {
@@ -438,6 +454,15 @@ describe("the motion between the Map's views", () => {
   });
 
   describe("what starts no set", () => {
+    it("the way back from Search, where a card's head sent the reader (#98): the tab bar's Map shows the level, the room and the zoom as left, and no move is played", async () => {
+      await levelOf("Hyatt", EXHIBIT);
+      tap(shape("Grand Hall C")); await still();
+      const was = cam(), zoom = { ...state.map.zoom };
+      document.querySelector("#mapUnder .pc-head").click();
+      expect([state.tab, take().length]).toEqual(["browse", 0]);
+      navTo("map");
+      expect([state.tab, take().length, frames.length, cam() === was, state.map.zoom, laid().dataset.plate, shape("Grand Hall C").getAttribute("aria-pressed")]).toEqual(["map", 0, 0, true, zoom, EXHIBIT, "true"]);
+    });
     it("a day chip, with the city, a stack or a level on screen", async () => {
       const chip = () => tap(view().querySelector(`[data-chip="map-day"][data-value="${SUN}"]`));
       chip();

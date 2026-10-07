@@ -767,6 +767,14 @@ describe("src/styles.css", () => {
       expect(body(".pc-row")).toMatch(/(^|; )padding: 6px 14px; border: 0; border-top: 1px solid var\(--line\);.* gap: 1px;$/);
       expect(/(^|; )line-height: 1\.3;/.test(body("body"))).toBe(true);
     });
+    it("a card's head adds no height (#98): the card's own padding at its top and sides, taken back as margin, no border and nothing at its foot, and no rule of its own gives it a height - its chevron the venue's line's", () => {
+      expect(body(".pc-head")).toBe("display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; width: calc(100% + 28px); margin: -12px -14px 0; padding: 12px 14px 0; border: 0; border-radius: 13px 13px 0 0; background: none; color: inherit; font: inherit; text-align: left;");
+      expect(body(".next-card")).toMatch(/(^|; )padding: 12px 14px;/);
+      expect(rules.filter(r => /\.pc-(head|words|chevron)/.test(r.selector)).map(r => r.selector)).toEqual([".pc-head", "button.pc-head", ".pc-head .pc-words, .pc-head .pc-words > span", ".pc-head .pc-chevron"]);
+      expect(rules.filter(r => /\.pc-(head|words)/.test(r.selector) && !/\.pc-chevron$/.test(r.selector) && /(^|; )((min-|max-)?height|line-height|font-size|margin-top|margin-bottom|padding-(top|bottom)|gap|row-gap):/.test(r.body)).map(r => r.selector)).toEqual([]);
+      expect(body(".pc-head .pc-words, .pc-head .pc-words > span")).toBe("display: block; min-width: 0;");
+      expect(body(".pc-head .pc-chevron")).toBe(body(".venue-line .vl-chevron"));
+    });
     it("the way back is 44px, tall and wide, over the frame's top left; a card's row is 46px or more", () => {
       expect(body(".map-back")).toMatch(/^position: absolute; left: 20px; top: 18px; z-index: 1; height: 44px; min-width: 44px;/);
       expect(Number(/min-height: (\d+)px;/.exec(body(".pc-row"))[1])).toBeGreaterThanOrEqual(44);

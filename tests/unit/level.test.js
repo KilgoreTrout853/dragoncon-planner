@@ -1,6 +1,7 @@
 /* The level's layout (src/level.js; DECISIONS #96): a plate laid flat in a
    frame, its rooms' names and their sizes, the room a point is nearest, the
-   zoom's camera and what rooms selected together are called - as numbers
+   zoom's camera - never closer than a room fits the frame (#98) - and what
+   rooms selected together are called - as numbers
    worked out here by hand. No page and no venue: a plate is a few
    rectangles, in feet, each saying its level, and a frame four numbers.
    tests/real-data.test.js asks the same of the 18 real level views, and
@@ -8,9 +9,10 @@
    rows of tests/PORT-LEDGER.md. */
 import { describe, expect, it } from "vitest";
 import {
-  FULL, LEAST, LEVEL_MARGIN, NAMES_FROM, REACH, SMALL, ZOOM_CAP, ZOOM_DROP, ZOOM_TO,
-  cameraOn, corners, isSmall, levelFit, levelLabels, levelPlaces, namedTogether, nearest, placeKey, roomLabel, shortNames, zoomScale,
+  BACK_H, BACK_W, FULL, LEAST, LEVEL_MARGIN, NAMES_FROM, REACH, SMALL, ZOOM_CAP, ZOOM_DROP, ZOOM_MARGIN, ZOOM_TO,
+  cameraOn, corners, isSmall, levelFit, levelLabels, levelPlaces, namedTogether, nearest, placeKey, roomLabel, shortNames, zoomFits, zoomScale,
 } from "../../src/level.js";
+import { bounds } from "../../src/stack.js";
 
 /* A frame whose room, inside the level's margins, is 360 by 198. */
 const FRAME = { x: 10, y: 20, w: 400, h: 300 };
@@ -251,16 +253,63 @@ describe("the level's layout", () => {
       expect([isSmall(small, 2), isSmall(small, 2.2), isSmall(rect(0, 0, 40, 20), 2), isSmall(rect(0, 0, 100, 80), 0.5)]).toEqual([true, false, true, true]);
     });
     it("the camera's scale brings its shorter side to 62", () => {
-      near(zoomScale(small, 1), 3.1); near(zoomScale(rect(0, 0, 40, 20), 1), 3.1);
+      near(zoomScale(small, 1, FRAME), 3.1); near(zoomScale(rect(0, 0, 40, 20), 1, FRAME), 3.1);
     });
     it("at most 7 units a foot, however small the room", () => {
-      near(zoomScale(rect(0, 0, 5, 40), 1), 7);
+      near(zoomScale(rect(0, 0, 5, 30), 1, FRAME), 7);
     });
     it("a room already large enough stays at the level's fit: the camera never stands further out", () => {
-      near(zoomScale(rect(0, 0, 100, 80), 1), 1);
+      near(zoomScale(rect(0, 0, 100, 80), 1, FRAME), 1);
     });
     it("and never further out than the zoom it is already at: the same zoom, or closer", () => {
-      near(zoomScale(small, 1, 4), 4); near(zoomScale(small, 1, 2), 3.1); near(zoomScale(rect(0, 0, 100, 80), 1, 2.5), 2.5);
+      near(zoomScale(small, 1, FRAME, 4), 4); near(zoomScale(small, 1, FRAME, 2), 3.1); near(zoomScale(rect(0, 0, 100, 80), 1, FRAME, 2.2), 2.2);
+    });
+
+    /* The zoom's one rule (DECISIONS #98): never closer than the room fits.
+       In FRAME a room standing where cameraOn() puts it has 360 across and
+       236 down inside a margin of 20; under the way back's corner, 130 by
+       72, it has 180 down - or stands beside it, 140 across or less. */
+    describe("never closer than the room fits the frame", () => {
+      /* A room's box in the frame, turned as it is, with the camera on it at a scale. */
+      const stands = (r, scale) => { const cam = cameraOn(r, scale, FRAME); return bounds(corners(r).map(([x, y]) => [cam.tx + cam.scale * x, cam.ty + cam.scale * y])); };
+      const inside = box => box.x0 >= FRAME.x + ZOOM_MARGIN - 1e-6 && box.x1 <= FRAME.x + FRAME.w - ZOOM_MARGIN + 1e-6 && box.y0 >= FRAME.y + ZOOM_MARGIN - 1e-6 && box.y1 <= FRAME.y + FRAME.h - ZOOM_MARGIN + 1e-6;
+      const underBack = box => box.x0 < FRAME.x + BACK_W - 1e-6 && box.y0 < FRAME.y + BACK_H - 1e-6;
+      const wide = rect(50, 60, 100, 10), tall = rect(50, 60, 10, 100), square = rect(50, 60, 100, 100), slim = rect(50, 60, 50, 100), turned = rect(50, 60, 100, 10, 90);
+
+      it("the rule's numbers, each a named constant of the Map's units: 20 clear all round, and the way back's corner 130 by 72 - as deep as a level's fit leaves it", () => {
+        expect([ZOOM_MARGIN, BACK_W, BACK_H, BACK_H === LEVEL_MARGIN.t]).toEqual([20, 130, 72, true]);
+      });
+      it("a wide room is held by the margin at its sides, a tall one by the margin at its foot, and one both wide and tall by the way back's corner, which it stands below", () => {
+        near(zoomFits(wide, FRAME), 3.6); near(zoomFits(tall, FRAME), 2.36); near(zoomFits(square, FRAME), 1.8);
+      });
+      it("a room narrow enough stands beside the way back, taller than one that must stand below it", () => {
+        near(zoomFits(slim, FRAME), 2.36);
+        expect(stands(slim, 2.36).x0 >= FRAME.x + BACK_W).toBe(true);
+      });
+      it("the box is the room's as it is turned", () => {
+        near(zoomFits(turned, FRAME), zoomFits(tall, FRAME));
+      });
+      it("at that scale the room is inside the margin and out of the corner, and any closer it is not", () => {
+        for (const r of [wide, tall, square, slim, turned, rect(50, 60, 139, 181), rect(50, 60, 141, 179), rect(50, 60, 30, 30, 30)]) {
+          const fits = zoomFits(r, FRAME), at = stands(r, fits), closer = stands(r, fits * 1.01);
+          expect([inside(at), underBack(at), inside(closer) && !underBack(closer)], JSON.stringify(r)).toEqual([true, false, false]);
+        }
+      });
+      it("a room that fits at the zoom the camera is at keeps it; one that does not eases out to where it fits", () => {
+        near(zoomScale(small, 1, FRAME, 4), 4);
+        near(zoomScale(square, 0.5, FRAME, 4), 1.8); near(zoomScale(wide, 0.5, FRAME, 7), 3.6);
+      });
+      it("a tall room at its own zoom stands where it fits, its shorter side short of 62", () => {
+        near(zoomScale(tall, 1, FRAME), 2.36);
+        expect(tall.w * zoomScale(tall, 1, FRAME) < ZOOM_TO).toBe(true);
+      });
+      it("never further out than the level's fit, though the room does not fit there", () => {
+        near(zoomScale(square, 2, FRAME), 2); near(zoomScale(square, 2, FRAME, 4), 2);
+      });
+      it("from a large room back to a small one, that room's own zoom: the large one's scale holds nothing back", () => {
+        const eased = zoomScale(square, 0.5, FRAME, 6.2);
+        near(eased, 1.8); near(zoomScale(small, 0.5, FRAME, eased), 3.1);
+      });
     });
     it("the camera on a room puts its middle 12 below the frame's, at the scale given", () => {
       const cam = cameraOn(small, 3, FRAME);

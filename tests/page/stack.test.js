@@ -59,7 +59,7 @@ describe("the stack: a venue lifted into its floors", () => {
   const lit = () => [...shown()[0].querySelectorAll(".lit")].map(r => `${r.dataset.level}|${r.dataset.room}`).sort();
   const under = () => el("mapUnder");
   const rows = () => [...under().querySelectorAll(".pc-row")].map(r => [words(r.querySelector(".pc-title")), words(r.querySelector(".pc-when"))]);
-  const cardLines = () => [...el("mapPlate").children].filter(n => !n.matches(".pc-rows, .pc-none")).map(words);
+  const cardLines = () => [...el("mapPlate").querySelectorAll(".nc-label, .nc-title, .nc-when")].map(words);
   const dayChip = day => view().querySelector(`[data-chip="map-day"][data-value="${day}"]`);
   const press = (target, key) => !target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));   // true where the page took the key
   const navTo = tab => document.querySelector(`.nav button[data-tab="${tab}"]`).click();
@@ -469,7 +469,7 @@ describe("the stack: a venue lifted into its floors", () => {
         flat("acc");
         const made = el("mapPlate");
         expect([made.tagName, made.className, made.getAttribute("style")]).toEqual(["DIV", "next-card plate-card", block("Hyatt").getAttribute("style")]);
-        expect([...made.children].map(n => n.className)).toEqual(["nc-label", "nc-title", "nc-when", "pc-rows"]);
+        expect([...made.querySelectorAll(".nc-label, .nc-title, .nc-when, .pc-rows")].map(n => n.className)).toEqual(["nc-label", "nc-title", "nc-when", "pc-rows"]);
         expect(cardLines()).toEqual(["Hyatt", "Atlanta Conference Center (LL3)", "Saturday · 2 events"]);
         flat(EXHIBIT);
         expect([el("mapPlate").className, cardLines()[2]]).toEqual(["next-card plate-card mine", "Saturday · 9 events · 1 pick"]);

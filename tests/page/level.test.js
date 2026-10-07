@@ -48,7 +48,7 @@ describe("the level: a drawn plate laid flat, its rooms in place", () => {
   const under = () => el("mapUnder");
   const card = () => el("mapRoom") || el("mapPlate");
   const rows = () => [...under().querySelectorAll(".pc-row")].map(r => [words(r.querySelector(".pc-title")), words(r.querySelector(".pc-when"))]);
-  const cardLines = () => [...card().children].filter(n => !n.matches(".pc-rows, .pc-none")).map(words);
+  const cardLines = () => [...card().querySelectorAll(".nc-label, .nc-title, .nc-when")].map(words);
   const dayChip = day => view().querySelector(`[data-chip="map-day"][data-value="${day}"]`);
   const press = (target, key, more = {}) => !target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...more }));   // true where the page took the key
   const navTo = tab => document.querySelector(`.nav button[data-tab="${tab}"]`).click();
@@ -388,7 +388,7 @@ describe("the level: a drawn plate laid flat, its rooms in place", () => {
     });
     it("while zoomed, a tap on another room brings it to the middle at the same zoom or closer: a larger room at the zoom it stood at, a smaller one closer, and never back out", () => {
       level("Hyatt", "acc");
-      const f = frame(), fit = app.levelFit(model("Hyatt", "acc"), f).scale, own = id => app.zoomScale(place("Hyatt", "acc", id), fit);
+      const f = frame(), fit = app.levelFit(model("Hyatt", "acc"), f).scale, own = id => app.zoomScale(place("Hyatt", "acc", id), fit, f);
       expect([own("Piedmont") < own("Roswell"), own("Roswell") < own("Heritage Boardroom")]).toEqual([true, true]);
       room("Roswell");
       room("Piedmont");
@@ -405,6 +405,29 @@ describe("the level: a drawn plate laid flat, its rooms in place", () => {
       const close = state.map.zoom.scale;
       room("North Capitol Ballroom");
       expect([state.map.zoom.id, state.map.zoom.scale]).toEqual(["North Capitol Ballroom", close]);
+    });
+    it("and never closer than the room fits the frame (#98): from a small room to one too large for that zoom the camera eases out, to where the room is inside the margin; from that one back to the small one it goes in again, to that room's own zoom", () => {
+      level("Hyatt", EXHIBIT);
+      const f = frame(), fit = app.levelFit(model("Hyatt", EXHIBIT), f).scale, at = id => place("Hyatt", EXHIBIT, id);
+      const box = id => app.bounds(app.corners(at(id)).map(([x, y]) => [cam().tx + cam().scale * x, cam().ty + cam().scale * y]));
+      room("Embassy H");
+      const close = state.map.zoom.scale;
+      expect([close, at("Concourse").w * close > f.w]).toEqual([expect.closeTo(62 / Math.min(at("Embassy H").w, at("Embassy H").h), 6), true]);
+      room("Concourse");
+      expect([state.map.rooms, state.map.zoom.id, state.map.zoom.scale < close, state.map.zoom.scale > fit]).toEqual([[{ level: "exhibit", id: "Concourse" }], "Concourse", true, true]);
+      expect(state.map.zoom.scale).toBeCloseTo(app.zoomFits(at("Concourse"), f), 6);
+      sameCam(cam(), app.cameraOn(at("Concourse"), state.map.zoom.scale, f));
+      expect([box("Concourse").x0, box("Concourse").x1, box("Concourse").y0 >= f.y + 72, box("Concourse").y1 <= f.y + f.h - 20]).toEqual([expect.closeTo(f.x + 20, 1), expect.closeTo(f.x + f.w - 20, 1), true, true]);
+      expect(said()[0]).toBe("← Whole level");
+      room("Embassy H");
+      expect([state.map.zoom.id, state.map.zoom.scale]).toEqual(["Embassy H", expect.closeTo(close, 6)]);
+    });
+    it("a tall room at its own zoom stands whole, its foot inside the frame: the Marriott's Atrium Ballroom C, short of 62 across", () => {
+      level("Marriott", "atrium");
+      const f = frame(), tall = place("Marriott", "atrium", "Atrium Ballroom C");
+      room("Atrium Ballroom C");
+      expect(state.map.zoom.scale).toBeCloseTo(app.zoomFits(tall, f), 6);
+      expect([Math.min(tall.w, tall.h) * state.map.zoom.scale < 62, cam().ty + cam().scale * (tall.cy + tall.h / 2)]).toEqual([true, expect.closeTo(f.y + f.h - 20, 1)]);
     });
     it("the labels are worked out again for the zoom: a room with a short name or none at the fit has its full name once the camera is close", () => {
       level("Hyatt", "acc");
@@ -495,7 +518,7 @@ describe("the level: a drawn plate laid flat, its rooms in place", () => {
       room("Grand Hall C");
       const made = el("mapRoom");
       expect([made.tagName, made.className, made.dataset.plate, made.getAttribute("style")]).toEqual(["DIV", "next-card plate-card room-card mine", EXHIBIT, block("Hyatt").getAttribute("style")]);
-      expect([...made.children].map(n => n.className)).toEqual(["nc-label", "nc-title", "nc-when", "pc-rows"]);
+      expect([...made.querySelectorAll(".nc-label, .nc-title, .nc-when, .pc-rows")].map(n => n.className)).toEqual(["nc-label", "nc-title", "nc-when", "pc-rows"]);
       expect(cardLines()).toEqual(["Hyatt · Exhibit Level (LL2)", "Grand Hall C", "Saturday · 5 events · 1 pick"]);
       expect(css).toMatch(/\n\.room-card \.nc-label \{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; \}/);
       expect(css).toMatch(/\n\.plate-card\.mine \.nc-title::before, \.pc-row\.mine \.pc-title::before \{ content: "★"; margin-right: \.2em; color: var\(--gold\); \}/);

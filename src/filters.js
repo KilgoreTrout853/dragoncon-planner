@@ -18,14 +18,22 @@
    focus and as the sheet opens - so nothing is kept unshown and nothing
    comes back when the word goes. Until then the word wins, as
    activeFilters() has it, and inEffect() - what the badge counts and the
-   chips under the box name - leaves out a dimension a word holds. The
-   panel's element is the sheet's; this draws it and nothing else. The
+   chips under the box name - leaves out a dimension a word holds.
+
+   A place of the Map's (#98) is a filter the sheet does not set: one chip
+   under the box in the hotel's stead, counted once, and in the panel the
+   place's venue pressed with one line of words under the Hotel chips,
+   "Only Hanover F". It leaves by its chip's x, by Clear and with the hotel:
+   another hotel's chip takes it off, and a tap on its own venue, pressed,
+   takes the place alone - one step wider - and a second tap is All.
+
+   The panel's element is the sheet's; this draws it and nothing else. The
    handlers are dispatch.js's. A leaf. */
 import { esc } from "./util.js";
 import { settings, state } from "./state.js";
 import { hotelGroup, hotelShort } from "./venues.js";
 import { AXES, events, hotelChips, isNoise, tagsOf, topWorks, tracks, worksById } from "./data.js";
-import { axisLabel, browseResults, dropPhrase, GETTING_IN, KIND_LABELS, parseQuery, passesGettingIn } from "./search.js";
+import { axisLabel, browseResults, dropPhrase, GETTING_IN, KIND_LABELS, parseQuery, passesGettingIn, placeInEffect, placeTitle, placeWords } from "./search.js";
 import { chipHTML } from "./ui.js";
 
 const TYPE_LABELS = {All: "All", panel: "Panels", gaming: "Gaming"};
@@ -55,11 +63,15 @@ const hasTags = () => events.some(e => Object.keys(tagsOf(e)).length > 0);
 
 /* What the sheet has set that is in effect, in the sheet's order: the badge
    counts these, and the chips under the box name them. A dimension a word
-   holds is the word's chip's while the box is still being typed in. */
+   holds is the word's chip's while the box is still being typed in. A
+   place in effect (#98) stands where the hotel would, one chip by its own
+   words: it holds the hotel, and the venue is no second chip. */
 function inEffect() {
   const b = state.browse, held = heldByQuery(), out = [];
   const add = (dim, label) => { if (b[dim] !== "All" && held[dim] === undefined) out.push({dim, label}); };
-  add("hotel", hotelShort(b.hotel));
+  const place = placeInEffect(held);
+  if (place) out.push({dim: "place", label: placeWords(place)});
+  else add("hotel", hotelShort(b.hotel));
   add("work", (worksById.get(b.work) || {}).name || b.work);
   add("track", b.track);
   AXES.forEach(a => add(a, axisLabel(`${a}:${b[a]}`)));
@@ -90,8 +102,25 @@ function dropWords(dim) {
   }
 }
 
-/* Clear's reach: the thirteen filters, and the toggle back to Settings'
-   default. Not the day, nor the query. */
+/* The place a card of the Map's sent (#98; dispatch.js): the place and the
+   hotel it holds, the day - the Map's own, or All - no query and none of
+   the other filters, so that the list is all of what is there; and the
+   answers to the last question put back, as the hotel sheet's Search puts
+   them. The toggle is left as it stands: a place outranks it. */
+function setPlace(place, day) {
+  FILTERS.forEach(d => { state.browse[d] = "All"; });
+  Object.assign(state.browse, {q: "", day, prevDay: null, place, hotel: place.hotel, showHidden: false, showPast: false, noToday: false, page: 1});
+}
+/* A chip under the box taken off (dispatch.js): its filter back to All -
+   and the place's chip takes the place and the hotel it holds, both. */
+function takeOffFilter(dim) {
+  if (dim === "place") Object.assign(state.browse, {place: null, hotel: "All"});
+  else state.browse[dim] = "All";
+}
+
+/* Clear's reach: the thirteen filters - a place going with its hotel, where
+   it is next read - and the toggle back to Settings' default. Not the day,
+   nor the query. */
 const clearable = () => FILTERS.some(d => state.browse[d] !== "All") || state.browse.hideNoise !== settings.hideNoise;
 function clearFilters() {
   FILTERS.forEach(d => { state.browse[d] = "All"; });
@@ -101,19 +130,24 @@ function clearFilters() {
 /* One filter set from the panel, the last one set winning: a word that
    holds the dimension comes out of the query first. A second tap on the
    hotel in effect - the word's or the sheet's - is All again, as the hotel
-   row's was. */
+   row's was. And with a place in effect (#98) a tap on its own venue, which
+   is pressed, takes the place off and leaves the hotel, one step wider; any
+   other hotel's chip sets that hotel, and the place goes with the one it
+   held. */
 function setFilter(dim, value) {
   if (!FILTERS.includes(dim)) return;
-  const held = heldByQuery()[dim], was = held !== undefined ? held : state.browse[dim];
+  const words = heldByQuery(), held = words[dim], was = held !== undefined ? held : state.browse[dim];
+  const wider = dim === "hotel" && was === value && !!placeInEffect(words);
   if (held !== undefined) dropWords(dim);
-  state.browse[dim] = dim === "hotel" && was === value ? "All" : value;
+  if (wider) state.browse.place = null;
+  else state.browse[dim] = dim === "hotel" && was === value ? "All" : value;
   state.browse.page = 1;
 }
 
 /* What the panel was opened with, so that closing can tell whether anything
    changed: if it did, the list starts from its top. */
 let openedWith = "";
-const snapshot = () => JSON.stringify([...FILTERS.map(d => state.browse[d]), state.browse.hideNoise]);
+const snapshot = () => JSON.stringify([...FILTERS.map(d => state.browse[d]), state.browse.hideNoise, state.browse.place]);
 const filtersChanged = () => snapshot() !== openedWith;
 
 /* Each axis's values by how many events carry them, then by label, as the
@@ -133,12 +167,15 @@ function gettingInOptions(tagged) {
       label: has ? `${label} (${events.filter(e => passesGettingIn(e, d, value)).length})` : label}))}));
 }
 const option = (value, label, on) => `<option value="${esc(value)}"${on ? " selected" : ""}>${esc(label)}</option>`;
+/* The line under the Hotel chips while a place is in effect (#98): words,
+   no control - the place by its card's title's words. */
+const onlySaid = place => (place ? `Only ${placeTitle(place)}` : "");
 
 /* The panel, drawn as it opens, whole: each group what is in effect - the
    word's value where a word in the box holds it - and the count and Clear
    as they stand. */
 function filtersHTML() {
-  const b = state.browse, held = heldByQuery(), tagged = hasTags();
+  const b = state.browse, held = heldByQuery(), tagged = hasTags(), place = placeInEffect(held);
   const at = dim => (held[dim] !== undefined ? held[dim] : b[dim]);
   const chips = (dim, list) => list.map(([label, value]) => chipHTML(label, at(dim) === value, dim, value).replace("<button ", `<button type="button" `)).join("");
   const kinds = tagged ? Object.keys(KIND_LABELS).filter(k => events.some(e => tagsOf(e).kind === k)) : [];
@@ -156,7 +193,7 @@ function filtersHTML() {
   const groups = [
     `<div class="filter-group" data-group="hotel" role="group" aria-labelledby="filterHotelLabel">
       <span class="filter-label" id="filterHotelLabel">Hotel</span>
-      <div class="filter-chips">${chips("hotel", hotelList)}</div></div>`,
+      <div class="filter-chips">${chips("hotel", hotelList)}</div><p class="filter-only" id="filterOnly"${place ? "" : " hidden"}>${esc(onlySaid(place))}</p></div>`,
     `<div class="filter-group" data-group="pick"><div class="filter-pair">${tagged
       ? select("fandom", "work", "Fandom", "Any fandom", topWorks().map(w => ({value: w.id, label: `${w.name} (${w.count})`}))) : ""}${
       select("track", "track", "Track", "All tracks", trackList.map(t => ({value: t, label: t})))}</div></div>`,
@@ -185,11 +222,14 @@ function showWords(n) {
   return n === 1 ? "Show 1 event" : `Show ${n.toLocaleString("en-US")} events`;
 }
 /* After a tap: what the panel says, written into the nodes already there -
-   the pressed chips, the selects, the toggle, Clear and the count. Each
-   group says what is in effect, a word's value where one holds it. */
+   the pressed chips, the place's line, the selects, the toggle, Clear and
+   the count. Each group says what is in effect, a word's value where one
+   holds it. */
 function fillFilters(panel) {
-  const b = state.browse, held = heldByQuery();
+  const b = state.browse, held = heldByQuery(), place = placeInEffect(held), only = panel.querySelector("#filterOnly");
   const at = dim => (held[dim] !== undefined ? held[dim] : b[dim]);
+  if (only.hidden === !!place) only.hidden = !place;
+  if (only.textContent !== onlySaid(place)) only.textContent = onlySaid(place);
   for (const chip of panel.querySelectorAll("[data-chip]")) chip.setAttribute("aria-pressed", String(at(chip.dataset.chip) === chip.dataset.value));
   for (const sel of panel.querySelectorAll("select[data-filter]")) if (sel.value !== at(sel.dataset.filter)) sel.value = at(sel.dataset.filter);
   const noise = panel.querySelector("#hideNoise");
@@ -198,4 +238,4 @@ function fillFilters(panel) {
   panel.querySelector("#filtersShow").textContent = showWords(browseResults().length);
 }
 
-export { inEffect, settleWords, filtersHTML, fillFilters, setFilter, clearFilters, filtersChanged };
+export { inEffect, settleWords, filtersHTML, fillFilters, setFilter, setPlace, takeOffFilter, clearFilters, filtersChanged };

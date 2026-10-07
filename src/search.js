@@ -3,14 +3,18 @@
    to rank by, and the ranking. It reads state.browse and writes to it (the
    parsed query, the today scope), and stamps _hit and _section on the events
    it returns; with the Fandom filter set and nothing to rank by, it keeps
-   the cast group beside the list (#85). Building the indexes in idle time is loading.js's, and drawing
+   the cast group beside the list (#85). And a place of the Map's as one more
+   filter (#98): which events are at it, what it is called, and what a
+   card's head says of the way here. Building the indexes in idle time is loading.js's, and drawing
    the results is browse.js's. */
 import MiniSearch from "minisearch";
 import { dayOf } from "./util.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, conEnded, DAY_LONG, isPast, now } from "./time.js";
+import { namedTogether } from "./level.js";
 import { hotelMatches, hotelShort } from "./venues.js";
-import { AXES, byId, castEvents, events, isAdult, isNoise, linkedWorks, linksTo, personName, tagsOf, worksById } from "./data.js";
+import { AXES, byId, castEvents, events, happening, isAdult, isNoise, linkedWorks, linksTo, personName, tagsOf, worksById } from "./data.js";
+import { building, levelEvents, roomEvents } from "./building.js";
 
 /* Con vocabulary. If an event mentions any phrase in a group, every phrase in the group becomes searchable for it.
    Add your own lines freely; lowercase, no punctuation needed. */
@@ -214,12 +218,66 @@ function passesGettingIn(e, dim, value) {
   return value === "kids" ? tagsOf(e).audience === "kids" : (value === "adult") === isAdult(e);
 }
 
+/* A place (DECISIONS #98): what a card of the Map's sends to Search, and
+   state.browse.place holds - {hotel, levels, rooms}: a venue and, in it,
+   the levels of one plate, or, with rooms, the rooms selected on one level.
+   An event is at a place by building.js's own lists - a room's
+   roomEvents(), a level's levelEvents() - so the list here is the card's
+   own: an event booked as a composite is at each of the composite's leaves.
+   atPlace() is those events as a Set, made once a place and a schedule, so
+   that passes() asks it one has() an event. */
+let placed = {place: null, of: null, set: null};
+function atPlace(place) {
+  if (placed.place !== place || placed.of !== events) {
+    const list = place.rooms ? place.rooms.flatMap(id => roomEvents(place.hotel, place.levels[0], id).map(at => at.ev))
+      : place.levels.flatMap(level => levelEvents(place.hotel, level));
+    placed = {place, of: events, set: new Set(list)};
+  }
+  return placed.set;
+}
+/* The place in effect, or null - and the one place a stale place is
+   cleared. A place holds the hotel: once the hotel is another, by any road
+   - a chip of the sheet's, Clear, a hotel word settled - the place is gone;
+   and so it is where this schedule has no event at it. `held` is what the
+   words in the box hold, parseQuery()'s filters: a hotel word typed and not
+   yet settled wins (#71), so the place is then not in effect, and is kept
+   for the word's leaving. */
+function placeInEffect(held) {
+  const b = state.browse, place = b.place;
+  if (!place) return null;
+  if (b.hotel !== place.hotel || !atPlace(place).size) { b.place = null; return null; }
+  return held.hotel !== undefined ? null : place;
+}
+/* What a place is called: the words of its card's title on the Map - rooms
+   selected together by level.js namedTogether(), a plate by its name, a
+   shared plate by its levels' short names - and, for a chip under the box,
+   the venue's short name before them: "Hyatt · Hanover F". */
+function placeTitle(place) {
+  const plate = building(place.hotel).plates.find(p => p.levels.some(level => level.id === place.levels[0]));
+  return place.rooms ? namedTogether(place.rooms.map(id => ({level: place.levels[0], id})), plate) : plate.levels.length > 1 ? plate.short : plate.name;
+}
+const placeWords = place => `${hotelShort(place.hotel)} · ${placeTitle(place)}`;
+/* Where the head of a place's card goes, and what it is called (map.js):
+   {day, name}, or null where the place has no event to go to on any day,
+   and its head is no link. The day is the one asked, a con day's key, where
+   anything is happening at the place then, and "All" where nothing is and
+   something is on others. The name says what the list will hold, by the
+   card's own count - what is happening - with the cancelled said apart,
+   since the list holds them, marked, and no count does (#90). */
+function placeLink(place, day) {
+  const all = [...atPlace(place)], here = all.filter(happening), on = here.filter(e => e._cd === day).length;
+  if (!here.length) return null;
+  const n = on || here.length, gone = all.filter(e => !happening(e) && (!on || e._cd === day)).length;
+  return {day: on ? day : "All", name: `${n === 1 ? "The 1 event" : `All ${n} events`} in ${placeTitle(place)}${on ? ` on ${DAY_LONG[day] || day}` : ", on every day"}${gone ? `, and ${gone} cancelled` : ""}, in Search`};
+}
+
 /* Whether an event passes the filters f, activeFilters()'s or a copy with
    one changed: Search's cast group asks every filter but the Fandom's. */
 function passes(e, f) {
   const tg = tagsOf(e);
   return (f.day === "All" || e._cd === f.day) &&
     hotelMatches(e, f.hotel) &&
+    (!f.place || atPlace(f.place).has(e)) &&
     (f.type === "All" || e.type === f.type) &&
     (f.track === "All" || (e.tracks || []).includes(f.track)) &&
     (f.work === "All" || linksTo(e, f.work)) &&
@@ -380,9 +438,11 @@ function inTimeBand(e, band) {
    dimension for as long as the word is in the box. */
 function activeFilters() {
   const b = state.browse, f = (state.browse.parsed && state.browse.parsed.filters) || {};
+  const place = placeInEffect(f);
   return {
     day: f.day !== undefined ? f.day : b.day,
     hotel: f.hotel !== undefined ? f.hotel : b.hotel,
+    place,
     kind: f.kind !== undefined ? f.kind : b.kind,
     type: b.type,
     track: f.track !== undefined ? f.track : b.track,
@@ -394,8 +454,10 @@ function activeFilters() {
     audience: f.audience !== undefined ? f.audience : b.audience,
     time: f.time,
     /* Asking for photo sessions or screenings outranks the setting that hides
-       them; so does tapping their chip, and so does the reveal link. */
-    hideNoise: b.hideNoise && !state.browse.showHidden
+       them; so does tapping their chip, and so does the reveal link. And so
+       does a place (#98): its list is all of what is there, a photo room's
+       sessions with it. */
+    hideNoise: b.hideNoise && !state.browse.showHidden && !place
       && !["photo", "screening"].includes(f.kind !== undefined ? f.kind : b.kind),
   };
 }
@@ -520,5 +582,5 @@ function browseResults() {
 export {
   STOPWORDS, KIND_LABELS, AXIS_LABELS, axisLabel, index, SEARCH_PLACEHOLDER, processTerm, buildIndex, suggestDocs,
   buildSuggestIndex, suggestionsFor, expandQuery, tokenise, stripPhrase, dropPhrase, parseQuery,
-  GETTING_IN, passesGettingIn, passesFilters, activeFilters, termQuality, browseResults, browseCast,
+  GETTING_IN, passesGettingIn, passesFilters, atPlace, placeInEffect, placeTitle, placeWords, placeLink, activeFilters, termQuality, browseResults, browseCast,
 };

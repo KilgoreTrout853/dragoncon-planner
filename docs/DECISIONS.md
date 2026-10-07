@@ -2144,7 +2144,7 @@ query name, or a version in the year's place, with the old shape read for
 as long as its links live. An id shorter than eight characters cannot
 travel, and the test refuses a year that has one.
 
-### 70. The filter sheet applies as it is tapped — Standing (2026-10-02) — its held group retired by #71: one value a filter and the last one set wins, a tap in the sheet taking a word out of the query and a word typed taking the sheet's value to All once the box is left; its groups reordered by #71; its facet filters built by #77, PR #96: cost, sign-up, audience and sold out, under Getting in, and the sheet's filters thirteen
+### 70. The filter sheet applies as it is tapped — Standing (2026-10-02) — its held group retired by #71: one value a filter and the last one set wins, a tap in the sheet taking a word out of the query and a word typed taking the sheet's value to All once the box is left; its groups reordered by #71; its facet filters built by #77, PR #96: cost, sign-up, audience and sold out, under Getting in, and the sheet's filters thirteen; amended by #98
 **Decided:** Search's filters leave the page for a sheet panel,
 `#panel-filters` (W13, with W8's topic axes; `docs/screens/contract.md`,
 section 3, as built; PR #88), opened by one Filters button beside the
@@ -2184,7 +2184,7 @@ fandoms", to fit beside the button with Larger text on and the badge
 showing, and the box is named by a label of its own, "Search the
 schedule".
 
-### 71. One value per filter, and the last one set wins — Standing (2026-10-02) — a fourth filter a word sets, the audience, by #77: "18+" and "adult" hold it at 18+, and a kids word holds the track and the audience both, taken out whole by a tap on either
+### 71. One value per filter, and the last one set wins — Standing (2026-10-02) — a fourth filter a word sets, the audience, by #77: "18+" and "adult" hold it at 18+, and a kids word holds the track and the audience both, taken out whole by a tap on either; amended by #98
 **Decided:** The filter sheet (#70) has no lock. A word in the box and
 the sheet set the same three filters - the hotel, the kind and the track -
 and whichever was set last is the one in effect (`docs/screens/contract.md`,
@@ -3255,7 +3255,7 @@ hotel, level or room 2026's venues file lacks refuses every default build,
 dev server and Vitest run, and fails `tests/test_drawings.py`, in its own
 pull request: the fix is the id in 2026's file too, or the default moved.
 
-### 95. The stack: a venue lifted into its floors — Standing (2026-10-06) — amended by #96; amended by #97
+### 95. The stack: a venue lifted into its floors — Standing (2026-10-06) — amended by #96; amended by #97; amended by #98
 **Decided:** Step 10's second pull request (W38; PR #113;
 `docs/screens/contract.md`, section 6). Amends #72, #75, #89.
 - **What opens it:** a tap or Enter on the block of a venue with a building,
@@ -3281,7 +3281,7 @@ layout in a test and at every width, with nothing measured from the page.
 **Cost:** A strip is 38 px or less on a phone, under #66's 44. While a stack
 is open the next pick is said nowhere. C opens a level; E links to Search.
 
-### 96. The level: a drawn plate laid flat, its rooms in place — Standing (2026-10-07) — amended by #97
+### 96. The level: a drawn plate laid flat, its rooms in place — Standing (2026-10-07) — amended by #97; amended by #98
 **Decided:** Step 10's third pull request (W39; PR #114;
 `docs/screens/contract.md`, section 6). Amends #86, #95.
 - **What opens it:** a tap or Enter on a drawn plate of an open stack; a
@@ -3332,3 +3332,28 @@ the zoom is how a level is read. Units draw smaller on a short phone.
 
 **Why:** #60 built the animation last, over end states tested whole.
 **Cost:** A venue's group, once opened, stays in the render tree.
+
+### 98. A place from the Map's card is a filter of Search's — Standing (2026-10-07)
+**Decided:** Step 10's last pull request (PR #116; `docs/screens/contract.md`,
+sections 3, 6 and 11). Amends #70, #71, #95, #96.
+- **The link is the card's head,** not a row: a plate's and a room's three
+  lines are one button with a chevron, and the slot keeps its height (#95).
+  Not the focused card's, the venue's line's, or a place's with no event.
+- **A place** is a venue and the rooms selected on one level, or one
+  plate's levels: `state.browse.place`, in memory. An event is at it by
+  `building.js`'s own lists, so Search's list is the card's own.
+- **The tap** sets the place, the Map's day - every day where that one has
+  nothing - no query, and no filter but the hotel, its venue. No photo
+  session is hidden while it is set.
+- **One chip** under the box, counted once; the sheet presses its venue and
+  says "Only Hanover F". Another hotel by any road takes the place off; a
+  tap on its own venue takes the place alone.
+- **The way back** is the tab bar's Map, as left, with no move (#63).
+- **The zoom** never brings a room closer than it fits the frame, 20 clear
+  all round and out of the way back's corner: the camera eases out.
+
+**Why:** A card shows two rows, and Search is the one home of a list (#63);
+a third row would shrink the map on every phone. After a level's smallest
+room, 6 rooms stood larger than the frame.
+**Cost:** The list holds a cancelled event the card's count leaves out
+(#90). A place cannot be typed, linked or kept through a reload.
