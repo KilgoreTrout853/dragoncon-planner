@@ -2,8 +2,9 @@
 /* The shape of the module graph under src/ (DECISIONS #29; how it came
    about is docs/SPLIT-MANIFEST.md). src/boot.js is the root: it imports the
    others, and only main.js imports it. ORDER is the order the others may
-   depend on one another in - the twenty-six leaves, stack (#95), which
-   imports nothing and so stands right after season, the backend, about
+   depend on one another in - the twenty-seven leaves, stack (#95), which
+   imports nothing and so stands right after season, level (#96), which
+   imports stack alone, the backend, about
    (#92), identity and the outbox among them (DECISIONS #53), crews (#56), shareday (#69),
    building (#94), foryou (#87), inplace (#90) and filters (#70), then scroll, eventsheet - the sheet's event panel -
    the bus, sync and the five views, then the sheet, loading, the shell and

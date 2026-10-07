@@ -4,8 +4,9 @@
    no DOM, no storage and no clock. The level drawings are the year's, or a
    later year's borrowed, which the build makes into virtual:drawings and
    inlines as it does the other two data modules; the levels and their
-   storeys are the venues file's, through venues.js; the schedule is
-   data.js's; and the reader's picks are handed in, so it stands below them.
+   storeys are the venues file's, through venues.js; a turned rectangle's
+   corners are level.js's; the schedule is data.js's; and the reader's picks
+   are handed in, so it stands below them.
 
    It keeps two things. What a venue is built of comes of the venues file and
    the drawings alone, both the build's, so it is made once and kept. What

@@ -1,8 +1,8 @@
 /* Dispatch: the handlers whose bodies reach across modules, so that no one
    module below could hold them. The five delegated listeners on main - click,
    input, keydown, change, focusout - which are about whatever view is on
-   screen; Escape on the document, the way back from a stack on the Map
-   while no sheet is open (DECISIONS #95); the clicks inside the sheet's
+   screen; Escape on the document, the way back on the Map, a step at a
+   time, while no sheet is open (DECISIONS #95, #96); the clicks inside the sheet's
    event, hotel and shared-day panels,
    and the clicks and changes inside its filter panel; Apply and Clear for
    the preview clock; the hash; and the minute tick. boot() registers all

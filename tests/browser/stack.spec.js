@@ -2,7 +2,10 @@
    draws it. jsdom cannot say any of this: every box there is 0. Each of the
    seven venues opens by a touch on its block; a touch at the middle of the
    strip each plate shows is that plate's own; the way back is 44 px; a
-   plate that is touched stands where it stood, to 1 px, selected and
+   drawn plate's touch opens its level (DECISIONS #96), which is
+   tests/browser/level.spec.js's from there on, and a floor with no drawing
+   is what a touch selects; a
+   floor that is touched stands where it stood, to 1 px, selected and
    cleared, because the frame is one size whatever the card says (#86); the
    card is whole on the screen, no line of it cut short; an inert plate has
    no fill and takes no touch, so the plate under it does; a touch on a
@@ -66,7 +69,7 @@ function stackState() {
   const cut = el => el.scrollWidth > el.clientWidth;
   const says = card && card.querySelector(".nc-when");
   return {
-    stack: svg.getAttribute("data-stack"), frame: box(svg), slot: box(under),
+    stack: svg.getAttribute("data-stack"), level: svg.getAttribute("data-level"), frame: box(svg), slot: box(under),
     card: card ? { id: card.id, rows: card.querySelectorAll(".pc-row").length, ...box(card), says: says ? says.textContent : "", cut: [...card.querySelectorAll(card.id === "mapVenue" ? ".nc-title, .nc-when" : ".nc-title")].filter(cut).map(el => el.textContent) } : null,
     back: back.hidden ? null : box(back), head: document.querySelector(".hdr").getBoundingClientRect().bottom, nav: document.querySelector(".nav").getBoundingClientRect().top,
     selected: plates.filter(p => p.classList.contains("selected")).map(p => p.dataset.plate),
@@ -81,7 +84,7 @@ function stackState() {
       const x = first === null ? (own.left + own.right) / 2 : (first + last) / 2, hit = document.elementFromPoint(x, y);
       const label = labels.find(t => t.dataset.plate === p.dataset.plate), words = label.getBoundingClientRect(), nx = (words.left + words.right) / 2, ny = (words.top + words.bottom) / 2, named = document.elementFromPoint(nx, ny);
       const below = document.elementsFromPoint(nx, ny).filter(n => !n.closest(".plate-label")).map(n => n.closest(".plate")).find(Boolean);        // the plate the words stand over, if any
-      return { key: p.dataset.plate, inert: p.classList.contains("inert"), button: p.getAttribute("role") === "button", pressed: p.getAttribute("aria-pressed"), mine: p.classList.contains("mine"),
+      return { key: p.dataset.plate, inert: p.classList.contains("inert"), drawn: p.classList.contains("drawn"), button: p.getAttribute("role") === "button", pressed: p.getAttribute("aria-pressed"), mine: p.classList.contains("mine"),
         top: own.top, left: own.left, strip: above ? own.bottom - above.bottom : own.height, x, y, own: !!hit && hit.closest(".plate") === p,
         name: { x: nx, y: ny, own: !!named && named.closest(".plate-label") === label, over: below ? below.dataset.plate : null },
         fill: hull(p).fill, edge: parseFloat(hull(p).strokeWidth), pointer: getComputedStyle(p).pointerEvents };
@@ -108,6 +111,12 @@ function through(key) {
 const openStack = async (page, hotel) => {
   await page.locator(`#view-map .map-hotel[data-hotel="${hotel}"]`).tap();
   await expect(page.locator("#view-map svg.map")).toHaveAttribute("data-stack", hotel);
+  await settled(page);
+};
+/* From a level, by the way back, to its stack. */
+const toStack = async page => {
+  await page.locator("#mapBack").tap();
+  await expect(page.locator("#view-map svg.map")).not.toHaveAttribute("data-level", /./);
   await settled(page);
 };
 const goBack = async page => {
@@ -156,48 +165,73 @@ for (const [text, storage] of Object.entries(TEXT)) {
       expect.soft(new Set(frames).size, `the frame is one size under every venue's line: ${[...new Set(frames)].join(", ")}`).toBe(1);
     });
 
-    test(`a plate touched stands where it stood, to 1 px, selected and cleared; the frame and the slot keep their size, and the card is whole on the screen${text}`, async ({ page }) => {
+    test(`a floor touched stands where it stood, to 1 px, selected and cleared, and a drawn plate's touch opens its level; the frame and the slot keep their size, and the card is whole on the screen${text}`, async ({ page }) => {
       await open(page, SATURDAY);
       await tab(page, "map");
-      let tall = 0;
+      let tall = 0, floors = 0, levels = 0;
       for (const hotel of VENUES) {
         await openStack(page, hotel);
         const start = await page.evaluate(stackState);
         expect.soft(start.plates.filter(p => p.button).length, `${hotel}: it has plates that take a touch`).toBeGreaterThan(0);
-        for (const { key } of start.plates.filter(p => p.button)) {
+        const sized = (after, name) => expect.soft([after.frame.height - start.frame.height, after.slot.height - start.slot.height].map(d => Math.abs(d) <= 0.5), `${name}: the frame, ${after.frame.height.toFixed(1)} px, and the slot, ${after.slot.height.toFixed(1)}, as they were`).toEqual([true, true]);
+        /* The slot is a plate's card with two rows, and its 10 px above: no more, and no less. */
+        const held = (after, name) => {
+          if (after.card.rows !== 2) return;
+          tall++;
+          expect.soft(Math.abs(after.slot.height - after.card.height - 10), `${name}: the slot, ${after.slot.height.toFixed(1)} px, is its two-row card, ${after.card.height.toFixed(1)}, and the 10 above it`).toBeLessThanOrEqual(0.5);
+        };
+        for (const { key, drawn } of start.plates.filter(p => p.button)) {
+          if (drawn) {
+            /* Its level, in the same frame, the card that plate's: the plate itself is laid flat, and moves by design. */
+            const before = await page.evaluate(stackState), plate = before.plates.find(p => p.key === key), name = `${hotel}, ${key}, its level`;
+            await page.touchscreen.tap(plate.x, plate.y);
+            await expect(page.locator("#view-map svg.map"), name).toHaveAttribute("data-level", key);
+            await settled(page);
+            const after = await page.evaluate(stackState);
+            sized(after, name);
+            expect.soft([after.stack, after.selected, after.card.id, whole(after), after.card.cut], `${name}: the stack under it, no plate selected, and its card whole on the screen`).toEqual([hotel, [], "mapPlate", true, []]);
+            held(after, name);
+            levels++;
+            await toStack(page);
+            continue;
+          }
+          floors++;
           for (const turn of ["selected", "cleared"]) {
             const name = `${hotel}, ${key}, ${turn}`, before = await page.evaluate(stackState), plate = before.plates.find(p => p.key === key);
             await page.touchscreen.tap(plate.x, plate.y);
             await expect(page.locator(`#view-map .map-stack:not([hidden]) .plate[data-plate="${key}"]`)).toHaveAttribute("aria-pressed", String(turn === "selected"));
             await settled(page);
             const after = await page.evaluate(stackState), now = after.plates.find(p => p.key === key);
-            expect.soft(after.selected, name).toEqual(turn === "selected" ? [key] : []);
+            expect.soft([after.selected, after.level], name).toEqual([turn === "selected" ? [key] : [], null]);
             expect.soft(Math.max(Math.abs(now.top - plate.top), Math.abs(now.left - plate.left)), `${name}: it stood at ${plate.left.toFixed(1)}, ${plate.top.toFixed(1)} and stands at ${now.left.toFixed(1)}, ${now.top.toFixed(1)}`).toBeLessThanOrEqual(TOLERANCE);
-            expect.soft([after.frame.height - start.frame.height, after.slot.height - start.slot.height].map(d => Math.abs(d) <= 0.5), `${name}: the frame, ${after.frame.height.toFixed(1)} px, and the slot, ${after.slot.height.toFixed(1)}, as they were`).toEqual([true, true]);
+            sized(after, name);
             expect.soft([after.card.id, whole(after), after.card.cut], `${name}: the card whole on the screen, its name whole on its line`).toEqual([turn === "selected" ? "mapPlate" : "mapVenue", true, []]);
-            /* The slot is a plate's card with two rows, and its 10 px above: no more, and no less. */
-            if (after.card.rows !== 2) continue;
-            tall++;
-            expect.soft(Math.abs(after.slot.height - after.card.height - 10), `${name}: the slot, ${after.slot.height.toFixed(1)} px, is its two-row card, ${after.card.height.toFixed(1)}, and the 10 above it`).toBeLessThanOrEqual(0.5);
+            held(after, name);
           }
         }
         await goBack(page);
       }
+      expect.soft([floors > 0, levels], "floors with no drawing were met, and each of the 18 drawn plates").toEqual([true, 18]);
       expect.soft(tall, "a card with two rows was met, so the slot was held to it").toBeGreaterThan(0);
     });
 
-    test(`a touch on a floor's name is that floor's, wherever the words stand - over its own plate, over the plate below, or over the ground: it selects it, and again clears it${text}`, async ({ page }) => {
+    test(`a touch on a plate's name is that plate's, wherever the words stand - over its own plate, over the plate below, or over the ground: it selects a floor, and again clears it, and it opens a drawn plate's level${text}`, async ({ page }) => {
       await open(page, SATURDAY);
       await tab(page, "map");
       const elsewhere = [];
       for (const hotel of VENUES) {
         await openStack(page, hotel);
         const start = await page.evaluate(stackState);
-        for (const { key } of start.plates.filter(p => p.button)) {
-          for (const turn of ["selected", "cleared"]) {
+        for (const { key, drawn } of start.plates.filter(p => p.button)) {
+          for (const turn of drawn ? ["opened"] : ["selected", "cleared"]) {
             const before = await page.evaluate(stackState), plate = before.plates.find(p => p.key === key);
-            if (turn === "selected" && plate.name.over !== key) elsewhere.push(`${hotel}, ${key}`);
+            if (turn !== "cleared" && plate.name.over !== key) elsewhere.push(`${hotel}, ${key}`);
             await page.touchscreen.tap(plate.name.x, plate.name.y);
+            if (drawn) {
+              await expect(page.locator("#view-map svg.map"), `${hotel}, ${key}, by its name: its level`).toHaveAttribute("data-level", key);
+              await toStack(page);
+              continue;
+            }
             await expect(page.locator(`#view-map .map-stack:not([hidden]) .plate[data-plate="${key}"]`), `${hotel}, ${key}, by its name: ${turn}`).toHaveAttribute("aria-pressed", String(turn === "selected"));
             await settled(page);
             const after = await page.evaluate(stackState);
@@ -209,7 +243,7 @@ for (const [text, storage] of Object.entries(TEXT)) {
       expect.soft(elsewhere.length, `a name that stands over something other than its own plate was among them: ${elsewhere.join("; ")}`).toBeGreaterThan(0);
     });
 
-    test(`an inert plate is see-through: the Hyatt's Lobby Level has no fill and takes no touch, and a touch on the Ballroom plate's face inside its outline is the Ballroom plate's own${text}`, async ({ page }) => {
+    test(`an inert plate is see-through: the Hyatt's Lobby Level has no fill and takes no touch, and a touch on the Ballroom plate's face inside its outline is the Ballroom plate's own, and opens its level${text}`, async ({ page }) => {
       await open(page, SATURDAY);
       await tab(page, "map");
       await openStack(page, "Hyatt");
@@ -218,9 +252,9 @@ for (const [text, storage] of Object.entries(TEXT)) {
       const at = await page.evaluate(through, LOBBY);
       expect.soft([at.inside, at.answers], "the middle of the Lobby Level's outline is inside it, and answers to the Ballroom plate under it").toEqual([true, BALLROOM]);
       await page.touchscreen.tap(at.x, at.y);
-      await expect(page.locator(`#view-map .plate[data-plate="${BALLROOM}"]`)).toHaveAttribute("aria-pressed", "true");
+      await expect(page.locator("#view-map svg.map")).toHaveAttribute("data-level", BALLROOM);
       const after = await page.evaluate(stackState);
-      expect.soft([after.stack, after.selected, after.card.id], "the touch selected the Ballroom plate, and the stack stands").toEqual(["Hyatt", [BALLROOM], "mapPlate"]);
+      expect.soft([after.stack, after.level, after.card.id], "the touch opened the Ballroom plate's level, and its stack is under it").toEqual(["Hyatt", BALLROOM, "mapPlate"]);
     });
   });
 }
@@ -228,7 +262,7 @@ for (const [text, storage] of Object.entries(TEXT)) {
 test.describe("a venue's stack, by the keyboard", () => {
   test.use({ storageState: seed(READER) });
 
-  test("Enter on a block opens its stack with focus on the way back; Tab then walks the plates bottom to top and comes to the card; Enter selects; Escape goes back, and focus is on the block", async ({ page }) => {
+  test("Enter on a block opens its stack with focus on the way back; Tab then walks the plates bottom to top and comes to the card; Enter on a drawn plate opens its level; Escape steps back to the stack, focus on that plate, and again to the city, focus on the block", async ({ page }) => {
     await open(page, SATURDAY);
     await tab(page, "map");
     /* Another venue's stack, opened and put away, stands in the page before the Hyatt's: Tab must not walk its plates, which WebKit would. */
@@ -256,15 +290,16 @@ test.describe("a venue's stack, by the keyboard", () => {
     }
     await page.keyboard.press("Shift+Tab");
     await page.keyboard.press("Enter");
-    await expect(page.locator(`#view-map .plate[data-plate="${BALLROOM}"]`)).toHaveAttribute("aria-pressed", "true");
-    expect.soft(await focused(), "Enter selected the plate, and focus is still on it").toBe(BALLROOM);
+    await expect(page.locator("#view-map svg.map")).toHaveAttribute("data-level", BALLROOM);
+    expect.soft(await focused(), "Enter opened the plate's level, and focus is on the way back").toBe("mapBack");
     const s = await page.evaluate(stackState);
-    expect.soft([s.selected, s.card.id, whole(s)], "its card, whole on the screen").toEqual([[BALLROOM], "mapPlate", true]);
-    await page.keyboard.press(" ");
-    await expect(page.locator(`#view-map .plate[data-plate="${BALLROOM}"]`)).toHaveAttribute("aria-pressed", "false");
+    expect.soft([s.selected, s.card.id, whole(s)], "its card, whole on the screen, and no plate selected").toEqual([[], "mapPlate", true]);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#view-map svg.map")).not.toHaveAttribute("data-level", /./);
+    expect.soft([await page.locator("#view-map svg.map").getAttribute("data-stack"), await focused()], "Escape stepped back to the stack, and focus is on that level's plate").toEqual(["Hyatt", BALLROOM]);
     await page.keyboard.press("Escape");
     await expect(page.locator("#view-map svg.map")).not.toHaveAttribute("data-stack", /./);
-    expect.soft(await focused(), "Escape went back, and focus is on the venue's block").toBe("Hyatt");
+    expect.soft(await focused(), "Escape went back again, and focus is on the venue's block").toBe("Hyatt");
     await page.keyboard.press("Enter");
     await expect(page.locator("#view-map svg.map")).toHaveAttribute("data-stack", "Hyatt");
     await page.keyboard.press("Enter");                          // the way back has focus: Enter is its tap
