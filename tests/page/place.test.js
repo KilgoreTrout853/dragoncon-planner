@@ -163,11 +163,11 @@ describe("the place filter: from a card of the Map's to every event there, in Se
       app.setOverride("2026-09-05T13:06");
       app.tickMap();
       expect(document.activeElement).toBe(head());
-      const first = under().querySelector(".pc-row");
+      const first = under().querySelector(".pc-row"), was = first.dataset.hero;
       first.focus();
-      app.setOverride("2026-09-05T16:01");                  // the row's event has begun: it is On now, and the row after it is another
+      app.setOverride("2026-09-05T17:01");                  // the row's event is over, and the card's rows are others
       app.tickMap();
-      expect([document.activeElement !== head(), document.activeElement.classList.contains("pc-row")]).toEqual([true, true]);
+      expect([[...under().querySelectorAll(".pc-row")].some(r => r.dataset.hero === was), document.activeElement === under().querySelector(".pc-row"), document.activeElement === head()]).toEqual([false, true, false]);
     });
   });
 
