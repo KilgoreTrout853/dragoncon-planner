@@ -338,9 +338,9 @@ describe("the place filter: from a card of the Map's to every event there, in Se
     });
     it("the sheet closed after that one tap draws the list from its top, the hotel its chip", () => {
       toSearch();
+      document.querySelector("main").scrollTop = 120;
       openFilters();
       tap(hotelChip("Hyatt"));
-      document.querySelector("main").scrollTop = 120;
       panel().querySelector("#filtersShow").click();
       expect([chips().map(words), badge()[1], document.querySelector("main").scrollTop]).toEqual([["Hyatt ×"], "1", 0]);
     });
