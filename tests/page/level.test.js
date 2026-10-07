@@ -789,6 +789,10 @@ describe("the level: a drawn plate laid flat, its rooms in place", () => {
       state.map.level = "no-such-plate";
       handle.render();
       expect([held(), svg().hasAttribute("data-level"), svg().querySelectorAll(".plate.flat").length, !!el("mapVenue")]).toEqual([["Hyatt", null, null, null, null], false, 0, true]);
+      city(); lift("Westin");
+      Object.assign(state.map, { level: "f12", rooms: [{ level: "f12", id: "x" }] });                              // a floor with no drawing is no level either
+      handle.render();
+      expect([held(), svg().querySelectorAll(".plate.flat").length, plate("f12").getAttribute("role")]).toEqual([["Westin", null, null, null, null], 0, "button"]);
       Object.assign(state.map, { stack: null, level: "acc", rooms: [{ level: "acc", id: "Roswell" }] });            // and with no stack there is no level
       handle.render();
       expect(held()).toEqual([null, null, null, null, null]);

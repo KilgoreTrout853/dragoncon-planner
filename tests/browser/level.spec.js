@@ -169,11 +169,12 @@ for (const [text, storage] of Object.entries(TEXT)) {
 test.describe("a level's rooms, by a touch", () => {
   test.use({ storageState: seed(READER) });
 
-  test("a touch at a room's middle is that room's, on every room and identified open area of four levels - turned rooms and a shared plate's among them; a small one comes to the middle, its shorter side 62 of the Map's units, and the way back is then 44 px and says Whole level", async ({ page }) => {
-    await open(page, SATURDAY);
-    await tab(page, "map");
-    let turned = 0, zoomed = 0, places = 0;
-    for (const [hotel, key] of [["Hyatt", EXHIBIT], ["Hilton", "l2"], ["Hyatt", "acc"], ["Marriott", "international"]]) {
+  /* One level a test: the walk of a level's every room is long, and WebKit's is twice Chromium's. */
+  for (const [hotel, key, among] of [["Hyatt", EXHIBIT, "a shared plate's two levels' rooms"], ["Hilton", "l2", "its wing's turned rooms"], ["Hyatt", "acc", "twenty small rooms"], ["Marriott", "international", "a composite's leaves"]]) {
+    test(`a touch at a room's middle is that room's, on every room and identified open area of a level - ${among}: ${SHORT[hotel]}, ${key}; a small one comes to the middle, its shorter side 62 of the Map's units, and the way back is then 44 px and says Whole level`, async ({ page }) => {
+      await open(page, SATURDAY);
+      await tab(page, "map");
+      let turned = 0, zoomed = 0, places = 0;
       await openLevel(page, hotel, key);
       const start = await page.evaluate(levelState);
       expect.soft(start.rooms.filter(r => !r.own).map(r => r.id), `${hotel}, ${key}: a touch at each room's middle is that room's own - no name, outline or landmark is in its way`).toEqual([]);
@@ -200,9 +201,9 @@ test.describe("a level's rooms, by a touch", () => {
         expect.soft([whole1.back.words, whole1.selected, Math.abs(whole1.rooms.find(r => r.id === room.id && r.level === room.level).left - room.left) <= TOLERANCE], `${name}: the whole level again, the room still selected, where it stood`).toEqual([`← ${SHORT[hotel]}`, [room.id], true]);
       }
       await toCity(page);
-    }
-    expect.soft([turned > 0, zoomed > 40, places > 0], "turned rooms, small rooms and a shared plate's second level were among them").toEqual([true, true, true]);
-  });
+      expect.soft([key !== "l2" || turned > 0, zoomed > 5, key !== EXHIBIT || places > 0], "the level's turned rooms, its small rooms and its second level's were among them").toEqual([true, true, true]);
+    });
+  }
 
   test("a touch beside a small room, within 22 of the Map's units of it and nearer no other, selects it; a touch past 22 of every room clears the selection and goes nowhere", async ({ page }) => {
     await open(page, SATURDAY);

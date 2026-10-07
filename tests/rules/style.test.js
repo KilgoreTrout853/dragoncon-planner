@@ -852,7 +852,8 @@ describe("src/styles.css", () => {
       expect([body(".lv-mark path, .lv-mark rect, .lv-mark circle"), body(".lv-mark text")]).toEqual(["fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;", "fill: var(--muted); font-weight: 600; text-anchor: middle;"]);
       expect([body(".lv-room"), body(".lv-open"), body(".lv-group"), body(".lv-group.middle")]).toEqual(["fill: var(--text); font-weight: 600;", "fill: var(--muted); font-weight: 500;", "fill: var(--h); font-weight: 700; letter-spacing: .08em;", "text-anchor: middle;"]);
     });
-    it("a street's name is the city map's own label, on its edge of the frame: north from its right end, clear of the way back, the others about their middle", () => {
+    it("a street's name is the city map's own label, on its edge of the frame, edged in the dark so the venue's outline does not strike it through: north from its right end, clear of the way back, the others about their middle", () => {
+      expect(body(".level-street")).toBe("paint-order: stroke; stroke: var(--ink); stroke-width: 3px; stroke-linejoin: round;");
       expect([body('.level-street[data-side="N"]'), body('.level-street[data-side="S"], .level-street[data-side="W"], .level-street[data-side="E"]')]).toEqual(["text-anchor: end;", "text-anchor: middle;"]);
       expect(body(".map-street-label")).toMatch(/font-size: 10px;.*text-transform: uppercase; fill: var\(--dim\);$/);
     });
