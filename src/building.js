@@ -78,7 +78,7 @@ function convex(points) {
     found = false;
     for (let i = 0; i < ring.length && ring.length > 3; i++) {
       const n = ring.length;
-      if (Math.abs(cross(ring[(i + n - 1) % n], ring[i], ring[(i + 1) % n])) > FLAT) continue;
+      if (cross(ring[(i + n - 1) % n], ring[i], ring[(i + 1) % n]) > FLAT) continue;
       ring.splice(i--, 1);
       found = true;
     }
