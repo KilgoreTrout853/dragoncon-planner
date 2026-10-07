@@ -115,6 +115,8 @@ for (const [text, storage] of Object.entries(TEXT)) {
     test.use({ storageState: seed({ ...READER, ...storage }) });
 
     test(`each of the 18 opens by a touch on its plate's name: it stands inside the frame, clear of the way back, in a frame the stack's own size; the way back is 44 px and says where it goes; the card is whole on the screen${text}`, async ({ page }) => {
+      /* A long walk, and each of its taps now starts a move (DECISIONS #97): a timeout of its own. */
+      test.setTimeout(60000);
       await open(page, SATURDAY);
       await tab(page, "map");
       for (const [hotel, key] of LEVELS) {

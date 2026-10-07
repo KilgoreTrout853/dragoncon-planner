@@ -190,13 +190,25 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
    own frame. The way back is an HTML button over the frame's top left, so
    it is 44 px tall whatever scale the drawing is at. Behind the plates the
    city map is pushed in and dimmed - the other blocks at a fifth, the
-   streets and bridges at a tenth - and the pills, the rings and the
-   venue's own block are not shown: they stay in the page, where the pull
-   request that animates will fade them. */
+   streets and bridges at a tenth, which the lift's steps end on (motion.js
+   DIM) - and the pills, the rings and the venue's own block are not shown:
+   they stay in the page, and the lift fades them (DECISIONS #97). */
 .map-back { position: absolute; left: 20px; top: 18px; z-index: 1; height: 44px; min-width: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: .875rem; font-weight: 600; white-space: nowrap; }
 .map[data-stack] .map-streets { opacity: .1; }
 .map[data-stack] .map-hotel { opacity: .2; }
 .map[data-stack] .map-hotel.lifted, .map[data-stack] .map-layer-rings, .map[data-stack] .map-layer-focus, .map[data-stack] .map-layer-pills { visibility: hidden; }
+/* A venue's group that is put away (#97): in the page, rendered and not
+   shown, so that the way back from its stack can show it while it goes. The
+   draw's `hidden` stands; this outweighs the page's rule for it, and
+   nothing but a move's keyframes makes a thing inside one visible. */
+.map-stack[hidden] { display: inline !important; visibility: hidden; }
+/* The block's face (#97): the venue's block as the Map draws it, on its
+   group's camera. Not shown at any end state: the lift's keyframes and its
+   way back's show it. Its edge keeps its width as the camera grows it. */
+.stack-face { visibility: hidden; }
+.stack-face rect { fill: color-mix(in srgb, var(--h) 18%, var(--surface)); stroke: var(--h); stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+.stack-face text { font-family: var(--font); font-weight: 600; letter-spacing: .06em; fill: var(--h); text-anchor: middle; dominant-baseline: central; }
+.stack-face text.long { letter-spacing: .04em; }
 /* A plate, in the venue's own units under its camera, so every stroke is
    kept to its width on the screen. Drawn: solid. A floor, which has no
    drawing: dashed and empty. Inert: a dotted outline and nothing else - no
@@ -272,8 +284,8 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .pc-none { margin: 8px 0 0; font-size: .9375rem; color: var(--muted); }
 /* The level (DECISIONS #96): a drawn plate laid flat, in the same frame. The
    other plates, every plate's label and the city behind stay in the page
-   and are not shown, as the pills are not under a stack: the pull request
-   that animates will fade them. Its rooms are buttons, and one with
+   and are not shown, as the pills are not under a stack: the drop-in fades
+   them (#97). Its rooms are buttons, and one with
    keyboard focus says so by its own edge, light and thicker - with more
    weight than a lit room's rule, which is as heavy as a plain one's and
    comes first. The selected rooms' outlines and the labels are drawn over

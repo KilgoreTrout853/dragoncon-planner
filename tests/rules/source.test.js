@@ -71,4 +71,22 @@ describe("src/", () => {
     const dated = files.flatMap(f => strings(f).filter(s => /\d{4}-\d{2}-\d{2}/.test(s)).map(s => `${f}: ${JSON.stringify(s)}`));
     expect(dated).toEqual([]);
   });
+
+  /* The motion between the Map's views (DECISIONS #97). One module starts an
+     animation, so one module holds the running set and one rule says when
+     none starts; and no set fills, is kept or is asked for by name - when it
+     ends nothing of it is left, and the page has no hook for a test. */
+  it("animate() is called in one module, src/map.js, and in one place", () => {
+    const text = file => fs.readFileSync(path.join(ROOT, "src", file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(files.filter(f => /\.animate\(/.test(text(f)))).toEqual(["map.js"]);
+    expect(text("map.js").match(/\.animate\(/g)).toHaveLength(1);
+  });
+  it("no animation of the app's fills, is kept past its end or is looked up again: no fill, no persist(), no getAnimations() under src/", () => {
+    const text = files.map(f => fs.readFileSync(path.join(ROOT, "src", f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "")).join("\n");
+    expect(text).not.toMatch(/\bfill:\s*["'`]|\.persist\(|getAnimations\(|commitStyles\(/);
+  });
+  it("src/motion.js is pure: it imports nothing, and names no document, no window and no clock", () => {
+    const text = fs.readFileSync(path.join(ROOT, "src", "motion.js"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(text).not.toMatch(/\bimport\b|\bdocument\b|\bwindow\b|\bperformance\b|requestAnimationFrame|\bnow\(/);
+  });
 });

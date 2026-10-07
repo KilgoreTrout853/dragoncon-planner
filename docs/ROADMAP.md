@@ -471,7 +471,9 @@ execution slot (#57), which can run before any of this.
     reader's picks lit, end states only - built (PR #113, #95). C, the
     level (W39): rooms in place, and a tap on a room for what is on there,
     end states only - built (PR #114, #96). D, the motion between
-    them (W40). E, "All `<n>` on Saturday", a place filter in Search.
+    them (W40): the lift, the drop-in, the zoom and each way back, played
+    over the end states - built (PR #115, #97). E, "All `<n>` on Saturday",
+    a place filter in Search.
 11. An accessibility sweep (#66) of what the pull requests above left,
     which adds its checks to the browser tests. Their harness came
     forward from the execution slot - built (PR #101, #81): Playwright in

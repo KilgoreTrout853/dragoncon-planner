@@ -27,7 +27,7 @@ import {
   applyExploreHash, closeExplorePage, holdSpyUntil, markActiveSection, openExplorePage,
   renderExploreSections, scrollToExploreSection, scrollToGrid,
 } from "./explore.js";
-import { closeStack, openLevel, openStack, showOnMap, stepBack, tapLevel, tapPlate, tickMap } from "./map.js";
+import { closeStack, openLevel, openStack, settleMotion, showOnMap, stepBack, tapLevel, tapPlate, tickMap } from "./map.js";
 import { toggleInPlace } from "./inplace.js";
 import { refreshEventSheet } from "./eventsheet.js";
 import {
@@ -41,6 +41,12 @@ import {
 } from "./shell.js";
 
 function onMainClick(e) {
+  /* A tap on the Map while a move plays (#97) finishes the move first, the
+     page at its end state at once. A tap on the drawing is then spent: what
+     it hit was on its way, and a second tap on a hotel must not open a
+     floor nobody chose. Any other tap - a day chip, the way back, the card
+     - then acts, as below. */
+  if (state.tab === "map" && settleMotion() && e.target.closest("svg.map")) return;
   const chip = e.target.closest("[data-chip]");
   if (chip) {
     const {chip: kind, value} = chip.dataset;
@@ -286,6 +292,7 @@ function onMainInput(e) {
 function onMainKeydown(e) {
   if (e.key === "Enter" && e.target && e.target.id === "q") { e.preventDefault(); e.target.blur(); }
   const pressed = (e.key === "Enter" || e.key === " ") && e.target && e.target.closest;
+  if (pressed && !e.repeat && state.tab === "map") settleMotion();        // a key finishes a move that is playing, and then acts (#97)
   if (pressed && e.repeat && e.target.closest(".map-hotel, .plate, #mapBack")) { e.preventDefault(); return; }
   const block = pressed && e.target.closest(".map-hotel"), plate = pressed && e.target.closest('.plate[role="button"]');
   const room = pressed && e.target.closest('.plate.flat [data-room][role="button"]');
@@ -305,6 +312,7 @@ function onEscape(e) {
   if (e.key !== "Escape" || e.repeat || e.isComposing || e.keyCode === 229) return;
   if (!sheetWrap.hidden || state.tab !== "map" || !state.map.stack) return;
   e.preventDefault();
+  settleMotion();              // a move that is playing is finished first (#97)
   stepBack();
 }
 function onMainChange(e) {

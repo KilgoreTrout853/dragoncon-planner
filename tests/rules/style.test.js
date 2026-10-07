@@ -883,4 +883,44 @@ describe("src/styles.css", () => {
       }
     });
   });
+
+  /* New rules, not ledger rows (DECISIONS #97): the stylesheet's half of the
+     motion - what a move's keyframes show, and what nothing else may. */
+  describe("the motion between the Map's views (DECISIONS #97)", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim().replace(/\s+/g, " ") }));
+    const body = selector => rules.filter(r => r.selector === selector).map(r => r.body).join(" | ");
+    const src = name => fs.readFileSync(path.join(ROOT, "src", name), "utf8");
+
+    it("a venue's group that is put away is rendered and not shown: one rule, which outweighs the page's own for [hidden], so a way back's keyframes can show it", () => {
+      expect(body(".map-stack[hidden]")).toBe("display: inline !important; visibility: hidden;");
+      expect(body("[hidden]")).toBe("display: none !important;");
+      expect(rules.filter(r => /\[hidden\]/.test(r.selector) && /display: (?!none)/.test(r.body)).map(r => r.selector)).toEqual([".map-stack[hidden]"]);    // one class heavier, and the only exception
+    });
+    it("nothing but a move makes a hidden thing visible: no rule of the stylesheet says visibility: visible", () => {
+      expect(rules.filter(r => /visibility:\s*visible/.test(r.body)).map(r => r.selector)).toEqual([]);
+    });
+    it("the block's face is not shown at any end state: its one rule hides it, whatever the view, and no rule gives it a pointer to take or to refuse", () => {
+      expect(body(".stack-face")).toBe("visibility: hidden;");
+      const face = rules.filter(r => /\.stack-face/.test(r.selector));
+      expect(face.map(r => r.selector)).toEqual([".stack-face", ".stack-face rect", ".stack-face text", ".stack-face text.long"]);
+      expect(face.filter(r => /pointer-events|display|opacity/.test(r.body))).toEqual([]);
+    });
+    it("the face is the block as the Map draws it: its fill, its edge - which keeps its width as the camera grows it - and its name's face", () => {
+      const fill = /^fill: (color-mix\([^;]+\)); stroke: var\(--h\);/.exec(body(".map-hotel rect"))[1];
+      expect(body(".stack-face rect")).toBe(`fill: ${fill}; stroke: var(--h); stroke-width: 1.5px; vector-effect: non-scaling-stroke;`);
+      expect(body(".stack-face text")).toBe("font-family: var(--font); font-weight: 600; letter-spacing: .06em; fill: var(--h); text-anchor: middle; dominant-baseline: central;");
+      expect(body(".map-hotel text")).toMatch(/font-weight: 600; letter-spacing: \.06em; fill: var\(--h\); text-anchor: middle; dominant-baseline: central;$/);
+      expect([body(".stack-face text.long"), /letter-spacing: \.04em;/.test(body(".map-hotel text.long"))]).toEqual(["letter-spacing: .04em;", true]);
+    });
+    it("the lift dims the city to the stylesheet's own two numbers: motion.js DIM and the rules under [data-stack] say the same", () => {
+      const dim = /const DIM = \{streets: ([\d.]+), blocks: ([\d.]+)\};/.exec(src("motion.js")).slice(1).map(Number);
+      expect([body(".map[data-stack] .map-streets"), body(".map[data-stack] .map-hotel")]).toEqual([`opacity: ${String(dim[0]).replace(/^0/, "")};`, `opacity: ${String(dim[1]).replace(/^0/, "")};`]);
+    });
+    it("the motion is the script's and none of the stylesheet's: no rule of the Map's moves a thing or times it but the next ring's pulse", () => {
+      const MAP = /\.(map|plate|stack-|level-|lv-)|\[data-(stack|level)\]/;
+      expect(rules.filter(r => MAP.test(r.selector) && /(^|; )(transition|animation|transform)[\w-]*:/.test(r.body)).map(r => r.selector)).toEqual([".map-ring.next", ".map-ring.next"]);
+      expect(bare.match(/@keyframes [\w-]+/g)).toContain("@keyframes map-pulse");
+    });
+  });
 });

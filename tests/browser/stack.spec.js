@@ -166,6 +166,8 @@ for (const [text, storage] of Object.entries(TEXT)) {
     });
 
     test(`a floor touched stands where it stood, to 1 px, selected and cleared, and a drawn plate's touch opens its level; the frame and the slot keep their size, and the card is whole on the screen${text}`, async ({ page }) => {
+      /* A long walk, and each of its taps now starts a move (DECISIONS #97): a timeout of its own. */
+      test.setTimeout(60000);
       await open(page, SATURDAY);
       await tab(page, "map");
       let tall = 0, floors = 0, levels = 0;
@@ -216,6 +218,8 @@ for (const [text, storage] of Object.entries(TEXT)) {
     });
 
     test(`a touch on a plate's name is that plate's, wherever the words stand - over its own plate, over the plate below, or over the ground: it selects a floor, and again clears it, and it opens a drawn plate's level${text}`, async ({ page }) => {
+      /* A long walk, and each of its taps now starts a move (DECISIONS #97): a timeout of its own. */
+      test.setTimeout(60000);
       await open(page, SATURDAY);
       await tab(page, "map");
       const elsewhere = [];
