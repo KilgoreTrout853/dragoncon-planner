@@ -1289,18 +1289,25 @@ describe("against the real schedule", () => {
      and the pull request that does it says so here. New tests, not rows of
      tests/PORT-LEDGER.md. */
   describe("the stack, on 2027's drawings and 2026's schedule", () => {
-    const FRAME = { x: -3, y: 111, w: 385, h: 305 };       // the Map's viewBox
+    /* The frame is the Map's own, read from the drawing it draws in: a frame that grows moves these numbers with it. */
+    let drawn = null;
+    const frame = () => {
+      if (!drawn) { app.renderMap(); const [x, y, w, h] = document.querySelector("#view-map svg.map").getAttribute("viewBox").split(" ").map(Number); drawn = { x, y, w, h }; }
+      return drawn;
+    };
     const tenth = v => Math.round(v * 10) / 10;
-    const laid = hotel => { const made = app.building(hotel); return app.stackLayout(made.hull || app.blockOutline(app.MAP_HOTELS[hotel]), made.plates.length, FRAME); };
+    const laid = hotel => { const made = app.building(hotel); return app.stackLayout(made.hull || app.blockOutline(app.MAP_HOTELS[hotel]), made.plates.length, frame()); };
     const tally = (list, key) => list.reduce((by, x) => ({ ...by, [key(x)]: (by[key(x)] || 0) + 1 }), {});
 
     it("each venue's plates, their width and the strip under each: 40 everywhere but at the Hilton, whose five floors leave 31.7 at the least width a plate may have", () => {
       expect(app.BUILDINGS.map(hotel => [hotel, app.building(hotel).plates.length, tenth(laid(hotel).wide), tenth(laid(hotel).strip)])).toEqual([
         ["Marriott", 4, 312.7, 40], ["Hyatt", 4, 254.5, 40], ["Hilton", 5, 211.8, 31.7], ["Courtland Grand", 3, 300.2, 40], ["Westin", 5, 320.9, 40],
         ["AmericasMart Building 2", 4, 300.7, 40], ["AmericasMart Building 3", 2, 300.7, 40]]);
-      expect(tenth(laid("Hilton").wide)).toBe(tenth(app.MIN_WIDE * FRAME.w));
+      expect(tenth(laid("Hilton").wide)).toBe(tenth(app.MIN_WIDE * frame().w));
+      expect(frame()).toEqual({ x: -3, y: 111, w: 385, h: 305 });
     });
     it("every plate of every venue stands inside the frame's margins, clear of the way back", () => {
+      const FRAME = frame();
       for (const hotel of app.BUILDINGS) {
         for (const box of laid(hotel).plates) {
           expect([box.x0 >= FRAME.x + app.MARGIN.l - 1e-6, box.x1 <= FRAME.x + FRAME.w - app.MARGIN.r + 1e-6, box.y0 >= FRAME.y + app.MARGIN.t - 1e-6, box.y1 <= FRAME.y + FRAME.h - app.MARGIN.b + 1e-6], hotel)

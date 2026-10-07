@@ -217,7 +217,11 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
    picks light; the star and its count on a label, and before a name on the
    card. The crew is on the venue's line and nowhere on the plates. */
 .plate.mine .plate-hull { stroke: var(--gold); stroke-width: 2.5; }
-.plate-room.lit, .plate-open.lit { fill: var(--gold); stroke: color-mix(in srgb, var(--gold) 55%, var(--gold-ink)); }
+/* Focus on a gold edge is thicker again, and its rule outweighs the gold's
+   own width whatever order they stand in. A lit place outweighs the rule
+   that tints a place the same way. */
+.plate.mine:focus-visible .plate-hull { stroke-width: 5; }
+.plate-room.lit, .plate-open.place.lit { fill: var(--gold); stroke: color-mix(in srgb, var(--gold) 55%, var(--gold-ink)); }
 /* The selected plate: a second outline, light and wider, under the plate's
    own edge and so outside it - it reads apart from the gold edge, and both
    show where both hold. */
@@ -228,8 +232,10 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .plate-room { fill: color-mix(in srgb, var(--h) 18%, var(--surface)); stroke: color-mix(in srgb, var(--h) 70%, var(--surface)); stroke-width: .8; vector-effect: non-scaling-stroke; }
 .plate-group { fill: none; stroke: color-mix(in srgb, var(--h) 85%, var(--surface)); stroke-width: 1.8; vector-effect: non-scaling-stroke; pointer-events: none; }
 /* A plate's label, under its near corner, in the drawing's own units as a
-   block's name is: Larger text leaves the map alone. */
-.stack-labels { pointer-events: none; }
+   block's name is: Larger text leaves the map alone. It is in its plate's
+   group (map.js stackSVG()), so a touch on its words is that plate's,
+   whatever plate they stand over, and an inert plate's takes none, as its
+   plate takes none. */
 .plate-label { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--text); paint-order: stroke; stroke: var(--ink); stroke-width: 3px; stroke-linejoin: round; }
 .plate-label .pl-count { fill: var(--muted); font-weight: 600; }
 .plate-label .pl-picks { fill: var(--gold); }
@@ -241,6 +247,14 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
    where it stood (#86). In rem where the words are, so Larger text grows it
    with them. */
 .map-wrap[data-stack] .map-under { height: calc(10px + 2px + 12px + (.75rem * 1.3 + 3px) + 1.125rem * 1.2 + (4px + .9375rem * 1.3) + 8px + 2 * (14px + 1.8125rem * 1.3)); }
+/* On a screen too short for the map's floor and the slot, the slot runs past
+   the tab's box and under the nav, where the room main keeps for the nav
+   is already spent. So the slot brings that room with it - the tab's foot
+   and the nav's - out of the flow, where it takes none while the slot fits:
+   past the tab's box, main scrolls to it, and the card's last row comes up
+   above the nav. */
+.map-wrap[data-stack] .map-under { position: relative; }
+.map-wrap[data-stack] .map-under::after { content: ""; position: absolute; left: 0; top: 100%; width: 1px; height: calc(12px + var(--nav-h) + 5px); pointer-events: none; }
 .venue-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; }
 .venue-line .vl-words { display: block; min-width: 0; }
 .venue-line .nc-title, .venue-line .nc-when { display: block; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }

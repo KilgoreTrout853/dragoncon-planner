@@ -78,7 +78,8 @@ function render() {
 function renderMiniBar() {
   const bar = document.getElementById("minibar");
   /* Not on Now, which is about the next pick already; not on the Map, whose
-     caption says the same thing; and not once the con is over. */
+     caption says the same thing but while a stack is open (#95); and not
+     once the con is over. */
   const at = now();
   const next = state.tab === "now" || state.tab === "map" || !events.length || conEnded() ? null : nextPickInConDay(at);
   if (!next) {

@@ -160,8 +160,9 @@ function drawHotelSheet(day = hotelDay) {
 }
 /* The crew pill's way in (#63): with a few picks of the reader's own, Your
    crew here starts below the fold, so the pill opens the sheet with it
-   brought to the top of the body. The block and the gold pill open the
-   sheet at its top, and focus is on the heading whichever opened it (#66).
+   brought to the top of the body. A stack's venue line, and the park's
+   block and gold pill, open the sheet at its top (#95), and focus is on the
+   heading whichever opened it (#66).
    A pill left on the Map from crew picks another tab has since changed may
    find no section. The body fades at its top once there is more above
    (#76), so the section stops short of the top by the deepest that band can
@@ -888,7 +889,9 @@ function closeWholeSheet() {
    reader declined it, and a reload does not ask again (#62, #63). Focus
    goes back to what opened the sheet where it is on screen; a crew panel
    whose opener the redraw took away - a first crew made, the last one
-   left - gives it to what Plans' header now holds. The filter sheet closed
+   left - gives it to what Plans' header now holds, and a row of a plate's
+   card whose event has since left the card (#95) to the card's first row,
+   else to its plate. The filter sheet closed
    with anything changed brings the list back to its top: the old place in
    it is no place in the new one. The about panel does not close: it goes
    back to Settings (#92). */
@@ -908,7 +911,8 @@ function closeSheet() {
   undrag();
   requestRender();
   pageScrollTo(sheetScrollY);
-  const back = (opener && shownMatch(opener)) || (crewShown ? shownMatch("#crewPick, #crewManageBtn, #crewStartBtn") : null);
+  const back = (opener && shownMatch(opener)) || (crewShown ? shownMatch("#crewPick, #crewManageBtn, #crewStartBtn") : null)
+    || (opener ? shownMatch("#mapPlate .pc-row") || shownMatch("#view-map .map-stack:not([hidden]) .plate.selected") : null);
   opener = null;
   if (back) back.focus({preventScroll: true});
 }

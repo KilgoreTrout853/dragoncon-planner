@@ -44,6 +44,14 @@ describe("the stack: a venue lifted into its floors", () => {
   const plate = key => plates().find(p => p.dataset.plate === key);
   const label = key => [...shown()[0].querySelectorAll(".plate-label")].find(t => t.dataset.plate === key);
   const kinds = () => plates().map(p => p.getAttribute("class").split(" ")[1]);
+  /* Where a plate's label stands in the Map's frame, and at what size: its
+     own place and scale, its plate's lift and the camera, composed. */
+  const stands = key => {
+    const read = (node, pattern) => pattern.exec(node.getAttribute("transform") || "translate(0 0)").slice(1).map(Number);
+    const [px, py, k] = read(label(key), /^translate\((-?[\d.]+) (-?[\d.]+)\) scale\(([\d.]+)\)$/), [lift] = read(plate(key), /^translate\(0 (-?[\d.]+)\)$/);
+    const [tx, ty, s] = read(shown()[0].querySelector(".stack-cam"), /^translate\((-?[\d.]+) (-?[\d.]+)\) scale\(([\d.]+)\)$/);
+    return { x: tx + s * px, y: ty + s * (py + lift), size: s * k };
+  };
   const lit = () => [...shown()[0].querySelectorAll(".lit")].map(r => `${r.dataset.level}|${r.dataset.room}`).sort();
   const under = () => el("mapUnder");
   const rows = () => [...under().querySelectorAll(".pc-row")].map(r => [words(r.querySelector(".pc-title")), words(r.querySelector(".pc-when"))]);
@@ -115,6 +123,17 @@ describe("the stack: a venue lifted into its floors", () => {
       expect(press(block("Westin"), "a")).toBe(false);       // any other key is the page's
       expect(open()).toEqual(CLOSED);
     });
+    it("a key held down is one press: a repeat opens nothing, closes nothing and selects nothing, and is taken, so the way back's own button never hears it", () => {
+      const held = (target, key) => { const e = new KeyboardEvent("keydown", { key, repeat: true, bubbles: true, cancelable: true }); target.dispatchEvent(e); return e.defaultPrevented; };
+      expect([held(block("Westin"), "Enter"), held(block("Westin"), " "), open()]).toEqual([true, true, CLOSED]);
+      block("Westin").focus();
+      press(block("Westin"), "Enter");                       // the press: its stack, and focus on the way back
+      expect([held(el("mapBack"), "Enter"), held(el("mapBack"), " "), open()]).toEqual([true, true, ["Westin", "Westin", "Westin", false]]);
+      expect([held(plate("f6"), "Enter"), state.map.plate]).toEqual([true, null]);
+      press(plate("f6"), "Enter");
+      expect([held(plate("f6"), " "), held(plate("f6"), "Enter"), state.map.plate]).toEqual([true, true, "f6"]);
+      expect([press(el("mapBack"), "Enter"), held(el("mapBack"), "a"), held(document.getElementById("mapVenue") || el("mapPlate"), "Enter")]).toEqual([false, false, false]);   // a press on the way back is the button's own, and a repeat elsewhere is not the Map's
+    });
     it("the park has no building: its block, its gold pill and Enter on it open its hotel sheet, as built, and no stack", () => {
       const inPark = handle.events.find(e => e.hotel === PARK && e._cd === SAT);
       for (const go of [() => tap(block(PARK).querySelector("rect")), () => tap(svg().querySelector(`.map-pill[data-hotel="${PARK}"] rect`)), () => press(block(PARK), "Enter")]) {
@@ -128,10 +147,20 @@ describe("the stack: a venue lifted into its floors", () => {
       expect([app.openStack(PARK), app.openStack("Streaming"), app.openStack("no such place"), state.map.stack]).toEqual([false, false, false, null]);
       expect([app.openStack("Hilton"), state.map.stack]).toEqual([true, "Hilton"]);
     });
-    it("it is state in memory alone - the venue and the plate, each null for none - and a fresh page shows the city map", async () => {
+    it("and opens with nothing selected, whatever was: the Courtland Grand's second floor is not the Mart's", () => {
+      lift("Courtland Grand");
+      tap(plate("f2").querySelector(".plate-hull"));
+      expect([state.map.stack, state.map.plate, app.building(MART3).plates.some(p => p.key === "f2" && !p.inert)]).toEqual(["Courtland Grand", "f2", true]);
+      expect([app.openStack(MART3), state.map.stack, state.map.plate, el("mapPlate"), !!el("mapVenue")]).toEqual([true, MART3, null, null, true]);
+      expect(svg().querySelectorAll('.plate.selected, .plate[aria-pressed="true"]')).toHaveLength(0);
+    });
+    it("it is state in memory alone - the venue and the plate, each null for none: opening one and selecting a plate writes nothing the page keeps - and a fresh page shows the city map", async () => {
+      const kept = () => JSON.stringify([localStorage, sessionStorage].map(store => Object.keys(store).sort().map(key => [key, store.getItem(key)])));
+      const before = kept();
       lift("Hyatt");
       tap(plate("acc").querySelector(".plate-hull"));
       expect([state.map.stack, state.map.plate]).toEqual(["Hyatt", "acc"]);
+      expect(kept()).toBe(before);                           // whatever a key is called, none was written or changed
       expect(Object.keys(localStorage).concat(Object.keys(sessionStorage)).filter(k => /stack|plate/i.test(k))).toEqual([]);
       await page.cleanup();
       page = await bootPage();
@@ -150,7 +179,7 @@ describe("the stack: a venue lifted into its floors", () => {
       const lifts = plates().map(p => Number((/^translate\(0 (-?[\d.]+)\)$/.exec(p.getAttribute("transform") || "translate(0 0)") || [])[1]));
       expect(lifts[0]).toBe(0);
       for (let j = 1; j < lifts.length; j++) expect(lifts[j]).toBeLessThan(lifts[j - 1]);          // each stands above the one before it
-      const ys = plates().map(p => Number(label(p.dataset.plate).getAttribute("y")));
+      const ys = plates().map(p => stands(p.dataset.plate).y);
       for (let j = 1; j < ys.length; j++) expect(ys[j]).toBeLessThan(ys[j - 1]);                    // and its label with it
     });
     it("three kinds: drawn, a floor with no drawing, and inert - the Hyatt's Lobby Level, the Westin's 12th and 14th Floors, the Mart's floors", () => {
@@ -197,7 +226,7 @@ describe("the stack: a venue lifted into its floors", () => {
       expect([...shown()[0].querySelectorAll(".plate-hull")].map(o => [o.tagName, o.getAttribute("x"), o.getAttribute("y"), o.getAttribute("width"), o.getAttribute("height"), o.getAttribute("rx")]))
         .toEqual(Array(4).fill(["rect", "0", "0", String(b.w), String(b.h), "10"]));
     });
-    it("it stands where stack.js lays it out in the Map's own frame: the camera, the tilt about the outline's centre, each plate's lift and each label under its plate's near corner", () => {
+    it("it stands where stack.js lays it out in the Map's own frame: the camera, the tilt about the outline's centre, each plate's lift, and each label in its plate's group - upright, at the frame's own size, under its plate's near corner", () => {
       const [x, y, w, h] = svg().getAttribute("viewBox").split(" ").map(Number);
       for (const hotel of ["Hyatt", MART3]) {
         city(); lift(hotel);
@@ -207,7 +236,13 @@ describe("the stack: a venue lifted into its floors", () => {
         expect(new Set([...shown()[0].querySelectorAll(".plate-tilt")].map(t => t.getAttribute("transform"))), hotel)
           .toEqual(new Set([`translate(${places(cx, 3)} ${places(cy, 3)}) skewX(-30) scale(1 0.5) translate(${places(-cx, 3)} ${places(-cy, 3)})`]));
         expect(plates().map(p => p.getAttribute("transform")), hotel).toEqual(made.plates.map((p, j) => (j ? `translate(0 ${places(-j * at.gap, 3)})` : null)));
-        expect([...shown()[0].querySelectorAll(".plate-label")].map(t => [t.getAttribute("x"), t.getAttribute("y")]), hotel).toEqual(at.plates.map(box => [places(box.x0 + 7, 1), places(box.y1 - 5, 1)]));
+        expect(shown()[0].querySelectorAll(".plate-label")).toHaveLength(made.plates.length);
+        made.plates.forEach((p, j) => {
+          const on = stands(p.key), box = at.plates[j], name = `${hotel}, ${p.key}`;
+          expect([label(p.key).parentNode === plate(p.key), plate(p.key).lastElementChild === label(p.key), label(p.key).closest(".plate-tilt")], name).toEqual([true, true, null]);
+          expect([Math.abs(on.x - (box.x0 + 7)) < 0.02, Math.abs(on.y - (box.y1 - 5)) < 0.02, Math.abs(on.size - 1) < 1e-4], `${name}: 7 in from its plate's left and 5 up from its foot, at the frame's own size`).toEqual([true, true, true]);
+        });
+        expect(shown()[0].querySelector(".stack-labels")).toBe(null);                                  // no layer of labels apart from the plates
       }
     });
     it("behind it the city map is pushed in 2.2 times toward the venue, its block's centre where the ground plate's centre stands, clipped to the frame, out of a screen reader's way and out of the tab order, the venue's own block marked", () => {
@@ -340,9 +375,21 @@ describe("the stack: a venue lifted into its floors", () => {
       expect(press(plate("acc"), "Tab")).toBe(false);
       expect(state.map.plate).toBe(null);
     });
-    it("an inert plate takes no tap and no key: nothing is selected, and the stack stands", () => {
+    it("a tap on a plate's name is a tap on that plate - the words are in its group, wherever on the stack they stand: it selects it, and again clears it, by a star or a count in the name too", () => {
+      tap(label(BALLROOM));
+      expect([state.map.stack, state.map.plate, plate(BALLROOM).getAttribute("aria-pressed")]).toEqual(["Hyatt", BALLROOM, "true"]);
+      tap(label(EXHIBIT).querySelector(".pl-picks"));        // the star in its name
+      expect([state.map.plate, plates().filter(p => p.classList.contains("selected")).map(p => p.dataset.plate)]).toEqual([EXHIBIT, [EXHIBIT]]);
+      tap(label(EXHIBIT));
+      expect([state.map.stack, state.map.plate, open()[3]]).toEqual(["Hyatt", null, false]);
+      city(); lift("Westin");
+      tap(label("f12").querySelector(".pl-count"));          // a dashed floor's count
+      expect(state.map.plate).toBe("f12");
+    });
+    it("an inert plate is no button: a tap or a key that reached it, or its name, selects nothing and closes nothing - on a phone none reaches it, and what is under it answers (tests/browser/stack.spec.js)", () => {
       tap(plate("acc").querySelector(".plate-hull"));
       tap(plate("lobby").querySelector(".plate-hull"));
+      tap(label("lobby"));
       expect([state.map.stack, state.map.plate, plate("lobby").classList.contains("selected")]).toEqual(["Hyatt", "acc", false]);
       expect(press(plate("lobby"), "Enter")).toBe(false);
       expect([state.map.stack, state.map.plate]).toEqual(["Hyatt", "acc"]);
@@ -481,10 +528,6 @@ describe("the stack: a venue lifted into its floors", () => {
         tap(plate("acc").querySelector(".plate-hull"));
         dayChip(WED).click();
         expect([cardLines()[2], rows(), words(under().querySelector(".pc-none"))]).toEqual(["Wednesday · no events", [], "Nothing here on Wednesday. 18 events on other days."]);
-        city(); lift(MART3);
-        tap(plate("f1").querySelector(".plate-hull"));
-        dayChip(SUN).click();
-        expect(handle.events.filter(e => e.hotel === MART3 && e.level === "f1")).toHaveLength(11);
         city(); lift("Marriott");
         tap(plate("lobby").querySelector(".plate-hull"));       // drawn, so no inert plate, and nothing is ever on it in the sample
         expect([cardLines(), words(under().querySelector(".pc-none"))]).toEqual([["Marriott", "Lobby Level", "Saturday · no events"], "Nothing here on Saturday."]);
@@ -538,6 +581,35 @@ describe("the stack: a venue lifted into its floors", () => {
         expect(rows().map(r => r[0])).not.toContain("A Day Long");
         expect(rows().map(r => r[0])).not.toContain("Until Tomorrow");
         handle.setTimeOverride(NOW);
+        app.replaceSchedule(SAMPLE);
+      });
+      it("and an end at 5 AM sharp is still its own night's: the con day turns there, and the event is over as it does", () => {
+        const base = SAMPLE.events.find(e => e.id === "s0294");
+        const five = { ...base, id: "x-five", source_id: "x-five", title: "Until Five", start: "2026-09-05T12:00", end: "2026-09-06T05:00" };
+        const eight = { ...base, id: "x-eight", source_id: "x-eight", title: "From Eight", start: "2026-09-05T20:00", end: "2026-09-06T05:00" };
+        app.replaceSchedule({ ...SAMPLE, events: [...SAMPLE.events.filter(e => !(e.hotel === "Westin" && e.level === "f12")), five, eight] });
+        city(); lift("Westin");
+        tap(plate("f12").querySelector(".plate-hull"));
+        expect(rows()).toEqual([["Until Five", "On now · ends 5:00 AM"], ["From Eight", "Next · 8:00 PM–5:00 AM"]]);
+        app.replaceSchedule(SAMPLE);
+      });
+      it("on now is whatever is running, an event that began on an earlier con day too: counted with the rest, behind the day's own, first where it is the reader's pick - and the row itself where the day has nothing of its own", () => {
+        const base = SAMPLE.events.find(e => e.id === "s0294");                                       // the Westin's 12th Floor: on now until 3:00 PM
+        const room = { ...base, id: "x-room", source_id: "x-room", title: "The Room That Never Shuts", start: "2026-09-03T10:00", end: "2026-09-07T12:00" };
+        app.replaceSchedule({ ...SAMPLE, events: [...SAMPLE.events, room] });
+        city(); lift("Westin");
+        tap(plate("f12").querySelector(".plate-hull"));
+        expect([cardLines()[2], rows()]).toEqual(["Saturday · 4 events", [["Artemis: Bridge Crew Open Play", "On now · ends 3:00 PM · 1 more on now"], ["Artemis: Bridge Crew Open Play", "Next · 4:00–6:00 PM"]]]);
+        handle.picks.set(["x-room"]); handle.render();
+        expect([rows()[0], under().querySelector(".pc-row").classList.contains("mine"), rows()[1][1]]).toEqual([["The Room That Never Shuts", "On now · ends Mon 12:00 PM · 1 more on now"], true, "Next · 4:00–6:00 PM"]);
+        expect([cardLines()[2], plate("f12").classList.contains("mine")]).toEqual(["Saturday · 4 events", false]);     // the day's count and its gold edge are the day's own
+        const onSaturday = e => e.hotel === "Westin" && e.level === "f12" && e.start >= "2026-09-05T05:00" && e.start < "2026-09-06T05:00";
+        app.replaceSchedule({ ...SAMPLE, events: [...SAMPLE.events.filter(e => !onSaturday(e)), room] });
+        city(); lift("Westin");
+        tap(plate("f12").querySelector(".plate-hull"));
+        expect([cardLines()[2], rows(), under().querySelector(".pc-none")]).toEqual(["Saturday · no events", [["The Room That Never Shuts", "On now · ends Mon 12:00 PM"]], null]);
+        dayChip(SUN).click();                                  // another day's card is that day's own: the room began on Thursday
+        expect(rows().map(r => r[0])).not.toContain("The Room That Never Shuts");
         app.replaceSchedule(SAMPLE);
       });
       it("a cancelled event is in no row and no count, lights nothing and edges nothing - though it is the reader's pick", () => {
@@ -599,11 +671,40 @@ describe("the stack: a venue lifted into its floors", () => {
         handle.closeSheet();
         expect([el("sheetWrap").hidden, state.map.stack, document.activeElement === el("mapVenue")]).toEqual([true, "Hyatt", true]);
       });
+      it("a row that had keyboard focus and has left the card hands it on, and does not drop it to the page: to the card's first row, and with no row left to the plate the card is about", () => {
+        city(); lift("Westin");
+        tap(plate("f12").querySelector(".plate-hull"));
+        under().querySelector('.pc-row[data-hero="s0294"]').focus();                                  // on now, until 3:00 PM
+        handle.setTimeOverride("2026-09-05T15:00");            // it is over, and its row gone
+        expect([under().querySelector('.pc-row[data-hero="s0294"]'), document.activeElement === under().querySelector(".pc-row"), document.activeElement.dataset.hero]).toEqual([null, true, "s0349"]);
+        handle.setTimeOverride("2026-09-06T04:00");            // the night's last is over: no row is left
+        expect([under().querySelectorAll(".pc-row").length, words(under().querySelector(".pc-none")), document.activeElement === plate("f12")]).toEqual([0, "Nothing more here today.", true]);
+        handle.setTimeOverride(NOW);
+      });
+      it("and so at a sheet's close: opened from a row whose event has since left the card, focus goes to the card's first row", () => {
+        city(); lift("Westin");
+        tap(plate("f12").querySelector(".plate-hull"));
+        const on = under().querySelector('.pc-row[data-hero="s0294"]');
+        on.focus();
+        on.click();
+        expect([state.sheetId, el("sheetWrap").hidden]).toEqual(["s0294", false]);
+        handle.setTimeOverride("2026-09-05T15:00");
+        handle.closeSheet();
+        expect([el("sheetWrap").hidden, state.map.plate, document.activeElement === under().querySelector(".pc-row"), document.activeElement.dataset.hero]).toEqual([true, "f12", true, "s0349"]);
+        handle.setTimeOverride(NOW);
+      });
       it("a row that has keyboard focus keeps it through a draw that writes the card again", () => {
         city(); lift("Westin");
         tap(plate("f12").querySelector(".plate-hull"));
         const next = [...under().querySelectorAll(".pc-row")].find(r => r.dataset.hero === "s0349");
         next.focus();
+        handle.picks.set(["s0294"]); handle.render();          // the row above takes a star: the card is written again, and both rows are still in it
+        expect([rows().length, under().querySelector(".pc-row").classList.contains("mine"), document.activeElement.dataset.hero, document.activeElement === under().querySelectorAll(".pc-row")[1]]).toEqual([2, true, "s0349", true]);
+        app.replaceSchedule({ ...SAMPLE, events: SAMPLE.events.map(e => (e.id === "s0294" ? { ...e, title: "Open Play, Renamed" } : e)) });
+        handle.render();                                       // the row above changes its words alone: the card's rows are new nodes, and focus is on the second still - not handed to the first
+        expect([rows().map(r => r[0]), document.activeElement.dataset.hero, document.activeElement === under().querySelectorAll(".pc-row")[1]]).toEqual([["Open Play, Renamed", "Artemis: Bridge Crew Open Play"], "s0349", true]);
+        app.replaceSchedule(SAMPLE);
+        handle.render();
         handle.setTimeOverride("2026-09-05T15:05");            // the first is over: the row that had focus is the first row now
         expect([rows()[0], document.activeElement.dataset.hero, document.activeElement.closest("#mapPlate") === el("mapPlate")]).toEqual([["Artemis: Bridge Crew Open Play", "Next · 4:00–6:00 PM"], "s0349", true]);
         handle.setTimeOverride(NOW);
@@ -630,6 +731,28 @@ describe("the stack: a venue lifted into its floors", () => {
       el("mapBack").click();
       expect(gone("Hyatt")).toEqual(GONE);
       expect([view().querySelector(".map-wrap").hasAttribute("data-stack"), svg().querySelector(".map-focus")]).toEqual([false, null]);
+    });
+    it("a stack put away keeps no selection: no plate in the page says it is pressed, and the tick that would write it again writes nothing", () => {
+      staged();
+      expect([plate(EXHIBIT).classList.contains("selected"), plate(EXHIBIT).getAttribute("aria-pressed")]).toEqual([true, "true"]);
+      el("mapBack").click();
+      expect([svg().querySelectorAll(".plate.selected").length, svg().querySelectorAll('.plate[aria-pressed="true"]').length]).toEqual([0, 0]);
+      expect(group("Hyatt").querySelectorAll('.plate[aria-pressed="false"]')).toHaveLength(3);          // its three buttons, each still saying so
+      expect(app.tickMap()).toBe(false);
+    });
+    it("and its plates leave the tab order, since WebKit walks Tab through a button it does not draw; opened again, they are back in it - whichever stack is open, only its own plates take Tab", () => {
+      const tabbed = () => [...svg().querySelectorAll('.plate[tabindex="0"]')].map(p => `${p.closest(".map-stack").dataset.hotel}|${p.dataset.plate}`);
+      city(); lift("Hyatt");
+      expect(tabbed()).toEqual(["Hyatt|acc", `Hyatt|${EXHIBIT}`, `Hyatt|${BALLROOM}`]);
+      el("mapBack").click();
+      expect([tabbed(), [...group("Hyatt").querySelectorAll(".plate")].map(p => p.getAttribute("tabindex"))]).toEqual([[], ["-1", "-1", "-1", null]]);
+      expect(app.tickMap()).toBe(false);
+      lift("Westin");
+      expect(tabbed()).toEqual(["Westin|f6", "Westin|f7", "Westin|f8", "Westin|f12"]);
+      el("mapBack").click();
+      lift("Hyatt");
+      expect(tabbed()).toEqual(["Hyatt|acc", `Hyatt|${EXHIBIT}`, `Hyatt|${BALLROOM}`]);
+      expect(app.tickMap()).toBe(false);
     });
     it("so does a tap inside the frame on anything but a plate or the control: the ground, a street, another venue's block, a pill left under the stack, the frame itself", () => {
       for (const at of [".map-ground", ".map-street", '.map-hotel[data-hotel="Marriott"] rect', '.map-hotel[data-hotel="Hyatt"] text', ".map-pill rect", null]) {
@@ -658,6 +781,16 @@ describe("the stack: a venue lifted into its floors", () => {
         expect(open()).toEqual(CLOSED);
       }
     });
+    it("a held Escape is one press: under an open sheet it closes the sheet, and its repeats leave the stack standing, untaken", () => {
+      city(); lift("Hyatt");
+      tap(plate(EXHIBIT).querySelector(".plate-hull"));
+      handle.openSheet("hotel", "Hyatt");
+      press(document.activeElement, "Escape");
+      const repeat = new KeyboardEvent("keydown", { key: "Escape", repeat: true, bubbles: true, cancelable: true });
+      document.body.dispatchEvent(repeat);
+      expect([el("sheetWrap").hidden, repeat.defaultPrevented, open(), state.map.plate]).toEqual([true, false, ["Hyatt", "Hyatt", "Hyatt", false], EXHIBIT]);
+      expect([press(document.body, "Escape"), open()]).toEqual([true, CLOSED]);                       // the next press goes back
+    });
     it("Escape with no stack open, or on another tab, is not the Map's: nothing is taken and nothing changes", () => {
       expect([press(document.body, "Escape"), open()]).toEqual([false, CLOSED]);
       lift("Hyatt");
@@ -665,12 +798,15 @@ describe("the stack: a venue lifted into its floors", () => {
       expect([press(document.body, "Escape"), state.map.stack]).toEqual([false, "Hyatt"]);
       expect(press(document.body, "Enter")).toBe(false);
     });
-    it("a tap outside the frame is no way back: a day chip, the card, the nav", () => {
+    it("a tap outside the frame is no way back: a day chip and the strip it is in, the slot under the map and its hint, the Map's own tab", () => {
       lift("Hyatt");
+      dayChip(SUN).click();
+      expect([state.map.day, open()]).toEqual([SUN, ["Hyatt", "Hyatt", "Hyatt", false]]);
+      tap(view().querySelector(".controls"));
       tap(under());
       tap(under().querySelector(".map-hint"));
-      tap(view().querySelector(".controls"));
-      expect(open()).toEqual(["Hyatt", "Hyatt", "Hyatt", false]);
+      navTo("map");
+      expect([state.tab, open(), el("sheetWrap").hidden]).toEqual(["map", ["Hyatt", "Hyatt", "Hyatt", false], true]);
     });
     it("closeStack() with none open does nothing", () => {
       block("Hilton").focus();
@@ -889,6 +1025,22 @@ describe("the stack: a venue lifted into its floors", () => {
       expect([el("mapPlate") === node, shown()[0] === stack, seen.some(m => stack.contains(m.target))]).toEqual([true, true, false]);     // the card in place, and nothing of the stack written
       expect(app.tickMap()).toBe(false);
       app.setOverride(NOW);
+    });
+    it("a tick that only moves a light says it wrote: one pick put for another on the same plate that day, every count and every word as it was", () => {
+      const lights = id => app.dayLights("Hyatt", SAT, new Set([id])).flatMap(row => row.lit.map(at => `${at.level}|${at.id}`)).sort();
+      const other = byId("s0347");                           // 4:00 PM in Centennial I: as IN_BALLROOM is, the reader's next, so the city's ring stays where it is
+      expect([other.hotel, other.level, other._cd, lights(other.id), lights(IN_BALLROOM)]).toEqual(["Hyatt", "ballroom", SAT, ["ballroom|Centennial I"], ["ballroom|Centennial II", "ballroom|Centennial III", "ballroom|Centennial IV"]]);
+      city([IN_BALLROOM]); lift("Hyatt");
+      const said = () => [words(el("mapVenue")), plates().map(p => [p.getAttribute("class"), p.getAttribute("aria-label")]), plates().map(p => words(label(p.dataset.plate)))];
+      const was = said();
+      expect(lit()).toEqual(lights(IN_BALLROOM));
+      handle.picks.set([other.id]);                          // with no draw: the next tick's to find
+      let ticked;
+      const seen = mutationsDuring(view(), () => { ticked = app.tickMap(); });
+      expect([ticked, lit(), said()]).toEqual([true, lights(other.id), was]);
+      expect(seen.length).toBe(lights(IN_BALLROOM).length + lights(other.id).length);
+      expect(seen.every(m => m.type === "attributes" && m.attributeName === "class" && m.target.hasAttribute("data-room"))).toBe(true);
+      expect(app.tickMap()).toBe(false);
     });
     it("a stack opened or closed with no draw is drawn at the next tick", () => {
       state.map.stack = "Hilton";

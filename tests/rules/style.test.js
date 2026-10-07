@@ -708,7 +708,7 @@ describe("src/styles.css", () => {
     });
     it("gold is the reader's own, on the stack as everywhere: a plate's edge where it holds a pick, a lit room, the star on a label and before a name on the card - and nothing else of the stack's", () => {
       expect(stack.filter(r => /--gold\b/.test(r.body)).map(r => r.selector)).toEqual([
-        ".plate.mine .plate-hull", ".plate-room.lit, .plate-open.lit", ".plate-label .pl-picks", ".plate-card.mine .nc-title::before, .pc-row.mine .pc-title::before"]);
+        ".plate.mine .plate-hull", ".plate-room.lit, .plate-open.place.lit", ".plate-label .pl-picks", ".plate-card.mine .nc-title::before, .pc-row.mine .pc-title::before"]);
       expect(stack.length).toBeGreaterThan(25);
     });
     it("the gold edge keeps a dashed plate's dashes: it sets the stroke's colour and width, and nothing of its pattern", () => {
@@ -728,11 +728,31 @@ describe("src/styles.css", () => {
       expect(body(".plate:focus")).toBe("outline: none;");
       expect(body(".plate:focus-visible .plate-hull")).toBe("stroke-width: 4;");
       expect(stack.filter(r => /outline/.test(r.body)).map(r => r.selector)).toEqual([".plate:focus"]);
+      expect(body(".plate.mine:focus-visible .plate-hull")).toBe("stroke-width: 5;");                 // on a gold edge thicker again: 2.5 to 4 is too small a step
+    });
+    it("what must win does by weight, whatever order the rules stand in: focus on a gold edge over the gold's own width, and a lit place over the tint a place has", () => {
+      /* A selector's weight, as the cascade counts it: ids, then classes, attributes and pseudo-classes, then types and pseudo-elements. */
+      const weight = selector => { const s = selector.replace(/::[\w-]+/g, " el"); return [(s.match(/#[\w-]+/g) || []).length, (s.match(/\.[\w-]+|\[[^\]]*\]|:[\w-]+/g) || []).length, (s.match(/(^|[\s>+~])[a-z][\w-]*/gi) || []).length]; };
+      const over = (a, b) => { const [x, y] = [weight(a), weight(b)]; const at = x.findIndex((v, i) => v !== y[i]); return at >= 0 && x[at] > y[at]; };
+      expect([weight(".plate.mine .plate-hull"), weight(".plate:focus-visible .plate-hull"), weight("#view-map .controls-sticky"), weight("main::after")]).toEqual([[0, 3, 0], [0, 3, 0], [1, 1, 0], [0, 0, 2]]);
+      expect(over(".plate.mine:focus-visible .plate-hull", ".plate.mine .plate-hull")).toBe(true);
+      expect(over(".plate-open.place.lit", ".plate-open.place")).toBe(true);
+      expect(over(".plate-room.lit", ".plate-room")).toBe(true);
+      const width = selector => Number(/stroke-width: ([\d.]+);/.exec(body(selector))[1]);
+      expect(width(".plate.mine:focus-visible .plate-hull")).toBeGreaterThanOrEqual(width(".plate.mine .plate-hull") * 2);
+      expect(body(".plate-open.place")).toMatch(/^fill: /);                                            // the tint a lit place has to beat
+      expect(rules.filter(r => /\.lit\b/.test(r.selector) && STACK.test(r.selector)).map(r => r.selector)).toEqual([".plate-room.lit, .plate-open.place.lit"]);
     });
     it("the slot under the map keeps one height while a stack is open, one rule, in rem where the card's words are - and no other rule sets the band's height", () => {
-      const slot = rules.filter(r => /\.map-under/.test(r.selector) && /(^|; |\b)(min-|max-)?height:/.test(r.body));
+      const slot = rules.filter(r => /\.map-under$/.test(r.selector) && /(^|; |\b)(min-|max-)?height:/.test(r.body));
       expect(slot.map(r => r.selector)).toEqual([".map-wrap[data-stack] .map-under"]);
       expect(slot[0].body).toBe("height: calc(10px + 2px + 12px + (.75rem * 1.3 + 3px) + 1.125rem * 1.2 + (4px + .9375rem * 1.3) + 8px + 2 * (14px + 1.8125rem * 1.3));");
+    });
+    it("on a screen too short for the map's floor and the slot, the slot brings the room under it along - the tab's foot and the nav's - out of the flow: main scrolls to it, and it takes none where the slot fits", () => {
+      expect(rules.filter(r => r.selector === ".map-wrap[data-stack] .map-under").map(r => r.body)).toContain("position: relative;");
+      expect(body(".map-wrap[data-stack] .map-under::after")).toBe('content: ""; position: absolute; left: 0; top: 100%; width: 1px; height: calc(12px + var(--nav-h) + 5px); pointer-events: none;');
+      expect(body(".view")).toBe("padding: 0 0 12px;");                                               // the foot
+      expect(body("main::after")).toBe('content: ""; display: block; height: calc(var(--nav-h) + 5px);');    // and the nav's room
     });
     it("the slot's sum is the card's own: its margin, border and padding, its three lines' sizes and line heights, and two rows", () => {
       const size = (selector, name = "font-size") => Number(new RegExp(`(?:^|; )${name}: (-?[\\d.]+)(?:rem|px)?;`).exec(body(selector))[1]);
@@ -750,6 +770,13 @@ describe("src/styles.css", () => {
     it("a plate's label is in the drawing's own units, as a block's name is: Larger text leaves the map alone", () => {
       expect(body(".plate-label")).toMatch(/(^|; )font-size: 11px;/);
       expect(stack.filter(r => /font-size: [\d.]+px/.test(r.body)).map(r => r.selector)).toEqual([".plate-label"]);
+    });
+    it("a label is left in a touch's way: it is in its plate's group, and its touch is its plate's - nothing of the stack's is taken out of the way but an inert plate, and what is drawn over a plate", () => {
+      expect(body(".plate-label")).not.toMatch(/pointer-events|cursor/);
+      expect(body(".plate-label.inert")).toBe("fill: var(--dim); font-weight: 600;");
+      expect(stack.filter(r => /pointer-events/.test(r.body)).map(r => [r.selector, /pointer-events: ([\w-]+);/.exec(r.body)[1]]))
+        .toEqual([[".plate.inert", "none"], [".plate-sel", "none"], [".plate-group", "none"], [".map-wrap[data-stack] .map-under::after", "none"]]);
+      expect(stack.filter(r => /labels/.test(r.selector))).toEqual([]);                              // no layer of labels apart from the plates
     });
     it("what a plate draws reads at 3:1 or more (#66): a lit room and the gold edge on a plate of every hue and on the ground, the selection, each plate's own edge and a dashed plate's, and an inert plate's outline and name", () => {
       const token = name => new RegExp(`--${name}: (#[0-9A-Fa-f]{6})`).exec(css)[1];

@@ -59,8 +59,6 @@ describe("rooms", () => {
   });
 });
 
-/* A place as words (DECISIONS #75), for a label: new tests, not rows of
-   tests/PORT-LEDGER.md. */
 /* The words a row says for a room under a floor already named - the
    building view's card (DECISIONS #95). New tests, not rows of
    tests/PORT-LEDGER.md. */
@@ -90,6 +88,8 @@ describe("a room's words, under its floor", () => {
   });
 });
 
+/* A place as words (DECISIONS #75), for a label: new tests, not rows of
+   tests/PORT-LEDGER.md. */
 describe("a place as words", () => {
   const shown = ev => { const holder = document.createElement("div"); holder.innerHTML = placeHTML(ev); return holder.textContent; };
 

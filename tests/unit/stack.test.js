@@ -81,6 +81,14 @@ describe("the stack's layout", () => {
       near(at.scale, 240 / 1000); near(at.strip, 0);
       for (const box of at.plates) expect(box.y1 - box.y0).toBeLessThanOrEqual(240 + 1e-9);
     });
+    it("and a deep, narrow outline in a narrow frame is held by the room's width before the 55%: no plate is wider than the room, and the strip is what the height leaves", () => {
+      const narrow = { x: 0, y: 0, w: 200, h: 400 }, deep = [[0, 0], [20, 0], [20, 100], [0, 100]];     // a room 176 by 340; at 55% of the frame its lean would take a plate to 269
+      const at = stackLayout(deep, 6, narrow);
+      near(at.scale, 176 / (20 + 100 * LEAN));
+      near(at.strip, (340 - 50 * at.scale) / 5);
+      expect(at.strip).toBeLessThan(STRIP);
+      for (const box of at.plates) { expect(box.x0).toBeGreaterThanOrEqual(12 - 1e-9); expect(box.x1).toBeLessThanOrEqual(188 + 1e-9); }
+    });
   });
 
   describe("the fit inside the frame", () => {

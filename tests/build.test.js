@@ -269,9 +269,9 @@ describe("vite build", () => {
 
   /* The level drawings, the third data module (DECISIONS #94), which dcYear()
      makes of a folder of files: what it holds, and the year it is taken
-     from. Nothing in the page imports it yet, so the plugin's own hooks are
-     called as Vite calls them, on data folders staged in the temp folder
-     and, in two tests, on the repository's own:
+     from. The cases are folders no built page could show, so the plugin's
+     own hooks are called as Vite calls them, on data folders staged in the
+     temp folder and, in two tests, on the repository's own:
      the repo's 2027 venues file under each year unless a test gives its
      own, a season file naming the year, and a drawings folder - its README,
      and each drawing under its file name - where a test gives one. The
