@@ -2235,7 +2235,7 @@ taken out by the sheet rewrites the query in lower case with one space
 between words, as a chip's x always has. Kind, second in #70's order, is
 now near the panel's foot, below the fold on a phone.
 
-### 72. A level has a storey and a short name — Standing (2026-10-02) — its `short` read by the row since PR #92 (#73); amended by #91
+### 72. A level has a storey and a short name — Standing (2026-10-02) — its `short` read by the row since PR #92 (#73); amended by #91; amended by #95
 **Decided:** Every level of the venues file (#45) gains two keys, required
 like every other, which nothing reads yet:
 - **`storey`**, written after `order`: the storey the level is on, a whole
@@ -3257,7 +3257,7 @@ pull request: the fix is the id in 2026's file too, or the default moved.
 
 ### 95. The stack: a venue lifted into its floors — Standing (2026-10-06)
 **Decided:** Step 10's second pull request (W38; PR #113;
-`docs/screens/contract.md`, section 6). Amends #75, #89.
+`docs/screens/contract.md`, section 6). Amends #72, #75, #89.
 - **What opens it:** a tap or Enter on the block of a venue with a building,
   or a tap on its gold pill; the park, and the crew's pill, keep the hotel
   sheet. Venue and plate are kept in memory, `state.map`, the tab left too.
