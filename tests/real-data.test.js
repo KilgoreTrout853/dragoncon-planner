@@ -1331,6 +1331,110 @@ describe("against the real schedule", () => {
       expect(tally(others, e => e.room)).toEqual({ "Mart Building 3, Floor 2": 463, "Mart Building 3, Floor 1": 382, "14th Floor": 12, "12th Floor": 8 });
     });
   });
+
+  /* The level (DECISIONS #96) on the real files: the 18 level views as they
+     stand in the Map's frame, in the Map's own units - each one's scale, how
+     many of its rooms are too small to see, what its rooms are called at the
+     fit - and that every room 2026's schedule reaches can be reached and
+     selected. The numbers are the committed files' and the design's: a level
+     drawn, a margin or the least label changed moves them, and the pull
+     request that does it says so here. New tests, not rows of
+     tests/PORT-LEDGER.md. */
+  describe("the level, on 2027's drawings and 2026's schedule", () => {
+    let drawn = null;
+    const frame = () => {
+      if (!drawn) { app.renderMap(); const [x, y, w, h] = document.querySelector("#view-map svg.map").getAttribute("viewBox").split(" ").map(Number); drawn = { x, y, w, h }; }
+      return drawn;
+    };
+    const views = () => app.BUILDINGS.flatMap(hotel => app.building(hotel).plates.filter(p => p.drawn).map(plate => ({ hotel, plate, fit: app.levelFit(plate, frame()), places: app.levelPlaces(plate) })));
+    const hundredth = v => Math.round(v * 100) / 100;
+
+    it("18 level views of the 20 drawings: the Hyatt's five drawn levels are three plates, two of them shared - 191 rooms and the Concourse", () => {
+      expect([DRAWINGS.length, views().length, views().filter(v => v.plate.levels.length > 1).map(v => v.plate.key)]).toEqual([20, 18, ["exhibit+tower-ll2", "ballroom+tower-ll1"]]);
+      const rooms = new Set(views().flatMap(v => v.plate.rooms));
+      expect([rooms.size, views().flatMap(v => v.places).filter(r => !rooms.has(r)).map(r => r.id)]).toEqual([191, ["Concourse"]]);
+    });
+    it("each view's scale, in the Map's units a foot, its places and how many are under 44 across at its fit: 178 of 192", () => {
+      expect(views().map(v => [app.hotelShort(v.hotel), v.plate.key, hundredth(v.fit.scale), v.places.length, v.places.filter(r => app.isSmall(r, v.fit.scale)).length])).toEqual([
+        ["Marriott", "international", 0.74, 13, 13], ["Marriott", "marquis", 0.53, 12, 11], ["Marriott", "lobby", 1.78, 6, 4], ["Marriott", "atrium", 0.7, 10, 8],
+        ["Hyatt", "acc", 0.95, 20, 20], ["Hyatt", "exhibit+tower-ll2", 0.54, 25, 25], ["Hyatt", "ballroom+tower-ll1", 0.54, 10, 10],
+        ["Hilton", "galleria", 0.78, 8, 8], ["Hilton", "l1", 0.42, 6, 6], ["Hilton", "l2", 0.56, 19, 19], ["Hilton", "l3", 0.63, 15, 15], ["Hilton", "l4", 1.54, 7, 7],
+        ["Courtland", "f1", 0.98, 8, 6], ["Courtland", "f2", 0.88, 3, 3], ["Courtland", "f3", 1.26, 6, 2],
+        ["Westin", "f6", 0.9, 10, 9], ["Westin", "f7", 0.95, 11, 10], ["Westin", "f8", 0.91, 3, 2]]);
+      const all = views().flatMap(v => v.places.map(r => app.isSmall(r, v.fit.scale)));
+      expect([all.length, all.filter(Boolean).length]).toEqual([192, 178]);
+      expect(frame()).toEqual({ x: -3, y: 111, w: 385, h: 305 });
+    });
+    it("what its rooms are called at the fit: of the 191, a full name at 11 or more for 20, a full name under 11 for 27 that have no short one, a short name for 94 and no label for 50", () => {
+      const said = v => {
+        const names = app.shortNames(v.plate), count = [0, 0, 0, 0];
+        for (const room of v.plate.rooms) { const label = app.roomLabel(room, names, v.fit.scale); count[!label ? 3 : label.short ? 2 : label.size >= app.FULL ? 0 : 1]++; }
+        return count;
+      };
+      expect(views().map(v => [v.plate.key, ...said(v)])).toEqual([
+        ["international", 0, 0, 13, 0], ["marquis", 0, 1, 6, 5], ["lobby", 6, 0, 0, 0], ["atrium", 4, 2, 3, 1],
+        ["acc", 2, 3, 0, 15], ["exhibit+tower-ll2", 0, 0, 15, 9], ["ballroom+tower-ll1", 0, 0, 9, 1],
+        ["galleria", 0, 0, 8, 0], ["l1", 0, 0, 0, 6], ["l2", 0, 7, 6, 6], ["l3", 0, 11, 0, 4], ["l4", 7, 0, 0, 0],
+        ["f1", 0, 1, 5, 2], ["f2", 1, 2, 0, 0], ["f3", 0, 0, 6, 0], ["f6", 0, 0, 9, 1], ["f7", 0, 0, 11, 0], ["f8", 0, 0, 3, 0]]);
+      expect(views().map(said).reduce((sum, c) => sum.map((n, i) => n + c[i]), [0, 0, 0, 0])).toEqual([20, 27, 94, 50]);
+      expect([app.FULL, app.LEAST]).toEqual([11, 8]);
+      /* And every label the level draws is one of these, with every open area's name that fits and every group's that is said: level.js says them all at once. */
+      const drawn = views().map(v => app.levelLabels(v.plate, v.fit.scale));
+      expect([drawn.reduce((n, l) => n + l.rooms.length, 0), drawn.reduce((n, l) => n + l.open.length, 0), drawn.reduce((n, l) => n + l.groups.length, 0), drawn.flatMap(l => l.landmarks).filter(l => l.name).length])
+        .toEqual([141, 18, 28, 5]);
+    });
+    it("every level stands inside the frame's margins, clear of the way back - 20, 20, 72 and 30 of the Map's units - and as large as they allow", () => {
+      const f = frame(), m = app.LEVEL_MARGIN;
+      expect(m).toEqual({ l: 20, r: 20, t: 72, b: 30 });
+      for (const v of views()) {
+        const box = app.bounds([...v.plate.rooms, ...v.plate.open].flatMap(app.corners).map(([x, y]) => [v.fit.tx + v.fit.scale * x, v.fit.ty + v.fit.scale * y]));
+        expect([box.x0 >= f.x + m.l - 1e-6, box.x1 <= f.x + f.w - m.r + 1e-6, box.y0 >= f.y + m.t - 1e-6, box.y1 <= f.y + f.h - m.b + 1e-6], `${v.hotel} ${v.plate.key}`).toEqual([true, true, true, true]);
+        expect(Math.min(Math.abs(box.w - (f.w - m.l - m.r)), Math.abs(box.h - (f.h - m.t - m.b))), `${v.hotel} ${v.plate.key}`).toBeLessThan(1e-6);
+      }
+    });
+    it("the zoom brings each of the 178 small places to 62 across, between 0.76 and 5.39 units a foot: the cap of 7 is never met on these drawings", () => {
+      const zooms = views().flatMap(v => v.places.filter(r => app.isSmall(r, v.fit.scale)).map(r => ({ r, v, z: app.zoomScale(r, v.fit.scale) })));
+      expect([zooms.length, hundredth(Math.min(...zooms.map(x => x.z))), hundredth(Math.max(...zooms.map(x => x.z))), zooms.filter(x => x.z >= app.ZOOM_CAP).length]).toEqual([178, 0.76, 5.39, 0]);
+      for (const { r, v, z } of zooms) expect([Math.min(r.w, r.h) * z, z > v.fit.scale], `${v.plate.key} ${r.id}`).toEqual([expect.closeTo(62, 6), true]);
+    });
+    it("a place's own middle is its own: no room or identified open area of a level is painted over another's, so a tap on one selects it", () => {
+      for (const v of views()) for (const r of v.places) expect(app.nearest(v.places, [r.cx, r.cy], 0), `${v.hotel} ${v.plate.key} ${r.id}`).toBe(r);
+    });
+    it("every room 2026's events reach - 2,123 of them at room depth, in 151 rooms - can be reached and selected: an arrival opens its level with the room selected, a button that says so", () => {
+      const first = new Map();
+      let at = 0;
+      for (const ev of handle.events) {
+        const d = app.depthOf(ev);
+        if (d.depth !== "room") continue;
+        at++;
+        for (const id of d.rooms) if (!first.has(`${ev.hotel}|${d.level}|${id}`)) first.set(`${ev.hotel}|${d.level}|${id}`, ev);
+      }
+      expect([at, first.size]).toEqual([2123, 151]);
+      const tab = state.tab;
+      for (const [key, ev] of first) {
+        const [hotel, level, id] = key.split("|");
+        app.showOnMap(ev.id);
+        const shape = [...document.querySelectorAll("#view-map .map-stack:not([hidden]) .plate.flat [data-room]")].find(n => n.dataset.level === level && n.dataset.room === id);
+        expect([state.map.stack, state.map.level, state.map.rooms.some(r => r.level === level && r.id === id), !!shape && shape.getAttribute("role"), !!shape && shape.getAttribute("aria-pressed")], key)
+          .toEqual([hotel, app.depthOf(ev).plate, true, "button", "true"]);
+      }
+      Object.assign(state.map, { focus: null, stack: null, plate: null, level: null, rooms: null, zoom: null });
+      state.tab = tab; handle.render();
+    });
+    it("an arrival: 867 of the 2,123 are in one room alone, 843 of them small, where the camera goes to it; of the 1,256 in several, 358 name exactly a composite's rooms and are called by it, and none of them zooms", () => {
+      const tally = { one: 0, small: 0, many: 0, composite: 0 };
+      for (const ev of handle.events) {
+        const d = app.depthOf(ev);
+        if (d.depth !== "room") continue;
+        const v = views().find(x => x.hotel === ev.hotel && x.plate.key === d.plate), rooms = d.rooms.map(id => ({ level: d.level, id }));
+        if (rooms.length === 1) { tally.one++; if (app.isSmall(v.places.find(r => r.level === d.level && r.id === rooms[0].id), v.fit.scale)) tally.small++; continue; }
+        tally.many++;
+        if (app.namedTogether(rooms, v.plate) !== d.rooms.join(" + ")) tally.composite++;
+      }
+      expect(tally).toEqual({ one: 867, small: 843, many: 1256, composite: 358 });
+      expect(handle.events.filter(e => app.depthOf(e).depth === "level")).toHaveLength(0);
+    });
+  });
 });
 
 /* In place of a pick (W2; DECISIONS #90) on the real schedule, by a boot of

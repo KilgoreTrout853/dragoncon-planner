@@ -86,10 +86,10 @@ function mapFocus() {
    focus, the tab and how deep the Map opens, and does nothing for an event
    the Map cannot show. As deep as the event's place goes (#95, #96;
    building.js depthOf()): a room or a level is its level, open, with the
-   rooms the drawing has of it selected - none, where it has none - and the
-   camera on a small room that stands alone; a floor is its venue's stack
-   with its plate selected; the venue alone, and the park, is the city map,
-   the focus's ring on its block. A caller with a sheet open closes it
+   rooms the drawing has of it selected - none, where it has none - and for
+   an event in one room alone, a small one, the camera on it; a floor is its
+   venue's stack with its plate selected; the venue alone, and the park, is
+   the city map, the focus's ring on its block. A caller with a sheet open closes it
    first: the close's own redraw is of the tab underneath, and would end a
    focus set before it. */
 function showOnMap(id) {
@@ -98,7 +98,7 @@ function showOnMap(id) {
   const at = depthOf(ev), flat = at.depth === "room" || at.depth === "level";
   const rooms = flat && at.rooms.length ? at.rooms.map(room => ({level: at.level, id: room})) : null;
   Object.assign(state.map, {focus: ev.id, stack: at.plate ? ev.hotel : null, plate: (!flat && at.plate) || null, level: flat ? at.plate : null, rooms, zoom: null});
-  if (rooms && rooms.length === 1) zoomIn(ev.hotel, levelPlate(ev.hotel), rooms[0], false);
+  if (at.depth === "room" && rooms.length === 1) zoomIn(ev.hotel, levelPlate(ev.hotel), rooms[0], false);
   state.tab = "map";
   requestRender();
   pageScrollTo(0);
@@ -461,8 +461,11 @@ function streetsSVG(plate) {
     W: `transform="translate(${x + 13} ${mid}) rotate(-90)"`, E: `transform="translate(${x + w - 13} ${mid}) rotate(90)"`};
   return plate.streets.filter(street => at[street.side]).map(street => `<text class="map-street-label level-street" data-side="${street.side}" ${at[street.side]}>${esc(street.name)}</text>`).join("");
 }
-/* What a room's button says: its name, what is happening there on the
-   Map's day and the reader's picks among it. */
+/* What makes a room a button, while its level is open: its role, its place
+   in the tab order, its name and whether it is selected. And what its name
+   says: the room, what is happening there on the Map's day and the reader's
+   picks among it. */
+const ROOM_SAID = ["role", "tabindex", "aria-label", "aria-pressed"];
 function roomSaid(hotel, place, day) {
   const here = roomEvents(hotel, place.level, place.id).filter(({ev}) => ev._cd === day && happening(ev)), mine = here.filter(({ev}) => picks.has(ev.id)).length;
   return `${place.id}: ${here.length ? plural(here.length, "event") : "no events"}, ${mine ? plural(mine, "pick") : "no picks"} on ${DAY_LONG[day] || day}`;
@@ -506,10 +509,8 @@ function drawStack(view, open, selected, flat, day) {
     for (const shape of group.querySelectorAll("[data-room]")) {
       const place = {level: shape.dataset.level, id: shape.dataset.room}, on = !!lit.get(place.level) && lit.get(place.level).has(place.id), button = inFlat(place.level);
       if (shape.classList.contains("lit") !== on) { shape.classList.toggle("lit", on); wrote = true; }
-      set(shape, "role", button ? "button" : null);
-      set(shape, "tabindex", button ? "0" : null);
-      set(shape, "aria-label", button ? roomSaid(open, place, day) : null);
-      set(shape, "aria-pressed", button ? String(chosen.some(room => room.level === place.level && room.id === place.id)) : null);
+      const said = button ? ["button", "0", roomSaid(open, place, day), String(chosen.some(room => room.level === place.level && room.id === place.id))] : [];
+      ROOM_SAID.forEach((name, i) => set(shape, name, button ? said[i] : null));
     }
     set(group, "data-level", flat ? flat.key : null);
     set(group, "clip-path", flat ? `url(#${MAP_CLIP})` : null);
@@ -543,14 +544,18 @@ function drawStack(view, open, selected, flat, day) {
     if (g === group) continue;
     /* A group put away keeps no selection - nothing in the page says a plate
        is pressed while none can be - and its plates leave the tab order:
-       WebKit walks Tab through a button of the drawing it does not draw. So
-       do the rooms of a level it was put away with. */
-    for (const plate of g.querySelectorAll('.plate.selected, .plate[tabindex="0"]')) {
-      set(plate, "class", plate.getAttribute("class").replace(" selected", ""));
+       WebKit walks Tab through a button of the drawing it does not draw. And
+       it keeps no level: a group put away with one open - an arrival went
+       elsewhere - has no plate flat and no room a button. Its camera and its
+       words are the next draw's to write, when its venue is opened again. */
+    for (const plate of g.querySelectorAll('.plate.selected, .plate.flat, .plate[tabindex="0"]')) {
+      set(plate, "class", plate.getAttribute("class").replace(/ (selected|flat)/g, ""));
+      set(plate, "role", "button");
       set(plate, "aria-pressed", "false");
       set(plate, "tabindex", "-1");
     }
-    for (const room of g.querySelectorAll('[data-room][tabindex="0"]')) set(room, "tabindex", "-1");
+    for (const room of g.querySelectorAll("[data-room][role]")) for (const name of ROOM_SAID) set(room, name, null);
+    set(g, "data-level", null);
   }
   set(svg, "data-stack", open);
   set(svg, "data-level", flat ? flat.key : null);

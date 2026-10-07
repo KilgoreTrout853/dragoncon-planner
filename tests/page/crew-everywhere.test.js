@@ -767,7 +767,7 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
     document.querySelector('#view-map [data-chip="map-day"][data-value="2026-09-05"]').click();
     cityMap();
   });
-  it("the crew is on the venue's line and nowhere on the plates: no plate edged, no room lit, no label starred, no button and no card counting a crewmate's pick", () => {
+  it("the crew is on the venue's line and nowhere on the plates, nor in a level: no plate edged, no room lit, no label starred, no button and no card counting a crewmate's pick", () => {
     blockOf("Hyatt").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     const stack = document.querySelector("#view-map .map-stack:not([hidden])"), plates = [...stack.querySelectorAll(".plate")];
     expect([s.app.byId.get("s0376").level, s.app.byId.get("s0263").level, s.app.byId.get("s0228").level]).toEqual(["ballroom", "exhibit", "acc"]);   // Bo's two and Cy's one, a plate each
@@ -777,6 +777,11 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
     plates[1].querySelector(".plate-hull").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect([el("mapPlate").className, words(el("mapPlate").querySelector(".nc-when")), el("mapPlate").querySelectorAll(".mine").length]).toEqual(["next-card plate-card", "Saturday · 9 events", 0]);
     expect(words(el("mapPlate"))).not.toMatch(/crew/);
+    /* The tap opened that plate's level (DECISIONS #96), where gold is the reader's own too: Bo's pick is in Grand Hall C. */
+    const rooms = [...stack.querySelectorAll(".plate.flat [data-room]")], hall = rooms.find(r => r.dataset.room === "Grand Hall C");
+    expect([s.handle.state.map.level, rooms.length > 0, rooms.every(r => / no picks on Saturday$/.test(r.getAttribute("aria-label"))), stack.querySelectorAll(".lit").length]).toEqual(["exhibit+tower-ll2", true, true, 0]);
+    hall.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect([el("mapRoom").className, words(el("mapRoom").querySelector(".nc-when")), el("mapRoom").querySelectorAll(".mine").length, /crew|Bo|Cy/.test(words(el("mapRoom")))]).toEqual(["next-card plate-card room-card", "Saturday · 5 events", 0, false]);
     cityMap();
   });
   it("a crew's change pulled writes the line in place: the same button, keyboard focus kept on it", async () => {
