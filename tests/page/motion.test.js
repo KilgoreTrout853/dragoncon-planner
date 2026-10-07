@@ -45,8 +45,10 @@ describe("the motion between the Map's views", () => {
   const flush = () => new Promise(done => setTimeout(done, 0));
 
   /* The stand-in: every animation asked for, in order. One is "held" once
-     paused, "running" once played or given a start time, and "cancelled" or
-     "finished" at its end - when its promise settles, as the real one's. */
+     paused, "running" once played or given a start time - whatever it was
+     before, as the real one is: an animation that is over plays again when
+     it is told to - and "cancelled" or "finished" at its end, when its
+     promise settles. */
   const made = [];
   let frames = [];
   function standIn() {
@@ -57,8 +59,8 @@ describe("the motion between the Map's views", () => {
       const anim = {
         el: this, keyframes, options, id: options.id, state: "running", started: undefined, finished, was: null,
         pause() { if (this.state === "running") this.state = "held"; },
-        play() { if (this.state === "held") { this.state = "running"; this.started = "played"; } },
-        set startTime(at) { if (this.state === "held") { this.state = "running"; this.started = at; } },
+        play() { this.state = "running"; this.started = "played"; },
+        set startTime(at) { this.state = "running"; this.started = at; },
         cancel() { if (this.state === "held" || this.state === "running") { this.state = "cancelled"; this.was = JSON.stringify(state.map); settle.reject(new Error("cancelled")); } },
         finish() { if (this.state === "held" || this.state === "running") { this.state = "finished"; settle.resolve(); } },
       };
@@ -587,11 +589,17 @@ describe("the motion between the Map's views", () => {
       expect(set.every(anim => JSON.parse(anim.was).stack === "Hyatt")).toBe(true);      // finished while the stack was still the view
       expect(span(take())).toBe(409.5);
     });
-    it("Enter on the focused control mid-set acts, and Escape steps back: a key is never spent", async () => {
+    it("Enter on the focused control mid-set acts, and Escape steps back: a key is never spent, and the set is finished before it acts", async () => {
       lift("Hyatt");
       let set = take();
       plate("acc").focus();
       expect([press(plate("acc"), "Enter"), state.map.level, set.every(anim => anim.state === "cancelled"), span(take())]).toEqual([true, "acc", true, 550]);
+      expect(set.every(anim => JSON.parse(anim.was).level === null)).toBe(true);        // finished while the stack was still the view
+      /* and a key whose answer plays no set finishes the one that is playing all the same: Enter on a floor with no drawing */
+      city(); lift("Westin");
+      set = take();
+      plate("f12").focus();
+      expect([press(plate("f12"), "Enter"), state.map.plate, set.every(anim => anim.state === "cancelled"), take().length]).toEqual([true, "f12", true, 0]);
       await stackOf("Hyatt");
       drop(EXHIBIT);
       set = take();
@@ -673,16 +681,14 @@ describe("the motion between the Map's views", () => {
       await finish(set);
       expect([counts(), picture() === want]).toEqual([[0, 0, 0], true]);
     });
-    it("a level opened again before the set has ended keeps its own words: the set that held the old ones takes none of them out", async () => {
-      await open(); tap(back());
+    it("a level opened again while its way back still plays keeps its own words: the set that held the old ones, finished then, takes none of them out", async () => {
+      await levelOf("Hyatt", EXHIBIT, [IN_EXHIBIT]);
+      tap(back());
       const set = take();
-      tap(back());                                               // not the drawing's: it finishes the set, then goes back to the city
-      await still();
-      lift(GRAND); await still();
-      drop(F1);
-      const now = laid().querySelector(".level-labels").childElementCount;
-      await finish(set);                                         // the old set, long over: nothing more
-      expect([now > 0, laid().querySelector(".level-labels").childElementCount]).toEqual([true, now]);
+      expect(plate(EXHIBIT).querySelector(".level-labels").childElementCount).toBeGreaterThan(0);        // held
+      app.showOnMap(IN_EXHIBIT);                                 // an arrival: no tap of the Map's finished the set first
+      expect([state.map.level, set.every(anim => anim.state === "cancelled")]).toEqual([EXHIBIT, true]);
+      expect([laid().querySelector(".level-labels").childElementCount > 0, laid().querySelector(".level-sel").childElementCount]).toEqual([true, 1]);
     });
     it("a set ended from outside - its animations cancelled, not by a tap - is over all the same: it holds nothing, and the next tap on the drawing acts", async () => {
       await open(); tap(back());
