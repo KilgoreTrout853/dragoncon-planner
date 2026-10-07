@@ -157,8 +157,17 @@ async function barlow(page) {
   for (const weight of WEIGHTS) expect(got[weight], `Barlow ${weight} loaded, and is what is measured`).toEqual({ faces: ["loaded"], differs: true });
 }
 
-/* Two frames: what a draw queued for the next one has run. */
-const settled = page => page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+/* Two frames: what a draw queued for the next one has run. And a move of
+   the Map's that is playing (DECISIONS #97) is finished first, through the
+   Web Animations API alone - the app has no hook for a test: its set ends
+   as it ends in its own time, at once, so what is measured after is the
+   view a reader is left with. A set is told by its animations' id.
+   tests/browser/motion.spec.js plays the moves in real time. */
+const MOTION = "map-motion";
+const settled = page => page.evaluate(id => {
+  for (const anim of document.getAnimations()) if (anim.id === id) anim.finish();
+  return new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)));
+}, MOTION);
 
 /* The page, at a simulated moment - null for the real clock - once the
    schedule is in and Barlow is the face. hash: what follows the address,
@@ -316,5 +325,5 @@ function chipArea() {
 
 export {
   ROOT, SEASON, PORT, ORIGIN, BACKEND_PORT, BACKEND_DIR, WITH_BACKEND, BACKEND, SIGNED_IN, ANONYMOUS, ENGINES, SIZES, TABS, CLOCKS, READERS,
-  seed, test, expect, open, settled, tab, check, answers, chipArea,
+  MOTION, seed, test, expect, open, settled, tab, check, answers, chipArea,
 };

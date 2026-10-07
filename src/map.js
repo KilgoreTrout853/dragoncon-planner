@@ -2,7 +2,8 @@ import { esc, fmtMins, fmtRange, fmtShort, minutesBetween } from "./util.js";
 import { hasBackend } from "./backend.js";
 import { crewmatesByEvent } from "./crews.js";
 import { state } from "./state.js";
-import { blockOutline, PUSH, SKEW, SQUASH, stackLayout } from "./stack.js";
+import { blockOutline, bounds, PUSH, SKEW, SQUASH, stackLayout } from "./stack.js";
+import { keyframes, spanOf, timeline } from "./motion.js";
 import { cameraOn, isSmall, LEVEL_MARGIN, levelFit, levelLabels, levelPlaces, namedTogether, nearest, REACH, zoomScale } from "./level.js";
 import { CON_DAYS, conDayKey, conEnded, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
 import { hotelPhrase, hotelShort, hotelVar, levelShort, placeHTML, placeShort, roomWords } from "./venues.js";
@@ -91,10 +92,17 @@ function mapFocus() {
    venue's stack with its plate selected; the venue alone, and the park, is
    the city map, the focus's ring on its block. A caller with a sheet open
    closes it first: the close's own redraw is of the tab underneath, and
-   would end a focus set before it. */
+   would end a focus set before it.
+   An arrival at a level is a move (#97). Where the Map last showed that
+   level it is the zoom between the two cameras, and nothing where the
+   camera does not move. Else it is one set from the venue's stack as it
+   would stand: the drop-in to the level's fit, as a tap on its plate plays
+   it, and for one small room the zoom to it after, a second beat. An
+   arrival at a floor or at a venue is its end state, with no set. */
 function showOnMap(id) {
   const ev = byId.get(id);
   if (!onTheMap(ev)) return;
+  const shown = state.map.stack === ev.hotel ? levelPlate(ev.hotel) : null, before = shown ? levelCamera(ev.hotel, shown) : null;
   const at = depthOf(ev), flat = at.depth === "room" || at.depth === "level";
   const rooms = flat && at.rooms.length ? at.rooms.map(room => ({level: at.level, id: room})) : null;
   Object.assign(state.map, {focus: ev.id, stack: at.plate ? ev.hotel : null, plate: (!flat && at.plate) || null, level: flat ? at.plate : null, rooms, zoom: null});
@@ -104,6 +112,11 @@ function showOnMap(id) {
   pageScrollTo(0);
   const card = document.getElementById("mapNext");
   if (card) card.focus({preventScroll: true});
+  const laid = levelPlate(ev.hotel);
+  if (!laid) return;
+  if (shown && shown.key === laid.key) { playZoom(ev.hotel, laid, before); return; }
+  const fit = camSaid(fitOf(ev.hotel, laid)), cam = camSaid(levelCamera(ev.hotel, laid));
+  play("arrive", {...saidOfDrop(ev.hotel, laid, fitOf(ev.hotel, laid)), zoom: cam === fit ? null : [fit, cam]}, {hotel: ev.hotel, key: laid.key});
 }
 
 /* The reader's picks at each hotel that day: those that are happening
@@ -288,8 +301,8 @@ function mapBaseSVG(label) {
    in memory alone: `stack`, the venue whose stack is open, and `plate`, the
    plate selected in it, each null for none. A reload shows the city map;
    leaving the Map tab keeps both, though the focus ends there (#75), and so
-   does a new moment on the clock. There is no motion here: a view is its end
-   state, and the pull request that animates moves between them.
+   does a new moment on the clock. A view is its end state, which the draw
+   writes; the moves between views are played over it (the motion, below).
 
    Three kinds of plate (building.js): drawn - its rooms, its open areas and
    its ballrooms' outlines on it; a floor, which has no drawing - dashed and
@@ -325,8 +338,8 @@ function laidOut(hotel) {
 /* The three transforms a plate stands by, as words: the camera, the tilt
    about the outline's centre and a plate's lift - each with the level's own
    beside it (#96), flat and unlifted, written as the same list of functions
-   with the values that undo it, so that the pull request that animates can
-   move from one to the other part by part. */
+   with the values that undo it, so that a move goes from one to the other
+   part by part (#97): a set's first and last values are these words. */
 const camSaid = cam => `translate(${places(cam.tx, 3)} ${places(cam.ty, 3)}) scale(${places(cam.scale, 5)})`;
 const tiltSaid = ([cx, cy], flat) => `translate(${places(cx, 3)} ${places(cy, 3)}) skewX(${flat ? 0 : -SKEW}) scale(1 ${flat ? 1 : SQUASH}) translate(${places(-cx, 3)} ${places(-cy, 3)})`;
 const liftSaid = (at, j, flat) => (j ? `translate(0 ${flat ? 0 : places(-j * at.gap, 3)})` : null);
@@ -348,7 +361,14 @@ const rectSVG = (r, cls, more = "") => `<rect class="${cls}" x="${places(r.cx - 
    edge, the selection - is the draw's. `data-kinds` says the plates' kinds
    as built, so a draw under a schedule that changed which are inert builds
    it again. After the camera, in the frame's own units, an empty group for
-   an open level's street names, where the venue has a drawing. */
+   an open level's street names, where the venue has a drawing.
+   And last in the camera, after the plates, the block's face (#97): the
+   venue's block as the Map draws it - its rectangle and its name - in the
+   outline's units, where blockCam() stands it exactly on the block, tilted
+   as a plate is. The lift starts its plates under it, so the block seems to
+   lift, and its way back ends on it. It is not shown at any end state (the
+   stylesheet's): a set's keyframes alone show it. Hidden from a screen
+   reader and taking no pointer, by its own attributes. */
 function stackSVG(hotel) {
   const made = building(hotel), at = laidOut(hotel), block = MAP_HOTELS[hotel], shape = rectSVG;
   const outline = cls => (made.hull ? `<polygon class="${cls}" points="${at.points.map(p => `${places(p[0], 1)},${places(p[1], 1)}`).join(" ")}"/>`
@@ -371,13 +391,29 @@ function stackSVG(hotel) {
       + (p.drawn ? '<g class="level-sel"></g><g class="level-labels" aria-hidden="true"></g>' : "");
     return `<g class="plate ${kindOf(p)}" data-plate="${esc(p.key)}"${p.inert ? "" : ' role="button" tabindex="0"'}${j ? ` transform="${liftSaid(at, j, false)}"` : ""}><g class="plate-tilt" transform="${tiltSaid(at.centre, false)}">${body}</g>${label(p, j)}</g>`;
   }).join("");
-  return `<g class="map-stack" data-hotel="${esc(hotel)}" data-kinds="${made.plates.map(kindOf).join(" ")}" style="--h:var(${hotelVar(hotel)})"><g class="stack-cam" transform="${camSaid(at)}">${plates}</g>${made.hull ? '<g class="level-streets" aria-hidden="true"></g>' : ""}</g>`;
+  const fit = blockCam(hotel).scale, [cx, cy] = at.centre, name = hotelShort(hotel).toUpperCase();
+  const face = `<g class="stack-face" aria-hidden="true" pointer-events="none" transform="${tiltSaid(at.centre, false)}"><rect x="${places(cx - block.w / fit / 2, 3)}" y="${places(cy - block.h / fit / 2, 3)}" width="${places(block.w / fit, 3)}" height="${places(block.h / fit, 3)}" rx="${places(10 / fit, 3)}"/><text${name.length > 8 ? ' class="long"' : ""} x="${places(cx, 3)}" y="${places(cy, 3)}" font-size="${places((name.length > 8 ? 9.5 : 11) / fit, 3)}">${esc(name)}</text></g>`;
+  return `<g class="map-stack" data-hotel="${esc(hotel)}" data-kinds="${made.plates.map(kindOf).join(" ")}" style="--h:var(${hotelVar(hotel)})"><g class="stack-cam" transform="${camSaid(at)}">${plates}${face}</g>${made.hull ? '<g class="level-streets" aria-hidden="true"></g>' : ""}</g>`;
+}
+/* The camera that stands a venue's outline in its block's place, as large
+   as the block holds, their middles together: where the lift starts its
+   plates, and where its way back ends them. */
+function blockCam(hotel) {
+  const at = laidOut(hotel), block = MAP_HOTELS[hotel], box = bounds(at.points), scale = Math.min(block.w / box.w, block.h / box.h);
+  return {scale, tx: block.x + block.w / 2 - scale * at.centre[0], ty: block.y + block.h / 2 - scale * at.centre[1]};
 }
 /* Where the city map stands behind a venue's stack: pushed in toward the
    venue, its block's centre where the ground plate's centre stands. */
 function pushedIn(hotel) {
   const at = laidOut(hotel), block = MAP_HOTELS[hotel];
   return `translate(${places(at.ground[0], 3)} ${places(at.ground[1], 3)}) scale(${PUSH}) translate(${-(block.x + block.w / 2)} ${-(block.y + block.h / 2)})`;
+}
+/* And where it stands with no stack open, in the same words: the draw
+   writes no transform then, and this is that nothing as pushedIn() would
+   say it, for the lift's first value and its way back's last. */
+function atRest(hotel) {
+  const block = MAP_HOTELS[hotel], x = block.x + block.w / 2, y = block.y + block.h / 2;
+  return `translate(${x} ${y}) scale(1) translate(${-x} ${-y})`;
 }
 /* ---- The level (DECISIONS #96) ------------------------------------- */
 /* A drawn plate of an open stack, laid flat and seen from above, in the
@@ -391,8 +427,8 @@ function pushedIn(hotel) {
    the camera is on, {level, id, scale}, the scale kept because a room tapped
    while zoomed comes to the middle at the same zoom or closer. Each null for
    none, and with a level open no plate is selected. A reload shows the city
-   map; leaving the tab, a day chip and a sheet keep all three. There is no
-   motion here: a view is its end state.
+   map; leaving the tab, a day chip and a sheet keep all three. A view is its
+   end state; the moves to it and from it are the motion's, below.
 
    Its rooms and identified open areas are buttons while it is open, and in
    no tab order otherwise; the plate itself is then no button, since none
@@ -661,18 +697,169 @@ function stackCardHTML(hotel, selected, flat, day, cs, counts, crew) {
   return selected ? plateCardHTML(hotel, selected, day, cs.now) : venueLineHTML(hotel, day, counts, crew);
 }
 
+/* ---- The motion (DECISIONS #97) ------------------------------------- */
+/* The moves between the Map's views: the lift, city to stack; the drop-in,
+   stack to level; the zoom, in a level; each way back; and the arrival at a
+   level. A handler below changes `state.map` and draws - the draw writes
+   the end state, as it always did - and then says which move. A set of
+   animations plays from the view before to this one over the same nodes
+   (motion.js lists it), and when the set ends nothing of it is left: no
+   animation fills and none is kept, so the page is as the draw left it.
+   Only transform, opacity and visibility are animated, and no layout: the
+   frame and the slot have their end state's boxes from the first frame.
+   Keyboard focus, every name and the tab order are the end state's at
+   once. A draw that comes while a set plays - the minute's tick - writes in
+   place as it would, and the set plays on.
+   This is the one place the app calls animate(). No set starts under
+   prefers-reduced-motion: reduce, read at each move, nor where an element
+   has no animate(): the page is then its end states alone (#66).
+   `moving` is the running set, null for none: its animations, and the
+   groups it holds words in for the way - a closing level's names, its
+   selected rooms' outlines and its street names, which the draw had
+   emptied and the set keeps in the page while they fade. That is the one
+   thing a set writes, and it takes it out again as it ends. */
+const MOTION = "map-motion";     // the id of every animation of a set: the next ring's pulse and the sheet's own are told from it
+let moving = null;
+const still = () => !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+/* What a set held in the page, emptied - but where a draw since has opened
+   that level again, and the words there are the draw's own. */
+function letGo(set) {
+  for (const el of set.kept) {
+    const plate = el.closest(".plate"), open = plate ? plate.classList.contains("flat") : el.closest(".map-stack").hasAttribute("data-level");
+    if (!open && el.firstChild) el.innerHTML = "";
+  }
+}
+/* A set over, in its own time or ended from outside - a test's finish(),
+   a browser's cancel: it is the running set no longer, and holds nothing. */
+function ended(set) {
+  if (moving !== set) return;
+  moving = null;
+  letGo(set);
+}
+/* settleMotion(): the running set finished at once, the page at its end
+   state, and whether there was one. dispatch.js asks before any tap or key
+   the Map handles: a tap on the drawing that finished a set is spent, since
+   what it hit was on its way; any other tap, and a key, then acts. A set
+   held at its first frame is a running set. */
+function settleMotion() {
+  const set = moving;
+  if (!set) return false;
+  moving = null;
+  for (const anim of set.anims) anim.cancel();
+  letGo(set);
+  return true;
+}
+/* The nodes a step is of (motion.js names them): the city's, the open
+   venue's group's, and of its plates the one a level's move is of, by its
+   key. */
+function nodesOf(svg, what, hotel, key) {
+  const group = [...svg.querySelectorAll(".map-stack")].find(g => g.dataset.hotel === hotel), plates = [...group.querySelectorAll(".plate")];
+  const flat = plates.find(p => p.dataset.plate === key), blocks = [...svg.querySelectorAll(".map-hotel")], one = selector => [svg.querySelector(selector)];
+  if (what.startsWith("plate:")) return [plates[Number(what.slice(6))]];
+  const found = {
+    frame: () => [svg], city: () => one(".map-city"), "city-cam": () => one(".map-cam"), streets: () => one(".map-streets"),
+    pills: () => one(".map-layer-pills"), rings: () => one(".map-layer-rings"), focus: () => one(".map-layer-focus"),
+    blocks: () => blocks.filter(b => b.dataset.hotel !== hotel), block: () => blocks.filter(b => b.dataset.hotel === hotel),
+    stack: () => [group], "stack-cam": () => [group.querySelector(".stack-cam")], "plate-labels": () => [...group.querySelectorAll(".plate-label")],
+    tilts: () => plates.map(p => p.querySelector(".plate-tilt")), face: () => [group.querySelector(".stack-face")], "face-name": () => [group.querySelector(".stack-face text")],
+    plate: () => [flat], tilt: () => [flat.querySelector(".plate-tilt")], others: () => plates.filter(p => p !== flat),
+    names: () => [flat.querySelector(".level-labels")], sel: () => [flat.querySelector(".level-sel")], "level-streets": () => [group.querySelector(".level-streets")],
+  }[what];
+  return found().filter(Boolean);
+}
+/* play(): a move's set, started over the page as the draw left it. The
+   running set is finished first. Each node gets one animation a property,
+   its steps as keyframes over the set's whole span (motion.js keyframes()),
+   with no fill. `kept` is what the set holds in the page for the way,
+   [group, markup] each, put back here: so under Reduce Motion, which starts
+   no set, nothing is put back.
+   The set is made paused, at its first frame, and started in the next
+   animation frame, at that frame's own time: the first frame painted is the
+   set's first, whatever the draw before it cost, and the end state is never
+   painted before it. A set held so is a running set. */
+function play(move, said, {hotel, key = null, kept = []}) {
+  settleMotion();
+  const svg = document.querySelector("#view-map svg.map");
+  if (still() || typeof svg.animate !== "function") return;
+  for (const [el, html] of kept) el.innerHTML = html;
+  const list = timeline(move, said), span = spanOf(list), tracks = new Map();
+  for (const s of list) for (const el of nodesOf(svg, s.what, hotel, key)) {
+    if (!tracks.has(el)) tracks.set(el, new Map());
+    tracks.get(el).set(s.property, [...(tracks.get(el).get(s.property) || []), s]);
+  }
+  const set = {anims: [], kept: kept.map(([el]) => el)};
+  for (const [el, mine] of tracks) for (const steps of mine.values()) {
+    const anim = el.animate(keyframes(steps, span), {duration: span, id: MOTION});
+    anim.pause();
+    set.anims.push(anim);
+  }
+  if (!set.anims.length) { letGo(set); return; }
+  moving = set;
+  set.anims[0].finished.then(() => ended(set), () => ended(set));
+  requestAnimationFrame(() => {
+    if (moving !== set) return;
+    const at = document.timeline ? document.timeline.currentTime : null;
+    for (const anim of set.anims) { if (at === null) anim.play(); else anim.startTime = at; }
+  });
+}
+/* The drawing's own box on the screen - the ground's rectangle, which is
+   the frame as drawn - as its middle and its width; null where the page
+   lays nothing out. */
+function frameBox() {
+  const ground = document.querySelector("#view-map svg.map .map-ground"), box = ground ? ground.getBoundingClientRect() : null;
+  return box && box.width ? {x: box.left + box.width / 2, y: box.top + box.height / 2, w: box.width} : null;
+}
+/* The frame's step in a lift and its way back: the slot under the map is
+   another height under a stack (#95), so the drawing's box changes at the
+   tap, at once. The step is a transform of the drawing, about its middle,
+   from the box it had before the draw - `was` - to the one it has: [from,
+   to], in a draw's words, or null where the box did not change. */
+function frameSaid(was) {
+  const is = frameBox();
+  if (!was || !is) return null;
+  const from = `translate(${places(was.x - is.x, 2)} ${places(was.y - is.y, 2)}) scale(${places(was.w / is.w, 5)})`, to = "translate(0 0) scale(1)";
+  return from === to ? null : [from, to];
+}
+/* What the two draws say of a move, for motion.js's lists, each transform
+   in the draw's own words. Of the lift and its way back: the city's camera
+   at rest and pushed in; the venue's at its block and at its stack; a
+   plate's tilt, flat and tilted; each plate's lift; and the frame's step. */
+function saidOfLift(hotel, was) {
+  const at = laidOut(hotel), count = building(hotel).plates.length, lifts = {};
+  for (let j = 1; j < count; j++) lifts[j] = [liftSaid(at, j, true), liftSaid(at, j, false)];
+  return {count, city: [atRest(hotel), pushedIn(hotel)], cam: [camSaid(blockCam(hotel)), camSaid(at)], tilt: [tiltSaid(at.centre, true), tiltSaid(at.centre, false)], lifts, frame: frameSaid(was)};
+}
+/* Of the drop-in and its way back, for a plate and the level's camera: the
+   venue's camera at its stack and at that camera, the plate's tilt and its
+   lift, each as the stack has it and undone. */
+function saidOfDrop(hotel, plate, cam) {
+  const at = laidOut(hotel), j = building(hotel).plates.findIndex(p => p.key === plate.key);
+  return {cam: [camSaid(at), camSaid(cam)], tilt: [tiltSaid(at.centre, false), tiltSaid(at.centre, true)], lift: j ? [liftSaid(at, j, false), liftSaid(at, j, true)] : null};
+}
+/* The zoom, from the camera an open level had to the one it has: no set
+   where the camera did not move - a room selected in place. The names come
+   in where the scale changed, and the street names where the camera is
+   back at the fit. */
+function playZoom(hotel, plate, before) {
+  const from = camSaid(before), after = levelCamera(hotel, plate), to = camSaid(after);
+  if (from !== to) play("zoom", {cam: [from, to], names: before.scale !== after.scale, streets: !state.map.zoom}, {hotel, key: plate.key});
+}
+
 /* The taps (dispatch.js calls them). Each changes what the Map shows, so
-   each ends the Map's focus (#75).
+   each ends the Map's focus (#75), and each that changes the view plays its
+   move after its draw (#97).
    openStack(): a venue's block, or its gold pill, tapped - its stack, with
    nothing selected, and keyboard focus on the way back, since the block
    that had it is no longer shown. It says whether it opened one: a venue
    with no building - the park - has none, and keeps its hotel sheet. */
 function openStack(hotel) {
   if (!building(hotel)) return false;
+  const was = frameBox();
   Object.assign(state.map, {stack: hotel, plate: null, focus: null});
   requestRender();
   const back = document.getElementById("mapBack");
   if (back) back.focus({preventScroll: true});
+  play("lift", saidOfLift(hotel, was), {hotel});
   return true;
 }
 /* closeStack(): the way back from a stack - the control, a tap in the frame
@@ -681,10 +868,12 @@ function openStack(hotel) {
 function closeStack() {
   const hotel = state.map.stack;
   if (!hotel) return;
+  const was = frameBox();
   Object.assign(state.map, {stack: null, plate: null, focus: null});
   requestRender();
   const block = document.querySelector(`#view-map .map-hotel[data-hotel="${cssEsc(hotel)}"]`);
   if (block) block.focus({preventScroll: true});
+  play("lift-back", saidOfLift(hotel, was), {hotel});
 }
 /* tapPlate(): a floor with no drawing, tapped - selected, one at most, and
    the selected one tapped again, cleared. While the focus is held a tap on
@@ -708,6 +897,8 @@ function openLevel(key) {
   requestRender();
   const back = document.getElementById("mapBack");
   if (back) back.focus({preventScroll: true});
+  const laid = levelPlate(hotel);
+  play("drop", saidOfDrop(hotel, laid, fitOf(hotel, laid)), {hotel, key});
   return true;
 }
 /* The place a tap that hit no room is for: its point on the screen taken
@@ -733,24 +924,32 @@ function tapLevel(target, x, y) {
   if (!plate) return;
   const hit = target && target.closest ? target.closest(".plate.flat [data-room]") : null;
   const room = hit ? placeOf(plate, {level: hit.dataset.level, id: hit.dataset.room}) : nearTap(hotel, plate, x, y);
+  const before = levelCamera(hotel, plate);
   state.map.focus = null;
   state.map.rooms = room ? [{level: room.level, id: room.id}] : null;
   if (room) zoomIn(hotel, plate, room, !!state.map.zoom);
   requestRender();
+  playZoom(hotel, plate, before);
 }
 /* stepBack(): the way back, one step at a time - the control, or Escape
    with no sheet open. From a zoom to the whole level, the selection kept;
    from a level to its stack, nothing selected, keyboard focus on that
-   level's plate; from a stack to the city map (closeStack()). */
+   level's plate; from a stack to the city map (closeStack()). A level that
+   closes leaves its names, its selected rooms' outlines and its street
+   names to its way back's set, each group's markup as it stood before the
+   draw emptied it (play()). */
 function stepBack() {
   const m = state.map, level = m.level;
   if (!level) { closeStack(); return; }
+  const hotel = m.stack, laid = levelPlate(hotel), before = laid ? levelCamera(hotel, laid) : null;
+  const going = laid && !m.zoom ? [".plate.flat .level-labels", ".plate.flat .level-sel", ".level-streets"].map(selector => document.querySelector(`#view-map .map-stack:not([hidden]) ${selector}`)).filter(el => el && el.firstChild).map(el => [el, el.innerHTML]) : [];
   if (m.zoom) Object.assign(m, {zoom: null, focus: null});
   else Object.assign(m, {level: null, rooms: null, plate: null, focus: null});
   requestRender();
-  if (m.level) return;
+  if (m.level) { if (laid) playZoom(hotel, laid, before); return; }
   const plate = [...document.querySelectorAll("#view-map .map-stack:not([hidden]) .plate")].find(p => p.dataset.plate === level);
   if (plate) plate.focus({preventScroll: true});
+  if (laid) play("drop-back", saidOfDrop(hotel, laid, before), {hotel, key: level, kept: going});
 }
 
 /* The day the map shows: the focused event's con day while there is a
@@ -837,4 +1036,4 @@ function renderMap() { drawMap(); }
    minute, does not. */
 function tickMap() { return drawMap(); }
 
-export { MAP_HOTELS, closeStack, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, onTheMap, openLevel, openStack, renderMap, showOnMap, stepBack, tapLevel, tapPlate, tickMap };
+export { MAP_HOTELS, closeStack, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, onTheMap, openLevel, openStack, renderMap, settleMotion, showOnMap, stepBack, tapLevel, tapPlate, tickMap };
