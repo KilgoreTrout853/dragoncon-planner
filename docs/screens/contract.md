@@ -344,9 +344,20 @@ As built: the recon, section 2, Search, items 1 to 15.
   Getting in (#77; as built, below).
 - **Under the box,** as built: the suggestions and the parsed chips
   (items 5 and 6), and in the parsed chips' row each filter the sheet set.
+- **A place** (#98), from a card of the Map's (sections 6 and 11): a venue
+  and the rooms selected on one level, or one plate's levels, in memory
+  alone. One chip in that row, in the hotel's stead, counted once; the
+  sheet presses its venue and says "Only Hanover F" under the Hotel chips,
+  words and no control. Its list is the card's own, photo sessions with
+  it. It leaves by its chip's x, by Clear, and with the hotel - another
+  hotel's chip, a hotel word settled, the hotel sheet's Search - and a tap
+  on its own venue takes the place alone. A day, a word typed and another
+  filter narrow it.
 - Everything else as built: the results' title, the no-exact line, the
   list and its folds, the hidden-photo line, the empty state, More.
 - W6's cast group in Search's results is section 4's.
+
+Built: a place as a filter - PR #116, DECISIONS #98.
 
 **Home of:** W13; W8.
 
@@ -357,6 +368,8 @@ Tests: `search.test.js`'s chip suites, `untagged.test.js`, and the hotel
 panel's search (section 11). PR 6.
 
 ### Search and the filter sheet, as built
+
+Changed by PR #116 (#98): a place of the Map's is one more filter - one chip in the hotel's stead, a line under the sheet's Hotel chips - and nothing is hidden as noise while it is set.
 
 Changed by PR #103 (#85): with the Fandom filter set and no word to rank by, the cast group stands after the list.
 
@@ -1213,6 +1226,16 @@ As built: the recon, section 2, Map; section 5, the map card.
   and its hotel's block, ringed, for an event known only to its venue; with
   the card showing that event, which reopens the sheet (#63, #64; section
   11).
+- **The card's head** (#98): the small line, the name and the day's line
+  of a plate's card and of a room's are one button, a chevron at its
+  right: Search, on that place and the Map's day - every day where the
+  place has nothing on that one - with all of what is there (section 3).
+  No row is added, and the slot keeps its one height. Not on the focused
+  card or the venue's line; where a place has no event at all, the same
+  lines and no button.
+- **The zoom** never brings a room closer than it fits the frame (#98):
+  20 of the Map's units clear all round, and out of the way back's
+  corner. From a small room to a large one the camera eases out.
 - **Reduced motion** (#66): no move plays - the lift, the drop-in, the
   zoom and each way back show their end states - read at each move, with
   no switch of our own.
@@ -1227,6 +1250,8 @@ Built: the level (W39) - PR #114, DECISIONS #96.
 
 Built: the motion (W40) - PR #115, DECISIONS #97.
 
+Built: the card's head, a way to Search, and the zoom's fit - PR #116, DECISIONS #98.
+
 **Home of:** W38; W39; W40; W41.
 
 Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
@@ -1236,6 +1261,8 @@ Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
 `style.test.js`'s map rules. PRs 3, 5, 7 and 10.
 
 ### Map, as built
+
+Changed by PR #116 (#98): the head of a plate's card and of a room's is a button to Search on that place, and a room tapped while the camera is close is never brought closer than it fits the frame.
 
 Changed by PR #115 (#97): the Map's views are reached by moves - the lift, the drop-in, the zoom, each way back and the arrival - played over the end states, which stand as built.
 
@@ -2461,6 +2488,7 @@ the hash and the address.
 | A drawn plate of an open stack, by a tap or a key | Its level, keyboard focus on the way back | `state.map.level` | "← Hyatt" - the venue's short name - or Escape with no sheet open: its stack, nothing selected, focus on that plate | built, PR #114 |
 | A room of an open level, by a tap or a key | That room selected, its card under the map; a small room brought close | `state.map.rooms`, `state.map.zoom` | a tap off the rooms clears it and goes nowhere; "← Whole level", or Escape, from the zoom: the level, the room still selected | built, PR #114 |
 | A row of a plate's card, or of a room's | The event sheet | `state.sheetId` | Done, the backdrop, a swipe, Escape: the stack or the level as it was - the plate, the room, the zoom - focus on the row | built, PR #113; a room's, PR #114 |
+| The head of a plate's card or a room's, under a stack or an open level, where the place has an event | Search, at its top, on that place, keyboard focus on its chip | `state.tab`, `state.browse`: the place, the hotel its venue, the Map's day - every day where the place has nothing on that one - no query and no other filter | the tab bar to the Map, as it was left - its level, its room, its zoom - with no move played | built, PR #116 |
 | The hotel sheet's "Search the Hyatt on Saturday" | Search | `state.browse`: the hotel, the day, no query - since PR #88 the hotel a chip under the box, counted on Filters | the tab bar to the Map, whose day `state.map.day` kept | built |
 | A person's name on the event sheet - "See all" beside it until PR #93 | That person's Explore page, keyboard focus on its heading since PR #94 | `state.explore.page`, the hash | "← Explore", to the grid, where it last was since PR #94 - its top, if it was never left: one tap from the event, accepted | built; the name since PR #93 |
 | Another session on the event sheet's Also runs line | That session's sheet, in this one's place | `state.sheetId` | Done, the backdrop, a swipe, Escape: the screen underneath, focus on what opened the first sheet - the shared day, where the first was opened from it; no way back to the first event (section 14) | built, PR #93 |
@@ -2908,5 +2936,23 @@ As built: the recon, section 8, what crews' readers offer today.
   leaves it on the way back (#97).
 - The motion has run in the browser tests' two engines on a PC and not yet
   on a phone: how it holds its frames there is the phone check's (#97).
+- The card's count and Search's list. A cancelled event at a place is in
+  Search's list, marked, and in no count of the card's (#90): the list is
+  then longer than the count, and the head's name says so (#98).
+- A place's chip can be long: rooms selected together that are a whole
+  ballroom are named one by one, and the chip shows what its width holds,
+  the rest in its name (#98).
+- No word in Search's box names a room, and no link, hash or address
+  carries a place: it is in memory alone, and a reload loses it (#98).
+- The filter sheet's toggle shows checked while a place overrides it, as
+  while a Photo op kind does (#98).
+- A room eased out to fit stands under 62 of the Map's units across - the
+  Marriott's Atrium Ballroom C 50, at its own zoom - which a phone draws
+  under #66's 44 px. For step 11's sweep (#98).
+- The way back's corner, 130 by 72, is of the Map's units, measured at the
+  browser tests' three sizes: on a narrower drawing the control is wider
+  in units (#98).
+- The card's head, its chip and the zoom's fit have run in the browser
+  tests' two engines on a PC and not yet on a phone (#98).
 
 **Home of:** W24.
