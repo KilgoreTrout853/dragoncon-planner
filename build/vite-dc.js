@@ -1,15 +1,26 @@
 /* The part of the build that is this project's own (DECISIONS #15, #23, #49,
-   #53). Three plugins.
+   #53, #94). Three plugins.
 
    dcYear() names the year the client is built for, in the dev server, the
    build and Vitest alike: DC_YEAR, four digits, 2026 where it is unset
    (DECISIONS #49). It defines __DC_YEAR__, which src/season.js reads, and
-   resolves the year's two data modules - virtual:season to
+   resolves two of the year's three data modules - virtual:season to
    data/<year>/season.json and virtual:venues to data/<year>/venues.json -
    to the files themselves, so Vite reads them as it reads any JSON import
    and the build inlines them. It refuses a year that is not four digits, a
    year whose two files are not there, and a season.json that names another
    year, so the define and the file cannot disagree.
+
+   The third, virtual:drawings, is a folder of files, so the plugin makes
+   the module itself (DECISIONS #94): every level drawing of
+   data/<year>/drawings/, geometry only - no sources, notes, units, north or
+   anchors, which nothing in the app reads - in file order. A year with no
+   drawing of its own borrows the earliest later year's that has one, never
+   an earlier year's, and a year with none to borrow is given an empty list.
+   A borrowed drawing that names a hotel, a level or a room the building
+   year's venues.json lacks is refused, since the borrow holds only while
+   the ids do. The module is made once, as the config resolves, so a drawing
+   edited while the dev server runs shows at its restart.
 
    dcBackend() names the backend the client talks to, in the dev server, the
    build and Vitest alike: DC_SUPABASE_URL and DC_SUPABASE_KEY, a Supabase
@@ -60,14 +71,73 @@ const LOCAL_HTTP_RE = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const DEFAULT_YEAR = "2026";
 const VITE_CSS_MARKER = "/*$vite$:1*/";
 const DATA_FILES = year => [`data/${year}/events.v2.json`];
-/* The year's two data modules, under the names src/ imports them by. */
+/* The year's two data modules that are files, under the names src/ imports them by. */
 const DATA_MODULES = {"virtual:season": "season.json", "virtual:venues": "venues.json"};
+/* The third is made here (DECISIONS #94): the name src/ imports it by, the id
+   Vite knows the made module by, and the keys of a drawing that are its
+   geometry - all the module carries. */
+const DRAWINGS_ID = "virtual:drawings", DRAWINGS_MODULE = "\0virtual:drawings";
+const DRAWING_KEYS = ["hotel", "level", "extent", "rooms", "composites", "groups", "open", "landmarks", "streets"];
 
 /* The year the client is built for: DC_YEAR, or the default where it is unset. */
 export function dcYearFromEnv() {
   const year = (process.env.DC_YEAR || "").trim() || DEFAULT_YEAR;
   if (!YEAR_RE.test(year)) throw new Error(`build: a year is four digits, not ${JSON.stringify(year)}`);
   return year;
+}
+
+/* A year's drawings by file name, in name order: every .json of
+   data/<year>/drawings/. None where the year has no such folder, or one
+   that holds its README alone. */
+function drawingFiles(root, year) {
+  const dir = path.join(root, "data", year, "drawings");
+  return fs.statSync(dir, {throwIfNoEntry: false})?.isDirectory() ? fs.readdirSync(dir).filter(file => file.endsWith(".json")).sort() : [];
+}
+
+/* The year whose drawings a build for `year` reads (DECISIONS #94): its own
+   where it has any, else the earliest later year's that has, else "" - never
+   an earlier year's. tests/test_drawings.py keeps the same rule, to hold a
+   year that borrows to the drawings it borrows. */
+export function drawingsYear(root, year) {
+  const years = fs.readdirSync(path.join(root, "data")).filter(name => YEAR_RE.test(name) && name >= year).sort();
+  return years.find(y => drawingFiles(root, y).length) || "";
+}
+
+/* What a drawing names that a venues file lacks: its hotel, or its level,
+   or - with both known - each room, composite, composite's leaf, group's
+   member and identified open area that is no room of that level. An unknown
+   hotel or level is the one thing told, since every room would follow it. */
+function drawingStrangers(d, venues) {
+  const hotel = venues.hotels.find(h => h.hotel === d.hotel);
+  if (!hotel) return [`the hotel ${JSON.stringify(d.hotel)}`];
+  const level = (hotel.levels || []).find(lv => lv.id === d.level);
+  if (!level) return [`${d.hotel}'s level ${JSON.stringify(d.level)}`];
+  const named = [...d.rooms.map(r => r.id), ...d.composites.flatMap(c => [c.id, ...c.of]), ...d.groups.flatMap(g => g.rooms),
+    ...d.open.filter(a => "id" in a).map(a => a.id)];
+  return [...new Set(named)].filter(id => !level.rooms.includes(id)).map(id => `the room ${JSON.stringify(id)} of ${d.hotel}'s level ${JSON.stringify(d.level)}`);
+}
+
+/* What virtual:drawings gives a build for `year`: every drawing of
+   drawingsYear()'s year, geometry only, in file order; [] where no year has
+   one to give. A file that is no JSON, or lacks a key of the geometry, is
+   refused by its name. A borrowed drawing is held to the building year's
+   venues file, and refused where it names what that file lacks. The ids of
+   a year's own are not checked here: tests/test_drawings.py holds them to
+   their own year's. */
+function drawingsFor(root, year) {
+  const from = drawingsYear(root, year);
+  if (!from) return [];
+  const venues = from === year ? null : JSON.parse(fs.readFileSync(path.join(root, "data", year, "venues.json"), "utf8"));
+  return drawingFiles(root, from).map(file => {
+    let d = null;
+    try { d = JSON.parse(fs.readFileSync(path.join(root, "data", from, "drawings", file), "utf8")); }
+    catch (e) { throw new Error(`build: data/${from}/drawings/${file} is not a drawing: ${e.message}`); }
+    const lacks = d && typeof d === "object" ? DRAWING_KEYS.filter(key => !(key in d)) : DRAWING_KEYS;
+    if (lacks.length) throw new Error(`build: data/${from}/drawings/${file} is not a drawing: it has no ${lacks.join(", ")}`);
+    const strangers = venues ? drawingStrangers(d, venues) : [];
+    if (strangers.length) throw new Error(`build: data/${from}/drawings/${file}, borrowed for ${year}, names what data/${year}/venues.json lacks: ${strangers.join("; ")}`);
+    return Object.fromEntries(DRAWING_KEYS.map(key => [key, d[key]]));
+  });
 }
 
 /* The role a JWT names, or "" for a key that is not one. */
@@ -143,7 +213,7 @@ function stampPageYear(html, year) {
 }
 
 export function dcYear() {
-  let year = "", files = {};
+  let year = "", files = {}, drawings = [];
   return {
     name: "dc-year",
     enforce: "pre",
@@ -161,9 +231,13 @@ export function dcYear() {
       }
       const named = JSON.parse(fs.readFileSync(files["virtual:season"], "utf8")).year;
       if (String(named) !== year) throw new Error(`build: data/${year}/season.json names the year ${named}, not ${year}`);
+      /* Made here, not in load(): a borrow that no longer holds is refused
+         before any work is done, whether or not anything imports it. */
+      drawings = drawingsFor(config.root, year);
     },
 
-    resolveId(id) { return files[id] || null; },
+    resolveId(id) { return id === DRAWINGS_ID ? DRAWINGS_MODULE : files[id] || null; },
+    load(id) { return id === DRAWINGS_MODULE ? `export default ${JSON.stringify(drawings)};` : null; },
   };
 }
 

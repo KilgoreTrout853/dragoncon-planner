@@ -1,15 +1,16 @@
 // @vitest-environment node
 /* The shape of the module graph under src/ (DECISIONS #29; how it came
    about is docs/SPLIT-MANIFEST.md). src/boot.js is the root: it imports the
-   others, and only main.js imports it. ORDER is the order the others may
-   depend on one another in - the twenty-four leaves, the backend, about
+   others - but building, which nothing imports until the building view
+   does (#94) - and only main.js imports it. ORDER is the order the others may
+   depend on one another in - the twenty-five leaves, the backend, about
    (#92), identity and the outbox among them (DECISIONS #53), crews (#56), shareday (#69),
-   foryou (#87), inplace (#90) and filters (#70), then scroll, eventsheet - the sheet's event panel -
+   building (#94), foryou (#87), inplace (#90) and filters (#70), then scroll, eventsheet - the sheet's event panel -
    the bus, sync and the five views, then the sheet, loading, the shell and
    dispatch - each only on npm packages and on the modules before it, so
-   there is no cycle to find; and each of the year's two data files, which
+   there is no cycle to find; and each of the year's three data modules, which
    the build resolves
-   (DECISIONS #49), is imported by the one module that owns it. dispatch is
+   (DECISIONS #49, #94), is imported by the one module that owns it. dispatch is
    last, and the root alone imports it. A new module goes into ORDER at the
    lowest place its imports allow. These are new tests, not rows of
    tests/PORT-LEDGER.md, so their titles carry no harness line. */
@@ -20,12 +21,12 @@ import { describe, expect, it } from "vitest";
 import { parseAst } from "vite";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const ORDER = ["season", "util", "storage", "platform", "build", "backend", "about", "identity", "crews", "state", "time", "outbox", "venues", "shareday", "data", "picks", "follows", "ics", "walk", "search", "foryou", "ui",
+const ORDER = ["season", "util", "storage", "platform", "build", "backend", "about", "identity", "crews", "state", "time", "outbox", "venues", "shareday", "data", "building", "picks", "follows", "ics", "walk", "search", "foryou", "ui",
   "inplace", "filters", "scroll", "eventsheet", "bus", "sync", "now", "browse", "explore", "map", "plans",
   "sheet", "loading", "shell", "dispatch"];
 const PACKAGES = Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).dependencies || {});
-/* The year's data files, as build/vite-dc.js resolves them, and the module each belongs to. */
-const DATA_MODULES = { "virtual:season": "season", "virtual:venues": "venues" };
+/* The year's data modules, as build/vite-dc.js resolves them - the level drawings' it makes - and the module each belongs to. */
+const DATA_MODULES = { "virtual:season": "season", "virtual:venues": "venues", "virtual:drawings": "building" };
 const files = fs.readdirSync(path.join(ROOT, "src")).filter(f => f.endsWith(".js")).sort();
 
 /* Every module a file names: import and export-from declarations, and
@@ -53,7 +54,7 @@ describe("the module graph under src/", () => {
     expect(others).toEqual([]);
   });
 
-  it("a module imports only npm dependencies, the year's data file it owns and the modules before it", () => {
+  it("a module imports only npm dependencies, the data module it owns and the modules before it", () => {
     const offences = [];
     ORDER.forEach((name, at) => {
       if (!files.includes(`${name}.js`)) return;               // in the list, and no file yet

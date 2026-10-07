@@ -462,10 +462,15 @@ execution slot (#57), which can run before any of this.
    The first (PR #110, #92): Settings a heading, one body that scrolls and
    a pinned Done, About this app behind its row, and Remove all picks in
    Settings alone. The second (PR #111, #93): Delete my account (W45),
-   with its migration. Step 10 is next.
-10. The building view (#60): a short sequence of its own, the drawings a
-    side lane; the map is one persistent SVG (PR #107, #89); the place
-    line reaches the room's grain here (contract, section 6).
+   with its migration.
+10. The building view (#60), in five pull requests, the drawings a side
+    lane; the map is one persistent SVG (PR #107, #89); the place line
+    reaches the room's grain here (contract, section 6). A, the level
+    drawings in the app and the building's model, with no screen - built
+    (PR #112, #94). B, the stack (W38): a venue lifted into its floors, the
+    reader's picks lit, end states only. C, the level (W39): rooms in
+    place, and a tap on a room for what is on there. D, the motion between
+    them (W40). E, "All `<n>` on Saturday", a place filter in Search.
 11. An accessibility sweep (#66) of what the pull requests above left,
     which adds its checks to the browser tests. Their harness came
     forward from the execution slot - built (PR #101, #81): Playwright in
