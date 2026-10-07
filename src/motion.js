@@ -35,6 +35,7 @@ const TIMES = {
   names: 0.45,          // of it, its last: the level's names, outlines and streets fade in
   zoom: 240,            // the zoom
   zoomNames: 0.45,      // of it, its last: the names for the new scale fade in
+  arriveZoom: 0.6,      // into an arrival's drop-in: its zoom starts, where it has one
   back: 0.65,           // a way back's span, of its way in's
 };
 /* How far the city dims behind a stack: the stylesheet's own two numbers,
@@ -137,12 +138,17 @@ function zoom(said) {
    level's fit, as a tap on its plate plays it, from the venue's stack as it
    would stand - and, where it is at one small room, a second beat in the
    same set, the zoom to it. `said`: the drop-in's, to the fit, and `zoom`,
-   [from, to] or null. Through the first beat of two the level shows no
-   names: the page's are the room's scale's, and come in with its outline
-   as a zoom's names do. */
+   [from, to] or null. The second beat starts TIMES.arriveZoom into the
+   first, so the level does not stand still between them: the camera alone
+   is brought to the fit by then - one animation still, the zoom's step
+   starting where the drop-in's ends - and the drop-in's other steps are as
+   a tap plays them. Through the first beat the level shows no names: the
+   page's are the room's scale's, and come in with its outline as a zoom's
+   names do. */
 function arrive(said) {
   if (!said.zoom) return drop(said);
-  return [...drop(said, false), ...zoom({cam: said.zoom, names: true, sel: true}).map(s => ({...s, delay: s.delay + TIMES.drop}))];
+  const joins = TIMES.drop * TIMES.arriveZoom;
+  return [...drop(said, false).map(s => (s.what === "stack-cam" ? {...s, duration: joins} : s)), ...zoom({cam: said.zoom, names: true, sel: true}).map(s => ({...s, delay: s.delay + joins}))];
 }
 const MOVES = {lift, "lift-back": liftBack, drop, "drop-back": dropBack, zoom, arrive};
 /* A move's list, for what its two views say. */

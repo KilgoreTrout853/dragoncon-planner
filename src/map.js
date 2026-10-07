@@ -97,8 +97,9 @@ function mapFocus() {
    level it is the zoom between the two cameras, and nothing where the
    camera does not move. Else it is one set from the venue's stack as it
    would stand: the drop-in to the level's fit, as a tap on its plate plays
-   it, and for one small room the zoom to it after, a second beat. An
-   arrival at a floor or at a venue is its end state, with no set. */
+   it, and for one small room the zoom to it, a second beat that starts as
+   the first settles. An arrival at a floor or at a venue is its end state,
+   with no set. */
 function showOnMap(id) {
   const ev = byId.get(id);
   if (!onTheMap(ev)) return;

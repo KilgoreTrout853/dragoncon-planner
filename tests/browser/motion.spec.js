@@ -191,7 +191,7 @@ test.describe("the motion between the Map's views", () => {
     expect([want[ROSWELL].level, want[ROSWELL].back.words, want[HANOVER_FG].level, want[HANOVER_FG].back.words]).toEqual(["acc", "← Whole level", EXHIBIT, "← Hyatt"]);
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await sheet(ROSWELL);
-    await played(page, "an arrival at Roswell, one small room", arrive, 790, want[ROSWELL]);
+    await played(page, "an arrival at Roswell, one small room", arrive, 570, want[ROSWELL]);
     await sheet(HANOVER_FG);
     await played(page, "an arrival at Hanover F and G, two rooms", arrive, 550, want[HANOVER_FG]);
     /* The Map shows that level at its fit: the focused card is the event's, and its sheet's place line the arrival again - nothing moves. */

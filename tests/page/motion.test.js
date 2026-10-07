@@ -362,7 +362,7 @@ describe("the motion between the Map's views", () => {
   });
 
   describe("the arrival from an event's place line", () => {
-    it("at one small room is one set of two beats: the drop-in from the venue's stack as it would stand to the level's fit, 550, and then the zoom to the room, 790 in all", async () => {
+    it("at one small room is one set of two beats: the drop-in from the venue's stack as it would stand to the level's fit, and the zoom to the room from 330, 570 in all", async () => {
       await stackOf("Hyatt");
       const stack = cam();
       drop(EXHIBIT); await still();
@@ -370,9 +370,9 @@ describe("the motion between the Map's views", () => {
       city([IN_EXHIBIT]);
       app.showOnMap(IN_EXHIBIT);
       const set = take(), camera = find(set, "stack-cam");
-      expect([span(set), state.map.level, state.map.zoom.id]).toEqual([790, EXHIBIT, "Grand Hall C"]);
+      expect([span(set), state.map.level, state.map.zoom.id]).toEqual([570, EXHIBIT, "Grand Hall C"]);
       expect(camera.keyframes.map(f => f.transform)).toEqual([css(stack), css(fit), css(fit), css(cam())]);
-      expect(camera.keyframes.map(f => Math.round(f.offset * 1000) / 1000)).toEqual([0, 0.696, 0.696, 1]);
+      expect(camera.keyframes.map(f => Math.round(f.offset * 1000) / 1000)).toEqual([0, 0.579, 0.579, 1]);        // at the fit by 330 of 570
       expect([camera.keyframes[0].easing, camera.keyframes[2].easing]).toEqual([app.QUINT, app.INOUT]);
       expect(of(set)).toEqual([
         "label acc opacity+visibility", "label ballroom+tower-ll1 opacity+visibility", `label ${EXHIBIT} opacity+visibility`, "label lobby opacity+visibility",
@@ -383,7 +383,7 @@ describe("the motion between the Map's views", () => {
       city([IN_EXHIBIT]);
       app.showOnMap(IN_EXHIBIT);
       const set = take();
-      for (const what of ["names", "sel"]) expect(find(set, what).keyframes.map(f => [Math.round(f.offset * 1000) / 1000, f.opacity]), what).toEqual([[0, 0], [0.863, 0], [1, 1]]);
+      for (const what of ["names", "sel"]) expect(find(set, what).keyframes.map(f => [Math.round(f.offset * 1000) / 1000, f.opacity]), what).toEqual([[0, 0], [0.811, 0], [1, 1]]);
       expect(laid().querySelector(".level-sel").childElementCount).toBe(1);
     });
     it("plays nothing of the lift, though it comes from the city map", () => {
@@ -422,10 +422,10 @@ describe("the motion between the Map's views", () => {
     it("where the Map last showed another level of the venue, or its stack, it is the arrival from the stack as it would stand", async () => {
       await levelOf("Hyatt", "acc", [IN_EXHIBIT]);
       app.showOnMap(IN_EXHIBIT);
-      expect(span(take())).toBe(790);
+      expect(span(take())).toBe(570);
       await stackOf("Hyatt"); handle.picks.set([IN_EXHIBIT]);
       app.showOnMap(IN_EXHIBIT);
-      expect(span(take())).toBe(790);
+      expect(span(take())).toBe(570);
     });
     it("an arrival at a floor, and at a venue, is its end state: no set", () => {
       app.showOnMap(ON_A_FLOOR);

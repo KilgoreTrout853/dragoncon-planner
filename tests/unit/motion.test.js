@@ -27,7 +27,7 @@ describe("the motion's timelines", () => {
   it("the design's numbers, every one in one place: round 6's timings, in ms and as shares, and its two curves", () => {
     expect(TIMES).toEqual({
       lift: 450, dim: 0.6, gone: 0.5, plates: 0.6, plate: 300, stagger: 30, cap: 250, face: [0.15, 0.45], faceName: 0.3, labels: 220,
-      drop: 550, others: 0.5, plateLabels: 0.3, names: 0.45, zoom: 240, zoomNames: 0.45, back: 0.65,
+      drop: 550, others: 0.5, plateLabels: 0.3, names: 0.45, zoom: 240, zoomNames: 0.45, arriveZoom: 0.6, back: 0.65,
     });
     expect([QUINT, INOUT]).toEqual(["cubic-bezier(.22,1,.36,1)", "cubic-bezier(.65,0,.35,1)"]);
     expect(QUINT_BACK).toBe("cubic-bezier(.64,0,.78,0)");            // the ease-out mirrored in time: (1 - x2, 1 - y2, 1 - x1, 1 - y1)
@@ -195,21 +195,27 @@ describe("the motion's timelines", () => {
       expect(list).toEqual(timeline("drop", DROP));
       expect(spanOf(list)).toBe(550);
     });
-    it("at one small room is two beats in one set: the drop-in to the fit, its steps as a tap plays them, and then the zoom's, 790 in all", () => {
+    it("at one small room is two beats in one set: the drop-in to the fit, its steps as a tap plays them but the camera's, and the zoom's from 60% of it, at 330 - 570 in all", () => {
       const list = timeline("arrive", { ...DROP, zoom: ["cam at the fit", "cam on the room"] });
       const first = timeline("drop", DROP).filter(s => !["names", "sel", "level-streets"].includes(s.what));
-      expect(list.slice(0, first.length)).toEqual(first);
+      expect(list.slice(0, first.length).filter(s => s.what !== "stack-cam")).toEqual(first.filter(s => s.what !== "stack-cam"));
+      expect(list.slice(0, first.length).map(s => s.what)).toEqual(first.map(s => s.what));
       const second = timeline("zoom", { cam: ["cam at the fit", "cam on the room"], names: true, sel: true });
-      expect(list.slice(first.length)).toEqual(second.map(s => ({ ...s, delay: s.delay + 550 })));
-      expect(spanOf(list)).toBe(790);
+      expect(list.slice(first.length)).toEqual(second.map(s => ({ ...s, delay: s.delay + 330 })));
+      expect(spanOf(list)).toBe(570);
     });
-    it("the camera goes to the fit and then to the room, never to the room in one move", () => {
+    it("the camera is at the fit when the zoom starts, and goes on from there: to the fit by 330 on the ease-out, then to the room - never to the room in one move, and never the zoom from the start", () => {
       const cams = by(timeline("arrive", { ...DROP, zoom: ["cam at the fit", "cam on the room"] }), "stack-cam");
-      expect(cams.map(row)).toEqual([["cam at the stack", "cam at the fit", 0, 550, QUINT, false], ["cam at the fit", "cam on the room", 550, 240, INOUT, false]]);
+      expect(cams.map(row)).toEqual([["cam at the stack", "cam at the fit", 0, 330, QUINT, false], ["cam at the fit", "cam on the room", 330, 240, INOUT, false]]);
+      expect(cams[0].delay + cams[0].duration).toBe(cams[1].delay);                       // no gap and no overlap at the join
+    });
+    it("the plate's tilt and lift, the other plates, the labels and the city are a tap's drop-in still, the whole 550 of it", () => {
+      const list = timeline("arrive", { ...DROP, zoom: ["cam at the fit", "cam on the room"] }), tapped = timeline("drop", DROP);
+      for (const what of ["tilt", "plate", "others", "plate-labels", "city"]) expect(one(list, what), what).toEqual(one(tapped, what));
     });
     it("through the first beat the level shows no names: they and the room's outline come in over the second beat's last 45%, and no street names, which a zoomed level has none of", () => {
       const list = timeline("arrive", { ...DROP, zoom: ["cam at the fit", "cam on the room"] });
-      for (const what of ["names", "sel"]) { const s = one(list, what); expect([s.from, s.to]).toEqual([0, 1]); near(s.delay, 550 + 132); near(s.duration, 108); }
+      for (const what of ["names", "sel"]) { const s = one(list, what); expect([s.from, s.to]).toEqual([0, 1]); near(s.delay, 330 + 132); near(s.duration, 108); }
       expect(by(list, "level-streets")).toEqual([]);
     });
     it("plays nothing of the lift: no camera of the city's, no face, no plate's own lift, no frame", () => {
@@ -261,10 +267,10 @@ describe("the motion's timelines", () => {
     });
     it("two steps of one property are one animation, the second starting where the first ended: an arrival's camera", () => {
       const cams = by(timeline("arrive", { cam: ["translate(1 1) scale(1)", "translate(2 2) scale(2)"], tilt: ["a", "b"], lift: null, zoom: ["translate(2 2) scale(2)", "translate(3 3) scale(3)"] }), "stack-cam");
-      const frames = keyframes(cams, 790);
+      const frames = keyframes(cams, 570);
       expect(frames.map(f => f.transform)).toEqual(["translate(1px, 1px) scale(1)", "translate(2px, 2px) scale(2)", "translate(2px, 2px) scale(2)", "translate(3px, 3px) scale(3)"]);
       expect(frames.map(f => f.easing)).toEqual([QUINT, undefined, INOUT, undefined]);
-      near(frames[1].offset, 550 / 790); near(frames[2].offset, 550 / 790);
+      near(frames[1].offset, 330 / 570); near(frames[2].offset, 330 / 570);
       expect([frames[0].offset, frames[3].offset]).toEqual([0, 1]);
     });
     it("every list's keyframes stand in order within the span, and carry no fill of their own", () => {
