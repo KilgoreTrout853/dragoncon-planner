@@ -5,9 +5,9 @@
    year's cases follow, and a build for a year whose schedule the repo does
    not hold yet, in a temporary copy. Each case runs the real CLI into a temp
    folder, so this is slow by unit-test standards - a second or so a build.
-   The level drawings' module is asked of the plugin itself (DECISIONS #94):
-   nothing in the page imports it yet, so no built page shows what it holds,
-   and one real build shows a borrow refused.
+   The level drawings' module is asked of the plugin itself (DECISIONS #94),
+   on staged folders no built page could show, and one real build shows a
+   borrow refused.
 
    Below them, the checks of the build output that came from the old smoke
    harness, one for one (the number in brackets is its line;

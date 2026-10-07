@@ -128,13 +128,24 @@ describe("a build with no backend: Plans is Mine as built, and the sheet closes 
     escape();
     expect(el("sheetWrap").hidden).toBe(true);
   });
-  it("a hotel opened from the Map: focus to its heading, and back to the hotel's block", () => {
+  it("a hotel opened from the Map: focus to its heading, and back to what opened it - the park's block, and a venue's line in its stack (#95)", () => {
     tapTab("map");
-    const block = document.querySelector('#view-map .map-hotel[data-hotel="Hyatt"]');
-    block.focus();
-    block.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const park = document.querySelector('#view-map .map-hotel[data-hotel="Hardy Ivy Park"]');
+    park.focus();
+    park.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(document.activeElement).toBe(el("sheetTitleHotel"));
     escape();
+    expect(document.activeElement).toBe(document.querySelector('#view-map .map-hotel[data-hotel="Hardy Ivy Park"]'));
+    const block = document.querySelector('#view-map .map-hotel[data-hotel="Hyatt"]');
+    block.focus();
+    block.dispatchEvent(new MouseEvent("click", { bubbles: true }));   // the Hyatt's stack: focus on the way back
+    expect([el("sheetWrap").hidden, document.activeElement]).toEqual([true, el("mapBack")]);
+    el("mapVenue").focus();
+    el("mapVenue").click();
+    expect(document.activeElement).toBe(el("sheetTitleHotel"));
+    escape();
+    expect(document.activeElement).toBe(el("mapVenue"));
+    escape();                                                // and Escape again, with no sheet open, is the way back
     expect(document.activeElement).toBe(document.querySelector('#view-map .map-hotel[data-hotel="Hyatt"]'));
   });
   it("a timeline block in Plans: focus back to that block, not the same event's hero on the Now tab behind it", () => {

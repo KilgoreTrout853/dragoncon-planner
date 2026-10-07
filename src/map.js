@@ -2,13 +2,15 @@ import { esc, fmtMins, fmtRange, fmtShort, minutesBetween } from "./util.js";
 import { hasBackend } from "./backend.js";
 import { crewmatesByEvent } from "./crews.js";
 import { state } from "./state.js";
+import { blockOutline, PUSH, SKEW, SQUASH, stackLayout } from "./stack.js";
 import { CON_DAYS, conDayKey, conEnded, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
-import { hotelShort, hotelVar, levelShort, placeHTML, placeShort } from "./venues.js";
+import { hotelShort, hotelVar, levelShort, placeHTML, placeShort, roomWords } from "./venues.js";
 import { byId, events, happening } from "./data.js";
+import { building, dayLights, depthOf, levelEvents } from "./building.js";
 import { picks } from "./picks.js";
 import { walkEstimate } from "./walk.js";
 import { chipHTML } from "./ui.js";
-import { drawInPlace, pageScrollTo } from "./scroll.js";
+import { cssEsc, drawInPlace, focusIn, giveFocusBack, pageScrollTo } from "./scroll.js";
 import { requestRender } from "./bus.js";
 import { nowModel } from "./now.js";
 
@@ -30,6 +32,7 @@ const MAP_W = 380;
    width). Block coordinates stay as they are; only the frame, the streets
    and their labels are placed against it. */
 const MAP_VIEW = {x: -3, y: 111, w: 385, h: 305};
+const MAP_CLIP = "mapClip";      // the frame as a clip path, by its id: the city's, while a stack is open
 const MAP_STREETS = {Peachtree: 110, Courtland: 296};
 const MAP_HOTELS = {
   "AmericasMart Building 3": {x: 12, y: 204, w: 72, h: 50},
@@ -57,8 +60,12 @@ const MAP_BRIDGES = [["AmericasMart Building 3", "AmericasMart Building 2"], ["A
    place a tab becomes the screen), at a day chip's tap (dispatch.js), when
    the clock is changed (shell.js setTimeOverride()), and here, when the
    schedule no longer holds the event - it is gone, or kept as removed - which
-   no page reaches today, since a new schedule comes by a reload. A sheet
-   opened and closed over the Map, and a star, leave it. */
+   no page reaches today, since a new schedule comes by a reload. And at any
+   tap that changes what the Map shows (#95): a venue's block or gold pill,
+   which opens its stack, a plate, and the way back. A sheet opened and
+   closed over the Map - an event's, the park's, the crew's pill's - and a
+   star, leave it. The ring is the city map's: an event with a floor lands in
+   its venue's stack, where the card alone says what is focused. */
 /* Whether an event can be shown on the Map: it is at one of the eight
    places the Map draws, and is neither cancelled nor removed. An event's
    sheet makes its place a tap exactly where this holds. */
@@ -73,14 +80,21 @@ function mapFocus() {
   return null;
 }
 /* The entry point: the Map, focused on the event, at its top, with keyboard
-   and screen-reader focus on the card that shows it (#66). It sets the focus
-   and the tab and nothing else, and does nothing for an event the Map cannot
-   show. A caller with a sheet open closes it first: the close's own redraw
-   is of the tab underneath, and would end a focus set before it. */
+   and screen-reader focus on the card that shows it (#66). It sets the
+   focus, the tab and how deep the Map opens, and does nothing for an event
+   the Map cannot show. As deep as the event's place goes (#95;
+   building.js depthOf()): a room, a level or a floor is its venue's stack
+   with its plate selected; the venue alone, and the park, is the city map,
+   the focus's ring on its block. A caller with a sheet open closes it
+   first: the close's own redraw is of the tab underneath, and would end a
+   focus set before it. */
 function showOnMap(id) {
   const ev = byId.get(id);
   if (!onTheMap(ev)) return;
+  const plate = depthOf(ev).plate || null;
   state.map.focus = ev.id;
+  state.map.stack = plate ? ev.hotel : null;
+  state.map.plate = plate;
   state.tab = "map";
   requestRender();
   pageScrollTo(0);
@@ -233,12 +247,17 @@ function mapLabel(hotel, day, counts, crew) {
 /* The pills' layer: each hotel's gold pill, then its crew's. */
 const mapPillsSVG = (counts, crew) => Object.entries(MAP_HOTELS).map(([h, b]) => mapPillSVG(h, b, counts[h]) + mapCrewSVG(h, b, crew[h])).join("");
 
-/* The drawing that is built once (DECISIONS #89): the ground, the two
-   streets and their labels, the four bridges and the eight blocks; then
-   three empty groups, in the order they are painted, which every draw
-   writes into - the gold rings, the focus's ring, the pills. A block's
-   label is the one thing on it that changes: it is built as `label` says
-   it, and a later draw writes it where it differs. */
+/* The drawing that is built once (DECISIONS #89): the ground; then the city,
+   one group - the two streets with their labels and the four bridges in a
+   group of their own, the eight blocks, and three empty groups, in the
+   order they are painted, which every draw writes into: the gold rings, the
+   focus's ring, the pills; and last an empty group for the stacks, where a
+   venue's is built at its first open (#95). The city is two groups, one
+   inside the other: `map-city`, which is clipped to the frame while a stack
+   is open, and `map-cam` in it, which that stack pushes in - a clip on the
+   group that moves would move with it. A block's label is the one thing on
+   it that changes: it is built as `label` says it, and a later draw writes
+   it where it differs. */
 function mapBaseSVG(label) {
   const street = (name, x, faint) => `<line class="map-street${faint ? " faint" : ""}" data-street="${name}" x1="${x}" y1="${MAP_VIEW.y}" x2="${x}" y2="${MAP_VIEW.y + MAP_VIEW.h}"/>
     <text class="map-street-label" transform="translate(${x - 7} 212) rotate(-90)">${name} St</text>`;
@@ -250,10 +269,242 @@ function mapBaseSVG(label) {
   const blocks = Object.entries(MAP_HOTELS).map(([h, b]) => { const name = hotelShort(h).toUpperCase(); return `<g class="map-hotel${b.park ? " map-park" : ""}" data-hotel="${esc(h)}" role="button" tabindex="0" aria-label="${esc(label(h))}" style="--h:var(${b.park ? "--park" : hotelVar(h)})">
     <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${b.park ? 6 : 10}"/>
     <text${name.length > 8 ? ' class="long"' : ""} x="${b.x + b.w / 2}" y="${b.y + b.h / 2}">${esc(name)}</text></g>`; }).join("");
+  const frame = `x="${MAP_VIEW.x}" y="${MAP_VIEW.y}" width="${MAP_VIEW.w}" height="${MAP_VIEW.h}" rx="14"`;
   return `<svg class="map" viewBox="${MAP_VIEW.x} ${MAP_VIEW.y} ${MAP_VIEW.w} ${MAP_VIEW.h}" role="group" aria-label="Schematic map of the con hotels, not to scale">
-    <rect class="map-ground" x="${MAP_VIEW.x}" y="${MAP_VIEW.y}" width="${MAP_VIEW.w}" height="${MAP_VIEW.h}" rx="14"/>
-    ${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
-    ${bridges}${blocks}<g class="map-layer-rings"></g><g class="map-layer-focus"></g><g class="map-layer-pills"></g></svg>`;
+    <defs><clipPath id="${MAP_CLIP}"><rect ${frame}/></clipPath></defs>
+    <rect class="map-ground" ${frame}/>
+    <g class="map-city"><g class="map-cam"><g class="map-streets">${street("Peachtree", MAP_STREETS.Peachtree)}${street("Courtland", MAP_STREETS.Courtland, true)}
+    ${bridges}</g>${blocks}<g class="map-layer-rings"></g><g class="map-layer-focus"></g><g class="map-layer-pills"></g></g></g><g class="map-stacks"></g></svg>`;
+}
+
+/* ---- The stack (DECISIONS #95) ------------------------------------- */
+/* A venue with a building, lifted into its floors in the Map's own frame:
+   one plate a storey, bottom to top, each the venue's outline, tilted, with
+   the city map pushed in behind them. Its state is two keys of `state.map`,
+   in memory alone: `stack`, the venue whose stack is open, and `plate`, the
+   plate selected in it, each null for none. A reload shows the city map;
+   leaving the Map tab keeps both, though the focus ends there (#75), and so
+   does a new moment on the clock. There is no motion here: a view is its end
+   state, and the pull request that animates moves between them.
+
+   Three kinds of plate (building.js): drawn - its rooms, its open areas and
+   its ballrooms' outlines on it; a floor, which has no drawing - dashed and
+   empty, its day's count on its label; and inert - no drawing and no event
+   on it all weekend - a dotted outline and a dim name, with no fill, taking
+   no pointer and no key: the plate under it shows through and takes the
+   touch. A plate that is not inert is a button, and a tap selects it. */
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const places = (v, n) => String(Math.round(v * 10 ** n) / 10 ** n);
+const kindOf = plate => (plate.drawn ? "drawn" : plate.inert ? "inert" : "floor");
+/* The venue whose stack is open, or null. */
+const stackOpen = () => (state.map.stack && building(state.map.stack) ? state.map.stack : null);
+/* The plate selected in it, or null - and the selection cleared where the
+   schedule no longer has it as a plate that takes a tap. */
+function stackPlate(hotel) {
+  if (!hotel || !state.map.plate) return null;
+  const plate = building(hotel).plates.find(p => p.key === state.map.plate && !p.inert) || null;
+  if (!plate) state.map.plate = null;
+  return plate;
+}
+/* A venue's stack as stack.js lays it out in the Map's frame, made once a
+   venue: both are the build's, so no schedule changes it. Its outline is its
+   hull, or with no drawing its block's own rectangle. */
+const LAID = new Map();
+function laidOut(hotel) {
+  if (!LAID.has(hotel)) {
+    const made = building(hotel), points = made.hull || blockOutline(MAP_HOTELS[hotel]);
+    LAID.set(hotel, {points, ...stackLayout(points, made.plates.length, MAP_VIEW)});
+  }
+  return LAID.get(hotel);
+}
+/* A venue's group, built once and found afterwards (#89): the camera, which
+   stands the outline's own units - feet, or a block's - in the frame; in it
+   a group a plate, lifted, and in that the tilt, which holds the outline -
+   twice, the first the selection's - and on a drawn plate its open areas,
+   its rooms and its ballrooms' outlines, each room and each open area with
+   an id saying its level and its id, to be lit by. Then the labels, in the
+   frame's own units, one a plate, under its near corner. What a day changes
+   - what is lit, the counts, the labels' words, the gold edge, the selection
+   - is the draw's. `data-kinds` says the plates' kinds as built, so a draw
+   under a schedule that changed which are inert builds it again. */
+function stackSVG(hotel) {
+  const made = building(hotel), at = laidOut(hotel), [cx, cy] = at.centre, block = MAP_HOTELS[hotel];
+  const tilt = `translate(${places(cx, 3)} ${places(cy, 3)}) skewX(${-SKEW}) scale(1 ${SQUASH}) translate(${places(-cx, 3)} ${places(-cy, 3)})`;
+  const outline = cls => (made.hull ? `<polygon class="${cls}" points="${at.points.map(p => `${places(p[0], 1)},${places(p[1], 1)}`).join(" ")}"/>`
+    : `<rect class="${cls}" x="0" y="0" width="${block.w}" height="${block.h}" rx="10"/>`);
+  const shape = (r, cls, more = "") => `<rect class="${cls}" x="${places(r.cx - r.w / 2, 1)}" y="${places(r.cy - r.h / 2, 1)}" width="${r.w}" height="${r.h}"${r.rot ? ` transform="rotate(${r.rot} ${r.cx} ${r.cy})"` : ""}${more}/>`;
+  const lights = r => ` data-level="${esc(r.level)}" data-room="${esc(r.id)}"`;
+  const plates = made.plates.map((p, j) => {
+    const body = (p.inert ? "" : outline("plate-sel")) + outline("plate-hull")
+      + p.open.map(o => ("id" in o ? shape(o, "plate-open place", lights(o)) : shape(o, "plate-open"))).join("")
+      + p.rooms.map(r => shape(r, "plate-room", lights(r))).join("")
+      + p.groups.filter(g => g.kind === "ballroom").map(g => shape(g.outline, "plate-group")).join("");
+    return `<g class="plate ${kindOf(p)}" data-plate="${esc(p.key)}"${p.inert ? "" : ' role="button" tabindex="0"'}${j ? ` transform="translate(0 ${places(-j * at.gap, 3)})"` : ""}><g class="plate-tilt" transform="${tilt}">${body}</g></g>`;
+  }).join("");
+  /* A plate's own label says what its button says, so a screen reader is
+     spared the second; an inert plate is no button, and its name is all it
+     has. */
+  const labels = made.plates.map((p, j) => `<text class="plate-label${p.inert ? " inert" : ""}" data-plate="${esc(p.key)}" x="${places(at.plates[j].x0 + 7, 1)}" y="${places(at.plates[j].y1 - 5, 1)}"${p.inert ? "" : ' aria-hidden="true"'}></text>`).join("");
+  return `<g class="map-stack" data-hotel="${esc(hotel)}" data-kinds="${made.plates.map(kindOf).join(" ")}" style="--h:var(${hotelVar(hotel)})"><g class="stack-cam" transform="translate(${places(at.tx, 3)} ${places(at.ty, 3)}) scale(${places(at.scale, 5)})">${plates}</g><g class="stack-labels">${labels}</g></g>`;
+}
+/* Where the city map stands behind a venue's stack: pushed in toward the
+   venue, its block's centre where the ground plate's centre stands. */
+function pushedIn(hotel) {
+  const at = laidOut(hotel), block = MAP_HOTELS[hotel];
+  return `translate(${places(at.ground[0], 3)} ${places(at.ground[1], 3)}) scale(${PUSH}) translate(${-(block.x + block.w / 2)} ${-(block.y + block.h / 2)})`;
+}
+/* The stack drawn in place (#89): the open venue's group built where the
+   page has none, or has one built under another schedule; and then only
+   what differs written - which group is shown, what is lit, each plate's
+   gold edge, selection and label, the city pushed in, clipped and taken out
+   of the tab order behind it, and the way back. It says whether it wrote. */
+function drawStack(view, open, selected, day) {
+  const svg = view.querySelector("svg.map"), stacks = svg.querySelector(".map-stacks");
+  let wrote = false;
+  const set = (el, name, value) => {
+    if (value === null ? !el.hasAttribute(name) : el.getAttribute(name) === value) return;
+    if (value === null) el.removeAttribute(name); else el.setAttribute(name, value);
+    wrote = true;
+  };
+  let group = null;
+  if (open) {
+    const made = building(open), dayName = DAY_LONG[day] || day;
+    group = [...stacks.children].find(g => g.dataset.hotel === open) || null;
+    if (group && group.dataset.kinds !== made.plates.map(kindOf).join(" ")) { group.remove(); group = null; }
+    if (!group) {
+      const holder = document.createElementNS(svg.namespaceURI, "g");
+      holder.innerHTML = stackSVG(open);
+      group = stacks.appendChild(holder.firstElementChild);
+      wrote = true;
+    }
+    const lights = dayLights(open, day, picks), lit = new Map();
+    for (const row of lights) for (const {level, id} of row.lit) lit.set(level, (lit.get(level) || new Set()).add(id));
+    for (const shape of group.querySelectorAll("[data-room]")) {
+      const on = !!lit.get(shape.dataset.level) && lit.get(shape.dataset.level).has(shape.dataset.room);
+      if (shape.classList.contains("lit") !== on) { shape.classList.toggle("lit", on); wrote = true; }
+    }
+    const plates = group.querySelectorAll(".plate"), labels = group.querySelectorAll(".plate-label");
+    made.plates.forEach((p, j) => {
+      const row = lights[j], held = !!selected && selected.key === p.key;
+      const events = row.events ? plural(row.events, "event") : "no events", mine = row.picks ? plural(row.picks, "pick") : "no picks";
+      const said = esc(p.short) + (p.drawn || p.inert ? "" : `<tspan class="pl-count"> · ${events}</tspan>`) + (row.picks ? `<tspan class="pl-picks"> ★ ${row.picks}</tspan>` : "");
+      if (drawInPlace(labels[j], said)) wrote = true;
+      set(plates[j], "class", `plate ${kindOf(p)}${row.picks ? " mine" : ""}${held ? " selected" : ""}`);
+      if (p.inert) return;
+      set(plates[j], "aria-label", `${p.name}: ${p.drawn ? "" : `${events}, `}${mine} on ${dayName}`);
+      set(plates[j], "aria-pressed", String(held));
+    });
+  }
+  for (const g of stacks.children) set(g, "hidden", g === group ? null : "");
+  set(svg, "data-stack", open);
+  set(view.querySelector(".map-wrap"), "data-stack", open);
+  const city = svg.querySelector(".map-city");
+  set(city, "clip-path", open ? `url(#${MAP_CLIP})` : null);
+  set(city, "aria-hidden", open ? "true" : null);
+  set(city.querySelector(".map-cam"), "transform", open ? pushedIn(open) : null);
+  for (const block of city.querySelectorAll(".map-hotel")) {
+    set(block, "tabindex", open ? "-1" : "0");
+    if (block.classList.contains("lifted") !== (block.dataset.hotel === open)) { block.classList.toggle("lifted"); wrote = true; }
+  }
+  set(view.querySelector("#mapBack"), "hidden", open ? null : "");
+  return wrote;
+}
+
+/* The card under the map while a stack is open: about what is selected on
+   the map. The focused card while the Map's focus is held (#75), as built;
+   else the selected plate's; else the venue's line. The next pick's card,
+   the On now line and the off-map line are the city map's, and are not
+   shown.
+   A plate's card: the venue's short name, small; the plate's name - a
+   shared plate's by its levels' short names, as its label on the stack
+   says them, since their full names do not fit a line; a star before it
+   where a pick is on it that day (the stylesheet's, on `mine`); the day,
+   what is happening and the reader's picks; then at most two rows of what
+   is happening, each a button to its event's sheet.
+   On the clock's own con day: what is on now - a pick of the reader's
+   first, else the schedule's first - and how many more are; then what is
+   next, one row after an On now row and two with none, the second "Then";
+   "Nothing more here today." with none left. On another day its first two.
+   With nothing that day, so, and how many are on other days. A cancelled
+   event is in no row and no count (#90). A row says its room where that is
+   more than the floor (venues.js roomWords()), and an end names its day
+   only where it is on a later con day: 2 AM is still its own night's. */
+const inSchedule = (a, b) => a._s - b._s || a.title.localeCompare(b.title);
+const laterDay = (ev, day) => { const ends = conDayKey(new Date(ev._e.getTime() - 1)); return ends > day ? `${DAY_LABEL[ends] || ends} ` : ""; };
+const endSaid = (ev, day) => laterDay(ev, day) + fmtShort(ev._e);
+const rangeSaid = (ev, day) => (laterDay(ev, day) ? `${fmtShort(ev._s)}–${endSaid(ev, day)}` : fmtRange(ev._s, ev._e));
+function plateRowHTML(ev, lead) {
+  const room = roomWords(ev);
+  return `<li><button type="button" class="pc-row${picks.has(ev.id) ? " mine" : ""}" data-hero="${esc(ev.id)}"><span class="pc-title">${esc(ev.title)}</span><span class="pc-when">${lead}${room ? ` · ${esc(room)}` : ""}</span></button></li>`;
+}
+function plateRowsHTML(all, day, at) {
+  const here = all.filter(happening), list = here.filter(e => e._cd === day), dayName = DAY_LONG[day] || day;
+  if (!list.length) {
+    const other = here.length;
+    return `<p class="pc-none">Nothing here on ${esc(dayName)}.${other ? ` ${plural(other, "event")} on other days.` : ""}</p>`;
+  }
+  if (day !== conDayKey(at)) return `<ul class="pc-rows">${list.slice(0, 2).map(e => plateRowHTML(e, rangeSaid(e, day))).join("")}</ul>`;
+  const on = list.filter(e => e._s <= at && at < e._e).sort((a, b) => (picks.has(b.id) - picks.has(a.id)) || inSchedule(a, b)), next = list.filter(e => e._s > at);
+  const rows = (on.length ? plateRowHTML(on[0], `<b>On now</b> · ends ${endSaid(on[0], day)}${on.length > 1 ? ` · ${on.length - 1} more on now` : ""}`) : "")
+    + next.slice(0, on.length ? 1 : 2).map((e, i) => plateRowHTML(e, `<b>${i ? "Then" : "Next"}</b> · ${rangeSaid(e, day)}`)).join("");
+  return rows ? `<ul class="pc-rows">${rows}</ul>` : `<p class="pc-none">Nothing more here today.</p>`;
+}
+function plateCardHTML(hotel, plate, day, at) {
+  const row = dayLights(hotel, day, picks).find(r => r.key === plate.key), dayName = DAY_LONG[day] || day;
+  const all = plate.levels.length === 1 ? levelEvents(hotel, plate.levels[0].id) : plate.levels.flatMap(level => levelEvents(hotel, level.id)).sort(inSchedule);
+  return `<div class="next-card plate-card${row.picks ? " mine" : ""}" id="mapPlate" data-plate="${esc(plate.key)}" style="--h:var(${hotelVar(hotel)})"><div class="nc-label">${esc(hotelShort(hotel))}</div><div class="nc-title">${esc(plate.levels.length > 1 ? plate.short : plate.name)}</div><div class="nc-when">${esc(dayName)} · ${row.events ? plural(row.events, "event") : "no events"}${row.picks ? ` · ${plural(row.picks, "pick")}` : ""}</div>${plateRowsHTML(all, day, at)}</div>`;
+}
+/* The venue's line, one button: the venue by its key, as its hotel sheet is
+   headed; the day and the reader's picks at the venue - every one, the
+   pill's number, so it may be more than the plates' stars add up to, since
+   an event known only to its venue is on no plate; how many of the crew,
+   where there are any - the crew is here and nowhere on the plates, gold
+   staying the reader's own; and a chevron. Its tap opens the hotel sheet
+   (dispatch.js). Under it, in the room the slot holds, one quiet line that
+   is no control, and stands with the venue's line alone. */
+function venueLineHTML(hotel, day, counts, crew) {
+  const n = counts[hotel] || 0, c = crew[hotel] || 0;
+  return `<button type="button" class="next-card venue-line" id="mapVenue" data-venue="${esc(hotel)}" style="--h:var(${hotelVar(hotel)})"><span class="vl-words"><span class="nc-title">${esc(hotel)}</span><span class="nc-when">${esc(DAY_LONG[day] || day)} · ${n ? plural(n, "pick") : "no picks"}${c ? ` · ${c} of your crew` : ""}</span></span><span class="vl-chevron" aria-hidden="true">›</span></button><p class="map-hint">Tap a floor for what is on there.</p>`;
+}
+function stackCardHTML(hotel, selected, day, cs, counts, crew) {
+  if (cs.focus) return focusCardHTML(cs.focus);
+  return selected ? plateCardHTML(hotel, selected, day, cs.now) : venueLineHTML(hotel, day, counts, crew);
+}
+
+/* The three taps (dispatch.js calls them). Each changes what the Map shows,
+   so each ends the Map's focus (#75).
+   openStack(): a venue's block, or its gold pill, tapped - its stack, with
+   nothing selected, and keyboard focus on the way back, since the block
+   that had it is no longer shown. It says whether it opened one: a venue
+   with no building - the park - has none, and keeps its hotel sheet. */
+function openStack(hotel) {
+  if (!building(hotel)) return false;
+  Object.assign(state.map, {stack: hotel, plate: null, focus: null});
+  requestRender();
+  const back = document.getElementById("mapBack");
+  if (back) back.focus({preventScroll: true});
+  return true;
+}
+/* closeStack(): the way back - the control, a tap in the frame on anything
+   but a plate, or Escape - to the city map, with keyboard focus on the
+   venue's block. */
+function closeStack() {
+  const hotel = state.map.stack;
+  if (!hotel) return;
+  Object.assign(state.map, {stack: null, plate: null, focus: null});
+  requestRender();
+  const block = document.querySelector(`#view-map .map-hotel[data-hotel="${cssEsc(hotel)}"]`);
+  if (block) block.focus({preventScroll: true});
+}
+/* tapPlate(): a plate that is not inert, tapped - selected, one at most,
+   and the selected one tapped again, cleared. While the focus is held a tap
+   on any plate ends the focus and leaves that plate selected, the selected
+   one too: the reader asked for the plate, not for less. */
+function tapPlate(key) {
+  const held = !!state.map.focus;
+  state.map.focus = null;
+  state.map.plate = !held && state.map.plate === key ? null : key;
+  requestRender();
 }
 
 /* The day the map shows: the focused event's con day while there is a
@@ -283,14 +534,22 @@ function mapDay() {
    part must be drawn anew, drawInPlace() puts focus back. A ring that moves
    to another hotel is the same element, still in its pulse: the pulse
    starts again only when the rings are drawn anew - one comes or goes. And
-   a quiet minute writes nothing. It says whether it wrote. */
+   a quiet minute writes nothing. It says whether it wrote.
+   While a stack is open (#95) the card is the stack's - the focused event,
+   the selected plate or the venue's line - and the stack is drawn in place
+   after the five parts, drawStack(); with none open that same call puts the
+   city map back as it was. A plate's card is written into in place too, so
+   a row of it that had keyboard focus is found again by its event. The way
+   back, an HTML button so that it is 44 px whatever the drawing's scale,
+   stands before the drawing and is built with it. */
 function drawMap() {
   const day = mapDay(), st = mapNowState(day), counts = mapCounts(day), crew = mapCrewCounts(day), off = mapOffMapCount(day), cs = mapCardState();
   const view = document.getElementById("view-map"), label = hotel => mapLabel(hotel, day, counts, crew);
+  const open = stackOpen(), selected = stackPlate(open);
   let wrote = false;
   if (!document.getElementById("mapUnder")) {
     view.innerHTML = `<div class="controls controls-sticky"><div class="chips" data-row="map-day"></div></div>
-    <div class="map-wrap" data-day="${day}">${mapBaseSVG(label)}<div class="map-under" id="mapUnder"></div></div>`;
+    <div class="map-wrap" data-day="${day}"><button type="button" class="map-back" id="mapBack" aria-label="Back to the map" hidden>← Map</button>${mapBaseSVG(label)}<div class="map-under" id="mapUnder"></div></div>`;
     wrote = true;
   }
   const wrap = view.querySelector(".map-wrap");
@@ -302,11 +561,14 @@ function drawMap() {
   const parts = [
     [".chips", CON_DAYS.map(d => chipHTML(DAY_LABEL[d], day === d, "map-day", d)).join("")],
     [".map-layer-rings", mapRingsSVG(st)],
-    [".map-layer-focus", mapFocusSVG(cs.focus)],
+    [".map-layer-focus", open ? "" : mapFocusSVG(cs.focus)],        // the focus's ring is the city map's: under a stack the card alone says what is focused
     [".map-layer-pills", mapPillsSVG(counts, crew)],
-    ["#mapUnder", mapCardHTML(cs) + offLineHTML(off)],
+    ["#mapUnder", open ? stackCardHTML(open, selected, day, cs, counts, crew) : mapCardHTML(cs) + offLineHTML(off)],
   ];
+  const under = view.querySelector("#mapUnder"), held = open ? focusIn(under) : null;
   for (const [selector, html] of parts) if (drawInPlace(view.querySelector(selector), html)) wrote = true;
+  giveFocusBack(held);
+  if (drawStack(view, open, selected, day)) wrote = true;
   return wrote;
 }
 function renderMap() { drawMap(); }
@@ -318,4 +580,4 @@ function renderMap() { drawMap(); }
    minute, does not. */
 function tickMap() { return drawMap(); }
 
-export { MAP_HOTELS, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, onTheMap, renderMap, showOnMap, tickMap };
+export { MAP_HOTELS, closeStack, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, onTheMap, openStack, renderMap, showOnMap, tapPlate, tickMap };

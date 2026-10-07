@@ -29,7 +29,7 @@ import {
   onVisibleRender, render, setOpeningTab, setTimeOverride,
 } from "./shell.js";
 import {
-  onApplyPreview, onClearPreview, onEventPanelClick, onFiltersPanelChange, onFiltersPanelClick, onHashChange, onHotelPanelClick,
+  onApplyPreview, onClearPreview, onEscape, onEventPanelClick, onFiltersPanelChange, onFiltersPanelClick, onHashChange, onHotelPanelClick,
   onSharedPanelClick, onMainChange, onMainClick, onMainFocusOut, onMainInput, onMainKeydown, onMinute,
 } from "./dispatch.js";
 
@@ -85,6 +85,10 @@ export function boot({events: data, reload: reloadWith} = {}) {
      watched - never its attributes - for an area a draw has just replaced. */
   sheetEl.addEventListener("scroll", onMoreScroll, {capture: true, passive: true});
   new MutationObserver(syncMore).observe(sheetEl, {childList: true, subtree: true});
+  /* Escape, twice, and in this order: the Map's way back from a stack hears
+     the key while a sheet that is open is still open, and leaves it to the
+     sheet (DECISIONS #95). */
+  document.addEventListener("keydown", onEscape);
   document.addEventListener("keydown", onSheetKeydown);
 
   panelEvent.addEventListener("click", onEventPanelClick);

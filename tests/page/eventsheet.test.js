@@ -535,8 +535,10 @@ describe("the event's sheet", () => {
       expect(document.querySelector("#view-map .map-wrap").dataset.day).toBe("2026-09-06");
       expect(app.pageScrollTop()).toBe(0);
     });
-    it("its hotel ringed, and the card under the map showing that event", () => {
-      expect(document.querySelector("#view-map .map-focus").dataset.hotel).toBe("Hyatt");
+    it("as deep as its place goes - here its level: its hotel's stack, its plate selected (#95) - and the card under the map showing that event", () => {
+      expect([state.map.stack, state.map.plate, app.depthOf(app.byId.get("x-sun")).depth]).toEqual(["Hyatt", "acc", "level"]);
+      expect([document.querySelector("#view-map svg.map").getAttribute("data-stack"), document.querySelector("#view-map .plate.selected").dataset.plate]).toEqual(["Hyatt", "acc"]);
+      expect(document.querySelector("#view-map .map-focus")).toBe(null);      // the ring is the city map's, for an event known only to its venue
       expect([...mapCard().children].map(words)).toEqual(["You were looking at", "Tai Chi with Erin Gray", "Hyatt · Inman · Conference Center", "Sunday 2:30–3:30 PM"]);
     });
     it("keyboard and screen-reader focus lands on that card (#66)", () => {
@@ -564,7 +566,8 @@ describe("the event's sheet", () => {
       press(place());
       expect([el("sheetWrap").hidden, state.tab, state.map.focus]).toEqual([true, "map", "x-mon"]);
       expect(document.querySelector("#view-map .map-wrap").dataset.day).toBe("2026-09-07");
-      expect(document.querySelector("#view-map .map-focus").dataset.hotel).toBe("Hilton");
+      expect([state.map.stack, state.map.plate]).toEqual(["Hilton", app.depthOf(app.byId.get("x-mon")).plate]);
+      expect(el("mapNext").dataset.hero).toBe("x-mon");
       state.tab = "now"; handle.render();
       expect(state.map.focus).toBe(null);
     });

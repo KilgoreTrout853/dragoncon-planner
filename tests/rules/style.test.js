@@ -237,8 +237,9 @@ describe("src/styles.css", () => {
     });
     it("every text size outside the map's SVG is in rem, so it follows the root [1726]", () => {
       /* the map's SVG text is sized in the drawing's own units (row 1727); the
-         crew's count on the map, since step 5a, is SVG text too */
-      const scaled = css.split("\n").filter(l => !/^\.map-(street-label|hotel text|park text|pill text|crew text)/.test(l)).join("\n");
+         crew's count on the map, since step 5a, is SVG text too, and so is a
+         plate's label in a venue's stack (DECISIONS #95) */
+      const scaled = css.split("\n").filter(l => !/^\.(map-(street-label|hotel text|park text|pill text|crew text)|plate-label \{)/.test(l)).join("\n");
       expect(scaled).not.toMatch(/font-size: [\d.]+px/);
       expect(scaled).toMatch(/font-size: [\d.]+rem/);
       expect(css).toMatch(/body \{[^}]*font-size: 1\.0625rem/);
@@ -684,6 +685,91 @@ describe("src/styles.css", () => {
     it("a cancelled pick's block is drawn as a removed one's is: dimmed, its title struck", () => {
       expect(css).toMatch(/\.tl-block\.removed, \.tl-block\.cancelled \{ opacity: \.55; \}/);
       expect(css).toMatch(/\.tl-block\.removed \.tb-title, \.tl-block\.cancelled \.tb-title \{ text-decoration: line-through; \}/);
+    });
+  });
+
+  /* The stack (DECISIONS #95): a venue lifted into its floors. The lines that
+     must stay as the map's were, what gold is spent on, the inert plate, the
+     slot's one height and the contrast of what a plate draws. What a phone
+     draws of it is tests/browser/stack.spec.js's. New tests, not rows of
+     tests/PORT-LEDGER.md. */
+  describe("the stack: a venue lifted into its floors (DECISIONS #95)", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim().replace(/\s+/g, " ") }));
+    const body = selector => rules.filter(r => r.selector === selector).map(r => r.body).join(" | ");
+    /* Every rule the stack brought: a plate's, its label's, the card's, the way back's. */
+    const STACK = /\.(plate|pl-|pc-|stack-|venue-line|vl-|map-hint|map-back)|\[data-stack\]/;
+    const stack = rules.filter(r => STACK.test(r.selector));
+
+    it("the map's own lines are as they were: the frame takes the width, gives way in height to a floor of 200px, and the band under it keeps its own height", () => {
+      expect(body(".map")).toBe("display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px;");
+      expect(body(".map-under")).toBe("flex: none;");
+      expect(body("#view-map")).toBe("display: flex; flex-direction: column; height: calc(100dvh - var(--hdr-h, 63px) - var(--nav-h) - 5px);");
+    });
+    it("gold is the reader's own, on the stack as everywhere: a plate's edge where it holds a pick, a lit room, the star on a label and before a name on the card - and nothing else of the stack's", () => {
+      expect(stack.filter(r => /--gold\b/.test(r.body)).map(r => r.selector)).toEqual([
+        ".plate.mine .plate-hull", ".plate-room.lit, .plate-open.lit", ".plate-label .pl-picks", ".plate-card.mine .nc-title::before, .pc-row.mine .pc-title::before"]);
+      expect(stack.length).toBeGreaterThan(25);
+    });
+    it("the gold edge keeps a dashed plate's dashes: it sets the stroke's colour and width, and nothing of its pattern", () => {
+      expect(body(".plate.mine .plate-hull")).toBe("stroke: var(--gold); stroke-width: 2.5;");
+      expect(body(".plate.floor .plate-hull")).toMatch(/stroke-dasharray: 5 4;$/);
+    });
+    it("an inert plate is see-through and takes no pointer: a dotted outline, no fill, and no rule gives it one", () => {
+      expect(body(".plate.inert")).toBe("pointer-events: none;");
+      expect(body(".plate.inert .plate-hull")).toBe("fill: none; stroke: var(--dim); stroke-dasharray: 2 5;");
+      const inert = rules.map((r, at) => ({ ...r, at })).filter(r => /\.inert/.test(r.selector) && /\.plate/.test(r.selector));
+      expect(inert.map(r => r.selector)).toEqual([".plate.inert", ".plate.inert .plate-hull", ".plate-label.inert"]);
+      const fills = rules.map((r, at) => ({ ...r, at })).filter(r => /\.plate-hull$/.test(r.selector) && /(^|; )fill:/.test(r.body));
+      expect(fills.map(r => r.selector)).toEqual([".plate-hull", ".plate.floor .plate-hull", ".plate.inert .plate-hull"]);      // the inert one last: it wins
+      expect(body(".plate.drawn, .plate.floor")).toBe("cursor: pointer;");
+    });
+    it("a plate's keyboard focus is its own edge, thicker: no outline, which a tilted group draws as two lines across the frame", () => {
+      expect(body(".plate:focus")).toBe("outline: none;");
+      expect(body(".plate:focus-visible .plate-hull")).toBe("stroke-width: 4;");
+      expect(stack.filter(r => /outline/.test(r.body)).map(r => r.selector)).toEqual([".plate:focus"]);
+    });
+    it("the slot under the map keeps one height while a stack is open, one rule, in rem where the card's words are - and no other rule sets the band's height", () => {
+      const slot = rules.filter(r => /\.map-under/.test(r.selector) && /(^|; |\b)(min-|max-)?height:/.test(r.body));
+      expect(slot.map(r => r.selector)).toEqual([".map-wrap[data-stack] .map-under"]);
+      expect(slot[0].body).toBe("height: calc(10px + 2px + 12px + (.75rem * 1.3 + 3px) + 1.125rem * 1.2 + (4px + .9375rem * 1.3) + 8px + 2 * (14px + 1.8125rem * 1.3));");
+    });
+    it("the slot's sum is the card's own: its margin, border and padding, its three lines' sizes and line heights, and two rows", () => {
+      const size = (selector, name = "font-size") => Number(new RegExp(`(?:^|; )${name}: (-?[\\d.]+)(?:rem|px)?;`).exec(body(selector))[1]);
+      expect([size(".next-card", "margin-top"), size(".next-card .nc-label"), size(".next-card .nc-label", "margin-bottom"), size(".next-card .nc-title"), size(".next-card .nc-title", "line-height"),
+        size(".next-card .nc-when", "margin-top"), size(".next-card .nc-when"), size(".pc-row .pc-title") + size(".pc-row .pc-when")]).toEqual([10, 0.75, 3, 1.125, 1.2, 4, 0.9375, 1.8125]);
+      expect(body(".next-card")).toMatch(/(^|; )padding: 12px 14px;.*border: 1px solid var\(--line\);/);
+      expect(body(".pc-rows")).toBe("list-style: none; margin: 8px -14px -12px; padding: 0;");
+      expect(body(".pc-row")).toMatch(/(^|; )padding: 6px 14px; border: 0; border-top: 1px solid var\(--line\);.* gap: 1px;$/);
+      expect(/(^|; )line-height: 1\.3;/.test(body("body"))).toBe(true);
+    });
+    it("the way back is 44px, tall and wide, over the frame's top left; a card's row is 46px or more", () => {
+      expect(body(".map-back")).toMatch(/^position: absolute; left: 20px; top: 18px; z-index: 1; height: 44px; min-width: 44px;/);
+      expect(Number(/min-height: (\d+)px;/.exec(body(".pc-row"))[1])).toBeGreaterThanOrEqual(44);
+    });
+    it("a plate's label is in the drawing's own units, as a block's name is: Larger text leaves the map alone", () => {
+      expect(body(".plate-label")).toMatch(/(^|; )font-size: 11px;/);
+      expect(stack.filter(r => /font-size: [\d.]+px/.test(r.body)).map(r => r.selector)).toEqual([".plate-label"]);
+    });
+    it("what a plate draws reads at 3:1 or more (#66): a lit room and the gold edge on a plate of every hue and on the ground, the selection, each plate's own edge and a dashed plate's, and an inert plate's outline and name", () => {
+      const token = name => new RegExp(`--${name}: (#[0-9A-Fa-f]{6})`).exec(css)[1];
+      const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+      const lum = c => { const [r, g, bl] = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * bl; };
+      const contrast = (x, y) => { const [hi, lo] = [lum(x), lum(y)].sort((p, q) => q - p); return (hi + 0.05) / (lo + 0.05); };
+      const mix = (a, b, p) => a.map((v, i) => Math.round(v * p + b[i] * (1 - p)));
+      const ink = rgb(token("ink")), ground = rgb(token("surface")), gold = rgb(token("gold"));
+      expect(body(".plate-hull")).toMatch(/^fill: color-mix\(in srgb, var\(--h\) 11%, var\(--ink\)\); stroke: var\(--h\);/);
+      expect(body(".plate.floor .plate-hull")).toMatch(/^fill: color-mix\(in srgb, var\(--h\) 5%, var\(--ink\)\); stroke: color-mix\(in srgb, var\(--h\) 75%, var\(--ink\)\);/);
+      for (const name of ["Marriott", "Hyatt", "Hilton", "Courtland", "Westin", "Mart"]) {
+        const hue = rgb(token(`h-${name}`)), plate = mix(hue, ink, 0.11), floor = mix(hue, ink, 0.05);
+        for (const [what, a, b] of [["a lit room on its plate", gold, plate], ["the gold edge on a floor", gold, floor], ["the plate's edge on the ground", hue, ground],
+          ["a dashed plate's edge on the ground", mix(hue, ink, 0.75), ground], ["the selection on its plate", rgb(token("text")), plate]]) {
+          expect(contrast(a, b), `${name}: ${what}`).toBeGreaterThanOrEqual(3);
+        }
+      }
+      expect(contrast(gold, ground)).toBeGreaterThan(8);
+      expect(contrast(rgb(token("text")), ground)).toBeGreaterThan(12);
+      expect(contrast(rgb(token("dim")), ground)).toBeGreaterThanOrEqual(3);
     });
   });
 });

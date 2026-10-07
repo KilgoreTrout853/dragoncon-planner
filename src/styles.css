@@ -143,7 +143,7 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
    shows on this tab. */
 #view-map { display: flex; flex-direction: column; height: calc(100dvh - var(--hdr-h, 63px) - var(--nav-h) - 5px); }
 #view-map .controls-sticky { flex: none; }
-.map-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding: 12px 14px 0; }
+.map-wrap { position: relative; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding: 12px 14px 0; }
 .map { display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px; }
 .map-under { flex: none; }
 .map-ground { fill: var(--surface); }
@@ -186,6 +186,76 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .next-card .nc-walk { margin-top: 2px; font-size: .8125rem; color: var(--muted); }
 .next-card.empty { color: var(--muted); font-size: .9375rem; cursor: default; }
 .map-offmap { padding-top: 6px; font-size: .875rem; color: var(--muted); }
+/* The stack (DECISIONS #95): a venue lifted into its floors, in the map's
+   own frame. The way back is an HTML button over the frame's top left, so
+   it is 44 px tall whatever scale the drawing is at. Behind the plates the
+   city map is pushed in and dimmed - the other blocks at a fifth, the
+   streets and bridges at a tenth - and the pills, the rings and the
+   venue's own block are not shown: they stay in the page, where the pull
+   request that animates will fade them. */
+.map-back { position: absolute; left: 20px; top: 18px; z-index: 1; height: 44px; min-width: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: .875rem; font-weight: 600; white-space: nowrap; }
+.map[data-stack] .map-streets { opacity: .1; }
+.map[data-stack] .map-hotel { opacity: .2; }
+.map[data-stack] .map-hotel.lifted, .map[data-stack] .map-layer-rings, .map[data-stack] .map-layer-focus, .map[data-stack] .map-layer-pills { visibility: hidden; }
+/* A plate, in the venue's own units under its camera, so every stroke is
+   kept to its width on the screen. Drawn: solid. A floor, which has no
+   drawing: dashed and empty. Inert: a dotted outline and nothing else - no
+   fill and no pointer, so the plate under it shows through and takes the
+   touch. */
+.plate-hull { fill: color-mix(in srgb, var(--h) 11%, var(--ink)); stroke: var(--h); stroke-width: 1.4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.plate.floor .plate-hull { fill: color-mix(in srgb, var(--h) 5%, var(--ink)); stroke: color-mix(in srgb, var(--h) 75%, var(--ink)); stroke-dasharray: 5 4; }
+.plate.inert { pointer-events: none; }
+.plate.inert .plate-hull { fill: none; stroke: var(--dim); stroke-dasharray: 2 5; }
+.plate.drawn, .plate.floor { cursor: pointer; }
+/* A plate with keyboard focus says so by its own edge, thicker. The page's
+   ring is an outline, and an outline round a tilted group is drawn as that
+   group's untilted box: two lines across the frame. */
+.plate:focus { outline: none; }
+.plate:focus-visible .plate-hull { stroke-width: 4; }
+/* Gold is the reader's own, here as everywhere: the edge of a plate that
+   holds a pick of theirs that day, a dashed plate's too; the rooms their
+   picks light; the star and its count on a label, and before a name on the
+   card. The crew is on the venue's line and nowhere on the plates. */
+.plate.mine .plate-hull { stroke: var(--gold); stroke-width: 2.5; }
+.plate-room.lit, .plate-open.lit { fill: var(--gold); stroke: color-mix(in srgb, var(--gold) 55%, var(--gold-ink)); }
+/* The selected plate: a second outline, light and wider, under the plate's
+   own edge and so outside it - it reads apart from the gold edge, and both
+   show where both hold. */
+.plate-sel { fill: none; stroke: none; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: none; }
+.plate.selected .plate-sel { stroke: var(--text); stroke-width: 7; }
+.plate-open { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.plate-open.place { fill: color-mix(in srgb, var(--h) 8%, var(--surface)); stroke: color-mix(in srgb, var(--h) 70%, var(--surface)); }
+.plate-room { fill: color-mix(in srgb, var(--h) 18%, var(--surface)); stroke: color-mix(in srgb, var(--h) 70%, var(--surface)); stroke-width: .8; vector-effect: non-scaling-stroke; }
+.plate-group { fill: none; stroke: color-mix(in srgb, var(--h) 85%, var(--surface)); stroke-width: 1.8; vector-effect: non-scaling-stroke; pointer-events: none; }
+/* A plate's label, under its near corner, in the drawing's own units as a
+   block's name is: Larger text leaves the map alone. */
+.stack-labels { pointer-events: none; }
+.plate-label { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--text); paint-order: stroke; stroke: var(--ink); stroke-width: 3px; stroke-linejoin: round; }
+.plate-label .pl-count { fill: var(--muted); font-weight: 600; }
+.plate-label .pl-picks { fill: var(--gold); }
+.plate-label.inert { fill: var(--dim); font-weight: 600; }
+/* The card while a stack is open. The slot keeps one height, a plate's card
+   with two rows - its top margin, border and padding, the venue's name, the
+   plate's on one line, the day's line, then two rows - so the frame above
+   it is one size whatever is selected, and a plate that is tapped stands
+   where it stood (#86). In rem where the words are, so Larger text grows it
+   with them. */
+.map-wrap[data-stack] .map-under { height: calc(10px + 2px + 12px + (.75rem * 1.3 + 3px) + 1.125rem * 1.2 + (4px + .9375rem * 1.3) + 8px + 2 * (14px + 1.8125rem * 1.3)); }
+.venue-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; }
+.venue-line .vl-words { display: block; min-width: 0; }
+.venue-line .nc-title, .venue-line .nc-when { display: block; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.venue-line .vl-chevron { color: var(--muted); font-size: 1.375rem; line-height: 1; }
+.map-hint { margin: 10px 2px 0; font-size: .875rem; color: var(--muted); }
+.plate-card { cursor: default; }
+.plate-card .nc-title { display: block; white-space: nowrap; text-overflow: ellipsis; }
+.plate-card.mine .nc-title::before, .pc-row.mine .pc-title::before { content: "★"; margin-right: .2em; color: var(--gold); }
+.pc-rows { list-style: none; margin: 8px -14px -12px; padding: 0; }
+.pc-row { display: grid; width: 100%; min-height: 46px; padding: 6px 14px; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; align-content: center; gap: 1px; }
+.pc-rows li:last-child .pc-row { border-radius: 0 0 13px 13px; }
+.pc-row .pc-title { font-size: 1rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-row .pc-when { font-size: .8125rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-row .pc-when b { color: var(--text); font-weight: 600; }
+.pc-none { margin: 8px 0 0; font-size: .9375rem; color: var(--muted); }
 
 /* Controls ----------------------------------------------------------- */
 .controls { padding: 12px 14px 0; display: grid; gap: 10px; }

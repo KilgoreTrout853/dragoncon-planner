@@ -12,11 +12,13 @@ const state = {
      the day and the crews decide it as Plans draws (plans.js). */
   plansView: loadJSON(storageKey("plansView"), null),
   now: {hotel: "All", limit: 80},
-  /* The Map's: the day a chip chose, null to follow the clock; and its
-     focus, the id of the event an event's sheet sent the reader here to
-     find, null for none - in memory alone, and it carries its own day
-     (map.js; DECISIONS #75). */
-  map: {day: null, focus: null},
+  /* The Map's: the day a chip chose, null to follow the clock; its focus,
+     the id of the event an event's sheet sent the reader here to find, null
+     for none - in memory alone, and it carries its own day (map.js;
+     DECISIONS #75); and the building view's - the venue whose stack is
+     open, by its key, and the plate selected in it, by its key, each null
+     for none, in memory alone and kept when the tab is left (#95). */
+  map: {day: null, focus: null, stack: null, plate: null},
   plans: {crew: null, day: null},         /* the crew shown, null the oldest; the crew's day, null the clock's */
   /* What stands in place of the picks that changed, under the notice on Now
      and on My day, while the reader stays on the tab - the tab, the news it
