@@ -71,6 +71,11 @@ function levelState() {
     hidden: group ? { plates: [...group.querySelectorAll(".plate:not(.flat)")].map(p => getComputedStyle(p).visibility), labels: [...group.querySelectorAll(".plate-label")].map(t => getComputedStyle(t).visibility),
       city: getComputedStyle(svg.querySelector(".map-city")).visibility } : null,
     ink: flat ? [...flat.querySelectorAll(".level-labels .lit")].map(t => getComputedStyle(t).fill) : [],
+    /* The open plate's edge, beside the edge of a plate of this venue that holds no pick. */
+    hull: flat ? (() => {
+      const edge = p => { const style = p ? getComputedStyle(p.querySelector(".plate-hull")) : null; return style ? `${style.stroke} ${parseFloat(style.strokeWidth)}` : null; };
+      return { mine: flat.classList.contains("mine"), edge: edge(flat), plain: edge(group.querySelector(".plate.drawn:not(.mine)")) };
+    })() : null,
   };
 }
 const openStack = async (page, hotel) => {
@@ -288,6 +293,7 @@ test.describe("a level's rooms, by a touch", () => {
     expect.soft(lit.map(r => r.id).sort(), "the Concourse, and Hanover F and G").toEqual(["Concourse", "Hanover F", "Hanover G"]);
     expect.soft([s.ink.length > 0, [...new Set(s.ink)]], "a lit place's name is drawn in the gold's ink").toEqual([true, ["rgb(42, 34, 0)"]]);
     expect.soft(lit.map(r => r.says), "each says the reader's pick").toEqual(lit.map(r => expect.stringMatching(/, 1 pick on Saturday$/)));
+    expect.soft([s.hull.mine, s.hull.edge, /^rgb\(.+\) 1\.4$/.test(s.hull.plain)], "the plate laid flat holds a pick and wears no gold edge: the hull's plain one, as a plate with no pick has").toEqual([true, s.hull.plain, true]);
     /* The arrival: a shared day's link lists the event, its row opens its sheet, and the sheet's place line is the way in. */
     const id = READER.picks[1];
     await page.goto(`/?now=${SATURDAY}&day=2026.sat.${id.slice(-8)}`);

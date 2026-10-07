@@ -1420,7 +1420,7 @@ describe("against the real schedule", () => {
       }
       Object.assign(state.map, { focus: null, stack: null, plate: null, level: null, rooms: null, zoom: null });
       state.tab = tab; handle.render();
-    });
+    }, 30000);          // 151 arrivals, each a draw of the whole page: seconds on a slow machine
     it("an arrival: 867 of the 2,123 are in one room alone, 843 of them small, where the camera goes to it; of the 1,256 in several, 358 name exactly a composite's rooms and are called by it, and none of them zooms", () => {
       const tally = { one: 0, small: 0, many: 0, composite: 0 };
       for (const ev of handle.events) {

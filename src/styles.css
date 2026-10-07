@@ -280,12 +280,16 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
    the rooms and take no pointer, so a tap on a name is its room's. A
    label's size is the drawing's (map.js): Larger text leaves the map alone.
    A lit room's words are in the gold's ink. Landmarks are not gold: gold is
-   the reader's own. A street's name stands on the frame's edge, where the
+   the reader's own. And a plate laid flat wears no gold edge - its own
+   plain one, by a rule heavier than the gold's: gold in a level is the lit
+   rooms' and their names', and the edge is the stack's way of saying which
+   plate to open. A street's name stands on the frame's edge, where the
    venue's outline can run under it: it is edged in the ground's dark, as a
    plate's label is, so the line breaks and the words read. */
 .map[data-level] .map-city { visibility: hidden; }
 .map-stack[data-level] .plate:not(.flat), .map-stack[data-level] .plate-label { visibility: hidden; }
 .plate.flat { cursor: default; }
+.plate.flat.mine .plate-hull { stroke: var(--h); stroke-width: 1.4; }
 .plate.flat .plate-room, .plate.flat .plate-open.place { cursor: pointer; }
 .plate.flat .plate-room:focus, .plate.flat .plate-open.place:focus { outline: none; }
 .map-stack[data-level] .plate.flat .plate-room:focus-visible, .map-stack[data-level] .plate.flat .plate-open.place:focus-visible { stroke: var(--text); stroke-width: 4; }

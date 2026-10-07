@@ -714,6 +714,9 @@ describe("src/styles.css", () => {
     it("the gold edge keeps a dashed plate's dashes: it sets the stroke's colour and width, and nothing of its pattern", () => {
       expect(body(".plate.mine .plate-hull")).toBe("stroke: var(--gold); stroke-width: 2.5;");
       expect(body(".plate.floor .plate-hull")).toMatch(/stroke-dasharray: 5 4;$/);
+      /* And a plate laid flat wears none (#96): the hull's own plain edge again, its colour and its width. */
+      expect(body(".plate.flat.mine .plate-hull")).toBe("stroke: var(--h); stroke-width: 1.4;");
+      expect(body(".plate-hull")).toMatch(/; stroke: var\(--h\); stroke-width: 1\.4; /);
     });
     it("an inert plate is see-through and takes no pointer: a dotted outline, no fill, and no rule gives it one", () => {
       expect(body(".plate.inert")).toBe("pointer-events: none;");
@@ -736,6 +739,7 @@ describe("src/styles.css", () => {
       const over = (a, b) => { const [x, y] = [weight(a), weight(b)]; const at = x.findIndex((v, i) => v !== y[i]); return at >= 0 && x[at] > y[at]; };
       expect([weight(".plate.mine .plate-hull"), weight(".plate:focus-visible .plate-hull"), weight("#view-map .controls-sticky"), weight("main::after")]).toEqual([[0, 3, 0], [0, 3, 0], [1, 1, 0], [0, 0, 2]]);
       expect(over(".plate.mine:focus-visible .plate-hull", ".plate.mine .plate-hull")).toBe(true);
+      expect(over(".plate.flat.mine .plate-hull", ".plate.mine .plate-hull")).toBe(true);                // a level's plain edge over the gold one
       expect(over(".plate-open.place.lit", ".plate-open.place")).toBe(true);
       expect(over(".plate-room.lit", ".plate-room")).toBe(true);
       const width = selector => Number(/stroke-width: ([\d.]+);/.exec(body(selector))[1]);

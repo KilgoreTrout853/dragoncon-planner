@@ -3290,14 +3290,14 @@ is open the next pick is said nowhere. C opens a level; E links to Search.
 - **What it is:** its plate's own nodes - the tilt and the lift undone, the
   camera moved - fitted to its rooms in the Map's frame, which does not
   grow. The rest of the stack and the city are hidden, never removed.
+- **Gold** is the lit rooms' and their names': a flat plate's edge is plain.
 - **In the Map's units,** nothing measured from the page. A label: the full
   name at 11 or more, else the short one under its group's, none under 8
   (round 7). A tap: the nearest room within 22. A zoom: a room under 44
   across, until it is 62, at most 7 a foot.
 - **The card** is the selected room's, " · as" a composite where the event
   booked one, or the plate's; a composite's leaves together take its name.
-- **The way back** is one control and Escape, a step at a time: the whole
-  level, the venue's stack, the city.
+- **The way back:** one control and Escape, a step each: level, stack, city.
 - **#86's exception:** a tap whose answer is another view of the thing
   tapped - a plate opened to its level, a room zoomed on - moves it.
 
