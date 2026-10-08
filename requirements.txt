@@ -1,8 +1,7 @@
 # Every package the pipeline, its tests and the tag stage's API transport import beyond the standard library, and
 # every package those need, each pinned, so the scrape workflow, CI and a hand run install the same files (DECISIONS
 # #44: the workflow runs Python 3.13 from this file, as CI does). Pinned to the versions the pipeline was developed and
-# tested against (pip, Python 3.13, 2026-09-23). Two install on Windows alone, by their markers. make_icons.py also
-# needs Pillow; it is a one-off and not part of CI.
+# tested against (pip, Python 3.13, 2026-09-23). Two install on Windows alone, by their markers.
 beautifulsoup4==4.14.2                     # scraper.py (bs4, with the stdlib html.parser)
 certifi==2025.10.5                         # requests
 charset-normalizer==3.4.3                  # requests

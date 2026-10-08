@@ -245,8 +245,8 @@ function fixUpPage(html) {
 /* The page's name, in its markup and never in its one script, which takes the
    year from the define: every "Dragon Con 2026" and "DC26" becomes the year's.
    A markup that no longer names the default year is refused, as a stamp that
-   silently did nothing would be. The icons draw the year in pixels, which no
-   stamp reaches (ROADMAP, Checklist). */
+   silently did nothing would be. The icons and the preview image hold no
+   year, so there is nothing of theirs to stamp (DECISIONS #102). */
 function stampPageYear(html, year) {
   const at = html.indexOf("<script>");
   let markup = html.slice(0, at);
