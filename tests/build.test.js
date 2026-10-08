@@ -700,11 +700,14 @@ describe("vite build", () => {
     it("and a size's maskable file is not its any file under another name", () => {
       for (const size of ["192", "512"]) expect(bytesOf(`icon-maskable-${size}.png`).equals(bytesOf(`icon-${size}.png`)), size).toBe(false);
     });
-    it("no drawing holds a year: no SVG under public/ or tools/icons/ says DC2, or a year from 2020 to 2099", () => {
+    it("no drawing holds a year: no SVG under public/ or tools/icons/ says DC2, or a year from 2020 to 2099, outside its metadata", () => {
       const svgs = [["public"], ["tools", "icons"]].flatMap(dir => fs.readdirSync(path.join(ROOT, ...dir)).filter(f => f.endsWith(".svg")).map(f => [...dir, f].join("/")));
       expect(svgs.sort()).toEqual(["public/icon.svg", "tools/icons/icon-maskable.svg", "tools/icons/og-image.svg"]);
-      /* the xmlns address holds "2000": the range, not any four digits */
-      for (const svg of svgs) expect(read(ROOT, svg), svg).not.toMatch(/DC2|20[2-9]\d/);
+      /* Outside <metadata>, which draws nothing: it holds the file's
+         credentials, a run of base64 that may spell anything. And the xmlns
+         address holds "2000": the range, not any four digits. */
+      const drawn = svg => read(ROOT, svg).replace(/<metadata\b[^>]*>[\s\S]*?<\/metadata>/g, "");
+      for (const svg of svgs) expect(drawn(svg), svg).not.toMatch(/DC2|20[2-9]\d/);
     });
   });
 
