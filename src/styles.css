@@ -419,15 +419,15 @@ button.pc-head { cursor: pointer; }
   border-radius: 999px; overflow: hidden; background: transparent;
 }
 .follow-chip .fc-name {
-  background: none; border: 0; min-height: 44px; padding: 7px 4px 7px 14px; font: inherit; font-size: .875rem; font-weight: 700;
+  background: none; border: 0; padding: 7px 4px 7px 14px; font: inherit; font-size: .875rem; font-weight: 700;
   color: var(--gold); cursor: pointer; white-space: nowrap;
 }
 .follow-chip .fc-x {
   background: none; border: 0; min-width: 44px; min-height: 44px; padding: 7px 10px 7px 4px; font: inherit; font-size: 1rem; line-height: 1;
   color: var(--gold); opacity: .7; cursor: pointer;
 }
-/* A follow chip's name and its x are each 44px tall, and the x 44px wide
-   (#66, #101); "Follow more" beside them is the row's height. */
+/* A follow chip's x is 44px by 44, and its name, stretched beside it, 44px
+   tall (#66, #101); "Follow more" beside them is the row's height. */
 .chip.fc-add { flex: none; height: 44px; border-radius: 22px; }
 /* A muted chip (DECISIONS #84): the follow chip's shape, and never gold. */
 .mute-chip { border-color: var(--line); }

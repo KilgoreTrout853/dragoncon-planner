@@ -1002,8 +1002,10 @@ describe("src/styles.css", () => {
       expect(css).toMatch(/\n {2}--muted: #A5A9C9;\n {2}--dim: #6F739A;/);
     });
     it("a follow chip is a mute chip's shape: its name 44px tall, its x 44 by 44, and Follow more beside them the row's height", () => {
-      expect(body(".follow-chip .fc-name")).toMatch(/(^|; )min-height: 44px; padding: 7px 4px 7px 14px; /);
+      /* the x sets the chip's height, and the name is stretched to it: one place for the 44 */
       expect(body(".follow-chip .fc-x")).toMatch(/(^|; )min-width: 44px; min-height: 44px; /);
+      expect(body(".follow-chip")).toMatch(/(^|; )display: inline-flex; align-items: stretch; /);
+      expect(body(".follow-chip .fc-name")).toMatch(/(^|; )padding: 7px 4px 7px 14px; /);
       expect(body(".chip.fc-add")).toBe("flex: none; height: 44px; border-radius: 22px;");
       expect([body(".mute-chip .fc-name"), body(".mute-chip .fc-x")].map(b => /min-(width|height)|padding/.test(b))).toEqual([false, false]);
     });

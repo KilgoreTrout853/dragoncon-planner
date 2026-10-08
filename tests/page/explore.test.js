@@ -897,7 +897,8 @@ describe("Mute beside Follow, and the Muted fold", () => {
         ".mute-chip .fc-name { color: var(--text); }",
         ".mute-chip .fc-x { color: var(--muted); opacity: 1; }",
       ]);
-      expect(css).toMatch(/\n\.follow-chip \.fc-name \{\n {2}background: none; border: 0; min-height: 44px; padding: 7px 4px 7px 14px; /);
+      /* the x sets the height, and the name is stretched to it */
+      expect(css).toMatch(/\n\.follow-chip \{\n {2}flex: none; display: inline-flex; align-items: stretch; /);
       expect(css).toMatch(/\n\.follow-chip \.fc-x \{\n {2}background: none; border: 0; min-width: 44px; min-height: 44px; /);
       expect(css).toMatch(/\n\.divider\.fold button \{\n {2}width: 100%; min-height: 44px; /);
     });
