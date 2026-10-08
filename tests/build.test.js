@@ -84,7 +84,7 @@ describe("vite build", () => {
     expect(html).toContain('<meta name="dc-channel" content="next">');
     expect(html).toContain('<meta name="dc-build" content="abc1234">');
     expect(sw).toContain('const CHANNEL = "next";');
-    expect(workerConstants(sw).CACHE).toBe("dc26-next-v7");              // the name is built from the stamps
+    expect(workerConstants(sw).CACHE).toBe("dc26-next-v8");              // the name is built from the stamps
     expect(exists(r.out, "data", "2026", "events.v2.json")).toBe(true);
     expect(exists(r.out, ".nojekyll")).toBe(true);
     for (const absent of ["tests", "src", "scraper.py", "README.md", "node_modules", "package.json"]) {
@@ -216,7 +216,7 @@ describe("vite build", () => {
         const sw = read(r.out, "sw.js");
         expect(sw).toBe(read(ROOT, "public", "sw.js").replace('const YEAR = "2026";', 'const YEAR = "2027";'));
         const { CACHE, DATA, SHELL } = workerConstants(sw);
-        expect([CACHE, DATA]).toEqual(["dc27-v7", "data/2027/events.v2.json"]);
+        expect([CACHE, DATA]).toEqual(["dc27-v8", "data/2027/events.v2.json"]);
         expect(SHELL).toContain("./data/2027/events.v2.json");
       });
       it("stamps the page's name - its title, its head's tags, the brand and the home-screen title", () => {
@@ -519,7 +519,7 @@ describe("vite build", () => {
     expect(html.slice(html.indexOf("<body>"), open)).toContain('id="sheetWrap"');     // the last body element comes first
     expect(html.slice(close + "</script>".length).replace(/\s+/g, "")).toBe("</body></html>");
     expect(fs.readdirSync(plain.out).sort()).toEqual([".nojekyll", "data", "icon-180.png", "icon-192.png", "icon-512.png",
-      "icon.svg", "index.html", "manifest.json", "og-image.png", "sw.js"]);
+      "icon-maskable-192.png", "icon-maskable-512.png", "icon.svg", "index.html", "manifest.json", "og-image.png", "sw.js"]);
   });
 
   it("the worker's schedule and shell name files the build ships, the schedule among them", SLOW, () => {
@@ -589,10 +589,10 @@ describe("vite build", () => {
       expect(() => new Function(sw())).not.toThrow();
     });
     it.skip("sw.js parses: the catch arm of 1282; it runs only when sw.js fails to parse, and then 1282 has already failed [1283]", () => {});
-    it("the cache name is versioned (v7) under a prefix the build can stamp, and only this site's caches are cleared [1290]", () => {
+    it("the cache name is versioned (v8) under a prefix the build can stamp, and only this site's caches are cleared [1290]", () => {
       expect(sw()).toMatch(/const CHANNEL = "";/);
       expect(sw()).toMatch(/const YEAR = "2026";/);
-      expect(sw()).toMatch(/const CACHE = `\$\{CACHE_PREFIX\}v7`;/);
+      expect(sw()).toMatch(/const CACHE = `\$\{CACHE_PREFIX\}v8`;/);
       expect(sw()).toMatch(/OURS\.test\(n\) && n !== CACHE/);
     });
     it("the worker precaches the icons [1307]", () => {
@@ -670,6 +670,44 @@ describe("vite build", () => {
     });
     it("the icon file exists [1333]", () => {
       expect(exists(plain.out, "icon.svg")).toBe(true);
+    });
+
+    /* The icon is a drawing with no year, and Android has one of its own
+       (DECISIONS #102). A PNG is told by its eight-byte signature, and its
+       size read from its own header, IHDR's width and height. */
+    const bytesOf = file => fs.readFileSync(path.join(plain.out, file));
+    const sizeOf = file => {
+      const bytes = bytesOf(file);
+      expect([...bytes.subarray(0, 8)], `${file} is a PNG`).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      expect(bytes.toString("latin1", 12, 16), `${file} begins with its header`).toBe("IHDR");
+      return `${bytes.readUInt32BE(16)}x${bytes.readUInt32BE(20)}`;
+    };
+    const fileOf = icon => icon.src.replace(/^\.\//, "");
+    const pngs = () => manifest().icons.filter(i => i.type === "image/png");
+
+    it("each PNG the manifest names is the size its entry says, by the file's own header", () => {
+      expect(pngs().map(i => `${i.sizes} ${i.purpose}`).sort()).toEqual(["192x192 any", "192x192 maskable", "512x512 any", "512x512 maskable"]);
+      for (const icon of pngs()) expect(sizeOf(fileOf(icon)), icon.src).toBe(icon.sizes);
+    });
+    it("the home-screen icon is 180x180, and the link preview 1200x630", () => {
+      expect(sizeOf("icon-180.png")).toBe("180x180");
+      expect(sizeOf("og-image.png")).toBe("1200x630");
+    });
+    it("a maskable entry names a maskable file, and no other entry does", () => {
+      for (const icon of manifest().icons) expect(icon.src.includes("maskable"), `${icon.src}, ${icon.purpose}`).toBe(icon.purpose === "maskable");
+      for (const icon of pngs().filter(i => i.purpose === "maskable")) expect(fileOf(icon), icon.src).toMatch(/^icon-maskable-\d+\.png$/);
+    });
+    it("and a size's maskable file is not its any file under another name", () => {
+      for (const size of ["192", "512"]) expect(bytesOf(`icon-maskable-${size}.png`).equals(bytesOf(`icon-${size}.png`)), size).toBe(false);
+    });
+    it("no drawing holds a year: no SVG under public/ or tools/icons/ says DC2, or a year from 2020 to 2099, outside its metadata", () => {
+      const svgs = [["public"], ["tools", "icons"]].flatMap(dir => fs.readdirSync(path.join(ROOT, ...dir)).filter(f => f.endsWith(".svg")).map(f => [...dir, f].join("/")));
+      expect(svgs.sort()).toEqual(["public/icon.svg", "tools/icons/icon-maskable.svg", "tools/icons/og-image.svg"]);
+      /* Outside <metadata>, which draws nothing: it holds the file's
+         credentials, a run of base64 that may spell anything. And the xmlns
+         address holds "2000": the range, not any four digits. */
+      const drawn = svg => read(ROOT, svg).replace(/<metadata\b[^>]*>[\s\S]*?<\/metadata>/g, "");
+      for (const svg of svgs) expect(drawn(svg), svg).not.toMatch(/DC2|20[2-9]\d/);
     });
   });
 

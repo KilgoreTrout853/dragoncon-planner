@@ -553,6 +553,11 @@ confirmed on a phone, by PR #77's hand test and with the install flow
 
 ## Flags
 
+- Every build's `og:image` and `og:url` are the live site's address, so a
+  link to the next site or the beta site previews with the live site's
+  image (#102). A fix touches `index.html`'s four address tags, a build
+  variable in `build/vite-dc.js`, test [1297], ARCHITECTURE, a DECISIONS
+  entry and each deploy repository's workflow.
 - Delete my account reaches a second phone signed in as the same user
   only when its token next expires, within the hour: until then its reads
   come back empty, so its crew goes, and a star it sends is turned away,
@@ -785,10 +790,6 @@ Steps taken by hand, beside the PRs rather than in them:
 - At the season start, once the first run past the ids stage has written
   `data/2027/events.v2.json`: `DC_YEAR=2027` on `next`, in the next site's
   build - the `dragoncon-planner-next` repository's workflow (#49).
-- Before the 2027 client ships: the icons and the preview image redrawn
-  for 2027. `public/icon.svg`, the `icon-*.png` files and `og-image.png`
-  draw DC26 and Dragon Con 2026, which the build's stamp does not reach
-  (`make_icons.py`; #49).
 - For you's weights are by hand and untuned; its reason takes the
   ellipsis where line 3 cannot hold a long name; and a list held keeps a
   row whose event has started until the grid is left (#87; contract,

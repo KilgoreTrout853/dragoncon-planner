@@ -179,14 +179,14 @@ describe("the page it keeps", () => {
 });
 
 describe("what the stamps name", () => {
-  it("unstamped: 2026's schedule, in the shell, and the cache dc26-v7", () => {
+  it("unstamped: 2026's schedule, in the shell, and the cache dc26-v8", () => {
     const w = worker();
-    expect([w.DATA, w.CACHE]).toEqual(["data/2026/events.v2.json", "dc26-v7"]);
+    expect([w.DATA, w.CACHE]).toEqual(["data/2026/events.v2.json", "dc26-v8"]);
     expect(w.SHELL).toContain("./data/2026/events.v2.json");
   });
-  it("the year and the channel stamped: 2027's schedule, in the shell, and dc27-next-v7", () => {
+  it("the year and the channel stamped: 2027's schedule, in the shell, and dc27-next-v8", () => {
     const w = worker({ year: "2027", channel: "next" });
-    expect([w.DATA, w.CACHE]).toEqual(["data/2027/events.v2.json", "dc27-next-v7"]);
+    expect([w.DATA, w.CACHE]).toEqual(["data/2027/events.v2.json", "dc27-next-v8"]);
     expect(w.SHELL).toContain("./data/2027/events.v2.json");
     expect(w.SHELL).not.toContain("./data/2026/events.v2.json");
   });
@@ -195,7 +195,7 @@ describe("what the stamps name", () => {
 /* Every cache a device might hold on this origin: the live site's and the
    next site's of three years, a channel whose name begins with next, a name
    that only begins like one of ours, and someone else's. */
-const HELD = ["dc25-v4", "dc26-v6", "dc26-v7", "dc27-v7", "dc26-next-v6", "dc26-next-v7", "dc27-next-v7", "dc26-next2-v1", "dc26-v6-old", "other-v1"];
+const HELD = ["dc25-v4", "dc26-v7", "dc26-v8", "dc27-v8", "dc26-next-v7", "dc26-next-v8", "dc27-next-v8", "dc26-next2-v1", "dc26-v6-old", "other-v1"];
 async function activate(stamps) {
   const w = worker({ ...stamps, caches: fakeCaches(HELD) });
   const waits = [];
@@ -206,13 +206,13 @@ async function activate(stamps) {
 
 describe("which caches a new worker clears", () => {
   it("the live site's clears its own of every other year and version, and never the next site's", async () => {
-    expect(await activate({})).toEqual(["dc25-v4", "dc26-v6", "dc27-v7"]);
+    expect(await activate({})).toEqual(["dc25-v4", "dc26-v7", "dc27-v8"]);
   });
   it("the next site's clears the next site's of every other year and version, and never the live site's", async () => {
-    expect(await activate({ channel: "next" })).toEqual(["dc26-next-v6", "dc27-next-v7"]);
+    expect(await activate({ channel: "next" })).toEqual(["dc26-next-v7", "dc27-next-v8"]);
   });
   it("2027's live worker clears 2026's", async () => {
-    expect(await activate({ year: "2027" })).toEqual(["dc25-v4", "dc26-v6", "dc26-v7"]);
+    expect(await activate({ year: "2027" })).toEqual(["dc25-v4", "dc26-v7", "dc26-v8"]);
   });
 });
 

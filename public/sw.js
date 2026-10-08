@@ -24,7 +24,7 @@
 const CHANNEL = "";                        /* stamped by the build: "next" on the next site */
 const YEAR = "2026";                       /* stamped by the build: DC_YEAR, where it is not 2026 */
 const CACHE_PREFIX = `dc${YEAR.slice(2)}${CHANNEL ? "-" + CHANNEL : ""}-`;
-const CACHE = `${CACHE_PREFIX}v7`;
+const CACHE = `${CACHE_PREFIX}v8`;
 /* This site's caches, of any year, by the whole name: dc<yy>-v<n> for the
    live site and dc<yy>-<channel>-v<n> for a stamped one. A prefix alone let
    the live site's worker take the next site's caches too. */

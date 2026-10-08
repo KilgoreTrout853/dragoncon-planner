@@ -1216,7 +1216,7 @@ take pull requests only.
 costs nothing, since it commits nothing (#44). About a minute of CI a run.
 A token to rotate every year.
 
-### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12); renamed by PR #76; since PR #77 a removed event can be unstarred, never starred anew - its star hidden and disabled, on a row and in its sheet, for a reader who has not picked it - and a crewmate's removed pick is drawn, marked, in Plans' crew's day (`docs/screens/contract.md`, section 5, as built); amended by #94; amended by #101
+### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12); renamed by PR #76; since PR #77 a removed event can be unstarred, never starred anew - its star hidden and disabled, on a row and in its sheet, for a reader who has not picked it - and a crewmate's removed pick is drawn, marked, in Plans' crew's day (`docs/screens/contract.md`, section 5, as built); amended by #94; amended by #101; amended by #102
 **Decided:** The client is built for one year, `DC_YEAR`'s (#42), and
 reads that year's contract: its `events.v2.json`, and at build its
 `season.json` and `venues.json`. Plumbing and parity, as #39 was;
@@ -3433,3 +3433,24 @@ would have stood beside 2026's app on a home screen under one name.
 **Cost:** A reader who stars before first opening the Map never meets the
 hint. A row of follow chips scrolls sooner. The rung's card is 22 px. An
 app already on a home screen keeps the name it was added with.
+
+### 102. The icon is a drawing with no year: a dragon's eye in its scales — Standing (2026-10-08)
+**Decided:** The app's icon and its link preview are drawings that hold no
+year, so nothing is redrawn for 2027 or any year after (PR #119). Amends #49.
+- **The drawing** is a dragon's gold eye in its dark blue scales.
+  `public/icon.svg` is the source and the tab's icon, and the icon PNGs are
+  rendered from it.
+- **Android has a drawing of its own,** `tools/icons/icon-maskable.svg`: the
+  eye inside the middle 80%, all a mask promises to show. The manifest's
+  `maskable` entries name its two PNGs, and its `any` entries never do.
+- **The preview** is `tools/icons/og-image.svg`: the eye above the words
+  "Dragon Con planner".
+- **The dragon is a detail,** never Dragon Con's dragon-in-a-circle.
+- **`tools/render-icons.mjs`,** run by hand, renders the six PNGs with the
+  browser tests' Chromium and Barlow (#81); `make_icons.py` is gone.
+
+**Why:** The build cannot stamp pixels (#49). "DC26" in a ring repeated the
+name under it, and changed every year.
+**Cost:** An iPhone keeps the icon it was added with until the app is
+removed and added again. Two drawings to keep in step. The icon's colours
+are its own, not the stylesheet's tokens.
