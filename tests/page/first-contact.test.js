@@ -67,8 +67,9 @@ describe("a stranger, on a build with no backend", () => {
     it("and Now after the con, the record with nothing in it", () => {
       handle.setTimeOverride(AFTER_THE_CON);
       tapTab("now");
-      expect(words(view("now").querySelector(".empty"))).toBe("Nothing starred. Star things in Explore or Search and they'll be listed here by day.");
+      const said = words(view("now").querySelector(".empty"));
       handle.setTimeOverride(SATURDAY);
+      expect(said).toBe("Nothing starred. Star things in Explore or Search and they'll be listed here by day.");
     });
     it("none of the four names Search alone", () => {
       const said = [];
