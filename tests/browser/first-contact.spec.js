@@ -77,7 +77,8 @@ for (const [text, storage] of Object.entries(TEXT)) {
         await page.locator('#view-plans [data-act="view-list"]').tap();
         await settled(page);
         const list = await page.evaluate(plansTop);
-        expect.soft([list.controls.find(c => c.says === "List").pressed, Math.abs(list.view.top - top.view.top) <= 1, Math.abs(list.view.left - top.view.left) <= 1], "List pressed, and the switch where it stood").toEqual(["true", true, true]);
+        expect.soft([list.controls.find(c => c.says === "List").pressed, Math.abs(list.view.top - top.view.top) <= 0.1, Math.abs(list.view.left - top.view.left) <= 0.1, Math.abs(list.view.width - top.view.width) <= 0.1],
+          `List pressed, and the switch where it stood, one width whichever side is pressed: ${top.view.left.toFixed(2)} and ${top.view.width.toFixed(2)} wide, then ${list.view.left.toFixed(2)} and ${list.view.width.toFixed(2)}`).toEqual(["true", true, true, true]);
       });
     });
   });

@@ -82,8 +82,13 @@ describe("src/styles.css", () => {
       expect(a[1]).toBe(b && b[1]);
     });
     it("the switch hugs its words at the row's right end, each side of it 44px wide or more, and it is the segment's own class - so its ring is the segment's, and no third ring is drawn inside a control", () => {
-      expect(css).toContain("\n.plans-view { width: fit-content; margin: 0 14px 8px auto; }\n.plans-view button { flex: none; min-width: 44px; padding: 0 16px; }\n");
+      expect(css).toContain("\n.plans-view { width: fit-content; margin: 0 14px 8px auto; }\n.seg.plans-view button { flex: none; min-width: 44px; padding: 0 16px; font-weight: 600; }\n");
       expect(css).not.toMatch(/\.plans-view[^{]*:focus-visible/);
+    });
+    it("both of its sides wear one weight, a pressed side's: a switch that hugs its words would change its width, and its left edge its place, with the side that is pressed - by a rule heavier than the segment's own", () => {
+      expect(css).toMatch(/\n\.seg button \{[^}]*font-weight: 500;[^}]*\}\n/);
+      expect(css).toMatch(/\n\.seg button\[aria-pressed="true"\] \{[^}]*font-weight: 600;[^}]*\}\n/);
+      expect(css).toMatch(/\n\.seg\.plans-view button \{[^}]*font-weight: 600; \}\n/);
     });
     it("the rung is a card: its line and its two buttons in one bordered box, as a notice's is", () => {
       expect(css).toContain("\n.crew-rung { display: grid; gap: 10px; margin: 12px 14px 0; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }\n");

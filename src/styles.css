@@ -633,9 +633,13 @@ select.crew-pick {
 .plans-seg { display: flex; margin: 8px 14px 4px; }
 .plans-seg button { flex: 1; height: 44px; }
 .plans-seg button:focus-visible { outline-offset: -3px; }   /* inside: .seg clips its corners */
-/* The view's switch: the segment's own class, so its ring is the segment's. */
+/* The view's switch: the segment's own class, so its ring is the segment's.
+   It hugs its words, so both sides wear one weight, a pressed side's, by a
+   rule heavier than the segment's own: a pressed side is heavier, and the
+   switch would change its width, and its left edge its place, with the
+   side that is pressed. */
 .plans-view { width: fit-content; margin: 0 14px 8px auto; }
-.plans-view button { flex: none; min-width: 44px; padding: 0 16px; }
+.seg.plans-view button { flex: none; min-width: 44px; padding: 0 16px; font-weight: 600; }
 .plans-days .chip { height: 44px; border-radius: 22px; }
 .crew-who { margin: 0; padding: 18px 14px 4px; font-size: 1.125rem; font-weight: 700; }
 .crew-who .count { font-size: .875rem; color: var(--muted); font-weight: 400; }
