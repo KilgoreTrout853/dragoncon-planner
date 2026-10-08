@@ -1020,4 +1020,36 @@ describe("src/styles.css", () => {
       expect(css).toMatch(/\nbody \{\n {2}margin: 0; font-family: var\(--font\); font-size: 1\.0625rem; line-height: 1\.3;/);
     });
   });
+
+  /* After the first hand check (DECISIONS #103). */
+  describe("after the first hand check (DECISIONS #103)", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim().replace(/\s+/g, " ") }));
+    const body = selector => rules.filter(r => r.selector === selector).map(r => r.body).join(" | ");
+
+    it("no rule is left for the Timeline's walk link or its badge", () => {
+      expect(css).not.toMatch(/tl-link/);
+      expect(rules.filter(r => /\.tl-/.test(r.selector) && /dashed/.test(r.body)).map(r => r.selector)).toEqual([]);
+    });
+    it("the Filters button's edge is --muted, a control's and lighter than the box's --line beside it; its fill and its height are as they were, and its icon is drawn in the button's own colour", () => {
+      expect(body(".filters-btn")).toBe("flex: none; height: 48px; padding: 0 14px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--muted); color: var(--text); font-weight: 600;");
+      expect(body(".search")).toMatch(/background: var\(--surface\); border: 1px solid var\(--line\); /);
+      expect(body(".filters-btn svg")).toBe("flex: none; width: 1.125rem; height: 1.125rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;");
+      expect(rules.filter(r => /filters-btn/.test(r.selector) && /--gold\b/.test(r.body)).map(r => r.selector)).toEqual([]);
+    });
+    it("the crew's count after a floor's name is the text's own colour and never gold: its one rule, and no other names it", () => {
+      expect(rules.filter(r => /pl-crew/.test(r.selector)).map(r => [r.selector, r.body])).toEqual([[".plate-label .pl-crew", "fill: var(--text);"]]);
+      expect(body(".plate-label .pl-picks")).toBe("fill: var(--gold);");
+    });
+    it("the fold of a person's day wears Following's head, 44px tall or more, and adds no colour of its own", () => {
+      expect(body(".crew-fold")).toMatch(/(^|; )min-height: 44px; /);
+      expect(rules.filter(r => /crew-(fold|who|none)/.test(r.selector) && /--(gold|dim|warn)\b/.test(r.body)).map(r => r.selector)).toEqual([]);
+      expect(body(".crew-none")).toMatch(/color: var\(--muted\);/);
+    });
+    it("no colour token was added: the root's are the twenty-one it had", () => {
+      const root = /:root \{([^}]*)\}/.exec(bare)[1];
+      expect([...root.matchAll(/(--[\w-]+): #/g)].map(m => m[1])).toEqual(["--ink", "--surface", "--raised", "--line", "--text", "--muted", "--dim", "--stage", "--gold", "--gold-ink", "--warn",
+        "--h-Marriott", "--h-Hyatt", "--h-Hilton", "--h-Courtland", "--h-Westin", "--h-Mart", "--h-Hardy", "--h-Streaming", "--h-Other", "--park"]);
+    });
+  });
 });

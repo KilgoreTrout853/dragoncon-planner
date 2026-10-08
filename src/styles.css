@@ -240,7 +240,8 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 /* Gold is the reader's own, here as everywhere: the edge of a plate that
    holds a pick of theirs that day, a dashed plate's too; the rooms their
    picks light; the star and its count on a label, and before a name on the
-   card. The crew is on the venue's line and nowhere on the plates. */
+   card. The crew is a number - on the venue's line, after a floor's name
+   and on a card's day line - in the text's own colour, and no mark. */
 .plate.mine .plate-hull { stroke: var(--gold); stroke-width: 2.5; }
 /* Focus on a gold edge is thicker again, and its rule outweighs the gold's
    own width whatever order they stand in. A lit place outweighs the rule
@@ -264,6 +265,7 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .plate-label { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--text); paint-order: stroke; stroke: var(--ink); stroke-width: 3px; stroke-linejoin: round; }
 .plate-label .pl-count { fill: var(--muted); font-weight: 600; }
 .plate-label .pl-picks { fill: var(--gold); }
+.plate-label .pl-crew { fill: var(--text); }
 .plate-label.inert { fill: var(--muted); font-weight: 600; }
 /* The card while a stack is open. The slot keeps one height, a plate's card
    with two rows - its top margin, border and padding, the venue's name, the
@@ -296,6 +298,9 @@ button.pc-head { cursor: pointer; }
 .pc-head .pc-words, .pc-head .pc-words > span { display: block; min-width: 0; }
 .pc-head .pc-chevron { color: var(--muted); font-size: 1.375rem; line-height: 1; }
 .plate-card .nc-title { display: block; white-space: nowrap; text-overflow: ellipsis; }
+/* The day's line is one line, as the venue's is: words that outgrow it end
+   in an ellipsis, and the card and the slot keep their height. */
+.plate-card .nc-when { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .plate-card.mine .nc-title::before, .pc-row.mine .pc-title::before { content: "★"; margin-right: .2em; color: var(--gold); }
 .pc-rows { list-style: none; margin: 8px -14px -12px; padding: 0; }
 .pc-row { display: grid; width: 100%; min-height: 46px; padding: 6px 14px; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; align-content: center; gap: 1px; }
@@ -351,16 +356,21 @@ button.pc-head { cursor: pointer; }
 .search {
   width: 100%; height: 48px; padding: 0 14px; border-radius: 12px;
   background: var(--surface); border: 1px solid var(--line); color: var(--text);
+  text-overflow: ellipsis;
 }
 .search::placeholder { color: var(--muted); }
 /* The box and the Filters button beside it, at the box's height; the badge
-   counts the filter sheet's filters in effect (#70). */
+   counts the filter sheet's filters in effect (#70). The button has an icon
+   and a lighter edge, a control on a par with the box (#103), and the box
+   gives up the width: where its placeholder no longer fits - Larger text on
+   a narrow phone, with a badge showing - the words end in an ellipsis. */
 .search-row { display: flex; gap: 8px; }
 .search-row .search { flex: 1 1 auto; min-width: 0; }
 .filters-btn {
   flex: none; height: 48px; padding: 0 14px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;
-  background: var(--surface); border: 1px solid var(--line); color: var(--text); font-weight: 600;
+  background: var(--surface); border: 1px solid var(--muted); color: var(--text); font-weight: 600;
 }
+.filters-btn svg { flex: none; width: 1.125rem; height: 1.125rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .filters-badge { background: var(--gold); color: var(--gold-ink); border-radius: 10px; font-size: .75rem; padding: 1px 6px; font-weight: 700; }
 .filters-badge[hidden] { display: none; }
 .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
@@ -641,9 +651,13 @@ select.crew-pick {
 .plans-view { width: fit-content; margin: 0 14px 8px auto; }
 .seg.plans-view button { flex: none; min-width: 44px; padding: 0 16px; font-weight: 600; }
 .plans-days .chip { height: 44px; border-radius: 22px; }
-.crew-who { margin: 0; padding: 18px 14px 4px; font-size: 1.125rem; font-weight: 700; }
-.crew-who .count { font-size: .875rem; color: var(--muted); font-weight: 400; }
-.crew-none { margin: 0; padding: 4px 14px 8px; color: var(--muted); font-size: .9375rem; }
+/* A person of the crew's day: a fold whose head is Following's, in the
+   person's heading, 44 px tall or more; or, with no pick that day, one
+   quiet line. */
+.crew-who { margin: 0; font: inherit; }
+.crew-fold { min-height: 44px; padding: 10px 14px; align-items: center; }
+.crew-none { margin: 0; padding: 12px 14px; color: var(--muted); font-size: .9375rem; }
+.crew-none-who { font-weight: 600; }
 
 /* Bottom nav -------------------------------------------------------- */
 .nav {
@@ -818,6 +832,9 @@ select.crew-pick {
   overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
 }
 .filter-group { display: grid; gap: 6px; min-width: 0; }
+/* The six menus of What it's about: two groups under one title, as far apart
+   as the body's own groups are. */
+.filter-about { display: grid; gap: 14px; min-width: 0; }
 .filter-label { font-size: .75rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 /* The place Search holds, said under the Hotel chips (DECISIONS #98): words,
@@ -1099,13 +1116,3 @@ body.has-minibar .devmark { bottom: calc(var(--nav-h) + 5px + var(--minibar-h));
   content: "now"; position: absolute; left: 0; top: -8px; font-size: .6875rem; font-weight: 700;
   color: var(--warn); background: var(--ink); padding-right: 4px;
 }
-.tl-link { position: absolute; z-index: 2; pointer-events: none; border-left: 2px dashed var(--muted); }
-.tl-link span {
-  /* right-aligned: block titles run from the left, so a badge pinned right
-     clears them even when two picks are back to back with no gap to sit in */
-  position: absolute; right: 4px; top: 50%; transform: translateY(-50%); white-space: nowrap;
-  font-size: .6875rem; font-weight: 700; color: var(--muted);
-  background: var(--ink); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
-}
-.tl-link.tight { border-left-color: var(--warn); }
-.tl-link.tight span { color: var(--warn); }

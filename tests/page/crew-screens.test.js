@@ -64,10 +64,25 @@ async function settled(page) {
   await page.app.syncSettled();
 }
 const members = () => [...el("crewMembers").children].map(li => words(li));
-const blocks = () => [...plans().querySelectorAll(".crew-person")].map(b => ({
-  who: words(b.querySelector(".crew-who")), rows: [...b.querySelectorAll(".row")].map(r => r.dataset.id),
-  list: [...new Set([...b.querySelectorAll(".row")].map(r => r.dataset.list))], none: words(b.querySelector(".crew-none")),
-}));
+/* The crew's day as the page holds it, a block a person: who is its fold's
+   head less the caret - the name and the count - or the name on the quiet
+   line of a person with no pick that day, which is none; the rows are those
+   in the page, so only an open fold's. */
+const blocks = () => [...plans().querySelectorAll(".crew-person")].map(b => {
+  const head = b.querySelector(".crew-fold");
+  return {
+    who: head ? words(head).slice(0, -words(head.querySelector(".caret")).length).trim() : words(b.querySelector(".crew-none-who")),
+    rows: [...b.querySelectorAll(".row")].map(r => r.dataset.id),
+    list: [...new Set([...b.querySelectorAll(".row")].map(r => r.dataset.list))], none: words(b.querySelector(".crew-none")),
+  };
+});
+/* Every fold of the crew's day opened, each by a tap on its head, as a
+   reader opens one; then the blocks. */
+function unfold() {
+  for (let shut; (shut = plans().querySelector('.crew-fold[aria-expanded="false"]'));) shut.click();
+  return blocks();
+}
+const fold = user => el(`crewFold-${user.id}`);
 
 describe("a build with no backend: Plans is Mine as built, and the sheet closes on Escape", () => {
   let page, app, handle;
@@ -315,7 +330,7 @@ describe("not in a crew: the rung, and Start a crew", () => {
   it("on a con day the segment is shown, and on Crew: the reader alone, with no picks on the day", () => {
     expect(el("plansViewCrew").getAttribute("aria-pressed")).toBe("true");
     expect(el("plansViewMine").getAttribute("aria-pressed")).toBe("false");
-    expect(blocks()).toEqual([{ who: "Ada (you)", rows: [], list: [], none: "No picks on Saturday." }]);
+    expect(blocks()).toEqual([{ who: "Ada (you)", rows: [], list: [], none: "Ada (you) · no picks on Saturday" }]);
     expect(read("plansView")).toBe(null);
   });
   it("Done closes it, and focus goes to the header's Manage, which took the place of the button that opened it", () => {
@@ -930,11 +945,56 @@ describe("the crew's day, the segment, and the redraws", () => {
     expect(chips.filter(c => c.getAttribute("aria-pressed") === "true").map(c => c.dataset.value)).toEqual(["2026-09-05"]);
     expect(plans().querySelector(".plans-actions")).toBe(null);
   });
-  it("one block a member, the reader first and the rest by name, each their picks that day as compact rows", () => {
+  /* The crew's day, folded (DECISIONS #103). */
+  it("every fold is shut when the page loads, the reader's own too: a head a person with a pick that day - a button in the person's heading, saying the name, the count and a caret, and naming what it opens - and no row in the page", () => {
     expect(blocks()).toEqual([
+      { who: "Ada (you) 1", rows: [], list: [], none: "" },
+      { who: "Bo 2", rows: [], list: [], none: "" },
+      { who: "Cy", rows: [], list: [], none: "Cy · no picks on Saturday" },
+    ]);
+    for (const user of [ada, bo]) {
+      const head = fold(user), body = el(head.getAttribute("aria-controls"));
+      expect([head.tagName, head.parentElement.tagName, head.parentElement.className, head.getAttribute("aria-expanded"), head.dataset.act]).toEqual(["BUTTON", "H3", "crew-who", "false", "crew-fold"]);
+      expect([words(head.querySelector(".caret")), head.querySelector(".caret").getAttribute("aria-hidden")]).toEqual(["▸", "true"]);
+      expect([body.parentElement === head.closest(".crew-person"), body.hidden, body.childElementCount]).toEqual([true, true, 0]);
+    }
+    expect(handle.state.plans.open).toEqual({});
+  });
+  it("a person with no pick that day is one quiet line, the name and the day, and no button", () => {
+    const cys = plans().querySelector(`.crew-person[data-user="${cy.id}"]`);
+    expect([cys.children.length, cys.firstElementChild.tagName, cys.firstElementChild.className, words(cys)]).toEqual([1, "P", "crew-none", "Cy · no picks on Saturday"]);
+    expect([cys.querySelector("button, [role=button], h3"), fold(cy)]).toEqual([null, null]);
+  });
+  it("a head's tap opens that person and no other, with focus kept on the head; a second tap shuts it; and nothing of it is stored - it is the page's, and a load's folds are shut", () => {
+    const stored = () => JSON.stringify(Object.entries(window.localStorage).sort());
+    const before = stored();
+    press(fold(bo));
+    expect(stored()).toBe(before);
+    expect([fold(bo).getAttribute("aria-expanded"), words(fold(bo).querySelector(".caret")), el(fold(bo).getAttribute("aria-controls")).hidden, document.activeElement === fold(bo)]).toEqual(["true", "▾", false, true]);
+    expect(blocks().map(b => [b.who, b.rows])).toEqual([["Ada (you) 1", []], ["Bo 2", [SAT[0], SAT[3]]], ["Cy", []]]);
+    expect([fold(ada).getAttribute("aria-expanded"), handle.state.plans.open]).toEqual(["false", { [bo.id]: true }]);
+    press(fold(bo));
+    expect([fold(bo).getAttribute("aria-expanded"), plans().querySelectorAll(".row").length, document.activeElement === fold(bo)]).toEqual(["false", 0, true]);
+    press(fold(bo));
+    expect(fold(bo).getAttribute("aria-expanded")).toBe("true");
+  });
+  it("what is open stays open across a day's chip and another tab, by person: Bo's, and the reader's own still shut", async () => {
+    plans().querySelector('[data-chip="plans-day"][data-value="2026-09-04"]').click();
+    expect(blocks().map(b => [b.who, b.rows, b.none])).toEqual([["Ada (you)", [], "Ada (you) · no picks on Friday"], ["Bo 1", [FRI[0]], ""], ["Cy", [], "Cy · no picks on Friday"]]);
+    expect(fold(bo).getAttribute("aria-expanded")).toBe("true");
+    plans().querySelector('[data-chip="plans-day"][data-value="2026-09-05"]').click();
+    expect([fold(ada).getAttribute("aria-expanded"), fold(bo).getAttribute("aria-expanded")]).toEqual(["false", "true"]);
+    tapTab("now");
+    tapTab("plans");
+    await app.syncSettled();
+    expect([fold(ada).getAttribute("aria-expanded"), fold(bo).getAttribute("aria-expanded"), blocks()[1].rows]).toEqual(["false", "true", [SAT[0], SAT[3]]]);
+    document.activeElement.blur();
+  });
+  it("one block a member, the reader first and the rest by name, each their picks that day as compact rows under its open fold", () => {
+    expect(unfold()).toEqual([
       { who: "Ada (you) 1", rows: [SAT[2]], list: [`crew:${ada.id}`], none: "" },
       { who: "Bo 2", rows: [SAT[0], SAT[3]], list: [`crew:${bo.id}`], none: "" },
-      { who: "Cy", rows: [], list: [], none: "No picks on Saturday." },
+      { who: "Cy", rows: [], list: [], none: "Cy · no picks on Saturday" },
     ]);
     expect(plans().querySelectorAll(".crew-person .list.compact").length).toBe(2);
   });
@@ -942,7 +1002,7 @@ describe("the crew's day, the segment, and the redraws", () => {
     plans().querySelector('[data-chip="plans-day"][data-value="2026-09-04"]').click();
     expect(handle.state.plans.day).toBe("2026-09-04");
     expect(blocks().map(b => [b.who, b.rows, b.none])).toEqual([
-      ["Ada (you)", [], "No picks on Friday."], ["Bo 1", [FRI[0]], ""], ["Cy", [], "No picks on Friday."]]);
+      ["Ada (you)", [], "Ada (you) · no picks on Friday"], ["Bo 1", [FRI[0]], ""], ["Cy", [], "Cy · no picks on Friday"]]);
     plans().querySelector('[data-chip="plans-day"][data-value="2026-09-05"]').click();
   });
   it("a crewmate's pick carries the reader's own star: tapped, it is the reader's pick, and the row stays put", () => {
@@ -999,10 +1059,23 @@ describe("the crew's day, the segment, and the redraws", () => {
     await app.syncSettled();
     expect(gets(fake, "crews").length).toBe(reads + 1);
   });
-  it("a pull that changed only a crewmate's picks redraws Plans: the new row is there with no tap", async () => {
+  it("a pull that changed only a crewmate's picks redraws Plans: the crewmate's fold is there with no tap, shut, with its count", async () => {
+    expect(fold(cy)).toBe(null);
     pick(fake, cy, SAT[4]);
     await run();
-    expect(blocks().find(b => b.who.startsWith("Cy")).rows).toEqual([SAT[4]]);
+    expect([blocks().find(b => b.who.startsWith("Cy")).who, fold(cy).getAttribute("aria-expanded"), blocks().find(b => b.who.startsWith("Cy")).rows]).toEqual(["Cy 1", "false", []]);
+  });
+  it("what is open stays open through a pull: Bo's fold open, a pick of Bo's pulled, Plans drawn again - Bo's fold still open, its count the new one and the new row under it, and Cy's, never opened, still shut", async () => {
+    const bos = () => blocks().find(b => b.who.startsWith("Bo")), was = bos(), head = fold(bo);
+    expect([head.getAttribute("aria-expanded"), was.who]).toEqual(["true", `Bo ${was.rows.length}`]);
+    pick(fake, bo, SAT[1]);
+    await run();
+    expect([head.isConnected, fold(bo).getAttribute("aria-expanded"), bos().who, bos().rows.includes(SAT[1]), bos().rows.length]).toEqual([false, "true", `Bo ${was.rows.length + 1}`, true, was.rows.length + 1]);
+    expect(fold(cy).getAttribute("aria-expanded")).toBe("false");
+    fake.write(bo.id, "picks", { event_id: SAT[1], picked: false, changed_at: iso(Date.now() + 1000) });
+    await run();
+    expect([fold(bo).getAttribute("aria-expanded"), bos()]).toEqual(["true", was]);
+    expect(unfold().find(b => b.who.startsWith("Cy")).rows).toEqual([SAT[4]]);
   });
   it("a pull that changed nothing, or only the order its members came in, draws nothing", async () => {
     const marker = plans().firstElementChild;
@@ -1411,7 +1484,7 @@ describe("the segment's default off the con's days, and a saved one", () => {
     expect(el("plansViewMine").getAttribute("aria-pressed")).toBe("true");
     press(el("plansViewCrew"));
     expect(plans().querySelector('[data-chip="plans-day"][aria-pressed="true"]').dataset.value).toBe(page.app.FIRST_FULL_DAY);
-    expect(words(plans().querySelector(".crew-none"))).toBe(`No picks on ${page.app.DAY_LONG[page.app.FIRST_FULL_DAY]}.`);
+    expect(words(plans().querySelector(".crew-none"))).toBe(`Ada (you) · no picks on ${page.app.DAY_LONG[page.app.FIRST_FULL_DAY]}`);
     await page.app.syncSettled();
     await page.cleanup();
   }, 30000);
@@ -1620,7 +1693,7 @@ describe("the crew's day with a removed pick, and one the schedule does not hold
   afterAll(() => page.cleanup());
 
   it("a crewmate's removed pick is marked and has no star to add it; the one not on this schedule is left out", () => {
-    expect(blocks().map(b => [b.who, b.rows])).toEqual([["Ada (you) 1", [SAT[5]]], ["Bo 2", [SAT[1], SAT[2]]]]);
+    expect(unfold().map(b => [b.who, b.rows])).toEqual([["Ada (you) 1", [SAT[5]]], ["Bo 2", [SAT[1], SAT[2]]]]);
     const theirs = plans().querySelector(`.row[data-id="${SAT[1]}"][data-list="crew:${bo.id}"]`);
     expect(theirs.classList.contains("removed")).toBe(true);
     expect(theirs.querySelector(".star").disabled).toBe(true);

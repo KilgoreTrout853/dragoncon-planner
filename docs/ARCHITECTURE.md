@@ -107,10 +107,10 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/page/` | Vitest, one file per part of the app: the source, booted in jsdom, driven through the DOM and `boot()`'s handle. |
 | `tests/unit/` | Vitest: pure exports, imported by name from the module that holds them, with no page; and the push function's logic, `supabase/functions/push/push.js`, run in Node against a fake PostgREST, fake push services and a clock the test moves (`push.test.js`). |
 | `tests/rules/` | Vitest: rules over the text of `src/styles.css` and of every module under `src/`, and over the module graph (`imports.test.js`). |
-| `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`; and, by a boot of its own against a copy of it that has moved on, what is offered in place of a pick (DECISIONS #90); and the building's model (#94), on that schedule and the level drawings the build gives the year, 2027's; and the stack (#95), each venue's plates as they stand in the Map's frame, and the words a card's row says for a room; and the level (#96), the 18 level views - each one's scale, its rooms too small to see and what they are called at the fit - and every room the schedule reaches, selected by an arrival; and the zoom's fit (#98), every place at every scale its level's camera can come to; and the place filter (#98), every place the Map can select on each con day - the card's count beside Search's list. |
+| `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`; and, by a boot of its own against a copy of it that has moved on, what is offered in place of a pick (DECISIONS #90); and the building's model (#94), on that schedule and the level drawings the build gives the year, 2027's; and the stack (#95), each venue's plates as they stand in the Map's frame, and the words a card's row says for a room; and the level (#96), the 18 level views - each one's scale, its rooms too small to see and what they are called at the fit - and every room the schedule reaches, selected by an arrival; and the zoom's fit (#98), every place at every scale its level's camera can come to; and the place filter (#98), every place the Map can select on each con day - the card's count beside Search's list; and, by a boot of its own with a backend, the crew on the floors (#103): a lone crewmate with every event starred, counted on exactly the plates where the same pick gives the reader a star. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, the names a build with a channel gives itself (#101), the level drawings' module as the plugin makes it - the year it is taken from, what it holds and the borrowed drawing it refuses (DECISIONS #94) - and smokes that boot the built pages - the next site's, given a backend, signing in by email and syncing a star. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
-| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds, and a second page, `dist-backend/`, a build told of a backend whose requests the harness answers (#92); `gear.spec.js` holds Settings' heading and Done on the screen in every state it has, About this app behind its row (#92), and Delete whole at its end, with each button, with none and once done (#93); `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `banner.spec.js` holds the Map before the con - `main` no taller than its box, the card whole - and the preview banner whole on Now and on no other tab (#99); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star, the zero state's Show all and star, and a fold in place of a pick and a star in it among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88); `in-place.spec.js` holds the picks-changed notice and the folds under it whole on Now and on My day, each fold's button and the notice's OK 44 px tall or more (#90); `stack.spec.js` holds a venue's stack (#95): each of the seven opened by a touch, a strip's touch its plate's own and no shallower than measured, the way back's 44 px, a plate touched where it stood and the frame one size, the card whole, an inert plate see-through, and the keyboard's path; `level.spec.js` holds a level (#96): each of the 18 inside the frame and clear of the way back, in a frame the stack's own size, a touch at a room's middle that room's, a small room brought to the middle, a touch beside a room the nearest's and one past reach none's, the way back's 44 px at each step, and the keyboard's path; `motion.spec.js` holds the motion (#97): each move played in its own time and the page after it the Reduce Motion page, nothing of a set left, a set's first frame, a tap while one runs, and a venue's group put away; `place.spec.js` holds the place filter (#98): a card's head 44 px tall or more with the slot and the frame as they are with none, its touch landing on Search with the chip in view and focused, the tab bar's Map as it was left with no move played, and no zoomed room under the way back; `stage.spec.js` holds the Map's stage (#100): the svg's own box filled and edged, the way back 6 px inside it in a stack, a level and on a room zoomed on, the frame and the slot at the sizes measured before it, and the stage's box still through a lift and its way back while the drawing moves; `first-contact.spec.js` holds the first-contact pass (#101): Plans' top whole in each of its cases and none of it gold, the two taps at 44 px, and the Map's card with no pick; and `harness.js` `settled()` finishes a set that is playing before any other spec reads the page. |
+| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds, and a second page, `dist-backend/`, a build told of a backend whose requests the harness answers (#92); `gear.spec.js` holds Settings' heading and Done on the screen in every state it has, About this app behind its row (#92), and Delete whole at its end, with each button, with none and once done (#93); `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `banner.spec.js` holds the Map before the con - `main` no taller than its box, the card whole - and the preview banner whole on Now and on no other tab (#99); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star, the zero state's Show all and star, and a fold in place of a pick and a star in it among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88); `in-place.spec.js` holds the picks-changed notice and the folds under it whole on Now and on My day, each fold's button and the notice's OK 44 px tall or more (#90); `stack.spec.js` holds a venue's stack (#95): each of the seven opened by a touch, a strip's touch its plate's own and no shallower than measured, the way back's 44 px, a plate touched where it stood and the frame one size, the card whole, an inert plate see-through, and the keyboard's path; `level.spec.js` holds a level (#96): each of the 18 inside the frame and clear of the way back, in a frame the stack's own size, a touch at a room's middle that room's, a small room brought to the middle, a touch beside a room the nearest's and one past reach none's, the way back's 44 px at each step, and the keyboard's path; `motion.spec.js` holds the motion (#97): each move played in its own time and the page after it the Reduce Motion page, nothing of a set left, a set's first frame, a tap while one runs, and a venue's group put away; `place.spec.js` holds the place filter (#98): a card's head 44 px tall or more with the slot and the frame as they are with none, its touch landing on Search with the chip in view and focused, the tab bar's Map as it was left with no move played, and no zoomed room under the way back; `stage.spec.js` holds the Map's stage (#100): the svg's own box filled and edged, the way back 6 px inside it in a stack, a level and on a room zoomed on, the frame and the slot at the sizes measured before it, and the stage's box still through a lift and its way back while the drawing moves; `first-contact.spec.js` holds the first-contact pass (#101): Plans' top whole in each of its cases and none of it gold, the two taps at 44 px, and the Map's card with no pick; `hand-check.spec.js` holds what the first hand check changed (#103): the crew's day folded, each head 44 px tall or more and where it stood after its tap; a floor's name with its crew inside the stage, a card's day line one line - a line made too long still one, cut with an ellipsis - and every box of the Map with a crew the box without one; the Filters button and the box whole, the box's words ending in an ellipsis where they do not fit; and the filter sheet's two titles; and `harness.js` `settled()` finishes a set that is playing before any other spec reads the page. |
 | `playwright.config.js` | The browser tests' configuration: a project for each engine at each size, a phone with touch on, the worker blocked, the zone the season file's, no retries. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record, frozen: never edited (DECISIONS #83). |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
@@ -484,7 +484,8 @@ next today, from a schedule the caller hands it, since `crews` comes before
 the schedule and the clock. Writing and forgetting, it says whether anything a crew screen
 draws has changed, for the pull's redraw. It reads its keys when asked,
 never as it is imported. `state`: `settings` and `state`, Plans' crew
-and day and the Map's day, its focus and the building view's open stack
+and day and the folds of the crew's day the reader opened, by person
+(#103), and the Map's day, its focus and the building view's open stack
 and selected plate (#95), its open level, its selected rooms and its zoom
 (#96) among it, and the folds kept in memory:
 `explore.mutedOpen`, `following.showCast` and `following.castNoise` by
@@ -730,13 +731,19 @@ holds its block's face, which a lift's set and its way back's alone show; a
 group put away is in the page and not shown, by the stylesheet, so that its
 way back can show it; and a closing level's names are held in the page by
 its way back's set, and taken out as the set ends. `plans` also draws the crew header, the My day | Crew
-segment and the crew's day on a build with a backend, and says which crew
+segment and the crew's day - a fold a person, shut until its head is
+tapped (#103) - on a build with a backend, and says which crew
 Plans shows (`chosenCrew()`) and in what order a crew's members are
 listed (`crewPeople()`), for the crew panel too; each time it draws, it
 gives focus back, by id, to its own control that had it (DECISIONS #66).
 On a build with a backend `now` draws the crew's section, Your crew right
 now, and `map` the crew counted per hotel, from `mapCrewPicks()`, each
-crewmate's pick at each hotel on a day, which the hotel sheet lists too.
+crewmate's pick at each hotel on a day, which the hotel sheet lists too;
+and, from the same lines, on a venue's floors (#103): `crewOnPlate()`,
+the crewmates with a pick among `building`'s `levelEvents()` of a plate's
+levels - the list the reader's stars are counted from - said after a
+floor's name and on a floor's card, and a room's card's among the events
+it lists.
 `now` gives focus back to the control that had it, as `scroll`'s
 `focusKey()` finds it, each time it draws and at the minute's tick; `map`,
 built once and drawn in place (#89), keeps its controls and their focus,
@@ -950,17 +957,19 @@ strip over it is Export to `.ics` and Share a day, both quiet - nothing on
 Plans' top is gold (DECISIONS #101); Remove all
 picks is Settings' alone (DECISIONS #92). A pick on an event the source
 dropped is drawn here and nowhere else, where its time puts it, struck and
-marked "Removed from the schedule", with no gap line or walk link to or
+marked "Removed from the schedule", with no gap line to or
 from it; the export leaves it out, and its sheet offers no calendar
 (DECISIONS #49). A cancelled pick is drawn the same way, saying Cancelled,
-with no gap line or walk link, and the export leaves it out too (#90). A stream has no walk, so no walk link runs to or from it
-either (DECISIONS #40). On a build with a backend the crew header tops it:
+with no gap line, and the export leaves it out too (#90). The timeline
+draws no walk - its hours, its blocks and the now line - and the list's
+gap line says the walk between two rows (DECISIONS #103). On a build with a backend the crew header tops it:
 the crew's name - a picker, in more than one - how many, and Manage,
 which opens the crew panel; in no crew, the rung, Start a crew or Join
 with a link, in a card of its own (#101). In a crew, My day | Crew: My day is all of the above, and
-Crew one day of the crew, day chips and a block of picks a member, the
-reader first (DECISIONS #62; `docs/screens/contract.md`, section 5, as
-built).
+Crew one day of the crew, day chips and a fold a member with a pick that
+day, the reader first - shut on a load, and what is opened kept by person
+for as long as the page is loaded - with one quiet line for a member with
+none (DECISIONS #62, #103; `docs/screens/contract.md`, section 5).
 
 **Map.** Schematic SVG of the host hotels, the Mart's two buildings a block
 each (#91), Peachtree and Courtland streets, and the four bridges, on a
@@ -969,7 +978,9 @@ which keeps the width where a short screen shortens the map, the drawing in
 the middle of it. Per-hotel pill counts, for the selected day, of the picks that are happening (#90),
 and on a build with a backend, in a crew, a second count, outlined, of the
 crewmates with a pick at the hotel that day - people, not picks
-(`docs/screens/contract.md`, section 6, as built); a "next pick" card under
+(`docs/screens/contract.md`, section 6, as built) - which a lifted venue
+says of each floor too, "3 crew" after its name and on its card and a
+room's, a number and no mark (DECISIONS #103); a "next pick" card under
 the map, which with no pick says that a hotel can be tapped (#101). A tap, Enter or Space on the block of a venue with a building, or
 a tap on its gold pill, lifts it into its stack (DECISIONS #95): its
 plates, one a storey, in the same frame, the city pushed in behind them;
@@ -1015,12 +1026,16 @@ that had it.
 **Search.** The first render happens with no index; the search index is
 built in idle time afterwards, then a suggestion index (people by their
 display names, works and topic labels). Query intent parsing turns day/hotel/kind/audience/time words into filters.
-The box, a Filters button beside it and the day chips are the sticky
+The box, a Filters button beside it - an icon before its word and an edge
+lighter than the box's, whose placeholder ends in an ellipsis where the
+button leaves it no room (#103) - and the day chips are the sticky
 block; the other filters are the filter sheet's (DECISIONS #70;
 `docs/screens/contract.md`, section 3, as built): the hotel, the fandom
 and the track, the four topic axes, panels or gaming, the kind, Getting
 in - cost, sign-up, audience and sold out (#77) - and the
-photo-session hide, in a sheet panel that applies each tap at once and
+photo-session hide, each group but that last under a small title, the
+six menus of fandom, track and topics one group, What it's about (#103),
+in a sheet panel that applies each tap at once and
 counts what the list will hold, the list drawn again as it closes. Each
 filter it set that is in effect is a chip under the box, beside the
 query's words, and the button's badge counts them. One value a filter,
@@ -1442,7 +1457,12 @@ the stage's box unchanged on every frame while the drawing moves from
 where it stood. `first-contact.spec.js` holds the first-contact pass
 (#101): Plans' top in each of its cases - on the page with a backend too,
 its crew seeded and its backend's requests refused - the two taps, and
-the Map's card with no pick. Every other spec measures end states:
+the Map's card with no pick. `hand-check.spec.js` holds what the first
+hand check changed (#103), its crew seeded the same way: a fold's head
+and where it stood, the Map with a crew box for box the Map without one,
+a card's day line and the search box's placeholder each cut with an
+ellipsis and never grown or clipped mid-letter, and the filter sheet's
+two titles. Every other spec measures end states:
 `harness.js` `settled()` finishes a set that is playing, through the Web
 Animations API, before it reads the page. It is not an
 iPhone - no iOS keyboard, no safe-area insets, no home-screen app,

@@ -1,9 +1,9 @@
-import { esc, fmtShort, minutesBetween } from "./util.js";
+import { esc, fmtShort } from "./util.js";
 import { hasBackend } from "./backend.js";
 import { crewmatePicks, myCrews, myMembership } from "./crews.js";
 import { state } from "./state.js";
 import { CON_DAYS, conDayKey, DAY_LABEL, DAY_LONG, FIRST_FULL_DAY, now } from "./time.js";
-import { hotelVar, walkMin } from "./venues.js";
+import { hotelVar } from "./venues.js";
 import { shareableDays } from "./shareday.js";
 import { byId, happening } from "./data.js";
 import { pickNewsHTML, picks } from "./picks.js";
@@ -73,29 +73,12 @@ function timelineDayHTML(dayKey, list, now) {
     </button>`;
   }).join("");
 
-  /* A removed or a cancelled pick is not happening: no walk runs to it or
-     from it. */
-  const live = sorted.filter(happening);
-  let links = "";
-  for (let i = 1; i < live.length; i++) {
-    const prev = live[i - 1], next = live[i];
-    /* A stream is not walked to or from: no walk, no band, no link - the
-       rule the hero and the gap line keep (DECISIONS #40). */
-    const walk = walkMin(prev.hotel, next.hotel);
-    if (prev.hotel === next.hotel || !walk) continue;
-    const gap = minutesBetween(prev._e, next._s);
-    const y1 = top(prev._e.getTime()), y2 = top(next._s.getTime());
-    const height = Math.max(18, y2 - y1);
-    links += `<div class="tl-link${gap < walk ? " tight" : ""}" style="top:${Math.min(y1, y2).toFixed(1)}px;height:${height.toFixed(1)}px">
-      <span>${walk} min</span></div>`;
-  }
-
   const nowLine = conDayKey(now) === dayKey && now >= origin && now <= last
     ? `<div class="tl-now" style="top:${top(now.getTime()).toFixed(1)}px"></div>` : "";
 
   return `<div class="tl-day">
     <div class="day-head" style="padding-left:0">${DAY_LONG[dayKey] || dayKey} <span class="count">${list.length}</span></div>
-    <div class="tl-grid" style="height:${spanH * HOUR_PX + 12}px">${hours}${links}${blocks}${nowLine}</div>
+    <div class="tl-grid" style="height:${spanH * HOUR_PX + 12}px">${hours}${blocks}${nowLine}</div>
   </div>`;
 }
 
@@ -166,17 +149,30 @@ function plansSegHTML(view) {
    reader first, the rest by the names this crew gives them - each one's
    picks that day in start order, as compact rows whose star is the
    reader's own. A removed pick is marked, as in My day (#49); a pick this
-   copy of the schedule does not hold is left out. */
+   copy of the schedule does not hold is left out.
+   Each person with a pick that day is a fold, the reader's own too, shut
+   until its head is tapped: the head is Following's - a button with the
+   name, the count and a caret - in the person's heading, and the rows are
+   drawn only while it is open. What is open is state.plans.open, by person,
+   so it holds through a day's chip, another tab and a pull, and no longer
+   than the page. A person with no pick that day is one quiet line and no
+   button. */
 function crewDayHTML(crew) {
   const day = plansDay(), me = myMembership(crew);
   const chips = CON_DAYS.map(d => chipHTML(DAY_LABEL[d], d === day, "plans-day", d)).join("");
   const blocks = crewPeople(crew).map(m => {
     const own = !!me && m.user_id === me.user_id, starred = own ? picks : new Set(crewmatePicks(m.user_id));
     const rows = [...byId.values()].filter(e => starred.has(e.id) && e._cd === day);
-    return `<section class="crew-person" data-user="${esc(m.user_id)}">
-      <h3 class="crew-who">${esc(m.display_name)}${own ? " (you)" : ""}${rows.length ? ` <span class="count">${rows.length}</span>` : ""}</h3>
-      ${rows.length ? `<ul class="list compact">${rows.map(ev => rowHTML(ev, {list: `crew:${m.user_id}`})).join("")}</ul>`
-        : `<p class="crew-none">No picks on ${DAY_LONG[day] || day}.</p>`}
+    const who = `${esc(m.display_name)}${own ? " (you)" : ""}`, user = esc(m.user_id);
+    if (!rows.length) return `<section class="crew-person" data-user="${user}">
+      <p class="crew-none"><span class="crew-none-who">${who}</span> &middot; no picks on ${DAY_LONG[day] || day}</p>
+    </section>`;
+    const open = state.plans.open[m.user_id] === true;
+    return `<section class="crew-person" data-user="${user}">
+      <h3 class="crew-who"><button class="fol-head crew-fold" id="crewFold-${user}" data-act="crew-fold" data-user="${user}" aria-expanded="${open}" aria-controls="crewDay-${user}">
+        ${who} <span class="count">${rows.length}</span><span class="caret" aria-hidden="true">${open ? "▾" : "▸"}</span>
+      </button></h3>
+      <div id="crewDay-${user}"${open ? "" : " hidden"}>${open ? `<ul class="list compact">${rows.map(ev => rowHTML(ev, {list: `crew:${m.user_id}`})).join("")}</ul>` : ""}</div>
     </section>`;
   }).join("");
   return `<div class="controls"><div class="chips plans-days" data-row="plans-day">${chips}</div></div>${blocks}`;
@@ -225,7 +221,7 @@ function myDayHTML() {
     <button data-act="view-timeline" aria-pressed="${state.mineView === "timeline"}">Timeline</button><button data-act="view-list" aria-pressed="${state.mineView === "list"}">List</button>
   </div>`;
   if (!mine.length) {
-    html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Explore or Search. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
+    html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Explore or Search. They'll line up here by day, and the List view warns when two picks overlap or the walk between hotels is too tight.</div>`;
   } else if (state.mineView === "timeline") {
     html += renderPlansTimeline(mine, now());
   } else {

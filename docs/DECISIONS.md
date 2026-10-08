@@ -825,7 +825,7 @@ live site drops `next`'s work and axis follows. The worker's update notice
 keys on `generated_at`, which every rebuild of `events.v2.json` keeps
 (ROADMAP, Held).
 
-### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55); its client half - no leave-by on the hero, the mini-bar or the map card, the slack renamed `SLACK_MIN`, `leave.js` renamed `walk.js` and `currentLocation()` deleted, so that the app no longer says where the reader is - to be built by PR 3 of Where things live's sequence (ROADMAP, tentpole 5; `docs/screens/contract.md`, section 12); when the install nudge shows decided by #65; its client half built by PR #76: no leave-by on the hero, the mini-bar or the map card - the hero says the walk to the next pick and the band `walk.js` `connection()` gives the pair, as the gap line between their rows does - `SLACK_MIN`, `walk.js`, and `currentLocation()` deleted, so the app no longer says where the reader is (`docs/screens/contract.md`, sections 2 and 12, as built); the gap line no longer says an overlap, the two rows' flags do (#73); amended by #90
+### 40. Leave-by retired; Tell me is pick-changed and starts-soon; alternatives are same-slot — Decided, not built (2026-09-22) — the slack's initial value, 10, set by #45; data, tuned later; the client reads it from the venues file, and the tight band reads it rather than a typed-in 10 (#49); the two-table mirror drops the walk table (#50); starts-soon uses one lead time, set in the push job's call (#50); the lead time is 15 minutes, one constant in `push_due()` (#55); its client half - no leave-by on the hero, the mini-bar or the map card, the slack renamed `SLACK_MIN`, `leave.js` renamed `walk.js` and `currentLocation()` deleted, so that the app no longer says where the reader is - to be built by PR 3 of Where things live's sequence (ROADMAP, tentpole 5; `docs/screens/contract.md`, section 12); when the install nudge shows decided by #65; its client half built by PR #76: no leave-by on the hero, the mini-bar or the map card - the hero says the walk to the next pick and the band `walk.js` `connection()` gives the pair, as the gap line between their rows does - `SLACK_MIN`, `walk.js`, and `currentLocation()` deleted, so the app no longer says where the reader is (`docs/screens/contract.md`, sections 2 and 12, as built); the gap line no longer says an overlap, the two rows' flags do (#73); amended by #90; amended by #103
 **Decided:** Leave-by is retired: no `leave by <time>` countdown on any
 screen, and no leave-by push.
 - The plan keeps what is true of the plan rather than the person: a walk
@@ -1879,7 +1879,7 @@ works-block edit does. 2026's file is rebuilt with an empty block now and
 rebuilt again when the lines are reviewed. The line pass is a second review
 of 113 people, four of them with no draft.
 
-### 62. The five tabs; crew is a dimension, not a place — Decided, not built (2026-09-30) — the bar built by PR #74: the tab, its view, its module and its badge renamed `plans`, `--nav-h` measured and the bottom of the page laid out from it, and the opening tab by phase (`docs/screens/contract.md`, section 1, as built); Plans' crew built by PR #77, step 4: the crew header and its management, the My day | Crew segment and the crew's day of per-person lists, and a kept `?join=` opening Plans' join step in any phase (`docs/screens/contract.md`, section 5, as built); crew at every scope built by PR #81, step 5a: the hour on Now, Your crew right now; the building on the Map, the crew counted per hotel - as people, not picks: the crewmates with a pick there that day; and the event on the sheet, who's going (`docs/screens/contract.md`, sections 2, 6 and 7, as built); the hotel sheet's crew by PR #82, step 5c: Your crew here, the crewmates' picks at the hotel under the reader's own, a line a pick, and the head's count the Map's pill's (`docs/screens/contract.md`, section 8, as built); who's going and the crew's sections worded as picks by #68, PR #83, step 5d: "Starred by", Your crew's picks right now and here, "yours too"
+### 62. The five tabs; crew is a dimension, not a place — Decided, not built (2026-09-30) — the bar built by PR #74: the tab, its view, its module and its badge renamed `plans`, `--nav-h` measured and the bottom of the page laid out from it, and the opening tab by phase (`docs/screens/contract.md`, section 1, as built); Plans' crew built by PR #77, step 4: the crew header and its management, the My day | Crew segment and the crew's day of per-person lists, and a kept `?join=` opening Plans' join step in any phase (`docs/screens/contract.md`, section 5, as built); crew at every scope built by PR #81, step 5a: the hour on Now, Your crew right now; the building on the Map, the crew counted per hotel - as people, not picks: the crewmates with a pick there that day; and the event on the sheet, who's going (`docs/screens/contract.md`, sections 2, 6 and 7, as built); the hotel sheet's crew by PR #82, step 5c: Your crew here, the crewmates' picks at the hotel under the reader's own, a line a pick, and the head's count the Map's pill's (`docs/screens/contract.md`, section 8, as built); who's going and the crew's sections worded as picks by #68, PR #83, step 5d: "Starred by", Your crew's picks right now and here, "yours too"; amended by #103
 **Decided:** The bar keeps five tabs, in today's positions: Now, Search,
 Explore, Map and Plans - what is on, what to find, what to discover, where,
 and my day and my crew's. Plans replaces Mine in its slot, fifth, with the
@@ -1944,7 +1944,7 @@ The browser's own Back plays no part: the hash is written by
 Explore page is "← Explore", to the grid, wherever the page was opened
 from: one tap from the event, accepted.
 
-### 64. The row and the gap line — Decided, not built (2026-09-30) — its overlap computed once, by `walk.js` `connection()`: the two picks' intersection, the earlier end less the later start, which the hero and the gap line read and the row's flag is to word, not compute again (PR #76); who's going built by PR #81: a line on the event's sheet, three names and then how many more, tapping nowhere (`docs/screens/contract.md`, section 7, as built); the level on line 2 to be its `short` (#72); amended by #73, the row as built (PR #92): the time a range on line 2 and no time column, Celebrity on line 3, the overlap said by the two rows' flags and the gap line keeping walks and tight connections, a flagged row's track left off, and the level by its `short` (`docs/screens/contract.md`, section 10, as built); its sheet built and amended by #74 (PR #93): the overlap line before starring too, as "Would overlap", and the facts in the row's words, not a second vocabulary (`docs/screens/contract.md`, section 7, as built); its chips and its place line as entry points still to build; built by #75, PR #94: the place a tap to the Map on the event's con day, its hotel ringed and the event on the card, and each track's chip and each reviewed work's a tap to its Explore page, an unreviewed work's staying plain (#34)
+### 64. The row and the gap line — Decided, not built (2026-09-30) — its overlap computed once, by `walk.js` `connection()`: the two picks' intersection, the earlier end less the later start, which the hero and the gap line read and the row's flag is to word, not compute again (PR #76); who's going built by PR #81: a line on the event's sheet, three names and then how many more, tapping nowhere (`docs/screens/contract.md`, section 7, as built); the level on line 2 to be its `short` (#72); amended by #73, the row as built (PR #92): the time a range on line 2 and no time column, Celebrity on line 3, the overlap said by the two rows' flags and the gap line keeping walks and tight connections, a flagged row's track left off, and the level by its `short` (`docs/screens/contract.md`, section 10, as built); its sheet built and amended by #74 (PR #93): the overlap line before starring too, as "Would overlap", and the facts in the row's words, not a second vocabulary (`docs/screens/contract.md`, section 7, as built); its chips and its place line as entry points still to build; built by #75, PR #94: the place a tap to the Map on the event's con day, its hotel ringed and the event on the card, and each track's chip and each reviewed work's a tap to its Explore page, an unreviewed work's staying plain (#34); amended by #103
 **Decided:** A row is at most three lines, and the walk between two events
 is said between their rows.
 - **Line 1:** the star, the title and the state tags - Cancelled, Removed
@@ -2144,7 +2144,7 @@ query name, or a version in the year's place, with the old shape read for
 as long as its links live. An id shorter than eight characters cannot
 travel, and the test refuses a year that has one.
 
-### 70. The filter sheet applies as it is tapped — Standing (2026-10-02) — its held group retired by #71: one value a filter and the last one set wins, a tap in the sheet taking a word out of the query and a word typed taking the sheet's value to All once the box is left; its groups reordered by #71; its facet filters built by #77, PR #96: cost, sign-up, audience and sold out, under Getting in, and the sheet's filters thirteen; amended by #98
+### 70. The filter sheet applies as it is tapped — Standing (2026-10-02) — its held group retired by #71: one value a filter and the last one set wins, a tap in the sheet taking a word out of the query and a word typed taking the sheet's value to All once the box is left; its groups reordered by #71; its facet filters built by #77, PR #96: cost, sign-up, audience and sold out, under Getting in, and the sheet's filters thirteen; amended by #98; amended by #103
 **Decided:** Search's filters leave the page for a sheet panel,
 `#panel-filters` (W13, with W8's topic axes; `docs/screens/contract.md`,
 section 3, as built; PR #88), opened by one Filters button beside the
@@ -3255,7 +3255,7 @@ hotel, level or room 2026's venues file lacks refuses every default build,
 dev server and Vitest run, and fails `tests/test_drawings.py`, in its own
 pull request: the fix is the id in 2026's file too, or the default moved.
 
-### 95. The stack: a venue lifted into its floors — Standing (2026-10-06) — amended by #96; amended by #97; amended by #98; amended by #100
+### 95. The stack: a venue lifted into its floors — Standing (2026-10-06) — amended by #96; amended by #97; amended by #98; amended by #100; amended by #103
 **Decided:** Step 10's second pull request (W38; PR #113;
 `docs/screens/contract.md`, section 6). Amends #72, #75, #89.
 - **What opens it:** a tap or Enter on the block of a venue with a building,
@@ -3454,3 +3454,29 @@ name under it, and changed every year.
 **Cost:** An iPhone keeps the icon it was added with until the app is
 removed and added again. Two drawings to keep in step. The icon's colours
 are its own, not the stylesheet's tokens.
+
+### 103. After the first hand check: no walk on the Timeline, the crew folded and on the floors, Filters — Standing (2026-10-08)
+**Decided:** Five small things after the first walk on a phone (PR #120;
+`docs/screens/contract.md`, sections 3, 5, 6 and 10). Amends #40, #62, #64,
+#70, #95.
+- **The Timeline draws no walk:** hours, blocks and the now line. The List's
+  gap line and the hero say it still, and Plans' empty state says so.
+- **The crew's day is folded,** a fold a person, the reader's too: the head
+  Following's, 44 px, shut on a load; open by person, in memory, through a
+  day's chip, a tab and a pull. With no pick that day, one quiet line.
+- **The crew on the floors,** a number and no name or mark: "3 crew" after a
+  floor's name, in `--text`, and ending a floor's card's and a room's day
+  line - one line, cut with an ellipsis. On a floor is `levelEvents()`'s
+  answer, the stars' own. The venue's line keeps "3 of your crew".
+- **The Filters button** has an icon and an edge in `--muted`; the box's
+  placeholder ends in an ellipsis where the button leaves it no room.
+- **The filter sheet** titles "What it's about", six menus as one group, and
+  "Type"; with no tags the lone Track menu has none.
+
+**Why:** A badge saying "16 min" and no more read as noise; four open days
+buried the fourth; the crew showed at a hotel and on no floor of it. "3 of
+your crew" wrapped a card's day line on the smallest phone with Larger text.
+**Cost:** The Timeline, the default view, warns of no walk: the List alone.
+"3 crew" beside the hotel's "3 of your crew". The placeholder is cut on the
+smallest phone with Larger text and a badge. On the filter sheet's first
+screen there, the Type switch is under the fold.

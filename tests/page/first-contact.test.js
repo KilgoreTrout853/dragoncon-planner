@@ -57,7 +57,8 @@ describe("a stranger, on a build with no backend", () => {
     });
     it("Plans, with nothing picked", () => {
       tapTab("plans");
-      expect(words(plans().querySelector(".empty"))).toBe("Nothing picked yet. Star things in Explore or Search. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.");
+      expect(words(plans().querySelector(".empty"))).toBe("Nothing picked yet. Star things in Explore or Search. They'll line up here by day, and the List view warns when two picks overlap or the walk between hotels is too tight.");
+      expect([plans().querySelector(".empty b").textContent, plans().querySelectorAll(".empty b").length]).toEqual(["Nothing picked yet.", 1]);
     });
     it("the Map's card, which says first that a hotel can be tapped - words, and no tap of its own", () => {
       tapTab("map");

@@ -101,6 +101,8 @@ function onMainClick(e) {
     if (a === "share-day") { openSheet("share"); return; }
     /* Search's Filters: the filter sheet (W13, #70). */
     if (a === "filters") { openSheet("filters"); return; }
+    /* A person's fold of the crew's day: that person's, and no other's. */
+    if (a === "crew-fold") { state.plans.open[act.dataset.user] = act.getAttribute("aria-expanded") !== "true"; render(); return; }
     if (a === "plans-mine" || a === "plans-crew") {
       state.plansView = a === "plans-crew" ? "crew" : "mine";
       saveJSON(storageKey("plansView"), state.plansView);

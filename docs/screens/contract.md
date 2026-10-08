@@ -348,14 +348,21 @@ with #10, #62 and #66: Your crew right now, worded as picks by PR #83, step
 As built: the recon, section 2, Search, items 1 to 15.
 
 - **The sticky block** keeps the box and the day chips (items 1 and 2) and
-  gains one button, "Filters", with a badge counting the active filters.
+  gains one button, "Filters", with a badge counting the active filters:
+  a sliders icon before its word and an edge lighter than the box's, a
+  control on a par with the box (#103). The box gives up the width, and
+  its placeholder ends in an ellipsis where it no longer fits.
 - **The filter sheet** (W13), a sheet panel, `#panel-filters`,
   takes the hotel chips, the kind chips, the Type control, the Fandom and
   Track selects and the noise toggle (items 3, 4, 7 and 8), and gains
   W8's four topic axes. No Apply: a tap applies at once, and the list is
   drawn again when the sheet closes; Clear (#70). W7's facets as filters
   are built, as step 7b: cost, sign-up, audience and sold out, under
-  Getting in (#77; as built, below).
+  Getting in (#77; as built, below). Every group but the toggle has a
+  small title that names it (#103): Hotel; What it's about, over the
+  Fandom and Track menus and the four topics, one group of six; Type,
+  over its switch; Kind; Getting in. A schedule with no tags has the
+  Track menu alone, and no title over it.
 - **Under the box,** as built: the suggestions and the parsed chips
   (items 5 and 6), and in the parsed chips' row each filter the sheet set.
 - **A place** (#98), from a card of the Map's (sections 6 and 11): a venue
@@ -373,6 +380,8 @@ As built: the recon, section 2, Search, items 1 to 15.
 
 Built: a place as a filter - PR #116, DECISIONS #98.
 
+Built: the Filters button's icon and edge, the placeholder's ellipsis, and the sheet's two titles - PR #120, DECISIONS #103.
+
 **Home of:** W13; W8.
 
 Moves: `index.html` (the panel), `sheet.js` `openSheet()` (a seventh
@@ -382,6 +391,8 @@ Tests: `search.test.js`'s chip suites, `untagged.test.js`, and the hotel
 panel's search (section 11). PR 6.
 
 ### Search and the filter sheet, as built
+
+Changed by PR #120 (#103): the Filters button has an icon and a lighter edge, the box's placeholder ends in an ellipsis where it does not fit, and the sheet's six menus and its Type switch each stand under a title.
 
 Changed by PR #116 (#98): a place of the Map's is one more filter - one chip in the hotel's stead, a line under the sheet's Hotel chips - and nothing is hidden as noise while it is set.
 
@@ -867,16 +878,26 @@ As built: the recon, section 2, Mine; section 8, crews' seam.
   day, not the crew's, by a link that needs no backend (#10, #50) - with
   Remove all picks in Settings alone (#92); Timeline | List, a segment that
   hugs its words at the right end of its row (#101); the timeline and the
-  list. Nothing on Plans' top is gold.
+  list. The timeline draws no walk (#103) - its hours, its blocks and the
+  now line - and the list's gap line says it; the empty state says the
+  List view warns. Nothing on Plans' top is gold.
 - **Crew** has day chips - today by default, `map.js` `mapDay()`'s
-  convention - and shows one day: per crewmate, the reader first, their
-  picks that day as compact rows (`list: "crew:<user>"`). In 2027 this is
+  convention - and shows one day: per crewmate, the reader first, a fold a
+  person with a pick that day (#103) - its head a button in the person's
+  heading, the name, the count and a caret, as Following's - and under it,
+  open, their picks that day as compact rows (`list: "crew:<user>"`).
+  Every fold is shut on a load, the reader's own too; what is opened
+  stays open, by person, through a day's chip, another tab and a pull,
+  for as long as the page is loaded. A person with no pick that day is
+  one quiet line, the name and the day, and no button. In 2027 this is
   the overlay (#62): lanes on the reader's own timeline are Open.
 - **The redraw:** `sync.js` `pull()` asks for one only when the reader's
   own picks or follows changed (recon section 8); Plans needs one on a
   crew change too, a `sync.js` change in PR 4.
 
 Built: Plans' top - nothing gold, Timeline | List a segment, the rung a card - and the crew panel's Done, quiet on its create and join steps - PR #118, DECISIONS #101.
+
+Built: the timeline with no walk, and the crew's day folded - PR #120, DECISIONS #103.
 
 **Home of:** W19; W20; W21; W25; W28.
 
@@ -886,6 +907,8 @@ per-person reader, W28's action), `sync.js` `pull()`, `state.js`,
 `sync-pull.test.js`; `removed.test.js`. PRs 4, 4b and 5 (W25).
 
 ### Plans, as built
+
+Changed by PR #120 (#103): the timeline draws no walk link, a person's picks in the crew's day are under a fold that is shut on a load, a person with none is one line, and the empty state says the List view warns.
 
 Changed by PR #118 (#101): Export is quiet, Timeline | List is a segment at the right end of its row, the rung is a card, and the crew panel's Done is quiet on its create and join steps.
 
@@ -1238,6 +1261,14 @@ As built: the recon, section 2, Map; section 5, the map card.
   pill - the crewmates with a pick at the hotel that day, people, not
   picks - not gold: gold is the reader's own. "Presence" stays #10's
   word.
+- **And on its floors** (#103), a venue lifted: "3 crew" after a floor's
+  name in the stack, in the text's colour, and at the end of the day's
+  line of a floor's card and a room's - one line, cut with an ellipsis
+  where it does not fit. People, not picks, the reader never among them:
+  on a floor by `building.js` `levelEvents()`, the list the stars are
+  counted from, and in a room among the events its card lists. The
+  venue's line and the spoken names of a plate and a room say "3 of your
+  crew". A number alone: no name, and no mark on the drawing.
 - **The building view** (#60), the drill-down: tap a hotel and it lifts to
   its levels, the reader's picks lit (W38); tap a level and it drops to a
   top-down view, rooms in place, landmarks marked, lit where the picks are,
@@ -1284,6 +1315,8 @@ Built: the card's head, a way to Search, and the zoom's fit - PR #116, DECISIONS
 
 Built: the stage, and the frame's step on the drawing - PR #118, DECISIONS #100. The card's hint with no pick - PR #118, DECISIONS #101.
 
+Built: the crew counted on the floors - PR #120, DECISIONS #103.
+
 **Home of:** W38; W39; W40; W41.
 
 Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
@@ -1293,6 +1326,8 @@ Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
 `style.test.js`'s map rules. PRs 3, 5, 7 and 10.
 
 ### Map, as built
+
+Changed by PR #120 (#103): the crew is counted on a floor's name in the stack and on a floor's card and a room's too, a number alone, and a card's day line is one line.
 
 Changed by PR #118 (#100): the ground is a stage, the svg's own box, with the way back 6 px inside it, the dimmed city run to its edge and the frame's step the drawing's; and a card with no pick says a hotel can be tapped (#101).
 
@@ -2336,8 +2371,8 @@ it:
 - **The gap line** stays: `leave.js` `gapHTML()` - `walk.js` from PR 3 -
   says the walk and the two tight bands between rows, never on a row; the
   overlap it said between rows on Now and Plans the two rows' flags say
-  since PR #92 (#73). Plans' timeline keeps its walk links, one band, as
-  built.
+  since PR #92 (#73). Plans' timeline draws no walk (#103): its walk links
+  are gone, and how a walk is said there is Open (section 14).
 - **Callers** as the recon lists them, plus Plans' Crew segment,
   `list: "crew:<user>"`.
 
@@ -2579,6 +2614,8 @@ pair" and "streaming next"; `style.test.js` [1581] and [1774];
 `imports.test.js`'s `ORDER`. PR 3.
 
 ### Removals, as built
+
+Changed by PR #120 (#103): Plans' timeline draws no walk link at all, so the stream rule has no third site there, and its test is gone.
 
 Changed by PR #108 (#90): the mini-bar, the Map's card and the walk estimate's pick before pass over a cancelled pick.
 
@@ -3019,5 +3056,11 @@ As built: the recon, section 8, what crews' readers offer today.
   in units (#98).
 - The card's head, its chip and the zoom's fit have run in the browser
   tests' two engines on a PC and not yet on a phone (#98).
+- How a walk is said on Plans' Timeline. Its badges are gone (#103): the
+  List's gap line and the hero say a walk, and the default view says none.
+- Who of the crew, by name, on the Map: a floor and a card say a number
+  (#103).
+- On a card's day line that overflows, the crew's count is the first
+  thing cut: it stands last (#103).
 
 **Home of:** W24.

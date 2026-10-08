@@ -22,7 +22,10 @@ const state = {
      scale} (#96) - each null for none, in memory alone and kept when the
      tab is left. A level open leaves no plate selected. */
   map: {day: null, focus: null, stack: null, plate: null, level: null, rooms: null, zoom: null},
-  plans: {crew: null, day: null},         /* the crew shown, null the oldest; the crew's day, null the clock's */
+  /* Plans': the crew shown, null the oldest; the crew's day, null the
+     clock's; and open, the people whose fold of the crew's day the reader
+     opened, by user id - every fold shut on a load, in memory alone. */
+  plans: {crew: null, day: null, open: {}},
   /* What stands in place of the picks that changed, under the notice on Now
      and on My day, while the reader stays on the tab - the tab, the news it
      was worked out from, and each fold's rows and whether it is open - null

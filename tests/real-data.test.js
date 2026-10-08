@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import DRAWINGS from "virtual:drawings";
 import { YEAR, YY } from "../src/season.js";
 import { bootPage } from "./helpers/page.js";
+import { fakeBackend } from "./helpers/backend.js";
 
 describe("against the real schedule", () => {
   let page, app, handle, state;
@@ -1618,5 +1619,57 @@ describe("in place of a pick, on 2026's schedule: the sketch's reader at Saturda
     expect(document.getElementById("nowHero")).toBe(null);
     expect(words(now().querySelector(".empty"))).toBe("Nothing picked for later today. Your next pick is on Sunday.");
     expect(now().querySelector('.row[data-list="next"]').dataset.id).toBe(MASQUERADE);
+  });
+});
+
+/* The crew on the floors (DECISIONS #103), by a boot of its own with a
+   backend: one definition of "on this floor". A lone crewmate who starred
+   every event of the schedule, kept as a pull keeps a crewmate's picks; then,
+   event by event, the plates that crewmate is counted on beside the plates
+   where the same pick, alone, gives the reader a star. */
+describe("the crew on the floors, on 2027's drawings and 2026's schedule", () => {
+  let page, app, handle;
+
+  beforeAll(async () => {
+    const fake = fakeBackend(), ada = fake.held("ada@example.test"), bo = fake.held("bo@example.test");
+    const seed = (key, value) => window.localStorage.setItem(`dc${YY}.${key}`, JSON.stringify(value));
+    fake.crew({ name: "The crew", creator: ada.id, members: [[ada.id, "Ada"], [bo.id, "Bo"]] });
+    const s = fake.issue(ada.id);
+    seed("session", { access_token: s.access_token, refresh_token: s.refresh_token, user: { id: ada.id, email: ada.email || "", is_anonymous: ada.is_anonymous } });
+    seed("syncStamp", { user: ada.id, picks: null, follows: null });
+    page = await bootPage({ fixture: "real", backend: fake });
+    ({ app, handle } = page);
+    await app.syncSettled();
+    seed("crewPicks", { [bo.id]: Object.fromEntries([...app.byId.keys()].map(id => [id, true])) });
+  }, 120000);
+  afterAll(() => page.cleanup(), 60000);
+
+  it("for every venue with a building and every event at it, a lone crewmate with that pick is counted on exactly the plates where the same pick gives the reader a star - and so on none where it gives none", () => {
+    const apart = [];
+    let onAPlate = 0, onNone = 0;
+    for (const day of app.CON_DAYS) {
+      const lines = app.mapCrewPicks(day);
+      for (const hotel of app.BUILDINGS) {
+        const plates = app.building(hotel).plates, theirs = lines[hotel] || [];
+        for (const ev of app.venueEvents(hotel).filter(e => e._cd === day)) {
+          const starred = app.dayLights(hotel, day, new Set([ev.id])).filter(row => row.picks).map(row => row.key);
+          const mine = theirs.filter(line => line.ev === ev);
+          const counted = plates.filter(plate => app.crewOnPlate(mine, hotel, plate) === 1).map(plate => plate.key);
+          if (starred.length) onAPlate++; else onNone++;
+          if (counted.join() !== starred.join() || starred.length > 1 || plates.some(plate => app.crewOnPlate(mine, hotel, plate) > 1)) apart.push([ev.id, hotel, day, counted, starred]);
+        }
+      }
+    }
+    expect(apart).toEqual([]);
+    /* every event at a venue with a building, by how deep its place goes: on a plate from a floor down, the cancelled on none */
+    const at = handle.events.filter(e => app.BUILDINGS.includes(e.hotel)), deep = e => app.depthOf(e).depth !== "venue";
+    expect([onAPlate, onNone, onAPlate + onNone]).toEqual([at.filter(e => deep(e) && app.happening(e)).length, at.filter(e => !deep(e) || !app.happening(e)).length, at.length]);
+    expect(onAPlate).toBeGreaterThan(3000);
+  });
+  it("the Hyatt on Saturday: the one crewmate is counted once on each floor with an event that day, whatever the number of picks, and the hotel says one", () => {
+    const SAT = "2026-09-05", lines = app.mapCrewPicks(SAT).Hyatt, rows = app.dayLights("Hyatt", SAT, new Set());
+    expect(app.mapCrewCounts(SAT).Hyatt).toBe(1);
+    expect(app.building("Hyatt").plates.map((plate, j) => [plate.key, app.crewOnPlate(lines, "Hyatt", plate), rows[j].events > 0 ? 1 : 0]).filter(([, counted, expected]) => counted !== expected)).toEqual([]);
+    expect(lines.length).toBeGreaterThan(100);
   });
 });
