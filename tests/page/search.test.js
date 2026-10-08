@@ -88,8 +88,8 @@ describe("Search", () => {
     it("signing sunday is all filters [294]", () => {
       expect(P("signing sunday")).toMatchObject({ residual: "", filters: { kind: "signing", day: "2026-09-06" } });
     });
-    it("tonight means today, evening [296]", () => {
-      expect(P("tonight").filters).toMatchObject({ day: app.conDayKey(handle.now()), time: "evening" });
+    it("tonight means today, from 5 PM through the small hours [296]", () => {
+      expect(P("tonight").filters).toMatchObject({ day: app.conDayKey(handle.now()), time: "tonight" });
     });
     it("late night party is time + kind [298]", () => {
       expect(P("late night party")).toMatchObject({ residual: "", filters: { time: "late night", kind: "party" } });

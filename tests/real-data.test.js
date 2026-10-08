@@ -148,6 +148,67 @@ describe("against the real schedule", () => {
     });
   });
 
+  /* DECISIONS #104: a synonym is found as whole words, four groups are cut
+     apart, five names are kept whole, and three names typed as one word are
+     read as two. Each bound is far under what the query returned before. */
+  describe("the words Search reads", () => {
+    const onTrack = (found, track) => found.results.filter(e => (e.tracks || []).includes(track));
+
+    it('"symphony" leads with the Philharmonic, and no row is a filk concert', () => {
+      const found = search("symphony");
+      expect(found.results[0].title).toMatch(/Philharmonic/);
+      expect(found.results.filter(e => /^Concert/.test(e.title))).toEqual([]);
+    });
+    it('"ya" is the young adult events, not every room of the Hyatt', () => {
+      const found = search("ya");
+      expect(found.total).toBeLessThan(60);
+      expect(onTrack(found, "Young Adult Literature").length).toBeGreaterThan(0);
+    });
+    it('"masquerade" is the events that say so', () => {
+      const found = search("masquerade");
+      expect(found.total).toBeGreaterThan(0);
+      expect(found.results.filter(e => !/masquerad/i.test(`${e.title} ${e.description}`))).toEqual([]);
+    });
+    it('"board games" is the board games, not every tabletop event', () => {
+      expect(search("board games").total).toBeLessThan(200);
+    });
+    it('"d&d" is Dungeons & Dragons, not every role-playing table', () => {
+      expect(search("d&d").total).toBeLessThan(250);
+      expect(search("dnd").results.map(e => e.id)).toEqual(search("d&d").results.map(e => e.id));
+    });
+    it('"young adult" is a name, not an 18+ filter', () => {
+      const found = search("young adult");
+      expect(found.chips).toEqual([]);
+      expect(found.residual).toBe("young adult");
+      expect(onTrack(found, "Young Adult Literature").length).toBeGreaterThan(0);
+    });
+    it('"addams family" is a name, not the Kids Track: its screenings lead, once the photo and video filter is off', () => {
+      const found = search("addams family", { hideNoise: false });
+      expect(found.chips).toEqual([]);
+      expect(found.topTitles.slice(0, 2).every(title => /Addams/.test(title))).toBe(true);
+      expect(search("addams family").chips).toEqual([]);
+    });
+    it('"addams family" as the app opens, the filter on: no chip, and every row above Looser matches is about The Addams Family', () => {
+      const found = search("addams family");
+      expect(found.chips).toEqual([]);
+      expect(found.main).toBeGreaterThan(0);
+      expect(found.loose).toBeGreaterThan(0);
+      expect(found.mainEvents.filter(e => !app.linksTo(e, "the-addams-family"))).toEqual([]);
+    });
+    it('"scifi" finds what "sci fi" finds', () => {
+      const ids = q => search(q).results.map(e => e.id);
+      expect(ids("scifi").length).toBeGreaterThan(100);
+      expect(ids("scifi")).toEqual(ids("sci fi"));
+    });
+    it('"tonight" runs past 9 PM, into the small hours', () => {
+      const found = search("tonight");
+      expect(found.chips).toEqual(["Tonight"]);
+      expect(found.results.every(e => e._cd === "2026-09-05")).toBe(true);
+      expect(Math.max(...found.results.map(e => +e._s))).toBeGreaterThan(+new Date("2026-09-06T00:00"));
+      expect(Math.min(...found.results.map(e => +e._s))).toBe(+new Date("2026-09-05T17:00"));
+    });
+  });
+
   describe("kids means the Kids Track", () => {
     it("kids shows a Kids Track chip [2128]", () => {
       expect(search("kids").chips).toContain("Kids Track");

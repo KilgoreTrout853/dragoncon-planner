@@ -748,7 +748,7 @@ terms, reviewed flag or parent of a work in the block now changes
 marks such works reviewed now rebuilds the file. The census report does not
 read the block.
 
-### 39. The client switch as built — Standing (2026-09-22) — by year since #49: the file is `DC_YEAR`'s, and every storage key carries the year, so a build for 2027 starts with no picks, follows or settings of 2026's, by design; the update notice keys on the `digest`; its Cost's shared storage closed by PR #52: every storage key carries the channel, `storageKey()` in `src/build.js`; amended by #85
+### 39. The client switch as built — Standing (2026-09-22) — by year since #49: the file is `DC_YEAR`'s, and every storage key carries the year, so a build for 2027 starts with no picks, follows or settings of 2026's, by design; the update notice keys on the `digest`; its Cost's shared storage closed by PR #52: every storage key carries the channel, `storageKey()` in `src/build.js`; amended by #85; amended by #104
 **Decided:** The client on `next` reads `data/2026/events.v2.json` (#33,
 #38), and every surface keeps its behaviour: plumbing and parity, not a
 search redesign (#36). `docs/discover/schema-v2.md` has the detail, under
@@ -3480,3 +3480,28 @@ your crew" wrapped a card's day line on the smallest phone with Larger text.
 "3 crew" beside the hotel's "3 of your crew". The placeholder is cut on the
 smallest phone with Larger text and a badge. On the filter sheet's first
 screen there, the Type switch is under the fold.
+
+### 104. Search reads words: a synonym as whole words, a name kept whole — Standing (2026-10-08)
+**Decided:** Five known faults in how Search reads words, mended before the
+beta's readers try it (PR #121; `src/search.js`). Amends #39.
+- **A synonym is found as whole words:** no letter or digit against either
+  end of the phrase, but for a plural's "s" - `synonymsIn()`.
+- **Four groups are cut apart,** a group being other words for one thing:
+  "concert" leaves symphony, "tabletop" board game, "pathfinder" d&d and
+  "masquerade" cosplay, and join no other; card game and role-playing are
+  groups of their own.
+- **Five names are not read for filter words:** "young adult", "addams
+  family", "saturday night live", "legends of tomorrow", "children who
+  chase". A filter word outside the name is read, and its chip takes it out.
+- **Three names typed as one word** are read as two: "scifi", "starwars",
+  "startrek".
+- **"tonight"** is today from 5 PM through the small hours, not to 9 PM; and
+  a filter word is read with "?", "!", ".", ";" or ":" after it.
+
+**Why:** Each is provable by a count and none is a matter of taste, so they
+go before the beta and what comes back is new: every one of the Hyatt's 499
+events was indexed as young adult, for the "ya" in its name.
+**Cost:** A list mended by hand and measured by counts, not by #36's
+harness; it is replaced when the vocabulary moves to the registries. Five
+names by hand is no rule. Other groups still reach too far - burlesque's
+"adult", space's "mars", music's "band", horror's "zombie".
