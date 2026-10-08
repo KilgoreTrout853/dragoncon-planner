@@ -9,7 +9,10 @@
    is cut by the stage and no longer at the drawing's own edge; and through
    a lift and its way back the stage's box does not change, from the first
    frame after the tap to rest, while the drawing in it moves from where it
-   stood - the frame's step is the drawing's, never the svg's.
+   stood - the frame's step is the drawing's, never the svg's. That is held
+   twice: on every frame a machine happens to paint of a move in its own
+   time, however few; and, by no clock, with the move held at twenty moments
+   of its span, where the drawing is seen between its two ends.
 
    The reader is seeded here, as tests/browser/stack.spec.js's is. */
 import { CLOCKS, MOTION, expect, open, seed, settled, tab, test } from "./harness.js";
@@ -61,6 +64,27 @@ function watch(id) {
   requestAnimationFrame(look);
 }
 const watched = page => page.evaluate(() => { window.__stage.on = false; return window.__stage.frames; });
+/* A move held, by no clock: run in the page. The control's own click; one
+   frame, in which the app starts its set; then the set paused and put at
+   twenty moments of its span, a frame painted at each, with the stage's box
+   and the drawing's read there; then finished, as it ends in its own time. */
+async function held20({ target, id }) {
+  const frame = () => new Promise(done => requestAnimationFrame(done));
+  const box = el => { const b = el.getBoundingClientRect(); return [b.left, b.top, b.width, b.height]; };
+  const svg = document.querySelector("#view-map svg.map"), el = document.querySelector(target), b = el.getBoundingClientRect();
+  el.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: b.left + b.width / 2, clientY: b.top + b.height / 2 }));
+  await frame();
+  const set = document.getAnimations().filter(anim => anim.id === id), span = Math.max(0, ...set.map(anim => anim.effect.getComputedTiming().endTime)), at = [];
+  for (const anim of set) anim.pause();
+  for (let i = 0; i < 20 && set.length; i++) {
+    for (const anim of set) anim.currentTime = span * i / 20;
+    await frame();
+    at.push({ stage: box(svg), ground: box(svg.querySelector(".map-ground")) });
+  }
+  for (const anim of set) anim.finish();
+  await frame(); await frame();
+  return { count: set.length, span, at };
+}
 const frames = (page, count = 2) => page.evaluate(n => new Promise(done => { const next = left => (left ? requestAnimationFrame(() => next(left - 1)) : done()); next(n); }), count);
 const moving = page => page.evaluate(id => document.getAnimations().filter(anim => anim.id === id).length, MOTION);
 const ended = async page => { await expect.poll(() => moving(page), { timeout: 8000 }).toBe(0); await frames(page); };
@@ -136,21 +160,36 @@ for (const [text, storage] of Object.entries(TEXT)) {
           await page.evaluate(watch, MOTION);
           await frames(page);
           await go();
-          expect.soft(await moving(page), `${name}: a set plays`).toBeGreaterThan(0);
           await ended(page);
           const seen = await watched(page), after = await page.evaluate(stage), rest = boxOf(after.frame);
-          const first = seen.findIndex(f => f.count > 0), live = seen.slice(first);
-          expect.soft([first > 0, live.length > 3], `${name}: frames were seen before the set and through it, ${live.length}`).toEqual([true, true]);
+          /* However few frames a slow machine paints of a set, its first is the set's first: it is made held there (map.js play()). */
+          const first = seen.findIndex(f => f.count > 0), live = first < 0 ? [] : seen.slice(first);
+          expect.soft([first > 0, live.length > 0], `${name}: a set played, with frames seen before it and of it, ${live.length}`).toEqual([true, true]);
+          if (!live.length) continue;
           expect.soft(live.filter(f => far(f.stage, rest) > 0.05).length, `${name}: the stage's box is its box at rest, ${rest.map(v => v.toFixed(1)).join(", ")}, on every frame from the first after the tap`).toBe(0);
           expect.soft(far(live[0].ground, boxOf(before.ground)) <= 1, `${name}: the drawing at the first frame, ${live[0].ground.map(v => v.toFixed(1)).join(", ")}, is where it stood, ${boxOf(before.ground).map(v => v.toFixed(1)).join(", ")}`).toBe(true);
           expect.soft(far(seen[seen.length - 1].ground, boxOf(after.ground)) <= 0.05, `${name}: and at rest where the draw put it`).toBe(true);
-          /* where the slot changed the drawing's box, the drawing moved inside the stage - and so stood, for a frame at least, apart from both ends */
-          if (far(boxOf(before.ground), boxOf(after.ground)) > 2) {
-            expect.soft(far(boxOf(before.frame), rest) > 2, `${name}: the stage's own box changed at the tap, with the slot`).toBe(true);
-            expect.soft(live.some(f => far(f.ground, boxOf(before.ground)) > 0.5 && far(f.ground, boxOf(after.ground)) > 0.5), `${name}: the drawing moved through the set`).toBe(true);
-          }
           expect.soft(after.ground.left >= after.frame.left - 0.5 && after.ground.right <= after.frame.right + 0.5, `${name}: the drawing ends inside the stage`).toBe(true);
         }
+      }
+    });
+
+    test(`a lift and its way back held at twenty moments of their span, by no clock: the stage's box is its box at rest at every one, and where the slot changed the drawing's box the drawing stands between its two ends on the way${text}`, async ({ page }) => {
+      await open(page, SATURDAY);
+      await tab(page, "map");
+      for (const [move, target] of [["the lift", '#view-map .map-hotel[data-hotel="Hyatt"]'], ["its way back", "#mapBack"]]) {
+        const before = await page.evaluate(stage);
+        const held = await page.evaluate(held20, { target, id: MOTION });
+        const after = await page.evaluate(stage), rest = boxOf(after.frame), was = boxOf(before.ground), is = boxOf(after.ground);
+        expect.soft([held.count > 0, held.at.length], `${move}: a set was held, of ${held.count} animations over ${held.span} ms`).toEqual([true, 20]);
+        expect.soft(held.at.filter(f => far(f.stage, rest) > 0.05).length, `${move}: the stage's box is its box at rest, ${rest.map(v => v.toFixed(1)).join(", ")}, at every moment`).toBe(0);
+        expect.soft(far(held.at[0].ground, was) <= 1, `${move}: at its start the drawing, ${held.at[0].ground.map(v => v.toFixed(1)).join(", ")}, is where it stood, ${was.map(v => v.toFixed(1)).join(", ")}`).toBe(true);
+        /* where the slot changed the drawing's box, the stage's own box changed at the tap, and the drawing is carried: apart from both ends at some moment */
+        if (far(was, is) > 2) {
+          expect.soft(far(boxOf(before.frame), rest) > 2, `${move}: the stage's own box changed at the tap, with the slot`).toBe(true);
+          expect.soft(held.at.some(f => far(f.ground, was) > 0.5 && far(f.ground, is) > 0.5), `${move}: the drawing stands between where it stood and where it rests on the way`).toBe(true);
+        }
+        expect.soft(await moving(page), `${move}: nothing of the set is left`).toBe(0);
       }
     });
   });
