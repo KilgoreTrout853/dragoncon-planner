@@ -72,7 +72,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `src/season.js`, `stack.js`, `level.js`, `motion.js`, `util.js`, `storage.js`, `platform.js`, `build.js`, `backend.js`, `about.js`, `identity.js`, `crews.js`, `state.js`, `time.js`, `outbox.js`, `venues.js`, `shareday.js`, `data.js`, `building.js`, `picks.js`, `follows.js`, `ics.js`, `walk.js`, `search.js`, `foryou.js`, `ui.js`, `inplace.js`, `filters.js` | The twenty-eight leaves: what everything else stands on. "The client: modules and their order" has a paragraph on each layer. |
 | `src/styles.css` | All the CSS. |
 | `public/` | Served and copied verbatim: `sw.js` (service worker: offline caching, schedule revalidation), `manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` (PWA install and link-preview assets), `.nojekyll`. |
-| `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own three plugins: `dcYear`, the year `DC_YEAR` names - its define and its three data modules, the level drawings' made by the plugin itself, in the dev server, the build and Vitest alike (DECISIONS #49, #94); `dcBackend`, the backend `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name, or none - its two defines, in the same three places, and the guard on them (#53); and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy. |
+| `vite.config.js`, `build/vite-dc.js` | The build: single-file output, and this project's own four plugins: `dcYear`, the year `DC_YEAR` names - its define and its three data modules, the level drawings' made by the plugin itself, in the dev server, the build and Vitest alike (DECISIONS #49, #94); `dcBackend`, the backend `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` name, or none - its two defines, in the same three places, and the guard on them (#53), with `DC_EMAIL`, which leaves the email step off (#99); `dcClock`, the default moment `DC_NOW` names, or none (#99); and `dcBuild`, the HTML fix-ups, the channel and year stamps and the `data/` copy. |
 | `dist/` | Build output, not in git: `index.html` with the CSS and script inlined, the files from `public/`, and the one file from `data/` the client reads, the year's `events.v2.json`. |
 | `data/2026/events.json` | The frozen 2026 schedule: 3,459 events, 2.7 MB. Read by tags v2, which never write it, and by the live site's one-file app on `main`; the client on `next` reads `events.v2.json` (DECISIONS #39). |
 | `data/2026/tags.cache.jsonl` | The tag stage's answers, one a line, sorted by the hash of what the model was sent and the year's `prompt_version` (DECISIONS #34, #46): names, never ids. Frozen with its year: the tag stage reads 2026 with `--dry-run` only and writes it no more, and a line corrected by hand says `"model": "hand"`. |
@@ -110,7 +110,7 @@ index.html + src/  ──vite build──►  dist/index.html  (the whole client
 | `tests/real-data.test.js` | Vitest: search quality, Explore and the event sheet's entry points - which places and chips are taps - against the real schedule of the year under test, `data/2026/events.v2.json`; and, by a boot of its own against a copy of it that has moved on, what is offered in place of a pick (DECISIONS #90); and the building's model (#94), on that schedule and the level drawings the build gives the year, 2027's; and the stack (#95), each venue's plates as they stand in the Map's frame, and the words a card's row says for a room; and the level (#96), the 18 level views - each one's scale, its rooms too small to see and what they are called at the fit - and every room the schedule reaches, selected by an arrival; and the zoom's fit (#98), every place at every scale its level's camera can come to; and the place filter (#98), every place the Map can select on each con day - the card's count beside Search's list. |
 | `tests/build.test.js` | Vitest: what `vite build` leaves in the output folder, stamped and unstamped, the years and the secret key it refuses, a build for 2027 in a temporary copy of the project with a stand-in schedule, the level drawings' module as the plugin makes it - the year it is taken from, what it holds and the borrowed drawing it refuses (DECISIONS #94) - and smokes that boot the built pages - the next site's, given a backend, signing in by email and syncing a star. The only test that executes `dist/`. |
 | `tests/worker.test.js` | Vitest: `public/sw.js` run in Node against fakes of what a browser hands a worker - `self`, `caches`, `fetch`, its clients - so that its rules are tested by what they do: when it tells the page of a new schedule, what its stamps name, which caches it clears (DECISIONS #49). A harness of fakes, not a browser; Playwright stays deferred (#24). |
-| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds, and a second page, `dist-backend/`, a build told of a backend whose requests the harness answers (#92); `gear.spec.js` holds Settings' heading and Done on the screen in every state it has, About this app behind its row (#92), and Delete whole at its end, with each button, with none and once done (#93); `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star, the zero state's Show all and star, and a fold in place of a pick and a star in it among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88); `in-place.spec.js` holds the picks-changed notice and the folds under it whole on Now and on My day, each fold's button and the notice's OK 44 px tall or more (#90); `stack.spec.js` holds a venue's stack (#95): each of the seven opened by a touch, a strip's touch its plate's own and no shallower than measured, the way back's 44 px, a plate touched where it stood and the frame one size, the card whole, an inert plate see-through, and the keyboard's path; `level.spec.js` holds a level (#96): each of the 18 inside the frame and clear of the way back, in a frame the stack's own size, a touch at a room's middle that room's, a small room brought to the middle, a touch beside a room the nearest's and one past reach none's, the way back's 44 px at each step, and the keyboard's path; `motion.spec.js` holds the motion (#97): each move played in its own time and the page after it the Reduce Motion page, nothing of a set left, a set's first frame, a tap while one runs, and a venue's group put away; `place.spec.js` holds the place filter (#98): a card's head 44 px tall or more with the slot and the frame as they are with none, its touch landing on Search with the chip in view and focused, the tab bar's Map as it was left with no move played, and no zoomed room under the way back; and `harness.js` `settled()` finishes a set that is playing before any other spec reads the page. |
+| `tests/browser/` | Playwright (DECISIONS #81): the built page in Chromium and in WebKit at three phone sizes. `harness.js` holds the states - engines, sizes, clocks, readers - and what every spec opens the page with: Barlow served from this repo, no request to another machine, a reader seeded through localStorage, and the two standing checks' rule, read in the page; `serve.js` builds `dist/` afresh and serves it for the run, and never uses a server it finds, and a second page, `dist-backend/`, a build told of a backend whose requests the harness answers (#92); `gear.spec.js` holds Settings' heading and Done on the screen in every state it has, About this app behind its row (#92), and Delete whole at its end, with each button, with none and once done (#93); `standing.spec.js` walks the five tabs; `rule.spec.js` holds the rule itself, on a page of its own; `chip.spec.js` holds the header's simulated-time chip (#82); `banner.spec.js` holds the Map before the con - `main` no taller than its box, the card whole - and the preview banner whole on Now and on no other tab (#99); `mute-cast.spec.js` holds Follow and Mute on one line and the 44 px of Mute, every fold's button and a muted chip (#84, #85); `tap-place.spec.js` holds a tapped control where it stood, a star's row with it (#86), For you's Show more and star, the zero state's Show all and star, and a fold in place of a pick and a star in it among them; `foryou.spec.js` holds For you whole, each reason on its row, Show more's 44 px and Following folded under it (#87); `zero.spec.js` holds the zero state whole for a stranger, Show all's 44 px, and a star in it held until the grid is left (#88); `in-place.spec.js` holds the picks-changed notice and the folds under it whole on Now and on My day, each fold's button and the notice's OK 44 px tall or more (#90); `stack.spec.js` holds a venue's stack (#95): each of the seven opened by a touch, a strip's touch its plate's own and no shallower than measured, the way back's 44 px, a plate touched where it stood and the frame one size, the card whole, an inert plate see-through, and the keyboard's path; `level.spec.js` holds a level (#96): each of the 18 inside the frame and clear of the way back, in a frame the stack's own size, a touch at a room's middle that room's, a small room brought to the middle, a touch beside a room the nearest's and one past reach none's, the way back's 44 px at each step, and the keyboard's path; `motion.spec.js` holds the motion (#97): each move played in its own time and the page after it the Reduce Motion page, nothing of a set left, a set's first frame, a tap while one runs, and a venue's group put away; `place.spec.js` holds the place filter (#98): a card's head 44 px tall or more with the slot and the frame as they are with none, its touch landing on Search with the chip in view and focused, the tab bar's Map as it was left with no move played, and no zoomed room under the way back; and `harness.js` `settled()` finishes a set that is playing before any other spec reads the page. |
 | `playwright.config.js` | The browser tests' configuration: a project for each engine at each size, a phone with touch on, the worker blocked, the zone the season file's, no retries. |
 | `tests/PORT-LEDGER.md` | Where each assertion of the old smoke harness went, and how. A record, frozen: never edited (DECISIONS #83). |
 | `tests/test_parse.py` | Scraper parsing: the day list, the detail page, the raw row. |
@@ -459,11 +459,14 @@ and date helpers. `storage`: `loadJSON()`, `saveJSON()` and their session
 twins. `platform`: `IS_IOS`, `isStandalone()`. `build`: the stamp `BUILD`;
 `storageKey()`, which names every key the app stores - `dc<yy>.` and a name,
 and the channel after it on a stamped build; the dev-build mark; the device
-readout. `backend`: the backend the build names, or none - `hasBackend` -
+readout, which says besides what `sheet` hands it of the build (#99). `backend`: the backend the build names, or none - `hasBackend` - and
+whether the build has the email step, `emailStep`, which `DC_EMAIL=off`
+leaves off (DECISIONS #99);
 every request to it, by `fetch`, and the session it keeps under
 `storageKey("session")`, refreshed only when the server refuses its token
 (DECISIONS #53). `about`: `aboutHTML()`, About this app's panel and its
-words, by whether the build has a backend (DECISIONS #92), and Delete's
+words, by whether the build has a backend (DECISIONS #92) and, with one,
+the email step - three wordings (#99) - and Delete's
 part and its confirm, by the session (#93). `identity`:
 `ensureUser()`, which mints the anonymous user
 at the first tap that needs one, the email step - add and recover by one
@@ -491,7 +494,9 @@ while the reader stays on the grid, with the zero state under it where it
 has no row (#88); `inPlace`, what stands in place of the picks that
 changed while the reader stays on Now or on Plans (#90); and `following.open`, Following's fold
 as the reader stored it, null while never stored (#87).
-`time`: `now()`, the override, `CON` - the season file's days - and the
+`time`: `now()`, the override - the reader's own moment - and under it
+the home clock, the build's default moment or the real clock (#99), `CON`
+- the season file's days - and the
 days' names, `conPhase()`, `conDayKey()`, `effectiveNow()`. `outbox`: what
 the doors have changed and the server has not yet taken - one op per
 changed key, stamped by `wallClock()` - under `storageKey("outbox")`, and
@@ -881,10 +886,16 @@ single `render()` that redraws the active view from `state`.
 **Time.** One `now()` function. A `?now=<ISO>` query parameter sets a
 simulated clock, mirrored to `sessionStorage` (`dc<yy>.timeOverride`, or
 `dc<yy>.timeOverride.<channel>` on a stamped build) so it survives navigation
-but not a new tab. `isSimulated()` shows a chip. `CON` spans the season
+but not a new tab. `isSimulated()` shows a chip. Under the reader's own
+moment is the home clock (DECISIONS #99): a build's default moment where
+`DC_NOW` gave it one, else the real clock - the order is the address, the
+session, the default, the real clock. A default stands still, shows no
+chip, and is what clearing goes back to; Settings' preview field shows it,
+and the header's line then says the count alone. `CON` spans the season
 file's days, from 18:00 on the first to 19:00 on the last - 2026's observed
 bounds, until a season file holds its own. `conPhase()` returns
-`before | live | ended` from `now()` and drives the pre-con banner, the
+`before | live | ended` from `now()` and drives the pre-con banner - above
+Now alone (#99) - the
 live Now tab, and archive mode. All of it is in `src/time.js`, the one file
 ESLint lets read the clock: a bare `new Date()` or `Date.now()` anywhere
 else under `src/` fails `npm run lint`.
@@ -1076,7 +1087,8 @@ as an event's panel has (DECISIONS #78; section 7, The sheet's edges, as
 built). Swipe
 down or press Escape to dismiss; focus moves to the panel's heading as it
 opens and back to what opened it as it closes (DECISIONS #66). On a build
-with a backend, Settings carries Keep your plan: the email step, which
+with a backend - unless it leaves the email step off (#99), and then it has
+crews and no such step - Settings carries Keep your plan: the email step, which
 adds an email to the phone's user or signs the phone in as the user who
 holds it, by a six-digit code (DECISIONS #51, #53;
 `docs/sync/contract.md`, section 1, as built). Under its heading, with a
@@ -1158,7 +1170,7 @@ On `next` the client is built (DECISIONS #23). `npm run build` runs Vite
   where it is unset, an allowlist (DECISIONS #39, #49). The frozen v1 file,
   the tag cache and the registries are the pipeline's and stay behind.
 
-`build/vite-dc.js` holds three plugins. `dcYear` runs first, in the dev
+`build/vite-dc.js` holds four plugins. `dcYear` runs first, in the dev
 server and Vitest as in the build: it reads `DC_YEAR` - four digits, 2026
 where it is unset, or the build fails before it starts - defines
 `__DC_YEAR__`, which `src/season.js` reads, and resolves `virtual:season`
@@ -1184,7 +1196,16 @@ are unset, a build with no backend, whose page sends nothing anywhere but
 for the schedule (DECISIONS #53). The key is inlined in a public page, so
 it refuses a secret key - an `sb_secret_` key, or a JWT whose role is
 `service_role` - an address that is more than an origin, or is not https
-but for http on this machine, and either variable without the other.
+but for http on this machine, and either variable without the other. It
+reads `DC_EMAIL` too (DECISIONS #99) and defines `__DC_EMAIL__`: `off`
+leaves the email step off a build with a backend, is refused without one,
+and any other value is refused.
+
+`dcClock` runs beside them, in the same three places (DECISIONS #99). It
+reads `DC_NOW`, a date and time with no offset - `2026-09-01T10:00` - and
+defines `__DC_NOW__`, which `src/time.js` reads: a build's default
+moment, empty where it is unset. A value of another shape, a date that is
+none, and an offset are refused.
 
 `dcBuild` runs last, in `closeBundle`. Vite emits the
 entry as `<script type="module" crossorigin>` in `<head>`; `dcBuild` moves
@@ -1271,8 +1292,9 @@ modules export one name - and calls `boot({events, reload})` with a fixture:
 `real-data`, or a test's own copy of the sample, changed where it needs a
 schedule the sample lacks - a removed event, a `was`, a digest. A test
 drives the page through the DOM, through the handle `boot()` returned, and
-through `app`, wherever a name lives. The backend's two constants, which
-Vitest makes globals, are set before the import: empty - a build with no
+through `app`, wherever a name lives. The build's four constants, which
+Vitest makes globals, are set before the import - the email step's and
+the default moment's as a test asks (#99), and the backend's two empty - a build with no
 backend, whatever the shell says - unless the test hands the helper a fake
 of the Supabase Auth server, `tests/helpers/backend.js`, whose address and
 key the page is built with and whose `fetch` it talks to. The window
@@ -1374,7 +1396,9 @@ their tab, so a run reports every tab that fails. `rule.spec.js` holds
 the rule itself on a page of its own, where every box has its size
 written on it: that it still flags a control cut by an ancestor or by
 the screen, and still stops at a scroller. A layout fault gets a named
-test of its own: `chip.spec.js` is the first (#82), and
+test of its own: `chip.spec.js` is the first (#82), `banner.spec.js` holds
+the Map before the con, which a banner above it made taller than the
+screen (#99), and
 `mute-cast.spec.js` holds what Mute and the cast folds added (#84, #85).
 `tap-place.spec.js` holds that what is tapped stays where it stood (#86):
 each control put at a height by scrolling `main`, touched there, and
@@ -1430,9 +1454,10 @@ the scroller; and nothing reads `location.host`, `hostname` or `origin`,
 because the stamp decides the channel, never the address (#15). A later
 config object replaces an earlier one's options for a rule, so the config
 gives the page's selectors for all of `src/` and gives them again, with the
-clock's, for every file but `time.js`. Two more declare the build's
-defines as globals: `__DC_YEAR__`, for `src/season.js` alone, and the
-backend's two, for `src/backend.js` alone. And the push function, under
+clock's, for every file but `time.js`. Three more declare the build's
+defines as globals: `__DC_YEAR__`, for `src/season.js` alone, the
+backend's two and the email step's, for `src/backend.js` alone, and the
+default moment's, for `src/time.js` alone. And the push function, under
 `supabase/functions/`, runs in Deno: its block declares `Deno`, and turns
 off Node's own names, which the config otherwise gives every file
 (DECISIONS #55).

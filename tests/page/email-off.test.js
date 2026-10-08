@@ -236,9 +236,14 @@ describe("a build with the email step off, arriving by a tapped invite link", ()
 describe("a build with a backend and the email step on is as it was", () => {
   let page, fake;
 
+  /* Signed in, and synced once: sync has a line to say. */
   beforeAll(async () => {
     fake = fakeBackend();
+    const ada = fake.held("ada@example.test"), s = fake.issue(ada.id);
+    window.localStorage.setItem(KEY("session"), JSON.stringify({ access_token: s.access_token, refresh_token: s.refresh_token,
+      user: { id: ada.id, email: ada.email, is_anonymous: false } }));
     page = await bootPage({ backend: fake });
+    await page.app.syncSettled();
   }, 30000);
   afterAll(() => { while (!el("sheetWrap").hidden) page.handle.closeSheet(); return page.cleanup(); });
 
@@ -247,10 +252,11 @@ describe("a build with a backend and the email step on is as it was", () => {
     el("settingsBtn").click();
     expect(el("keep").hidden).toBe(false);
     expect(text(el("keep").querySelector("h3"))).toBe("Keep your plan");
-    expect(el("keepEmail")).not.toBe(null);
+    expect(text(el("keepWho"))).toBe("ada@example.test");
   });
-  it("the readout says nothing of the email step, nor sync's line: Keep your plan has it", () => {
-    expect(text(el("deviceLine"))).not.toMatch(/email off|sync:|clock/);
+  it("sync's line is Keep your plan's, and the readout says nothing of it, nor of the email step", () => {
+    expect(text(el("keepSync"))).toBe("Synced just now");
+    expect(text(el("deviceLine"))).not.toMatch(/email off|sync:|Synced|clock/);
   });
   it("a session lost says to enter the email again", () => {
     expect(page.app.plainMessage({ code: "session_lost" })).toBe("You were signed out. Enter your email to sign in again.");
