@@ -175,7 +175,8 @@ evidence is `docs/discover/census-2026.md`. The sequence:
    (DECISIONS #38), and the client reading it, plumbing and parity (#36,
    #39).
 7. Search tuning, by an eval harness (#36) - held until the first pass of
-   the whole app (Held).
+   the whole app (Held); five known faults in how Search reads words mended
+   ahead of it (PR #121, DECISIONS #104).
 
 ### 3. Places — designed; its data half is Pipeline shape's
 
@@ -553,6 +554,13 @@ confirmed on a phone, by PR #77's hand test and with the install flow
 
 ## Flags
 
+- A filter word that is the whole of a work's name is read as the filter:
+  "wednesday" is the day, and the show's events are not found by its name
+  (#104). No list of phrases can mend it. For the general rule on a filter
+  word in a name.
+- A work's name typed finds none of its Video Room screenings while the
+  photo and video filter is on - "addams family" (#104) - and no line says
+  so, as "photo sessions hidden · show" does for a person's name.
 - Every build's `og:image` and `og:url` are the live site's address, so a
   link to the next site or the beta site previews with the live site's
   image (#102). A fix touches `index.html`'s four address tags, a build

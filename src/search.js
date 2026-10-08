@@ -16,15 +16,19 @@ import { hotelMatches, hotelShort } from "./venues.js";
 import { AXES, byId, castEvents, events, happening, isAdult, isNoise, linkedWorks, linksTo, personName, tagsOf, worksById } from "./data.js";
 import { building, levelEvents, roomEvents } from "./building.js";
 
-/* Con vocabulary. If an event mentions any phrase in a group, every phrase in the group becomes searchable for it.
-   Add your own lines freely; lowercase, no punctuation needed. */
+/* Con vocabulary. If an event says any phrase in a group as whole words
+   (wholeIn()), every phrase in the group becomes searchable for it. A group
+   is other words for one thing, not things that go together: an event that
+   says "tabletop" is not thereby a board game. Add your own lines freely;
+   lowercase, spelled as a listing would spell it. */
 const SYNONYMS = [
-  ["symphony", "orchestra", "philharmonic", "concert", "classical music"],
+  ["symphony", "orchestra", "philharmonic", "classical music"],
   ["marvel", "mcu", "avengers", "x-men", "xmen", "spider-man", "spiderman", "daredevil", "deadpool", "wolverine"],
   ["batman", "superman", "justice league", "gotham", "dc comics", "wonder woman"],
   ["star trek", "trek", "starfleet", "tng", "ds9", "voyager", "strange new worlds", "klingon", "trekkie"],
   ["star wars", "mandalorian", "jedi", "sith", "andor", "skywalker", "lightsaber"],
-  ["d&d", "dnd", "dungeons & dragons", "dungeons and dragons", "ttrpg", "tabletop rpg", "role-playing", "roleplaying", "pathfinder", "dungeon master", "5e", "ddal", "adventurers league"],
+  ["d&d", "dnd", "dungeons & dragons", "dungeons and dragons", "dungeon master", "5e", "ddal", "adventurers league"],
+  ["ttrpg", "tabletop rpg", "role-playing", "roleplaying"],
   ["skeptrack", "skeptics", "skeptic"],
   ["whedon", "firefly", "buffy", "angel", "serenity"],
   ["brit", "british", "brittrack", "doctor who"],
@@ -35,11 +39,12 @@ const SYNONYMS = [
   ["game of thrones", "westeros", "house of the dragon", "targaryen"],
   ["doctor who", "dr who", "tardis", "whovian", "dalek"],
   ["anime", "manga", "shonen", "otaku"],
-  ["cosplay", "costume", "costuming", "costumer", "masquerade"],
+  ["cosplay", "costume", "costuming", "costumer"],
   ["space", "nasa", "astronomy", "astronaut", "rocket", "planetary", "spaceflight", "jpl", "telescope", "exoplanet", "orbit", "mars", "moon landing"],
   ["science", "physics", "biology", "chemistry", "stem", "scientist"],
   ["video game", "video games", "video gaming", "videogame", "esports", "arcade", "console", "gamer", "playstation", "xbox", "nintendo", "steam"],
-  ["board game", "board games", "boardgame", "tabletop", "card game", "deck-building"],
+  ["board game", "board games", "boardgame"],
+  ["card game", "deck-building"],
   ["horror", "scary", "slasher", "zombie", "zombies", "haunted"],
   ["rick and morty", "rick & morty"],
   ["writing", "writers", "writer", "author", "authors", "novel", "publishing", "manuscript", "worldbuilding"],
@@ -113,11 +118,28 @@ const processTerm = (term) => {
   const t = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return t.length < 2 || STOPWORDS.has(t) ? null : t;
 };
-function aliasesFor(ev, text) {
-  const out = [];
-  for (const g of SYNONYMS) if (g.some(m => text.includes(m))) out.push(...g);
-  return out.join(" ");
+/* Whether a text says a phrase as whole words: the phrase with no letter or
+   digit against either end of it, but for a plural's "s" after it -
+   "cosplays" says "cosplay", and "Hyatt" does not say "ya", nor "Angela"
+   "angel". The plural is "s" and no more: by "es", "Los Angeles" would say
+   "angel". The phrase is literal text, found by indexOf(): the vocabulary
+   holds "d&d", "18+" and "40,000". */
+const WORD_BEFORE = /[\p{L}\p{N}]$/u, WORD_ENDS = /^s?(?![\p{L}\p{N}])/u;
+function wholeIn(text, phrase) {
+  for (let i = text.indexOf(phrase); i >= 0; i = text.indexOf(phrase, i + 1)) {
+    if (!WORD_BEFORE.test(text.slice(Math.max(0, i - 2), i)) && WORD_ENDS.test(text.slice(i + phrase.length))) return true;
+  }
+  return false;
 }
+/* What a text is indexed under beside its own words: every phrase of every
+   group it says a phrase of. The text is in lower case, as buildIndex()
+   makes it. */
+function synonymsIn(text) {
+  const out = [];
+  for (const g of SYNONYMS) if (g.some(m => wholeIn(text, m))) out.push(...g);
+  return out;
+}
+function aliasesFor(ev, text) { return synonymsIn(text).join(" "); }
 
 function buildIndex() {
   index = new MiniSearch({
@@ -303,6 +325,10 @@ const DAY_WORDS = {wed: "Wednesday", wednesday: "Wednesday", thu: "Thursday", th
 const HOTEL_WORDS = {marriott: "Marriott", hyatt: "Hyatt", hilton: "Hilton", westin: "Westin",
   courtland: "Courtland Grand", sheraton: "Courtland Grand", mart: "Mart", americasmart: "Mart"};
 const TIME_BANDS = {morning: [0, 12], afternoon: [12, 17], evening: [17, 21], "late night": [21, 29], late: [21, 29]};
+/* "tonight" is today from 5 PM through the small hours, by inTimeBand()'s
+   count of hours. It is no key of TIME_BANDS, whose every key is a time word
+   of the box's: "tonight" is the rel rule's word, and that alone. */
+const TONIGHT = [17, 29];
 
 /* Longest phrases first so "photo op" wins over "photo" and "late night"
    over "late". Each entry knows how to label itself and what text to strip. */
@@ -335,16 +361,27 @@ function queryRules() {
   return r.sort((a, b) => b.word.length - a.word.length);
 }
 let QUERY_RULES = null;
+/* Names that hold a filter word, kept whole: where a query's tokens hold one
+   as a run, no rule takes a token of that run, and a rule takes the first
+   run equal to its word that stands outside every one. So "young adult" is
+   not 18+ and the word "young", nor "addams family" the Kids Track and
+   "addams". Five by hand, and no rule for a filter word in a name
+   (DECISIONS #104). */
+const WHOLE_NAMES = ["young adult", "addams family", "saturday night live", "legends of tomorrow", "children who chase"];
 
 /* Token matching, not regular expressions: the vocabulary contains "q&a"
    and "18+", and building patterns out of those invites escaping bugs. */
 /* "d&d" survives tokenising as one token and matches nothing; the index
    holds "dungeons" and "dragons" as separate terms. Expand before searching
-   so the shorthand people actually type reaches the words that were indexed. */
+   so the shorthand people actually type reaches the words that were indexed.
+   And three names typed as one word, which the index holds as two. */
 const QUERY_EXPANSIONS = [
   [/\bd\s*&\s*d\b/gi, "dungeons dragons"],
   [/\bdnd\b/gi, "dungeons dragons"],
   [/\bdungeons\b(?!\s+(?:and|&)?\s*dragons\b)/gi, "dungeons dragons"],
+  [/\bscifi\b/gi, "sci fi"],
+  [/\bstarwars\b/gi, "star wars"],
+  [/\bstartrek\b/gi, "star trek"],
 ];
 function expandQuery(text) {
   let out = String(text || "");
@@ -353,23 +390,49 @@ function expandQuery(text) {
 }
 
 function tokenise(text) { return String(text || "").toLowerCase().split(/[\s,]+/).filter(Boolean); }
+/* Whether a run of tokens from i on is the words `want`. The run's last
+   token is its word also with a mark after it, one or more - "friday?" is
+   the day - and no token loses a character by it: "j." in a name is no
+   rule's word, and stays as typed. */
+const MARKS = /^[?!.;:]+$/;
+function runAt(tokens, want, i) {
+  const last = want.length - 1;
+  return i + want.length <= tokens.length && want.every((w, j) => tokens[i + j] === w
+    || (j === last && w !== "" && tokens[i + j].startsWith(w) && MARKS.test(tokens[i + j].slice(w.length))));
+}
 function stripPhrase(tokens, phrase) {
   const want = phrase.split(" ");
   for (let i = 0; i + want.length <= tokens.length; i++) {
-    if (want.every((w, j) => tokens[i + j] === w)) return tokens.slice(0, i).concat(tokens.slice(i + want.length));
+    if (runAt(tokens, want, i)) return tokens.slice(0, i).concat(tokens.slice(i + want.length));
   }
   return null;
 }
+/* A query's tokens for the rules to read: a token of a name kept whole
+   (WHOLE_NAMES, found as a rule's word is) carries KEPT before it, and so is
+   no rule's word. No token of tokenise()'s holds a comma, so none is taken
+   for one; said() gives the words back as they were typed. */
+const KEPT = ",";
+function readable(raw) {
+  const tokens = tokenise(raw), out = tokens.slice();
+  for (const name of WHOLE_NAMES) {
+    const want = name.split(" ");
+    for (let i = 0; i < tokens.length; i++) if (runAt(tokens, want, i)) want.forEach((w, j) => { out[i + j] = KEPT + tokens[i + j]; });
+  }
+  return out;
+}
+const said = tokens => tokens.map(t => t.startsWith(KEPT) ? t.slice(KEPT.length) : t).join(" ");
 /* The query with one word it was read as taken out, as that word's chip
-   under the box takes it: lower case, a space between words. */
+   under the box takes it: lower case, a space between words. It goes
+   parseQuery()'s road, so the word taken is the one that was read - a mark
+   after it with it, and never a word of a name kept whole. */
 function dropPhrase(q, phrase) {
-  const tokens = tokenise(q);
-  return (stripPhrase(tokens, phrase || "") || tokens).join(" ");
+  const tokens = readable(q);
+  return said(stripPhrase(tokens, phrase || "") || tokens);
 }
 
 function parseQuery(raw) {
   if (!QUERY_RULES) QUERY_RULES = queryRules();
-  let tokens = tokenise(raw);
+  let tokens = readable(raw);
   const found = [], taken = new Set();
   for (const rule of QUERY_RULES) {
     if (taken.has(rule.dim) && rule.dim !== "rel") continue;
@@ -379,7 +442,7 @@ function parseQuery(raw) {
     taken.add(rule.dim);
     found.push({...rule, src: rule.word});
   }
-  const residual = tokens.join(" ");
+  const residual = said(tokens);
 
   /* "gaming" alone is a filter; "gaming" inside a real query is a search
      word, unless a day or hotel is pinning it down. */
@@ -388,9 +451,9 @@ function parseQuery(raw) {
     found.splice(gi, 1);
     /* Re-strip from the original so the word goes back where it was written,
        rather than being tacked on the end. */
-    let keep = tokenise(raw);
+    let keep = readable(raw);
     for (const f of found) { const a = stripPhrase(keep, f.word); if (a) keep = a; }
-    return finishParse(keep.join(" "), found);
+    return finishParse(said(keep), found);
   }
   return finishParse(residual, found);
 }
@@ -412,7 +475,7 @@ function finishParse(residual, found) {
         const d = new Date(`${base}T12:00`); d.setDate(d.getDate() + 1); day = dayOf(d);
       }
       filters.day = day;
-      if (f.value === "tonight") filters.time = "evening";
+      if (f.value === "tonight") filters.time = "tonight";
       chips.push({dim: "day", dims: f.value === "tonight" ? ["day", "time"] : ["day"], label: f.label, src: f.src});
     } else if (f.dim === "kidstrack") {
       filters.track = "Kids Track";
@@ -427,7 +490,7 @@ function finishParse(residual, found) {
 }
 
 function inTimeBand(e, band) {
-  const [lo, hi] = TIME_BANDS[band] || [];
+  const [lo, hi] = band === "tonight" ? TONIGHT : TIME_BANDS[band] || [];
   if (lo === undefined) return true;
   let h = e._s.getHours();
   if (h < 5) h += 24;                    // a 1am panel belongs to the night before
@@ -581,6 +644,6 @@ function browseResults() {
 
 export {
   STOPWORDS, KIND_LABELS, AXIS_LABELS, axisLabel, index, SEARCH_PLACEHOLDER, processTerm, buildIndex, suggestDocs,
-  buildSuggestIndex, suggestionsFor, expandQuery, tokenise, stripPhrase, dropPhrase, parseQuery,
+  buildSuggestIndex, suggestionsFor, synonymsIn, expandQuery, tokenise, stripPhrase, dropPhrase, parseQuery, inTimeBand,
   GETTING_IN, passesGettingIn, passesFilters, atPlace, placeInEffect, placeTitle, placeWords, placeLink, activeFilters, termQuality, browseResults, browseCast,
 };

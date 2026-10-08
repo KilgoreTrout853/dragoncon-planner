@@ -581,7 +581,9 @@ every other pick a pick overlaps across the plan, which a row's overlap
 flag says (#73), and `clashesOf()`, the same asked of any event, picked
 or not, which the sheet's overlap line says (#74); the gap line says the walk and the tight bands, and no
 overlap. Nothing in it says where the reader is, or when to leave. `search`: the two MiniSearch
-indexes (MiniSearch is an npm dependency, pinned to 7.2.0), the reading of a
+indexes (MiniSearch is an npm dependency, pinned to 7.2.0), `synonymsIn()`,
+the con's other words a text is indexed under, each found as whole words
+(#104), the reading of a
 query, the ranking, `AXIS_LABELS`, the only place an axis slug becomes a
 label, `passesGettingIn()`, whether an event passes one of the filter
 sheet's cost, sign-up, audience and sold out at a value, which the list and
