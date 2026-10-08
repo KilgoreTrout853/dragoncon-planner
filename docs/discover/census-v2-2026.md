@@ -88,7 +88,7 @@ By events rolled up through descendants: an event counts for a work when it link
 | `dungeons-and-dragons` | `Dungeons & Dragons` |  | 137 | 138 | `D&D`, `DnD`, `5e` | `Dungeon Master`, `DDAL`, `Adventurers League` |
 | `magic-the-gathering` | `Magic: The Gathering` |  | 80 | 80 | `MTG` |  |
 | `star-trek` | `Star Trek` |  | 42 | 77 | `Trek` | `Starfleet`, `Klingon`, `Trekkie` |
-| `pathfinder` | `Pathfinder` |  | 53 | 53 |  |  |
+| `pathfinder` | `Pathfinder` |  | 53 | 53 | `Pathfinder 2e`, `PF2e`, `PF2` |  |
 | `marvel` | `Marvel` |  | 14 | 45 | `MCU`, `Marvel Cinematic Universe`, `Marvel Comics` |  |
 | `brandish` | `Brandish` |  | 44 | 44 |  |  |
 | `star-wars` | `Star Wars` |  | 31 | 43 |  | `Jedi`, `Sith`, `Skywalker`, `Lightsaber` |
@@ -108,7 +108,7 @@ By events rolled up through descendants: an event counts for a work when it link
 | `luminous` | `Luminous` |  | 14 | 14 |  |  |
 | `the-hobbit` | `The Hobbit` | `the-lord-of-the-rings` | 14 | 14 |  |  |
 | `battlestar-galactica` | `Battlestar Galactica` |  | 13 | 13 | `Battlestar`, `BSG`, `Galactica` |  |
-| `call-of-cthulhu` | `Call of Cthulhu` |  | 12 | 13 |  |  |
+| `call-of-cthulhu` | `Call of Cthulhu` |  | 12 | 13 | `CoC` |  |
 | `superman` | `Superman` | `dc-comics` | 5 | 13 |  |  |
 | `into-the-lair` | `Into the Lair` |  | 12 | 12 |  |  |
 | `mothership` | `Mothership` |  | 11 | 11 |  |  |
@@ -119,19 +119,19 @@ By events rolled up through descendants: an event counts for a work when it link
 | `firefly` | `Firefly` |  | 10 | 10 | `Serenity` | `Whedon` |
 | `spider-man` | `Spider-Man` | `marvel` | 7 | 10 | `Spiderman` |  |
 | `urban-insanity` | `Urban Insanity` |  | 10 | 10 |  |  |
-| `babylon-5` | `Babylon 5` |  | 9 | 9 |  |  |
+| `babylon-5` | `Babylon 5` |  | 9 | 9 | `B5` |  |
 | `castle` | `Castle` |  | 9 | 9 |  |  |
-| `final-fantasy-xiv` | `Final Fantasy XIV` | `final-fantasy` | 9 | 9 |  |  |
+| `final-fantasy-xiv` | `Final Fantasy XIV` | `final-fantasy` | 9 | 9 | `FFXIV`, `FF14`, `Final Fantasy 14` |  |
 | `stargate` | `Stargate` |  | 3 | 9 |  |  |
 | `starship-troopers` | `Starship Troopers` |  | 9 | 9 |  |  |
-| `warhammer-40000` | `Warhammer 40,000` | `warhammer` | 9 | 9 | `40k`, `Warhammer 40k`, `40,000` |  |
+| `warhammer-40000` | `Warhammer 40,000` | `warhammer` | 9 | 9 | `40k`, `Warhammer 40k`, `40,000`, `WH40K` |  |
 | `alien` | `Alien` |  | 7 | 8 | `Aliens` | `Xenomorph` |
 | `inter-sidera` | `Inter Sidera` |  | 8 | 8 |  |  |
-| `savage-worlds` | `Savage Worlds` |  | 8 | 8 |  |  |
-| `the-amazing-digital-circus` | `The Amazing Digital Circus` |  | 8 | 8 |  |  |
+| `savage-worlds` | `Savage Worlds` |  | 8 | 8 | `SWADE` |  |
+| `the-amazing-digital-circus` | `The Amazing Digital Circus` |  | 8 | 8 | `TADC` |  |
 | `wynonna-earp` | `Wynonna Earp` |  | 8 | 8 |  |  |
 | `batman` | `Batman` | `dc-comics` | 6 | 7 |  | `Gotham` |
-| `game-of-thrones` | `Game of Thrones` |  | 5 | 7 | `GoT` | `Westeros`, `Targaryen` |
+| `game-of-thrones` | `Game of Thrones` |  | 5 | 7 | `GoT` | `Westeros`, `Targaryen`, `ASOIAF`, `A Song of Ice and Fire` |
 | `hades` | `Hades` |  | 1 | 7 |  |  |
 | `land-of-the-lost` | `Land of the Lost` |  | 7 | 7 |  |  |
 | `scooby-doo` | `Scooby-Doo` |  | 7 | 7 |  |  |
@@ -1130,7 +1130,7 @@ U+2018 is a left single quote, which `parse_stage.fold` does not fold and `tag_s
 | descriptions | 2,189 | 1 | 0 |
 | people's names on events | 1,811 | 0 | 0 |
 | `people.json` names and aliases | 141 | 0 | 0 |
-| work names and aliases in the block | 720 | 0 | 0 |
+| work names and aliases in the block | 784 | 0 | 0 |
 | cached work names | 551 | 0 | 0 |
 | cached evidence | 848 | 0 | 0 |
 | the sidecar's strings | 1,104 | 0 | 0 |

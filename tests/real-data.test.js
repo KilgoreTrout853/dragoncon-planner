@@ -209,6 +209,39 @@ describe("against the real schedule", () => {
     });
   });
 
+  /* The registry's other names for a work (data/registry/works.json): an
+     alias or a term of a work is in the index for each of its events, and
+     for the events of the works under it. The photo and video filter is
+     on, as the app opens. */
+  describe("a work by its other names", () => {
+    const ids = list => list.map(e => e.id).sort();
+    const of = (...works) => handle.events.filter(e => !app.isNoise(e) && works.some(w => app.linksTo(e, w)));
+
+    it.each([
+      ["mha", "my-hero-academia"],
+      ["ffxiv", "final-fantasy-xiv"],
+      ["pf2e", "pathfinder"],
+      ["tmnt", "teenage-mutant-ninja-turtles"],
+      ["snw", "star-trek-strange-new-worlds"],
+      ["bg3", "baldurs-gate"],
+    ])('"%s" finds the events of %s, all of them and no other', (q, work) => {
+      const found = search(q);
+      expect(found.total).toBeGreaterThan(0);
+      expect(ids(found.results)).toEqual(ids(of(work)));
+    });
+    it('"gi joe" leads with G.I. Joe, whose own name is single letters to the index', () => {
+      const found = search("gi joe");
+      expect(app.linksTo(found.results[0], "g-i-joe")).toBe(true);
+      expect(of("g-i-joe").every(e => found.results.includes(e))).toBe(true);
+    });
+    it('"dcc" is a term of two works: Dungeon Crawler Carl and Dungeon Crawl Classics, and no other event', () => {
+      const found = search("dcc");
+      expect(found.results.filter(e => app.linksTo(e, "dungeon-crawler-carl")).length).toBeGreaterThan(0);
+      expect(found.results.filter(e => app.linksTo(e, "dungeon-crawl-classics")).length).toBeGreaterThan(0);
+      expect(ids(found.results)).toEqual(ids(of("dungeon-crawler-carl", "dungeon-crawl-classics")));
+    });
+  });
+
   describe("kids means the Kids Track", () => {
     it("kids shows a Kids Track chip [2128]", () => {
       expect(search("kids").chips).toContain("Kids Track");
