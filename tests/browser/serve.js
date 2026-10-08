@@ -18,7 +18,7 @@ import { execFileSync } from "node:child_process";
 import { preview } from "vite";
 import { BACKEND, BACKEND_DIR, BACKEND_PORT, PORT, ROOT } from "./harness.js";
 
-const PLAIN = { DC_YEAR: "", DC_CHANNEL: "", DC_BUILD: "", DC_SUPABASE_URL: "", DC_SUPABASE_KEY: "" };
+const PLAIN = { DC_YEAR: "", DC_CHANNEL: "", DC_BUILD: "", DC_SUPABASE_URL: "", DC_SUPABASE_KEY: "", DC_EMAIL: "", DC_NOW: "" };
 const taken = port => `Port ${port} is taken. The browser tests serve their two builds themselves and never use a server they find there: `
   + `stop what is listening on it - an \`npm run preview\` left running, most likely - and run again.`;
 

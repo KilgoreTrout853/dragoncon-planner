@@ -41,7 +41,7 @@ function build(env, root) {
   const args = root ? [VITE, "build", root, "--config", path.join(ROOT, "vite.config.js")] : [VITE, "build"];
   try {
     const stdout = execFileSync(process.execPath, [...args, "--outDir", out, "--logLevel", "warn"],
-      { cwd: ROOT, env: { ...process.env, DC_CHANNEL: "", DC_BUILD: "", DC_YEAR: "", DC_SUPABASE_URL: "", DC_SUPABASE_KEY: "", ...env }, encoding: "utf8", stdio: "pipe" });
+      { cwd: ROOT, env: { ...process.env, DC_CHANNEL: "", DC_BUILD: "", DC_YEAR: "", DC_SUPABASE_URL: "", DC_SUPABASE_KEY: "", DC_EMAIL: "", DC_NOW: "", ...env }, encoding: "utf8", stdio: "pipe" });
     return { ok: true, out, stdout, stderr: "" };
   } catch (e) {
     return { ok: false, out, stdout: String(e.stdout || ""), stderr: String(e.stderr || "") };
@@ -827,6 +827,93 @@ describe("vite build", () => {
       expect(Object.keys(win.localStorage).filter(k => !k.endsWith(".next"))).toEqual([]);
     });
     it("no uncaught error fired", () => {
+      expect(errors).toEqual([]);
+    });
+  });
+
+  /* A build that carries its clock and leaves the email step off (DECISIONS
+     #99): DC_NOW and DC_EMAIL. The guards' cases are tests/unit/'s -
+     clock-env.test.js and backend-env.test.js - and these are the build
+     running them, and the built page opened as a launch from the home
+     screen opens it: its bare address, an empty session. */
+  it("refuses a default moment that is no date and time, before it writes anything", SLOW, () => {
+    const r = build({ DC_NOW: "tuesday" });
+    expect(r.ok).toBe(false);
+    expect(r.stderr + r.stdout).toMatch(/DC_NOW is a date and time/);
+    expect(exists(r.out, "index.html")).toBe(false);
+  });
+  it("refuses the email step off on a build with no backend, before it writes anything", SLOW, () => {
+    const r = build({ DC_EMAIL: "off" });
+    expect(r.ok).toBe(false);
+    expect(r.stderr + r.stdout).toMatch(/DC_EMAIL=off is for a build with a backend/);
+    expect(exists(r.out, "index.html")).toBe(false);
+  });
+
+  describe("the built page, given a default moment, a backend and the email step off, opened at its bare address", () => {
+    let built, dom;
+    const fake = fakeBackend(), errors = [];
+    const MOMENT = "2026-09-01T10:00";
+
+    beforeAll(async () => {
+      built = build({ DC_NOW: MOMENT, DC_EMAIL: "off", DC_SUPABASE_URL: fake.url, DC_SUPABASE_KEY: fake.key });
+      if (!built.ok) return;
+      const fixture = JSON.parse(read(ROOT, "tests", "sample-events.json"));
+      dom = new JSDOM(read(built.out, "index.html"), {
+        runScripts: "dangerously", pretendToBeVisual: true, url: "https://example.test/",
+        beforeParse(window) {
+          window.addEventListener("error", e => errors.push(e.message));
+          window.fetch = (url, init) => String(url).startsWith(fake.url) ? fake.fetch(url, init)
+            : Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(fixture) });
+          const worker = new window.EventTarget();
+          worker.register = () => Promise.resolve({});
+          worker.controller = null;
+          Object.defineProperty(window.navigator, "serviceWorker", { value: worker, configurable: true });
+        },
+      });
+      await until(() => dom.window.document.querySelector("#view-explore .tile, #view-explore .row"), "the first screen");
+    }, 120_000);
+    afterAll(() => dom && dom.window.close());
+
+    const el = id => dom.window.document.getElementById(id);
+    const said = id => el(id).textContent.replace(/\s+/g, " ").trim();
+
+    it("builds", () => {
+      expect(built.ok, built.stderr).toBe(true);
+    });
+    it("opens at the default moment, before the con: on Explore, the clock Tue 10:00 AM, and no chip", () => {
+      expect(dom.window.document.querySelector('.nav button[aria-current="page"]').dataset.tab).toBe("explore");
+      expect(said("clock")).toBe("Tue 10:00 AM");
+      expect(el("simChip").hidden).toBe(true);
+    });
+    it("with nothing in the address or the session, and no banner on the tab it opens on", () => {
+      expect(dom.window.location.search).toBe("");
+      expect(Object.keys(dom.window.sessionStorage)).toEqual([]);
+      expect(el("notice").hidden).toBe(true);
+    });
+    it("the header's line says the count alone: the schedule was refreshed after the moment it opens at", () => {
+      expect(said("fresh")).toMatch(/^· [\d,]+ events$/);
+    });
+    it("Settings shows no Keep your plan, the field holds the default, and the readout says both", () => {
+      el("settingsBtn").click();
+      expect(el("keep").hidden).toBe(true);
+      expect(el("keep").children.length).toBe(0);
+      expect(el("previewTime").value).toBe(MOMENT);
+      expect(said("deviceLine")).toMatch(/ · clock 2026-09-01T10:00 · email off · build /);
+      el("closeSheet").click();
+    });
+    it("a time set in Settings shows the chip, and its tap goes back to the default, not to today", () => {
+      el("settingsBtn").click();
+      el("previewTime").value = "2026-09-05T13:05";
+      el("applyPreview").click();
+      expect(said("clock")).toBe("Sat 1:05 PM");
+      expect(el("simChip").hidden).toBe(false);
+      el("simChip").click();
+      expect(said("clock")).toBe("Tue 10:00 AM");
+      expect(el("simChip").hidden).toBe(true);
+      expect(dom.window.location.search).toBe("");
+    });
+    it("nothing was asked of the backend, and no uncaught error fired", () => {
+      expect(fake.requests).toEqual([]);
       expect(errors).toEqual([]);
     });
   });

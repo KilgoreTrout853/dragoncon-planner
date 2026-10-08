@@ -2,7 +2,8 @@
    page from state and is what the bus calls - the open crew panel with it,
    an open event's star, overlap line and who's-going line, and an open
    hotel's crew;
-   the header's clock, the notice above the views and the mini-bar; what the
+   the header's clock, the notice above the views - before the con, above
+   Now alone - and the mini-bar; what the
    page does about a new simulated moment; togglePick(), which keeps the
    tapped row under the finger through the redraw; the iOS edge guard; and
    the handlers boot() registers for the tab bar, the mini-bar, the
@@ -98,6 +99,8 @@ function renderMiniBar() {
   document.body.classList.add("has-minibar");
 }
 
+/* The chip shows while the reader's own moment is set, and never for a
+   build's default moment: at the default that simply is the time (#99). */
 function updateClock() {
   const at = now();
   document.getElementById("clock").textContent = `${DAY_LABEL[dayOf(at)] || at.toLocaleDateString(undefined, {weekday: "short"})} ${fmtShort(at)}`;
@@ -107,8 +110,9 @@ function updateClock() {
 
 /* ---- The notice above the views ------------------------------------ */
 /* After the con: that it is over, on every tab, until dismissed - once,
-   and remembered for that year. Before it: the preview banner. Live:
-   nothing. */
+   and remembered for that year. Before it: the preview banner, on Now
+   alone - it is about what Now shows, and above the Map it made the tab
+   taller than the screen (DECISIONS #99). Live: nothing. */
 const ARCHIVE_NOTICE_KEY = storageKey("archiveNoticeDismissed");
 const archiveNoticeDismissed = () => loadJSON(ARCHIVE_NOTICE_KEY, null) === CON.year;
 function noticeHTML() {
@@ -116,7 +120,7 @@ function noticeHTML() {
     return archiveNoticeDismissed() ? "" : `<b>Dragon Con ${CON.year} has ended.</b> Your starred events are on the Now tab as your ${CON.year} schedule.
     <div class="btns"><button class="btn quiet" data-act="dismiss-archive">OK</button></div>`;
   }
-  return effectiveNow().banner;
+  return state.tab === "now" ? effectiveNow().banner : "";
 }
 let lastNoticeHTML = null;
 function renderNotice() {
@@ -129,7 +133,8 @@ function renderNotice() {
   el.innerHTML = html;
 }
 
-/* value: an ISO date-time, or null for the real clock. setOverride() in
+/* value: an ISO date-time, or null for the home clock - the build's default
+   moment, or the real clock (#99). setOverride() in
    time.js sets it, keeps it for the session and keeps the URL in step; this
    is what the page does about a new moment. The day chips follow the clock
    again until tapped, and the Map's focus ends (#75). */

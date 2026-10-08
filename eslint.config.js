@@ -85,10 +85,17 @@ export default [
     languageOptions: { globals: { __DC_YEAR__: "readonly" } },
   },
 
-  /* And the backend it names, read in one place (DECISIONS #53). */
+  /* And the backend it names, read in one place (DECISIONS #53), with whether
+     its email step is off (#99). */
   {
     files: ["src/backend.js"],
-    languageOptions: { globals: { __DC_SUPABASE_URL__: "readonly", __DC_SUPABASE_KEY__: "readonly" } },
+    languageOptions: { globals: { __DC_SUPABASE_URL__: "readonly", __DC_SUPABASE_KEY__: "readonly", __DC_EMAIL__: "readonly" } },
+  },
+
+  /* And its default moment, read in one place (#99). */
+  {
+    files: ["src/time.js"],
+    languageOptions: { globals: { __DC_NOW__: "readonly" } },
   },
 
   /* One rule, two lists. A later object's options for a rule replace an

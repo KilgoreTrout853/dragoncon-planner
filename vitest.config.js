@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { dcBackend, dcYear } from "./build/vite-dc.js";
+import { dcBackend, dcClock, dcYear } from "./build/vite-dc.js";
 
 export default defineConfig({
   /* The year under test is DC_YEAR's, 2026 where it is unset, as it is for
@@ -10,8 +10,10 @@ export default defineConfig({
      are defined as the build defines them (#53), and Vitest makes a define a
      global: tests/helpers/page.js sets both on every boot, empty unless the
      test hands it a fake backend, so no shell's DC_SUPABASE_URL reaches a
-     page test. */
-  plugins: [dcYear(), dcBackend()],
+     page test. The email step's constant and the clock's are defined the
+     same way (#99), and the helper sets those two as well: "" unless a test
+     asks for a build with the step off, or with a default moment. */
+  plugins: [dcYear(), dcBackend(), dcClock()],
   test: {
     /* Modules under src/ read the document as they are imported - the stamps,
        main, the sheet, the update pill - so the page tests and the unit tests

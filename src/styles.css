@@ -75,7 +75,7 @@ button { cursor: pointer; }
    word "refreshed" goes before anything is clipped. Measured, not guessed. */
 .hdr .hdr-line.tight .word { display: none; }
 .hdr .hdr-line.tighter { font-size: .8125rem; }   /* and if that is not enough, a size down */
-/* Only there while a ?now= override is on; a tap goes back to the real clock.
+/* Only there while the reader's own moment is set; a tap goes back to the home clock.
    It stands after the clock, so the words after it take the ellipsis and the
    chip is always drawn whole (DECISIONS #82). Its tap area is its ::after,
    18px above its box and 9 below: 44px tall or more, and uneven so that it

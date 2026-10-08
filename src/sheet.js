@@ -19,14 +19,14 @@ import { esc, fmtShort } from "./util.js";
 import { YEAR } from "./season.js";
 import { saveJSON } from "./storage.js";
 import { deviceLine, storageKey } from "./build.js";
-import { hasBackend } from "./backend.js";
+import { emailStep, hasBackend } from "./backend.js";
 import { codeSentTo, confirmCode, deleteAccount, plainMessage, sendCode, signedInAs, signOut } from "./identity.js";
 import {
   createCrew, crewMessage, deleteCrew, inviteLink, isCreator, joinCrew, leaveCrew, myCrews, myMembership, newInvite,
   pendingJoin, readInvite, removeMember, setMyName, takePendingJoin,
 } from "./crews.js";
 import { settings, state } from "./state.js";
-import { conDayKey, DAY_LABEL, DAY_LONG, localInputValue, now, timeOverride } from "./time.js";
+import { conDayKey, DAY_LABEL, DAY_LONG, homeMoment, localInputValue, now, timeOverride } from "./time.js";
 import { hotelPhrase, WALK } from "./venues.js";
 import { dayLink, dayMessage, defaultShareDay, readSharedDay, shareableDays, sharedPicks } from "./shareday.js";
 import { byId, events, happening } from "./data.js";
@@ -35,7 +35,7 @@ import { chipHTML, crewLineHTML, rowHTML } from "./ui.js";
 import { focusIn, focusKey, moreCap, pageScrollTo, pageScrollTop, refill, shownMatch } from "./scroll.js";
 import { eventSheetHTML } from "./eventsheet.js";
 import { requestRender } from "./bus.js";
-import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter, whileSyncWaits } from "./sync.js";
+import { fillSyncStatus, forgetSync, runSync, sendBeforeSignOut, syncAfter, syncStatusText, whileSyncWaits } from "./sync.js";
 import { MAP_HOTELS, mapCrewCounts, mapCrewPicks, mapDay, onTheMap } from "./map.js";
 import { chosenCrew, crewPeople } from "./plans.js";
 import { filtersChanged, filtersHTML, settleWords } from "./filters.js";
@@ -57,20 +57,34 @@ const settingsBody = document.getElementById("settingsBody");
 let sheetScrollY = 0;
 let opener = null;      // what opened the sheet, as a selector that finds it again
 
+/* What the device readout says of the build besides (DECISIONS #99): its
+   default moment where it has one; "email off" where the email step is;
+   and there, sync's status line, which Keep your plan would have shown -
+   as it stood when Settings was filled, so a screenshot says whether the
+   picks went up. Nothing on a build with neither. */
+const buildSays = () => {
+  const sync = emailStep ? "" : syncStatusText();
+  return [homeMoment && `clock ${homeMoment}`, hasBackend && !emailStep && "email off", sync && `sync: ${sync}`];
+};
+
+/* The preview field shows the reader's own moment where one is set, else
+   the build's default - a phone's picker then opens on the con, not on
+   today's real date - else nothing (#99). */
 function fillSettings() {
   document.getElementById("crowd").value = settings.crowd;
   document.getElementById("crowdLabel").textContent = `${settings.crowd.toFixed(1)}x`;
   document.getElementById("noiseDefault").checked = settings.hideNoise;
   document.getElementById("bigText").checked = document.documentElement.classList.contains("bigtext");
-  document.getElementById("previewTime").value = timeOverride ? localInputValue(timeOverride) : "";
+  document.getElementById("previewTime").value = timeOverride ? localInputValue(timeOverride) : homeMoment;
   document.getElementById("walkTable").innerHTML = Object.entries(WALK).map(([k, v]) => `<tr><td>${esc(k.replace("|", " to "))}</td><td>${v}</td></tr>`).join("");
-  document.getElementById("deviceLine").textContent = deviceLine();
+  document.getElementById("deviceLine").textContent = deviceLine(buildSays());
   fillKeep();
 }
 
 /* Keep your plan: the email step (DECISIONS #51, #53), between Advanced and
-   the About row, and there only when the build has a backend - with none, the panel
-   is the 2026 app's. One screen for add and recover: the address and Send
+   the About row, and there only when the build has a backend and has not
+   left the step off (#99) - with none, the panel is the 2026 app's; with
+   the step off, crews stand and nothing asks for an email. One screen for add and recover: the address and Send
    code, then the code and Confirm; once the session has an email, who it
    is and Sign out. Under the heading, with a session alone, sync's lines
    (sync.js): synced, what is waiting, or what went wrong; and, while a
@@ -100,8 +114,8 @@ const KEEP_HTML = `<h3>Keep your plan</h3>
   <p class="keep-note" id="keepNote" role="status"></p>`;
 
 function fillKeep() {
-  keepEl.hidden = !hasBackend;
-  if (!hasBackend) return;
+  keepEl.hidden = !emailStep;
+  if (!emailStep) return;
   if (!keepEl.firstElementChild) keepEl.innerHTML = KEEP_HTML;
   const who = signedInAs(), sentTo = codeSentTo();
   document.getElementById("keepOut").hidden = !!who;

@@ -1,22 +1,45 @@
-/* About this app (W32, W45; DECISIONS #59, #92, #93; docs/screens/contract.md,
+/* About this app (W32, W45; DECISIONS #59, #92, #93, #99; docs/screens/contract.md,
    section 9): the sheet's eighth panel, #panel-about, behind Settings' row.
    That the app is unofficial, the one link to Dragon Con's own, and what we
    store: on this phone, on the server, what a crew sees, what the controls
    do, who else is involved and, last, Delete - or, on a build with no
-   backend, the three parts that are true of it. The words are a statement
+   backend, the three parts that are true of it; and on a build with a
+   backend and the email step off (#99) a third wording, the backend's less
+   the email, the sign-out and the company that sends the code, so that the
+   word "email" is nowhere in the panel. The words are a statement
    to the reader: one that the code makes false is changed here, in the same
    pull request. The panel's element is the sheet's, and so are its way in,
    its way back and the tap on Delete; this draws it and says its words, and
    nothing else. A leaf. */
-import { hasBackend, storedSession } from "./backend.js";
+import { emailStep, hasBackend, storedSession } from "./backend.js";
 
 const OFFICIAL = "https://www.dragoncon.org/";
 const NO_MORE = "No ads, no analytics, no cookies, and the app never asks where you are.";
 const SEEN_BY = "Each sees your phone's internet address when it answers, as any website does, and may log it";
 const label = words => `<h4 class="about-label">${words}</h4>`;
 
-const STORED = hasBackend
+/* Three wordings: a backend with the email step off; a backend; none. */
+const STORED = hasBackend && !emailStep
   ? `${label("On this phone")}
+    <p>Your picks, what you follow and mute, your settings, and a copy of the schedule so the app opens without signal. Once you have a crew, also your sign-in, your crew - its names, its invite link and its picks - and any change still waiting to be sent. All of it is kept in this browser; clearing its site data removes it from this phone.</p>
+    ${label("On our server")}
+    <p>Nothing, until you start or join a crew. From then on the server keeps:</p>
+    <ul>
+      <li>your picks and follows, each with the time it last changed, the ones you took back included</li>
+      <li>the name you gave each crew you're in and when you joined it, and any crew you started</li>
+    </ul>
+    <p>Mutes and settings never leave this phone.</p>
+    ${label("What your crew sees")}
+    <p>The name you gave that crew, and your stars. Their phones are also told when you take a star back. Never your follows or your mutes.</p>
+    ${label("What the controls do")}
+    <ul>
+      <li><b>Remove all picks</b> unstars everything. On the server each pick stays, marked unstarred.</li>
+      <li><b>Leave</b> a crew, or delete one you started, and its members stop seeing your picks once their phones next sync.</li>
+    </ul>
+    ${label("Who else is involved")}
+    <p>GitHub serves the app, Google serves the typeface and Supabase runs the server. ${SEEN_BY}; Supabase keeps it, and what browser you used, with your sign-in. ${NO_MORE}</p>`
+  : hasBackend
+    ? `${label("On this phone")}
     <p>Your picks, what you follow and mute, your settings, and a copy of the schedule so the app opens without signal. Once you have a crew or an email, also your sign-in, your crew - its names, its invite link and its picks - and any change still waiting to be sent. All of it is kept in this browser; clearing its site data removes it from this phone.</p>
     ${label("On our server")}
     <p>Nothing, until you start or join a crew or add your email. From then on the server keeps:</p>
@@ -36,7 +59,7 @@ const STORED = hasBackend
     </ul>
     ${label("Who else is involved")}
     <p>GitHub serves the app, Google serves the typeface and Supabase runs the server. ${SEEN_BY}; Supabase keeps it, and what browser you used, with your sign-in. Resend sends the sign-in code, so it sees your email address. ${NO_MORE}</p>`
-  : `${label("On this phone")}
+    : `${label("On this phone")}
     <p>Your picks, what you follow and mute, your settings, and a copy of the schedule so the app opens without signal. All of it is kept in this browser; clearing its site data removes it.</p>
     ${label("On a server")}
     <p>Nothing. This copy of the app has no server: everything stays on this phone.</p>
@@ -52,9 +75,11 @@ const STORED = hasBackend
    the button, or under the sentence once the session is gone; done, the
    delete made - the button gone and DELETED in its place. The note is a
    status, so a screen reader says it, and takes focus when the sheet gives
-   it. */
-const REMOVES = "Removes what the server keeps for you: your picks and follows, your sign-in, with your email if you added one, and your place in every crew. A crew you started goes too if no one else is in it; otherwise it stays for its members, with no one to manage it - delete the crew first if you want it gone. Your plan stays on this phone; Remove all picks clears its picks. It cannot reach the logs the companies above keep.";
-const SIGN_IN_FIRST = "To delete what the server keeps for you, sign in first - Settings, Keep your plan - then come back here. If you never started or joined a crew and never entered an email, it keeps nothing.";
+   it. With the email step off (#99) no one has an email and no one can sign
+   in again: what Delete removes names none, and with no session there is
+   nothing to delete from here. */
+const REMOVES = `Removes what the server keeps for you: your picks and follows, your sign-in, ${emailStep ? "with your email if you added one, " : ""}and your place in every crew. A crew you started goes too if no one else is in it; otherwise it stays for its members, with no one to manage it - delete the crew first if you want it gone. Your plan stays on this phone; Remove all picks clears its picks. It cannot reach the logs the companies above keep.`;
+const SIGN_IN_FIRST = emailStep ? "To delete what the server keeps for you, sign in first - Settings, Keep your plan - then come back here. If you never started or joined a crew and never entered an email, it keeps nothing." : "Nothing to delete from here: this phone has no sign-in on the server. If you never started or joined a crew, the server keeps nothing for you.";
 const DELETED = "Deleted. Your picks, follows and sign-in are off the server. Your plan is still on this phone.";
 const said = words => `<div class="about-note" id="aboutDeleteNote" role="status" tabindex="-1">${words}</div>`;
 function deleteHTML({note = "", done = false} = {}) {

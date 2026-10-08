@@ -2,10 +2,12 @@
 /* The build's guard on the backend it names (DECISIONS #53):
    dcBackendFromEnv() in build/vite-dc.js reads DC_SUPABASE_URL and
    DC_SUPABASE_KEY - both or neither - and refuses what a public page must
-   not carry. That the build runs it is tests/build.test.js's. New tests, not
-   rows of tests/PORT-LEDGER.md. */
-import { describe, expect, it } from "vitest";
-import { dcBackendFromEnv } from "../../build/vite-dc.js";
+   not carry. And on whether it leaves the email step off (#99):
+   dcEmailFromEnv() reads DC_EMAIL - "off", or nothing - and takes "off"
+   only with a backend; dcBackend() defines all three. That the build runs
+   it is tests/build.test.js's. New tests, not rows of tests/PORT-LEDGER.md. */
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { dcBackend, dcBackendFromEnv, dcEmailFromEnv } from "../../build/vite-dc.js";
 
 const ADDRESS = "https://abcdefghijklmnopqrst.supabase.co", KEY = "sb_publishable_test-key";
 /* A JWT's shape with the role given; its signature is never checked here. */
@@ -43,5 +45,52 @@ describe("dcBackendFromEnv", () => {
   it("a public key passes, in either form", () => {
     expect(dcBackendFromEnv(env(ADDRESS, KEY)).key).toBe(KEY);
     expect(dcBackendFromEnv(env(ADDRESS, jwt("anon"))).key).toBe(jwt("anon"));
+  });
+});
+
+describe("dcEmailFromEnv", () => {
+  const withBackend = email => ({ ...env(ADDRESS, KEY), DC_EMAIL: email });
+
+  it("unset, or blank: the email step is on wherever there is a backend", () => {
+    expect(dcEmailFromEnv({})).toBe("");
+    expect(dcEmailFromEnv(env(ADDRESS, KEY))).toBe("");
+    expect(dcEmailFromEnv(withBackend(" "))).toBe("");
+  });
+  it("off, with a backend: the step is left off", () => {
+    expect(dcEmailFromEnv(withBackend("off"))).toBe("off");
+    expect(dcEmailFromEnv(withBackend(" off "))).toBe("off");
+  });
+  it("off with no backend is refused: it means something only with one", () => {
+    expect(() => dcEmailFromEnv({ DC_EMAIL: "off" })).toThrow(/DC_EMAIL=off is for a build with a backend/);
+  });
+  it("any other value is refused, so a slip is not read as on", () => {
+    for (const value of ["on", "OFF", "Off", "false", "0", "no", "none"]) {
+      expect(() => dcEmailFromEnv(withBackend(value)), value).toThrow(/DC_EMAIL is off, or unset/);
+    }
+  });
+  it("and a backend that is itself refused is refused here too", () => {
+    expect(() => dcEmailFromEnv({ DC_SUPABASE_URL: ADDRESS, DC_EMAIL: "off" })).toThrow(/go together/);
+  });
+});
+
+describe("dcBackend's defines", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const stub = (url, key, email) => { vi.stubEnv("DC_SUPABASE_URL", url); vi.stubEnv("DC_SUPABASE_KEY", key); vi.stubEnv("DC_EMAIL", email); };
+
+  it("nothing set: the page holds three empty strings", () => {
+    stub("", "", "");
+    expect(dcBackend().config()).toEqual({ define: { __DC_SUPABASE_URL__: '""', __DC_SUPABASE_KEY__: '""', __DC_EMAIL__: '""' } });
+  });
+  it("a backend alone: its two, and the email step's still empty - on", () => {
+    stub(ADDRESS, KEY, "");
+    expect(dcBackend().config()).toEqual({ define: { __DC_SUPABASE_URL__: JSON.stringify(ADDRESS), __DC_SUPABASE_KEY__: JSON.stringify(KEY), __DC_EMAIL__: '""' } });
+  });
+  it("a backend with the step off: the page holds \"off\"", () => {
+    stub(ADDRESS, KEY, "off");
+    expect(dcBackend().config().define.__DC_EMAIL__).toBe('"off"');
+  });
+  it("off with no backend is refused as the config is read, before any work is done", () => {
+    stub("", "", "off");
+    expect(() => dcBackend().config()).toThrow(/DC_EMAIL=off/);
   });
 });
