@@ -216,7 +216,7 @@ describe("not in a crew: the rung, and Start a crew", () => {
     expect(words(head.querySelector("p"))).toBe("Start a crew, or paste an invite link.");
     expect(words(el("crewStartBtn"))).toBe("Start a crew");
     expect(words(el("crewJoinBtn"))).toBe("Join with a link");
-    expect(plans().querySelector(".plans-seg")).toBe(null);
+    expect(plans().querySelector(".plans-seg:not(.plans-view)")).toBe(null);
     expect(plans().querySelector(".plans-actions")).not.toBe(null);
     expect(plans().firstElementChild).toBe(head);
   });

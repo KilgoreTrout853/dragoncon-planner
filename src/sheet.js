@@ -333,6 +333,9 @@ function fillCrew() {
   field("crewInvited").hidden = !crewInvite;
   field("crewPasteLabel").hidden = !!crewInvite;
   field("crewManage").hidden = !crew;
+  /* Done is quiet where the step has a main button of its own, Create or
+     Join; the manage step has none, and there it is the gold one (#101). */
+  field("closeSheetCrew").classList.toggle("quiet", crewStep === "create" || crewStep === "join");
   if (crew) fillManage(crew);
   for (const b of panelCrew.querySelectorAll("button")) if (b.id !== "closeSheetCrew") b.disabled = crewBusy;
   if (crew) fillNameSave(crew);

@@ -241,7 +241,7 @@ function mapCardHTML(cs) {
   const onLine = onNow ? `<button class="next-on" id="mapOnNow" data-hero="${esc(onNow.id)}">On now: <b>${esc(onNow.title)}</b> &middot; ends ${fmtShort(onNow._e)} &middot; ${esc(placeShort(onNow))}</button>` : "";
   if (focus) return onLine + focusCardHTML(focus);
   const ev = next || later;
-  if (!ev) return onLine + `<div class="next-card empty">Star things in Search and your next pick shows here.</div>`;
+  if (!ev) return onLine + `<div class="next-card empty">Tap a hotel to see its floors. Star things in Explore or Search and your next pick shows here.</div>`;
   let label = "", when;
   if (!next) {
     const dayKey = conDayKey(ev._s), tomorrow = conDayKey(new Date(now.getTime() + 24 * 3600000));
@@ -272,9 +272,11 @@ const mapPillsSVG = (counts, crew) => Object.entries(MAP_HOTELS).map(([h, b]) =>
    order they are painted, which every draw writes into: the gold rings, the
    focus's ring, the pills; and last an empty group for the stacks, where a
    venue's is built at its first open (#95). The city is two groups, one
-   inside the other: `map-city`, which is clipped to the frame while a stack
-   is open, and `map-cam` in it, which that stack pushes in - a clip on the
-   group that moves would move with it. A block's label is the one thing on
+   inside the other: `map-city`, which the draw clips to the frame while a
+   stack is open, and `map-cam` in it, which that stack pushes in - a clip on
+   the group that moves would move with it. The stylesheet lifts that clip:
+   the stage is the svg's own box, which cuts the city itself (#100). A
+   block's label is the one thing on
    it that changes: it is built as `label` says it, and a later draw writes
    it where it differs. */
 function mapBaseSVG(label) {
@@ -793,7 +795,7 @@ function nodesOf(svg, what, hotel, key) {
   const flat = plates.find(p => p.dataset.plate === key), blocks = [...svg.querySelectorAll(".map-hotel")], one = selector => [svg.querySelector(selector)];
   if (what.startsWith("plate:")) return [plates[Number(what.slice(6))]];
   const found = {
-    frame: () => [svg], city: () => one(".map-city"), "city-cam": () => one(".map-cam"), streets: () => one(".map-streets"),
+    frame: () => [...svg.querySelectorAll(":scope > .map-ground, :scope > .map-city, :scope > .map-stacks")], city: () => one(".map-city"), "city-cam": () => one(".map-cam"), streets: () => one(".map-streets"),
     pills: () => one(".map-layer-pills"), rings: () => one(".map-layer-rings"), focus: () => one(".map-layer-focus"),
     blocks: () => blocks.filter(b => b.dataset.hotel !== hotel), block: () => blocks.filter(b => b.dataset.hotel === hotel),
     stack: () => [group], "stack-cam": () => [group.querySelector(".stack-cam")], "plate-labels": () => [...group.querySelectorAll(".plate-label")],
@@ -839,21 +841,27 @@ function play(move, said, {hotel, key = null, kept = []}) {
   });
 }
 /* The drawing's own box on the screen - the ground's rectangle, which is
-   the frame as drawn - as its middle and its width; null where the page
-   lays nothing out. */
+   the frame as drawn, and no wider or taller than the svg's own box, the
+   stage - as its middle and its width; null where the page lays nothing
+   out. */
 function frameBox() {
   const ground = document.querySelector("#view-map svg.map .map-ground"), box = ground ? ground.getBoundingClientRect() : null;
   return box && box.width ? {x: box.left + box.width / 2, y: box.top + box.height / 2, w: box.width} : null;
 }
 /* The frame's step in a lift and its way back: the slot under the map is
    another height under a stack (#95), so the drawing's box changes at the
-   tap, at once. The step is a transform of the drawing, about its middle,
-   from the box it had before the draw - `was` - to the one it has: [from,
-   to], in a draw's words, or null where the box did not change. */
+   tap, at once. The step is a transform of the drawing - the ground, the
+   city and the stacks, the svg's own three, never the svg: its box is the
+   stage (styles.css), which stands still while the drawing moves - about
+   the frame's middle, from the box the drawing had before the draw - `was`
+   - to the one it has: [from, to], in a draw's words and the Map's units, a
+   px of the screen taken through the drawing's own scale; or null where the
+   box did not change. */
 function frameSaid(was) {
   const is = frameBox();
   if (!was || !is) return null;
-  const from = `translate(${places(was.x - is.x, 2)} ${places(was.y - is.y, 2)}) scale(${places(was.w / is.w, 5)})`, to = "translate(0 0) scale(1)";
+  const unit = is.w / MAP_VIEW.w, k = was.w / is.w, cx = MAP_VIEW.x + MAP_VIEW.w / 2, cy = MAP_VIEW.y + MAP_VIEW.h / 2;
+  const from = `translate(${places(cx * (1 - k) + (was.x - is.x) / unit, 3)} ${places(cy * (1 - k) + (was.y - is.y) / unit, 3)}) scale(${places(k, 5)})`, to = "translate(0 0) scale(1)";
   return from === to ? null : [from, to];
 }
 /* What the two draws say of a move, for motion.js's lists, each transform

@@ -9,7 +9,8 @@
   --line: #3A3F70;
   --text: #F3EFE4;
   --muted: #A5A9C9;
-  --dim: #6F739A;
+  --dim: #6F739A;      /* marks alone - a separator's dot, a caret, the empty star, a dotted edge: words are --muted (DECISIONS #101) */
+  --stage: #0B0D20;    /* the Map's stage, darker than the page (#100): this one line puts the ground back */
   --gold: #F3C64B;
   --gold-ink: #2A2200;
   --warn: #FF8A7A;
@@ -97,7 +98,7 @@ button { cursor: pointer; }
   background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: .9375rem;
 }
 .notice b { color: var(--text); font-weight: 600; }
-.device { font-size: .75rem; color: var(--dim); line-height: 1.4; }
+.device { font-size: .75rem; color: var(--muted); line-height: 1.4; }
 .notice.warn { border-color: var(--warn); color: var(--text); }
 .pick-news ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
 .pick-news .btn { margin-top: 12px; height: 44px; }
@@ -129,7 +130,7 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
   padding: 18px 14px 6px; font-size: .9375rem; color: var(--muted); font-weight: 600;
   display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
 }
-.section-title .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+.section-title .count { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* Map ------------------------------------------------------------------
    A schematic of the con hotels. Blocks wear their hotel's hue as an
@@ -140,16 +141,23 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
    follows from the frame. Only when header, chips, map, card and nav would
    not fit the viewport does it shrink to fit, centred, down to a floor
    below which the tab scrolls with the chips pinned. The mini-bar never
-   shows on this tab. */
+   shows on this tab.
+   The stage (DECISIONS #100) is the map's own box, at every size: its fill,
+   its edge and its corners are the svg's, so on a screen that shortens the
+   map the stage keeps the width and the drawing stands in the middle of it.
+   The edge is a shadow inside the box, which takes no room: a border would
+   move the drawing. The ground's rectangle is still drawn, see-through - the
+   drawing's own box, which map.js measures a lift's step by, and a touch's
+   target as it was. */
 #view-map { display: flex; flex-direction: column; height: calc(100dvh - var(--hdr-h, 63px) - var(--nav-h) - 5px); }
 #view-map .controls-sticky { flex: none; }
 .map-wrap { position: relative; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding: 12px 14px 0; }
-.map { display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px; }
+.map { display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px; background: var(--stage); border-radius: 14px; box-shadow: inset 0 0 0 1px var(--line); }
 .map-under { flex: none; }
-.map-ground { fill: var(--surface); }
+.map-ground { fill: transparent; }
 .map-street { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
 .map-street.faint { stroke-width: 2; opacity: .55; }
-.map-street-label { font-family: var(--font); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; fill: var(--dim); }
+.map-street-label { font-family: var(--font); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; fill: var(--muted); }
 .map-bridge { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 4; stroke-linecap: round; }
 .map-hotel rect { fill: color-mix(in srgb, var(--h) 18%, var(--surface)); stroke: var(--h); stroke-width: 1.5; }
 .map-hotel text { font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: .06em; fill: var(--h); text-anchor: middle; dominant-baseline: central; }
@@ -188,14 +196,19 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .map-offmap { padding-top: 6px; font-size: .875rem; color: var(--muted); }
 /* The stack (DECISIONS #95): a venue lifted into its floors, in the map's
    own frame. The way back is an HTML button over the frame's top left, so
-   it is 44 px tall whatever scale the drawing is at. Behind the plates the
+   it is 44 px tall whatever scale the drawing is at, and 6 px inside the
+   stage's corner on every phone (#100): a control's own fill and a lighter
+   edge, so it reads as one on the dark. Behind the plates the
    city map is pushed in and dimmed - the other blocks at a fifth, the
    streets and bridges at a tenth, which the lift's steps end on (motion.js
    DIM) - and the pills, the rings and the venue's own block are not shown:
    they stay in the page, and the lift fades them (DECISIONS #97). */
-.map-back { position: absolute; left: 20px; top: 18px; z-index: 1; height: 44px; min-width: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: .875rem; font-weight: 600; white-space: nowrap; }
+.map-back { position: absolute; left: 20px; top: 18px; z-index: 1; height: 44px; min-width: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--muted); background: var(--surface); color: var(--text); font-size: .875rem; font-weight: 600; white-space: nowrap; }
 .map[data-stack] .map-streets { opacity: .1; }
 .map[data-stack] .map-hotel { opacity: .2; }
+/* The dimmed city runs to the stage's edge (#100): the svg's own box cuts
+   it, rounded, where the draw's clip would stop it at the drawing's. */
+.map[data-stack] .map-city { clip-path: none; }
 .map[data-stack] .map-hotel.lifted, .map[data-stack] .map-layer-rings, .map[data-stack] .map-layer-focus, .map[data-stack] .map-layer-pills { visibility: hidden; }
 /* A venue's group that is put away (#97): in the page, rendered and not
    shown, so that the way back from its stack can show it while it goes. The
@@ -251,7 +264,7 @@ body.has-minibar main::after { height: calc(var(--nav-h) + 5px + var(--minibar-h
 .plate-label { font-family: var(--font); font-size: 11px; font-weight: 700; fill: var(--text); paint-order: stroke; stroke: var(--ink); stroke-width: 3px; stroke-linejoin: round; }
 .plate-label .pl-count { fill: var(--muted); font-weight: 600; }
 .plate-label .pl-picks { fill: var(--gold); }
-.plate-label.inert { fill: var(--dim); font-weight: 600; }
+.plate-label.inert { fill: var(--muted); font-weight: 600; }
 /* The card while a stack is open. The slot keeps one height, a plate's card
    with two rows - its top margin, border and padding, the venue's name, the
    plate's on one line, the day's line, then two rows - so the frame above
@@ -334,12 +347,12 @@ button.pc-head { cursor: pointer; }
 
 /* Controls ----------------------------------------------------------- */
 .controls { padding: 12px 14px 0; display: grid; gap: 10px; }
-.search.indexing::placeholder { color: var(--dim); font-style: italic; }
+.search.indexing::placeholder { color: var(--muted); font-style: italic; }
 .search {
   width: 100%; height: 48px; padding: 0 14px; border-radius: 12px;
   background: var(--surface); border: 1px solid var(--line); color: var(--text);
 }
-.search::placeholder { color: var(--dim); }
+.search::placeholder { color: var(--muted); }
 /* The box and the Filters button beside it, at the box's height; the badge
    counts the filter sheet's filters in effect (#70). */
 .search-row { display: flex; gap: 8px; }
@@ -368,9 +381,9 @@ button.pc-head { cursor: pointer; }
 .chip[aria-pressed="true"] { background: var(--text); color: var(--ink); border-color: var(--text); font-weight: 600; }
 .chip.hotel[aria-pressed="true"] { background: var(--h); border-color: var(--h); color: var(--ink); }
 .suggest-row { align-items: center; padding-top: 2px; }
-.suggest-label { flex: none; font-size: .75rem; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; padding-right: 2px; }
+.suggest-label { flex: none; font-size: .75rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; padding-right: 2px; }
 .chip.suggest { font-weight: 600; }
-.chip.suggest .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: .75rem; }
+.chip.suggest .n { color: var(--muted); font-weight: 700; margin-left: 4px; font-size: .75rem; }
 /* Not gold - gold means "mine". A quiet outline that reads as a label. */
 .celeb {
   display: inline-block; font-size: .6875rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
@@ -398,7 +411,7 @@ button.pc-head { cursor: pointer; }
 }
 .tile.on { border-color: var(--gold); }
 .tile-name { font-size: .875rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
-.tile-meta { flex: none; display: flex; align-items: center; gap: 5px; font-size: .8125rem; font-weight: 700; color: var(--dim); }
+.tile-meta { flex: none; display: flex; align-items: center; gap: 5px; font-size: .8125rem; font-weight: 700; color: var(--muted); }
 .tile-mark { color: var(--gold); font-size: .6875rem; }
 .follow-chips { align-items: center; }
 .follow-chip {
@@ -406,24 +419,25 @@ button.pc-head { cursor: pointer; }
   border-radius: 999px; overflow: hidden; background: transparent;
 }
 .follow-chip .fc-name {
-  background: none; border: 0; padding: 7px 4px 7px 12px; font: inherit; font-size: .875rem; font-weight: 700;
+  background: none; border: 0; min-height: 44px; padding: 7px 4px 7px 14px; font: inherit; font-size: .875rem; font-weight: 700;
   color: var(--gold); cursor: pointer; white-space: nowrap;
 }
 .follow-chip .fc-x {
-  background: none; border: 0; padding: 7px 10px 7px 4px; font: inherit; font-size: 1rem; line-height: 1;
+  background: none; border: 0; min-width: 44px; min-height: 44px; padding: 7px 10px 7px 4px; font: inherit; font-size: 1rem; line-height: 1;
   color: var(--gold); opacity: .7; cursor: pointer;
 }
-.chip.fc-add { flex: none; }
-/* A muted chip (DECISIONS #84): the follow chip's shape and never gold, its
-   name and its x each 44px tall and the x 44px wide (#66). */
+/* A follow chip's name and its x are each 44px tall, and the x 44px wide
+   (#66, #101); "Follow more" beside them is the row's height. */
+.chip.fc-add { flex: none; height: 44px; border-radius: 22px; }
+/* A muted chip (DECISIONS #84): the follow chip's shape, and never gold. */
 .mute-chip { border-color: var(--line); }
-.mute-chip .fc-name { min-height: 44px; padding-left: 14px; color: var(--text); }
-.mute-chip .fc-x { min-width: 44px; min-height: 44px; color: var(--muted); opacity: 1; }
+.mute-chip .fc-name { color: var(--text); }
+.mute-chip .fc-x { color: var(--muted); opacity: 1; }
 /* The Muted fold, the last of what stands above the sticky block. The
    section before it draws the line above it. */
 .muted .divider { border-top: 0; }
 .muted .controls { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
-.explore-jump .n { color: var(--dim); font-weight: 700; margin-left: 4px; font-size: .75rem; }
+.explore-jump .n { color: var(--muted); font-weight: 700; margin-left: 4px; font-size: .75rem; }
 .explore-jump .chip[aria-pressed="true"] .n { color: inherit; opacity: .7; }
 /* Following sits above the tiles, behind a fold: a long feed would push the
    grid off screen for someone who came to wander. */
@@ -435,7 +449,7 @@ button.pc-head { cursor: pointer; }
   margin: 0; display: flex; align-items: baseline; gap: 6px; padding: 14px 14px 4px;
   color: var(--text); font-size: 1.0625rem; font-weight: 700;
 }
-.fy-head .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+.fy-head .count { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
 .fy-line { margin: 0; padding: 0 14px 8px; font-size: .875rem; color: var(--muted); }
 .following { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
 .suggested { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
@@ -444,7 +458,7 @@ button.pc-head { cursor: pointer; }
   background: none; border: 0; color: var(--text); font: inherit; font-size: 1.0625rem; font-weight: 700;
   text-align: left; cursor: pointer;
 }
-.fol-head .count { font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+.fol-head .count { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
 .fol-head .caret { margin-left: auto; color: var(--dim); font-size: .9375rem; }
 .hint { padding: 0 14px 8px; font-size: .875rem; color: var(--muted); }
 .flabel {
@@ -452,8 +466,12 @@ button.pc-head { cursor: pointer; }
   border-radius: 999px; padding: 0 6px; line-height: 17px; opacity: .85;
 }
 .explore-head { padding: 10px 14px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 5px; justify-items: start; }
-.explore-head .back { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
-.explore-head .eh-kind { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-top: 4px; }
+/* "← Explore" is 44px tall and at least 44 wide (#66, #101) and the head is
+   no taller: its box reaches the head's top and over the kind's line, which
+   is no tap, and gives both back as margin - the lower in em, so Larger text
+   moves nothing either. Positioned, so that its whole box answers. */
+.explore-head .back { position: relative; display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; margin: -10px 0 calc(1.3em - 34px); background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
+.explore-head .eh-kind { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
 .explore-head .eh-name { margin: 0; font-size: 1.375rem; line-height: 1.2; }
 /* Focus lands on a page's heading as a tap opens it (#66, #75): a ring for
    a keyboard's arrival, none for a tap's - as on a sheet panel's heading. */
@@ -497,7 +515,8 @@ select.track {
    place in its hotel's hue, then one line of what else is true of the event. */
 .list { list-style: none; margin: 0; padding: 0; }
 .day-head { padding: 22px 14px 4px; font-size: 1.25rem; font-weight: 700; }
-.time-head { padding: 12px 14px 2px; font-size: .8125rem; color: var(--dim); font-variant-numeric: tabular-nums; border-top: 1px solid var(--line); }
+.day-head .count { font-size: .875rem; color: var(--muted); font-weight: 400; }
+.time-head { padding: 12px 14px 2px; font-size: .8125rem; color: var(--muted); font-variant-numeric: tabular-nums; border-top: 1px solid var(--line); }
 .row { border-top: 1px solid var(--line); }
 .row.open { background: var(--surface); }
 /* A pick's star is an inline-block, as the tag below is, so a struck title's
@@ -585,17 +604,20 @@ mark { background: none; color: var(--gold); font-weight: 700; }
 .empty { padding: 28px 14px; color: var(--muted); font-size: 1rem; }
 .empty b { color: var(--text); }
 .more { margin: 14px; }
-/* Two rows of two on one grid: the actions take the view toggle's footprint,
-   so the top of Plans reads as one control strip rather than a stack of odd
-   shapes. Export keeps its gold fill; it is the one you came here for. Share
-   a day sits beside it - Remove all is Settings' alone (#92); the strip and
-   the toggle are 44px since Share a day joined them (#66). */
+/* The top of My day (DECISIONS #101): two actions, each half the width and
+   both quiet - nothing here is gold - and under them the view's switch,
+   Timeline | List, a segment in My day | Crew's look that hugs its words at
+   the row's right end, over the plan it draws: the wide segment says which
+   plan, the narrow one how it is drawn. Remove all is Settings' alone (#92);
+   every control here is 44px (#66). */
 .plans-actions { padding: 12px 14px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .plans-actions .btn { height: 44px; padding: 0 12px; border-radius: 10px; font-size: .9375rem; font-weight: 700; }
 .btn[disabled] { opacity: .45; }
 /* Plans' crew (DECISIONS #62): the header - the crew's name or its picker,
    how many, and Manage - or the rung; the My day | Crew segment; the crew's
-   day, a block a person. Every new control is 44px tall (#66). */
+   day, a block a person. Every new control is 44px tall (#66). The rung is
+   a card (#101): its line and its two buttons in one bordered box, so they
+   are not four of a kind with the actions under them. */
 .crew-head { padding: 12px 14px 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .crew-title { font-size: 1.125rem; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
 .crew-count { color: var(--muted); font-size: .9375rem; white-space: nowrap; }
@@ -604,16 +626,19 @@ select.crew-pick {
   flex: 1 1 160px; min-width: 0; height: 44px; padding: 0 10px; border-radius: 10px;
   background: var(--surface); border: 1px solid var(--line); color: var(--text); font: inherit; font-weight: 700;
 }
-.crew-rung { display: grid; gap: 10px; }
+.crew-rung { display: grid; gap: 10px; margin: 12px 14px 0; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .crew-rung p { margin: 0; color: var(--muted); font-size: .9375rem; }
 .crew-rung-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .crew-rung .btn { margin-left: 0; }
 .plans-seg { display: flex; margin: 8px 14px 4px; }
 .plans-seg button { flex: 1; height: 44px; }
 .plans-seg button:focus-visible { outline-offset: -3px; }   /* inside: .seg clips its corners */
+/* The view's switch: the segment's own class, so its ring is the segment's. */
+.plans-view { width: fit-content; margin: 0 14px 8px auto; }
+.plans-view button { flex: none; min-width: 44px; padding: 0 16px; }
 .plans-days .chip { height: 44px; border-radius: 22px; }
 .crew-who { margin: 0; padding: 18px 14px 4px; font-size: 1.125rem; font-weight: 700; }
-.crew-who .count { font-size: .875rem; color: var(--dim); font-weight: 400; }
+.crew-who .count { font-size: .875rem; color: var(--muted); font-weight: 400; }
 .crew-none { margin: 0; padding: 4px 14px 8px; color: var(--muted); font-size: .9375rem; }
 
 /* Bottom nav -------------------------------------------------------- */
@@ -624,7 +649,7 @@ select.crew-pick {
   padding: 6px max(8px, calc(50% - 372px)) calc(6px + var(--safe-bottom));
 }
 .nav button {
-  height: 58px; border: 0; background: none; color: var(--dim); border-radius: 12px;
+  height: 58px; border: 0; background: none; color: var(--muted); border-radius: 12px;
   display: grid; place-items: center; gap: 2px; font-weight: 600; font-size: .875rem;
   white-space: nowrap; padding: 0 2px; min-width: 0;
 }
@@ -789,7 +814,7 @@ select.crew-pick {
   overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
 }
 .filter-group { display: grid; gap: 6px; min-width: 0; }
-.filter-label { font-size: .75rem; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; }
+.filter-label { font-size: .75rem; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 /* The place Search holds, said under the Hotel chips (DECISIONS #98): words,
    no control. */
@@ -877,7 +902,7 @@ select.crew-pick {
 /* The people: a small label, then a list. A person with a known-for line
    is a block, the name and under it the line; everyone else is words in one
    wrapping line. A name is someone's own text and may be one long word. */
-.ev-label { font-size: .75rem; color: var(--dim); letter-spacing: .08em; text-transform: uppercase; }
+.ev-label { font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
 .who-list { list-style: none; margin: 0; padding: 0; overflow-wrap: anywhere; }
 .who-list .who { display: inline; }
 .who-list .who.lined { display: block; }
@@ -1039,7 +1064,7 @@ body.has-minibar .devmark { bottom: calc(var(--nav-h) + 5px + var(--minibar-h));
 /* The hour gutter is in rem so Larger text widens it with its labels. */
 .tl-grid { position: relative; margin-left: 3rem; }
 .tl-hour { position: absolute; left: -3rem; right: 0; height: 0; border-top: 1px solid var(--line); }
-.tl-hour span { position: absolute; left: 0; top: -8px; font-size: .75rem; color: var(--dim); white-space: nowrap; }
+.tl-hour span { position: absolute; left: 0; top: -8px; font-size: .75rem; color: var(--muted); white-space: nowrap; }
 .tl-block {
   position: absolute; overflow: hidden; border-radius: 8px; cursor: pointer; text-align: left;
   background: var(--h); border: 0; padding: 5px 7px; color: var(--ink); font: inherit;

@@ -92,11 +92,35 @@ describe("vite build", () => {
     }
   });
 
+  /* A build with a channel names itself where a home screen reads a name
+     (DECISIONS #101): the channel's own word after the year's, in the page's
+     home-screen title and the manifest's two names, and nowhere else - so a
+     channel's app is told from the live site's beside it. */
+  it("a build with a channel names itself on the home screen: the page's home-screen title and the manifest's two names, by the channel's own word, and nothing else of either", SLOW, () => {
+    const r = build({ DC_CHANNEL: "beta", DC_BUILD: "abc1234" });
+    expect(r.ok, r.stderr).toBe(true);
+    const html = read(r.out, "index.html"), markup = html.slice(0, html.indexOf("<script>"));
+    const manifest = JSON.parse(read(r.out, "manifest.json")), before = JSON.parse(read(ROOT, "public", "manifest.json"));
+    expect(markup).toContain('<meta name="apple-mobile-web-app-title" content="DC26 beta">');
+    expect([manifest.name, manifest.short_name]).toEqual(["Dragon Con 2026 beta", "DC26 beta"]);
+    expect({ ...manifest, name: before.name, short_name: before.short_name }).toEqual(before);
+    /* the page's own title, the link preview's words and the brand on Now are left */
+    expect(markup).toContain("<title>Dragon Con 2026 planner</title>");
+    expect(markup).toContain('<meta property="og:title" content="Dragon Con 2026 planner">');
+    expect(markup).toContain('<div class="brand" id="brand">Dragon Con 2026</div>');
+    /* and the page is the unstamped page's but for the two stamps and that title: nothing reads the word */
+    const plainly = html.replace('<meta name="dc-channel" content="beta">', '<meta name="dc-channel" content="">').replace('<meta name="dc-build" content="abc1234">', '<meta name="dc-build" content="">')
+      .replace('<meta name="apple-mobile-web-app-title" content="DC26 beta">', '<meta name="apple-mobile-web-app-title" content="DC26">');
+    expect(plainly).toBe(read(plain.out, "index.html"));
+    expect(html.split("beta")).toHaveLength(3);
+  });
+
   it("leaves both stamps empty and the worker untouched with no channel", SLOW, () => {
     expect(plain.ok, plain.stderr).toBe(true);
     const html = read(plain.out, "index.html");
     expect(html).toContain('<meta name="dc-channel" content="">');
     expect(html).toContain('<meta name="dc-build" content="">');
+    expect(html).toContain('<meta name="apple-mobile-web-app-title" content="DC26">');
     for (const f of ["sw.js", "manifest.json", "icon.svg"]) {
       expect(fs.readFileSync(path.join(plain.out, f)).equals(fs.readFileSync(path.join(ROOT, "public", f))), f).toBe(true);
     }
@@ -206,6 +230,15 @@ describe("vite build", () => {
         const manifest = JSON.parse(read(r.out, "manifest.json")), before = JSON.parse(read(ROOT, "public", "manifest.json"));
         expect([manifest.name, manifest.short_name]).toEqual(["Dragon Con 2027", "DC27"]);
         expect({ ...manifest, name: before.name, short_name: before.short_name }).toEqual(before);
+      });
+      it("with a channel too, the three names carry the year's and then the channel's word (DECISIONS #101)", SLOW, () => {
+        const named = build({ DC_YEAR: "2027", DC_CHANNEL: "beta", DC_BUILD: "abc1234" }, stage("2027", { "season.json": own("season.json"), "venues.json": own("venues.json"), "events.v2.json": schedule }));
+        expect(named.ok, named.stderr).toBe(true);
+        const page = read(named.out, "index.html"), manifest = JSON.parse(read(named.out, "manifest.json")), before = JSON.parse(read(ROOT, "public", "manifest.json"));
+        expect(page.slice(0, page.indexOf("<script>"))).toContain('<meta name="apple-mobile-web-app-title" content="DC27 beta">');
+        expect([manifest.name, manifest.short_name]).toEqual(["Dragon Con 2027 beta", "DC27 beta"]);
+        expect({ ...manifest, name: before.name, short_name: before.short_name }).toEqual(before);
+        expect(page.slice(0, page.indexOf("<script>"))).toContain("<title>Dragon Con 2027 planner</title>");
       });
 
       /* The define, seen from inside: the page fetches, keys and reads its days by 2027. */
@@ -733,11 +766,12 @@ describe("vite build", () => {
     }, 120_000);
     afterAll(() => dom && dom.window.close());
 
-    it("its page is the unstamped page's, script and all, but for the two stamps", () => {
+    it("its page is the unstamped page's, script and all, but for the two stamps and its home-screen title", () => {
       expect(stamped.ok, stamped.stderr).toBe(true);
       const unstamp = html => html
         .replace('<meta name="dc-channel" content="next">', '<meta name="dc-channel" content="">')
-        .replace('<meta name="dc-build" content="abc1234">', '<meta name="dc-build" content="">');
+        .replace('<meta name="dc-build" content="abc1234">', '<meta name="dc-build" content="">')
+        .replace('<meta name="apple-mobile-web-app-title" content="DC26 next">', '<meta name="apple-mobile-web-app-title" content="DC26">');
       const page = read(stamped.out, "index.html");
       expect(page).not.toBe(read(plain.out, "index.html"));
       expect(unstamp(page)).toBe(read(plain.out, "index.html"));

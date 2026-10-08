@@ -94,7 +94,7 @@ function timelineDayHTML(dayKey, list, now) {
     ? `<div class="tl-now" style="top:${top(now.getTime()).toFixed(1)}px"></div>` : "";
 
   return `<div class="tl-day">
-    <div class="day-head" style="padding-left:0">${DAY_LONG[dayKey] || dayKey} <span class="count" style="font-size:.875rem;color:var(--dim);font-weight:400">${list.length}</span></div>
+    <div class="day-head" style="padding-left:0">${DAY_LONG[dayKey] || dayKey} <span class="count">${list.length}</span></div>
     <div class="tl-grid" style="height:${spanH * HOUR_PX + 12}px">${hours}${links}${blocks}${nowLine}</div>
   </div>`;
 }
@@ -218,22 +218,21 @@ function myDayHTML() {
      cancelled - the panel's chips are the days that hold one. */
   const shareable = shareableDays(mine, picks).length;
   let html = pickNewsHTML() + inPlaceHTML("plans") + `<div class="plans-actions">
-    <button class="btn" data-act="ics" ${onSchedule ? "" : "disabled"}>Export to calendar</button>
+    <button class="btn quiet" data-act="ics" ${onSchedule ? "" : "disabled"}>Export to calendar</button>
     <button class="btn quiet" data-act="share-day" ${shareable ? "" : "disabled"}>Share a day</button>
   </div>`;
-  if (mine.length) html += `<div class="view-toggle" role="group" aria-label="View">
-    <button data-act="view-timeline" aria-pressed="${state.mineView === "timeline"}">Timeline</button>
-    <button data-act="view-list" aria-pressed="${state.mineView === "list"}">List</button>
+  if (mine.length) html += `<div class="seg plans-seg plans-view" role="group" aria-label="View">
+    <button data-act="view-timeline" aria-pressed="${state.mineView === "timeline"}">Timeline</button><button data-act="view-list" aria-pressed="${state.mineView === "list"}">List</button>
   </div>`;
   if (!mine.length) {
-    html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Search. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
+    html += `<div class="empty"><b>Nothing picked yet.</b> Star things in Explore or Search. They'll line up here by day with warnings when two picks overlap or the walk between hotels is too tight.</div>`;
   } else if (state.mineView === "timeline") {
     html += renderPlansTimeline(mine, now());
   } else {
     html += `<ul class="list">`;
     let lastDay = "", prev = null;
     mine.forEach(ev => {
-      if (ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd} <span class="count" style="font-size:.875rem;color:var(--dim);font-weight:400">${mine.filter(x => x._cd === ev._cd).length}</span></li>`; lastDay = ev._cd; prev = null; }
+      if (ev._cd !== lastDay) { html += `<li class="day-head">${DAY_LONG[ev._cd] || ev._cd} <span class="count">${mine.filter(x => x._cd === ev._cd).length}</span></li>`; lastDay = ev._cd; prev = null; }
       /* A removed or a cancelled pick has no gap line on either side: the
          next one's is measured from the pick before it. */
       if (!happening(ev)) { html += rowHTML(ev, {list: "mine"}); return; }

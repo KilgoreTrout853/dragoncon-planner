@@ -217,7 +217,7 @@ describe("a page booted from ?now=", () => {
       handle.setTimeOverride("2026-08-01T12:00");
       state.tab = "now"; handle.render();
       expect(document.getElementById("notice").hidden).toBe(false);
-      expect(text("notice")).toMatch(/Con starts Thursday/);
+      expect(text("notice")).toMatch(/^Preview\. This tab is showing Thursday 10:00 AM/);
     });
     it("and the Now tab previews Thursday morning [1929]", () => {
       expect(document.getElementById("view-now").textContent).toMatch(/next hour/);

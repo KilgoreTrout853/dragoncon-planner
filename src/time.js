@@ -112,14 +112,16 @@ const isPast = (e, at) => e._e <= at && conPhase(at) !== "ended";
 
 /* Before the con the Now tab previews a sensible moment instead of an empty
    one, and its banner says so - on Now alone, which the shell decides
-   (#99). Shared so the minute tick sees the same clock as the render. After
+   (#99). It says what is shown and never when the con starts: the first
+   full day is the con's second, and its first evening has events (#101).
+   Shared so the minute tick sees the same clock as the render. After
    the con the tab is the archive, and this is not consulted. */
 function effectiveNow() {
   const real = now();
   if (conPhase(real) === "before") {
     const day = DAY_LONG[FIRST_FULL_DAY];
     return {now: toDate(`${FIRST_FULL_DAY}T10:00`),
-      banner: `<b>Con starts ${day}.</b> This tab is showing ${day} 10:00 AM as a preview. Settings can preview any other time.`};
+      banner: `<b>Preview.</b> This tab is showing ${day} 10:00 AM, the con's first full day. Settings can preview any other time.`};
   }
   return {now: real, banner: ""};
 }

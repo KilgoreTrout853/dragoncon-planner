@@ -73,11 +73,13 @@ describe("the motion between the Map's views", () => {
   /* The animation frames asked for, run. */
   const frame = () => { const due = frames; frames = []; due.forEach(callback => callback(0)); };
   /* A set as what it is of: "<the node> <the properties>", sorted. */
-  const kind = node => (node.matches("svg.map") ? "frame" : node.matches(".map-hotel") ? `block ${node.dataset.hotel}` : node.matches(".plate") ? `plate ${node.dataset.plate}`
+  const kind = node => (node.matches("svg.map") ? "svg" : node.matches(".map-hotel") ? `block ${node.dataset.hotel}` : node.matches(".plate") ? `plate ${node.dataset.plate}`
     : node.matches(".plate-tilt") ? `tilt ${node.parentNode.dataset.plate}` : node.matches(".plate-label") ? `label ${node.dataset.plate}`
       : node.matches(".level-labels") ? "names" : node.matches(".level-sel") ? "sel" : node.matches(".stack-face text") ? "face-name" : (node.getAttribute("class") || node.tagName).split(" ")[0]);
   const props = anim => Object.keys(anim.keyframes[0]).filter(k => k !== "offset" && k !== "easing").sort().join("+");
-  const of = set => set.map(anim => `${kind(anim.el)} ${props(anim)}`).sort();
+  /* The frame's step is the drawing's: a transform of the ground, the city or the stacks, the svg's own three (#100). */
+  const framed = anim => anim.el.matches("svg.map > .map-ground, svg.map > .map-city, svg.map > .map-stacks") && "transform" in anim.keyframes[0];
+  const of = set => set.map(anim => `${framed(anim) ? "frame " : ""}${kind(anim.el)} ${props(anim)}`).sort();
   const find = (set, what, property) => { const found = set.filter(anim => kind(anim.el) === what && (!property || property in anim.keyframes[0])); expect(found, `${what} ${property || ""}`).toHaveLength(1); return found[0]; };
   const ends = (anim, property) => [anim.keyframes[0][property], anim.keyframes[anim.keyframes.length - 1][property]];
   const span = set => { const spans = [...new Set(set.map(anim => anim.options.duration))]; expect(spans).toHaveLength(1); return spans[0]; };
@@ -210,22 +212,46 @@ describe("the motion between the Map's views", () => {
     /* jsdom lays nothing out: the ground's box is handed in, as it stood before the draw and as it stands after. */
     const boxes = (before, after) => { const ground = svg().querySelector(".map-ground"), order = [before, after]; ground.getBoundingClientRect = () => order.shift() || after; return ground; };
     const box = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height });
-    it("the lift moves the drawing from the box it had before the draw to the one it has, about its middle: a transform of the drawing itself", () => {
-      const ground = boxes(box(14, 138, 362, 286.8), box(44.2, 138, 301.6, 238.9));
+    /* The step's three animations: the ground's, the city's and the stacks', one transform each and the same one - and none on the svg, whose box is the stage. */
+    const steps = set => {
+      const three = set.filter(framed);
+      expect(three.map(anim => kind(anim.el)).sort()).toEqual(["map-city", "map-ground", "map-stacks"]);
+      expect(new Set(three.map(anim => JSON.stringify(anim.keyframes))).size).toBe(1);
+      expect(set.filter(anim => anim.el.matches("svg.map"))).toEqual([]);
+      return three[0];
+    };
+    /* Where a transform in the Map's units puts the drawing's box on the screen: the frame's corners through it, then through the drawing's own scale, a unit of the Map in px, from the box the drawing has. */
+    const drawn = (transform, is) => {
+      const [, tx, ty, k] = /^translate\((-?[\d.]+)px, (-?[\d.]+)px\) scale\((-?[\d.]+)\)$/.exec(transform).map(Number), [x, y, w] = svg().getAttribute("viewBox").split(" ").map(Number), unit = is.width / w;
+      const left = is.left + (k * x + tx - x) * unit, top = is.top + (k * y + ty - y) * unit;
+      return [left, top, k * is.width, k * is.height];
+    };
+    const near = (got, want) => got.forEach((v, i) => expect(Math.abs(v - want[i]), `${got} for ${want}`).toBeLessThan(0.1));        // the boxes handed in are rounded to a tenth of a px
+    it("the lift moves the drawing from the box it had before the draw to the one it has: a transform of the drawing - the ground, the city and the stacks - in the Map's units, and never of the svg", () => {
+      const was = box(14, 138, 362, 286.8), is = box(44.2, 138, 301.6, 238.9), ground = boxes(was, is);
       lift("Hyatt");
-      const set = take(), step = find(set, "frame");
-      expect(ends(step, "transform")).toEqual(["translate(0px, 23.95px) scale(1.20027)", "translate(0px, 0px) scale(1)"]);
+      const step = steps(take()), [from, to] = ends(step, "transform");
+      near(drawn(from, is), [was.left, was.top, was.width, was.height]);
+      expect(to).toBe("translate(0px, 0px) scale(1)");
+      expect(from).toBe("translate(-37.95px, -22.197px) scale(1.20027)");
       expect(step.keyframes[0].easing).toBe(app.QUINT);
       expect(step.keyframes[1].offset).toBeCloseTo(450 / 630, 6);
       delete ground.getBoundingClientRect;
     });
     it("and its way back the same, from the stack's box to the city's, ending with the set", async () => {
       await stackOf("Hyatt");
-      const ground = boxes(box(44.2, 138, 301.6, 238.9), box(14, 138, 362, 286.8));
+      const was = box(44.2, 138, 301.6, 238.9), is = box(14, 138, 362, 286.8), ground = boxes(was, is);
       tap(back());
-      const step = find(take(), "frame");
-      expect(ends(step, "transform")).toEqual(["translate(0px, -23.95px) scale(0.83315)", "translate(0px, 0px) scale(1)"]);
+      const step = steps(take()), [from, to] = ends(step, "transform");
+      near(drawn(from, is), [was.left, was.top, was.width, was.height]);
+      expect(to).toBe("translate(0px, 0px) scale(1)");
       expect([step.keyframes[step.keyframes.length - 1].offset, step.keyframes[step.keyframes.length - 2].easing]).toEqual([1, app.QUINT_BACK]);
+      delete ground.getBoundingClientRect;
+    });
+    it("a drawing that stands off the middle of its box before the draw is carried from where it stood", () => {
+      const was = box(60, 150, 200, 158.4), is = box(44.2, 138, 301.6, 238.9), ground = boxes(was, is);
+      lift("Marriott");
+      near(drawn(ends(steps(take()), "transform")[0], is), [was.left, was.top, was.width, was.height]);
       delete ground.getBoundingClientRect;
     });
     it("where the box did not change - a screen with room, a page with no layout - there is no step", async () => {
