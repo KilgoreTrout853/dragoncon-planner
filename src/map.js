@@ -160,6 +160,21 @@ function mapCrewPicks(day) {
 function mapCrewCounts(day) {
   return Object.fromEntries(Object.entries(mapCrewPicks(day)).map(([h, lines]) => [h, new Set(lines.map(l => l.user_id)).size]));
 }
+/* The same count a step in, of one venue's lines (DECISIONS #103): how many
+   of the crew have a pick on a plate, and how many among some events, a
+   room's card's or a room's own. People, not picks. On a plate is
+   building.js's own answer, levelEvents() of its levels - the list
+   dayLights() counts the reader's stars from - so a pick that gives the
+   reader a star on a floor gives a crewmate a place in that floor's count,
+   and on no other. A person with picks on two floors is counted on each,
+   and one whose pick is known only to its venue on none, so the floors' may
+   add up to less than the hotel's, as the stars' do. A number alone - "3
+   crew" where a line has little room, a floor's name and a card's day line -
+   with no name and no mark on the drawing. */
+const crewOf = lines => new Set(lines.map(l => l.user_id)).size;
+const crewAmong = (lines, list) => crewOf(lines.filter(l => list.includes(l.ev)));
+const crewOnPlate = (lines, hotel, plate) => crewOf(lines.filter(l => plate.levels.some(level => levelEvents(hotel, level.id).includes(l.ev))));
+const crewSaid = c => (c ? ` · ${c} crew` : "");
 /* Its pill, on the block's bottom-right corner, under the gold one: an
    outline with a person before the number, not gold - gold is the reader's
    own. None at zero. Wider than the gold one, it ends where a one-digit
@@ -510,9 +525,10 @@ function streetsSVG(plate) {
    says: the room, what is happening there on the Map's day and the reader's
    picks among it. */
 const ROOM_SAID = ["role", "tabindex", "aria-label", "aria-pressed"];
-function roomSaid(hotel, place, day) {
+function roomSaid(hotel, place, day, crew) {
   const here = roomEvents(hotel, place.level, place.id).filter(({ev}) => ev._cd === day && happening(ev)), mine = here.filter(({ev}) => picks.has(ev.id)).length;
-  return `${place.id}: ${here.length ? plural(here.length, "event") : "no events"}, ${mine ? plural(mine, "pick") : "no picks"} on ${DAY_LONG[day] || day}`;
+  const c = crew.length ? crewAmong(crew, here.map(({ev}) => ev)) : 0;
+  return `${place.id}: ${here.length ? plural(here.length, "event") : "no events"}, ${mine ? plural(mine, "pick") : "no picks"} on ${DAY_LONG[day] || day}${c ? `, ${c} of your crew` : ""}`;
 }
 
 /* The stack drawn in place (#89): the open venue's group built where the
@@ -546,14 +562,14 @@ function drawStack(view, open, selected, flat, day) {
       group = stacks.appendChild(holder.firstElementChild);
       wrote = true;
     }
-    const lights = dayLights(open, day, picks), lit = new Map();
+    const lights = dayLights(open, day, picks), lit = new Map(), crew = mapCrewPicks(day)[open] || [];
     for (const row of lights) for (const {level, id} of row.lit) lit.set(level, (lit.get(level) || new Set()).add(id));
     const at = laidOut(open), cam = flat ? levelCamera(open, flat) : at, chosen = (flat && state.map.rooms) || [];
     const inFlat = level => !!flat && flat.levels.some(l => l.id === level);
     for (const shape of group.querySelectorAll("[data-room]")) {
       const place = {level: shape.dataset.level, id: shape.dataset.room}, on = !!lit.get(place.level) && lit.get(place.level).has(place.id), button = inFlat(place.level);
       if (shape.classList.contains("lit") !== on) { shape.classList.toggle("lit", on); wrote = true; }
-      const said = button ? ["button", "0", roomSaid(open, place, day), String(chosen.some(room => room.level === place.level && room.id === place.id))] : [];
+      const said = button ? ["button", "0", roomSaid(open, place, day, crew), String(chosen.some(room => room.level === place.level && room.id === place.id))] : [];
       ROOM_SAID.forEach((name, i) => set(shape, name, button ? said[i] : null));
     }
     set(group, "data-level", flat ? flat.key : null);
@@ -562,8 +578,9 @@ function drawStack(view, open, selected, flat, day) {
     const plates = group.querySelectorAll(".plate"), labels = group.querySelectorAll(".plate-label");
     made.plates.forEach((p, j) => {
       const row = lights[j], held = !!selected && selected.key === p.key, laid = !!flat && flat.key === p.key;
-      const events = row.events ? plural(row.events, "event") : "no events", mine = row.picks ? plural(row.picks, "pick") : "no picks";
-      const said = esc(p.short) + (p.drawn || p.inert ? "" : `<tspan class="pl-count"> · ${events}</tspan>`) + (row.picks ? `<tspan class="pl-picks"> ★ ${row.picks}</tspan>` : "");
+      const events = row.events ? plural(row.events, "event") : "no events", mine = row.picks ? plural(row.picks, "pick") : "no picks", c = crewOnPlate(crew, open, p);
+      const said = esc(p.short) + (p.drawn || p.inert ? "" : `<tspan class="pl-count"> · ${events}</tspan>`) + (row.picks ? `<tspan class="pl-picks"> ★ ${row.picks}</tspan>` : "")
+        + (c ? `<tspan class="pl-crew"> · ${c} crew</tspan>` : "");
       if (drawInPlace(labels[j], said)) wrote = true;
       set(plates[j], "class", `plate ${kindOf(p)}${row.picks ? " mine" : ""}${held ? " selected" : ""}${laid ? " flat" : ""}`);
       set(plates[j], "transform", liftSaid(at, j, laid));
@@ -575,7 +592,7 @@ function drawStack(view, open, selected, flat, day) {
       if (p.inert) return;
       /* The plate laid flat holds its rooms' buttons, so it is a group and
          no button; the plates not shown behind a level leave the tab order. */
-      set(plates[j], "aria-label", `${p.name}: ${p.drawn ? "" : `${events}, `}${mine} on ${dayName}`);
+      set(plates[j], "aria-label", `${p.name}: ${p.drawn ? "" : `${events}, `}${mine} on ${dayName}${c ? `, ${c} of your crew` : ""}`);
       set(plates[j], "role", laid ? "group" : "button");
       set(plates[j], "aria-pressed", laid ? null : String(held));
       set(plates[j], "tabindex", laid ? null : flat ? "-1" : "0");
@@ -707,22 +724,24 @@ function cardPlace() {
 function plateCardHTML(hotel, plate, day, at) {
   const row = dayLights(hotel, day, picks).find(r => r.key === plate.key), dayName = DAY_LONG[day] || day;
   const all = plate.levels.length === 1 ? levelEvents(hotel, plate.levels[0].id) : plate.levels.flatMap(level => levelEvents(hotel, level.id)).sort(inSchedule);
-  return `<div class="next-card plate-card${row.picks ? " mine" : ""}" id="mapPlate" data-plate="${esc(plate.key)}" style="--h:var(${hotelVar(hotel)})">${headHTML(plateAsPlace(hotel, plate), day, hotelShort(hotel), plate.levels.length > 1 ? plate.short : plate.name, `${esc(dayName)} · ${row.events ? plural(row.events, "event") : "no events"}${row.picks ? ` · ${plural(row.picks, "pick")}` : ""}`)}${plateRowsHTML(all, day, at)}</div>`;
+  const crew = crewOnPlate(mapCrewPicks(day)[hotel] || [], hotel, plate);
+  return `<div class="next-card plate-card${row.picks ? " mine" : ""}" id="mapPlate" data-plate="${esc(plate.key)}" style="--h:var(${hotelVar(hotel)})">${headHTML(plateAsPlace(hotel, plate), day, hotelShort(hotel), plate.levels.length > 1 ? plate.short : plate.name, `${esc(dayName)} · ${row.events ? plural(row.events, "event") : "no events"}${row.picks ? ` · ${plural(row.picks, "pick")}` : ""}${crewSaid(crew)}`)}${plateRowsHTML(all, day, at)}</div>`;
 }
 function roomCardHTML(hotel, plate, rooms, day, at) {
   const booked = new Map();
   for (const room of rooms) for (const {ev, as} of roomEvents(hotel, room.level, room.id)) if (!booked.has(ev)) booked.set(ev, as);
   const all = [...booked.keys()].sort(inSchedule), here = all.filter(ev => ev._cd === day && happening(ev)), mine = here.filter(ev => picks.has(ev.id)).length;
-  const name = namedTogether(rooms, plate), level = plate.levels.find(l => l.id === rooms[0].level);
+  const name = namedTogether(rooms, plate), level = plate.levels.find(l => l.id === rooms[0].level), crew = crewAmong(mapCrewPicks(day)[hotel] || [], here);
   const as = ev => (booked.get(ev) && booked.get(ev) !== name ? `as ${booked.get(ev)}` : "");
-  return `<div class="next-card plate-card room-card${mine ? " mine" : ""}" id="mapRoom" data-plate="${esc(plate.key)}" style="--h:var(${hotelVar(hotel)})">${headHTML(roomsAsPlace(hotel, rooms), day, `${hotelShort(hotel)} · ${level.name}`, name, `${esc(DAY_LONG[day] || day)} · ${here.length ? plural(here.length, "event") : "no events"}${mine ? ` · ${plural(mine, "pick")}` : ""}`)}${plateRowsHTML(all, day, at, as)}</div>`;
+  return `<div class="next-card plate-card room-card${mine ? " mine" : ""}" id="mapRoom" data-plate="${esc(plate.key)}" style="--h:var(${hotelVar(hotel)})">${headHTML(roomsAsPlace(hotel, rooms), day, `${hotelShort(hotel)} · ${level.name}`, name, `${esc(DAY_LONG[day] || day)} · ${here.length ? plural(here.length, "event") : "no events"}${mine ? ` · ${plural(mine, "pick")}` : ""}${crewSaid(crew)}`)}${plateRowsHTML(all, day, at, as)}</div>`;
 }
 /* The venue's line, one button: the venue by its key, as its hotel sheet is
    headed; the day and the reader's picks at the venue - every one, the
    pill's number, so it may be more than the plates' stars add up to, since
    an event known only to its venue is on no plate; how many of the crew,
-   where there are any - the crew is here and nowhere on the plates, gold
-   staying the reader's own; and a chevron. Its tap opens the hotel sheet
+   where there are any - a number here, and on a floor's name and card and
+   a room's card, and no name or mark anywhere, gold staying the reader's
+   own; and a chevron. Its tap opens the hotel sheet
    (dispatch.js). Under it, in the room the slot holds, one quiet line that
    is no control, and stands with the venue's line alone. */
 function venueLineHTML(hotel, day, counts, crew) {
@@ -1081,4 +1100,4 @@ function renderMap() { drawMap(); }
    minute, does not. */
 function tickMap() { return drawMap(); }
 
-export { MAP_HOTELS, cardPlace, closeStack, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, onTheMap, openLevel, openStack, renderMap, settleMotion, showOnMap, stepBack, tapLevel, tapPlate, tickMap };
+export { MAP_HOTELS, cardPlace, closeStack, crewOnPlate, mapCardHTML, mapCrewCounts, mapCrewPicks, mapDay, onTheMap, openLevel, openStack, renderMap, settleMotion, showOnMap, stepBack, tapLevel, tapPlate, tickMap };

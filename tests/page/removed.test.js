@@ -21,8 +21,7 @@ const minutes = (iso, m) => new Date(new Date(iso).getTime() + m * 60000);
 /* Three Saturday picks still to come: first; then the removed one, in
    another hotel and overlapping first; then last, in first's hotel and an
    hour after both. Counted, the removed pick would put an overlap flag on
-   first's row and its own (DECISIONS #73) and make two walk links; without
-   it there is neither. The survivor of the merge is
+   first's row and its own (DECISIONS #73); without it there is none. The survivor of the merge is
    on Sunday, out of the way. */
 const saturday = sample.events.filter(e => e.start > NOW && e.day === "2026-09-05" && e.end.startsWith("2026-09-05") && placed(e))
   .sort((a, b) => a.start.localeCompare(b.start) || a.title.localeCompare(b.title));
@@ -160,9 +159,6 @@ describe("a schedule that dropped one pick and merged two", () => {
       it("faded, and saying why where its room would be", () => {
         expect(block.classList.contains("removed")).toBe(true);
         expect(block.querySelector(".tb-room").textContent).toBe("Removed from the schedule");
-      });
-      it("with no walk link to or from it", () => {
-        expect(block.closest(".tl-day").querySelectorAll(".tl-link")).toHaveLength(0);
       });
     });
 

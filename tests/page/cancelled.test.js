@@ -193,9 +193,6 @@ describe("a cancelled pick is passed over by what says what is next, where to wa
       expect(words(block(ON).querySelector(".tb-room"))).toBe(of(ON).room);
       expect([...view("plans").querySelectorAll(".tl-day .day-head")].map(words)).toEqual(["Saturday 4", "Sunday 1"]);
     });
-    it("and no walk runs to it or from it", () => {
-      expect(view("plans").querySelector(".tl-link")).toBe(null);
-    });
     it("Export to calendar takes the picks that are happening", async () => {
       let exported;
       const had = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };

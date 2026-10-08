@@ -194,12 +194,18 @@ function filtersHTML() {
     `<div class="filter-group" data-group="hotel" role="group" aria-labelledby="filterHotelLabel">
       <span class="filter-label" id="filterHotelLabel">Hotel</span>
       <div class="filter-chips">${chips("hotel", hotelList)}</div><p class="filter-only" id="filterOnly"${place ? "" : " hidden"}>${esc(onlySaid(place))}</p></div>`,
-    `<div class="filter-group" data-group="pick"><div class="filter-pair">${tagged
-      ? select("fandom", "work", "Fandom", "Any fandom", topWorks().map(w => ({value: w.id, label: `${w.name} (${w.count})`}))) : ""}${
-      select("track", "track", "Track", "All tracks", trackList.map(t => ({value: t, label: t})))}</div></div>`,
-    tagged ? `<div class="filter-group" data-group="topics"><div class="filter-topics">${AXES.map(a =>
-      select(AXIS_IDS[a], a, AXIS_NAMES[a], `Any ${a}`, axisOptions(a).map(o => ({value: o.value, label: `${o.label} (${o.n})`})))).join("")}</div></div>` : "",
-    `<div class="filter-group" data-group="type"><div class="seg" role="group" aria-label="Type">${["All", "panel", "gaming"].map(t =>
+    /* The Fandom and Track menus and the four topics are one group of six
+       under one title; a schedule with no tags has the Track menu alone,
+       and no title. */
+    tagged ? `<div class="filter-about" role="group" aria-labelledby="filterAboutLabel"><div class="filter-group" data-group="pick">
+      <span class="filter-label" id="filterAboutLabel">What it&rsquo;s about</span>
+      <div class="filter-pair">${select("fandom", "work", "Fandom", "Any fandom", topWorks().map(w => ({value: w.id, label: `${w.name} (${w.count})`})))}${
+      select("track", "track", "Track", "All tracks", trackList.map(t => ({value: t, label: t})))}</div></div><div class="filter-group" data-group="topics"><div class="filter-topics">${AXES.map(a =>
+      select(AXIS_IDS[a], a, AXIS_NAMES[a], `Any ${a}`, axisOptions(a).map(o => ({value: o.value, label: `${o.label} (${o.n})`})))).join("")}</div></div></div>`
+      : `<div class="filter-group" data-group="pick"><div class="filter-pair">${select("track", "track", "Track", "All tracks", trackList.map(t => ({value: t, label: t})))}</div></div>`,
+    `<div class="filter-group" data-group="type" role="group" aria-labelledby="filterTypeLabel">
+      <span class="filter-label" id="filterTypeLabel">Type</span>
+      <div class="seg">${["All", "panel", "gaming"].map(t =>
       `<button type="button" data-chip="type" data-value="${t}" aria-pressed="${b.type === t}">${TYPE_LABELS[t]}</button>`).join("")}</div></div>`,
     tagged ? `<div class="filter-group" data-group="kind" role="group" aria-labelledby="filterKindLabel">
       <span class="filter-label" id="filterKindLabel">Kind</span>

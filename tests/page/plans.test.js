@@ -84,18 +84,28 @@ describe("Plans", () => {
       });
     });
 
-    /* The quieter Now's stream rule at its third site (DECISIONS #40): no
-       walk, no band, no link. A new test, not a ledger row. */
-    it("a stream has no walk, so no walk link runs to or from it; two picks in two hotels keep theirs", () => {
-      const sat = handle.events.filter(e => e._cd === "2026-09-05" && !e.cancelled), placed = e => !!app.MAP_HOTELS[e.hotel];
-      const stream = sat.find(s => s.hotel === "Streaming" && sat.some(e => placed(e) && e._e <= s._s));
-      const before = sat.filter(e => placed(e) && e._e <= stream._s).pop();
-      const after = sat.find(e => placed(e) && e._s >= stream._e && e.hotel !== before.hotel);
-      const links = () => [...plans().querySelectorAll(".tl-link span")].map(s => s.textContent.trim());
-      handle.picks.set([before.id, after.id]); handle.render();
-      expect(links()).toEqual([`${app.walkMin(before.hotel, after.hotel)} min`]);
-      handle.picks.set([before.id, stream.id, after.id]); handle.render();
-      expect(links()).toEqual([]);
+    /* The Timeline draws no walk (DECISIONS #103): its hours, its blocks and
+       the now line, and nothing between two picks - where the List still
+       says the walk between their rows. A new test, not a ledger row. */
+    it("the Timeline draws no walk between two picks in two hotels a tight walk apart - no link, no badge, nothing but hours, blocks and the now line - and the List's gap line between their rows still says it", () => {
+      const sat = handle.events.filter(e => e._cd === "2026-09-05" && !e.cancelled && app.MAP_HOTELS[e.hotel]), said = node => node.textContent.replace(/\s+/g, " ").trim();
+      let pair = null;
+      for (const prev of sat) {
+        const next = sat.find(e => e._s >= prev._e && e.hotel !== prev.hotel && ["cant", "tight"].includes((app.connection(prev, e) || {}).band));
+        if (next) { pair = [prev, next]; break; }
+      }
+      const [prev, next] = pair, c = app.connection(prev, next), kinds = () => [...new Set([...plans().querySelectorAll(".tl-grid > *")].map(n => n.className.split(" ")[0]))].sort();
+      handle.picks.set([prev.id, next.id]); handle.render();
+      expect(state.mineView).toBe("timeline");
+      expect([plans().querySelectorAll(".tl-block").length, plans().querySelectorAll(".tl-link, .gap").length, kinds().filter(k => k !== "tl-now")]).toEqual([2, 0, ["tl-block", "tl-hour"]]);
+      expect([...plans().querySelectorAll(".tl-grid > :not(.tl-block)")].map(said).filter(text => /\bmin\b/.test(text))).toEqual([]);
+      plans().querySelector('[data-act="view-list"]').click();
+      const move = `${app.hotelShort(prev.hotel)} to ${app.hotelShort(next.hotel)}`, gap = plans().querySelector(".gap");
+      expect([...plans().querySelectorAll(".gap")].map(said)).toEqual([c.band === "cant" ? `${c.gap} min to get there, ${move} is about ${c.walk} min at con pace` : `${c.gap} min gap, ${move} about ${c.walk} min. Tight but doable`]);
+      expect([c.walk > 0, gap.previousElementSibling.dataset.id, gap.nextElementSibling.dataset.id]).toEqual([true, prev.id, next.id]);
+      plans().querySelector('[data-act="view-timeline"]').click();
+      expect([state.mineView, plans().querySelectorAll(".tl-link, .gap").length]).toEqual(["timeline", 0]);
+      window.localStorage.removeItem("dc26.mineView");
       handle.picks.set([first.id]); handle.render();
     });
 

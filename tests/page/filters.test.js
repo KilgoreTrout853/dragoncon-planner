@@ -127,6 +127,12 @@ describe("the filter sheet", () => {
       expect(el("filtersBtn").getAttribute("aria-label")).toBe("Filters");
       expect(el("filtersBadge").hidden).toBe(true);
     });
+    it("the button's icon stands before its word, a line drawing in a 24 box that a screen reader never meets: the button's name and its word are as they were", () => {
+      const btn = el("filtersBtn"), icon = btn.querySelector("svg");
+      expect([btn.firstElementChild === icon, btn.querySelectorAll("svg").length, icon.getAttribute("aria-hidden"), icon.getAttribute("viewBox")]).toEqual([true, 1, "true", "0 0 24 24"]);
+      expect([icon.querySelector("title, desc, text"), icon.hasAttribute("aria-label"), icon.hasAttribute("role")]).toEqual([null, false, false]);
+      expect([btn.getAttribute("aria-label"), btn.textContent.trim(), [...btn.children].map(c => c.tagName.toLowerCase())]).toEqual(["Filters", "Filters", ["svg", "span"]]);
+    });
   });
 
   describe("opening it", () => {
@@ -154,13 +160,21 @@ describe("the filter sheet", () => {
     it("the groups in order: Hotel, Fandom with Track, Topics, Type, Kind, Getting in, the toggle", () => {
       expect([...panel().querySelectorAll("[data-group]")].map(g => g.dataset.group)).toEqual(["hotel", "pick", "topics", "type", "kind", "entry", "noise"]);
     });
-    it("Hotel, Kind and Getting in carry their small labels, which name their groups", () => {
-      expect([...panel().querySelectorAll(".filter-label")].map(l => l.textContent)).toEqual(["Hotel", "Kind", "Getting in"]);
-      for (const [group, label] of [["hotel", "Hotel"], ["kind", "Kind"], ["entry", "Getting in"]]) {
+    it("every group but the toggle carries a small label, which names it: Hotel, What it's about, Type, Kind and Getting in", () => {
+      expect([...panel().querySelectorAll(".filter-label")].map(l => [l.tagName, l.textContent])).toEqual([["SPAN", "Hotel"], ["SPAN", "What it’s about"], ["SPAN", "Type"], ["SPAN", "Kind"], ["SPAN", "Getting in"]]);
+      for (const [group, label] of [["hotel", "Hotel"], ["type", "Type"], ["kind", "Kind"], ["entry", "Getting in"]]) {
         const g = panel().querySelector(`[data-group="${group}"]`);
         expect(g.getAttribute("role")).toBe("group");
         expect(el(g.getAttribute("aria-labelledby")).textContent).toBe(label);
+        expect(g.firstElementChild).toBe(el(g.getAttribute("aria-labelledby")));
       }
+      expect([...panel().querySelectorAll("[role=group]")].map(g => el(g.getAttribute("aria-labelledby")).textContent)).toEqual(["Hotel", "What it’s about", "Type", "Kind", "Getting in"]);
+    });
+    it("What it's about is one group of six menus - Fandom and Track, then the four topics - its title over the first of them, and the two groups in it as they were", () => {
+      const about = el("filterAboutLabel").closest("[role=group]"), pick = panel().querySelector('[data-group="pick"]'), topics = panel().querySelector('[data-group="topics"]');
+      expect([about.className, about.parentElement.id, [...about.children], about.getAttribute("aria-labelledby"), about.hasAttribute("aria-label")]).toEqual(["filter-about", "filtersBody", [pick, topics], "filterAboutLabel", false]);
+      expect([pick.firstElementChild.id, pick.firstElementChild.className, pick.hasAttribute("role"), topics.hasAttribute("role"), topics.querySelector(".filter-label")]).toEqual(["filterAboutLabel", "filter-label", false, false, null]);
+      expect([...about.querySelectorAll("select")].map(s => s.getAttribute("aria-label"))).toEqual(["Fandom", "Track", "Medium", "Genre", "Craft", "Subject"]);
     });
     it("the hotel chips: All, then each hotel the schedule has, wrapped", () => {
       expect([...panel().querySelectorAll('[data-chip="hotel"]')].map(c => c.dataset.value)).toEqual(["All", ...app.hotelChips]);
@@ -170,9 +184,10 @@ describe("the filter sheet", () => {
       const kinds = Object.keys(app.KIND_LABELS).filter(k => handle.events.some(e => tg(e).kind === k));
       expect([...panel().querySelectorAll('[data-chip="kind"]')].map(c => c.textContent)).toEqual(["Any kind", ...kinds.map(k => app.KIND_LABELS[k])]);
     });
-    it("the Type control: All, Panels, Gaming", () => {
-      const seg = panel().querySelector('[data-group="type"] .seg');
-      expect(seg.getAttribute("aria-label")).toBe("Type");
+    it("the Type control: All, Panels, Gaming, named by its group's title and no longer by a label of its own", () => {
+      const group = panel().querySelector('[data-group="type"]'), seg = group.querySelector(".seg");
+      expect([group.getAttribute("role"), el(group.getAttribute("aria-labelledby")).textContent, group.hasAttribute("aria-label")]).toEqual(["group", "Type", false]);
+      expect([seg.hasAttribute("aria-label"), seg.hasAttribute("role"), seg.previousElementSibling.id]).toEqual([false, false, "filterTypeLabel"]);
       expect([...seg.querySelectorAll("button")].map(b => b.textContent)).toEqual(["All", "Panels", "Gaming"]);
     });
     it("Fandom and Track side by side, each with its first option", () => {
@@ -1185,6 +1200,12 @@ describe("the filter sheet on a schedule with no tags", () => {
   it("and keeps the hotel chips, the Track select, the Type control, Getting in and the toggle", () => {
     expect([...panel().querySelectorAll("[data-group]")].map(g => g.dataset.group)).toEqual(["hotel", "pick", "type", "entry", "noise"]);
     expect(panel().querySelector(".filter-pair select").id).toBe("track");
+  });
+  it("the Track menu stands alone with no title over it - no What it's about, and no group of one - and Type keeps its own", () => {
+    const pick = panel().querySelector('[data-group="pick"]');
+    expect([...panel().querySelectorAll(".filter-label")].map(l => l.textContent)).toEqual(["Hotel", "Type", "Getting in"]);
+    expect([panel().querySelector(".filter-about"), el("filterAboutLabel"), pick.parentElement.id, pick.hasAttribute("role"), pick.hasAttribute("aria-labelledby"), pick.children.length]).toEqual([null, null, "filtersBody", false, false, 1]);
+    expect(el("track").getAttribute("aria-label")).toBe("Track");
   });
   it("Getting in is Cost, Sign-up and Sold out there, and no Audience: the fourth cell is empty", () => {
     expect([...panel().querySelectorAll('[data-group="entry"] .filter-topics > *')].map(c => c.getAttribute("aria-label"))).toEqual(["Cost", "Sign-up", "Sold out"]);

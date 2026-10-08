@@ -117,6 +117,16 @@ function openHotel(hotel) {
   if (line) { line.focus(); line.click(); }
 }
 const tapDay = day => document.querySelector(`#view-map [data-chip="map-day"][data-value="${day}"]`).click();
+/* A venue's stack, opened from the city by its block; a floor's name in it,
+   by its plate's key; a touch on a plate, and on a room of the open level;
+   and the day's line of the card under the map. */
+const tap = node => node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+function liftStack(hotel) { cityMap(); tap(blockOf(hotel)); return document.querySelector("#view-map .map-stack:not([hidden])"); }
+const floorName = (stack, key) => stack.querySelector(`.plate-label[data-plate="${key}"]`);
+const plateOf = (stack, key) => stack.querySelector(`.plate[data-plate="${key}"]`);
+const roomOf = (stack, id) => [...stack.querySelectorAll(".plate.flat [data-room]")].find(r => r.dataset.room === id);
+const dayLine = id => words(el(id).querySelector(".nc-when"));
+const HYATT = { acc: "acc", exhibit: "exhibit+tower-ll2", ballroom: "ballroom+tower-ll1" };
 /* What changes under a container while an awaited `during` runs. */
 async function mutationsAcross(container, during) {
   const seen = [], observer = new MutationObserver(records => seen.push(...records));
@@ -188,11 +198,14 @@ describe("a crew's change pulled is a redraw on any tab: Now, the Map and Plans 
     await s.run();
     expect(words(crewPill("Hyatt"))).toBe("1");
   });
-  it("on Plans: the crew's day, with no tap", async () => {
+  it("on Plans: the crew's day, with no tap - the crewmate's fold, shut, and the row under it once its head is tapped (#103)", async () => {
     tapTab("plans");
     await s.app.syncSettled();
+    const head = () => el(`crewFold-${s.dee.id}`), was = head() ? Number(head().querySelector(".count").textContent) : 0;
     pick(s.fake, s.dee, "s0263");
     await s.run();
+    expect([words(head()), head().getAttribute("aria-expanded"), el("view-plans").querySelector(`.row[data-list="crew:${s.dee.id}"]`)]).toEqual([`Dee ${was + 1}▸`, "false", null]);
+    head().click();
     expect(el("view-plans").querySelector(`.row[data-id="s0263"][data-list="crew:${s.dee.id}"]`)).not.toBe(null);
   });
   it("the crew panel open over Search: its members refilled", async () => {
@@ -757,7 +770,7 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
     expect([s.handle.state.sheetHotel, s.handle.state.map.stack]).toEqual([null, null]);
   });
   /* The crew on a venue's stack (DECISIONS #95): on the venue's line, as
-     people, and nowhere on the plates - gold stays the reader's own. */
+     people - and, since #103, on its floors, below. */
   it("a venue's line, under its stack, says how many of the crew have a pick there that day; a venue with none says nothing of the crew", () => {
     const line = hotel => { cityMap(); blockOf(hotel).dispatchEvent(new MouseEvent("click", { bubbles: true })); return words(el("mapVenue").querySelector(".nc-when")); };
     expect([line("Hyatt"), line("Hilton"), line("Westin")]).toEqual(["Saturday · no picks · 2 of your crew", "Saturday · no picks · 1 of your crew", "Saturday · 2 picks"]);
@@ -767,21 +780,80 @@ describe("the Map: the crew counted per hotel - people, not picks", () => {
     document.querySelector('#view-map [data-chip="map-day"][data-value="2026-09-05"]').click();
     cityMap();
   });
-  it("the crew is on the venue's line and nowhere on the plates, nor in a level: no plate edged, no room lit, no label starred, no button and no card counting a crewmate's pick", () => {
-    blockOf("Hyatt").dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    const stack = document.querySelector("#view-map .map-stack:not([hidden])"), plates = [...stack.querySelectorAll(".plate")];
-    expect([s.app.byId.get("s0376").level, s.app.byId.get("s0263").level, s.app.byId.get("s0228").level]).toEqual(["ballroom", "exhibit", "acc"]);   // Bo's two and Cy's one, a plate each
+  /* The crew on the floors (DECISIONS #103): a number of people after a
+     floor's name and at the end of a card's day line, "1 crew", and in the
+     spoken names as the hotel's label says it. No name and no mark: gold
+     stays the reader's own. Bo has a pick on the Ballroom Level and one on
+     the Exhibit Level, and Cy one on the Conference Center's. */
+  it("a floor's name in the stack says how many of the crew have a pick on it, in a tspan of its own, last; a person with picks on two floors is counted on each; and nothing is marked - no plate edged, no room lit, no label starred, no name", () => {
+    const stack = liftStack("Hyatt"), plates = [...stack.querySelectorAll(".plate")];
+    expect([s.app.byId.get("s0376").level, s.app.byId.get("s0263").level, s.app.byId.get("s0228").level]).toEqual(["ballroom", "exhibit", "acc"]);
+    expect([HYATT.acc, HYATT.exhibit, HYATT.ballroom].map(key => words(floorName(stack, key)))).toEqual(["Conference Center · 1 crew", "Exhibit Level + Intl Tower LL2 · 1 crew", "Ballroom Level + Intl Tower LL1 · 1 crew"]);
+    for (const key of Object.values(HYATT)) {
+      const last = floorName(stack, key).lastElementChild;
+      expect([last.tagName.toLowerCase(), last.getAttribute("class"), last.textContent], key).toEqual(["tspan", "pl-crew", " · 1 crew"]);
+    }
+    expect(stack.querySelectorAll(".pl-crew").length).toBe(3);
     expect([stack.querySelectorAll(".plate.mine").length, stack.querySelectorAll(".lit").length, stack.querySelectorAll(".pl-picks").length]).toEqual([0, 0, 0]);
-    expect(plates.filter(p => p.hasAttribute("aria-label")).map(p => /: (.*)$/.exec(p.getAttribute("aria-label"))[1])).toEqual(["no picks on Saturday", "no picks on Saturday", "no picks on Saturday"]);
-    expect(words(stack)).not.toMatch(/crew|Bo|Cy/);
-    plates[1].querySelector(".plate-hull").dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect([el("mapPlate").className, words(el("mapPlate").querySelector(".nc-when")), el("mapPlate").querySelectorAll(".mine").length]).toEqual(["next-card plate-card", "Saturday · 9 events", 0]);
-    expect(words(el("mapPlate"))).not.toMatch(/crew/);
-    /* The tap opened that plate's level (DECISIONS #96), where gold is the reader's own too: Bo's pick is in Grand Hall C. */
-    const rooms = [...stack.querySelectorAll(".plate.flat [data-room]")], hall = rooms.find(r => r.dataset.room === "Grand Hall C");
-    expect([s.handle.state.map.level, rooms.length > 0, rooms.every(r => / no picks on Saturday$/.test(r.getAttribute("aria-label"))), stack.querySelectorAll(".lit").length]).toEqual(["exhibit+tower-ll2", true, true, 0]);
-    hall.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect([el("mapRoom").className, words(el("mapRoom").querySelector(".nc-when")), el("mapRoom").querySelectorAll(".mine").length, /crew|Bo|Cy/.test(words(el("mapRoom")))]).toEqual(["next-card plate-card room-card", "Saturday · 5 events", 0, false]);
+    expect(plates.filter(p => p.hasAttribute("aria-label")).map(p => /: (.*)$/.exec(p.getAttribute("aria-label"))[1])).toEqual(["no picks on Saturday, 1 of your crew", "no picks on Saturday, 1 of your crew", "no picks on Saturday, 1 of your crew"]);
+    expect(words(stack)).not.toMatch(/\b(Bo|Cy|Dee)\b|of your crew/);
+    expect(dayLine("mapVenue")).toBe("Saturday · no picks · 2 of your crew");
+    cityMap();
+  });
+  it("a floor's card and a room's card say it at the end of the day's line, as \"1 crew\"; a room's spoken name says it as the hotel's does, and a room with none of the crew says nothing of it", () => {
+    const stack = liftStack("Hyatt");
+    tap(plateOf(stack, HYATT.exhibit).querySelector(".plate-hull"));
+    expect([el("mapPlate").className, dayLine("mapPlate"), el("mapPlate").querySelectorAll(".mine").length]).toEqual(["next-card plate-card", "Saturday · 9 events · 1 crew", 0]);
+    /* The tap opened that plate's level (DECISIONS #96): Bo's pick is in Grand Hall C. */
+    const rooms = [...stack.querySelectorAll(".plate.flat [data-room]")], hall = roomOf(stack, "Grand Hall C");
+    expect([s.handle.state.map.level, hall.getAttribute("aria-label"), stack.querySelectorAll(".lit").length]).toEqual(["exhibit+tower-ll2", "Grand Hall C: 5 events, no picks on Saturday, 1 of your crew", 0]);
+    expect(rooms.filter(r => r !== hall).every(r => / no picks on Saturday$/.test(r.getAttribute("aria-label")))).toBe(true);
+    tap(hall);
+    expect([el("mapRoom").className, dayLine("mapRoom"), el("mapRoom").querySelectorAll(".mine").length, /\b(Bo|Cy|Dee)\b|of your crew/.test(words(el("mapRoom")))]).toEqual(["next-card plate-card room-card", "Saturday · 5 events · 1 crew", 0, false]);
+    tap(roomOf(stack, "Concourse"));
+    expect(dayLine("mapRoom")).toMatch(/^Saturday · \d+ events$/);
+    cityMap();
+  });
+  it("people, not picks, and never the reader: a second pick of Bo's on the floor leaves its count, a pick of Dee's adds one, and the reader's own star there adds a star and nothing to the crew's - the star's count before the crew's", async () => {
+    const mine = [...s.handle.picks.get()];
+    pick(s.fake, s.bo, "s0332");                             // Grand Hall C at 4:00, where Bo already has s0263
+    await s.run();
+    let stack = liftStack("Hyatt");
+    expect([words(floorName(stack, HYATT.exhibit)), dayLine("mapVenue")]).toEqual(["Exhibit Level + Intl Tower LL2 · 1 crew", "Saturday · no picks · 2 of your crew"]);
+    pick(s.fake, s.dee, "s0281");                            // the same room, the same hour
+    await s.run();
+    expect([words(floorName(stack, HYATT.exhibit)), dayLine("mapVenue")]).toEqual(["Exhibit Level + Intl Tower LL2 · 2 crew", "Saturday · no picks · 3 of your crew"]);
+    s.handle.picks.set([...mine, "s0314"]);                  // the reader's own, in the Concourse at 7:00
+    s.handle.render();
+    const name = floorName(stack, HYATT.exhibit);
+    expect([words(name), [...name.children].map(t => t.getAttribute("class")), plateOf(stack, HYATT.exhibit).getAttribute("aria-label")])
+      .toEqual(["Exhibit Level + Intl Tower LL2 ★ 1 · 2 crew", ["pl-picks", "pl-crew"], "Exhibit Level (LL2) + International Tower · LL2: 1 pick on Saturday, 2 of your crew"]);
+    tap(plateOf(stack, HYATT.exhibit).querySelector(".plate-hull"));
+    expect(dayLine("mapPlate")).toBe("Saturday · 9 events · 1 pick · 2 crew");
+    tap(roomOf(stack, "Grand Hall C"));                      // three picks of two people
+    expect([dayLine("mapRoom"), roomOf(stack, "Grand Hall C").getAttribute("aria-label")]).toEqual(["Saturday · 5 events · 2 crew", "Grand Hall C: 5 events, no picks on Saturday, 2 of your crew"]);
+    tap(roomOf(stack, "Concourse"));                         // the reader's pick, and none of the crew's
+    expect(dayLine("mapRoom")).toMatch(/^Saturday · \d+ events · 1 pick$/);
+    s.handle.picks.set(mine);
+    s.handle.render();
+    pick(s.fake, s.bo, "s0332", false);
+    pick(s.fake, s.dee, "s0281", false);
+    await s.run();
+    stack = liftStack("Hyatt");
+    expect([words(floorName(stack, HYATT.exhibit)), dayLine("mapVenue")]).toEqual(["Exhibit Level + Intl Tower LL2 · 1 crew", "Saturday · no picks · 2 of your crew"]);
+    cityMap();
+  });
+  it("another day's chip: that day's crew on the floors; and a venue where none of the crew has a pick says nothing of the crew on any floor, card or spoken name", () => {
+    let stack = liftStack("Hyatt");
+    tapDay("2026-09-04");
+    const friday = s.app.byId.get(FRIDAY_HYATT), plate = [...stack.querySelectorAll(".plate")].find(p => p.dataset.plate.split("+").includes(friday.level));
+    expect([...stack.querySelectorAll(".pl-crew")].map(t => [t.parentElement.dataset.plate, t.textContent])).toEqual([[plate.dataset.plate, " · 1 crew"]]);
+    tapDay("2026-09-05");
+    expect(stack.querySelectorAll(".pl-crew").length).toBe(3);
+    stack = liftStack("Westin");
+    expect([dayLine("mapVenue"), stack.querySelectorAll(".pl-crew").length, [...stack.querySelectorAll(".plate[aria-label]")].some(p => /crew/.test(p.getAttribute("aria-label")))]).toEqual(["Saturday · 2 picks", 0, false]);
+    tap(stack.querySelector(".plate.mine .plate-hull"));
+    expect([/ · 2 picks$/.test(dayLine("mapPlate")), /crew/.test(words(el("mapPlate")))]).toEqual([true, false]);
     cityMap();
   });
   it("a crew's change pulled writes the line in place: the same button, keyboard focus kept on it", async () => {
@@ -891,6 +963,16 @@ describe("a build with no backend: none of it, whatever a build with one kept", 
     expect([words(el("sheetGoing")), el("sheetGoing").hidden]).toEqual(["", true]);
     app.closeSheet();
   });
+  it("the Hyatt's floors say nothing of the crew - no floor's name, no card, no spoken name - though a crewmate's pick is kept on its Ballroom Level (#103)", () => {
+    tapTab("map");
+    const stack = liftStack("Hyatt");
+    expect([app.byId.get("s0376").level, stack.querySelectorAll(".pl-crew").length, /crew/.test(words(stack)), [...stack.querySelectorAll("[aria-label]")].some(n => /crew/.test(n.getAttribute("aria-label")))]).toEqual(["ballroom", 0, false, false]);
+    tap(plateOf(stack, HYATT.ballroom).querySelector(".plate-hull"));
+    expect([dayLine("mapPlate"), [...stack.querySelectorAll(".plate.flat [data-room]")].some(r => /crew/.test(r.getAttribute("aria-label")))]).toEqual([`Saturday · ${app.dayLights("Hyatt", "2026-09-05", new Set())[2].events} events`, false]);
+    tap(roomOf(stack, "Centennial II"));
+    expect(dayLine("mapRoom")).toMatch(/^Saturday · \d+ events?$/);
+    cityMap();
+  });
   it("the hotel sheet: next's markup for every hotel on every day, though a crewmate's picks are kept at the Hyatt and the Hilton", () => {
     hotelSheetsAsBefore(app, page.handle);
     tapTab("map");
@@ -920,6 +1002,14 @@ describe("the hotel sheet with a backend and no crew: next's markup", () => {
     openHotel("Hyatt");
     expect(hotelPanel().innerHTML).toBe(parsed(hotelSheetBefore(page.app, page.handle.picks.get(), "Hyatt", "2026-09-05")));
     page.app.closeSheet();
+  });
+  it("out of a crew the Hyatt's floors say nothing of one: the reader's own star on its Ballroom Level, and no crew after it, on its card or in its spoken name (#103)", () => {
+    const stack = liftStack("Hyatt");
+    expect([words(floorName(stack, HYATT.ballroom)), stack.querySelectorAll(".pl-crew").length, plateOf(stack, HYATT.ballroom).getAttribute("aria-label")])
+      .toEqual(["Ballroom Level + Intl Tower LL1 ★ 1", 0, "Ballroom Level (LL1) + International Tower · LL1: 1 pick on Saturday"]);
+    tap(plateOf(stack, HYATT.ballroom).querySelector(".plate-hull"));
+    expect(dayLine("mapPlate")).toBe(`Saturday · ${page.app.dayLights("Hyatt", "2026-09-05", new Set())[2].events} events · 1 pick`);
+    cityMap();
   });
 });
 

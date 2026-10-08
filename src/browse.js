@@ -90,6 +90,9 @@ function parsedChipsHTML(set) {
    its name says so. The button is built once, with the box; a redraw writes
    only these. */
 const filtersName = n => (n ? `Filters, ${n} set` : "Filters");
+/* Its icon, three sliders, drawn as index.html's are - a 24 box, lines - and
+   hidden from a screen reader: the button's name is its word. */
+const FILTERS_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h8M16 6h4M4 12h2M10 12h10M4 18h10M18 18h2"/><circle cx="14" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="18" r="2"/></svg>`;
 function syncFiltersButton(n) {
   const btn = document.getElementById("filtersBtn"), badge = document.getElementById("filtersBadge");
   badge.hidden = n === 0;
@@ -111,7 +114,7 @@ function renderBrowse() {
   const sticky = `<div class="controls controls-sticky">
     <div class="search-row">
       <input class="search${index ? "" : " indexing"}" type="search" id="q" aria-label="Search the schedule" placeholder="${index ? SEARCH_PLACEHOLDER : "indexing…"}" value="${esc(b.q)}" autocomplete="off" enterkeyhint="search">
-      <button class="filters-btn" type="button" id="filtersBtn" data-act="filters" aria-haspopup="dialog" aria-label="${filtersName(set.length)}">Filters<span class="filters-badge" id="filtersBadge"${set.length ? "" : " hidden"}>${set.length || ""}</span></button>
+      <button class="filters-btn" type="button" id="filtersBtn" data-act="filters" aria-haspopup="dialog" aria-label="${filtersName(set.length)}">${FILTERS_ICON}Filters<span class="filters-badge" id="filtersBadge"${set.length ? "" : " hidden"}>${set.length || ""}</span></button>
     </div>
     <div class="chips" data-row="day" id="dayChips">${dayChips}</div>
     </div>`;
