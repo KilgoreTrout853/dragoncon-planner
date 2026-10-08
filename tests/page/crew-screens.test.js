@@ -959,15 +959,17 @@ describe("the crew's day, the segment, and the redraws", () => {
       expect([body.parentElement === head.closest(".crew-person"), body.hidden, body.childElementCount]).toEqual([true, true, 0]);
     }
     expect(handle.state.plans.open).toEqual({});
-    expect(read("plansOpen")).toBe(null);
   });
   it("a person with no pick that day is one quiet line, the name and the day, and no button", () => {
     const cys = plans().querySelector(`.crew-person[data-user="${cy.id}"]`);
     expect([cys.children.length, cys.firstElementChild.tagName, cys.firstElementChild.className, words(cys)]).toEqual([1, "P", "crew-none", "Cy · no picks on Saturday"]);
     expect([cys.querySelector("button, [role=button], h3"), fold(cy)]).toEqual([null, null]);
   });
-  it("a head's tap opens that person and no other, with focus kept on the head; a second tap shuts it", () => {
+  it("a head's tap opens that person and no other, with focus kept on the head; a second tap shuts it; and nothing of it is stored - it is the page's, and a load's folds are shut", () => {
+    const stored = () => JSON.stringify(Object.entries(window.localStorage).sort());
+    const before = stored();
     press(fold(bo));
+    expect(stored()).toBe(before);
     expect([fold(bo).getAttribute("aria-expanded"), words(fold(bo).querySelector(".caret")), el(fold(bo).getAttribute("aria-controls")).hidden, document.activeElement === fold(bo)]).toEqual(["true", "▾", false, true]);
     expect(blocks().map(b => [b.who, b.rows])).toEqual([["Ada (you) 1", []], ["Bo 2", [SAT[0], SAT[3]]], ["Cy", []]]);
     expect([fold(ada).getAttribute("aria-expanded"), handle.state.plans.open]).toEqual(["false", { [bo.id]: true }]);
