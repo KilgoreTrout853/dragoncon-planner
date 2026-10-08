@@ -1216,7 +1216,7 @@ take pull requests only.
 costs nothing, since it commits nothing (#44). About a minute of CI a run.
 A token to rotate every year.
 
-### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12); renamed by PR #76; since PR #77 a removed event can be unstarred, never starred anew - its star hidden and disabled, on a row and in its sheet, for a reader who has not picked it - and a crewmate's removed pick is drawn, marked, in Plans' crew's day (`docs/screens/contract.md`, section 5, as built); amended by #94
+### 49. The client switch, by year — Standing (2026-09-24) — `LEAVE_BUFFER_MIN` to be renamed `SLACK_MIN` by PR 3 of Where things live's sequence (#40; `docs/screens/contract.md`, section 12); renamed by PR #76; since PR #77 a removed event can be unstarred, never starred anew - its star hidden and disabled, on a row and in its sheet, for a reader who has not picked it - and a crewmate's removed pick is drawn, marked, in Plans' crew's day (`docs/screens/contract.md`, section 5, as built); amended by #94; amended by #101
 **Decided:** The client is built for one year, `DC_YEAR`'s (#42), and
 reads that year's contract: its `events.v2.json`, and at build its
 `season.json` and `venues.json`. Plumbing and parity, as #39 was;
@@ -2971,7 +2971,7 @@ and not in the repo, so a reader of the repo alone no longer finds them.
 An "as built" part can say something a later pull request changed, with
 only its "Changed by" line to say so, until the parts are moved out.
 
-### 84. Mute: not suggested, and nothing else — Standing (2026-10-04)
+### 84. Mute: not suggested, and nothing else — Standing (2026-10-04) — amended by #101
 **Decided:** A reader can say "not this" of anything they could follow
 (W5; PR #103; `docs/screens/contract.md`, section 4).
 - **One thing.** A muted thing is no longer suggested: not in Because you
@@ -3255,7 +3255,7 @@ hotel, level or room 2026's venues file lacks refuses every default build,
 dev server and Vitest run, and fails `tests/test_drawings.py`, in its own
 pull request: the fix is the id in 2026's file too, or the default moved.
 
-### 95. The stack: a venue lifted into its floors — Standing (2026-10-06) — amended by #96; amended by #97; amended by #98
+### 95. The stack: a venue lifted into its floors — Standing (2026-10-06) — amended by #96; amended by #97; amended by #98; amended by #100
 **Decided:** Step 10's second pull request (W38; PR #113;
 `docs/screens/contract.md`, section 6). Amends #72, #75, #89.
 - **What opens it:** a tap or Enter on the block of a venue with a building,
@@ -3307,7 +3307,7 @@ not round 7's 56, keeps a zoomed room 44 px across on a short phone.
 **Cost:** Most rooms are under 44 at the fit and many have no name there:
 the zoom is how a level is read. Units draw smaller on a short phone.
 
-### 97. The motion: a set played over a drawn end state — Standing (2026-10-07)
+### 97. The motion: a set played over a drawn end state — Standing (2026-10-07) — amended by #100
 **Decided:** Step 10's fourth pull request (W40; PR #115;
 `docs/screens/contract.md`, section 6). Amends #89, #95, #96.
 - **The principle:** a draw writes the end state, as before; then a set of
@@ -3383,3 +3383,53 @@ said three times, on every tab, and above the Map the banner made the tab
 73 px taller than the screen. The dev project's sender reaches one address.
 **Cost:** A standing clock never ends the nudge's "Not now" nor rechecks
 the schedule on return. With the step off no plan can be recovered.
+
+### 100. The Map's stage: the map's own box, and the frame's step the drawing's — Standing (2026-10-08)
+**Decided:** The Map stands on a stage (PR #118; `docs/screens/contract.md`,
+section 6). Amends #95, #97.
+- **The stage is the svg's own box,** at every size: `--stage`, darker than
+  the page, a 1 px edge of `--line` drawn inside the box, 14 px corners. On
+  a screen that shortens the map it keeps the width, and the drawing stands
+  in the middle of it. The ground's rectangle stays, see-through: the
+  drawing's own box, and a touch's target.
+- **The way back** stands where it stood, and so 6 px inside the stage's
+  corner on every phone, in a control's fill with a lighter edge.
+- **The dimmed city** behind a stack runs to the stage's edge.
+- **The frame's step** in a lift and its way back is the drawing's - the
+  ground, the city and the stacks, in the Map's units - never the svg's:
+  the stage's box stands still from the tap, and the drawing moves in it.
+- Nothing else of the Map moved: the frame, the slot, the strips, a plate.
+
+**Why:** On a short phone the way back hung outside the ground it belongs
+to, by 24 px at 390x664 (#95's Open bullet), and a ground of the page's own
+tone gave the plates little to stand on. A transform of the svg scales what
+its box paints: with the stage there, its sides jumped at every lift.
+**Cost:** The stage's foot takes its new place at the tap, with the card,
+where the ground's eased: 27 px at 390x664, and for those frames it cuts the
+foot of the drawing. Bare stage beside the drawing on a short phone.
+
+### 101. The first-contact pass, before the beta — Standing (2026-10-08)
+**Decided:** What confuses a stranger at first contact, or looks broken, and
+nothing else (PR #118; `docs/screens/contract.md`, sections 2, 4, 5 and 6).
+Amends #49, #84.
+- **The Map's card with no pick** says a hotel can be tapped; over a next
+  pick it does not. **The empty states** name Explore beside Search.
+- **Plans' top:** nothing is gold. Export and Share a day are quiet;
+  Timeline | List is a segment that hugs its words at its row's right end;
+  with no crew the rung is a card. The crew panel's **Done is quiet** under
+  Create and Join, which are their steps' main buttons.
+- **`--dim` is for marks** - a dot between words, a caret, the empty star, a
+  dotted edge. Every word that wore it wears `--muted`, the nav's too.
+- **Two taps are 44 px:** "← Explore", its head no taller; and a follow
+  chip, a mute chip's shape (#84), "Follow more" the row's height.
+- **The banner before the con** says what Now shows, not when the con
+  starts: its first evening has events.
+- **A build with a channel names itself** where a home screen reads a name:
+  "DC26 beta", "Dragon Con 2026 beta". With none it is byte for byte as it was.
+
+**Why:** The beta's readers meet the app with no one beside them (VISION).
+`--dim` on the page is 3.73:1, under what small words need. And the beta
+would have stood beside 2026's app on a home screen under one name.
+**Cost:** A reader who stars before first opening the Map never meets the
+hint. A row of follow chips scrolls sooner. The rung's card is 22 px. An
+app already on a home screen keeps the name it was added with.

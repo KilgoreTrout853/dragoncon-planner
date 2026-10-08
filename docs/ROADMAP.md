@@ -524,6 +524,12 @@ con. What the app needed for it is PR #117 (#99) - a build's default
 moment, the time said once, the email step left off - and the site is the
 deploy side's, by hand (Checklist).
 
+A design pass comes before the beta, as the pilot is called from
+2026-10-07: PR #118 (#100, #101) - the Map's stage, the taps and words a
+stranger meets first, the top of Plans, and a build that names its channel
+on the home screen. Only what confuses at first contact or looks broken;
+polish waits for the beta's feedback.
+
 Open: `index.html` needs `mobile-web-app-capable` beside the Apple meta
 (Chrome's deprecation warning, 2026-09-25).
 
@@ -772,6 +778,10 @@ Steps taken by hand, beside the PRs rather than in them:
   `DC_SUPABASE_URL` and `DC_SUPABASE_KEY`, and a `DC_CHANNEL` of its own,
   since it shares the origin and its storage and caches must be its own
   (#15, #39). When it is tagged and deployed is by hand too.
+- For the beta site, the pilot's by its new name: a repository of its own,
+  `dragoncon-planner-beta`, pinned to a tag of this one and deployed by
+  hand, with `DC_CHANNEL=beta`, so that it installs as "DC26 beta" beside
+  2026's app (#101).
 - At the season start, once the first run past the ids stage has written
   `data/2027/events.v2.json`: `DC_YEAR=2027` on `next`, in the next site's
   build - the `dragoncon-planner-next` repository's workflow (#49).

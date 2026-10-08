@@ -113,6 +113,12 @@ gh workflow run deploy.yml -R KilgoreTrout853/dragoncon-planner-next
 
 One origin also means one localStorage, so the storage keys carry the channel as the cache name does - `dc26.picks.next` on the next site where the live one keeps `dc26.picks` - and the next site keeps a plan of its own. A home-screen install on iOS keeps its own storage, so the phone's live app is unaffected.
 
+A build with a channel also names itself where a home screen reads a name, by the channel's own word after the year's: the next site installs as "DC26 next", where the live one is "DC26" (DECISIONS #101). The page's own title and the link preview's words are the same on every build.
+
+## The beta site
+
+The beta is a third site, for a few readers trying the app before the season: a repository of its own, `dragoncon-planner-beta`, a near copy of the next site's. Where the next site follows `next`, the beta is pinned to a tag of this repository and deployed by hand, so merging a pull request here never moves it. It builds with a channel of its own, `beta` - its own storage and caches, and the name "DC26 beta" on a home screen - a default moment (`DC_NOW`) and the email step left off (`DC_EMAIL=off`; DECISIONS #99). Nothing in this repository publishes it.
+
 A build without `DC_SUPABASE_URL` and `DC_SUPABASE_KEY` has no backend: the page asks for nothing but the schedule, and Settings shows no Keep your plan. Given both - a Supabase project's address and its public key, repository variables on the deploy repository and never secrets - a reader can keep their plan by email (DECISIONS #51, #53).
 
 Two more variables, for a build handed to people outside the con's week (DECISIONS #99). `DC_EMAIL=off` leaves the email step off a build with a backend - no Keep your plan, crews as they are - and is refused without one. `DC_NOW=2026-09-01T10:00` gives a build a default moment, the phone's own wall time with no offset: the page opens at it where the address and the tab's session name none - a launch from the home screen - with no chip, and a time set in Settings goes back to it when cleared. A value of another shape stops the build. Unset, the step is on wherever there is a backend and the clock is the real one.

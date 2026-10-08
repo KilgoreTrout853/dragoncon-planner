@@ -193,9 +193,10 @@ clock, the chip, the freshness line, then the gear. Held by
 As built: the recon, section 2, Now; section 5; section 7, the nudge.
 
 - **The preview banner** (#99): before the con, above Now alone and no
-  other tab, since it is about what Now shows - "**Con starts Thursday.**
-  This tab is showing Thursday 10:00 AM as a preview. Settings can preview
-  any other time." The has-ended notice stays above every tab.
+  other tab, since it is about what Now shows - "**Preview.** This tab is
+  showing Thursday 10:00 AM, the con's first full day. Settings can preview
+  any other time." It does not say when the con starts: its first evening
+  has events (#101). The has-ended notice stays above every tab.
 - **As built, less the leave-by** (#40): the notices, the hero, Rest of
   your day, On now and in the next hour.
 - **The hero.** Its ring counts to the current pick's end while one is on,
@@ -226,6 +227,8 @@ As built: the recon, section 2, Now; section 5; section 7, the nudge.
 Built: W2, the alternatives under the picks-changed notice - PR #108, DECISIONS #90.
 
 Built: the preview banner on Now alone - PR #117, DECISIONS #99.
+
+Built: the banner's words, and the empty states naming Explore beside Search - PR #118, DECISIONS #101.
 
 **Home of:** W23; W36, its trigger, W37 folded in; W2.
 
@@ -723,6 +726,8 @@ Built: For you - PR #105, DECISIONS #87.
 
 Built: the zero state - PR #106, DECISIONS #88.
 
+Built: "← Explore" and a follow chip's two taps at 44 px, "Follow more" the row's height - PR #118, DECISIONS #101.
+
 **Home of:** W3; W16; W5; W6.
 
 Moves: `explore.js` `renderExploreGrid()`, `renderExplorePage()`,
@@ -844,7 +849,8 @@ As built: the recon, section 2, Mine; section 8, crews' seam.
   display name (W28) is in the crew panel's manage step, which the
   header's Manage opens; its `crews.js` action PR 4b.
 - **Not in a crew,** the header is the empty state: "Start a crew, or
-  paste an invite link" - shown, not nagged.
+  paste an invite link" - shown, not nagged, the line and its two buttons
+  in a card of their own (#101).
 - **Create and join** each say, in one sentence, "Joining shares your name
   and your starred events with everyone in this crew." The join step takes
   a pasted link (W20; `crews.js` `readInvite()`), and a kept `?join=`
@@ -857,10 +863,11 @@ As built: the recon, section 2, Mine; section 8, crews' seam.
   saved: Crew on a con day when the reader is in a crew, else My day.
 - **My day** is Mine as built, every day: the picks-changed notice and
   W2's alternatives under it (section 2); the action strip, Export and
-  Share a day beside it (W25) - it shares the reader's day, not the
-  crew's, by a link that needs no backend (#10, #50) - with Remove all
-  picks in Settings alone (#92); the Timeline | List toggle; the timeline
-  and the list.
+  Share a day beside it (W25), both quiet (#101) - it shares the reader's
+  day, not the crew's, by a link that needs no backend (#10, #50) - with
+  Remove all picks in Settings alone (#92); Timeline | List, a segment that
+  hugs its words at the right end of its row (#101); the timeline and the
+  list. Nothing on Plans' top is gold.
 - **Crew** has day chips - today by default, `map.js` `mapDay()`'s
   convention - and shows one day: per crewmate, the reader first, their
   picks that day as compact rows (`list: "crew:<user>"`). In 2027 this is
@@ -868,6 +875,8 @@ As built: the recon, section 2, Mine; section 8, crews' seam.
 - **The redraw:** `sync.js` `pull()` asks for one only when the reader's
   own picks or follows changed (recon section 8); Plans needs one on a
   crew change too, a `sync.js` change in PR 4.
+
+Built: Plans' top - nothing gold, Timeline | List a segment, the rung a card - and the crew panel's Done, quiet on its create and join steps - PR #118, DECISIONS #101.
 
 **Home of:** W19; W20; W21; W25; W28.
 
@@ -877,6 +886,8 @@ per-person reader, W28's action), `sync.js` `pull()`, `state.js`,
 `sync-pull.test.js`; `removed.test.js`. PRs 4, 4b and 5 (W25).
 
 ### Plans, as built
+
+Changed by PR #118 (#101): Export is quiet, Timeline | List is a segment at the right end of its row, the rung is a card, and the crew panel's Done is quiet on its create and join steps.
 
 Changed by PR #108 (#90): a cancelled pick has no gap line and no walk link and is not exported, its timeline block says Cancelled, and the folds stand under the notice on My day.
 
@@ -1077,6 +1088,8 @@ built, Share a day among it, and the 2026 app knows no crews.
 
 ### Share a day, as built
 
+Changed by PR #118 (#101): Export beside it is quiet, and the view toggle under the strip is a segment.
+
 Changed by PR #110 (#92): Remove all left the strip, which is Export and Share a day on one row.
 
 PR #85, PR 5b (W25), with #10, #50, #63, #66 and #69: a day of the
@@ -1214,7 +1227,13 @@ that day at once.
 As built: the recon, section 2, Map; section 5, the map card.
 
 - **As built, less the card's leave-by** (#40): the card keeps "3:00 PM ·
-  in 47 min" and the walk estimate.
+  in 47 min" and the walk estimate. With no pick it says first that a hotel
+  can be tapped (#101).
+- **The stage** (#100): the map's own box at every size - darker than the
+  page, edged, its corners rounded - with the drawing in the middle of it
+  on a screen that shortens the map, and the way back 6 px inside its
+  corner. In a lift and its way back the drawing moves and the stage
+  stands still.
 - **Crewmates counted per hotel:** a second count beside the gold pick
   pill - the crewmates with a pick at the hotel that day, people, not
   picks - not gold: gold is the reader's own. "Presence" stays #10's
@@ -1263,6 +1282,8 @@ Built: the motion (W40) - PR #115, DECISIONS #97.
 
 Built: the card's head, a way to Search, and the zoom's fit - PR #116, DECISIONS #98.
 
+Built: the stage, and the frame's step on the drawing - PR #118, DECISIONS #100. The card's hint with no pick - PR #118, DECISIONS #101.
+
 **Home of:** W38; W39; W40; W41.
 
 Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
@@ -1272,6 +1293,8 @@ Moves: `map.js` `mapCardHTML()` (PR 3), `mapPillSVG()` and `mapCounts()`
 `style.test.js`'s map rules. PRs 3, 5, 7 and 10.
 
 ### Map, as built
+
+Changed by PR #118 (#100): the ground is a stage, the svg's own box, with the way back 6 px inside it, the dimmed city run to its edge and the frame's step the drawing's; and a card with no pick says a hotel can be tapped (#101).
 
 Changed by PR #116 (#98): the head of a plate's card and of a room's is a button to Search on that place, and a room tapped while the camera is close is never brought closer than it fits the frame.
 
@@ -2925,9 +2948,19 @@ As built: the recon, section 8, what crews' readers offer today.
   in no day's count but its first (#95).
 - Under a notice a stack's card is cut as the city map's is, and by more:
   its slot is taller (#95; the notice's bullet above).
-- On a short screen the frame gives way in height and the drawing stands
+- ~~On a short screen the frame gives way in height and the drawing stands
   in the middle of it, so the way back, at the frame's corner, stands left
-  of the ground's edge (#95).
+  of the ground's edge (#95).~~ Settled by PR #118 (#100): the frame is the
+  stage, and the way back is 6 px inside it at every size.
+- At a lift's tap, and at its way back's, the stage's foot takes its new
+  place at once, with the card, and for the first frames cuts the foot of
+  the drawing (#100).
+- A label's and a street's name's dark edge is the page's tone, lighter
+  than the bare stage: a faint fringe where one stands on no plate (#100).
+- A reader who stars before first opening the Map never meets the card's
+  hint that a hotel can be tapped (#101).
+- With Larger text the preview banner is three lines at every size, as it
+  was (#101).
 - ~~The level's frame does not grow: it is the Map's as it stands, and
   whether it should is decided once the level is seen on a phone (#96).~~
   Settled by PR #114's phone check, 2026-10-07, in Safari and from the
