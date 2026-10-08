@@ -20,6 +20,11 @@ import { storageKey } from "./build.js";
    ================================================================== */
 const BACKEND_URL = __DC_SUPABASE_URL__, BACKEND_KEY = __DC_SUPABASE_KEY__;
 const hasBackend = !!BACKEND_URL;
+/* Whether the build has the email step, Keep your plan (DECISIONS #99): on
+   wherever there is a backend, unless the build says DC_EMAIL=off - where
+   the dev project's test sender reaches one address alone, say. Off, crews,
+   sync and Delete are as built: a crew's first tap mints an anonymous user. */
+const emailStep = hasBackend && __DC_EMAIL__ !== "off";
 const SESSION_KEY = storageKey("session");
 
 /* code: the server's error code, or one of the page's own - offline,
@@ -110,4 +115,4 @@ async function callBackendAsUser(path, options = {}) {
   }
 }
 
-export { hasBackend, BackendError, callBackend, callBackendAsUser, storedSession, keepSession, dropSession };
+export { hasBackend, emailStep, BackendError, callBackend, callBackendAsUser, storedSession, keepSession, dropSession };

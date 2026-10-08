@@ -75,7 +75,10 @@ As built: the recon, section 1; the numbers, section 9.
   kept `?join=` opens Plans' join step in any phase (section 11). Today
   `state.tab` starts as `"now"` on every load (`state.js`).
 - **The header** is unchanged, but for where its simulated-time chip
-  stands (#82; The chip, as built).
+  stands (#82; The chip, as built). The chip shows while the reader's own
+  moment is set - from the address or from Settings - and never for a
+  build's default moment, which simply is the time; its tap goes back to
+  the home clock, the default or the real one (#99).
 - **The mini-bar** shows on Search, Explore and Plans, as today it shows on
   Search, Explore and Mine. Its right-hand words are "in 47 min", by
   `util.js` `fmtMins()`, as today; the leave-by cases go (section 12).
@@ -170,6 +173,8 @@ PR #74, with #62.
 
 ### The chip, as built
 
+Changed by PR #117 (#99): it shows for the reader's own moment alone, never a build's default, its tap goes home, and its name is "Simulated time. Tap to clear it".
+
 PR #101, with #66, #81 and #82. While a clock is simulated the header's line
 reads the clock, the chip, then the freshness line: `#simChip` stands
 between `#clock` and `#fresh`, so the words after it take the ellipsis
@@ -187,6 +192,10 @@ clock, the chip, the freshness line, then the gear. Held by
 
 As built: the recon, section 2, Now; section 5; section 7, the nudge.
 
+- **The preview banner** (#99): before the con, above Now alone and no
+  other tab, since it is about what Now shows - "**Con starts Thursday.**
+  This tab is showing Thursday 10:00 AM as a preview. Settings can preview
+  any other time." The has-ended notice stays above every tab.
 - **As built, less the leave-by** (#40): the notices, the hero, Rest of
   your day, On now and in the next hour.
 - **The hero.** Its ring counts to the current pick's end while one is on,
@@ -215,6 +224,8 @@ As built: the recon, section 2, Now; section 5; section 7, the nudge.
   `inPlaceHTML()`, drawn on Now and on Plans' My day.
 
 Built: W2, the alternatives under the picks-changed notice - PR #108, DECISIONS #90.
+
+Built: the preview banner on Now alone - PR #117, DECISIONS #99.
 
 **Home of:** W23; W36, its trigger, W37 folded in; W2.
 
@@ -2229,8 +2240,15 @@ Settings is a heading, one body that scrolls and Done pinned at its foot,
 in a sheet at most 86% of the screen (#92). In the body, in order:
 
 1. Settings as built: the crowd factor, the noise default, Larger text,
-   Advanced - a fold in the body, with no scroller of its own.
-2. Keep your plan as built, on a build with a backend.
+   Advanced - a fold in the body, with no scroller of its own. Its preview
+   field shows the reader's own moment, else a build's default moment,
+   else nothing; its buttons are Apply preview time and Clear preview
+   time, and the default applied sets no moment (#99). The device readout
+   says a build's default moment and "email off" where either is so, and
+   with the step off sync's status line, as Settings is filled.
+2. Keep your plan as built, on a build with a backend - unless the build
+   leaves the email step off, `DC_EMAIL=off` (#99): then there is none,
+   and crews, sync and Delete stand as built.
 3. **The notifications toggle** (W34): Delivery's, built there with its
    wiring - the subscription and the worker's handler. Its place is here,
    and no slot is kept for it. Its pull request adds notifications to "On
@@ -2239,7 +2257,10 @@ in a sheet at most 86% of the screen (#92). In the body, in order:
 4. **About this app** (W32, #59): a row that opens a sheet panel,
    `#panel-about`, whose one way out is back to Settings - its button, the
    backdrop, a swipe down, Escape. In order: that the app is unofficial,
-   the one link, to Dragon Con's official site and app, and what we store.
+   the one link, to Dragon Con's official site and app, and what we store
+   - in one of three wordings: no backend, a backend, and a backend with
+   the email step off, where the word "email" is nowhere in the panel
+   (#99).
    **Delete my account** (W45, #93) is its last part, on a build with a
    backend: for anyone with a session a button - "Delete my account" with
    an email, "Delete my data from the server" without - one confirm and
@@ -2249,6 +2270,8 @@ in a sheet at most 86% of the screen (#92). In the body, in order:
 5. Remove all picks, last in the body, and the one place it is.
 
 Built: the gear's shape and About this app - PR #110, DECISIONS #92. Delete my account - PR #111, DECISIONS #93.
+
+Built: the email step left off, About's third wording, the preview field's default and the readout's clause - PR #117, DECISIONS #99.
 
 The body is one of the sheet's areas: it fades at an edge with more past
 it, an arrow stands above Done while more is below, and a drag that starts
@@ -2723,12 +2746,21 @@ As built: the recon, section 8, what crews' readers offer today.
   PR #100, which left it; what an iPhone's keyboard does then is a phone's
   to check.
 - A notice above the Map. The Map tab is as tall as the screen less the
-  header and the nav, and a notice above the views is not counted: while
-  one stands - the preview banner before the con, "has ended" after it
-  until its OK - the tab is taller than the screen by the notice, and the
-  card under the map is cut at the page's top. It predates PR #94, which
-  made it show after the con, where the Map had no card: a focused card is
-  cut by 81.8 px at 375x667 until the notice's OK (section 6, as built).
+  header and the nav, and a notice above the views is not counted.
+  Settled for the preview banner by PR #117 (#99), which stands on Now
+  alone. Still open for "has ended": after the con, until its OK, the tab
+  is taller than the screen by the notice, and the card under the map is
+  cut at the page's top - a focused card by 81.8 px at 375x667 (section
+  6, as built).
+- With the email step off (#99) sync's status line has no place of its
+  own: Keep your plan carried it. The device readout, under Advanced, says
+  its words as Settings is filled, and does not follow a run that ends
+  while Settings is open.
+- A blank preview field applied closes the sheet and changes nothing:
+  Clear preview time is what clears (#99).
+- Under a standing clock - `?now=`, or a build's default moment - the
+  install nudge's "Not now" holds for good: its seven days never pass
+  (#65, #99).
 - A star in the hotel's sheet draws its whole panel again, so the list
   jumps back to its top under the thumb that tapped: older than PR #95,
   which left it - the new body is marked afresh, so its fade is right, at

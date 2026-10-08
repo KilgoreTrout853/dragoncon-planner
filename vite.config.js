@@ -1,12 +1,13 @@
 import { defineConfig } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
-import { dcBackend, dcBuild, dcYear } from "./build/vite-dc.js";
+import { dcBackend, dcBuild, dcClock, dcYear } from "./build/vite-dc.js";
 
 /* One inlined dist/index.html beside the files in public/ and a copy of the
    one data file the client reads, for the year DC_YEAR names (DECISIONS #23,
    #39, #49), and talking to the backend DC_SUPABASE_URL and DC_SUPABASE_KEY
-   name, or to none (#53). The same build is deployed at two subpaths, so
-   every URL in it is relative. */
+   name, or to none (#53), with the email step left off where DC_EMAIL says
+   so, and at the default moment DC_NOW names, or the real clock (#99). The
+   same build is deployed at two subpaths, so every URL in it is relative. */
 export default defineConfig({
   base: "./",
   build: {
@@ -18,6 +19,7 @@ export default defineConfig({
     modulePreload: false,              // one script, nothing to preload, and no polyfill in front of the app
   },
   /* Order matters: the year first, which names the data the page imports,
-     and the backend; then the inlining; then this project's fix-ups. */
-  plugins: [dcYear(), dcBackend(), viteSingleFile(), dcBuild()],
+     the backend and the clock; then the inlining; then this project's
+     fix-ups. */
+  plugins: [dcYear(), dcBackend(), dcClock(), viteSingleFile(), dcBuild()],
 });

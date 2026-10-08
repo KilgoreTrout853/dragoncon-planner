@@ -35,18 +35,24 @@ function template() {
 
 let live = null;
 
-/* The build's two backend constants, which Vitest makes globals (DECISIONS
-   #53): set on every boot, before the fresh import, and put back by
+/* The build's constants, which Vitest makes globals: the backend's two
+   (DECISIONS #53), whether its email step is off and the build's default
+   moment (#99). Set on every boot, before the fresh import, and put back by
    cleanup(). */
-const BACKEND_GLOBALS = ["__DC_SUPABASE_URL__", "__DC_SUPABASE_KEY__"];
+const BUILD_GLOBALS = ["__DC_SUPABASE_URL__", "__DC_SUPABASE_KEY__", "__DC_EMAIL__", "__DC_NOW__"];
 
 /* data: a schedule the fixtures do not have, already parsed - a test's copy of
    the sample with what it needs changed. The page is handed a copy of it,
    since the page keeps and mutates what it loads.
    backend: a fake of the backend (tests/helpers/backend.js), whose address
    and key the page is built with and whose fetch it talks to. Without one
-   the page is built with no backend, whatever the shell's environment. */
-export async function bootPage({ fixture = "sample", data, now = DEFAULT_NOW, channel = "", build = "", url, matchMedia, reload, backend } = {}) {
+   the page is built with no backend, whatever the shell's environment.
+   email: "off" for a build that leaves the email step off, which the build
+   itself takes only with a backend. home: a build's default moment, as
+   DC_NOW gives one - with now: null the page then opens at it, as a launch
+   from the home screen does. Without them the step is on and the home
+   clock is the real one. */
+export async function bootPage({ fixture = "sample", data, now = DEFAULT_NOW, channel = "", build = "", url, matchMedia, reload, backend, email = "", home = "" } = {}) {
   if (live) throw new Error("bootPage: a page is already live in this file; call its cleanup() first");
   const jsdom = globalThis.jsdom;
   if (!jsdom) throw new Error("bootPage needs Vitest's jsdom environment");
@@ -64,10 +70,12 @@ export async function bootPage({ fixture = "sample", data, now = DEFAULT_NOW, ch
   jsdom.reconfigure({ url: url || `https://example.test/${now ? `?now=${now}` : ""}` });
 
   /* the backend the page is built with, and the fetch it talks to */
-  const hadGlobals = Object.fromEntries([...BACKEND_GLOBALS, ...(backend ? ["fetch"] : [])].map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+  const hadGlobals = Object.fromEntries([...BUILD_GLOBALS, ...(backend ? ["fetch"] : [])].map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
   const setGlobal = (name, value) => Object.defineProperty(globalThis, name, { value, writable: true, configurable: true });
   setGlobal("__DC_SUPABASE_URL__", backend ? backend.url : "");
   setGlobal("__DC_SUPABASE_KEY__", backend ? backend.key : "");
+  setGlobal("__DC_EMAIL__", email);
+  setGlobal("__DC_NOW__", home);
   if (backend) setGlobal("fetch", backend.fetch);
 
   /* what the module reads at import, and what boot() registers against */

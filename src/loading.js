@@ -9,7 +9,7 @@
    be there first. */
 import { dayOf, fmtShort, minutesBetween, toDate } from "./util.js";
 import { state } from "./state.js";
-import { conEnded, DAY_LABEL, now } from "./time.js";
+import { conEnded, DAY_LABEL, homeMoment, now } from "./time.js";
 import { DATA_URL, events, meta, replaceSchedule } from "./data.js";
 import { reconcilePicks } from "./picks.js";
 import { buildIndex, buildSuggestIndex, index, SEARCH_PLACEHOLDER } from "./search.js";
@@ -95,7 +95,9 @@ function updateFresh() {
   /* After the con the copy is final; how long ago it was refreshed stops
      being the question. Under a simulated clock the copy can postdate the
      moment shown - "-1020 min ago" - so then it is named by when, not how
-     long. */
+     long. And on a build with a default moment (#99) the copy is always
+     later than the time the page opens at, so the line says the count
+     alone. */
   let fresh;
   if (conEnded()) fresh = `final<span class="word"> schedule</span>`;
   else {
@@ -104,7 +106,7 @@ function updateFresh() {
     fresh = ago < 0 ? `<span class="word">refreshed </span>${DAY_LABEL[dayOf(at)] || ""} ${fmtShort(at)}`
                     : `<span class="word">refreshed </span>${f(ago)} ago`;
   }
-  el.innerHTML = ` &middot; ${events.length.toLocaleString("en-US")} events &middot; ${fresh}`
+  el.innerHTML = ` &middot; ${events.length.toLocaleString("en-US")} events${homeMoment ? "" : ` &middot; ${fresh}`}`
     + (servedOffline ? " &middot; offline copy" : "");
   syncHeaderHeight();          // this line is what changes the header's height
 }

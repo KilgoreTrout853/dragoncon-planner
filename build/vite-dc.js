@@ -1,5 +1,5 @@
 /* The part of the build that is this project's own (DECISIONS #15, #23, #49,
-   #53, #94). Three plugins.
+   #53, #94, #99). Four plugins.
 
    dcYear() names the year the client is built for, in the dev server, the
    build and Vitest alike: DC_YEAR, four digits, 2026 where it is unset
@@ -31,7 +31,20 @@
    is inlined in a page anyone can read, so a secret key is refused - an
    sb_secret_ key, or a JWT whose role is service_role - and so is an
    address that is more than an origin, or not https but for http on this
-   machine, and either of the two without the other.
+   machine, and either of the two without the other. It reads DC_EMAIL too
+   (DECISIONS #99): "off" leaves the email step off a build with a backend -
+   no Keep your plan, crews as they are - and defines __DC_EMAIL__, "" where
+   it is unset, the step on wherever there is a backend. Any other value is
+   refused, and so is "off" on a build with no backend.
+
+   dcClock() gives a build its default moment, in the same three places
+   (DECISIONS #99): DC_NOW, a date and time as the phone's own wall clock
+   says one, 2026-09-01T10:00, which the page's clock answers while the
+   reader has set none. It defines __DC_NOW__, which src/time.js reads, ""
+   where it is unset: the real clock. A value of another shape, one that is
+   no real date, and one with an offset are refused - every time of the
+   schedule is the phone's own, and a default with an offset would stand at
+   another hour against it in another zone.
 
    dcBuild() runs in closeBundle, after Vite and vite-plugin-singlefile have
    written dist/, and does two jobs:
@@ -162,6 +175,32 @@ export function dcBackendFromEnv(env = process.env) {
   return {url, key};
 }
 
+/* The build's default moment (DECISIONS #99): DC_NOW, or "" where it is
+   unset. A date and time with no offset, to the minute or the second, and a
+   real one: the round trip refuses a 31st of February, which one engine
+   reads as March and another as no date at all. */
+const NOW_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
+export function dcNowFromEnv(env = process.env) {
+  const value = (env.DC_NOW || "").trim();
+  if (!value) return "";
+  const m = NOW_RE.exec(value);
+  const [y, mo, d, h, mi, s] = m ? m.slice(1).map(n => Number(n || 0)) : [];
+  const at = m ? new Date(Date.UTC(y, mo - 1, d, h, mi, s)) : null;
+  const real = !!at && at.getUTCFullYear() === y && at.getUTCMonth() === mo - 1 && at.getUTCDate() === d && at.getUTCHours() === h && at.getUTCMinutes() === mi && at.getUTCSeconds() === s;
+  if (!real) throw new Error(`build: DC_NOW is a date and time with no offset, like 2026-09-01T10:00, not ${JSON.stringify(value)}`);
+  return value;
+}
+/* Whether the build leaves the email step off (DECISIONS #99): DC_EMAIL,
+   "off" or "" where it is unset. Off means something only with a backend,
+   and is refused without one. */
+export function dcEmailFromEnv(env = process.env) {
+  const value = (env.DC_EMAIL || "").trim();
+  if (!value) return "";
+  if (value !== "off") throw new Error(`build: DC_EMAIL is off, or unset, not ${JSON.stringify(value)}`);
+  if (!dcBackendFromEnv(env).url) throw new Error("build: DC_EMAIL=off is for a build with a backend, and this one has none");
+  return value;
+}
+
 function gitShortSha(cwd) {
   try { return execFileSync("git", ["rev-parse", "--short", "HEAD"], {cwd, encoding: "utf8"}).trim(); }
   catch { return ""; }
@@ -245,11 +284,20 @@ export function dcBackend() {
   return {
     name: "dc-backend",
 
-    /* A bad pair is refused before any work is done. */
+    /* A bad pair, or a bad DC_EMAIL, is refused before any work is done. */
     config() {
       const {url, key} = dcBackendFromEnv();
-      return {define: {__DC_SUPABASE_URL__: JSON.stringify(url), __DC_SUPABASE_KEY__: JSON.stringify(key)}};
+      return {define: {__DC_SUPABASE_URL__: JSON.stringify(url), __DC_SUPABASE_KEY__: JSON.stringify(key), __DC_EMAIL__: JSON.stringify(dcEmailFromEnv())}};
     },
+  };
+}
+
+export function dcClock() {
+  return {
+    name: "dc-clock",
+
+    /* A bad moment is refused before any work is done. */
+    config() { return {define: {__DC_NOW__: JSON.stringify(dcNowFromEnv())}}; },
   };
 }
 

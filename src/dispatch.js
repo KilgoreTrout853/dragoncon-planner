@@ -13,7 +13,7 @@
 import { saveJSON } from "./storage.js";
 import { storageKey } from "./build.js";
 import { state } from "./state.js";
-import { CON, now } from "./time.js";
+import { CON, isHomeMoment, now } from "./time.js";
 import { byId } from "./data.js";
 import { clearNews, picks, savePickNews, savePicks } from "./picks.js";
 import { isMuted, toggleFollow, toggleMute } from "./follows.js";
@@ -435,7 +435,12 @@ function onSharedPanelClick(e) {
   if (main) openSheet("event", main.closest(".row").dataset.id);
 }
 
-function onApplyPreview() { const v = document.getElementById("previewTime").value; closeSheet(); if (v) setTimeOverride(v); }
+/* Settings' two buttons for the preview time. A blank field applied closes
+   the sheet and changes nothing. The build's default moment applied - what
+   the field shows while the reader has set none - sets no moment: it is the
+   home clock already, so no chip, and nothing in the address or the session
+   (DECISIONS #99). Clear goes home: the default, or the real clock. */
+function onApplyPreview() { const v = document.getElementById("previewTime").value; closeSheet(); if (v) setTimeOverride(isHomeMoment(v) ? null : v); }
 function onClearPreview() { closeSheet(); setTimeOverride(null); }
 
 function onHashChange() { applyExploreHash(); render(); }

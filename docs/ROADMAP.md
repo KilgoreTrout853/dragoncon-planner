@@ -518,6 +518,12 @@ execution slot (#57), for layout (PR #101, #81): a real-browser test earns
 its place under a UI reshaping, and depended on nothing else here. Its
 tests of the worker, of offline and of install are still Delivery's.
 
+The pilot (2026-10-09) comes before all of it: a few friends plan 2026's
+con on a site of its own, pinned to a tag, its clock the day before the
+con. What the app needed for it is PR #117 (#99) - a build's default
+moment, the time said once, the email step left off - and the site is the
+deploy side's, by hand (Checklist).
+
 Open: `index.html` needs `mobile-web-app-capable` beside the Apple meta
 (Chrome's deprecation warning, 2026-09-25).
 
@@ -654,11 +660,10 @@ confirmed on a phone, by PR #77's hand test and with the install flow
   PR #97's browser run, older than it, and step 11's sweep's (contract,
   section 14).
 - The Map tab's height counts the header and the nav and not a notice
-  above the views: while one stands - the preview banner before the con,
-  "has ended" after it until its OK - the tab is taller than the screen by
-  the notice, and the card under the map is cut at the page's top. It
-  predates PR #94, which made it show after the con too, where the Map had
-  no card and a focused event now has one (contract, sections 6 and 14).
+  above the views. Settled for the preview banner by PR #117 (#99), which
+  stands on Now alone; still open for "has ended", after the con until its
+  OK: the tab is taller than the screen by the notice, and the card under
+  the map is cut at the page's top (contract, sections 6 and 14).
 - ~~The star's anchoring has no test that can fail. [53] in
   `tests/page/now.test.js` cannot fail without layout - every rect in
   jsdom is 0 - and [1240] in `tests/rules/source.test.js` pins
@@ -762,6 +767,11 @@ Steps taken by hand, beside the PRs rather than in them:
   `PUSH_SECRET`; the same four secrets and two Vault rows; the function
   deployed; the hand test repeated; and `flags.push_enabled` on at the
   freeze, off after the con (#55).
+- For the pilot site (#99), in its own repository's workflow, by hand:
+  `DC_NOW=2026-09-01T10:00`, `DC_EMAIL=off`, the dev project's
+  `DC_SUPABASE_URL` and `DC_SUPABASE_KEY`, and a `DC_CHANNEL` of its own,
+  since it shares the origin and its storage and caches must be its own
+  (#15, #39). When it is tagged and deployed is by hand too.
 - At the season start, once the first run past the ids stage has written
   `data/2027/events.v2.json`: `DC_YEAR=2027` on `next`, in the next site's
   build - the `dragoncon-planner-next` repository's workflow (#49).

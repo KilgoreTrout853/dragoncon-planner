@@ -165,7 +165,9 @@ async function pull(user, stamp) {
 }
 
 /* The status line in Keep your plan, only with a session: synced, what is
-   waiting, offline, or the last failure in plain words. */
+   waiting, offline, or the last failure in plain words. On a build with the
+   email step off there is no Keep your plan, and the device readout says
+   these words instead, as Settings is filled (DECISIONS #99). */
 function syncStatusText() {
   if (!hasBackend || !storedSession()) return "";
   const {count, error} = outboxState();
@@ -260,4 +262,4 @@ async function syncSettled() {
   } while (waiting || running);
 }
 
-export { runSync, syncAfter, forgetSync, sendBeforeSignOut, whileSyncWaits, fillSyncStatus, onSyncTrigger, onSyncWorkerMessage, syncSettled };
+export { runSync, syncAfter, forgetSync, sendBeforeSignOut, whileSyncWaits, fillSyncStatus, syncStatusText, onSyncTrigger, onSyncWorkerMessage, syncSettled };

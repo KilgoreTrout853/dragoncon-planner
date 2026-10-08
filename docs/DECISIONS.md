@@ -123,7 +123,7 @@ deliberate learning exercise.
 is a broken app on con weekend.
 **Cost:** More infrastructure than a friend-group app strictly needs.
 
-### 12. Every current-time read goes through `now()` with a dev override — Standing (2026-09-07) — one second read, of the real clock, in `src/time.js` under the same exemption, for sync stamps only (#51); built by PR #55 as `wallClock()`
+### 12. Every current-time read goes through `now()` with a dev override — Standing (2026-09-07) — one second read, of the real clock, in `src/time.js` under the same exemption, for sync stamps only (#51); built by PR #55 as `wallClock()`; amended by #99
 **Decided:** One `now()` function. `?now=<ISO>` in the URL sets a simulated
 clock, kept in `sessionStorage`; bare `new Date()` / `Date.now()` are
 forbidden outside the Time section of `index.html` and the smoke test
@@ -1332,7 +1332,7 @@ seconds apart land in stamp order. Crew presence, pings and realtime wait
 for spring, and the mirror trails a scrape by its merge. The crowd factor
 is set again on each device.
 
-### 51. Identity: lazy, anonymous, recovered by email — Decided, not built (2026-09-25) — built by PR #55 but for recover's union, which is sync's (#53): `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the widget amended by #53, a plain message until the project turns the captcha on; recover's union built by PR #56, as sync's change of owner (`contract.md`, section 5, as built); amended by #93
+### 51. Identity: lazy, anonymous, recovered by email — Decided, not built (2026-09-25) — built by PR #55 but for recover's union, which is sync's (#53): `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the widget amended by #53, a plain message until the project turns the captcha on; recover's union built by PR #56, as sync's change of owner (`contract.md`, section 5, as built); amended by #93; amended by #99
 **Decided:** #8 as #25 and #50 amend it; `docs/sync/contract.md`,
 section 1, has the detail.
 - No server user until the first tap that needs one: joining or creating
@@ -1430,7 +1430,7 @@ and pytest, and `database` one more job on every pull request. A crew
 whose creator is gone can no longer regenerate its invite or remove
 anyone.
 
-### 53. The fetch layer, the captcha, and the sync rules — Decided, not built (2026-09-25) — the fetch layer and the captcha's plain message built by PR #55: `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the sync rules built by PR #56: `src/outbox.js`, `src/sync.js` and a second migration, the watermark stopping at a row a pending op holds (`contract.md`, section 5, as built); two triggers more since PR #77 - a tap on the Plans tab and a tap on its Crew segment - and a crew action's run, for which the crew panel waits for a run that began after the action (`syncAfter()`); and a redraw when what a crew screen draws has changed, asked only while Plans or the crew panel is on screen, since a redraw rebuilds Explore's filter box (`contract.md`, section 5, as built); that redraw widened by PR #81 to Now and the Map as the tab and an event's sheet open over any, whose who's-going line it refills in place - never Search or Explore alone (`contract.md`, section 5, as built); the gate lifted by #80, PR #100: Explore's filter box is built once, so that redraw is asked on any tab, Search and Explore among them (`contract.md`, section 5, as built)
+### 53. The fetch layer, the captcha, and the sync rules — Decided, not built (2026-09-25) — the fetch layer and the captcha's plain message built by PR #55: `src/backend.js`, `src/identity.js` and the email step in Settings (`docs/sync/contract.md`, section 1, as built); the sync rules built by PR #56: `src/outbox.js`, `src/sync.js` and a second migration, the watermark stopping at a row a pending op holds (`contract.md`, section 5, as built); two triggers more since PR #77 - a tap on the Plans tab and a tap on its Crew segment - and a crew action's run, for which the crew panel waits for a run that began after the action (`syncAfter()`); and a redraw when what a crew screen draws has changed, asked only while Plans or the crew panel is on screen, since a redraw rebuilds Explore's filter box (`contract.md`, section 5, as built); that redraw widened by PR #81 to Now and the Map as the tab and an event's sheet open over any, whose who's-going line it refills in place - never Search or Explore alone (`contract.md`, section 5, as built); the gate lifted by #80, PR #100: Explore's filter box is built once, so that redraw is asked on any tab, Search and Explore among them (`contract.md`, section 5, as built); amended by #99
 **Decided:** How the client talks to the backend, what it says when a
 captcha is demanded, and how it will move picks and follows;
 `docs/sync/contract.md` has the detail, in section 1, as built, and
@@ -2914,7 +2914,7 @@ system libraries come by apt at every run. A one-time install of the
 engines on each machine (README). A check that is skipped is named,
 dated, says why and has a ROADMAP Flag.
 
-### 82. The simulated-time chip stands after the clock, with a tap area 44 px tall — Standing (2026-10-04)
+### 82. The simulated-time chip stands after the clock, with a tap area 44 px tall — Standing (2026-10-04) — amended by #99
 **Decided:** While the clock is simulated the header's chip is drawn
 whole - at every size, in both engines, with Larger text on, whatever the
 hour and whatever the freshness line says: the words give way, never the
@@ -3177,7 +3177,7 @@ string that names no building is Other. Every Mart event's `hotel` changes.
 "Vendor Hall Floor `<n>`" now reads as that floor at any venue that has one,
 where only the Mart had such a level; 2026 has it only after "Mart2".
 
-### 92. The gear: Settings fits its screen, and About this app is behind it — Standing (2026-10-06)
+### 92. The gear: Settings fits its screen, and About this app is behind it — Standing (2026-10-06) — amended by #99
 **Decided:** Step 9's first pull request (PR #110). Amends #59, #76, #78, #81.
 - **Settings is a heading, one body that scrolls and Done pinned at its
   foot,** in a sheet at most 86% of the screen, an event's rule (#74).
@@ -3357,3 +3357,29 @@ a third row would shrink the map on every phone. After a level's smallest
 room, 6 rooms stood larger than the frame.
 **Cost:** The list holds a cancelled event the card's count leaves out
 (#90). A place cannot be typed, linked or kept through a reload.
+
+### 99. A build carries its clock; the banner is Now's; a build may leave the email step off — Standing (2026-10-07)
+**Decided:** Three things for the pilot, each behind a build variable, so a
+build with none set is as it was (PR #117; `docs/screens/contract.md`,
+sections 1, 2 and 9). Amends #12, #51, #53, #82, #92.
+- **The home clock.** `DC_NOW` gives a build a default moment, which
+  `now()` answers while the reader has set none: the order is the
+  address's `?now=`, the session's, the build's default, the real clock.
+  It stands still, has no offset - the phone's own wall time - and moves no
+  sync stamp. Clearing the reader's moment goes home.
+- **The chip** shows for the reader's own moment alone: at the default
+  that simply is the time. Settings' field shows the default, and the
+  default applied sets no moment.
+- **The banner** before the con stands on Now alone, on every build: it is
+  about what Now shows.
+- **The email step off.** `DC_EMAIL=off`, only with a backend: no Keep
+  your plan; crews, sync and Delete as built. About this app has a third
+  wording, and the device readout says the build's clock, "email off" and
+  there sync's status line.
+
+**Why:** A launch from the home screen has no `?now=` and a session of its
+own, so a friend's installed pilot opened on "has ended". The time was
+said three times, on every tab, and above the Map the banner made the tab
+73 px taller than the screen. The dev project's sender reaches one address.
+**Cost:** A standing clock never ends the nudge's "Not now" nor rechecks
+the schedule on return. With the step off no plan can be recovered.

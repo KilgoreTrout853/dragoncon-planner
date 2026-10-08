@@ -1,4 +1,4 @@
-import { BackendError, callBackend, callBackendAsUser, dropSession, keepSession, storedSession } from "./backend.js";
+import { BackendError, callBackend, callBackendAsUser, dropSession, emailStep, keepSession, storedSession } from "./backend.js";
 
 /* ==================================================================
    Identity (DECISIONS #51, #53, #93; docs/sync/contract.md, section 1): who
@@ -109,7 +109,9 @@ function codeSentTo() { return codeFor ? codeFor.email : ""; }
 
 /* Every failure in plain words (#51: a network action fails visibly and
    leaves local state untouched). A captcha refusal is one of them: the app
-   shows no widget until the project turns the captcha on (#53). */
+   shows no widget until the project turns the captcha on (#53). A session
+   lost has two wordings: with the email step off (#99) no one can sign in
+   again, and a crew is joined again by its link. */
 const PLAIN = {
   offline: "Couldn't reach the server. Your plan is safe on this phone; try again when you have signal.",
   captcha_failed: "Signing in needs a check this app can't show yet. Please try again later.",
@@ -122,7 +124,7 @@ const PLAIN = {
   bad_email: "That doesn't look like an email address.",
   email_address_invalid: "That doesn't look like an email address.",
   email_address_not_authorized: "The server can't send a code to that address.",
-  session_lost: "You were signed out. Enter your email to sign in again.",
+  session_lost: emailStep ? "You were signed out. Enter your email to sign in again." : "This phone lost its sign-in. Join your crew again by its link.",
 };
 function plainMessage(error) { return PLAIN[error && error.code] || "Something went wrong. Please try again."; }
 
