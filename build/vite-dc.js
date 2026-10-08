@@ -62,8 +62,14 @@
       did. For a year that is not the default, the year goes into the
       worker's YEAR, and into the page's name - "Dragon Con <year>" and
       "DC<yy>" in its title, its head's tags and the brand on Now - and the
-      manifest's. With no channel and the default year, dist/sw.js is
-      public/sw.js and dist/manifest.json is public/manifest.json.
+      manifest's. And a build with a channel names itself where a home
+      screen reads a name, by the channel's own word after the year's: "DC26
+      next" in the page's apple-mobile-web-app-title and the manifest's
+      short_name, "Dragon Con 2026 next" in the manifest's name - so a
+      channel's app is told from the live site's beside it. The page's own
+      title, the brand on Now and the link preview's words are left. With no
+      channel and the default year, dist/sw.js is public/sw.js and
+      dist/manifest.json is public/manifest.json.
 
    2. Copy what the client reads from data/ into dist/data/, and nothing
       else: DATA_FILES, the year's schedule, an allowlist (DECISIONS #39).
@@ -332,16 +338,19 @@ export function dcBuild() {
         html = swapOnce(html, '<meta name="dc-build" content="">', `<meta name="dc-build" content="${build}">`, "stamp the build id in index.html");
       }
       if (yearStamped) html = stampPageYear(html, year);
+      const short = `DC${year.slice(2)}`;
+      if (channel) html = swapOnce(html, `<meta name="apple-mobile-web-app-title" content="${short}">`, `<meta name="apple-mobile-web-app-title" content="${short} ${channel}">`, "name the channel in index.html's home-screen title");
       if (channel || yearStamped) {
         let sw = fs.readFileSync(swPath, "utf8");
         if (channel) sw = swapOnce(sw, 'const CHANNEL = "";', `const CHANNEL = "${channel}";`, "stamp the channel in sw.js");
         if (yearStamped) sw = swapOnce(sw, `const YEAR = "${DEFAULT_YEAR}";`, `const YEAR = "${year}";`, "stamp the year in sw.js");
         fs.writeFileSync(swPath, sw);
       }
-      if (yearStamped) {
+      if (channel || yearStamped) {
+        const named = channel ? ` ${channel}` : "";
         let manifest = fs.readFileSync(manifestPath, "utf8");
-        manifest = swapOnce(manifest, `"name": "Dragon Con ${DEFAULT_YEAR}"`, `"name": "Dragon Con ${year}"`, "stamp the year in manifest.json's name");
-        manifest = swapOnce(manifest, `"short_name": "DC${DEFAULT_YEAR.slice(2)}"`, `"short_name": "DC${year.slice(2)}"`, "stamp the year in manifest.json's short name");
+        manifest = swapOnce(manifest, `"name": "Dragon Con ${DEFAULT_YEAR}"`, `"name": "Dragon Con ${year}${named}"`, "stamp manifest.json's name");
+        manifest = swapOnce(manifest, `"short_name": "DC${DEFAULT_YEAR.slice(2)}"`, `"short_name": "${short}${named}"`, "stamp manifest.json's short name");
         fs.writeFileSync(manifestPath, manifest);
       }
       fs.writeFileSync(pagePath, html);

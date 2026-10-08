@@ -48,7 +48,7 @@ describe("another year's season file", () => {
     const preview = effectiveNow();
     setOverride(null);
     expect(preview.now.getTime()).toBe(new Date("2027-09-02T10:00").getTime());
-    expect(preview.banner).toMatch(/Con starts Thursday\.<\/b> This tab is showing Thursday 10:00 AM/);
+    expect(preview.banner).toMatch(/Preview\.<\/b> This tab is showing Thursday 10:00 AM, the con's first full day\./);
   });
   it("reads a day word as that year's day", () => {
     expect(parseQuery("wed").filters.day).toBe("2027-09-01");

@@ -621,7 +621,7 @@ describe("the Map tab", () => {
     });
     it("no picks at all: how to get one, and nothing to tap [1778]", () => {
       expect(empty).toMatchObject({ empty: true, tag: "DIV", hero: null });
-      expect(empty.text).toMatch(/Star things in Search and your next pick shows here\./);
+      expect(empty.text).toMatch(/^Tap a hotel to see its floors\. Star things in Explore or Search and your next pick shows here\.$/);
     });
     it("tapping the card opens the event's detail sheet [1784]", () => {
       setPicks([handle.events.find(e => e._s > at && app.conDayKey(e._s) === today && app.MAP_HOTELS[e.hotel]).id]);

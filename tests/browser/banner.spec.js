@@ -10,7 +10,7 @@
 import { CLOCKS, READERS, TABS, expect, open, seed, tab, test } from "./harness.js";
 
 const BEFORE = CLOCKS.find(clock => clock.name.startsWith("before the con")).now;
-const BANNER = "Con starts Thursday. This tab is showing Thursday 10:00 AM as a preview. Settings can preview any other time.";
+const BANNER = "Preview. This tab is showing Thursday 10:00 AM, the con's first full day. Settings can preview any other time.";
 const SLACK = 0.5;
 
 /* Read in the page: main's two heights, whether the notice is shown and

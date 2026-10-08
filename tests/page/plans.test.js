@@ -21,13 +21,13 @@ describe("Plans", () => {
   }, 30000);
   afterAll(() => page.cleanup());
 
-  describe("the control strip: the actions on two columns, the toggle under them", () => {
+  describe("the control strip: the actions on two columns, the view's switch under them", () => {
     it("four controls in order [433]", () => {
-      const strip = [...plans().querySelectorAll(".plans-actions .btn, .view-toggle button")].map(b => b.textContent.trim());
+      const strip = [...plans().querySelectorAll(".plans-actions .btn, .plans-view button")].map(b => b.textContent.trim());
       expect(strip.join(" | ")).toBe("Export to calendar | Share a day | Timeline | List");
     });
     it("actions above the view toggle [434]", () => {
-      const order = plans().querySelector(".plans-actions").compareDocumentPosition(plans().querySelector(".view-toggle"));
+      const order = plans().querySelector(".plans-actions").compareDocumentPosition(plans().querySelector(".plans-view"));
       expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
     it("with picks, both actions are live [446]", () => {
@@ -176,7 +176,7 @@ describe("Plans", () => {
       expect(plans().querySelectorAll(".plans-actions .btn[disabled]")).toHaveLength(2);
     });
     it("and there is no view toggle to switch [511]", () => {
-      expect(plans().querySelector(".view-toggle")).toBe(null);
+      expect(plans().querySelector(".plans-view")).toBe(null);
     });
   });
 });

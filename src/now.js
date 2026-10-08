@@ -96,7 +96,7 @@ const ARCHIVE_SIG = "archive";
 function archiveHTML() {
   const mine = events.filter(e => picks.has(e.id));
   let html = pickNewsHTML() + `<div class="section-title">Your ${CON.year} schedule <span class="count">${mine.length}</span></div>`;
-  if (!mine.length) return html + `<div class="empty"><b>Nothing starred.</b> Star things in Search and they'll be listed here by day.</div>`;
+  if (!mine.length) return html + `<div class="empty"><b>Nothing starred.</b> Star things in Explore or Search and they'll be listed here by day.</div>`;
   html += `<ul class="list">`;
   let lastDay = "";
   mine.forEach(ev => {
@@ -210,7 +210,7 @@ function renderNow() {
     mineHTML += `<div class="empty"><b>Nothing picked for later today.</b> Your next pick is on ${day}.</div>
       <ul class="list compact">${rowHTML(model.later, {list: "next", showDay: true})}</ul>` + crewHTML(crew);
   } else {
-    mineHTML += `<div class="empty"><b>Nothing picked for later today.</b> Star things in Search and they show up here with walk times.</div>` + crewHTML(crew);
+    mineHTML += `<div class="empty"><b>Nothing picked for later today.</b> Star things in Explore or Search and they show up here with walk times.</div>` + crewHTML(crew);
   }
 
   const around = model.around, shown = model.shown;

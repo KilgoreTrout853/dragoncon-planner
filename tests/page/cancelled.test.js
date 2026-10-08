@@ -90,7 +90,7 @@ describe("a cancelled pick is passed over by what says what is next, where to wa
     it("nothing left today and only a cancelled pick on a later day: no later pick is named", () => {
       at("2026-09-05T18:30");
       expect(hero()).toBe(null);
-      expect(words(view("now").querySelector(".empty"))).toBe("Nothing picked for later today. Star things in Search and they show up here with walk times.");
+      expect(words(view("now").querySelector(".empty"))).toBe("Nothing picked for later today. Star things in Explore or Search and they show up here with walk times.");
       expect(view("now").querySelector('.row[data-list="next"]')).toBe(null);
     });
     it("what is on and coming up is the schedule's, not the plan's: its row is there as any cancelled event's, struck, tagged and starred", () => {
@@ -141,7 +141,7 @@ describe("a cancelled pick is passed over by what says what is next, where to wa
     it("nothing left today and only a cancelled pick on a later day: the card has no later pick", () => {
       at("2026-09-05T18:30");
       expect(document.getElementById("mapNext")).toBe(null);
-      expect(words(view("map").querySelector(".next-card"))).toBe("Star things in Search and your next pick shows here.");
+      expect(words(view("map").querySelector(".next-card"))).toBe("Tap a hotel to see its floors. Star things in Explore or Search and your next pick shows here.");
       at(SATURDAY);
     });
     it("another day: Sunday's only pick is cancelled, and the Mart has none", () => {

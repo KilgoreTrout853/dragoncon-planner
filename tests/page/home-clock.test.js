@@ -60,7 +60,7 @@ describe("a build with a default moment, opened at its bare address in a fresh s
     expect(el("notice").hidden).toBe(true);
     document.querySelector('.nav button[data-tab="now"]').click();
     expect(el("notice").hidden).toBe(false);
-    expect(text("notice")).toMatch(/^Con starts Thursday\. This tab is showing Thursday 10:00 AM as a preview\./);
+    expect(text("notice")).toMatch(/^Preview\. This tab is showing Thursday 10:00 AM, the con's first full day\./);
     document.querySelector('.nav button[data-tab="explore"]').click();
     expect(el("notice").hidden).toBe(true);
   });

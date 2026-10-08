@@ -890,13 +890,16 @@ describe("Mute beside Follow, and the Muted fold", () => {
       expect(view().querySelectorAll("#suggested .tile").length).toBeGreaterThan(0);
       expect(view().querySelector("#suggested .fc-x, #suggested [data-act='unmute'], #suggested [data-act='toggle-mute']")).toBe(null);
     });
-    it("a chip is never gold, and its name and its x are 44px, in the stylesheet", () => {
+    it("a chip is never gold, and its name and its x are 44px, in the stylesheet - the follow chip's own shape, since #101", () => {
       const rules = css.split("\n").filter(l => l.startsWith(".mute-chip"));
       expect(rules).toEqual([
         ".mute-chip { border-color: var(--line); }",
-        ".mute-chip .fc-name { min-height: 44px; padding-left: 14px; color: var(--text); }",
-        ".mute-chip .fc-x { min-width: 44px; min-height: 44px; color: var(--muted); opacity: 1; }",
+        ".mute-chip .fc-name { color: var(--text); }",
+        ".mute-chip .fc-x { color: var(--muted); opacity: 1; }",
       ]);
+      /* the x sets the height, and the name is stretched to it */
+      expect(css).toMatch(/\n\.follow-chip \{\n {2}flex: none; display: inline-flex; align-items: stretch; /);
+      expect(css).toMatch(/\n\.follow-chip \.fc-x \{\n {2}background: none; border: 0; min-width: 44px; min-height: 44px; /);
       expect(css).toMatch(/\n\.divider\.fold button \{\n {2}width: 100%; min-height: 44px; /);
     });
     it("the filter box is kept through a tap on the fold: the same node, its text, its focus and its caret", () => {

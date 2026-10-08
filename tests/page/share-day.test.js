@@ -480,7 +480,7 @@ describe("the new controls are 44px tall and labelled (#66)", () => {
   const css = fs.readFileSync(path.join(ROOT, "src", "styles.css"), "utf8");
   const rule = selector => (css.match(new RegExp(`(^|\\n)${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\{([^}]*)\\}`)) || [])[2] || "";
   it("the share panel's chips, My day's strip and its view toggle", () => {
-    for (const [selector, height] of [[".share-days .chip", "height: 44px"], [".plans-actions .btn", "height: 44px"], [".view-toggle button", "height: 44px"]]) {
+    for (const [selector, height] of [[".share-days .chip", "height: 44px"], [".plans-actions .btn", "height: 44px"], [".plans-seg button", "height: 44px"], [".view-toggle button", "height: 44px"]]) {
       expect(rule(selector), selector).toContain(height);
     }
   });

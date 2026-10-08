@@ -57,24 +57,41 @@ describe("src/styles.css", () => {
     });
   });
 
-  describe("the control strip: two rows of two, one footprint", () => {
+  /* Plans' top as built (DECISIONS #101): the two actions on two columns, and
+     under them the view's switch, Timeline | List, which is a segment in My
+     day | Crew's look and no longer two more buttons of the actions' size.
+     Explore's By interest | By time keeps .view-toggle. */
+  describe("the control strip: the actions on two columns, the view's switch a segment under them", () => {
     it("the actions row is two equal columns [436]", () => {
       expect(css).toMatch(/\.plans-actions \{[^}]*grid-template-columns: 1fr 1fr/);
     });
     it("actions and toggle share a height [439]", () => {
-      const a = css.match(/\.plans-actions \.btn \{[^}]*height: (\d+)px/), b = css.match(/\.view-toggle button \{[^}]*height: (\d+)px/);
-      expect(a && a[1]).toBeTruthy();
+      const a = css.match(/\.plans-actions \.btn \{[^}]*height: (\d+)px/), b = css.match(/\n\.plans-seg button \{[^}]*height: (\d+)px/);
+      expect(a && a[1]).toBe("44");
       expect(a[1]).toBe(b && b[1]);
     });
     it("and a corner radius [442]", () => {
-      const a = css.match(/\.plans-actions \.btn \{[^}]*border-radius: (\d+)px/), b = css.match(/\.view-toggle button \{[^}]*border-radius: (\d+)px/);
+      const a = css.match(/\.plans-actions \.btn \{[^}]*border-radius: (\d+)px/), b = css.match(/\n\.seg \{[^}]*border-radius: (\d+)px/);
       expect(a && a[1]).toBeTruthy();
       expect(a[1]).toBe(b && b[1]);
     });
     it("and a gap [445]", () => {
-      const a = css.match(/\.plans-actions \{[^}]*gap: (\d+)px/), b = css.match(/\.view-toggle \{[^}]*gap: (\d+)px/);
+      /* the gap between the two actions is the room the switch keeps under it: the plan starts where it did */
+      const a = css.match(/\.plans-actions \{[^}]*gap: (\d+)px/), b = css.match(/\n\.plans-view \{ width: fit-content; margin: 0 14px (\d+)px auto; \}/);
       expect(a && a[1]).toBeTruthy();
       expect(a[1]).toBe(b && b[1]);
+    });
+    it("the switch hugs its words at the row's right end, each side of it 44px wide or more, and it is the segment's own class - so its ring is the segment's, and no third ring is drawn inside a control", () => {
+      expect(css).toContain("\n.plans-view { width: fit-content; margin: 0 14px 8px auto; }\n.seg.plans-view button { flex: none; min-width: 44px; padding: 0 16px; font-weight: 600; }\n");
+      expect(css).not.toMatch(/\.plans-view[^{]*:focus-visible/);
+    });
+    it("both of its sides wear one weight, a pressed side's: a switch that hugs its words would change its width, and its left edge its place, with the side that is pressed - by a rule heavier than the segment's own", () => {
+      expect(css).toMatch(/\n\.seg button \{[^}]*font-weight: 500;[^}]*\}\n/);
+      expect(css).toMatch(/\n\.seg button\[aria-pressed="true"\] \{[^}]*font-weight: 600;[^}]*\}\n/);
+      expect(css).toMatch(/\n\.seg\.plans-view button \{[^}]*font-weight: 600; \}\n/);
+    });
+    it("the rung is a card: its line and its two buttons in one bordered box, as a notice's is", () => {
+      expect(css).toContain("\n.crew-rung { display: grid; gap: 10px; margin: 12px 14px 0; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }\n");
     });
   });
 
@@ -330,7 +347,7 @@ describe("src/styles.css", () => {
 
   describe("perf: a query typed before the index is ready waits for it; typing draws once", () => {
     it("while the index builds the search box says so, quietly [1842, the CSS half]", () => {
-      expect(css).toMatch(/\.search\.indexing::placeholder \{[^}]*var\(--dim\)/);
+      expect(css).toMatch(/\.search\.indexing::placeholder \{ color: var\(--muted\); font-style: italic; \}/);
     });
   });
 
@@ -702,7 +719,7 @@ describe("src/styles.css", () => {
     const stack = rules.filter(r => STACK.test(r.selector));
 
     it("the map's own lines are as they were: the frame takes the width, gives way in height to a floor of 200px, and the band under it keeps its own height", () => {
-      expect(body(".map")).toBe("display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px;");
+      expect(body(".map")).toMatch(/^display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px; /);
       expect(body(".map-under")).toBe("flex: none;");
       expect(body("#view-map")).toBe("display: flex; flex-direction: column; height: calc(100dvh - var(--hdr-h, 63px) - var(--nav-h) - 5px);");
     });
@@ -777,6 +794,8 @@ describe("src/styles.css", () => {
     });
     it("the way back is 44px, tall and wide, over the frame's top left; a card's row is 46px or more", () => {
       expect(body(".map-back")).toMatch(/^position: absolute; left: 20px; top: 18px; z-index: 1; height: 44px; min-width: 44px;/);
+      /* a control's own fill and a lighter edge, so it reads as one on the stage (#100) */
+      expect(body(".map-back")).toMatch(/; border: 1px solid var\(--muted\); background: var\(--surface\); color: var\(--text\); /);
       expect(Number(/min-height: (\d+)px;/.exec(body(".pc-row"))[1])).toBeGreaterThanOrEqual(44);
     });
     it("a plate's label is in the drawing's own units, as a block's name is: Larger text leaves the map alone", () => {
@@ -785,7 +804,7 @@ describe("src/styles.css", () => {
     });
     it("a label is left in a touch's way: it is in its plate's group, and its touch is its plate's - nothing of the stack's is taken out of the way but an inert plate, and what is drawn over a plate", () => {
       expect(body(".plate-label")).not.toMatch(/pointer-events|cursor/);
-      expect(body(".plate-label.inert")).toBe("fill: var(--dim); font-weight: 600;");
+      expect(body(".plate-label.inert")).toBe("fill: var(--muted); font-weight: 600;");
       expect(stack.filter(r => /pointer-events/.test(r.body)).map(r => [r.selector, /pointer-events: ([\w-]+);/.exec(r.body)[1]]))
         .toEqual([[".plate.inert", "none"], [".plate-sel", "none"], [".plate-group", "none"], [".map-wrap[data-stack] .map-under::after", "none"]]);
       expect(stack.filter(r => /labels/.test(r.selector))).toEqual([]);                              // no layer of labels apart from the plates
@@ -796,7 +815,9 @@ describe("src/styles.css", () => {
       const lum = c => { const [r, g, bl] = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * bl; };
       const contrast = (x, y) => { const [hi, lo] = [lum(x), lum(y)].sort((p, q) => q - p); return (hi + 0.05) / (lo + 0.05); };
       const mix = (a, b, p) => a.map((v, i) => Math.round(v * p + b[i] * (1 - p)));
-      const ink = rgb(token("ink")), ground = rgb(token("surface")), gold = rgb(token("gold"));
+      /* the ground is the stage (#100), darker than the page: everything a plate draws reads better on it */
+      const ink = rgb(token("ink")), ground = rgb(token("stage")), gold = rgb(token("gold"));
+      expect(body(".map")).toMatch(/; background: var\(--stage\); /);
       expect(body(".plate-hull")).toMatch(/^fill: color-mix\(in srgb, var\(--h\) 11%, var\(--ink\)\); stroke: var\(--h\);/);
       expect(body(".plate.floor .plate-hull")).toMatch(/^fill: color-mix\(in srgb, var\(--h\) 5%, var\(--ink\)\); stroke: color-mix\(in srgb, var\(--h\) 75%, var\(--ink\)\);/);
       for (const name of ["Marriott", "Hyatt", "Hilton", "Courtland", "Westin", "Mart"]) {
@@ -806,9 +827,10 @@ describe("src/styles.css", () => {
           expect(contrast(a, b), `${name}: ${what}`).toBeGreaterThanOrEqual(3);
         }
       }
-      expect(contrast(gold, ground)).toBeGreaterThan(8);
-      expect(contrast(rgb(token("text")), ground)).toBeGreaterThan(12);
-      expect(contrast(rgb(token("dim")), ground)).toBeGreaterThanOrEqual(3);
+      expect(contrast(gold, ground)).toBeGreaterThan(11);
+      expect(contrast(rgb(token("text")), ground)).toBeGreaterThan(16);
+      expect(contrast(rgb(token("dim")), ground)).toBeGreaterThanOrEqual(3);           // an inert plate's dotted edge, a mark
+      expect(contrast(rgb(token("muted")), ground)).toBeGreaterThanOrEqual(4.5);       // and its name, which is words
     });
   });
   /* The level (DECISIONS #96): a drawn plate laid flat. What is not shown is
@@ -867,7 +889,7 @@ describe("src/styles.css", () => {
     it("a street's name is the city map's own label, on its edge of the frame, edged in the dark so the venue's outline does not strike it through: north from its right end, clear of the way back, the others about their middle", () => {
       expect(body(".level-street")).toBe("paint-order: stroke; stroke: var(--ink); stroke-width: 3px; stroke-linejoin: round;");
       expect([body('.level-street[data-side="N"]'), body('.level-street[data-side="S"], .level-street[data-side="W"], .level-street[data-side="E"]')]).toEqual(["text-anchor: end;", "text-anchor: middle;"]);
-      expect(body(".map-street-label")).toMatch(/font-size: 10px;.*text-transform: uppercase; fill: var\(--dim\);$/);
+      expect(body(".map-street-label")).toMatch(/font-size: 10px;.*text-transform: uppercase; fill: var\(--muted\);$/);
     });
     it("a room's card is a plate's, its small line one line with an ellipsis its net", () => {
       expect(body(".room-card .nc-label")).toBe("white-space: nowrap; overflow: hidden; text-overflow: ellipsis;");
@@ -929,6 +951,73 @@ describe("src/styles.css", () => {
       const MAP = /\.(map|plate|stack-|level-|lv-)|\[data-(stack|level)\]/;
       expect(rules.filter(r => MAP.test(r.selector) && /(^|; )(transition|animation|transform)[\w-]*:/.test(r.body)).map(r => r.selector)).toEqual([".map-ring.next", ".map-ring.next"]);
       expect(bare.match(/@keyframes [\w-]+/g)).toContain("@keyframes map-pulse");
+    });
+  });
+
+  /* The Map's stage (DECISIONS #100): the map's own box, at every size. */
+  describe("the Map's stage (DECISIONS #100)", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim().replace(/\s+/g, " ") }));
+    const body = selector => rules.filter(r => r.selector === selector).map(r => r.body).join(" | ");
+    const token = name => new RegExp(`--${name}: (#[0-9A-Fa-f]{6})`).exec(css)[1];
+    const lum = hex => { const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+
+    it("the stage is one token, darker than the page and than the old ground", () => {
+      expect(token("stage")).toBe("#0B0D20");
+      expect(lum(token("stage"))).toBeLessThan(lum(token("ink")));
+      expect(lum(token("ink"))).toBeLessThan(lum(token("surface")));
+      expect(rules.filter(r => /var\(--stage\)/.test(r.body)).map(r => r.selector)).toEqual([".map"]);
+    });
+    it("its fill, its edge and its corners are the svg's own box's: the edge a shadow inside the box, which takes no room - no border, which would move the drawing, and no outline", () => {
+      expect(body(".map")).toBe("display: block; width: 100%; height: auto; flex: 0 1 auto; min-height: 200px; background: var(--stage); border-radius: 14px; box-shadow: inset 0 0 0 1px var(--line);");
+      expect(rules.filter(r => /(^|[\s,])(svg)?\.map$/.test(r.selector) && /(^|; )(border|outline|padding|margin)[a-z-]*:/.test(r.body.replace(/border-radius/g, "radius"))).map(r => r.selector)).toEqual([]);
+    });
+    it("the ground's rectangle draws nothing of its own, and is still there to be measured and touched: see-through, not none", () => {
+      expect(body(".map-ground")).toBe("fill: transparent;");
+    });
+    it("the dimmed city behind a stack runs to the stage's edge: the draw's clip is lifted, and the svg's box cuts it", () => {
+      expect(body(".map[data-stack] .map-city")).toBe("clip-path: none;");
+    });
+    it("the way back stands where it stood, 6px inside the stage's corner: the map's box starts at the wrap's padding, 14px in and 12 down", () => {
+      expect(body(".map-wrap")).toMatch(/(^|; )position: relative; .*padding: 12px 14px 0;$/);
+      expect(body(".map-back")).toMatch(/^position: absolute; left: 20px; top: 18px; /);
+    });
+  });
+
+  /* The first-contact pass (DECISIONS #101). */
+  describe("the first-contact pass (DECISIONS #101)", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), body: m[2].trim().replace(/\s+/g, " ") }));
+    const body = selector => rules.filter(r => r.selector === selector).map(r => r.body).join(" | ");
+    const SRC = path.join(ROOT, "src");
+
+    it("--dim colours marks alone - a dotted edge, a caret, the dots between a row's parts, the empty star: every word is --muted", () => {
+      expect(rules.filter(r => /var\(--dim\)/.test(r.body)).map(r => r.selector)).toEqual([
+        ".plate.inert .plate-hull", ".fol-head .caret", ".when-where", ".flags > * + *::before", ".star", ".ev-facts > * + *::before"]);
+      /* a row's second line: its words each take a colour of their own, and what is left for --dim is the dots between them */
+      expect([body(".when-where .when"), body(".when-where .day"), body(".when-where .level")].map(b => /(^|; )color: var\(--(text|muted|h)\);/.test(b))).toEqual([true, true, true]);
+      expect(body(".room")).toMatch(/color: var\(--h\);/);
+    });
+    it("and none is coloured --dim from a module's markup, nor from the page's: a day's count is its class's", () => {
+      const files = [...fs.readdirSync(SRC).filter(f => f.endsWith(".js")).map(f => path.join(SRC, f)), path.join(ROOT, "index.html")];
+      expect(files.filter(f => /--dim\b/.test(fs.readFileSync(f, "utf8"))).map(f => path.basename(f))).toEqual([]);
+      expect(body(".day-head .count")).toBe("font-size: .875rem; color: var(--muted); font-weight: 400;");
+    });
+    it("--dim's value, and --muted's, are as they were", () => {
+      expect(css).toMatch(/\n {2}--muted: #A5A9C9;\n {2}--dim: #6F739A;/);
+    });
+    it("a follow chip is a mute chip's shape: its name 44px tall, its x 44 by 44, and Follow more beside them the row's height", () => {
+      /* the x sets the chip's height, and the name is stretched to it: one place for the 44 */
+      expect(body(".follow-chip .fc-x")).toMatch(/(^|; )min-width: 44px; min-height: 44px; /);
+      expect(body(".follow-chip")).toMatch(/(^|; )display: inline-flex; align-items: stretch; /);
+      expect(body(".follow-chip .fc-name")).toMatch(/(^|; )padding: 7px 4px 7px 14px; /);
+      expect(body(".chip.fc-add")).toBe("flex: none; height: 44px; border-radius: 22px;");
+      expect([body(".mute-chip .fc-name"), body(".mute-chip .fc-x")].map(b => /min-(width|height)|padding/.test(b))).toEqual([false, false]);
+    });
+    it("the way back from an Explore page is 44px tall and at least 44 wide, and the head is no taller: 10px over the head's own padding above, and below what is left of 44 after a line, in em", () => {
+      expect(body(".explore-head .back")).toBe("position: relative; display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; margin: -10px 0 calc(1.3em - 34px); background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer;");
+      expect(body(".explore-head")).toMatch(/^padding: 10px 14px 14px; /);
+      expect(css).toMatch(/\nbody \{\n {2}margin: 0; font-family: var\(--font\); font-size: 1\.0625rem; line-height: 1\.3;/);
     });
   });
 });

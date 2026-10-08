@@ -10,7 +10,7 @@ import { bootPage } from "../helpers/page.js";
 
 const BEFORE = "2026-08-20T10:00", SATURDAY = "2026-09-05T13:05", AFTER = "2026-09-20T12:00";
 const TABS = ["now", "browse", "explore", "map", "plans"], OTHERS = TABS.filter(tab => tab !== "now");
-const BANNER = "Con starts Thursday. This tab is showing Thursday 10:00 AM as a preview. Settings can preview any other time.";
+const BANNER = "Preview. This tab is showing Thursday 10:00 AM, the con's first full day. Settings can preview any other time.";
 const el = id => document.getElementById(id);
 const tap = tab => document.querySelector(`.nav button[data-tab="${tab}"]`).click();
 const said = () => (el("notice").hidden ? null : el("notice").textContent.replace(/\s+/g, " ").trim());
@@ -30,10 +30,11 @@ describe("the notice above the views", () => {
       expect(said()).toBe(null);
       expect(el("notice").innerHTML).toBe("");
     });
-    it("on Now the banner stands, in these words, its first sentence in bold", () => {
+    it("on Now the banner stands, in these words, its first word in bold - and it does not say when the con starts: its first evening has events", () => {
       tap("now");
       expect(said()).toBe(BANNER);
-      expect([...el("notice").querySelectorAll("b")].map(b => b.textContent)).toEqual(["Con starts Thursday."]);
+      expect([...el("notice").querySelectorAll("b")].map(b => b.textContent)).toEqual(["Preview."]);
+      expect(said()).not.toMatch(/starts/i);
       expect(el("notice").className).toBe("notice");
       expect(el("notice").querySelectorAll("button").length).toBe(0);
     });
