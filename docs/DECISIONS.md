@@ -3516,9 +3516,9 @@ test, build or workflow runs it, and it changes nothing a reader sees.
   which the script answers from the page tests' fake, a crew of invented
   names and real events in it. Nothing is asked of another machine (#81).
 - **The frames are the browser's own,** `Page.startScreencast` over CDP,
-  each kept with the moment it was drawn: Chromium only. The screen is twice
-  a phone's and the served page's viewport meta is rewritten to a phone's
-  width, so the page lays out as a phone, drawn twice the size.
+  each kept with the moment it was drawn: Chromium only. The screen is 960
+  px wide and the served page's viewport meta is rewritten to 402, so the
+  page lays out 402x714, a phone's (#81), drawn at the film's own size.
 - **The storyboard is data:** the words, the moment, the cast, each beat's
   holds. A caption never says where a person is (#68). The title card
   stands over the Map as the build draws it, taken afresh at each run.
@@ -3527,7 +3527,7 @@ test, build or workflow runs it, and it changes nothing a reader sees.
 
 **Why:** A film made by hand is out of date at the next pull request.
 Playwright's `recordVideo` gave 402 px wide at 25 frames a second, its text
-soft; the browser's own frames are 804 wide at 60.
+soft; the browser's own frames are 960 wide at 60.
 **Cost:** One dependency, `ffmpeg-static`, pinned in a package of its own as
 `supabase/` holds its CLI; its install fetches a binary. A selector the app
 renames stops the run until the moves follow. Nothing holds the film fresh.

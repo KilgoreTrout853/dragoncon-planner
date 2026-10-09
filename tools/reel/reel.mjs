@@ -29,12 +29,14 @@
    the service worker is blocked, and a request to any other machine is
    refused and stops the run: nothing leaves this one.
 
-   The size: the screen is 804x1624 at a device scale of 1, and the served
+   The size: the screen is 960x1706 at a device scale of 1, and the served
    page's viewport meta is rewritten to width=402 as this script serves it -
-   index.html is not edited - so the page lays out as a 402x812 phone drawn
-   twice the size, which is what the screencast sends. Each frame is kept
-   with the moment it was drawn: a still screen is one frame with a long
-   duration.
+   index.html is not edited - so the page lays out 402x714, a phone's Safari
+   tab as the browser tests have it (harness.js SIZES), drawn about 2.39
+   times the size, which is what the screencast sends: the frames are taken
+   at the size the film shows them, and ffmpeg scales nothing. Each frame is
+   kept with the moment it was drawn: a still screen is one frame with a
+   long duration.
 
    It fails loudly: a cast id the schedule does not hold, a port that is
    taken, a face that is not Barlow, or a tap whose target is not there,
@@ -57,11 +59,15 @@ const OUT = path.join(ROOT, "tools", "out", "reel");
 const BUILD = path.join(OUT, "build");
 /* Not 4173 or 4174, the browser tests'. */
 const PORT = 4183, ORIGIN = `http://localhost:${PORT}`;
-const SCREEN = { width: 804, height: 1624 }, LAYOUT = { width: 402, height: 812 };
+/* The screen's height is what holds a phone small on a film of this shape,
+   so the layout is the shorter of the browser tests' phones, and the screen
+   as wide as the canvas takes with a margin: its height the one that reads
+   innerHeight 714 and is even, as H.264 asks of a clip's sides. */
+const SCREEN = { width: 960, height: 1706 }, LAYOUT = { width: 402, height: 714 };
 const CANVAS = { width: 1080, height: 1920 };
 /* Where the phone's screen sits on the canvas, unscaled: the caption's band
-   above it. r: its corners. */
-const PHONE = { x: (CANVAS.width - SCREEN.width) / 2, y: 236, w: SCREEN.width, h: SCREEN.height, r: 56 };
+   above it, a margin under it. r: its corners; edge: its line's width. */
+const PHONE = { x: (CANVAS.width - SCREEN.width) / 2, y: 180, w: SCREEN.width, h: SCREEN.height, r: 67, edge: 4 };
 const VIEWPORT_AS_BUILT = 'content="width=device-width, initial-scale=1, viewport-fit=cover"';
 const VIEWPORT_FOR_FILM = `content="width=${LAYOUT.width}, viewport-fit=cover"`;
 /* A gap between two frames this long or longer is a view standing still,
@@ -361,8 +367,14 @@ async function phone(browser, beat, log, { viewport = SCREEN, scale = 1 } = {}) 
     await page.goto(`${ORIGIN}/`);
     await page.waitForFunction(() => { const fresh = document.getElementById("fresh"); return !!fresh && fresh.textContent.trim() !== ""; });
     await barlow(page, `beat ${beat.n} (${beat.key})`);
-    const laidOut = await page.evaluate(() => [window.innerWidth, window.innerHeight]);
-    if (laidOut[0] !== LAYOUT.width || laidOut[1] !== LAYOUT.height) throw new Error(`reel: the page lays out ${laidOut.join("x")}, not ${LAYOUT.width}x${LAYOUT.height}.`);
+    /* The layout is the document's box, which the stylesheet's units and
+       media queries go by. innerWidth and innerHeight are the visual
+       viewport's, rounded up, and at a scale that is no whole number they
+       read a pixel more - 403x715 on the film's screen - so they are kept
+       for the report and not held. */
+    const laidOut = await page.evaluate(() => ({ layout: [document.documentElement.clientWidth, document.documentElement.clientHeight], inner: [window.innerWidth, window.innerHeight] }));
+    if (laidOut.layout[0] !== LAYOUT.width || laidOut.layout[1] !== LAYOUT.height) throw new Error(`reel: the page lays out ${laidOut.layout.join("x")}, not ${LAYOUT.width}x${LAYOUT.height}.`);
+    if (viewport === SCREEN) log.inner = laidOut.inner;
     /* the first sync is back: the crew is on the phone */
     const crewKey = seed({ crew: 0 }, ORIGIN).origins[0].localStorage[0].name;
     await page.waitForFunction(([key, people]) => {
@@ -561,6 +573,7 @@ async function main() {
           + (numbers.gapsOver50Ms ? `, ${numbers.gapsOver50Ms} over 50 ms` : "")));
       }
       report.answered = log.answered;
+      if (log.inner) report.inner = { width: log.inner[0], height: log.inner[1] };
     } finally {
       await browser.close();
       if (server) await new Promise(closed => server.close(closed));

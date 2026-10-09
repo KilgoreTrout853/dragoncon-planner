@@ -119,9 +119,10 @@ const beats = {
 
   /* Plans: My day's timeline, eased down its afternoon and back, then the
      crew's day and one person's fold. Once it is open the page is brought
-     up until the My day | Crew control stands whole just under the header -
-     never cut by it - which leaves the fold's last row whole above the
-     next-pick bar; the run stops where either is not so. */
+     up until the first fold's head stands at the header's foot: the My day
+     | Crew control and the day chips are then wholly off the screen, never
+     cut by the header, and the open fold's last row is whole above the
+     next-pick bar. The run stops where any of that is not so. */
   plans: {
     async setup(h) {
       await h.tap('nav button[data-tab="plans"]', "the Plans tab");
@@ -139,15 +140,18 @@ const beats = {
       await h.tap({ selector: "button.crew-fold", text: beat.fold }, `${beat.fold}'s fold`);
       await h.settle();
       await h.hold(beat.hold.opened);
-      await h.scroll("main", { to: ".plans-seg", at: { of: ".hdr", edge: "bottom" }, gap: 12 }, beat.foldScroll);
+      await h.scroll("main", { to: "button.crew-fold", at: { of: ".hdr", edge: "bottom" } }, beat.foldScroll);
       const stands = await h.page.evaluate(who => {
         const box = el => el.getBoundingClientRect();
         const head = [...document.querySelectorAll("button.crew-fold")].find(fold => fold.textContent.trim().startsWith(who));
         const rows = box(document.getElementById(head.getAttribute("aria-controls"))), control = box(document.querySelector(".plans-seg"));
         const header = box(document.querySelector(".hdr")), bar = box(document.getElementById("minibar"));
-        return { control: control.top >= header.bottom || control.bottom <= header.bottom, rows: rows.top >= header.bottom && rows.bottom <= bar.top };
+        const whole = at => at.top >= header.bottom || at.bottom <= header.bottom;
+        return { control: whole(control), chips: [...document.querySelectorAll('#view-plans button[data-chip="plans-day"]')].every(chip => whole(box(chip))),
+          rows: rows.top >= header.bottom && rows.bottom <= bar.top };
       }, beat.fold);
       if (!stands.control) throw new Error("the My day | Crew control is cut by the header");
+      if (!stands.chips) throw new Error("the day chips are cut by the header");
       if (!stands.rows) throw new Error(`${beat.fold}'s rows are not whole between the header and the next-pick bar`);
       await h.hold(beat.hold.fold);
     },
