@@ -3,20 +3,20 @@
    its holds. tools/reel/reel.mjs records it and tools/reel/beats.mjs holds
    each beat's moves; nothing here runs.
 
-   The words are Brian's to change: the name, the captions and LINK. LINK is
-   a placeholder as it stands, and reel.mjs refuses to render the end card or
-   join the film with it, but for a --draft run, which prints it as written.
+   The words are Brian's to change: the name and the three lines of the
+   title card, the captions, and the end card's two lines.
 
    Two rules the captions keep. A caption never says where a person is: a
    star is a pick, not a whereabouts (DECISIONS #68), so "your crew's picks",
    never "your crew". And none compares the app with the official one. */
 
-const PLACEHOLDER = "LINK";
+/* The title card: the name, small, over three large lines, the last in
+   gold. The end card: one large line, and the small line that says the app
+   is unofficial - the only place the film says so. */
 const WORDS = {
-  name: "The Dragon Con planner",
-  unofficial: "Unofficial and fan-made",
-  ending: "Works with no signal.",
-  link: PLACEHOLDER,
+  name: "Dragon Con Planner",
+  lines: ["Find the panel.", "Find the room.", "Find your crew."],
+  ending: "Coming September 2027",
   disclaimer: "Not affiliated with or endorsed by Dragon Con.",
 };
 
@@ -78,12 +78,14 @@ const CAST = {
   ],
 };
 
-/* The beats, in the film's order. A card is a picture held for its seconds;
-   every other beat is recorded from the page, under its caption. hold: how
+/* The beats, in the film's order. A card is a picture held for its seconds
+   - the title's stands over the view the beat it names opens on, taken from
+   the build at each run; every other beat is recorded from the page, under
+   its caption. hold: how
    long each view stands, in ms, by the clock - this is a film - after its
    move has ended; the rest is what beats.mjs taps. */
 const BEATS = [
-  { n: 1, key: "title", card: "title", seconds: 3 },
+  { n: 1, key: "title", card: "title", seconds: 3, over: "map" },
   { n: 2, key: "map", caption: "Find the room, not just the hotel.",
     hotel: "Marriott", level: "marquis", room: "M301",
     hold: { city: 3000, stack: 4000, level: 4000, room: 5000 } },
@@ -96,15 +98,15 @@ const BEATS = [
     sections: ["topic", "guest", "fandom"], page: "work:star-trek",
     hold: { grid: 1200, section: 1000, page: 1400, followed: 1800 } },
   { n: 5, key: "plans", caption: "Your day, and your crew's.",
-    fold: "Mara", foldAt: 236, foldScroll: 700,
+    fold: "Mara", foldScroll: 700,
     hold: { day: 2200, crew: 1400, opened: 500, fold: 2000 }, scroll: 1400 },
   { n: 6, key: "crew-map", caption: "See where your crew's picks are.",
     hotel: "Hilton",
     hold: { city: 2200, sheet: 4600 } },
   { n: 7, key: "now", caption: "At the con: what's on, and what's next.",
-    down: "On now and in the next hour", downAt: 240,
-    hold: { top: 3000, foot: 1200 }, scroll: 2800 },
+    stopBefore: "On now and in the next hour",
+    hold: { top: 3000, foot: 1400 }, scroll: 2600 },
   { n: 8, key: "end", card: "end", seconds: 4 },
 ];
 
-export { PLACEHOLDER, WORDS, MOMENT, CAST, BEATS };
+export { WORDS, MOMENT, CAST, BEATS };

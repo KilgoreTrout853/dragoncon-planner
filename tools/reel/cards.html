@@ -1,6 +1,8 @@
 <!doctype html>
-<!-- The teaser reel's pictures (DECISIONS #105): the title card, the end card,
-     each beat's caption on the ground, and the phone's corners and edge.
+<!-- The teaser reel's pictures (DECISIONS #105): the title card - its words
+     over the Map's stage, a picture reel.mjs takes from the build at each run
+     and hands in - the end card, each beat's caption on the ground, and the
+     phone's corners and edge.
      tools/reel/reel.mjs opens this page in Chromium, gives it Barlow from
      @fontsource/barlow-semi-condensed, calls draw() with one picture's words
      and takes a PNG, which ffmpeg lays on: no text is ever drawn by ffmpeg, so
@@ -19,11 +21,21 @@
   .band { position: absolute; left: 60px; right: 60px; top: 0; display: flex; align-items: center; justify-content: center; text-align: center; }
   .caption { font-size: 56px; font-weight: 600; line-height: 1.15; letter-spacing: .005em; text-wrap: balance; }
   .middle { position: absolute; inset: 0 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 44px; }
-  .name { font-size: 112px; font-weight: 700; line-height: 1.05; text-wrap: balance; }
+  /* The title card. The stage runs a little wider than the card, so that
+     the hotels at the con's middle stand near the middle of the upper half;
+     a shade of the ground lies over it, light at the top and solid by half
+     way down, and the words stand on the solid ground under it. */
+  .behind { position: absolute; left: -40px; top: 96px; width: 1160px; }
+  .behind img { display: block; width: 100%; }
+  .shade { position: absolute; inset: 0; background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--ink) 30%, transparent) 0%, color-mix(in srgb, var(--ink) 36%, transparent) 30%,
+    color-mix(in srgb, var(--ink) 82%, transparent) 43%, var(--ink) 52%); }
+  .over { position: absolute; left: 0; right: 0; top: 1092px; display: flex; flex-direction: column; align-items: center; }
+  .name { font-size: 38px; font-weight: 600; line-height: 1.2; letter-spacing: .22em; margin-right: -.22em; text-transform: uppercase; color: var(--gold); }
+  .lines { margin-top: 46px; font-size: 134px; font-weight: 700; line-height: 1.06; text-align: center; white-space: nowrap; }
+  .lines div:last-child { color: var(--gold); }
   .rule { width: 120px; height: 6px; border-radius: 3px; background: var(--gold); }
-  .quiet { font-size: 46px; font-weight: 500; color: var(--muted); text-wrap: balance; }
-  .ending { font-size: 92px; font-weight: 700; line-height: 1.08; text-wrap: balance; }
-  .link { font-size: 54px; font-weight: 600; color: var(--gold); overflow-wrap: anywhere; }
+  .ending { font-size: 88px; font-weight: 700; line-height: 1.08; white-space: nowrap; }
   .small { font-size: 36px; font-weight: 500; color: var(--muted); text-wrap: balance; }
   svg { position: absolute; inset: 0; }
 </style>
@@ -34,8 +46,9 @@
 /* One picture: {kind, colours: {ink, line, text, muted, gold}, phone: {x, y,
    w, h, r}} and the kind's own words. "ground" is a beat's backdrop, its
    caption standing in the band above the phone; "frame" is see-through but
-   for the phone's four corners, filled with the ground, and its edge. */
-function draw(spec) {
+   for the phone's four corners, filled with the ground, and its edge;
+   "title" takes a picture's address too. Resolved once the picture is in. */
+async function draw(spec) {
   const card = document.getElementById("card"), p = spec.phone;
   for (const [name, value] of Object.entries(spec.colours)) document.documentElement.style.setProperty(`--${name}`, value);
   card.className = spec.kind === "frame" ? "" : "filled";
@@ -51,15 +64,19 @@ function draw(spec) {
       <path fill="${spec.colours.ink}" fill-rule="evenodd" d="M${p.x - 2},${p.y - 2} h${p.w + 4} v${p.h + 4} h${-(p.w + 4)} z ${round}"/>
       <path fill="none" stroke="${spec.colours.line}" stroke-width="3" d="${round}"/></svg>`;
   } else if (spec.kind === "title") {
-    const middle = add(card, "div", "middle");
-    add(middle, "div", "name", spec.name);
-    add(middle, "div", "rule");
-    add(middle, "div", "quiet", spec.unofficial);
+    const picture = add(add(card, "div", "behind"), "img");
+    picture.alt = "";
+    picture.src = spec.picture;
+    await picture.decode();
+    add(card, "div", "shade");
+    const over = add(card, "div", "over");
+    add(over, "div", "name", spec.name);
+    const lines = add(over, "div", "lines");
+    for (const line of spec.lines) add(lines, "div", "", line);
   } else if (spec.kind === "end") {
     const middle = add(card, "div", "middle");
     add(middle, "div", "ending", spec.ending);
     add(middle, "div", "rule");
-    add(middle, "div", "link", spec.link);
     add(middle, "div", "small", spec.disclaimer);
   } else throw new Error(`cards.html: no such picture: ${spec.kind}`);
 }

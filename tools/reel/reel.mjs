@@ -5,14 +5,14 @@
 
      npm --prefix tools/reel ci              once: ffmpeg, pinned (ffmpeg-static)
      node tools/reel/reel.mjs                the whole film, tools/out/reel/teaser.mp4
-     node tools/reel/reel.mjs --draft        the same, with LINK printed as written
      node tools/reel/reel.mjs --beat 2       one beat alone, by number or by key;
                                              --beat 1,2 records both and joins them
      node tools/reel/reel.mjs --join         the eight clips on disk, joined again
 
    The storyboard is storyboard.mjs - the words, the moment, the cast and
    each beat's holds - the moves beats.mjs, the pictures cards.html and the
-   ffmpeg compose.mjs. Everything is written under tools/out/reel/, which git
+   ffmpeg compose.mjs. The title card stands over the Map's city as the
+   build draws it, taken afresh at each run and kept in no file of the repo. Everything is written under tools/out/reel/, which git
    ignores: the build, each beat's frames, its clip and a still of it, the
    pictures, the film and report.json, the numbers.
 
@@ -37,8 +37,8 @@
    duration.
 
    It fails loudly: a cast id the schedule does not hold, a port that is
-   taken, a face that is not Barlow, a tap whose target is not there - named
-   with its beat - or LINK left as it is without --draft. */
+   taken, a face that is not Barlow, or a tap whose target is not there,
+   named with its beat. */
 import fs from "node:fs";
 import http from "node:http";
 import net from "node:net";
@@ -48,7 +48,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium } from "@playwright/test";
 import { BACKEND, MOTION, ROOT, SEASON, seed } from "../../tests/browser/harness.js";
 import { fakeBackend } from "../../tests/helpers/backend.js";
-import { BEATS, CAST, MOMENT, PLACEHOLDER, WORDS } from "./storyboard.mjs";
+import { BEATS, CAST, MOMENT, WORDS } from "./storyboard.mjs";
 import { beats as MOVES } from "./beats.mjs";
 import { beatClip, cardClip, facts, findFfmpeg, join, still } from "./compose.mjs";
 
@@ -76,17 +76,16 @@ const wall = () => performance.timeOrigin + performance.now();
 
 /* ---- What was asked for -------------------------------------------- */
 function asked(argv) {
-  const args = { draft: false, join: false, beats: null };
+  const args = { join: false, beats: null };
   for (let at = 0; at < argv.length; at++) {
-    if (argv[at] === "--draft") args.draft = true;
-    else if (argv[at] === "--join") args.join = true;
+    if (argv[at] === "--join") args.join = true;
     else if (argv[at] === "--beat" && argv[at + 1]) {
       args.beats = argv[++at].split(",").map(name => {
         const beat = BEATS.find(b => String(b.n) === name.trim() || b.key === name.trim());
         if (!beat) throw new Error(`reel: no beat "${name}". The beats: ${BEATS.map(b => `${b.n} ${b.key}`).join(", ")}.`);
         return beat;
       });
-    } else throw new Error(`reel: what is "${argv[at]}"? The flags: --draft, --beat <number or key>[,...], --join.`);
+    } else throw new Error(`reel: what is "${argv[at]}"? The flags: --beat <number or key>[,...], --join.`);
   }
   return args;
 }
@@ -301,9 +300,11 @@ function hands(page, beat, marks, began) {
       if (began.at !== null) marks.push({ what, ms: Math.round(stopwatch() - began.at) });
       await page.touchscreen.tap(at.x, at.y);
     },
-    /* to: a top, "end", or {to: a selector, text, gap}: that element - the
-       first whose words begin with the text, where one is given - brought
-       to gap px under the scroller's own top, or as near as it scrolls. */
+    /* to: a top, "end", or {to: a selector, text, gap, at}: that element -
+       the first whose words begin with the text, where one is given -
+       brought to gap px under the scroller's own top, or, with at: {of,
+       edge}, under that edge, "top" or "bottom", of another element: the
+       header's foot, the tab bar's top. Or as near as it scrolls. */
     async scroll(scroller, to, ms) {
       const top = await page.evaluate(({ scroller, to }) => {
         const el = document.querySelector(scroller);
@@ -311,7 +312,9 @@ function hands(page, beat, marks, began) {
         if (to === "end") return el.scrollHeight - el.clientHeight;
         if (typeof to === "number") return to;
         const target = [...document.querySelectorAll(to.to)].find(found => (found.textContent || "").trim().startsWith(to.text || ""));
-        return target ? el.scrollTop + target.getBoundingClientRect().top - el.getBoundingClientRect().top - (to.gap || 0) : null;
+        const edge = to.at ? document.querySelector(to.at.of) : el;
+        if (!target || !edge) return null;
+        return el.scrollTop + target.getBoundingClientRect().top - edge.getBoundingClientRect()[to.at ? to.at.edge : "top"] - (to.gap || 0);
       }, { scroller, to });
       if (top === null) throw stop(`nothing to scroll to: ${scroller}, ${JSON.stringify(to)}`);
       await page.evaluate(([sel, y, time]) => window.__reel.scroll(sel, y, time), [scroller, top, ms]);
@@ -336,20 +339,17 @@ function hands(page, beat, marks, began) {
 const tag = beat => `${String(beat.n).padStart(2, "0")}-${beat.key}`;
 const median = list => { const sorted = [...list].sort((a, b) => a - b); return sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0; };
 
-async function record(browser, beat, log) {
-  const moves = MOVES[beat.key];
-  if (!moves) throw new Error(`reel: beat ${beat.n} (${beat.key}) has no moves in beats.mjs.`);
-  const dir = path.join(OUT, "frames", tag(beat));
-  fs.rmSync(dir, { recursive: true, force: true });
-  fs.mkdirSync(dir, { recursive: true });
-
+/* The page, opened as the reader's phone, the backend made afresh behind
+   it: the schedule in, Barlow the face, the first sync back with the crew.
+   screen: its size and device scale - the film's, unless told. */
+async function phone(browser, beat, log, { viewport = SCREEN, scale = 1 } = {}) {
   const { fake, session } = await backend();
   /* What the phone holds, by the names src/build.js storageKey() gives a
      build with no channel - harness.js seed() spells them: the session, the
      reader's picks, the install card put off, and Plans on My day. */
   const storage = { session, picks: CAST.reader.picks, nudgeSnoozedUntil: 4102444800000, plansView: "mine" };
   const context = await browser.newContext({
-    viewport: SCREEN, deviceScaleFactor: 1, isMobile: true, hasTouch: true, serviceWorkers: "block",
+    viewport, deviceScaleFactor: scale, isMobile: true, hasTouch: true, serviceWorkers: "block",
     timezoneId: SEASON.tz, locale: "en-US", storageState: seed(storage, ORIGIN),
   });
   try {
@@ -368,20 +368,61 @@ async function record(browser, beat, log) {
     await page.waitForFunction(([key, people]) => {
       try { const crews = JSON.parse(localStorage.getItem(key) || "[]"); return crews.length === 1 && crews[0].members.length === people; } catch (e) { return false; }
     }, [crewKey, CAST.mates.length + 1]);
+    return { context, page, faults };
+  } catch (e) {
+    await context.close();
+    throw e;
+  }
+}
 
+/* A beat's setup, run: the page at rest after it, and no dot of its taps
+   left fading - a frame is kept, and a picture taken, only once every one
+   of them is gone. A move that stops the run says which beat it was. */
+async function named(beat, work) {
+  try { await work(); }
+  catch (e) { throw String(e.message).startsWith("reel:") ? e : new Error(`reel: beat ${beat.n} (${beat.key}): ${e.message}`, { cause: e }); }
+}
+async function setUp(page, h, beat, moves, as = beat) {
+  await h.settle();
+  await named(beat, () => moves.setup(h, as));
+  await h.settle();
+  await page.waitForFunction(dot => !document.getAnimations().some(anim => anim.id === dot), DOT, { polling: "raf" });
+  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+}
+
+/* The title card's picture: the Map's stage - the drawing's own box and
+   nothing round it - as the beat the card stands over opens on it, from the
+   page this run built, at four times a phone's pixels so that the card can
+   draw it larger. One still frame: no dot, and the rings round the hotels
+   as they stand before they pulse. */
+async function stagePicture(browser, beat, log) {
+  const over = BEATS.find(other => other.key === beat.over), moves = over && MOVES[over.key];
+  if (!moves) throw new Error(`reel: beat ${beat.n} (${beat.key}) stands over "${beat.over}", which is no recorded beat.`);
+  const { context, page, faults } = await phone(browser, beat, log, { viewport: LAYOUT, scale: 4 });
+  try {
+    await setUp(page, hands(page, beat, [], { at: null }), beat, moves, over);
+    const stage = page.locator("#view-map svg:has(.map-city)");
+    if (await stage.count() !== 1) throw new Error(`reel: beat ${beat.n} (${beat.key}): the Map's stage is not there: #view-map svg:has(.map-city)`);
+    const file = path.join(OUT, "cards", "stage.png");
+    await stage.screenshot({ path: file, type: "png", animations: "disabled" });
+    if (faults.length) throw new Error(`reel: beat ${beat.n} (${beat.key}): the page threw: ${faults.join("; ")}`);
+    return file;
+  } finally {
+    await context.close();
+  }
+}
+
+async function record(browser, beat, log) {
+  const moves = MOVES[beat.key];
+  if (!moves) throw new Error(`reel: beat ${beat.n} (${beat.key}) has no moves in beats.mjs.`);
+  const dir = path.join(OUT, "frames", tag(beat));
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+
+  const { context, page, faults } = await phone(browser, beat, log);
+  try {
     const marks = [], began = { at: null }, h = hands(page, beat, marks, began);
-    /* a move that stops the run says which beat it was */
-    const named = async work => {
-      try { await work(); }
-      catch (e) { throw String(e.message).startsWith("reel:") ? e : new Error(`reel: beat ${beat.n} (${beat.key}): ${e.message}`, { cause: e }); }
-    };
-    await h.settle();
-    await named(() => moves.setup(h, beat));
-    await h.settle();
-    /* and no dot of the setup's is left fading: a frame is kept only once
-       every one of them is gone */
-    await page.waitForFunction(dot => !document.getAnimations().some(anim => anim.id === dot), DOT, { polling: "raf" });
-    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await setUp(page, h, beat, moves);
 
     /* The frames: each acknowledged as it comes, so that the next is sent,
        and kept with the moment the browser drew it. */
@@ -402,7 +443,7 @@ async function record(browser, beat, log) {
     const start = wall();
     began.at = stopwatch();
     frames[0].at = start;
-    await named(() => moves.play(h, beat));
+    await named(beat, () => moves.play(h, beat));
     const end = wall();
     await cdp.send("Page.stopScreencast");
     await Promise.all(written);
@@ -447,9 +488,8 @@ function colours() {
   }
   return out;
 }
-async function pictures(browser, chosen) {
+async function pictures(browser, chosen, stage) {
   const dir = path.join(OUT, "cards");
-  fs.mkdirSync(dir, { recursive: true });
   const page = await browser.newPage({ viewport: CANVAS, deviceScaleFactor: 1 });
   const asks = [];
   page.on("request", request => { if (!/^(data|file):/.test(request.url())) asks.push(request.url()); });
@@ -459,14 +499,19 @@ async function pictures(browser, chosen) {
   await barlow(page, "the cards");
   const base = { colours: colours(), phone: PHONE }, made = {};
   const draw = async (name, spec, clear) => {
-    await page.evaluate(picture => { window.draw(picture); return document.fonts.ready.then(() => true); }, { ...base, ...spec });
+    await page.evaluate(picture => window.draw(picture).then(() => document.fonts.ready).then(() => true), { ...base, ...spec });
     made[name] = path.join(dir, `${name}.png`);
     await page.screenshot({ path: made[name], type: "png", omitBackground: !!clear });
   };
   await draw("frame", { kind: "frame" }, true);
   for (const beat of chosen) {
-    if (beat.card === "title") await draw(tag(beat), { kind: "title", name: WORDS.name, unofficial: WORDS.unofficial });
-    else if (beat.card === "end") await draw(tag(beat), { kind: "end", ending: WORDS.ending, link: WORDS.link, disclaimer: WORDS.disclaimer });
+    if (beat.card === "title") {
+      await draw(tag(beat), { kind: "title", name: WORDS.name, lines: WORDS.lines, picture: pathToFileURL(stage).href });
+      /* each large line whole, on one line, inside the card */
+      const cut = await page.evaluate(() => [...document.querySelectorAll(".lines div")].filter(line => { const box = line.getBoundingClientRect(); return box.left < 40 || box.right > 1040; }).map(line => line.textContent));
+      if (cut.length) throw new Error(`reel: the title card's line does not fit the card: ${cut.join(" | ")}`);
+      if (!await page.evaluate(() => { const img = document.querySelector(".behind img"); return !!img && img.complete && img.naturalWidth > 0; })) throw new Error("reel: the title card's picture did not load.");
+    } else if (beat.card === "end") await draw(tag(beat), { kind: "end", ending: WORDS.ending, disclaimer: WORDS.disclaimer });
     else await draw(tag(beat), { kind: "ground", caption: beat.caption });
   }
   await page.close();
@@ -478,28 +523,28 @@ async function pictures(browser, chosen) {
 async function main() {
   const args = asked(process.argv.slice(2));
   const chosen = args.join ? [] : args.beats || BEATS, whole = args.join || !args.beats;
-  if (WORDS.link === PLACEHOLDER && !args.draft && (whole || chosen.some(beat => beat.card === "end"))) {
-    throw new Error(`reel: the link is still "${PLACEHOLDER}" (storyboard.mjs, WORDS.link). Give the film its link, or run with --draft to print it as written.`);
-  }
   castChecked();
   const { ffmpeg, libx264 } = findFfmpeg();
   say(`ffmpeg: ${ffmpeg}\n  ${libx264}`);
-  for (const sub of ["clips", "stills"]) fs.mkdirSync(path.join(OUT, sub), { recursive: true });
+  for (const sub of ["clips", "stills", "cards"]) fs.mkdirSync(path.join(OUT, sub), { recursive: true });
   const clipOf = beat => path.join(OUT, "clips", `${tag(beat)}.mp4`);
   const report = { moment: MOMENT, screen: SCREEN, layout: LAYOUT, beats: [], refused: [] };
 
   if (chosen.length) {
-    const recorded = chosen.filter(beat => !beat.card);
+    /* the page is wanted by every recorded beat, and by a card that stands over one */
+    const title = chosen.find(beat => beat.over);
     let server = null;
     const browser = await chromium.launch();
     try {
-      if (recorded.length) {
+      if (title || chosen.some(beat => !beat.card)) {
         say(`building the reel's page, at ${MOMENT}, into ${path.relative(ROOT, BUILD)}`);
         build();
         server = await serve();
       }
-      const made = await pictures(browser, chosen);
       const log = { answered: 0, refused: report.refused, backend: [] };
+      const stage = title ? await stagePicture(browser, title, log) : null;
+      log.backend.length = 0;
+      const made = await pictures(browser, chosen, stage);
       for (const beat of chosen) {
         const out = clipOf(beat);
         let seconds, numbers = {};

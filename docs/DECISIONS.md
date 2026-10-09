@@ -3520,8 +3520,8 @@ test, build or workflow runs it, and it changes nothing a reader sees.
   a phone's and the served page's viewport meta is rewritten to a phone's
   width, so the page lays out as a phone, drawn twice the size.
 - **The storyboard is data:** the words, the moment, the cast, each beat's
-  holds. A caption never says where a person is (#68). The link is a
-  placeholder, and no final cut is rendered with it.
+  holds. A caption never says where a person is (#68). The title card
+  stands over the Map as the build draws it, taken afresh at each run.
 - **ffmpeg** sets the frames at their durations into H.264 at 60 frames a
   second; every word on the film is a picture drawn in the same Chromium.
 

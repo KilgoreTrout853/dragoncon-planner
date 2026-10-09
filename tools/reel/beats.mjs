@@ -9,7 +9,9 @@
      settle()                the move has ended: its animations are gone
                              and nothing is scrolling
      hold(ms)                the view stands, by the clock
-     scroll(scroller, to, ms)  an eased scroll of the script's own
+     scroll(scroller, to, ms)  an eased scroll of the script's own, to a
+                             top, the end, or an element brought under an
+                             edge of another
      see(selector, what)     it is on the page, or the run stops
      text(selector), choose(select, words), and page for the rest
 
@@ -116,8 +118,10 @@ const beats = {
   },
 
   /* Plans: My day's timeline, eased down its afternoon and back, then the
-     crew's day and one person's fold, brought up the screen once it is open
-     so that its last row stands whole above the next-pick bar. */
+     crew's day and one person's fold. Once it is open the page is brought
+     up until the My day | Crew control stands whole just under the header -
+     never cut by it - which leaves the fold's last row whole above the
+     next-pick bar; the run stops where either is not so. */
   plans: {
     async setup(h) {
       await h.tap('nav button[data-tab="plans"]', "the Plans tab");
@@ -135,7 +139,16 @@ const beats = {
       await h.tap({ selector: "button.crew-fold", text: beat.fold }, `${beat.fold}'s fold`);
       await h.settle();
       await h.hold(beat.hold.opened);
-      await h.scroll("main", { to: "button.crew-fold", text: beat.fold, gap: beat.foldAt }, beat.foldScroll);
+      await h.scroll("main", { to: ".plans-seg", at: { of: ".hdr", edge: "bottom" }, gap: 12 }, beat.foldScroll);
+      const stands = await h.page.evaluate(who => {
+        const box = el => el.getBoundingClientRect();
+        const head = [...document.querySelectorAll("button.crew-fold")].find(fold => fold.textContent.trim().startsWith(who));
+        const rows = box(document.getElementById(head.getAttribute("aria-controls"))), control = box(document.querySelector(".plans-seg"));
+        const header = box(document.querySelector(".hdr")), bar = box(document.getElementById("minibar"));
+        return { control: control.top >= header.bottom || control.bottom <= header.bottom, rows: rows.top >= header.bottom && rows.bottom <= bar.top };
+      }, beat.fold);
+      if (!stands.control) throw new Error("the My day | Crew control is cut by the header");
+      if (!stands.rows) throw new Error(`${beat.fold}'s rows are not whole between the header and the next-pick bar`);
       await h.hold(beat.hold.fold);
     },
   },
@@ -159,7 +172,9 @@ const beats = {
   },
 
   /* Now: the hero and "Your crew's picks right now", held; then eased down
-     through Rest of your day into what is on now and in the next hour. */
+     until Rest of your day fills the screen, and no further: the section
+     after it stays under the tab bar, so the beat ends on the reader's own
+     plan. */
   now: {
     async setup(h) {
       await h.see("#nowHero", "the hero");
@@ -168,7 +183,12 @@ const beats = {
     },
     async play(h, beat) {
       await h.hold(beat.hold.top);
-      await h.scroll("main", { to: "#view-now .section-title", text: beat.down, gap: beat.downAt }, beat.scroll);
+      await h.scroll("main", { to: "#view-now .section-title", text: beat.stopBefore, at: { of: "nav", edge: "top" }, gap: 2 }, beat.scroll);
+      const hidden = await h.page.evaluate(words => {
+        const title = [...document.querySelectorAll("#view-now .section-title")].find(found => found.textContent.trim().startsWith(words));
+        return !!title && title.getBoundingClientRect().top >= document.querySelector("nav").getBoundingClientRect().top;
+      }, beat.stopBefore);
+      if (!hidden) throw new Error(`"${beat.stopBefore}" came into view`);
       await h.hold(beat.hold.foot);
     },
   },

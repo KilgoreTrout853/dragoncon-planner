@@ -67,12 +67,11 @@ A film of the app's key features, recorded by script so that it can be recorded 
 ```bash
 npm --prefix tools/reel ci            # once: ffmpeg-static, pinned; its install fetches the binary, about 80 MB
 node tools/reel/reel.mjs              # the whole film: tools/out/reel/teaser.mp4, with each beat's clip and still
-node tools/reel/reel.mjs --draft      # the same, with the end card's LINK printed as written
 node tools/reel/reel.mjs --beat 2     # one beat alone, by number or key; --beat 1,2 records both and joins them
 node tools/reel/reel.mjs --join       # the eight clips on disk, joined again, after a beat was redone alone
 ```
 
-The name, the captions, the link, the moment, the cast and every hold are in `tools/reel/storyboard.mjs`. The end card's link is a placeholder, `LINK`, and the script renders no final cut with it: give it the link, or run with `--draft`. npm 11 warns that `ffmpeg-static`'s install script is "not yet covered by allowScripts" and runs it all the same; if `tools/reel/node_modules/ffmpeg-static/` then holds no ffmpeg, a newer npm has held the script back, and `npm --prefix tools/reel approve-scripts ffmpeg-static` lets it run. It records in Chromium alone, on port 4183, and nothing it asks for leaves the machine.
+The title card's and the end card's words, the captions, the moment, the cast and every hold are in `tools/reel/storyboard.mjs`. The title card stands over the Map as the build draws it, taken afresh at each run. npm 11 warns that `ffmpeg-static`'s install script is "not yet covered by allowScripts" and runs it all the same; if `tools/reel/node_modules/ffmpeg-static/` then holds no ffmpeg, a newer npm has held the script back, and `npm --prefix tools/reel approve-scripts ffmpeg-static` lets it run. It records in Chromium alone, on port 4183, and nothing it asks for leaves the machine.
 
 ## Running the pipeline
 
