@@ -18,6 +18,7 @@ A phone-first schedule planner built on the data behind the official Dragon Con 
 | `public/sw.js` | Service worker: keeps the app opening and rendering with no signal. |
 | `public/manifest.json`, `icon.svg`, `icon-*.png`, `og-image.png` | Make it installable to a home screen as "DC26", with a proper icon on iOS, one drawn for Android's mask (`icon-maskable-*.png`) and a preview card in chats. The drawings hold no year. |
 | `tools/render-icons.mjs`, `tools/icons/` | `node tools/render-icons.mjs`, run by hand, renders the five icon PNGs and the preview image from `public/icon.svg` and the two drawings in `tools/icons/`, with the browser tests' Chromium. What it writes carries no credentials block, so the committed images are the design's own files until a drawing changes. |
+| `tools/reel/` | The teaser reel: `node tools/reel/reel.mjs`, run by hand, records a film of the app's key features, about a minute long, from a build of its own, and writes it to `tools/out/reel/teaser.mp4` (DECISIONS #105). Its words, moment, cast and holds are data, in `storyboard.mjs`. See The teaser reel. |
 | `.github/workflows/scrape.yml` | Runs the pipeline hourly in the season's window, and by hand, and lands each run that changed a file by pull request, with auto-merge. See The scrape workflow. |
 | `mirror.py`, `.github/workflows/mirror.yml` | Copies a year's committed schedule and change log into the Supabase project, for the push job: on a push that changes them, hourly in the season's window, and by hand. See The mirror. |
 | `supabase/functions/push/` | The push job: a function in the Supabase project that pg_cron calls every minute while the kill switch is on, telling a reader's browsers when a pick starts within fifteen minutes, and when a scrape changed one (DECISIONS #55; `docs/sync/contract.md`, section 7). |
@@ -58,6 +59,20 @@ CI runs the same commands on every pull request (`.github/workflows/ci.yml`); a 
 The browser tests (`tests/browser/`, DECISIONS #81) check layout, which jsdom cannot: nothing scrolls sideways and no control is cut off, on every tab, and a named test for each layout fault. They build the page themselves and serve it on port 4173 - and a second build, told of a backend that the tests themselves answer, on 4174 - and stop with a message if something is already listening on either. The one-time install puts Chromium and WebKit under `%LOCALAPPDATA%\ms-playwright` on Windows (`~/.cache/ms-playwright` on Linux, where `npx playwright install-deps chromium webkit` adds the system libraries they need). A failed run leaves a report: `npx playwright show-report`.
 
 The page tests boot the source in jsdom against `tests/sample-events.json` (558 synthetic events in the v2 shape, deterministic, which `python tools/sample_v2.py` makes from `tests/sample-events.v1.json`; CI checks it is fresh); `tests/real-data.test.js` boots it once more against the real `data/2026/events.v2.json`, because ranking questions are meaningless against synthetic rows. `docs/ARCHITECTURE.md` says how the suite is put together.
+
+## The teaser reel
+
+A film of the app's key features, recorded by script so that it can be recorded again whenever the app changes (`tools/reel/`, DECISIONS #105). It needs the browser tests' Chromium, above, and an ffmpeg of its own, which the root `npm ci` does not fetch:
+
+```bash
+npm --prefix tools/reel ci            # once: ffmpeg-static, pinned; its install fetches the binary, about 80 MB
+node tools/reel/reel.mjs              # the whole film: tools/out/reel/teaser.mp4, with each beat's clip and still
+node tools/reel/reel.mjs --draft      # the same, with the end card's LINK printed as written
+node tools/reel/reel.mjs --beat 2     # one beat alone, by number or key; --beat 1,2 records both and joins them
+node tools/reel/reel.mjs --join       # the eight clips on disk, joined again, after a beat was redone alone
+```
+
+The name, the captions, the link, the moment, the cast and every hold are in `tools/reel/storyboard.mjs`. The end card's link is a placeholder, `LINK`, and the script renders no final cut with it: give it the link, or run with `--draft`. npm 11 warns that `ffmpeg-static`'s install script is "not yet covered by allowScripts" and runs it all the same; if `tools/reel/node_modules/ffmpeg-static/` then holds no ffmpeg, a newer npm has held the script back, and `npm --prefix tools/reel approve-scripts ffmpeg-static` lets it run. It records in Chromium alone, on port 4183, and nothing it asks for leaves the machine.
 
 ## Running the pipeline
 

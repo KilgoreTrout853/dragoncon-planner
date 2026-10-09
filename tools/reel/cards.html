@@ -1,0 +1,68 @@
+<!doctype html>
+<!-- The teaser reel's pictures (DECISIONS #105): the title card, the end card,
+     each beat's caption on the ground, and the phone's corners and edge.
+     tools/reel/reel.mjs opens this page in Chromium, gives it Barlow from
+     @fontsource/barlow-semi-condensed, calls draw() with one picture's words
+     and takes a PNG, which ffmpeg lays on: no text is ever drawn by ffmpeg, so
+     no font is installed on any machine. The colours are the app's own, read
+     from src/styles.css by reel.mjs and handed in; the words are
+     storyboard.mjs's. Opened by hand it shows nothing. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The teaser reel's cards</title>
+<style>
+  html, body { margin: 0; background: transparent; }
+  body { font-family: "Barlow Semi Condensed", monospace; color: var(--text); }
+  #card { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  #card.filled { background: var(--ink); }
+  .band { position: absolute; left: 60px; right: 60px; top: 0; display: flex; align-items: center; justify-content: center; text-align: center; }
+  .caption { font-size: 56px; font-weight: 600; line-height: 1.15; letter-spacing: .005em; text-wrap: balance; }
+  .middle { position: absolute; inset: 0 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 44px; }
+  .name { font-size: 112px; font-weight: 700; line-height: 1.05; text-wrap: balance; }
+  .rule { width: 120px; height: 6px; border-radius: 3px; background: var(--gold); }
+  .quiet { font-size: 46px; font-weight: 500; color: var(--muted); text-wrap: balance; }
+  .ending { font-size: 92px; font-weight: 700; line-height: 1.08; text-wrap: balance; }
+  .link { font-size: 54px; font-weight: 600; color: var(--gold); overflow-wrap: anywhere; }
+  .small { font-size: 36px; font-weight: 500; color: var(--muted); text-wrap: balance; }
+  svg { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div id="card"></div>
+<script>
+/* One picture: {kind, colours: {ink, line, text, muted, gold}, phone: {x, y,
+   w, h, r}} and the kind's own words. "ground" is a beat's backdrop, its
+   caption standing in the band above the phone; "frame" is see-through but
+   for the phone's four corners, filled with the ground, and its edge. */
+function draw(spec) {
+  const card = document.getElementById("card"), p = spec.phone;
+  for (const [name, value] of Object.entries(spec.colours)) document.documentElement.style.setProperty(`--${name}`, value);
+  card.className = spec.kind === "frame" ? "" : "filled";
+  card.textContent = "";
+  const add = (parent, tag, cls, text) => { const el = document.createElement(tag); if (cls) el.className = cls; if (text !== undefined) el.textContent = text; parent.appendChild(el); return el; };
+  if (spec.kind === "ground") {
+    const band = add(card, "div", "band");
+    band.style.height = `${p.y}px`;
+    add(band, "div", "caption", spec.caption);
+  } else if (spec.kind === "frame") {
+    const round = `M${p.x + p.r},${p.y} h${p.w - 2 * p.r} a${p.r},${p.r} 0 0 1 ${p.r},${p.r} v${p.h - 2 * p.r} a${p.r},${p.r} 0 0 1 ${-p.r},${p.r} h${-(p.w - 2 * p.r)} a${p.r},${p.r} 0 0 1 ${-p.r},${-p.r} v${-(p.h - 2 * p.r)} a${p.r},${p.r} 0 0 1 ${p.r},${-p.r} z`;
+    card.innerHTML = `<svg width="1080" height="1920" viewBox="0 0 1080 1920">
+      <path fill="${spec.colours.ink}" fill-rule="evenodd" d="M${p.x - 2},${p.y - 2} h${p.w + 4} v${p.h + 4} h${-(p.w + 4)} z ${round}"/>
+      <path fill="none" stroke="${spec.colours.line}" stroke-width="3" d="${round}"/></svg>`;
+  } else if (spec.kind === "title") {
+    const middle = add(card, "div", "middle");
+    add(middle, "div", "name", spec.name);
+    add(middle, "div", "rule");
+    add(middle, "div", "quiet", spec.unofficial);
+  } else if (spec.kind === "end") {
+    const middle = add(card, "div", "middle");
+    add(middle, "div", "ending", spec.ending);
+    add(middle, "div", "rule");
+    add(middle, "div", "link", spec.link);
+    add(middle, "div", "small", spec.disclaimer);
+  } else throw new Error(`cards.html: no such picture: ${spec.kind}`);
+}
+</script>
+</body>
+</html>
