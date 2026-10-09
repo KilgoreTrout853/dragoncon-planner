@@ -105,7 +105,7 @@ const BEATS = [
   { n: 6, key: "crew-map", caption: "See where your crew's picks are.",
     hotel: "Hilton",
     hold: { city: 2200, sheet: 4600 } },
-  { n: 7, key: "now", caption: "At the con: what's on, and what's next.",
+  { n: 7, key: "now", caption: "At the con: what's now, and what's next.",
     stopBefore: "On now and in the next hour",
     hold: { top: 3000, foot: 1400 }, scroll: 2600 },
   /* seconds: the card's whole hold; yetAfter: how long it stands before its last word comes */
