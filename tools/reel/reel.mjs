@@ -523,8 +523,12 @@ async function pictures(browser, chosen, stage) {
       const cut = await page.evaluate(() => [...document.querySelectorAll(".lines div")].filter(line => { const box = line.getBoundingClientRect(); return box.left < 40 || box.right > 1040; }).map(line => line.textContent));
       if (cut.length) throw new Error(`reel: the title card's line does not fit the card: ${cut.join(" | ")}`);
       if (!await page.evaluate(() => { const img = document.querySelector(".behind img"); return !!img && img.complete && img.naturalWidth > 0; })) throw new Error("reel: the title card's picture did not load.");
-    } else if (beat.card === "end") await draw(tag(beat), { kind: "end", ending: WORDS.ending, disclaimer: WORDS.disclaimer });
-    else await draw(tag(beat), { kind: "ground", caption: beat.caption });
+    } else if (beat.card === "end") {
+      /* twice: as it stands first, and with its last word */
+      const words = { kind: "end", ending: WORDS.ending, endorsed: WORDS.endorsed, yet: WORDS.yet };
+      await draw(`${tag(beat)}-before`, { ...words, yetShown: false });
+      await draw(tag(beat), { ...words, yetShown: true });
+    } else await draw(tag(beat), { kind: "ground", caption: beat.caption });
   }
   await page.close();
   if (asks.length) throw new Error(`reel: the cards asked for ${asks.join(", ")}`);
@@ -560,8 +564,12 @@ async function main() {
       for (const beat of chosen) {
         const out = clipOf(beat);
         let seconds, numbers = {};
-        if (beat.card) seconds = cardClip({ ffmpeg, picture: made[tag(beat)], seconds: beat.seconds, out });
-        else {
+        if (beat.card) {
+          const before = made[`${tag(beat)}-before`];
+          seconds = cardClip({ ffmpeg, out, parts: before
+            ? [{ picture: before, seconds: beat.yetAfter }, { picture: made[tag(beat)], seconds: beat.seconds - beat.yetAfter }]
+            : [{ picture: made[tag(beat)], seconds: beat.seconds }] });
+        } else {
           const shot = await record(browser, beat, log);
           numbers = shot.numbers;
           seconds = beatClip({ ffmpeg, ground: made[tag(beat)], frame: made.frame, frames: shot.timed, phone: PHONE, out });

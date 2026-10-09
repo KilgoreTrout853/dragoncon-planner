@@ -11,13 +11,15 @@
    never "your crew". And none compares the app with the official one. */
 
 /* The title card: the name, small, over three large lines, the last in
-   gold. The end card: one large line, and the small line that says the app
-   is unofficial - the only place the film says so. */
+   gold. The end card: one large line, and under it the line that says the
+   app is not Dragon Con's - the only place the film says so - with its last
+   word, in gold, coming a moment after the rest. */
 const WORDS = {
   name: "Dragon Con Planner",
   lines: ["Find the panel.", "Find the room.", "Find your crew."],
   ending: "Coming September 2027",
-  disclaimer: "Not affiliated with or endorsed by Dragon Con.",
+  endorsed: "Not endorsed by Dragon Con.",
+  yet: "Yet.",
 };
 
 /* The build's default moment (DC_NOW; DECISIONS #99): the Saturday of the
@@ -86,14 +88,14 @@ const CAST = {
    move has ended; the rest is what beats.mjs taps. */
 const BEATS = [
   { n: 1, key: "title", card: "title", seconds: 3, over: "map" },
-  { n: 2, key: "map", caption: "Find the room, not just the hotel.",
-    hotel: "Marriott", level: "marquis", room: "M301",
-    hold: { city: 3000, stack: 4000, level: 4000, room: 5000 } },
-  { n: 3, key: "filters", caption: "Every filter, one screen.",
+  { n: 2, key: "filters", caption: "Every filter, one screen.",
     groups: ["Hotel", "What it's about", "Type", "Kind", "Getting in"],
     hotel: "Marriott", kind: "qa", select: { id: "filterGenre", value: "Sci-Fi" },
     whole: "Show 3,053 events",
     hold: { search: 900, days: 900, sheet: 800, foot: 600, chip: 900, list: 1800 }, scroll: 1700 },
+  { n: 3, key: "map", caption: "Find the room, not just the hotel.",
+    hotel: "Marriott", level: "marquis", room: "M301",
+    hold: { city: 3000, stack: 4000, level: 4000, room: 5000 } },
   { n: 4, key: "explore", caption: "Browse by track, fandom, topic or guest.",
     sections: ["topic", "guest", "fandom"], page: "work:star-trek",
     hold: { grid: 1200, section: 1000, page: 1400, followed: 1800 } },
@@ -106,7 +108,8 @@ const BEATS = [
   { n: 7, key: "now", caption: "At the con: what's on, and what's next.",
     stopBefore: "On now and in the next hour",
     hold: { top: 3000, foot: 1400 }, scroll: 2600 },
-  { n: 8, key: "end", card: "end", seconds: 4 },
+  /* seconds: the card's whole hold; yetAfter: how long it stands before its last word comes */
+  { n: 8, key: "end", card: "end", seconds: 5, yetAfter: 1 },
 ];
 
 export { WORDS, MOMENT, CAST, BEATS };

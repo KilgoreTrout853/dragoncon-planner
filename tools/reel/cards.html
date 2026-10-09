@@ -36,7 +36,12 @@
   .lines div:last-child { color: var(--gold); }
   .rule { width: 120px; height: 6px; border-radius: 3px; background: var(--gold); }
   .ending { font-size: 88px; font-weight: 700; line-height: 1.08; white-space: nowrap; }
-  .small { font-size: 36px; font-weight: 500; color: var(--muted); text-wrap: balance; }
+  /* The end card's second line, between the large line and a small one in
+     size. Its last word is gold and bold, and is drawn in both of the
+     card's pictures - unseen in the first - so that the rest stands where
+     it stood when the word comes. */
+  .second { font-size: 52px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+  .second .yet { font-weight: 700; color: var(--gold); }
   svg { position: absolute; inset: 0; }
 </style>
 </head>
@@ -47,7 +52,8 @@
    w, h, r, edge}} and the kind's own words. "ground" is a beat's backdrop, its
    caption standing in the band above the phone; "frame" is see-through but
    for the phone's four corners, filled with the ground, and its edge;
-   "title" takes a picture's address too. Resolved once the picture is in. */
+   "title" takes a picture's address too; "end" is drawn twice, with yetShown
+   false and then true. Resolved once the picture is in. */
 async function draw(spec) {
   const card = document.getElementById("card"), p = spec.phone;
   for (const [name, value] of Object.entries(spec.colours)) document.documentElement.style.setProperty(`--${name}`, value);
@@ -77,7 +83,9 @@ async function draw(spec) {
     const middle = add(card, "div", "middle");
     add(middle, "div", "ending", spec.ending);
     add(middle, "div", "rule");
-    add(middle, "div", "small", spec.disclaimer);
+    const second = add(middle, "div", "second");
+    add(second, "span", "", `${spec.endorsed} `);
+    add(second, "span", "yet", spec.yet).style.visibility = spec.yetShown ? "visible" : "hidden";
   } else throw new Error(`cards.html: no such picture: ${spec.kind}`);
 }
 </script>

@@ -64,9 +64,14 @@ function beatClip({ ffmpeg, ground, frame, frames, phone, out }) {
   return seconds;
 }
 
-/* A card's clip: its picture, held. */
-function cardClip({ ffmpeg, picture, seconds, out }) {
-  run(ffmpeg, ["-loop", "1", "-framerate", String(FPS), "-i", picture, "-vf", `format=rgb24,${TO_FILE}`, "-t", String(seconds), ...ENCODE, out], path.basename(out));
+/* A card's clip: its picture, held - or its pictures, each held for its
+   seconds, one after another with a plain cut. parts: [{picture, seconds}]. */
+function cardClip({ ffmpeg, parts, out }) {
+  const list = out.replace(/\.mp4$/, ".cards.txt"), named = file => `file '${file.replace(/\\/g, "/")}'`;
+  fs.writeFileSync(list, ["ffconcat version 1.0", ...parts.flatMap(part => [named(part.picture), `duration ${part.seconds.toFixed(6)}`]), named(parts[parts.length - 1].picture), ""].join("\n"));
+  const seconds = parts.reduce((sum, part) => sum + part.seconds, 0);
+  run(ffmpeg, ["-f", "concat", "-safe", "0", "-i", list, "-vf", `fps=${FPS},format=rgb24,${TO_FILE}`, "-t", String(seconds), ...ENCODE, out], path.basename(out));
+  fs.rmSync(list);
   return seconds;
 }
 
