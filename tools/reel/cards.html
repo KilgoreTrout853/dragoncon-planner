@@ -1,0 +1,93 @@
+<!doctype html>
+<!-- The teaser reel's pictures (DECISIONS #105): the title card - its words
+     over the Map's stage, a picture reel.mjs takes from the build at each run
+     and hands in - the end card, each beat's caption on the ground, and the
+     phone's corners and edge.
+     tools/reel/reel.mjs opens this page in Chromium, gives it Barlow from
+     @fontsource/barlow-semi-condensed, calls draw() with one picture's words
+     and takes a PNG, which ffmpeg lays on: no text is ever drawn by ffmpeg, so
+     no font is installed on any machine. The colours are the app's own, read
+     from src/styles.css by reel.mjs and handed in; the words are
+     storyboard.mjs's. Opened by hand it shows nothing. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The teaser reel's cards</title>
+<style>
+  html, body { margin: 0; background: transparent; }
+  body { font-family: "Barlow Semi Condensed", monospace; color: var(--text); }
+  #card { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  #card.filled { background: var(--ink); }
+  .band { position: absolute; left: 60px; right: 60px; top: 0; display: flex; align-items: center; justify-content: center; text-align: center; }
+  .caption { font-size: 56px; font-weight: 600; line-height: 1.15; letter-spacing: .005em; text-wrap: balance; }
+  .middle { position: absolute; inset: 0 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 44px; }
+  /* The title card. The stage runs a little wider than the card, so that
+     the hotels at the con's middle stand near the middle of the upper half;
+     a shade of the ground lies over it, light at the top and solid by half
+     way down, and the words stand on the solid ground under it. */
+  .behind { position: absolute; left: -40px; top: 96px; width: 1160px; }
+  .behind img { display: block; width: 100%; }
+  .shade { position: absolute; inset: 0; background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--ink) 30%, transparent) 0%, color-mix(in srgb, var(--ink) 36%, transparent) 30%,
+    color-mix(in srgb, var(--ink) 82%, transparent) 43%, var(--ink) 52%); }
+  .over { position: absolute; left: 0; right: 0; top: 1092px; display: flex; flex-direction: column; align-items: center; }
+  .name { font-size: 38px; font-weight: 600; line-height: 1.2; letter-spacing: .22em; margin-right: -.22em; text-transform: uppercase; color: var(--gold); }
+  .lines { margin-top: 46px; font-size: 134px; font-weight: 700; line-height: 1.06; text-align: center; white-space: nowrap; }
+  .lines div:last-child { color: var(--gold); }
+  .rule { width: 120px; height: 6px; border-radius: 3px; background: var(--gold); }
+  .ending { font-size: 88px; font-weight: 700; line-height: 1.08; white-space: nowrap; }
+  /* The end card's second line, between the large line and a small one in
+     size. Its last word is gold and bold, and is drawn in both of the
+     card's pictures - unseen in the first - so that the rest stands where
+     it stood when the word comes. */
+  .second { font-size: 52px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+  .second .yet { font-weight: 700; color: var(--gold); }
+  svg { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div id="card"></div>
+<script>
+/* One picture: {kind, colours: {ink, line, text, muted, gold}, phone: {x, y,
+   w, h, r, edge}} and the kind's own words. "ground" is a beat's backdrop, its
+   caption standing in the band above the phone; "frame" is see-through but
+   for the phone's four corners, filled with the ground, and its edge;
+   "title" takes a picture's address too; "end" is drawn twice, with yetShown
+   false and then true. Resolved once the picture is in. */
+async function draw(spec) {
+  const card = document.getElementById("card"), p = spec.phone;
+  for (const [name, value] of Object.entries(spec.colours)) document.documentElement.style.setProperty(`--${name}`, value);
+  card.className = spec.kind === "frame" ? "" : "filled";
+  card.textContent = "";
+  const add = (parent, tag, cls, text) => { const el = document.createElement(tag); if (cls) el.className = cls; if (text !== undefined) el.textContent = text; parent.appendChild(el); return el; };
+  if (spec.kind === "ground") {
+    const band = add(card, "div", "band");
+    band.style.height = `${p.y}px`;
+    add(band, "div", "caption", spec.caption);
+  } else if (spec.kind === "frame") {
+    const round = `M${p.x + p.r},${p.y} h${p.w - 2 * p.r} a${p.r},${p.r} 0 0 1 ${p.r},${p.r} v${p.h - 2 * p.r} a${p.r},${p.r} 0 0 1 ${-p.r},${p.r} h${-(p.w - 2 * p.r)} a${p.r},${p.r} 0 0 1 ${-p.r},${-p.r} v${-(p.h - 2 * p.r)} a${p.r},${p.r} 0 0 1 ${p.r},${-p.r} z`;
+    card.innerHTML = `<svg width="1080" height="1920" viewBox="0 0 1080 1920">
+      <path fill="${spec.colours.ink}" fill-rule="evenodd" d="M${p.x - 2},${p.y - 2} h${p.w + 4} v${p.h + 4} h${-(p.w + 4)} z ${round}"/>
+      <path fill="none" stroke="${spec.colours.line}" stroke-width="${p.edge}" d="${round}"/></svg>`;
+  } else if (spec.kind === "title") {
+    const picture = add(add(card, "div", "behind"), "img");
+    picture.alt = "";
+    picture.src = spec.picture;
+    await picture.decode();
+    add(card, "div", "shade");
+    const over = add(card, "div", "over");
+    add(over, "div", "name", spec.name);
+    const lines = add(over, "div", "lines");
+    for (const line of spec.lines) add(lines, "div", "", line);
+  } else if (spec.kind === "end") {
+    const middle = add(card, "div", "middle");
+    add(middle, "div", "ending", spec.ending);
+    add(middle, "div", "rule");
+    const second = add(middle, "div", "second");
+    add(second, "span", "", `${spec.endorsed} `);
+    add(second, "span", "yet", spec.yet).style.visibility = spec.yetShown ? "visible" : "hidden";
+  } else throw new Error(`cards.html: no such picture: ${spec.kind}`);
+}
+</script>
+</body>
+</html>

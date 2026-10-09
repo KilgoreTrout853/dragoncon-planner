@@ -3505,3 +3505,29 @@ events was indexed as young adult, for the "ya" in its name.
 harness; it is replaced when the vocabulary moves to the registries. Five
 names by hand is no rule. Other groups still reach too far - burlesque's
 "adult", space's "mars", music's "band", horror's "zombie".
+
+### 105. The teaser reel is recorded by script, from a build of its own — Standing (2026-10-08)
+**Decided:** A film of the app's key features, about a minute long, is made
+by a script, so that it is made again whenever the app changes
+(`tools/reel/`; `node tools/reel/reel.mjs`). It is a tool beside the app: no
+test, build or workflow runs it, and it changes nothing a reader sees.
+- **The page** is a build of its own, into `tools/out/`: the default year,
+  no channel, a default moment (#99), and a backend that does not exist,
+  which the script answers from the page tests' fake, a crew of invented
+  names and real events in it. Nothing is asked of another machine (#81).
+- **The frames are the browser's own,** `Page.startScreencast` over CDP,
+  each kept with the moment it was drawn: Chromium only. The screen is 960
+  px wide and the served page's viewport meta is rewritten to 402, so the
+  page lays out 402x714, a phone's (#81), drawn at the film's own size.
+- **The storyboard is data:** the words, the moment, the cast, each beat's
+  holds. A caption never says where a person is (#68). The title card
+  stands over the Map as the build draws it, taken afresh at each run.
+- **ffmpeg** sets the frames at their durations into H.264 at 60 frames a
+  second; every word on the film is a picture drawn in the same Chromium.
+
+**Why:** A film made by hand is out of date at the next pull request.
+Playwright's `recordVideo` gave 402 px wide at 25 frames a second, its text
+soft; the browser's own frames are 960 wide at 60.
+**Cost:** One dependency, `ffmpeg-static`, pinned in a package of its own as
+`supabase/` holds its CLI; its install fetches a binary. A selector the app
+renames stops the run until the moves follow. Nothing holds the film fresh.
